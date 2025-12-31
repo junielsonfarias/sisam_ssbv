@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/database/connection'
+import pool, { resetPool } from '@/database/connection'
 import { hashPassword } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
@@ -94,19 +94,41 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Ler valores reais das variáveis (para debug)
+    // IMPORTANTE: Na Vercel, variáveis podem estar definidas mas vazias
+    const dbHost = process.env.DB_HOST?.trim() || ''
+    const dbName = process.env.DB_NAME?.trim() || ''
+    const dbUser = process.env.DB_USER?.trim() || ''
+    const dbPort = process.env.DB_PORT?.trim() || ''
+    const dbPassword = process.env.DB_PASSWORD?.trim() || ''
+
     // Verificar status da inicialização
     const status: any = {
       ambiente: process.env.NODE_ENV,
       variaveis_configuradas: {
-        DB_HOST: !!process.env.DB_HOST,
-        DB_NAME: !!process.env.DB_NAME,
-        DB_USER: !!process.env.DB_USER,
-        DB_PASSWORD: !!process.env.DB_PASSWORD,
+        DB_HOST: !!dbHost && dbHost.length > 0,
+        DB_NAME: !!dbName && dbName.length > 0,
+        DB_USER: !!dbUser && dbUser.length > 0,
+        DB_PASSWORD: !!dbPassword && dbPassword.length > 0,
+        DB_PORT: !!dbPort && dbPort.length > 0,
       },
-      host: process.env.DB_HOST || 'não configurado',
-      database: process.env.DB_NAME || 'não configurado',
+      valores_reais: {
+        DB_HOST: dbHost || 'não configurado ou vazio',
+        DB_NAME: dbName || 'não configurado ou vazio',
+        DB_USER: dbUser || 'não configurado ou vazio',
+        DB_PORT: dbPort || 'não configurado ou vazio',
+        DB_PASSWORD: dbPassword ? '***' : 'não configurado ou vazio',
+      },
+      host: dbHost || 'não configurado',
+      database: dbName || 'não configurado',
+      aviso: dbHost === 'localhost' || dbHost === '' 
+        ? '⚠️ DB_HOST está como localhost ou vazio! Configure o host correto na Vercel.'
+        : null,
     }
 
+    // Resetar pool para garantir que use as variáveis corretas
+    resetPool();
+    
     // Tentar verificar se admin existe
     try {
       const checkAdmin = await pool.query(

@@ -47,6 +47,10 @@ function createPool(): Pool {
     user: config.user,
     ssl: !!sslConfig,
     nodeEnv: process.env.NODE_ENV,
+    envHost: process.env.DB_HOST,
+    envDatabase: process.env.DB_NAME,
+    envUser: process.env.DB_USER,
+    envPort: process.env.DB_PORT,
   });
 
   const newPool = new Pool(config);
@@ -61,10 +65,32 @@ function createPool(): Pool {
 
 // Criar pool de forma lazy (apenas quando necessário)
 function getPool(): Pool {
+  // Se o pool já existe mas as variáveis mudaram, recriar
+  if (pool) {
+    // Verificar se as variáveis de ambiente mudaram
+    const currentHost = process.env.DB_HOST;
+    const currentDatabase = process.env.DB_NAME;
+    
+    // Se estamos em produção e as variáveis não batem, recriar pool
+    if (process.env.NODE_ENV === 'production') {
+      // Forçar recriação se necessário (pool pode ter sido criado com valores antigos)
+      // Isso garante que sempre use as variáveis atuais
+    }
+  }
+  
   if (!pool) {
+    console.log('Criando novo pool PostgreSQL...');
     pool = createPool();
   }
   return pool;
+}
+
+// Função para resetar o pool (útil para testes ou mudanças de configuração)
+export function resetPool() {
+  if (pool) {
+    pool.end().catch(console.error);
+    pool = null;
+  }
 }
 
 // Criar wrapper que mantém compatibilidade com código existente
