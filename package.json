@@ -47,6 +47,8 @@
     "verificar-env-vercel": "node scripts/verificar-variaveis-vercel.js",
     "mostrar-config-supabase": "node scripts/mostrar-config-supabase.js",
     "testar-health-producao": "node scripts/testar-health-producao.js",
+    "testar-connection-modes": "node scripts/testar-connection-modes.js",
+    "testar-dns-producao": "node scripts/testar-dns-producao.js",
     "backup": "bash scripts/backup-database.sh",
     "restore": "bash scripts/restore-database.sh"
   },
