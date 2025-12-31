@@ -32,6 +32,10 @@
     "vincular-alunos-sao-lucas": "node scripts/vincular-alunos-turma.js",
     "atualizar-codigos-alunos": "node scripts/atualizar-codigos-alunos.js",
     "verificar-producao": "node scripts/verificar-producao.js",
+    "testar-login": "node scripts/testar-login-admin.js",
+    "verificar-personalizacao": "node scripts/verificar-personalizacao.js",
+    "otimizar-personalizacao": "node scripts/otimizar-personalizacao.js",
+    "remover-logo": "node scripts/remover-logo.js",
     "backup": "bash scripts/backup-database.sh",
     "restore": "bash scripts/restore-database.sh"
   },
