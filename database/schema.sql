@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     tipo_usuario VARCHAR(20) NOT NULL CHECK (tipo_usuario IN ('administrador', 'tecnico', 'polo', 'escola')),
     polo_id UUID REFERENCES polos(id) ON DELETE SET NULL,
     escola_id UUID REFERENCES escolas(id) ON DELETE SET NULL,
+    auth_uid UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     ativo BOOLEAN DEFAULT true,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -147,6 +148,7 @@ CREATE TABLE IF NOT EXISTS importacoes (
 -- Índices para melhor performance
 CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
 CREATE INDEX IF NOT EXISTS idx_usuarios_tipo ON usuarios(tipo_usuario);
+CREATE INDEX IF NOT EXISTS idx_usuarios_auth_uid ON usuarios(auth_uid);
 CREATE INDEX IF NOT EXISTS idx_escolas_polo ON escolas(polo_id);
 CREATE INDEX IF NOT EXISTS idx_resultados_escola ON resultados_provas(escola_id);
 CREATE INDEX IF NOT EXISTS idx_resultados_data ON resultados_provas(data_prova);
