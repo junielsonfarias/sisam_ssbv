@@ -250,7 +250,7 @@ export default function AlunosPage() {
     }
   }
 
-  const anosDisponiveis = useMemo(
+  const anosDisponiveis: string[] = useMemo(
     () => [...new Set(alunos.map(a => a.ano_letivo).filter((ano): ano is string => Boolean(ano)))].sort().reverse(),
     [alunos]
   )
