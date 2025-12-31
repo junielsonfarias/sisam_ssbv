@@ -41,6 +41,7 @@
     "verificar-env-correto": "node scripts/verificar-env-correto.js",
     "corrigir-env-projeto": "node scripts/corrigir-env-projeto-correto.js",
     "atualizar-vercel-producao": "node scripts/atualizar-vercel-producao.js",
+    "atualizar-variaveis-vercel": "node scripts/atualizar-variaveis-vercel.js",
     "backup": "bash scripts/backup-database.sh",
     "restore": "bash scripts/restore-database.sh"
   },
