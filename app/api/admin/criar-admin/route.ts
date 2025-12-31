@@ -6,11 +6,11 @@ export async function GET(request: NextRequest) {
   try {
     // Diagnóstico: verificar variáveis de ambiente
     const envCheck = {
-      DB_HOST: process.env.DB_HOST ? '✅ Configurado' : '❌ Não configurado',
-      DB_PORT: process.env.DB_PORT ? '✅ Configurado' : '❌ Não configurado',
-      DB_NAME: process.env.DB_NAME ? '✅ Configurado' : '❌ Não configurado',
-      DB_USER: process.env.DB_USER ? '✅ Configurado' : '❌ Não configurado',
-      DB_PASSWORD: process.env.DB_PASSWORD ? '✅ Configurado' : '❌ Não configurado',
+      DB_HOST: process.env.DB_HOST ? `✅ ${process.env.DB_HOST}` : '❌ Não configurado',
+      DB_PORT: process.env.DB_PORT ? `✅ ${process.env.DB_PORT}` : '❌ Não configurado',
+      DB_NAME: process.env.DB_NAME ? `✅ ${process.env.DB_NAME}` : '❌ Não configurado',
+      DB_USER: process.env.DB_USER ? `✅ ${process.env.DB_USER}` : '❌ Não configurado',
+      DB_PASSWORD: process.env.DB_PASSWORD ? '✅ Configurado (oculto)' : '❌ Não configurado',
       NODE_ENV: process.env.NODE_ENV || 'não definido',
     }
 
