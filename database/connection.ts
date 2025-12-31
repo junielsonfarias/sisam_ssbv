@@ -3,8 +3,14 @@ import { Pool } from 'pg';
 let pool: Pool | null = null;
 
 function createPool(): Pool {
-  // Configuração SSL para produção
-  const sslConfig = process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true' 
+  // Detectar se está conectando ao Supabase
+  const isSupabase = process.env.DB_HOST?.includes('supabase.co') || 
+                     process.env.DB_HOST?.includes('pooler.supabase.com');
+  
+  // Configuração SSL: sempre usar para Supabase, produção ou quando DB_SSL=true
+  const sslConfig = process.env.NODE_ENV === 'production' || 
+                    process.env.DB_SSL === 'true' || 
+                    isSupabase
     ? {
         rejectUnauthorized: false, // Aceita certificados auto-assinados
       }
@@ -25,7 +31,7 @@ function createPool(): Pool {
     password: password || 'postgres',
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: isSupabase ? 15000 : 10000, // Aumentado para Supabase
     ssl: sslConfig,
   };
 

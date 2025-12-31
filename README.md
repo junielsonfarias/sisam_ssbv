@@ -55,41 +55,74 @@ npm install
 ```
 
 3. Configure o banco de dados:
-   - Crie um banco de dados PostgreSQL chamado `sisam`
-   - Execute o script de schema:
-```bash
-psql -U postgres -d sisam -f database/schema.sql
-```
 
-4. Configure as variáveis de ambiente:
-```bash
-cp .env.example .env
-```
+   **Opção A: Usando Supabase (Recomendado)**
+   
+   O schema já foi aplicado no Supabase. Você só precisa configurar as credenciais:
+   
+   a. Obtenha as credenciais do Supabase:
+      - Acesse: https://supabase.com/dashboard
+      - Vá em **Settings** → **Database** → **Connection string**
+      - Selecione **URI** e copie as informações
+   
+   b. Configure o arquivo `.env`:
+   ```env
+   DB_HOST=db.[SEU-PROJECT-REF].supabase.co
+   DB_PORT=5432
+   DB_NAME=postgres
+   DB_USER=postgres
+   DB_PASSWORD=[SUA-SENHA-SUPABASE]
+   DB_SSL=true
+   JWT_SECRET=sua-chave-secreta-super-segura
+   NODE_ENV=development
+   ```
+   
+   c. Crie o usuário administrador:
+   ```bash
+   npm run seed-supabase
+   ```
+   
+   **Opção B: Banco Local (PostgreSQL)**
+   
+   ```bash
+   # Criar banco e executar schema
+   npm run setup-db
+   
+   # Criar usuário administrador
+   npm run seed
+   ```
+   
+   Configure o arquivo `.env`:
+   ```env
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=sisam
+   DB_USER=postgres
+   DB_PASSWORD=sua-senha
+   DB_SSL=false
+   JWT_SECRET=sua-chave-secreta-super-segura
+   NODE_ENV=development
+   ```
 
-Edite o arquivo `.env` com suas configurações:
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=sisam
-DB_USER=postgres
-DB_PASSWORD=sua-senha
-JWT_SECRET=sua-chave-secreta-super-segura
-```
-
-5. Inicie o servidor de desenvolvimento:
+4. Inicie o servidor de desenvolvimento:
 ```bash
 npm run dev
 ```
 
-6. Acesse o sistema em: `http://localhost:3000`
+5. Acesse o sistema em: `http://localhost:3000`
 
 ## 🔐 Credenciais Padrão
 
-Após executar o schema do banco de dados, um usuário administrador padrão será criado:
+Após executar o seed, um usuário administrador padrão será criado:
 - **Email**: admin@sisam.com
 - **Senha**: admin123
 
 ⚠️ **IMPORTANTE**: Altere a senha padrão após o primeiro acesso!
+
+## 📚 Documentação Adicional
+
+- [Configuração Completa do Supabase](docs/CONFIGURAR_SUPABASE_COMPLETO.md)
+- [Instruções Rápidas Supabase](docs/INSTRUCOES_RAPIDAS_SUPABASE.md)
 
 ## 📊 Estrutura do Banco de Dados
 

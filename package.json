@@ -10,6 +10,7 @@
     "lint": "next lint",
     "setup-db": "node scripts/setup-database.js",
     "seed": "node scripts/seed.js",
+    "seed-supabase": "node scripts/seed-supabase.js",
     "listar-escolas": "node scripts/listar-escolas.js",
     "unificar-escolas": "node scripts/unificar-escolas.js",
     "unificar-escolas-auto": "node scripts/unificar-escolas-auto.js",
