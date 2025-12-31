@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Verificar status da inicialização
-    const status = {
+    const status: any = {
       ambiente: process.env.NODE_ENV,
       variaveis_configuradas: {
         DB_HOST: !!process.env.DB_HOST,
