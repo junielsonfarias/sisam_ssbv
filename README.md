@@ -60,22 +60,14 @@ npm install
    
    O schema já foi aplicado no Supabase. Configure automaticamente:
    
-   a. Configure o arquivo `.env` automaticamente:
+   a. Configure os arquivos `.env` e `.env.local` automaticamente:
    ```bash
-   npm run configurar-env
+   npm run configurar-env-producao
    ```
    
-   Ou configure manualmente no arquivo `.env`:
-   ```env
-   DB_HOST=db.cjxejpgtuuqnbczpbdfe.supabase.co
-   DB_PORT=5432
-   DB_NAME=postgres
-   DB_USER=postgres
-   DB_PASSWORD=Master@sisam&&
-   DB_SSL=true
-   JWT_SECRET=sua-chave-secreta-super-segura
-   NODE_ENV=development
-   ```
+   Este comando criará:
+   - `.env` - Configuração para PRODUÇÃO (Connection Pooler, porta 6543)
+   - `.env.local` - Configuração para DESENVOLVIMENTO (Direct Connection, porta 5432)
    
    b. Teste a conexão:
    ```bash
@@ -85,6 +77,11 @@ npm install
    c. O usuário administrador já foi criado:
       - **Email**: admin@sisam.com
       - **Senha**: admin123
+   
+   **⚠️ IMPORTANTE para Produção (Vercel):**
+   - Use o **Connection Pooler** (porta 6543)
+   - `DB_USER` deve incluir project ref: `postgres.cjxejpgtuuqnbczpbdfe`
+   - Configure as mesmas variáveis do `.env` na Vercel
    
    **Opção B: Banco Local (PostgreSQL)**
    

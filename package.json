@@ -14,6 +14,7 @@
     "aplicar-schema-supabase": "node scripts/aplicar-schema-supabase.js",
     "testar-conexao-supabase": "node scripts/testar-conexao-supabase.js",
     "configurar-env": "node scripts/configurar-env-supabase.js",
+    "configurar-env-producao": "node scripts/configurar-env-producao.js",
     "listar-escolas": "node scripts/listar-escolas.js",
     "unificar-escolas": "node scripts/unificar-escolas.js",
     "unificar-escolas-auto": "node scripts/unificar-escolas-auto.js",
