@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)

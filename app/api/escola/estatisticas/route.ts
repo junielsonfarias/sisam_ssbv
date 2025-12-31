@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)

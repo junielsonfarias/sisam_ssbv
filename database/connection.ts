@@ -23,7 +23,7 @@ function createPool(): Pool {
   const user = process.env.DB_USER;
   const password = process.env.DB_PASSWORD;
 
-  const config = {
+  const config: any = {
     host: host || 'localhost',
     port: port || 5432,
     database: database || 'sisam',
@@ -34,6 +34,11 @@ function createPool(): Pool {
     connectionTimeoutMillis: isSupabase ? 15000 : 10000, // Aumentado para Supabase
     ssl: sslConfig,
   };
+
+  // Forçar IPv4 em produção (Vercel) para evitar erros ENETUNREACH com IPv6
+  if (process.env.NODE_ENV === 'production' && isSupabase) {
+    config.family = 4; // Forçar IPv4
+  }
 
   // Log das configurações (sem senha) para debug
   console.log('Configurando pool PostgreSQL:', {

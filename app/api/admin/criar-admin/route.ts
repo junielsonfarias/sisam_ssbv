@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { hashPassword } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     // Diagnóstico: verificar variáveis de ambiente

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { comparePassword, generateToken } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     let body

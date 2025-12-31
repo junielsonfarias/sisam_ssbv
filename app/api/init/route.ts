@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool, { resetPool } from '@/database/connection'
 import { hashPassword } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     // Verificar se é ambiente de produção

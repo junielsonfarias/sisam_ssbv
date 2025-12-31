@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
 
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)

@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
+export const dynamic = 'force-dynamic';
+
 // GET - Buscar configurações de personalização
 export async function GET(request: NextRequest) {
   try {

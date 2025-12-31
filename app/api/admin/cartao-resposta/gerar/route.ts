@@ -5,6 +5,7 @@ import pool from '@/database/connection'
 // PDFKit precisa ser importado dinamicamente
 const PDFDocument = require('pdfkit')
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
