@@ -145,6 +145,38 @@ export async function GET(request: NextRequest) {
     } catch (dbError: any) {
       status.erro_conexao = dbError.message
       status.code_erro = dbError.code
+      
+      // Mensagens de ajuda específicas para Supabase
+      if (dbError.code === 'ENOTFOUND') {
+        status.ajuda = {
+          problema: 'Hostname não encontrado (DNS)',
+          solucoes: [
+            'Verifique se o DB_HOST está correto no Supabase',
+            'Use o hostname do Connection Pooler (porta 6543) para aplicações',
+            'Use o hostname da Direct Connection (porta 5432) apenas para migrations',
+            'No Supabase: Settings → Database → Connection Pooling',
+            'Certifique-se de que o projeto está ativo e não pausado'
+          ]
+        }
+      } else if (dbError.code === 'ECONNREFUSED') {
+        status.ajuda = {
+          problema: 'Conexão recusada',
+          solucoes: [
+            'Verifique se a porta está correta (5432 ou 6543)',
+            'Verifique se o firewall permite conexões',
+            'No Supabase, use Connection Pooler (porta 6543) para aplicações'
+          ]
+        }
+      } else if (dbError.code === '28P01') {
+        status.ajuda = {
+          problema: 'Autenticação falhou',
+          solucoes: [
+            'Verifique se DB_USER e DB_PASSWORD estão corretos',
+            'Use as credenciais do Supabase (geralmente postgres)',
+            'Verifique se a senha não tem caracteres especiais que precisam ser escapados'
+          ]
+        }
+      }
     }
 
     return NextResponse.json(status)
