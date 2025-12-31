@@ -42,6 +42,9 @@
     "corrigir-env-projeto": "node scripts/corrigir-env-projeto-correto.js",
     "atualizar-vercel-producao": "node scripts/atualizar-vercel-producao.js",
     "atualizar-variaveis-vercel": "node scripts/atualizar-variaveis-vercel.js",
+    "configurar-vercel": "node scripts/configurar-vercel-completo.js",
+    "configurar-vercel-auto": "node scripts/configurar-vercel-final.js",
+    "verificar-env-vercel": "node scripts/verificar-variaveis-vercel.js",
     "backup": "bash scripts/backup-database.sh",
     "restore": "bash scripts/restore-database.sh"
   },
