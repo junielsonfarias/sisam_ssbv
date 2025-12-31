@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/init-production.js || true",
     "start": "next start",
     "lint": "next lint",
     "setup-db": "node scripts/setup-database.js",
@@ -29,9 +28,7 @@
     "atualizar-codigos-alunos": "node scripts/atualizar-codigos-alunos.js",
     "verificar-producao": "node scripts/verificar-producao.js",
     "backup": "bash scripts/backup-database.sh",
-    "restore": "bash scripts/restore-database.sh",
-    "configurar-vercel": "node scripts/configurar-vercel.js",
-    "atualizar-vercel": "node scripts/atualizar-vercel-env.js"
+    "restore": "bash scripts/restore-database.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.0",

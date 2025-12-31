@@ -36,11 +36,8 @@ function createPool(): Pool {
     password: password || 'postgres',
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 15000, // Aumentado para Supabase
+    connectionTimeoutMillis: 10000,
     ssl: sslConfig,
-    // Configurações adicionais para Supabase
-    keepAlive: true,
-    keepAliveInitialDelayMillis: 10000,
   };
 
   // Log das configurações (sem senha) para debug
