@@ -27,6 +27,19 @@ export async function POST(request: NextRequest) {
     
     console.log('Tentativa de login para:', email)
 
+    // Verificar se JWT_SECRET está configurado
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 20) {
+      console.error('JWT_SECRET não configurado ou muito curto')
+      return NextResponse.json(
+        { 
+          mensagem: 'Erro na configuração do servidor',
+          erro: 'JWT_NOT_CONFIGURED',
+          detalhes: 'JWT_SECRET não está configurado corretamente'
+        },
+        { status: 500 }
+      )
+    }
+
     // Verificar conexão com banco
     let result
     try {
@@ -36,9 +49,30 @@ export async function POST(request: NextRequest) {
       )
     } catch (dbError: any) {
       console.error('Erro ao consultar banco de dados:', dbError)
+      console.error('Código do erro:', dbError.code)
+      console.error('Mensagem do erro:', dbError.message)
+      
+      let errorMessage = 'Erro ao conectar com o banco de dados'
+      let errorCode = 'DB_ERROR'
+      
+      if (dbError.code === 'ECONNREFUSED') {
+        errorMessage = 'Não foi possível conectar ao banco de dados'
+        errorCode = 'DB_CONNECTION_REFUSED'
+      } else if (dbError.code === 'ENOTFOUND') {
+        errorMessage = 'Host do banco de dados não encontrado'
+        errorCode = 'DB_HOST_NOT_FOUND'
+      } else if (dbError.code === 'ENETUNREACH') {
+        errorMessage = 'Rede não alcançável. Verifique a configuração do banco'
+        errorCode = 'DB_NETWORK_ERROR'
+      } else if (dbError.code === '28P01') {
+        errorMessage = 'Credenciais do banco de dados inválidas'
+        errorCode = 'DB_AUTH_ERROR'
+      }
+      
       return NextResponse.json(
         { 
-          mensagem: 'Erro ao conectar com o banco de dados',
+          mensagem: errorMessage,
+          erro: errorCode,
           detalhes: process.env.NODE_ENV === 'development' ? dbError.message : undefined
         },
         { status: 500 }
@@ -185,10 +219,38 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Erro no login:', error)
     console.error('Stack trace:', error.stack)
+    console.error('Tipo do erro:', error.constructor.name)
+    console.error('Código do erro:', error.code)
+    
+    // Verificar se é erro de conexão com banco
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ENETUNREACH') {
+      return NextResponse.json(
+        { 
+          mensagem: 'Erro ao conectar com o banco de dados',
+          erro: 'CONEXAO_BANCO',
+          detalhes: process.env.NODE_ENV === 'development' ? error.message : 'Verifique as configurações do banco de dados'
+        },
+        { status: 500 }
+      )
+    }
+    
+    // Verificar se é erro de JWT
+    if (error.message?.includes('JWT') || error.message?.includes('token')) {
+      return NextResponse.json(
+        { 
+          mensagem: 'Erro na configuração de autenticação',
+          erro: 'JWT_ERROR',
+          detalhes: process.env.NODE_ENV === 'development' ? error.message : 'Verifique a configuração JWT_SECRET'
+        },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
       { 
         mensagem: 'Erro interno do servidor',
-        detalhes: process.env.NODE_ENV === 'development' ? error.message : undefined
+        erro: 'ERRO_INTERNO',
+        detalhes: process.env.NODE_ENV === 'development' ? error.message : 'Entre em contato com o suporte'
       },
       { status: 500 }
     )
