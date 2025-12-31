@@ -124,6 +124,8 @@ Após executar o seed, um usuário administrador padrão será criado:
 
 - [Configuração Completa do Supabase](docs/CONFIGURAR_SUPABASE_COMPLETO.md)
 - [Instruções Rápidas Supabase](docs/INSTRUCOES_RAPIDAS_SUPABASE.md)
+- [Solução: Login e Logo em Produção](docs/SOLUCAO_LOGIN_LOGO.md) ⭐
+- [Vinculação Supabase Auth](docs/VINCULACAO_SUPABASE_AUTH.md)
 
 ## 📊 Estrutura do Banco de Dados
 
