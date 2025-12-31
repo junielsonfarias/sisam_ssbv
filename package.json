@@ -33,6 +33,8 @@
     "atualizar-codigos-alunos": "node scripts/atualizar-codigos-alunos.js",
     "verificar-producao": "node scripts/verificar-producao.js",
     "testar-login": "node scripts/testar-login-admin.js",
+    "testar-login-producao": "node scripts/testar-login-producao.js",
+    "testar-login-producao-auto": "node scripts/testar-login-producao-auto.js",
     "verificar-personalizacao": "node scripts/verificar-personalizacao.js",
     "otimizar-personalizacao": "node scripts/otimizar-personalizacao.js",
     "remover-logo": "node scripts/remover-logo.js",
