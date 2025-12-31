@@ -2,7 +2,7 @@
 
 Sistema completo para análise e gestão de dados de provas, com diferentes níveis de acesso e funcionalidades de importação e análise de dados.
 
-**Repositório**: [Sisam_ssbv](https://github.com/seu-usuario/Sisam_ssbv)
+**Repositório**: [sisam_ssbv](https://github.com/junielsonfarias/sisam_ssbv)
 
 ## 🚀 Funcionalidades
 
