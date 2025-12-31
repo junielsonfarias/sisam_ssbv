@@ -246,33 +246,33 @@ export default function ResultadosPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Resultados Consolidados</h1>
-              <p className="text-gray-600 mt-1">Visualize notas e médias dos alunos</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Resultados Consolidados</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">Visualize notas e médias dos alunos</p>
             </div>
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6" style={{ overflow: 'visible' }}>
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6" style={{ overflow: 'visible' }}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
               <div className="flex items-center">
-                <Filter className="w-5 h-5 mr-2 text-indigo-600" />
-                <h2 className="text-xl font-semibold text-gray-800">Filtros</h2>
+                <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" />
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Filtros</h2>
               </div>
               {temFiltrosAtivos && (
                 <button
                   onClick={limparFiltros}
-                  className="flex items-center text-sm text-indigo-600 hover:text-indigo-700"
+                  className="flex items-center text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 w-fit"
                 >
-                  <X className="w-4 h-4 mr-1" />
+                  <X className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Limpar filtros
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Polo
@@ -503,52 +503,54 @@ export default function ResultadosPage() {
                 <p className="text-gray-500 mt-4">Carregando resultados...</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
-                    <tr>
-                      <th className="text-left py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        Aluno
-                      </th>
-                      <th className="text-left py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        Escola
-                      </th>
-                      <th className="text-left py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        Turma
-                      </th>
-                      <th className="text-left py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        Série
-                      </th>
-                      <th className="text-center py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        Presença
-                      </th>
-                      <th className="text-center py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        LP
-                      </th>
-                      <th className="text-center py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        CH
-                      </th>
-                      <th className="text-center py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        MAT
-                      </th>
-                      <th className="text-center py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        CN
-                      </th>
-                      <th className="text-center py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        Média
-                      </th>
-                      <th className="text-center py-4 px-6 font-bold text-indigo-900 text-sm uppercase tracking-wider border-b border-indigo-200">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <div className="inline-block min-w-full align-middle">
+                  <div className="overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
+                        <tr>
+                          <th className="text-left py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            Aluno
+                          </th>
+                          <th className="hidden md:table-cell text-left py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            Escola
+                          </th>
+                          <th className="hidden lg:table-cell text-left py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            Turma
+                          </th>
+                          <th className="text-left py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            Série
+                          </th>
+                          <th className="hidden sm:table-cell text-center py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            Presença
+                          </th>
+                          <th className="text-center py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            LP
+                          </th>
+                          <th className="hidden md:table-cell text-center py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            CH
+                          </th>
+                          <th className="text-center py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            MAT
+                          </th>
+                          <th className="hidden md:table-cell text-center py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            CN
+                          </th>
+                          <th className="text-center py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            Média
+                          </th>
+                          <th className="text-center py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
+                            Ações
+                          </th>
+                        </tr>
+                      </thead>
                   <tbody className="divide-y divide-gray-200">
                     {resultadosFiltrados.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="py-12 text-center text-gray-500">
-                          <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                          <p className="text-lg font-medium">Nenhum resultado encontrado</p>
-                          <p className="text-sm">Importe os dados primeiro</p>
+                        <td colSpan={11} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                          <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
+                          <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
+                          <p className="text-xs sm:text-sm mt-1">Importe os dados primeiro</p>
                         </td>
                       </tr>
                     ) : (
@@ -561,50 +563,76 @@ export default function ResultadosPage() {
 
                         return (
                           <tr key={resultado.id} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
-                            <td className="py-4 px-6">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-                                  <span className="text-indigo-600 font-semibold text-sm">
-                                    {resultado.aluno_nome.charAt(0).toUpperCase()}
-                                  </span>
+                            <td className="py-3 px-3 sm:py-4 sm:px-6 whitespace-nowrap">
+                              <div className="flex flex-col">
+                                <button
+                                  onClick={() => {
+                                    setAlunoSelecionado({
+                                      id: resultado.aluno_id || resultado.id,
+                                      anoLetivo: filtros.ano_letivo,
+                                    })
+                                    setModalAberto(true)
+                                  }}
+                                  className="flex items-center w-full text-left hover:opacity-80 transition-opacity mb-1"
+                                  title="Clique para ver questões do aluno"
+                                >
+                                  <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-2 sm:mr-3">
+                                    <span className="text-indigo-600 font-semibold text-xs sm:text-sm">
+                                      {resultado.aluno_nome.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-xs sm:text-sm">{resultado.aluno_nome}</span>
+                                </button>
+                                <div className="sm:hidden text-xs text-gray-500 space-y-0.5 ml-10">
+                                  <div>Escola: {resultado.escola_nome}</div>
+                                  {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
+                                  <div className="flex items-center gap-2">
+                                    <span>Presença: </span>
+                                    <span
+                                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getPresencaColor(
+                                        resultado.presenca || 'P'
+                                      )}`}
+                                    >
+                                      {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                    </span>
+                                  </div>
                                 </div>
-                                <span className="font-semibold text-gray-900">{resultado.aluno_nome}</span>
                               </div>
                             </td>
-                            <td className="py-4 px-6">
-                              <span className="text-gray-700 font-medium">{resultado.escola_nome}</span>
+                            <td className="hidden md:table-cell py-3 px-3 sm:py-4 sm:px-6 whitespace-nowrap">
+                              <span className="text-gray-700 font-medium text-xs sm:text-sm">{resultado.escola_nome}</span>
                             </td>
-                            <td className="py-4 px-6">
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 font-mono text-xs font-medium">
+                            <td className="hidden lg:table-cell py-3 px-3 sm:py-4 sm:px-6 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 font-mono text-xs font-medium">
                                 {resultado.turma_codigo || '-'}
                               </span>
                             </td>
-                            <td className="py-4 px-6">
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
+                            <td className="py-3 px-3 sm:py-4 sm:px-6 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
                                 {resultado.serie || '-'}
                               </span>
                             </td>
-                            <td className="py-4 px-6 text-center">
+                            <td className="hidden sm:table-cell py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
                               <span
-                                className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${getPresencaColor(
+                                className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold shadow-sm ${getPresencaColor(
                                   resultado.presenca || 'P'
                                 )}`}
                               >
                                 {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
                               </span>
                             </td>
-                            <td className="py-4 px-6 text-center">
-                              <div className={`inline-flex flex-col items-center p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} min-w-[70px]`}>
+                            <td className="py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
+                              <div className={`inline-flex flex-col items-center p-2 sm:p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} min-w-[60px] sm:min-w-[70px]`}>
                                 <div className="text-xs text-gray-600 mb-1 font-medium">
                                   {resultado.total_acertos_lp}/20
                                 </div>
-                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)}`}>
+                                <div className={`text-sm sm:text-lg font-bold ${getNotaColor(resultado.nota_lp)}`}>
                                   {formatarNota(resultado.nota_lp)}
                                 </div>
                                 {notaLP !== null && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                  <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5 mt-1 sm:mt-2">
                                     <div
-                                      className={`h-1.5 rounded-full ${
+                                      className={`h-1 sm:h-1.5 rounded-full ${
                                         notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
@@ -613,18 +641,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-4 px-6 text-center">
-                              <div className={`inline-flex flex-col items-center p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} min-w-[70px]`}>
+                            <td className="hidden md:table-cell py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
+                              <div className={`inline-flex flex-col items-center p-2 sm:p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} min-w-[60px] sm:min-w-[70px]`}>
                                 <div className="text-xs text-gray-600 mb-1 font-medium">
                                   {resultado.total_acertos_ch}/10
                                 </div>
-                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)}`}>
+                                <div className={`text-sm sm:text-lg font-bold ${getNotaColor(resultado.nota_ch)}`}>
                                   {formatarNota(resultado.nota_ch)}
                                 </div>
                                 {notaCH !== null && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                  <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5 mt-1 sm:mt-2">
                                     <div
-                                      className={`h-1.5 rounded-full ${
+                                      className={`h-1 sm:h-1.5 rounded-full ${
                                         notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
@@ -633,18 +661,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-4 px-6 text-center">
-                              <div className={`inline-flex flex-col items-center p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} min-w-[70px]`}>
+                            <td className="py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
+                              <div className={`inline-flex flex-col items-center p-2 sm:p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} min-w-[60px] sm:min-w-[70px]`}>
                                 <div className="text-xs text-gray-600 mb-1 font-medium">
                                   {resultado.total_acertos_mat}/20
                                 </div>
-                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)}`}>
+                                <div className={`text-sm sm:text-lg font-bold ${getNotaColor(resultado.nota_mat)}`}>
                                   {formatarNota(resultado.nota_mat)}
                                 </div>
                                 {notaMAT !== null && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                  <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5 mt-1 sm:mt-2">
                                     <div
-                                      className={`h-1.5 rounded-full ${
+                                      className={`h-1 sm:h-1.5 rounded-full ${
                                         notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
@@ -653,18 +681,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-4 px-6 text-center">
-                              <div className={`inline-flex flex-col items-center p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} min-w-[70px]`}>
+                            <td className="hidden md:table-cell py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
+                              <div className={`inline-flex flex-col items-center p-2 sm:p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} min-w-[60px] sm:min-w-[70px]`}>
                                 <div className="text-xs text-gray-600 mb-1 font-medium">
                                   {resultado.total_acertos_cn}/10
                                 </div>
-                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)}`}>
+                                <div className={`text-sm sm:text-lg font-bold ${getNotaColor(resultado.nota_cn)}`}>
                                   {formatarNota(resultado.nota_cn)}
                                 </div>
                                 {notaCN !== null && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                  <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5 mt-1 sm:mt-2">
                                     <div
-                                      className={`h-1.5 rounded-full ${
+                                      className={`h-1 sm:h-1.5 rounded-full ${
                                         notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
@@ -673,23 +701,23 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-4 px-6 text-center">
-                              <div className={`inline-flex flex-col items-center p-4 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
+                            <td className="py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
+                              <div className={`inline-flex flex-col items-center justify-center px-2 sm:px-3 py-2 sm:py-4 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                                 mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
                                 mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
                                 'border-red-500'
-                              } min-w-[80px]`}>
-                                <div className={`text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
+                              } min-w-[70px] sm:min-w-[80px]`}>
+                                <div className={`text-lg sm:text-xl lg:text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                                   {formatarNota(resultado.media_aluno)}
                                 </div>
                                 {mediaNum !== null && (
-                                  <div className="mt-2 text-xs font-medium text-gray-600">
+                                  <div className="mt-1 sm:mt-2 text-xs font-medium text-gray-600">
                                     Média
                                   </div>
                                 )}
                               </div>
                             </td>
-                            <td className="py-4 px-6 text-center">
+                            <td className="py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
                               <button
                                 onClick={() => {
                                   setAlunoSelecionado({
@@ -698,11 +726,11 @@ export default function ResultadosPage() {
                                   })
                                   setModalAberto(true)
                                 }}
-                                className="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                                className="w-full sm:w-auto inline-flex items-center justify-center px-3 sm:px-3 py-2 sm:py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-medium shadow-sm"
                                 title="Ver questões do aluno"
                               >
-                                <Eye className="w-4 h-4 mr-2" />
-                                Ver Questões
+                                <Eye className="w-4 h-4 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                                <span className="sm:inline">Ver Questões</span>
                               </button>
                             </td>
                           </tr>
@@ -710,7 +738,9 @@ export default function ResultadosPage() {
                       })
                     )}
                   </tbody>
-                </table>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
           </div>

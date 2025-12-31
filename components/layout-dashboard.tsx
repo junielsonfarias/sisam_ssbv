@@ -119,8 +119,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               </button>
               <h1 className="ml-2 lg:ml-0 text-xl font-bold text-gray-800">SISAM</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{usuario?.nome}</span>
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <span className="text-xs sm:text-sm text-gray-600 truncate max-w-[120px] sm:max-w-none">{usuario?.nome}</span>
               <button
                 onClick={handleLogout}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-md"
@@ -172,8 +172,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
-          {children}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+          <div className="max-w-full">
+            {children}
+          </div>
         </main>
       </div>
 

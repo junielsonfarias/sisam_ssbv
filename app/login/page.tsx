@@ -105,8 +105,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100" style={{
       background: `linear-gradient(to bottom right, ${personalizacao.login_cor_secundaria}15, ${personalizacao.login_cor_primaria}25)`
     }}>
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-md">
           <div className="flex items-center justify-center mb-6">
             {personalizacao.login_imagem_url ? (
               <img

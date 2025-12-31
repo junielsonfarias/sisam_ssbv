@@ -33,57 +33,57 @@ export default function AdminDashboard() {
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
       <LayoutDashboard tipoUsuario="admin">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-8">Dashboard Administrativo</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8">Dashboard Administrativo</h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Total de Usuários</p>
-                  <p className="text-3xl font-bold text-gray-800 mt-2">{estatisticas.totalUsuarios}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm">Total de Usuários</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-2">{estatisticas.totalUsuarios}</p>
                 </div>
-                <Users className="w-12 h-12 text-indigo-600" />
+                <Users className="w-8 h-8 sm:w-12 sm:h-12 text-indigo-600 flex-shrink-0" />
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Total de Escolas</p>
-                  <p className="text-3xl font-bold text-gray-800 mt-2">{estatisticas.totalEscolas}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm">Total de Escolas</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-2">{estatisticas.totalEscolas}</p>
                 </div>
-                <School className="w-12 h-12 text-green-600" />
+                <School className="w-8 h-8 sm:w-12 sm:h-12 text-green-600 flex-shrink-0" />
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Total de Polos</p>
-                  <p className="text-3xl font-bold text-gray-800 mt-2">{estatisticas.totalPolos}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm">Total de Polos</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-2">{estatisticas.totalPolos}</p>
                 </div>
-                <MapPin className="w-12 h-12 text-blue-600" />
+                <MapPin className="w-8 h-8 sm:w-12 sm:h-12 text-blue-600 flex-shrink-0" />
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Total de Questões</p>
-                  <p className="text-3xl font-bold text-gray-800 mt-2">{estatisticas.totalQuestoes}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm">Total de Questões</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-2">{estatisticas.totalQuestoes}</p>
                 </div>
-                <FileText className="w-12 h-12 text-purple-600" />
+                <FileText className="w-8 h-8 sm:w-12 sm:h-12 text-purple-600 flex-shrink-0" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">Resultados de Provas</h2>
-              <BarChart3 className="w-6 h-6 text-indigo-600" />
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Resultados de Provas</h2>
+              <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 flex-shrink-0" />
             </div>
-            <p className="text-3xl font-bold text-gray-800">{estatisticas.totalResultados.toLocaleString('pt-BR')}</p>
-            <p className="text-gray-600 text-sm mt-2">Total de registros de resultados</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-800">{estatisticas.totalResultados.toLocaleString('pt-BR')}</p>
+            <p className="text-gray-600 text-xs sm:text-sm mt-2">Total de registros de resultados</p>
           </div>
         </div>
       </LayoutDashboard>
