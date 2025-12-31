@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -19,6 +19,11 @@ const nextConfig = {
         'restructure': 'commonjs restructure',
         'fontkit': 'commonjs fontkit',
       })
+    }
+    
+    // Garantir que o webpack runtime está configurado corretamente
+    config.resolve.alias = {
+      ...config.resolve.alias,
     }
     
     return config
