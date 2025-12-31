@@ -503,10 +503,182 @@ export default function ResultadosPage() {
                 <p className="text-gray-500 mt-4">Carregando resultados...</p>
               </div>
             ) : (
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <div className="inline-block min-w-full align-middle">
-                  <div className="overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
+              <>
+                {/* Visualização Mobile - Cards */}
+                <div className="block sm:hidden space-y-4 p-4">
+                  {resultadosFiltrados.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                      <p className="text-base font-medium text-gray-500">Nenhum resultado encontrado</p>
+                      <p className="text-sm mt-1 text-gray-400">Importe os dados primeiro</p>
+                    </div>
+                  ) : (
+                    resultadosFiltrados.map((resultado) => {
+                    const mediaNum = getNotaNumero(resultado.media_aluno)
+                    const notaLP = getNotaNumero(resultado.nota_lp)
+                    const notaCH = getNotaNumero(resultado.nota_ch)
+                    const notaMAT = getNotaNumero(resultado.nota_mat)
+                    const notaCN = getNotaNumero(resultado.nota_cn)
+
+                    return (
+                      <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        {/* Cabeçalho do Card */}
+                        <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200">
+                          <button
+                            onClick={() => {
+                              setAlunoSelecionado({
+                                id: resultado.aluno_id || resultado.id,
+                                anoLetivo: filtros.ano_letivo,
+                              })
+                              setModalAberto(true)
+                            }}
+                            className="flex items-center flex-1 text-left hover:opacity-80 transition-opacity"
+                            title="Clique para ver questões do aluno"
+                          >
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                              <span className="text-indigo-600 font-semibold text-sm">
+                                {resultado.aluno_nome.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-sm mb-1">
+                                {resultado.aluno_nome}
+                              </div>
+                              <div className="text-xs text-gray-500 space-y-0.5">
+                                <div>{resultado.escola_nome}</div>
+                                {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
+                                <div className="flex items-center gap-2">
+                                  <span>Série: {resultado.serie || '-'}</span>
+                                  <span className="text-gray-300">|</span>
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getPresencaColor(
+                                      resultado.presenca || 'P'
+                                    )}`}
+                                  >
+                                    {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Notas em Grid */}
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          {/* LP */}
+                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
+                            <div className="text-xs font-semibold text-gray-600 mb-1">Língua Portuguesa</div>
+                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_lp}/20</div>
+                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
+                              {formatarNota(resultado.nota_lp)}
+                            </div>
+                            {notaLP !== null && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                <div
+                                  className={`h-1.5 rounded-full ${
+                                    notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
+                                ></div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* CH */}
+                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
+                            <div className="text-xs font-semibold text-gray-600 mb-1">Ciências Humanas</div>
+                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_ch}/10</div>
+                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
+                              {formatarNota(resultado.nota_ch)}
+                            </div>
+                            {notaCH !== null && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                <div
+                                  className={`h-1.5 rounded-full ${
+                                    notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
+                                ></div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* MAT */}
+                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
+                            <div className="text-xs font-semibold text-gray-600 mb-1">Matemática</div>
+                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_mat}/20</div>
+                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
+                              {formatarNota(resultado.nota_mat)}
+                            </div>
+                            {notaMAT !== null && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                <div
+                                  className={`h-1.5 rounded-full ${
+                                    notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
+                                ></div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* CN */}
+                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
+                            <div className="text-xs font-semibold text-gray-600 mb-1">Ciências da Natureza</div>
+                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_cn}/10</div>
+                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
+                              {formatarNota(resultado.nota_cn)}
+                            </div>
+                            {notaCN !== null && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                <div
+                                  className={`h-1.5 rounded-full ${
+                                    notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
+                                ></div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Média e Ações */}
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                          <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
+                            mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
+                            mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
+                            'border-red-500'
+                          }`}>
+                            <div className="text-xs font-semibold text-gray-600 mb-1">Média Geral</div>
+                            <div className={`text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
+                              {formatarNota(resultado.media_aluno)}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setAlunoSelecionado({
+                                id: resultado.aluno_id || resultado.id,
+                                anoLetivo: filtros.ano_letivo,
+                              })
+                              setModalAberto(true)
+                            }}
+                            className="flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm"
+                            title="Ver questões do aluno"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver Questões
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }))}
+                </div>
+
+                {/* Visualização Desktop - Tabela */}
+                <div className="hidden sm:block overflow-x-auto -mx-4 sm:mx-0">
+                  <div className="inline-block min-w-full align-middle">
+                    <div className="overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
                         <tr>
                           <th className="text-left py-3 px-3 sm:py-4 sm:px-6 font-bold text-indigo-900 text-xs sm:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap">
@@ -742,8 +914,9 @@ export default function ResultadosPage() {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+                </>
+              )}
+            </div>
 
           {resultadosFiltrados.length > 0 && (
             <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
