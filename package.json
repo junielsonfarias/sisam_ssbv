@@ -45,6 +45,8 @@
     "configurar-vercel": "node scripts/configurar-vercel-completo.js",
     "configurar-vercel-auto": "node scripts/configurar-vercel-final.js",
     "verificar-env-vercel": "node scripts/verificar-variaveis-vercel.js",
+    "mostrar-config-supabase": "node scripts/mostrar-config-supabase.js",
+    "testar-health-producao": "node scripts/testar-health-producao.js",
     "backup": "bash scripts/backup-database.sh",
     "restore": "bash scripts/restore-database.sh"
   },
