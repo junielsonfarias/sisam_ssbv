@@ -96,11 +96,12 @@ export async function GET(request: NextRequest) {
   try {
     // Ler valores reais das variáveis (para debug)
     // IMPORTANTE: Na Vercel, variáveis podem estar definidas mas vazias
-    const dbHost = process.env.DB_HOST?.trim() || ''
-    const dbName = process.env.DB_NAME?.trim() || ''
-    const dbUser = process.env.DB_USER?.trim() || ''
-    const dbPort = process.env.DB_PORT?.trim() || ''
-    const dbPassword = process.env.DB_PASSWORD?.trim() || ''
+    // Remover quebras de linha que podem vir das variáveis de ambiente
+    const dbHost = process.env.DB_HOST?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
+    const dbName = process.env.DB_NAME?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
+    const dbUser = process.env.DB_USER?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
+    const dbPort = process.env.DB_PORT?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
+    const dbPassword = process.env.DB_PASSWORD?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
 
     // Verificar status da inicialização
     const status: any = {

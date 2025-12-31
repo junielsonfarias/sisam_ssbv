@@ -11,11 +11,12 @@ function createPool(): Pool {
     : false;
 
   // Ler variáveis de ambiente diretamente (não usar valores padrão para produção)
-  const host = process.env.DB_HOST;
-  const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined;
-  const database = process.env.DB_NAME;
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASSWORD;
+  // Remover espaços em branco e quebras de linha (comum em variáveis de ambiente)
+  const host = process.env.DB_HOST?.trim().replace(/\r\n/g, '').replace(/\n/g, '');
+  const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT.trim().replace(/\r\n/g, '').replace(/\n/g, '')) : undefined;
+  const database = process.env.DB_NAME?.trim().replace(/\r\n/g, '').replace(/\n/g, '');
+  const user = process.env.DB_USER?.trim().replace(/\r\n/g, '').replace(/\n/g, '');
+  const password = process.env.DB_PASSWORD?.trim().replace(/\r\n/g, '').replace(/\n/g, '');
 
   // Em produção, exigir todas as variáveis
   if (process.env.NODE_ENV === 'production') {
