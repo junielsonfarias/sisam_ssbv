@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node scripts/init-production.js || true",
     "start": "next start",
     "lint": "next lint",
     "setup-db": "node scripts/setup-database.js",
