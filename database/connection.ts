@@ -67,5 +67,21 @@ function getPool(): Pool {
   return pool;
 }
 
-export default getPool();
+// Criar wrapper que mantém compatibilidade com código existente
+// mas garante lazy initialization
+const poolWrapper = {
+  query: (...args: Parameters<Pool['query']>) => getPool().query(...args),
+  connect: (...args: Parameters<Pool['connect']>) => getPool().connect(...args),
+  end: (...args: Parameters<Pool['end']>) => getPool().end(...args),
+  on: (...args: Parameters<Pool['on']>) => getPool().on(...args),
+  once: (...args: Parameters<Pool['once']>) => getPool().once(...args),
+  removeListener: (...args: Parameters<Pool['removeListener']>) => getPool().removeListener(...args),
+  removeAllListeners: (...args: Parameters<Pool['removeAllListeners']>) => getPool().removeAllListeners(...args),
+  emit: (...args: Parameters<Pool['emit']>) => getPool().emit(...args),
+  get totalCount() { return getPool().totalCount; },
+  get idleCount() { return getPool().idleCount; },
+  get waitingCount() { return getPool().waitingCount; },
+} as Pool;
+
+export default poolWrapper;
 
