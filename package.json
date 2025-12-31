@@ -36,6 +36,9 @@
     "verificar-personalizacao": "node scripts/verificar-personalizacao.js",
     "otimizar-personalizacao": "node scripts/otimizar-personalizacao.js",
     "remover-logo": "node scripts/remover-logo.js",
+    "verificar-env-correto": "node scripts/verificar-env-correto.js",
+    "corrigir-env-projeto": "node scripts/corrigir-env-projeto-correto.js",
+    "atualizar-vercel-producao": "node scripts/atualizar-vercel-producao.js",
     "backup": "bash scripts/backup-database.sh",
     "restore": "bash scripts/restore-database.sh"
   },
