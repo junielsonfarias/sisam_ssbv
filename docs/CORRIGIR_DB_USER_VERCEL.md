@@ -26,7 +26,24 @@ Onde `[PROJECT-REF]` é o identificador do seu projeto Supabase.
 
 ### 1. Identificar o Project Reference
 
-Seu Project Reference é: `cjxejpgtuuqnbczpbdfe`
+**IMPORTANTE**: O Project Reference pode ser encontrado de duas formas:
+
+**Método 1 - Via URL do Supabase:**
+- Acesse: https://supabase.com/dashboard
+- Selecione seu projeto
+- A URL será: `https://[PROJECT-REF].supabase.co`
+- O Project Reference é a parte antes de `.supabase.co`
+
+**Método 2 - Via Connection Pooler:**
+- Acesse: https://supabase.com/dashboard
+- Selecione seu projeto
+- Vá em **Settings** → **Database** → **Connection Pooling**
+- O usuário mostrado será: `postgres.[PROJECT-REF]`
+- Copie o Project Reference daí
+
+**Exemplo:**
+- Se o usuário do pooler é `postgres.cjxejpgtuuqnbczpbdfe`
+- Então o Project Reference é: `cjxejpgtuuqnbczpbdfe`
 
 ### 2. Configurar DB_USER Corretamente na Vercel
 
@@ -55,23 +72,36 @@ Certifique-se de que TODAS as variáveis estão configuradas corretamente:
 
 ### 4. Obter Credenciais Corretas do Supabase
 
-Se não tiver certeza das credenciais:
+**PASSO A PASSO COMPLETO:**
 
 1. Acesse: https://supabase.com/dashboard
-2. Selecione o projeto: `cjxejpgtuuqnbczpbdfe`
+2. Selecione seu projeto
 3. Vá em **Settings** → **Database**
-4. Role até **Connection Pooling**
-5. Selecione **Transaction** mode
-6. Copie as credenciais:
+4. Role até a seção **Connection Pooling**
+5. Selecione o modo **Transaction** (porta 6543) - recomendado para Vercel
+6. Você verá uma string de conexão como:
+   ```
+   postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+   ```
+7. **Extraia as informações:**
+   - **Host**: A parte após `@` e antes de `:6543` (ex: `aws-0-us-east-1.pooler.supabase.com`)
+   - **Port**: `6543`
+   - **Database**: `postgres`
+   - **User**: A parte após `postgres://` e antes de `:` (ex: `postgres.cjxejpgtuuqnbczpbdfe`)
+   - **Password**: Sua senha do banco
 
-**Connection Pooler (porta 6543):**
+**Exemplo de credenciais extraídas:**
 ```
 Host: aws-0-us-east-1.pooler.supabase.com
 Port: 6543
 Database: postgres
-User: postgres.cjxejpgtuuqnbczpbdfe  ← Deve incluir o project ref!
+User: postgres.cjxejpgtuuqnbczpbdfe  ← DEVE incluir o project ref!
 Password: Master@sisam&&
 ```
+
+**⚠️ ATENÇÃO**: 
+- O `User` **DEVE** incluir o project reference: `postgres.[PROJECT-REF]`
+- **NÃO** use apenas `postgres` - isso só funciona na conexão direta (porta 5432)
 
 ### 5. Fazer Novo Deploy
 
