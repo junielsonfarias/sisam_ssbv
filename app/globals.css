@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Estilos padronizados para selects em todos os navegadores */
+@layer components {
+  /* Reset de estilos padrão do navegador para todos os selects */
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+  }
+
+  /* Estilos para as opções do select - melhor visibilidade */
+  select option {
+    background-color: #ffffff !important;
+    color: #374151 !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    min-height: 2.5rem !important;
+    display: block !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+  }
+
+  /* Hover nas opções (suportado em alguns navegadores) */
+  select option:hover,
+  select option:focus {
+    background-color: #f3f4f6 !important;
+    color: #1f2937 !important;
+  }
+
+  /* Opção selecionada - destacar melhor */
+  select option:checked {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+  }
+
+  /* Garantir que o select tenha z-index adequado para aparecer sobre outros elementos */
+  select {
+    position: relative;
+    z-index: 10;
+  }
+
+  select:focus {
+    z-index: 20;
+  }
+
+  /* Estilo para select desabilitado */
+  select:disabled {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* Garantir que o dropdown seja visível e acessível */
+  select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    border-color: #4f46e5;
+  }
+
+  /* Estilo para select customizado com melhor visibilidade */
+  .select-custom {
+    background-color: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 2.5rem 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    color: #374151 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    width: 100% !important;
+    min-height: 2.5rem !important;
+    position: relative !important;
+    z-index: 10 !important;
+  }
+
+  .select-custom:hover {
+    border-color: #9ca3af !important;
+    background-color: #f9fafb !important;
+  }
+
+  .select-custom:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+    background-color: #ffffff !important;
+    z-index: 20 !important;
+    outline: none !important;
+  }
+
+  .select-custom:disabled {
+    background-color: #f3f4f6 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+    border-color: #e5e7eb !important;
+  }
+
+  /* Melhorar visibilidade do dropdown aberto */
+  select:not([disabled]):active,
+  select:not([disabled]):focus {
+    border-color: #4f46e5 !important;
+    z-index: 20 !important;
+  }
+
+  /* Garantir que containers de filtros não cortem o dropdown */
+  /* Remover overflow hidden de containers que podem ter selects */
+  .bg-white.rounded-lg,
+  .bg-white.rounded-xl {
+    overflow: visible !important;
+  }
+
+  /* Garantir que grids de filtros permitam dropdowns visíveis */
+  .grid:has(.select-custom) {
+    position: relative;
+    overflow: visible !important;
+  }
+
+  /* Garantir que as opções tenham bom contraste */
+  @supports (-webkit-appearance: none) {
+    select option {
+      background-color: #ffffff;
+      color: #374151;
+    }
+    
+    select option:checked {
+      background: linear-gradient(to bottom, #4f46e5, #4338ca);
+      color: #ffffff;
+    }
+  }
+
+  /* Garantir que todos os inputs de texto tenham cor visível */
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"] {
+    color: #111827 !important;
+    background-color: #ffffff !important;
+  }
+
+  input[type="text"]::placeholder,
+  input[type="search"]::placeholder,
+  input[type="email"]::placeholder {
+    color: #9ca3af !important;
+  }
+}
+
