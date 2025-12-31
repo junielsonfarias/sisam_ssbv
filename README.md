@@ -58,29 +58,33 @@ npm install
 
    **Opção A: Usando Supabase (Recomendado)**
    
-   O schema já foi aplicado no Supabase. Você só precisa configurar as credenciais:
+   O schema já foi aplicado no Supabase. Configure automaticamente:
    
-   a. Obtenha as credenciais do Supabase:
-      - Acesse: https://supabase.com/dashboard
-      - Vá em **Settings** → **Database** → **Connection string**
-      - Selecione **URI** e copie as informações
+   a. Configure o arquivo `.env` automaticamente:
+   ```bash
+   npm run configurar-env
+   ```
    
-   b. Configure o arquivo `.env`:
+   Ou configure manualmente no arquivo `.env`:
    ```env
-   DB_HOST=db.[SEU-PROJECT-REF].supabase.co
+   DB_HOST=db.cjxejpgtuuqnbczpbdfe.supabase.co
    DB_PORT=5432
    DB_NAME=postgres
    DB_USER=postgres
-   DB_PASSWORD=[SUA-SENHA-SUPABASE]
+   DB_PASSWORD=Master@sisam&&
    DB_SSL=true
    JWT_SECRET=sua-chave-secreta-super-segura
    NODE_ENV=development
    ```
    
-   c. Crie o usuário administrador:
+   b. Teste a conexão:
    ```bash
-   npm run seed-supabase
+   npm run testar-conexao-supabase
    ```
+   
+   c. O usuário administrador já foi criado:
+      - **Email**: admin@sisam.com
+      - **Senha**: admin123
    
    **Opção B: Banco Local (PostgreSQL)**
    
