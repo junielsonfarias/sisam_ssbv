@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
     // Buffer para armazenar o PDF
     const chunks: Buffer[] = []
-    doc.on('data', (chunk) => chunks.push(chunk))
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk))
 
     // Cabeçalho
     doc.fontSize(18).font('Helvetica-Bold')

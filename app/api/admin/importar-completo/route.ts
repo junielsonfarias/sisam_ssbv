@@ -262,7 +262,9 @@ export async function POST(request: NextRequest) {
 
             if (existe.rows.length > 0) {
               turmaId = existe.rows[0].id
-              turmasMap.set(turmaKey, turmaId)
+              if (turmaId) {
+                turmasMap.set(turmaKey, turmaId)
+              }
               resultado.turmas.existentes++
             } else {
               const turmaResult = await pool.query(
@@ -270,7 +272,9 @@ export async function POST(request: NextRequest) {
                 [turmaCodigo, turmaCodigo, escolaId, serie || null, anoLetivo]
               )
               turmaId = turmaResult.rows[0].id
-              turmasMap.set(turmaKey, turmaId)
+              if (turmaId) {
+                turmasMap.set(turmaKey, turmaId)
+              }
               resultado.turmas.criados++
             }
           }
@@ -288,7 +292,9 @@ export async function POST(request: NextRequest) {
 
           if (existe.rows.length > 0) {
             alunoId = existe.rows[0].id
-            alunosMap.set(alunoKey, alunoId)
+            if (alunoId) {
+              alunosMap.set(alunoKey, alunoId)
+            }
             resultado.alunos.existentes++
           } else {
             // Gerar código único para o aluno
@@ -298,7 +304,9 @@ export async function POST(request: NextRequest) {
               [codigoAluno, alunoNome, escolaId, turmaId, serie || null, anoLetivo]
             )
             alunoId = alunoResult.rows[0].id
-            alunosMap.set(alunoKey, alunoId)
+            if (alunoId) {
+              alunosMap.set(alunoKey, alunoId)
+            }
             resultado.alunos.criados++
           }
         }

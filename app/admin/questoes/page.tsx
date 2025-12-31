@@ -84,7 +84,7 @@ export default function QuestoesPage() {
     return acc
   }, {} as Record<string, Questao[]>)
 
-  const anosDisponiveis = [...new Set(questoes.map(q => q.ano_letivo).filter(Boolean))].sort().reverse()
+  const anosDisponiveis = [...new Set(questoes.map(q => q.ano_letivo).filter((ano): ano is string => Boolean(ano)))].sort().reverse()
 
   const handleSalvar = async () => {
     setSalvando(true)

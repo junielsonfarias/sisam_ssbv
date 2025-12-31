@@ -94,7 +94,9 @@ export async function POST(request: NextRequest) {
           }
 
           escolaId = escolaResult.rows[0].id
-          cacheEscolas.set(escolaNome, escolaId)
+          if (escolaId) {
+            cacheEscolas.set(escolaNome, escolaId)
+          }
         }
 
         // Buscar turma (com cache)
@@ -110,7 +112,9 @@ export async function POST(request: NextRequest) {
             )
             if (turmaResult.rows.length > 0) {
               turmaId = turmaResult.rows[0].id
-              cacheTurmas.set(cacheKey, turmaId)
+              if (turmaId) {
+                cacheTurmas.set(cacheKey, turmaId)
+              }
             }
           }
         }
@@ -127,7 +131,9 @@ export async function POST(request: NextRequest) {
 
           if (alunoResult.rows.length > 0) {
             alunoId = alunoResult.rows[0].id
-            cacheAlunos.set(alunoCacheKey, alunoId)
+            if (alunoId) {
+              cacheAlunos.set(alunoCacheKey, alunoId)
+            }
           }
         }
 

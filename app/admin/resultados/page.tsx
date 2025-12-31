@@ -8,6 +8,7 @@ import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Targe
 
 interface ResultadoConsolidado {
   id: string
+  aluno_id?: string
   aluno_nome: string
   escola_nome: string
   turma_codigo: string

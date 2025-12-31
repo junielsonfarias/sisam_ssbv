@@ -16,6 +16,7 @@ interface DadosComparativo {
   turma_codigo: string | null
   total_alunos: number
   alunos_presentes: number
+  total_turmas?: number
   media_geral: number | string
   media_lp: number | string
   media_ch: number | string
