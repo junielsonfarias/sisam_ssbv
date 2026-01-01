@@ -91,6 +91,7 @@ export default function GraficosPage() {
 
   const handleBuscarGraficos = async () => {
     setCarregando(true)
+    setDados(null)
     try {
       const params = new URLSearchParams()
       params.append('tipo', tipoVisualizacao)
@@ -99,10 +100,19 @@ export default function GraficosPage() {
       })
 
       const response = await fetch(`/api/admin/graficos?${params.toString()}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ mensagem: 'Erro desconhecido' }))
+        console.error('Erro ao buscar gráficos:', response.status, errorData)
+        alert(`Erro ao buscar gráficos: ${errorData.mensagem || 'Erro desconhecido'}`)
+        return
+      }
+
       const data = await response.json()
       setDados(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao buscar gráficos:', error)
+      alert(`Erro ao buscar gráficos: ${error.message || 'Erro ao conectar com o servidor'}`)
     } finally {
       setCarregando(false)
     }
