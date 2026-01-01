@@ -412,7 +412,16 @@ async function processarImportacao(
         const mediaAluno = extrairDecimal(linha['MED_ALUNO'] || linha['MED ALUNO'] || linha['Media'] || linha['Média'])
 
         // IMPORTANTE: Se aluno faltou, zerar acertos e notas
-        const alunoFaltou = presenca === 'F'
+        // Também considerar média 0,00 como faltante
+        let presencaFinal = presenca || 'P'
+        const mediaFinal = mediaAluno !== null && mediaAluno !== undefined ? parseFloat(mediaAluno.toString()) : null
+        
+        // Se média for 0,00 ou null, considerar como faltante
+        if (mediaFinal === 0 || mediaFinal === null || mediaFinal === undefined) {
+          presencaFinal = 'F'
+        }
+        
+        const alunoFaltou = presencaFinal === 'F'
         
         // Adicionar consolidado à fila
         consolidadosParaInserir.push({
@@ -421,7 +430,7 @@ async function processarImportacao(
           turma_id: turmaId,
           ano_letivo: anoLetivo,
           serie: serie || null,
-          presenca: presenca || 'P',
+          presenca: presencaFinal,
           // Se faltou, zerar acertos e notas
           total_acertos_lp: alunoFaltou ? 0 : totalAcertosLP,
           total_acertos_ch: alunoFaltou ? 0 : totalAcertosCH,
@@ -450,6 +459,10 @@ async function processarImportacao(
             const questaoId = questoesMap.get(questaoCodigo) || null
 
             // IMPORTANTE: Se aluno faltou, zerar nota e acerto
+            // Usar presencaFinal que já considera média 0,00
+            const presencaFinalQuestao = (mediaFinal === 0 || mediaFinal === null || mediaFinal === undefined) ? 'F' : (presenca || 'P')
+            const alunoFaltouQuestao = presencaFinalQuestao === 'F'
+            
             resultadosParaInserir.push({
               escola_id: escolaId,
               aluno_id: alunoId,
@@ -458,15 +471,15 @@ async function processarImportacao(
               turma_id: turmaId,
               questao_id: questaoId,
               questao_codigo: questaoCodigo,
-              resposta_aluno: alunoFaltou ? null : (acertou ? '1' : '0'),
-              acertou: alunoFaltou ? false : acertou,
-              nota: alunoFaltou ? 0 : nota,
+              resposta_aluno: alunoFaltouQuestao ? null : (acertou ? '1' : '0'),
+              acertou: alunoFaltouQuestao ? false : acertou,
+              nota: alunoFaltouQuestao ? 0 : nota,
               ano_letivo: anoLetivo,
               serie: serie || null,
               turma: turmaCodigo || null,
               disciplina,
               area_conhecimento: area,
-              presenca: presenca || 'P',
+              presenca: presencaFinalQuestao,
             })
           }
         }
@@ -680,6 +693,7 @@ async function processarImportacao(
               consolidado.turma_id,
               consolidado.ano_letivo,
               consolidado.serie,
+              // IMPORTANTE: presenca já foi ajustada anteriormente considerando média 0,00
               consolidado.presenca,
               consolidado.total_acertos_lp,
               consolidado.total_acertos_ch,
