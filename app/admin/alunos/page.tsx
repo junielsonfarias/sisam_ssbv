@@ -115,16 +115,34 @@ export default function AlunosPage() {
   const carregarAlunos = async () => {
     try {
       const params = new URLSearchParams()
-      if (filtroEscola) params.append('escola_id', filtroEscola)
+      
+      // IMPORTANTE: Se escola foi selecionada diretamente, usar filtro de escola
+      // Se não, mas polo foi selecionado, filtrar por polo no frontend
+      if (filtroEscola) {
+        params.append('escola_id', filtroEscola)
+      } else if (filtroPolo && escolas.length > 0) {
+        // Se polo foi selecionado mas não escola, buscar todas as escolas do polo
+        const escolasDoPolo = escolas.filter(e => e.polo_id === filtroPolo).map(e => e.id)
+        if (escolasDoPolo.length > 0) {
+          // Não há parâmetro para múltiplas escolas, então filtrar no frontend
+        }
+      }
+      
       if (filtroTurma) params.append('turma_id', filtroTurma)
       if (filtroSerie) params.append('serie', filtroSerie)
       if (filtroAno) params.append('ano_letivo', filtroAno)
       if (busca) params.append('busca', busca)
 
       const data = await fetch(`/api/admin/alunos?${params}`).then(r => r.json())
-      const alunosFiltrados = filtroPolo
-        ? data.filter((a: Aluno) => escolas.some(e => e.id === a.escola_id && e.polo_id === filtroPolo))
-        : data
+      
+      // Aplicar filtro de polo apenas se não houver filtro de escola específica
+      let alunosFiltrados = data
+      if (filtroPolo && !filtroEscola && escolas.length > 0) {
+        alunosFiltrados = data.filter((a: Aluno) => 
+          escolas.some(e => e.id === a.escola_id && e.polo_id === filtroPolo)
+        )
+      }
+      
       setAlunos(alunosFiltrados)
     } catch (error) {
       console.error('Erro ao carregar alunos:', error)
@@ -260,7 +278,12 @@ export default function AlunosPage() {
       <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Gestão de Alunos</h1>
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Gestão de Alunos</h1>
+              <p className="text-sm sm:text-base text-gray-600">
+                Total de alunos cadastrados: <span className="font-semibold text-indigo-600">{alunos.length}</span>
+              </p>
+            </div>
             <button
               onClick={() => handleAbrirModal()}
               className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center w-full sm:w-auto"
@@ -350,6 +373,21 @@ export default function AlunosPage() {
               </select>
             </div>
           </div>
+
+          {/* Card com total de alunos */}
+          {!carregando && alunos.length > 0 && (
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm sm:text-base opacity-90 mb-1">Total de Alunos Cadastrados</p>
+                  <p className="text-3xl sm:text-4xl font-bold">{alunos.length}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3 sm:p-4">
+                  <Plus className="w-8 h-8 sm:w-10 sm:h-10" />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {carregando ? (
