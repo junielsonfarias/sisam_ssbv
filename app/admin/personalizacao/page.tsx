@@ -149,59 +149,59 @@ export default function PersonalizacaoPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador']}>
       <LayoutDashboard tipoUsuario="admin">
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Personalização do Sistema</h1>
-              <p className="text-gray-600 mt-1">Configure a aparência da página de login e rodapé</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Personalização do Sistema</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">Configure a aparência da página de login e rodapé</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Seção: Personalização do Login */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="bg-indigo-100 p-2 rounded-lg">
-                  <Settings className="w-6 h-6 text-indigo-600" />
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                <div className="bg-indigo-100 p-1.5 sm:p-2 rounded-lg">
+                  <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-800">Página de Login</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Página de Login</h2>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Título */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Type className="w-4 h-4 inline mr-1" />
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                    <Type className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                     Título
                   </label>
                   <input
                     type="text"
                     value={formData.login_titulo}
                     onChange={(e) => setFormData({ ...formData, login_titulo: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: SISAM"
                   />
                 </div>
 
                 {/* Subtítulo */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Type className="w-4 h-4 inline mr-1" />
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                    <Type className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                     Subtítulo
                   </label>
                   <textarea
                     value={formData.login_subtitulo}
                     onChange={(e) => setFormData({ ...formData, login_subtitulo: e.target.value })}
                     rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: Sistema de Análise de Provas"
                   />
                 </div>
 
                 {/* Imagem */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Image className="w-4 h-4 inline mr-1" />
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                    <Image className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                     Imagem/Logo
                   </label>
                   {previewImagem ? (
@@ -209,21 +209,21 @@ export default function PersonalizacaoPage() {
                       <img
                         src={previewImagem}
                         alt="Preview"
-                        className="w-full h-48 object-contain border border-gray-300 rounded-lg mb-2 bg-gray-50"
+                        className="w-full h-32 sm:h-48 object-contain border border-gray-300 rounded-lg mb-2 bg-gray-50"
                       />
                       <button
                         onClick={handleRemoverImagem}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   ) : (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                      <Image className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-2">Nenhuma imagem selecionada</p>
-                      <label className="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer">
-                        <Upload className="w-4 h-4 inline mr-1" />
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
+                      <Image className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2">Nenhuma imagem selecionada</p>
+                      <label className="inline-block bg-indigo-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer text-xs sm:text-sm">
+                        <Upload className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                         Selecionar Imagem
                         <input
                           type="file"
@@ -236,15 +236,15 @@ export default function PersonalizacaoPage() {
                     </div>
                   )}
                   {uploadingImage && (
-                    <p className="text-sm text-gray-500 mt-2">Carregando imagem...</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-2">Carregando imagem...</p>
                   )}
                 </div>
 
                 {/* Cores */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Palette className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                      <Palette className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                       Cor Primária
                     </label>
                     <div className="flex gap-2">
@@ -252,20 +252,20 @@ export default function PersonalizacaoPage() {
                         type="color"
                         value={formData.login_cor_primaria}
                         onChange={(e) => setFormData({ ...formData, login_cor_primaria: e.target.value })}
-                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                        className="w-12 sm:w-16 h-8 sm:h-10 border border-gray-300 rounded cursor-pointer"
                       />
                       <input
                         type="text"
                         value={formData.login_cor_primaria}
                         onChange={(e) => setFormData({ ...formData, login_cor_primaria: e.target.value })}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                        className="flex-1 px-2 sm:px-4 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                         placeholder="#4f46e5"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Palette className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                      <Palette className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                       Cor Secundária
                     </label>
                     <div className="flex gap-2">
@@ -273,13 +273,13 @@ export default function PersonalizacaoPage() {
                         type="color"
                         value={formData.login_cor_secundaria}
                         onChange={(e) => setFormData({ ...formData, login_cor_secundaria: e.target.value })}
-                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                        className="w-12 sm:w-16 h-8 sm:h-10 border border-gray-300 rounded cursor-pointer"
                       />
                       <input
                         type="text"
                         value={formData.login_cor_secundaria}
                         onChange={(e) => setFormData({ ...formData, login_cor_secundaria: e.target.value })}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                        className="flex-1 px-2 sm:px-4 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                         placeholder="#818cf8"
                       />
                     </div>
@@ -289,26 +289,26 @@ export default function PersonalizacaoPage() {
             </div>
 
             {/* Seção: Rodapé */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="bg-green-100 p-2 rounded-lg">
-                  <LinkIcon className="w-6 h-6 text-green-600" />
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                <div className="bg-green-100 p-1.5 sm:p-2 rounded-lg">
+                  <LinkIcon className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-800">Rodapé do Sistema</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Rodapé do Sistema</h2>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Texto do Rodapé */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Type className="w-4 h-4 inline mr-1" />
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                    <Type className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                     Texto do Rodapé
                   </label>
                   <textarea
                     value={formData.rodape_texto}
                     onChange={(e) => setFormData({ ...formData, rodape_texto: e.target.value })}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: © 2026 SISAM - Todos os direitos reservados"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -318,22 +318,22 @@ export default function PersonalizacaoPage() {
 
                 {/* Link do Rodapé */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <LinkIcon className="w-4 h-4 inline mr-1" />
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                    <LinkIcon className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                     Link do Rodapé (opcional)
                   </label>
                   <input
                     type="url"
                     value={formData.rodape_link || ''}
                     onChange={(e) => setFormData({ ...formData, rodape_link: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white mb-2"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white mb-2"
                     placeholder="https://exemplo.com"
                   />
                   <input
                     type="text"
                     value={formData.rodape_link_texto || ''}
                     onChange={(e) => setFormData({ ...formData, rodape_link_texto: e.target.value || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Texto do link (ex: Visite nosso site)"
                   />
                 </div>
@@ -347,7 +347,7 @@ export default function PersonalizacaoPage() {
                       onChange={(e) => setFormData({ ...formData, rodape_ativo: e.target.checked })}
                       className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">Exibir rodapé no sistema</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Exibir rodapé no sistema</span>
                   </label>
                 </div>
               </div>
@@ -359,9 +359,9 @@ export default function PersonalizacaoPage() {
             <button
               onClick={handleSalvar}
               disabled={salvando}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-sm transition-colors"
+              className="w-full sm:w-auto bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-sm transition-colors text-sm sm:text-base"
             >
-              <Save className="w-5 h-5" />
+              <Save className="w-4 h-4 sm:w-5 sm:h-5" />
               {salvando ? 'Salvando...' : 'Salvar Personalização'}
             </button>
           </div>

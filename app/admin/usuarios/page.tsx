@@ -151,31 +151,31 @@ export default function UsuariosPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador']}>
       <LayoutDashboard tipoUsuario="admin">
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gestão de Usuários</h1>
-              <p className="text-gray-600 mt-1">Gerencie os usuários do sistema</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gestão de Usuários</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">Gerencie os usuários do sistema</p>
             </div>
             <button
               onClick={() => handleAbrirModal()}
-              className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 flex items-center gap-2 shadow-sm transition-all"
+              className="w-full sm:w-auto bg-indigo-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 shadow-sm transition-all"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Novo Usuário</span>
             </button>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 bg-gray-50">
+            <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                 <input
                   type="text"
                   placeholder="Buscar usuários..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-gray-900 bg-white"
+                  className="w-full pl-9 sm:pl-12 pr-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-gray-900 bg-white"
                 />
               </div>
             </div>
@@ -183,26 +183,26 @@ export default function UsuariosPage() {
             {carregando ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4">Carregando usuários...</p>
+                <p className="text-gray-500 mt-4 text-sm sm:text-base">Carregando usuários...</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[600px]">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[150px]">
                         Nome
                       </th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[200px]">
                         Email
                       </th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                         Tipo
                       </th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
                         Status
                       </th>
-                      <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-right py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                         Ações
                       </th>
                     </tr>
@@ -219,25 +219,25 @@ export default function UsuariosPage() {
                     ) : (
                       usuariosFiltrados.map((usuario) => (
                         <tr key={usuario.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-4 px-6">
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
-                                <Users className="w-5 h-5 text-indigo-600" />
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-2 sm:mr-3">
+                                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
                               </div>
-                              <span className="font-medium text-gray-900">{usuario.nome}</span>
+                              <span className="font-medium text-gray-900 text-xs sm:text-sm md:text-base">{usuario.nome}</span>
                             </div>
                           </td>
-                          <td className="py-4 px-6">
-                            <span className="text-gray-600">{usuario.email}</span>
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
+                            <span className="text-gray-600 text-xs sm:text-sm md:text-base">{usuario.email}</span>
                           </td>
-                          <td className="py-4 px-6">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getTipoColor(usuario.tipo_usuario)}`}>
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getTipoColor(usuario.tipo_usuario)}`}>
                               {getTipoLabel(usuario.tipo_usuario)}
                             </span>
                           </td>
-                          <td className="py-4 px-6">
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
                                 usuario.ativo
                                   ? 'bg-green-100 text-green-800'
                                   : 'bg-red-100 text-red-800'
@@ -246,22 +246,22 @@ export default function UsuariosPage() {
                               {usuario.ativo ? 'Ativo' : 'Inativo'}
                             </span>
                           </td>
-                          <td className="py-4 px-6 text-right">
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => handleAbrirModal(usuario)}
-                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                className="p-1.5 sm:p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                                 aria-label="Editar"
                                 title="Editar"
                               >
-                                <Edit className="w-5 h-5" />
+                                <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
                               </button>
                               <button
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 aria-label="Excluir"
                                 title="Excluir"
                               >
-                                <Trash2 className="w-5 h-5" />
+                                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                               </button>
                             </div>
                           </td>

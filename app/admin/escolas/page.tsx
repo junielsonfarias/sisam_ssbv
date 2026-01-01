@@ -170,22 +170,22 @@ export default function EscolasPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[600px]">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-left py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[200px]">
                         Nome
                       </th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-left py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
                         Código
                       </th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-left py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[150px]">
                         Polo
                       </th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-left py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
                         Status
                       </th>
-                      <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <th className="text-right py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                         Ações
                       </th>
                     </tr>
@@ -202,25 +202,25 @@ export default function EscolasPage() {
                     ) : (
                       escolasFiltradas.map((escola) => (
                         <tr key={escola.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-4 px-6">
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                                <School className="w-5 h-5 text-green-600" />
+                              <div className="w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-lg flex items-center justify-center mr-2 md:mr-3">
+                                <School className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
                               </div>
-                              <span className="font-medium text-gray-900">{escola.nome}</span>
+                              <span className="font-medium text-gray-900 text-xs md:text-sm lg:text-base">{escola.nome}</span>
                             </div>
                           </td>
-                          <td className="py-4 px-6">
-                            <span className="text-gray-600 font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
+                            <span className="text-gray-600 font-mono text-xs md:text-sm bg-gray-100 px-2 py-1 rounded">
                               {escola.codigo || '-'}
                             </span>
                           </td>
-                          <td className="py-4 px-6">
-                            <span className="text-gray-600">{escola.polo_nome || '-'}</span>
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
+                            <span className="text-gray-600 text-xs md:text-sm">{escola.polo_nome || '-'}</span>
                           </td>
-                          <td className="py-4 px-6">
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              className={`inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium ${
                                 escola.ativo
                                   ? 'bg-green-100 text-green-800'
                                   : 'bg-red-100 text-red-800'
@@ -229,22 +229,22 @@ export default function EscolasPage() {
                               {escola.ativo ? 'Ativo' : 'Inativo'}
                             </span>
                           </td>
-                          <td className="py-4 px-6 text-right">
+                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => handleAbrirModal(escola)}
-                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                className="p-1.5 md:p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                                 aria-label="Editar"
                                 title="Editar"
                               >
-                                <Edit className="w-5 h-5" />
+                                <Edit className="w-4 h-4 md:w-5 md:h-5" />
                               </button>
                               <button
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1.5 md:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 aria-label="Excluir"
                                 title="Excluir"
                               >
-                                <Trash2 className="w-5 h-5" />
+                                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                               </button>
                             </div>
                           </td>

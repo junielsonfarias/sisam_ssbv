@@ -68,18 +68,18 @@ export default function ImportarCompletoPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
       <LayoutDashboard tipoUsuario="admin">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-8">Importação Completa</h1>
+        <div className="p-3 sm:p-4 md:p-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 md:mb-8">Importação Completa</h1>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">
                 Importação Completa de Dados
               </h2>
-              <p className="text-gray-600 mb-4">
+              <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
                 Esta funcionalidade importa <strong>tudo de uma vez</strong>:
               </p>
-              <ul className="list-disc list-inside text-gray-600 mb-4 space-y-2 bg-blue-50 p-4 rounded-lg">
+              <ul className="list-disc list-inside text-xs sm:text-sm text-gray-600 mb-4 space-y-1 sm:space-y-2 bg-blue-50 p-3 sm:p-4 rounded-lg">
                 <li><strong>Polos</strong> - Extraídos da coluna POLO</li>
                 <li><strong>Escolas</strong> - Extraídas da coluna ESCOLA e vinculadas aos polos</li>
                 <li><strong>Turmas</strong> - Extraídas da coluna TURMA com série e ano letivo</li>
@@ -91,7 +91,7 @@ export default function ImportarCompletoPage() {
               </ul>
 
               <div className="mb-4">
-                <label htmlFor="ano_letivo" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="ano_letivo" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Ano Letivo
                 </label>
                 <input
@@ -99,14 +99,14 @@ export default function ImportarCompletoPage() {
                   type="text"
                   value={anoLetivo}
                   onChange={(e) => setAnoLetivo(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Ex: 2024"
                 />
                 <p className="text-xs text-gray-500 mt-1">Ano letivo ao qual se referem os dados</p>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <FileSpreadsheet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 text-center">
+                <FileSpreadsheet className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
                 <input
                   id="arquivo"
                   type="file"
@@ -116,14 +116,14 @@ export default function ImportarCompletoPage() {
                 />
                 <label
                   htmlFor="arquivo"
-                  className="cursor-pointer inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="cursor-pointer inline-block bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-indigo-700 transition-colors text-sm sm:text-base"
                 >
-                  <Upload className="w-5 h-5 inline-block mr-2" />
+                  <Upload className="w-4 h-4 sm:w-5 sm:h-5 inline-block mr-2" />
                   Selecionar Arquivo Excel
                 </label>
                 {arquivo && (
-                  <p className="mt-4 text-gray-700">
-                    Arquivo selecionado: <strong>{arquivo.name}</strong>
+                  <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-700">
+                    Arquivo selecionado: <strong className="break-all">{arquivo.name}</strong>
                   </p>
                 )}
               </div>

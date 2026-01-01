@@ -214,19 +214,19 @@ export default function QuestoesPage() {
     <ProtectedRoute tiposPermitidos={['administrador']}>
       <LayoutDashboard tipoUsuario="admin">
         <div>
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">Gestão de Questões</h1>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Gestão de Questões</h1>
             <button
               onClick={() => handleAbrirModal()}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center"
+              className="w-full sm:w-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center"
             >
-              <Plus className="w-5 h-5 mr-2" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Nova Questão
             </button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
@@ -278,28 +278,28 @@ export default function QuestoesPage() {
                         </h3>
                       </div>
                       <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[800px]">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                              <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
                                 Código
                               </th>
-                              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                              <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider min-w-[200px]">
                                 Descrição
                               </th>
-                              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                              <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                                 Disciplina
                               </th>
-                              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                              <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                                 Área
                               </th>
-                              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                              <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
                                 Tipo
                               </th>
-                              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                              <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[80px]">
                                 Gabarito
                               </th>
-                              <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                              <th className="text-right py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                                 Ações
                               </th>
                             </tr>
@@ -318,13 +318,13 @@ export default function QuestoesPage() {
 
                         return (
                           <tr key={questao.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="py-4 px-6">
-                              <span className="font-mono font-semibold text-gray-900 text-sm">
+                            <td className="py-3 px-3 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                              <span className="font-mono font-semibold text-gray-900 text-xs sm:text-sm">
                                 {questao.codigo || '-'}
                               </span>
                             </td>
-                            <td className="py-4 px-6">
-                              <span className="text-gray-700 text-sm">
+                            <td className="py-3 px-3 md:py-4 md:px-4 lg:px-6">
+                              <span className="text-gray-700 text-xs sm:text-sm">
                                 {questao.descricao ? (
                                   questao.descricao.length > 60
                                     ? `${questao.descricao.substring(0, 60)}...`
@@ -334,25 +334,25 @@ export default function QuestoesPage() {
                                 )}
                               </span>
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-3 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
                               {questao.disciplina ? (
-                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getDisciplinaColor(questao.disciplina)}`}>
+                                <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getDisciplinaColor(questao.disciplina)}`}>
                                   {questao.disciplina}
                                 </span>
                               ) : (
                                 <span className="text-gray-400">-</span>
                               )}
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-3 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
                               {questao.area_conhecimento ? (
-                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getDisciplinaColor(questao.area_conhecimento)}`}>
+                                <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getDisciplinaColor(questao.area_conhecimento)}`}>
                                   {questao.area_conhecimento}
                                 </span>
                               ) : (
                                 <span className="text-gray-400">-</span>
                               )}
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-3 md:py-4 md:px-4 lg:px-6">
                               <div className="flex flex-col gap-1">
                                 {questao.gabarito && (
                                   <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 font-semibold text-xs">
@@ -369,12 +369,12 @@ export default function QuestoesPage() {
                                   </div>
                                 )}
                                 {!questao.gabarito && (!questao.gabaritos_por_serie || questao.gabaritos_por_serie.length === 0) && (
-                                  <span className="text-gray-400 text-sm">-</span>
+                                  <span className="text-gray-400 text-xs sm:text-sm">-</span>
                                 )}
                               </div>
                             </td>
-                            <td className="py-4 px-6">
-                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                            <td className="py-3 px-3 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
                                 questao.tipo === 'objetiva' 
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-orange-100 text-orange-800'
@@ -383,23 +383,23 @@ export default function QuestoesPage() {
                                 {questao.tipo === 'objetiva' ? 'Objetiva' : 'Discursiva'}
                               </span>
                             </td>
-                            <td className="py-4 px-6 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                            <td className="py-3 px-3 md:py-4 md:px-4 lg:px-6 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1 sm:gap-2">
                                 <button
                                   onClick={() => handleAbrirModal(questao)}
-                                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  className="p-1.5 sm:p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                                   aria-label="Editar"
                                   title="Editar"
                                 >
-                                  <Edit className="w-5 h-5" />
+                                  <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                                 <button
                                   onClick={() => handleExcluir(questao.id)}
-                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                   aria-label="Excluir"
                                   title="Excluir"
                                 >
-                                  <Trash2 className="w-5 h-5" />
+                                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                               </div>
                             </td>

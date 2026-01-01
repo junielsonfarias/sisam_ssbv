@@ -31,13 +31,22 @@ function createPool(): Pool {
     password: password || 'postgres',
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: isSupabase ? 15000 : 10000, // Aumentado para Supabase
+    connectionTimeoutMillis: isSupabase ? 20000 : 10000, // Aumentado timeout
     ssl: sslConfig,
+    // Opções adicionais para melhorar conectividade
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
   };
 
-  // Forçar IPv4 em produção (Vercel) para evitar erros ENETUNREACH com IPv6
+  // Configurações especiais para Vercel + Supabase
   if (process.env.NODE_ENV === 'production' && isSupabase) {
-    config.family = 4; // Forçar IPv4
+    // Tentar IPv4 e IPv6 (auto)
+    config.family = 0; // 0 = auto (tenta IPv6 primeiro, depois IPv4)
+    
+    // Aumentar timeouts para dar tempo de resolver DNS
+    config.connectionTimeoutMillis = 30000;
+    config.query_timeout = 60000;
+    config.statement_timeout = 60000;
   }
 
   // Log das configurações (sem senha) para debug

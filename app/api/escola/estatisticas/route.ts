@@ -14,31 +14,44 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const [resultados, acertos] = await Promise.all([
-      pool.query(
+    let totalResultados = 0
+    let totalAcertos = 0
+
+    try {
+      const resultadosResult = await pool.query(
         'SELECT COUNT(*) as total FROM resultados_provas WHERE escola_id = $1',
         [usuario.escola_id]
-      ),
-      pool.query(
+      )
+      totalResultados = parseInt(resultadosResult.rows[0]?.total || '0', 10) || 0
+    } catch (error: any) {
+      console.error('Erro ao buscar total de resultados:', error.message)
+    }
+
+    try {
+      const acertosResult = await pool.query(
         'SELECT COUNT(*) as total FROM resultados_provas WHERE escola_id = $1 AND acertou = true',
         [usuario.escola_id]
-      ),
-    ])
+      )
+      totalAcertos = parseInt(acertosResult.rows[0]?.total || '0', 10) || 0
+    } catch (error: any) {
+      console.error('Erro ao buscar total de acertos:', error.message)
+    }
 
-    const totalResultados = parseInt(resultados.rows[0].total)
-    const totalAcertos = parseInt(acertos.rows[0].total)
     const taxaAcertos = totalResultados > 0 ? (totalAcertos / totalResultados) * 100 : 0
 
     return NextResponse.json({
       totalResultados,
       taxaAcertos,
     })
-  } catch (error) {
-    console.error('Erro ao buscar estatísticas:', error)
-    return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+  } catch (error: any) {
+    console.error('Erro geral ao buscar estatísticas:', error)
+    console.error('Stack trace:', error.stack)
+    
+    return NextResponse.json({
+      totalResultados: 0,
+      taxaAcertos: 0,
+      erro: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 200 })
   }
 }
 

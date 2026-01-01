@@ -64,18 +64,19 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const menuItems = [
     { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
     { icon: BarChart3, label: 'Análise de Dados', href: `/${basePath}/analise` },
+    { icon: TrendingUp, label: 'Análise Gráfica', href: '/admin/graficos' },
   ]
 
   if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
     menuItems.push(
-      { icon: TrendingUp, label: 'Resultados', href: '/admin/resultados' },
+      { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
       { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' }
     )
   }
 
   if (tipoUsuario === 'tecnico') {
     menuItems.push(
-      { icon: TrendingUp, label: 'Resultados', href: '/admin/resultados' },
+      { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
       { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
       { icon: School, label: 'Escolas', href: '/admin/escolas' },
       { icon: MapPin, label: 'Polos', href: '/admin/polos' },
@@ -98,9 +99,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       { icon: FileText, label: 'Questões', href: '/admin/questoes' },
       { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
       { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
-      { icon: Database, label: 'Importação Completa', href: '/admin/importar-completo' },
-      { icon: Database, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
-      { icon: FileCheck, label: 'Importar Resultados', href: '/admin/importar-resultados' }
+      { icon: Database, label: 'Importação Completa', href: '/admin/importar-completo' }
     )
   }
 
@@ -108,25 +107,27 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+        <div className="px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center">
               <button
                 onClick={() => setMenuAberto(!menuAberto)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100"
+                className="lg:hidden p-1.5 sm:p-2 rounded-md text-gray-600 hover:bg-gray-100"
+                aria-label="Menu"
               >
-                {menuAberto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {menuAberto ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
               </button>
-              <h1 className="ml-2 lg:ml-0 text-xl font-bold text-gray-800">SISAM</h1>
+              <h1 className="ml-2 lg:ml-0 text-lg sm:text-xl md:text-2xl font-bold text-gray-800">SISAM</h1>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <span className="text-xs sm:text-sm text-gray-600 truncate max-w-[120px] sm:max-w-none">{usuario?.nome}</span>
+            <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
+              <span className="text-xs sm:text-sm text-gray-600 truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">{usuario?.nome}</span>
               <button
                 onClick={handleLogout}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                className="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                 aria-label="Sair"
+                title="Sair"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
@@ -138,23 +139,23 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         <aside
           className={`
             fixed lg:static inset-y-0 left-0 z-50
-            w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+            w-56 sm:w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
             ${menuAberto ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           `}
         >
-          <nav className="mt-8 px-4">
-            <ul className="space-y-2">
+          <nav className="mt-4 sm:mt-8 px-2 sm:px-4">
+            <ul className="space-y-1 sm:space-y-2">
               {menuItems.map((item) => {
                 const Icon = item.icon
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                      className="flex items-center px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
                       onClick={() => setMenuAberto(false)}
                     >
-                      <Icon className="w-5 h-5 mr-3" />
-                      <span>{item.label}</span>
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0" />
+                      <span className="truncate">{item.label}</span>
                     </Link>
                   </li>
                 )
@@ -172,7 +173,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden">
           <div className="max-w-full">
             {children}
           </div>

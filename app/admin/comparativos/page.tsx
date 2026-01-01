@@ -404,81 +404,81 @@ export default function ComparativosPage() {
                         </div>
 
                         <div className="overflow-x-auto">
-                          <table className="w-full">
+                          <table className="w-full min-w-[900px]">
                             <thead className="bg-blue-50">
                               <tr>
-                                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Escola</th>
-                                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Polo</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Turmas</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Total Alunos</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Presentes</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">LP</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">CH</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">MAT</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">CN</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Média Geral</th>
+                                <th className="text-left py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[150px]">Escola</th>
+                                <th className="text-left py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[120px]">Polo</th>
+                                <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">Turmas</th>
+                                <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[90px]">Total Alunos</th>
+                                <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[100px]">Presentes</th>
+                                <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">LP</th>
+                                <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">CH</th>
+                                <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">MAT</th>
+                                <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">CN</th>
+                                <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[100px]">Média Geral</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                               {dadosAgregadosSerie.map((item, index) => (
                                 <tr key={`agregado-${item.escola_id}-${item.serie}-${index}`} className="hover:bg-blue-50 bg-blue-50/30">
-                                  <td className="py-3 px-4">
+                                  <td className="py-3 px-3 md:px-4 whitespace-nowrap">
                                     <div className="flex items-center">
-                                      <School className="w-4 h-4 mr-2 text-blue-600" />
-                                      <span className="font-bold text-gray-900">{item.escola_nome}</span>
+                                      <School className="w-3 h-3 md:w-4 md:h-4 mr-2 text-blue-600" />
+                                      <span className="font-bold text-gray-900 text-xs md:text-sm">{item.escola_nome}</span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4">
-                                    <span className="text-gray-600 text-sm">{item.polo_nome}</span>
+                                  <td className="py-3 px-3 md:px-4 whitespace-nowrap">
+                                    <span className="text-gray-600 text-xs md:text-sm">{item.polo_nome}</span>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs">
+                                  <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
+                                    <span className="inline-flex items-center px-2 md:px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs">
                                       {item.total_turmas || 0} turma(s)
                                     </span>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <span className="text-gray-700 font-bold">{item.total_alunos}</span>
+                                  <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
+                                    <span className="text-gray-700 font-bold text-xs md:text-sm">{item.total_alunos}</span>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <span className="text-gray-700 font-medium">
+                                  <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
+                                    <span className="text-gray-700 font-medium text-xs md:text-sm">
                                       {item.alunos_presentes} ({item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : 0}%)
                                     </span>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
+                                  <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                       <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_lp)}/20</span>
-                                      <span className={`text-sm font-bold ${getNotaColor(item.media_lp)}`}>
+                                      <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
                                         {formatarNumero(item.media_lp)}
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
+                                  <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                       <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_ch)}/10</span>
-                                      <span className={`text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                      <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
                                         {formatarNumero(item.media_ch)}
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
+                                  <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                       <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_mat)}/20</span>
-                                      <span className={`text-sm font-bold ${getNotaColor(item.media_mat)}`}>
+                                      <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
                                         {formatarNumero(item.media_mat)}
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
+                                  <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                       <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_cn)}/10</span>
-                                      <span className={`text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                      <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
                                         {formatarNumero(item.media_cn)}
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <div className={`inline-flex items-center justify-center px-3 py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
-                                      <span className={`text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
+                                  <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
+                                    <div className={`inline-flex items-center justify-center px-2 md:px-3 py-1 md:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
+                                      <span className={`text-sm md:text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
                                         {formatarNumero(item.media_geral)}
                                       </span>
                                     </div>
@@ -594,91 +594,91 @@ export default function ComparativosPage() {
                       </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[900px]">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Escola</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Polo</th>
+                          <th className="text-left py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[150px]">Escola</th>
+                          <th className="text-left py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[120px]">Polo</th>
                           {!filtros.turma_id && (
-                            <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Turma</th>
+                            <th className="text-left py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[100px]">Turma</th>
                           )}
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Alunos</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Presentes</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">LP</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">CH</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">MAT</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">CN</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Média Geral</th>
+                          <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[70px]">Alunos</th>
+                          <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[100px]">Presentes</th>
+                          <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">LP</th>
+                          <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">CH</th>
+                          <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">MAT</th>
+                          <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[80px]">CN</th>
+                          <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[100px]">Média Geral</th>
                           {!filtros.turma_id && (
-                            <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase">Ações</th>
+                            <th className="text-center py-3 px-3 md:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase whitespace-nowrap min-w-[120px]">Ações</th>
                           )}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {dadosSerie.map((item, index) => (
                           <tr key={`${item.escola_id}-${item.serie}-${item.turma_id || 'sem-turma'}-${index}`} className="hover:bg-gray-50">
-                            <td className="py-3 px-4">
-                              <span className="font-semibold text-gray-900">{item.escola_nome}</span>
+                            <td className="py-3 px-3 md:px-4 whitespace-nowrap">
+                              <span className="font-semibold text-gray-900 text-xs md:text-sm">{item.escola_nome}</span>
                             </td>
-                            <td className="py-3 px-4">
-                              <span className="text-gray-600 text-sm">{item.polo_nome}</span>
+                            <td className="py-3 px-3 md:px-4 whitespace-nowrap">
+                              <span className="text-gray-600 text-xs md:text-sm">{item.polo_nome}</span>
                             </td>
                             {!filtros.turma_id && (
-                              <td className="py-3 px-4">
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 font-mono text-xs font-medium">
+                              <td className="py-3 px-3 md:px-4 whitespace-nowrap">
+                                <span className="inline-flex items-center px-2 md:px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 font-mono text-xs font-medium">
                                   {item.turma_codigo || '-'}
                                 </span>
                               </td>
                             )}
-                            <td className="py-3 px-4 text-center">
-                              <span className="text-gray-700 font-medium">{item.total_alunos}</span>
+                            <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
+                              <span className="text-gray-700 font-medium text-xs md:text-sm">{item.total_alunos}</span>
                             </td>
-                            <td className="py-3 px-4 text-center">
-                              <span className="text-gray-700 font-medium">
+                            <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
+                              <span className="text-gray-700 font-medium text-xs md:text-sm">
                                 {item.alunos_presentes} ({item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : 0}%)
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center">
                                 <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_lp)}/20</span>
-                                <span className={`text-sm font-bold ${getNotaColor(item.media_lp)}`}>
+                                <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
                                   {formatarNumero(item.media_lp)}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center">
                                 <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_ch)}/10</span>
-                                <span className={`text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
                                   {formatarNumero(item.media_ch)}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center">
                                 <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_mat)}/20</span>
-                                <span className={`text-sm font-bold ${getNotaColor(item.media_mat)}`}>
+                                <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
                                   {formatarNumero(item.media_mat)}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center">
                                 <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_cn)}/10</span>
-                                <span className={`text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
                                   {formatarNumero(item.media_cn)}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-3 px-4 text-center">
-                              <div className={`inline-flex items-center justify-center px-3 py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
-                                <span className={`text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
+                            <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
+                              <div className={`inline-flex items-center justify-center px-2 md:px-3 py-1 md:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
+                                <span className={`text-sm md:text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
                                   {formatarNumero(item.media_geral)}
                                 </span>
                               </div>
                             </td>
                             {!filtros.turma_id && (
-                              <td className="py-3 px-4 text-center">
+                              <td className="py-3 px-3 md:px-4 text-center whitespace-nowrap">
                                 {item.turma_id && (
                                   <button
                                     onClick={() => {
@@ -690,11 +690,12 @@ export default function ComparativosPage() {
                                       })
                                       setModalAlunosAberto(true)
                                     }}
-                                    className="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                                    className="inline-flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs md:text-sm font-medium"
                                     title="Ver todos os alunos desta turma"
                                   >
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    Ver Alunos
+                                    <Eye className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                                    <span className="hidden md:inline">Ver Alunos</span>
+                                    <span className="md:hidden">Ver</span>
                                   </button>
                                 )}
                               </td>

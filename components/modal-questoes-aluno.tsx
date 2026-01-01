@@ -101,7 +101,7 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div className="flex items-center justify-center min-h-screen px-3 sm:px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {/* Overlay */}
         <div
           className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
@@ -109,13 +109,13 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
         ></div>
 
         {/* Modal */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl w-full mx-3 sm:mx-0">
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-2xl font-bold text-white">Detalhes das Questões</h3>
+          <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+            <div className="flex-1 min-w-0 pr-2">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">Detalhes das Questões</h3>
               {dados && (
-                <p className="text-indigo-100 text-sm mt-1">
+                <p className="text-indigo-100 text-xs sm:text-sm mt-1 truncate">
                   {dados.aluno.nome} - {dados.aluno.escola_nome}
                   {dados.aluno.turma_codigo && ` - Turma ${dados.aluno.turma_codigo}`}
                 </p>
@@ -123,14 +123,14 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
             </div>
             <button
               onClick={onClose}
-              className="text-white hover:text-gray-200 transition-colors"
+              className="text-white hover:text-gray-200 transition-colors p-1 flex-shrink-0"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
 
           {/* Content */}
-          <div className="bg-white px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <div className="bg-white px-3 sm:px-4 md:px-6 py-3 sm:py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
             {carregando ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
@@ -144,14 +144,14 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
             ) : dados ? (
               <div className="space-y-6">
                 {/* Estatísticas Gerais */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                    <p className="text-sm text-indigo-600 font-medium">Total de Questões</p>
-                    <p className="text-2xl font-bold text-indigo-900 mt-1">{dados.estatisticas.total}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                  <div className="bg-indigo-50 rounded-lg p-3 sm:p-4 border border-indigo-200">
+                    <p className="text-xs sm:text-sm text-indigo-600 font-medium">Total de Questões</p>
+                    <p className="text-xl sm:text-2xl font-bold text-indigo-900 mt-1">{dados.estatisticas.total}</p>
                   </div>
-                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                    <p className="text-sm text-green-600 font-medium">Acertos</p>
-                    <p className="text-2xl font-bold text-green-900 mt-1">{dados.estatisticas.acertos}</p>
+                  <div className="bg-green-50 rounded-lg p-3 sm:p-4 border border-green-200">
+                    <p className="text-xs sm:text-sm text-green-600 font-medium">Acertos</p>
+                    <p className="text-xl sm:text-2xl font-bold text-green-900 mt-1">{dados.estatisticas.acertos}</p>
                     <p className="text-xs text-green-600 mt-1">
                       {dados.estatisticas.total > 0
                         ? ((dados.estatisticas.acertos / dados.estatisticas.total) * 100).toFixed(1)
@@ -159,9 +159,9 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
                       %
                     </p>
                   </div>
-                  <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                    <p className="text-sm text-red-600 font-medium">Erros</p>
-                    <p className="text-2xl font-bold text-red-900 mt-1">{dados.estatisticas.erros}</p>
+                  <div className="bg-red-50 rounded-lg p-3 sm:p-4 border border-red-200">
+                    <p className="text-xs sm:text-sm text-red-600 font-medium">Erros</p>
+                    <p className="text-xl sm:text-2xl font-bold text-red-900 mt-1">{dados.estatisticas.erros}</p>
                     <p className="text-xs text-red-600 mt-1">
                       {dados.estatisticas.total > 0
                         ? ((dados.estatisticas.erros / dados.estatisticas.total) * 100).toFixed(1)
@@ -169,9 +169,9 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
                       %
                     </p>
                   </div>
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    <p className="text-sm text-blue-600 font-medium">Taxa de Acerto</p>
-                    <p className="text-2xl font-bold text-blue-900 mt-1">
+                  <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-200">
+                    <p className="text-xs sm:text-sm text-blue-600 font-medium">Taxa de Acerto</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-900 mt-1">
                       {dados.estatisticas.total > 0
                         ? ((dados.estatisticas.acertos / dados.estatisticas.total) * 100).toFixed(1)
                         : 0}

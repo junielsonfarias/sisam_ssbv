@@ -18,12 +18,27 @@ export default function AdminDashboard() {
     const carregarEstatisticas = async () => {
       try {
         const response = await fetch('/api/admin/estatisticas')
+        
+        if (!response.ok) {
+          console.error('Erro ao buscar estatísticas:', response.status, response.statusText)
+          // Manter valores padrão (0) em caso de erro
+          return
+        }
+        
         const data = await response.json()
         if (data) {
-          setEstatisticas(data)
+          // Garantir que todos os valores são números válidos
+          setEstatisticas({
+            totalUsuarios: Number(data.totalUsuarios) || 0,
+            totalEscolas: Number(data.totalEscolas) || 0,
+            totalPolos: Number(data.totalPolos) || 0,
+            totalQuestoes: Number(data.totalQuestoes) || 0,
+            totalResultados: Number(data.totalResultados) || 0,
+          })
         }
       } catch (error) {
         console.error('Erro ao carregar estatísticas:', error)
+        // Manter valores padrão (0) em caso de erro
       }
     }
     carregarEstatisticas()
@@ -82,7 +97,9 @@ export default function AdminDashboard() {
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Resultados de Provas</h2>
               <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 flex-shrink-0" />
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-800">{estatisticas.totalResultados.toLocaleString('pt-BR')}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-800">
+              {(estatisticas.totalResultados || 0).toLocaleString('pt-BR')}
+            </p>
             <p className="text-gray-600 text-xs sm:text-sm mt-2">Total de registros de resultados</p>
           </div>
         </div>
