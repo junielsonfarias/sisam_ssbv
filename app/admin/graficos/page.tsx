@@ -155,9 +155,9 @@ export default function GraficosPage() {
         setEscolas(Array.isArray(escolasData) ? escolasData : [])
       }
 
-      // Extrair séries únicas
-      const seriesUnicas = ['6º Ano', '7º Ano', '8º Ano', '9º Ano']
-      setSeries(seriesUnicas)
+      // Séries serão carregadas do banco quando buscar gráficos
+      // Inicializar vazio para evitar mostrar séries que não existem
+      setSeries([])
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Erro ao carregar dados iniciais:', error)
@@ -195,6 +195,11 @@ export default function GraficosPage() {
       }
 
       const data = await response.json()
+      
+      // Atualizar séries disponíveis do banco de dados
+      if (data.series_disponiveis && Array.isArray(data.series_disponiveis)) {
+        setSeries(data.series_disponiveis)
+      }
       
       // Verificar se há dados válidos
       if (!data || Object.keys(data).length === 0) {
@@ -480,23 +485,30 @@ export default function GraficosPage() {
                       {dados.disciplinas.totalAlunos} alunos
                     </span>
                   </div>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={prepararDadosBarras(dados.disciplinas.labels, dados.disciplinas.dados, 'Média')}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="name" 
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 14, fontWeight: 500 }}
                         interval={0}
                         angle={-15}
                         textAnchor="end"
-                        height={80}
+                        height={100}
                       />
-                      <YAxis domain={[0, 10]} />
-                      <Tooltip />
-                      <Legend />
+                      <YAxis 
+                        domain={[0, 10]} 
+                        tick={{ fontSize: 14, fontWeight: 500 }}
+                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ fontSize: 14, fontWeight: 500 }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="value" name="Média" fill="#4F46E5" />
                       {/* Linha de referência para meta (7.0) */}
-                      <ReferenceLine y={7} stroke="#10B981" strokeDasharray="3 3" label={{ value: "Meta (7.0)", position: "right" }} />
+                      <ReferenceLine y={7} stroke="#10B981" strokeDasharray="3 3" label={{ value: "Meta (7.0)", position: "right", fontSize: 14, fontWeight: 600 }} />
                     </BarChart>
                   </ResponsiveContainer>
                   
@@ -535,23 +547,32 @@ export default function GraficosPage() {
                 <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-green-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Escola (Top 10)</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Escola</h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={Math.max(500, Math.min(800, dados.escolas.labels.length * 50))}>
                     <BarChart 
                       data={prepararDadosBarras(dados.escolas.labels, dados.escolas.dados, 'Média')}
                       layout="vertical"
+                      margin={{ left: 10, right: 30, top: 5, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" domain={[0, 10]} />
+                      <XAxis 
+                        type="number" 
+                        domain={[0, 10]} 
+                        tick={{ fontSize: 14, fontWeight: 500 }}
+                        label={{ value: 'Média', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 600 }}
+                      />
                       <YAxis 
                         type="category" 
                         dataKey="name" 
-                        width={150}
-                        tick={{ fontSize: 11 }}
+                        width={Math.min(250, Math.max(150, dados.escolas.labels.reduce((max: number, label: string) => Math.max(max, label.length * 8), 150)))}
+                        tick={{ fontSize: 13, fontWeight: 500 }}
                       />
-                      <Tooltip />
-                      <Legend />
+                      <Tooltip 
+                        contentStyle={{ fontSize: 14, fontWeight: 500 }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="value" name="Média" fill="#10B981" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -565,14 +586,24 @@ export default function GraficosPage() {
                     <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Série</h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <LineChart data={prepararDadosBarras(dados.series.labels, dados.series.dados, 'Média')}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis domain={[0, 10]} />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="value" name="Média" stroke="#8B5CF6" strokeWidth={2} />
+                      <XAxis 
+                        dataKey="name" 
+                        tick={{ fontSize: 14, fontWeight: 500 }}
+                      />
+                      <YAxis 
+                        domain={[0, 10]} 
+                        tick={{ fontSize: 14, fontWeight: 500 }}
+                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ fontSize: 14, fontWeight: 500 }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
+                      <Line type="monotone" dataKey="value" name="Média" stroke="#8B5CF6" strokeWidth={3} dot={{ r: 6 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -585,20 +616,27 @@ export default function GraficosPage() {
                     <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-blue-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Polo</h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={prepararDadosBarras(dados.polos.labels, dados.polos.dados, 'Média')}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="name"
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 14, fontWeight: 500 }}
                         interval={0}
                         angle={-15}
                         textAnchor="end"
                         height={80}
                       />
-                      <YAxis domain={[0, 10]} />
-                      <Tooltip />
-                      <Legend />
+                      <YAxis 
+                        domain={[0, 10]} 
+                        tick={{ fontSize: 14, fontWeight: 500 }}
+                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ fontSize: 14, fontWeight: 500 }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="value" name="Média" fill="#06B6D4" />
                     </BarChart>
                   </ResponsiveContainer>

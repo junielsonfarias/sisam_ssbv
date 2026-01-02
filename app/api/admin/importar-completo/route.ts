@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { normalizarSerie } from '@/lib/normalizar-serie'
 import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic'
@@ -274,7 +275,8 @@ async function processarImportacao(
         const escolaNome = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
         const alunoNome = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
         const turmaCodigo = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
-        const serie = (linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['serie'] || linha['Ano'] || '').toString().trim()
+        const serieRaw = (linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['serie'] || linha['Ano'] || '').toString().trim()
+        const serie = normalizarSerie(serieRaw) || null
         
         // IMPORTANTE: Validar dados antes de processar
         // Se escola ou aluno estiverem vazios, pular linha mas registrar erro e CONTINUAR

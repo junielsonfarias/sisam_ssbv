@@ -80,7 +80,46 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
-    let resultado: any = {}
+    // Buscar séries disponíveis no banco de dados (apenas séries que realmente existem)
+    // Usar apenas filtros básicos (ano_letivo e permissões de usuário), não filtros de escola/polo/série
+    const whereSeriesConditions: string[] = []
+    const paramsSeries: any[] = []
+    let paramSeriesIndex = 1
+    
+    // Aplicar apenas restrições baseadas no tipo de usuário (não filtros opcionais)
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      whereSeriesConditions.push(`rc.escola_id = $${paramSeriesIndex}`)
+      paramsSeries.push(usuario.escola_id)
+      paramSeriesIndex++
+    } else if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+      whereSeriesConditions.push(`e.polo_id = $${paramSeriesIndex}`)
+      paramsSeries.push(usuario.polo_id)
+      paramSeriesIndex++
+    }
+    
+    if (anoLetivo) {
+      whereSeriesConditions.push(`rc.ano_letivo = $${paramSeriesIndex}`)
+      paramsSeries.push(anoLetivo)
+      paramSeriesIndex++
+    }
+    
+    const whereSeriesClause = whereSeriesConditions.length > 0 
+      ? `WHERE ${whereSeriesConditions.join(' AND ')} AND rc.serie IS NOT NULL AND rc.serie != ''`
+      : 'WHERE rc.serie IS NOT NULL AND rc.serie != \'\''
+    
+    const querySeriesDisponiveis = `
+      SELECT DISTINCT rc.serie
+      FROM resultados_consolidados_unificada rc
+      INNER JOIN escolas e ON rc.escola_id = e.id
+      ${whereSeriesClause}
+      ORDER BY rc.serie
+    `
+    const resSeriesDisponiveis = await pool.query(querySeriesDisponiveis, paramsSeries)
+    const seriesDisponiveis = resSeriesDisponiveis.rows.map((r: any) => r.serie).filter((s: string) => s && s.trim() !== '')
+
+    let resultado: any = {
+      series_disponiveis: seriesDisponiveis
+    }
 
     // Gráfico Geral - Médias por Disciplina
     if (tipoGrafico === 'geral' || tipoGrafico === 'disciplinas') {
@@ -218,19 +257,19 @@ export async function GET(request: NextRequest) {
           e.nome as escola,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
           COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY e.id, e.nome
         ORDER BY media DESC
-        LIMIT 10
       `
       const resEscolas = await pool.query(queryEscolas, params)
       if (resEscolas.rows.length > 0) {
         resultado.escolas = {
-          labels: resEscolas.rows.map(r => r.escola),
+          labels: resEscolas.rows.map((r, index) => `${index + 1}º ${r.escola}`),
           dados: resEscolas.rows.map(r => parseFloat(r.media) || 0),
-          totais: resEscolas.rows.map(r => parseInt(r.total_alunos) || 0)
+          totais: resEscolas.rows.map(r => parseInt(r.total_alunos) || 0),
+          rankings: resEscolas.rows.map((r, index) => index + 1)
         }
       }
     }
@@ -242,7 +281,7 @@ export async function GET(request: NextRequest) {
           rc.serie,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
           COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY rc.serie
@@ -265,7 +304,7 @@ export async function GET(request: NextRequest) {
           p.nome as polo,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
           COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         INNER JOIN polos p ON e.polo_id = p.id
         ${whereClause}
@@ -295,7 +334,7 @@ export async function GET(request: NextRequest) {
             ELSE '0.0 - 4.9'
           END as faixa,
           COUNT(*) as quantidade
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY faixa
@@ -316,7 +355,7 @@ export async function GET(request: NextRequest) {
         SELECT 
           CASE WHEN rc.presenca IN ('P', 'p') THEN 'Presentes' ELSE 'Faltas' END as status,
           COUNT(*) as quantidade
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY status
@@ -771,7 +810,7 @@ export async function GET(request: NextRequest) {
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY e.id, e.nome
@@ -801,7 +840,7 @@ export async function GET(request: NextRequest) {
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as ch,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as mat,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as cn
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY e.id, e.nome
@@ -830,7 +869,7 @@ export async function GET(request: NextRequest) {
         SELECT 
           COALESCE(e.nome, rc.serie, 'Geral') as categoria,
           CAST(rc.media_aluno AS DECIMAL) as nota
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         LEFT JOIN escolas e ON rc.escola_id = e.id
         ${whereBoxPlot}
         ORDER BY categoria, nota
@@ -887,7 +926,7 @@ export async function GET(request: NextRequest) {
           CAST(rc.nota_ch AS DECIMAL) as ch,
           CAST(rc.nota_mat AS DECIMAL) as mat,
           CAST(rc.nota_cn AS DECIMAL) as cn
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereCorrelacao}
         LIMIT 1000
@@ -990,7 +1029,7 @@ export async function GET(request: NextRequest) {
           SUM(CASE WHEN CAST(rc.media_aluno AS DECIMAL) >= 7.0 THEN 1 ELSE 0 END) as aprovados_7,
           SUM(CASE WHEN CAST(rc.media_aluno AS DECIMAL) >= 8.0 THEN 1 ELSE 0 END) as aprovados_8,
           ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         LEFT JOIN escolas e ON rc.escola_id = e.id
         ${whereAprovacao}
         GROUP BY e.id, e.nome
@@ -1029,7 +1068,7 @@ export async function GET(request: NextRequest) {
           ROUND(MIN(CAST(rc.media_aluno AS DECIMAL)), 2) as pior_media,
           ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral,
           ROUND(MAX(CAST(rc.media_aluno AS DECIMAL)) - MIN(CAST(rc.media_aluno AS DECIMAL)), 2) as gap
-        FROM resultados_consolidados rc
+        FROM resultados_consolidados_unificada rc
         LEFT JOIN escolas e ON rc.escola_id = e.id
         ${whereGaps}
         GROUP BY e.id, e.nome

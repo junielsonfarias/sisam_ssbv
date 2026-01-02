@@ -22,8 +22,8 @@ export default function GraficosPoloPage() {
 
   useEffect(() => {
     carregarDadosIniciais()
-    const seriesUnicas = ['6º Ano', '7º Ano', '8º Ano', '9º Ano']
-    setSeries(seriesUnicas)
+    // Séries serão carregadas do banco quando buscar gráficos
+    setSeries([])
   }, [])
 
   const carregarDadosIniciais = async () => {
@@ -63,6 +63,11 @@ export default function GraficosPoloPage() {
       }
 
       const data = await response.json()
+      
+      // Atualizar séries disponíveis do banco de dados
+      if (data.series_disponiveis && Array.isArray(data.series_disponiveis)) {
+        setSeries(data.series_disponiveis)
+      }
       
       if (!data || Object.keys(data).length === 0) {
         setErro('Nenhum dado encontrado para os filtros selecionados')

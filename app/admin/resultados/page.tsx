@@ -705,40 +705,40 @@ export default function ResultadosPage() {
                 {/* Visualização Tablet/Desktop - Tabela */}
                 <div className="hidden sm:block w-full">
                   <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
-                    <table className="w-full divide-y divide-gray-200 min-w-[800px]">
+                    <table className="w-full divide-y divide-gray-200 min-w-[700px]">
                       <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
                         <tr>
-                          <th className="text-left py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Aluno
                           </th>
-                          <th className="hidden lg:table-cell text-left py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="hidden lg:table-cell text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Escola
                           </th>
-                          <th className="hidden md:table-cell text-left py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="hidden md:table-cell text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Turma
                           </th>
-                          <th className="hidden xl:table-cell text-left py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="hidden xl:table-cell text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Série
                           </th>
-                          <th className="hidden lg:table-cell text-center py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="hidden lg:table-cell text-center py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Presença
                           </th>
-                          <th className="text-center py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             LP
                           </th>
-                          <th className="text-center py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             CH
                           </th>
-                          <th className="text-center py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             MAT
                           </th>
-                          <th className="text-center py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             CN
                           </th>
-                          <th className="text-center py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Média
                           </th>
-                          <th className="text-center py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Ações
                           </th>
                         </tr>
@@ -762,7 +762,7 @@ export default function ResultadosPage() {
 
                         return (
                           <tr key={resultado.id} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
-                            <td className="py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4">
+                            <td className="py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
                               <div className="flex flex-col">
                                 <button
                                   onClick={() => {
@@ -783,7 +783,7 @@ export default function ResultadosPage() {
                                   <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-[11px] sm:text-xs md:text-sm truncate">{resultado.aluno_nome}</span>
                                 </button>
                                 <div className="lg:hidden text-[10px] sm:text-xs text-gray-500 space-y-0.5 ml-7 sm:ml-10">
-                                  {resultado.escola_nome && <div className="truncate">Escola: {resultado.escola_nome}</div>}
+                                  {resultado.escola_nome && <div className="whitespace-normal break-words">Escola: {resultado.escola_nome}</div>}
                                   {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
                                   {resultado.serie && <div>Série: {resultado.serie}</div>}
                                   <div className="flex items-center gap-2">
@@ -799,15 +799,15 @@ export default function ResultadosPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="hidden lg:table-cell py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4">
-                              <span className="text-gray-700 font-medium text-[11px] sm:text-xs md:text-sm truncate block max-w-[150px]">{resultado.escola_nome}</span>
+                            <td className="hidden lg:table-cell py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
+                              <span className="text-gray-700 font-medium text-[11px] sm:text-xs md:text-sm block whitespace-normal break-words">{resultado.escola_nome}</span>
                             </td>
-                            <td className="hidden md:table-cell py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4">
+                            <td className="hidden md:table-cell py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
                               <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-gray-100 text-gray-700 font-mono text-[10px] sm:text-xs font-medium">
                                 {resultado.turma_codigo || '-'}
                               </span>
                             </td>
-                            <td className="hidden xl:table-cell py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4">
+                            <td className="hidden xl:table-cell py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
                               <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-blue-100 text-blue-800 text-[10px] sm:text-xs font-medium">
                                 {resultado.serie || '-'}
                               </span>
