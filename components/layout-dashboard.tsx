@@ -66,7 +66,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
   const menuItems = [
     { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
-    { icon: BarChart3, label: 'Análise de Dados', href: `/${basePath}/analise` },
+    // { icon: BarChart3, label: 'Análise de Dados', href: `/${basePath}/analise` }, // Desabilitado
     { icon: TrendingUp, label: 'Análise Gráfica', href: `/${basePath}/graficos` },
   ]
 

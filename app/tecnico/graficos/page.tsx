@@ -743,15 +743,15 @@ export default function GraficosTecnicoPage() {
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Heatmap de Desempenho (Escolas × Disciplinas)</h3>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
+                    <table className="min-w-full">
                       <thead>
-                        <tr className="bg-gray-50">
-                          <th className="px-4 py-2 text-left font-semibold text-gray-700">Escola</th>
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">LP</th>
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">CH</th>
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">MAT</th>
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">CN</th>
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">Geral</th>
+                        <tr className="bg-gray-100 border-b-2 border-gray-300">
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-left font-bold text-gray-900 text-sm md:text-base uppercase">Escola</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">LP</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">CH</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">MAT</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">CN</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-base md:text-lg uppercase">Geral</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -763,13 +763,13 @@ export default function GraficosTecnicoPage() {
                             return 'bg-red-300'
                           }
                           return (
-                            <tr key={index} className="border-b">
-                              <td className="px-4 py-2 font-medium">{item.escola}</td>
-                              <td className={`px-4 py-2 text-center ${getColor(item.LP)} text-white font-semibold`}>{item.LP.toFixed(2)}</td>
-                              <td className={`px-4 py-2 text-center ${getColor(item.CH)} text-white font-semibold`}>{item.CH.toFixed(2)}</td>
-                              <td className={`px-4 py-2 text-center ${getColor(item.MAT)} text-white font-semibold`}>{item.MAT.toFixed(2)}</td>
-                              <td className={`px-4 py-2 text-center ${getColor(item.CN)} text-white font-semibold`}>{item.CN.toFixed(2)}</td>
-                              <td className={`px-4 py-2 text-center ${getColor(item.Geral)} text-white font-semibold`}>{item.Geral.toFixed(2)}</td>
+                            <tr key={index} className="border-b hover:bg-gray-50">
+                              <td className="px-3 md:px-4 py-2.5 md:py-3 font-medium text-sm md:text-base text-gray-900">{item.escola}</td>
+                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.LP)} text-white font-bold text-sm md:text-base`}>{item.LP.toFixed(2)}</td>
+                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.CH)} text-white font-bold text-sm md:text-base`}>{item.CH.toFixed(2)}</td>
+                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.MAT)} text-white font-bold text-sm md:text-base`}>{item.MAT.toFixed(2)}</td>
+                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.CN)} text-white font-bold text-sm md:text-base`}>{item.CN.toFixed(2)}</td>
+                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.Geral)} text-white font-bold text-base md:text-lg`}>{item.Geral.toFixed(2)}</td>
                             </tr>
                           )
                         })}
