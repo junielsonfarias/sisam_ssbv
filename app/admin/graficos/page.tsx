@@ -553,26 +553,26 @@ export default function GraficosPage() {
                     <BarChart 
                       data={prepararDadosBarras(dados.escolas.labels, dados.escolas.dados, 'Média')}
                       layout="vertical"
-                      margin={{ left: 10, right: 30, top: 5, bottom: 5 }}
+                      margin={{ left: 15, right: 40, top: 10, bottom: 10 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         type="number" 
                         domain={[0, 10]} 
-                        tick={{ fontSize: 14, fontWeight: 500 }}
+                        tick={{ fontSize: 13, fontWeight: 500 }}
                         label={{ value: 'Média', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 600 }}
                       />
                       <YAxis 
                         type="category" 
                         dataKey="name" 
-                        width={Math.min(250, Math.max(150, dados.escolas.labels.reduce((max: number, label: string) => Math.max(max, label.length * 8), 150)))}
-                        tick={{ fontSize: 13, fontWeight: 500 }}
+                        width={Math.min(300, Math.max(180, dados.escolas.labels.reduce((max: number, label: string) => Math.max(max, label.length * 7.5), 180)))}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
                       />
                       <Tooltip 
-                        contentStyle={{ fontSize: 14, fontWeight: 500 }}
-                        labelStyle={{ fontSize: 14, fontWeight: 600 }}
+                        contentStyle={{ fontSize: 13, fontWeight: 500 }}
+                        labelStyle={{ fontSize: 13, fontWeight: 600 }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
+                      <Legend wrapperStyle={{ fontSize: 13, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="value" name="Média" fill="#10B981" />
                     </BarChart>
                   </ResponsiveContainer>
