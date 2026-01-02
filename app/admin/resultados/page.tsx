@@ -66,6 +66,18 @@ export default function ResultadosPage() {
     carregarResultados()
   }, [filtros])
 
+  useEffect(() => {
+    // Carregar escolas quando o polo for selecionado
+    if (filtros.polo_id) {
+      const escolasDoPolo = escolas.filter((e) => e.polo_id === filtros.polo_id)
+      // Se já temos as escolas carregadas, não precisamos fazer nova requisição
+      // Se não tiver escolas do polo, limpar escola selecionada
+      if (escolasDoPolo.length === 0 && filtros.escola_id) {
+        setFiltros((prev) => ({ ...prev, escola_id: undefined }))
+      }
+    }
+  }, [filtros.polo_id, escolas])
+
   const carregarDadosIniciais = async () => {
     try {
       const [polosRes, escolasRes] = await Promise.all([

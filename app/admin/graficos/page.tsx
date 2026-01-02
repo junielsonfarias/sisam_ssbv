@@ -907,23 +907,65 @@ export default function GraficosPage() {
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Correlação entre Disciplinas</h3>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* LP x MAT */}
                     <ResponsiveContainer width="100%" height={300}>
                       <ScatterChart data={dados.correlacao}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5 }} />
-                        <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} label={{ value: 'Matemática', angle: -90, position: 'insideLeft' }} />
+                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '11px' } }} />
+                        <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }} />
                         <Tooltip cursor={{ strokeDasharray: '3 3' }} />
                         <Scatter name="Alunos" data={dados.correlacao} fill="#4F46E5" />
                       </ScatterChart>
                     </ResponsiveContainer>
+                    {/* LP x CH */}
                     <ResponsiveContainer width="100%" height={300}>
                       <ScatterChart data={dados.correlacao}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} label={{ value: 'Ciências Humanas', position: 'insideBottom', offset: -5 }} />
-                        <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft' }} />
+                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '11px' } }} />
+                        <YAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} label={{ value: 'Ciências Humanas', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }} />
                         <Tooltip cursor={{ strokeDasharray: '3 3' }} />
                         <Scatter name="Alunos" data={dados.correlacao} fill="#10B981" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                    {/* LP x CN */}
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ScatterChart data={dados.correlacao}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '11px' } }} />
+                        <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }} />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                        <Scatter name="Alunos" data={dados.correlacao} fill="#F59E0B" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                    {/* CH x MAT */}
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ScatterChart data={dados.correlacao}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} label={{ value: 'Ciências Humanas', position: 'insideBottom', offset: -5, style: { fontSize: '11px' } }} />
+                        <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }} />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                        <Scatter name="Alunos" data={dados.correlacao} fill="#EF4444" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                    {/* CH x CN */}
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ScatterChart data={dados.correlacao}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} label={{ value: 'Ciências Humanas', position: 'insideBottom', offset: -5, style: { fontSize: '11px' } }} />
+                        <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }} />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                        <Scatter name="Alunos" data={dados.correlacao} fill="#8B5CF6" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                    {/* MAT x CN */}
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ScatterChart data={dados.correlacao}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} label={{ value: 'Matemática', position: 'insideBottom', offset: -5, style: { fontSize: '11px' } }} />
+                        <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }} />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                        <Scatter name="Alunos" data={dados.correlacao} fill="#EC4899" />
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>

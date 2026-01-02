@@ -72,7 +72,7 @@ export default function ComparativosPage() {
 
   useEffect(() => {
     carregarTurmas()
-  }, [filtros.serie, escolasSelecionadas, filtros.ano_letivo])
+  }, [filtros.serie, escolasSelecionadas, filtros.ano_letivo, filtros.polo_id])
 
   useEffect(() => {
     carregarComparativos()
@@ -107,8 +107,25 @@ export default function ComparativosPage() {
       const params = new URLSearchParams()
       params.append('serie', filtros.serie)
       
-      if (escolasSelecionadas.length > 0) {
-        params.append('escolas_ids', escolasSelecionadas.join(','))
+      // Se há polo selecionado, filtrar escolas pelo polo antes de buscar turmas
+      if (filtros.polo_id && escolasSelecionadas.length === 0) {
+        // Se não há escolas selecionadas mas há polo, usar todas as escolas do polo
+        const escolasDoPolo = escolas.filter((e) => e.polo_id === filtros.polo_id).map((e) => e.id)
+        if (escolasDoPolo.length > 0) {
+          params.append('escolas_ids', escolasDoPolo.join(','))
+        }
+      } else if (escolasSelecionadas.length > 0) {
+        // Filtrar apenas as escolas selecionadas que pertencem ao polo (se polo estiver selecionado)
+        const escolasFiltradas = filtros.polo_id
+          ? escolasSelecionadas.filter((id) => {
+              const escola = escolas.find((e) => e.id === id)
+              return escola && escola.polo_id === filtros.polo_id
+            })
+          : escolasSelecionadas
+        
+        if (escolasFiltradas.length > 0) {
+          params.append('escolas_ids', escolasFiltradas.join(','))
+        }
       }
       
       if (filtros.ano_letivo) {
