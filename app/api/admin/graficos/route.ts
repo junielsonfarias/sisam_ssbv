@@ -80,6 +80,9 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
+    // Determinar se deve remover limites (quando todas escolas ou um polo completo é selecionado)
+    const deveRemoverLimites = !escolaId || escolaId === '' || escolaId === 'undefined' || escolaId.toLowerCase() === 'todas'
+
     // Buscar séries disponíveis no banco de dados (apenas séries que realmente existem)
     // Usar apenas filtros básicos (ano_letivo e permissões de usuário), não filtros de escola/polo/série
     const whereSeriesConditions: string[] = []
@@ -369,7 +372,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Comparativo de Escolas Detalhado (Top 5 e Bottom 5)
+    // Comparativo de Escolas Detalhado (Top 5 e Bottom 5 ou Todas)
     if (tipoGrafico === 'comparativo_escolas') {
       const queryComparativo = `
         WITH ranking_escolas AS (
@@ -389,7 +392,7 @@ export async function GET(request: NextRequest) {
           GROUP BY e.id, e.nome
         )
         SELECT * FROM ranking_escolas
-        WHERE rank_desc <= 5 OR rank_asc <= 5
+        ${deveRemoverLimites ? '' : 'WHERE rank_desc <= 5 OR rank_asc <= 5'}
         ORDER BY media_geral DESC
       `
       const resComparativo = await pool.query(queryComparativo, params)
