@@ -352,23 +352,45 @@ export default function ComparativosPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Selecionar Escolas para Comparar ({escolasSelecionadas.length} selecionadas)
               </label>
-              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 bg-gray-50">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {escolasFiltradas.map((escola) => (
-                    <label
-                      key={escola.id}
-                      className="flex items-center space-x-2 cursor-pointer hover:bg-white p-2 rounded"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={escolasSelecionadas.includes(escola.id)}
-                        onChange={() => toggleEscola(escola.id)}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="text-sm text-gray-700">{escola.nome}</span>
-                    </label>
-                  ))}
-                </div>
+              <div className="max-h-64 overflow-y-auto border-2 border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-white shadow-inner">
+                {escolasFiltradas.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <School className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Nenhuma escola disponível</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {escolasFiltradas.map((escola) => {
+                      const isSelected = escolasSelecionadas.includes(escola.id)
+                      return (
+                        <label
+                          key={escola.id}
+                          className={`
+                            flex items-center space-x-3 cursor-pointer 
+                            p-3 rounded-lg border-2 transition-all duration-200
+                            ${isSelected
+                              ? 'bg-indigo-50 border-indigo-500 shadow-md'
+                              : 'bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 hover:shadow-sm'
+                            }
+                          `}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleEscola(escola.id)}
+                            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 cursor-pointer"
+                          />
+                          <span className={`text-sm font-medium flex-1 ${isSelected ? 'text-indigo-900' : 'text-gray-700'}`}>
+                            {escola.nome}
+                          </span>
+                          {isSelected && (
+                            <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+                          )}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>

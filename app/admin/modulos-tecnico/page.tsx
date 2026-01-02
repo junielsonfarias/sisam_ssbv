@@ -40,17 +40,31 @@ export default function ModulosTecnicoPage() {
   const carregarModulos = async () => {
     try {
       setCarregando(true)
+      setMensagem(null)
       const response = await fetch('/api/admin/modulos-tecnico')
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        setMensagem({ tipo: 'erro', texto: errorData.mensagem || 'Erro ao carregar módulos' })
+        setModulos([])
+        return
+      }
+      
       const data = await response.json()
       
-      if (response.ok) {
+      if (Array.isArray(data) && data.length > 0) {
         setModulos(data)
+      } else if (Array.isArray(data)) {
+        setModulos([])
+        setMensagem({ tipo: 'erro', texto: 'Nenhum módulo encontrado no banco de dados' })
       } else {
-        setMensagem({ tipo: 'erro', texto: 'Erro ao carregar módulos' })
+        setModulos([])
+        setMensagem({ tipo: 'erro', texto: 'Formato de resposta inválido' })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao carregar módulos:', error)
-      setMensagem({ tipo: 'erro', texto: 'Erro ao carregar módulos' })
+      setMensagem({ tipo: 'erro', texto: `Erro ao carregar módulos: ${error.message || 'Erro desconhecido'}` })
+      setModulos([])
     } finally {
       setCarregando(false)
     }

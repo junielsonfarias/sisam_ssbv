@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
-import { pool } from '@/database/connection'
+import pool from '@/database/connection'
 
 export async function GET(request: NextRequest) {
   try {
