@@ -4,7 +4,7 @@ import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 900 // 15 minutos máximo
+export const maxDuration = 300 // 5 minutos máximo (limite do plano Hobby da Vercel)
 
 export async function POST(request: NextRequest) {
   try {
