@@ -849,28 +849,29 @@ export async function GET(request: NextRequest) {
 
       resultado.boxplot = Object.keys(categorias).length > 0 
         ? Object.entries(categorias)
-        .filter(([_, notas]) => notas.length > 0) // Filtrar categorias vazias
-        .map(([categoria, notas]) => {
-          notas.sort((a, b) => a - b)
-          const q1 = notas.length > 0 ? notas[Math.floor(notas.length * 0.25)] : 0
-          const mediana = notas.length > 0 ? notas[Math.floor(notas.length * 0.5)] : 0
-          const q3 = notas.length > 0 ? notas[Math.floor(notas.length * 0.75)] : 0
-          const min = notas.length > 0 ? notas[0] : 0
-          const max = notas.length > 0 ? notas[notas.length - 1] : 0
-          const media = notas.length > 0 ? notas.reduce((a, b) => a + b, 0) / notas.length : 0
+          .filter(([_, notas]) => notas.length > 0) // Filtrar categorias vazias
+          .map(([categoria, notas]) => {
+            notas.sort((a, b) => a - b)
+            const q1 = notas.length > 0 ? notas[Math.floor(notas.length * 0.25)] : 0
+            const mediana = notas.length > 0 ? notas[Math.floor(notas.length * 0.5)] : 0
+            const q3 = notas.length > 0 ? notas[Math.floor(notas.length * 0.75)] : 0
+            const min = notas.length > 0 ? notas[0] : 0
+            const max = notas.length > 0 ? notas[notas.length - 1] : 0
+            const media = notas.length > 0 ? notas.reduce((a, b) => a + b, 0) / notas.length : 0
 
-          return {
-            categoria,
-            min,
-            q1,
-            mediana,
-            q3,
-            max,
-            media,
-            total: notas.length
-          }
-        })
-        .slice(0, 20) // Limitar a 20 categorias
+            return {
+              categoria,
+              min,
+              q1,
+              mediana,
+              q3,
+              max,
+              media,
+              total: notas.length
+            }
+          })
+          .slice(0, 20) // Limitar a 20 categorias
+        : []
     }
 
     // 5. Correlação entre Disciplinas

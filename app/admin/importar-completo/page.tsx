@@ -16,6 +16,20 @@ export default function ImportarCompletoPage() {
     linhas_processadas: number
     total_linhas: number
     status: string
+    linhas_com_erro?: number
+    polos_criados?: number
+    polos_existentes?: number
+    escolas_criadas?: number
+    escolas_existentes?: number
+    turmas_criadas?: number
+    turmas_existentes?: number
+    alunos_criados?: number
+    alunos_existentes?: number
+    questoes_criadas?: number
+    questoes_existentes?: number
+    resultados_novos?: number
+    resultados_atualizados?: number
+    resultados_duplicados?: number
   } | null>(null)
   const intervaloProgressoRef = useRef<NodeJS.Timeout | null>(null)
   const importacaoIdRef = useRef<string | null>(null)
