@@ -26,19 +26,27 @@ interface DadosComparativoPolo {
   media_acertos_cn: number | string
 }
 
+interface DadosComparativoEscola extends DadosComparativoPolo {
+  escola_id: string
+  escola_nome: string
+}
+
 export default function ComparativosPolosPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [polos, setPolos] = useState<any[]>([])
+  const [escolas, setEscolas] = useState<any[]>([])
   const [series, setSeries] = useState<string[]>([])
   const [turmas, setTurmas] = useState<any[]>([])
   const [polosSelecionados, setPolosSelecionados] = useState<string[]>([])
   const [filtros, setFiltros] = useState({
     ano_letivo: '',
     serie: '',
+    escola_id: '',
     turma_id: '',
   })
   const [dados, setDados] = useState<Record<string, DadosComparativoPolo[]>>({})
   const [dadosAgregados, setDadosAgregados] = useState<Record<string, DadosComparativoPolo[]>>({})
+  const [dadosPorSerieEscola, setDadosPorSerieEscola] = useState<Record<string, Record<string, DadosComparativoEscola[]>>>({})
   const [carregando, setCarregando] = useState(false)
 
   useEffect(() => {
@@ -59,6 +67,14 @@ export default function ComparativosPolosPage() {
   }, [])
 
   useEffect(() => {
+    carregarEscolas()
+  }, [polosSelecionados])
+
+  useEffect(() => {
+    carregarTurmas()
+  }, [filtros.serie, filtros.escola_id, polosSelecionados, filtros.ano_letivo])
+
+  useEffect(() => {
     carregarComparativos()
   }, [polosSelecionados, filtros])
 
@@ -72,9 +88,62 @@ export default function ComparativosPolosPage() {
     }
   }
 
+  const carregarEscolas = async () => {
+    if (polosSelecionados.length === 0) {
+      setEscolas([])
+      return
+    }
+
+    try {
+      const escolasFiltradas: any[] = []
+      for (const poloId of polosSelecionados) {
+        const response = await fetch(`/api/admin/escolas?polo_id=${poloId}`)
+        const data = await response.json()
+        if (Array.isArray(data)) {
+          escolasFiltradas.push(...data)
+        }
+      }
+      setEscolas([...new Map(escolasFiltradas.map(e => [e.id, e])).values()])
+    } catch (error) {
+      console.error('Erro ao carregar escolas:', error)
+      setEscolas([])
+    }
+  }
+
+  const carregarTurmas = async () => {
+    if (!filtros.serie || !filtros.escola_id) {
+      setTurmas([])
+      return
+    }
+
+    try {
+      const params = new URLSearchParams()
+      params.append('serie', filtros.serie)
+      params.append('escolas_ids', filtros.escola_id)
+      
+      if (filtros.ano_letivo) {
+        params.append('ano_letivo', filtros.ano_letivo)
+      }
+
+      const response = await fetch(`/api/admin/turmas?${params.toString()}`)
+      const data = await response.json()
+
+      if (response.ok && Array.isArray(data)) {
+        setTurmas(data)
+      } else {
+        setTurmas([])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar turmas:', error)
+      setTurmas([])
+    }
+  }
+
   const carregarComparativos = async () => {
     if (polosSelecionados.length !== 2) {
       setDados({})
+      setDadosAgregados({})
+      setDadosPorSerieEscola({})
       return
     }
 
@@ -90,6 +159,10 @@ export default function ComparativosPolosPage() {
       if (filtros.serie) {
         params.append('serie', filtros.serie)
       }
+
+      if (filtros.escola_id && filtros.escola_id !== 'todas' && filtros.escola_id !== '') {
+        params.append('escola_id', filtros.escola_id)
+      }
       
       if (filtros.turma_id) {
         params.append('turma_id', filtros.turma_id)
@@ -101,6 +174,7 @@ export default function ComparativosPolosPage() {
       if (response.ok) {
         setDados(data.dadosPorSerie || {})
         setDadosAgregados(data.dadosPorSerieAgregado || {})
+        setDadosPorSerieEscola(data.dadosPorSerieEscola || {})
         
         // Extrair séries únicas
         const seriesUnicas = [...new Set(Object.values(data.dadosPorSerie || {}).flat().map((d: any) => d.serie).filter(Boolean))] as string[]
@@ -108,10 +182,14 @@ export default function ComparativosPolosPage() {
       } else {
         console.error('Erro na API:', data.mensagem)
         setDados({})
+        setDadosAgregados({})
+        setDadosPorSerieEscola({})
       }
     } catch (error) {
       console.error('Erro ao carregar comparativos:', error)
       setDados({})
+      setDadosAgregados({})
+      setDadosPorSerieEscola({})
     } finally {
       setCarregando(false)
     }
@@ -128,6 +206,8 @@ export default function ComparativosPolosPage() {
       }
       return [...prev, poloId]
     })
+    // Limpar escola quando polos mudam
+    setFiltros((prev) => ({ ...prev, escola_id: '', turma_id: '' }))
   }
 
   const limparFiltros = () => {
@@ -135,6 +215,7 @@ export default function ComparativosPolosPage() {
     setFiltros({
       ano_letivo: '',
       serie: '',
+      escola_id: '',
       turma_id: '',
     })
   }
@@ -161,22 +242,22 @@ export default function ComparativosPolosPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
-        <div className="space-y-6">
+        <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Comparativo entre Polos</h1>
-              <p className="text-gray-600 mt-1">Compare o desempenho entre 2 polos, séries e turmas</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Comparativo entre Polos</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Compare o desempenho entre 2 polos, séries, escolas e turmas</p>
             </div>
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6" style={{ overflow: 'visible' }}>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6" style={{ overflow: 'visible' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <Filter className="w-5 h-5 mr-2 text-indigo-600" />
-                <h2 className="text-xl font-semibold text-gray-800">Filtros de Comparação</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Filtros de Comparação</h2>
               </div>
-              {(polosSelecionados.length > 0 || filtros.serie) && (
+              {(polosSelecionados.length > 0 || filtros.serie || filtros.escola_id) && (
                 <button
                   onClick={limparFiltros}
                   className="flex items-center text-sm text-indigo-600 hover:text-indigo-700"
@@ -208,7 +289,7 @@ export default function ComparativosPolosPage() {
                 <select
                   value={filtros.serie}
                   onChange={(e) => {
-                    setFiltros((prev) => ({ ...prev, serie: e.target.value, turma_id: '' }))
+                    setFiltros((prev) => ({ ...prev, serie: e.target.value, turma_id: '', escola_id: '' }))
                   }}
                   className="select-custom w-full"
                 >
@@ -216,6 +297,48 @@ export default function ComparativosPolosPage() {
                   {series.map((serie) => (
                     <option key={serie} value={serie}>
                       {serie}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Escola
+                </label>
+                <select
+                  value={filtros.escola_id}
+                  onChange={(e) => {
+                    setFiltros((prev) => ({ ...prev, escola_id: e.target.value, turma_id: '' }))
+                  }}
+                  disabled={polosSelecionados.length !== 2 || !filtros.serie}
+                  className="select-custom w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Todas as escolas</option>
+                  {escolas.map((escola) => (
+                    <option key={escola.id} value={escola.id}>
+                      {escola.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Turma
+                </label>
+                <select
+                  value={filtros.turma_id}
+                  onChange={(e) => {
+                    setFiltros((prev) => ({ ...prev, turma_id: e.target.value }))
+                  }}
+                  disabled={!filtros.escola_id || !filtros.serie || turmas.length === 0}
+                  className="select-custom w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Todas as turmas</option>
+                  {turmas.map((turma) => (
+                    <option key={turma.id} value={turma.id}>
+                      {turma.codigo || turma.nome || `Turma ${turma.id}`}
                     </option>
                   ))}
                 </select>
@@ -259,23 +382,23 @@ export default function ComparativosPolosPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
               <p className="text-gray-500 mt-4">Carregando comparativos...</p>
             </div>
-          ) : Object.keys(dados).length > 0 ? (
+          ) : Object.keys(dadosAgregados).length > 0 || Object.keys(dadosPorSerieEscola).length > 0 ? (
             <div className="space-y-6">
               {/* Resumo */}
               <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center space-x-4">
                     <MapPin className="w-6 h-6 text-indigo-600" />
                     <div>
                       <p className="text-sm text-indigo-600">Polos comparados</p>
-                      <p className="text-2xl font-bold text-indigo-900">{nomesPolos.join(' vs ')}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-indigo-900">{nomesPolos.join(' vs ')}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <BookOpen className="w-6 h-6 text-indigo-600" />
                     <div>
                       <p className="text-sm text-indigo-600">Séries analisadas</p>
-                      <p className="text-2xl font-bold text-indigo-900">{Object.keys(dados).length}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-indigo-900">{Object.keys(dadosAgregados).length}</p>
                     </div>
                   </div>
                 </div>
@@ -283,13 +406,15 @@ export default function ComparativosPolosPage() {
 
               {/* Comparativos por Série */}
               {Object.entries(dadosAgregados).map(([serie, dadosSerie]) => {
+                const dadosEscolasPorPolo = dadosPorSerieEscola[serie] || {}
+                
                 return (
                   <div key={serie} className="space-y-4">
                     {/* Seção: Dados Agregados por Polo/Série */}
                     {dadosSerie.length > 0 && (
                       <div className="bg-white rounded-xl shadow-sm border-2 border-indigo-200 overflow-hidden">
-                        <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 px-6 py-4 border-b border-indigo-200">
-                          <h3 className="text-xl font-bold text-indigo-900 flex items-center">
+                        <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 px-4 sm:px-6 py-4 border-b border-indigo-200">
+                          <h3 className="text-lg sm:text-xl font-bold text-indigo-900 flex items-center">
                             <MapPin className="w-5 h-5 mr-2" />
                             {serie} - Resumo Geral por Polo
                           </h3>
@@ -302,80 +427,80 @@ export default function ComparativosPolosPage() {
                           <table className="w-full min-w-[800px]">
                             <thead className="bg-indigo-50">
                               <tr>
-                                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[200px]">Polo</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[100px]">Escolas</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[100px]">Turmas</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[100px]">Total Alunos</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[120px]">Presentes</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[100px]">LP</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[100px]">CH</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[100px]">MAT</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[100px]">CN</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase whitespace-nowrap min-w-[120px]">Média Geral</th>
+                                <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[150px] sm:min-w-[200px]">Polo</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">Escolas</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">Turmas</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[90px] sm:min-w-[100px]">Total Alunos</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Presentes</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">LP</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CH</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">MAT</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CN</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Média Geral</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                               {dadosSerie.map((item, index) => (
                                 <tr key={`agregado-${item.polo_id}-${item.serie}-${index}`} className="hover:bg-indigo-50 bg-indigo-50/30">
-                                  <td className="py-3 px-4 whitespace-nowrap">
+                                  <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
                                     <div className="flex items-center">
                                       <MapPin className="w-4 h-4 mr-2 text-indigo-600" />
-                                      <span className="font-bold text-gray-900 text-sm">{item.polo_nome}</span>
+                                      <span className="font-bold text-gray-900 text-xs sm:text-sm">{item.polo_nome}</span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800 font-semibold text-xs">
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                    <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800 font-semibold text-xs">
                                       {item.total_escolas || 0} escola(s)
                                     </span>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs">
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                    <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs">
                                       {item.total_turmas || 0} turma(s)
                                     </span>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                                    <span className="text-gray-700 font-bold text-sm">{item.total_alunos}</span>
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                    <span className="text-gray-700 font-bold text-xs sm:text-sm">{item.total_alunos}</span>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                                    <span className="text-gray-700 font-medium text-sm">
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                    <span className="text-gray-700 font-medium text-xs sm:text-sm">
                                       {item.alunos_presentes} ({item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : 0}%)
                                     </span>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                       <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_lp)}/20</span>
-                                      <span className={`text-sm font-bold ${getNotaColor(item.media_lp)}`}>
+                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
                                         {formatarNumero(item.media_lp)}
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                       <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_ch)}/10</span>
-                                      <span className={`text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
                                         {formatarNumero(item.media_ch)}
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                       <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_mat)}/20</span>
-                                      <span className={`text-sm font-bold ${getNotaColor(item.media_mat)}`}>
+                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
                                         {formatarNumero(item.media_mat)}
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
                                       <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_cn)}/10</span>
-                                      <span className={`text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
                                         {formatarNumero(item.media_cn)}
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                                    <div className={`inline-flex items-center justify-center px-3 py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
-                                      <span className={`text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
+                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                    <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
+                                      <span className={`text-sm sm:text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
                                         {formatarNumero(item.media_geral)}
                                       </span>
                                     </div>
@@ -385,6 +510,116 @@ export default function ComparativosPolosPage() {
                             </tbody>
                           </table>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Seção: Dados por Escola dentro de cada Polo */}
+                    {Object.entries(dadosEscolasPorPolo).length > 0 && !filtros.escola_id && (
+                      <div className="bg-white rounded-xl shadow-sm border-2 border-blue-200 overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 sm:px-6 py-4 border-b border-blue-200">
+                          <h3 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center">
+                            <School className="w-5 h-5 mr-2" />
+                            {serie} - Comparativo por Escola
+                          </h3>
+                          <p className="text-sm text-blue-700 mt-1">
+                            Dados consolidados por escola dentro de cada polo
+                          </p>
+                        </div>
+
+                        {Object.entries(dadosEscolasPorPolo).map(([poloId, escolasData]) => {
+                          const poloNome = polos.find(p => p.id === poloId)?.nome || `Polo ${poloId}`
+                          return (
+                            <div key={poloId} className="mb-6 last:mb-0">
+                              <div className="px-4 sm:px-6 py-3 bg-blue-50 border-b border-blue-200">
+                                <h4 className="text-base sm:text-lg font-semibold text-blue-900 flex items-center">
+                                  <MapPin className="w-4 h-4 mr-2" />
+                                  {poloNome}
+                                </h4>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full min-w-[900px]">
+                                  <thead className="bg-blue-50">
+                                    <tr>
+                                      <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[150px]">Escola</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">Turmas</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[90px] sm:min-w-[100px]">Total Alunos</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Presentes</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">LP</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CH</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">MAT</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CN</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Média Geral</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-200">
+                                    {escolasData.map((item, index) => (
+                                      <tr key={`escola-${item.escola_id}-${item.serie}-${index}`} className="hover:bg-blue-50 bg-blue-50/30">
+                                        <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
+                                          <div className="flex items-center">
+                                            <School className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-blue-600" />
+                                            <span className="font-bold text-gray-900 text-xs sm:text-sm">{item.escola_nome}</span>
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                          <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs">
+                                            {item.total_turmas || 0} turma(s)
+                                          </span>
+                                        </td>
+                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                          <span className="text-gray-700 font-bold text-xs sm:text-sm">{item.total_alunos}</span>
+                                        </td>
+                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                          <span className="text-gray-700 font-medium text-xs sm:text-sm">
+                                            {item.alunos_presentes} ({item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : 0}%)
+                                          </span>
+                                        </td>
+                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                          <div className="flex flex-col items-center">
+                                            <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_lp)}/20</span>
+                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
+                                              {formatarNumero(item.media_lp)}
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                          <div className="flex flex-col items-center">
+                                            <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_ch)}/10</span>
+                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                              {formatarNumero(item.media_ch)}
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                          <div className="flex flex-col items-center">
+                                            <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_mat)}/20</span>
+                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
+                                              {formatarNumero(item.media_mat)}
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                          <div className="flex flex-col items-center">
+                                            <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_cn)}/10</span>
+                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                              {formatarNumero(item.media_cn)}
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                          <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
+                                            <span className={`text-sm sm:text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
+                                              {formatarNumero(item.media_geral)}
+                                            </span>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -411,4 +646,3 @@ export default function ComparativosPolosPage() {
     </ProtectedRoute>
   )
 }
-

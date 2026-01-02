@@ -698,22 +698,31 @@ export default function GraficosPage() {
                 <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-red-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Comparativo Detalhado (Top 5 e Bottom 5)</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                      Comparativo Detalhado{dados.comparativo_escolas.escolas.length <= 10 ? ' (Top 5 e Bottom 5)' : ''}
+                    </h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={Math.max(400, dados.comparativo_escolas.escolas.length * 40)}>
                     <BarChart data={prepararDadosComparativo()}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="escola" 
-                        tick={{ fontSize: 10 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
                         interval={0}
                         angle={-15}
                         textAnchor="end"
-                        height={100}
+                        height={Math.min(150, dados.comparativo_escolas.escolas.length * 8)}
                       />
-                      <YAxis domain={[0, 10]} />
-                      <Tooltip />
-                      <Legend />
+                      <YAxis 
+                        domain={[0, 10]} 
+                        tick={{ fontSize: 13, fontWeight: 500 }}
+                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="LP" name="LP" fill="#4F46E5" />
                       <Bar dataKey="CH" name="CH" fill="#10B981" />
                       <Bar dataKey="MAT" name="MAT" fill="#F59E0B" />
@@ -733,20 +742,26 @@ export default function GraficosPage() {
                       Acertos e Erros {filtros.disciplina ? `- ${filtros.disciplina === 'LP' ? 'Língua Portuguesa' : filtros.disciplina === 'CH' ? 'Ciências Humanas' : filtros.disciplina === 'MAT' ? 'Matemática' : 'Ciências da Natureza'}` : '(Geral)'}
                     </h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={Math.max(400, dados.acertos_erros.length * 35)}>
                     <BarChart data={dados.acertos_erros}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="nome" 
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
                         interval={0}
                         angle={-15}
                         textAnchor="end"
-                        height={80}
+                        height={Math.min(120, dados.acertos_erros.length * 10)}
                       />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
+                      <YAxis 
+                        tick={{ fontSize: 13, fontWeight: 500 }}
+                        label={{ value: 'Quantidade', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="acertos" name="Acertos" fill="#10B981" />
                       <Bar dataKey="erros" name="Erros" fill="#EF4444" />
                     </BarChart>
@@ -849,17 +864,20 @@ export default function GraficosPage() {
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Perfil de Desempenho (Radar Chart)</h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <RadarChart data={dados.radar.slice(0, 5)}>
+                  <ResponsiveContainer width="100%" height={Math.max(400, dados.radar.length * 80)}>
+                    <RadarChart data={dados.radar}>
                       <PolarGrid />
-                      <PolarAngleAxis dataKey="nome" tick={{ fontSize: 11 }} />
-                      <PolarRadiusAxis angle={90} domain={[0, 10]} />
-                      <Radar name="LP" dataKey="LP" stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.6} />
-                      <Radar name="CH" dataKey="CH" stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
-                      <Radar name="MAT" dataKey="MAT" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.6} />
-                      <Radar name="CN" dataKey="CN" stroke="#EF4444" fill="#EF4444" fillOpacity={0.6} />
-                      <Legend />
-                      <Tooltip />
+                      <PolarAngleAxis dataKey="nome" tick={{ fontSize: 13, fontWeight: 500 }} />
+                      <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fontSize: 13, fontWeight: 500 }} />
+                      <Radar name="LP" dataKey="LP" stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.6} strokeWidth={2} />
+                      <Radar name="CH" dataKey="CH" stroke="#10B981" fill="#10B981" fillOpacity={0.6} strokeWidth={2} />
+                      <Radar name="MAT" dataKey="MAT" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.6} strokeWidth={2} />
+                      <Radar name="CN" dataKey="CN" stroke="#EF4444" fill="#EF4444" fillOpacity={0.6} strokeWidth={2} />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
+                      <Tooltip 
+                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
+                      />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
@@ -872,11 +890,21 @@ export default function GraficosPage() {
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Distribuição Detalhada de Notas (Box Plot)</h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={Math.max(400, dados.boxplot.length * 50)}>
                     <BarChart data={dados.boxplot}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="categoria" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={80} />
-                      <YAxis domain={[0, 10]} />
+                      <XAxis 
+                        dataKey="categoria" 
+                        tick={{ fontSize: 13, fontWeight: 500 }} 
+                        angle={-15} 
+                        textAnchor="end" 
+                        height={Math.min(120, dados.boxplot.length * 10)} 
+                      />
+                      <YAxis 
+                        domain={[0, 10]} 
+                        tick={{ fontSize: 13, fontWeight: 500 }}
+                        label={{ value: 'Nota', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      />
                       <Tooltip 
                         formatter={(value: any, name: string) => {
                           if (name === 'min') return [`${value}`, 'Mínimo']
@@ -887,8 +915,10 @@ export default function GraficosPage() {
                           if (name === 'media') return [`${value}`, 'Média']
                           return [value, name]
                         }}
+                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
                       />
-                      <Legend />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="min" name="Mínimo" fill="#EF4444" />
                       <Bar dataKey="q1" name="Q1 (25%)" fill="#F59E0B" />
                       <Bar dataKey="mediana" name="Mediana" fill="#10B981" />
@@ -912,10 +942,14 @@ export default function GraficosPage() {
                     <ResponsiveContainer width="100%" height={300}>
                       <ScatterChart data={dados.correlacao}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '11px' } }} />
-                        <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }} />
-                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                        <Scatter name="Alunos" data={dados.correlacao} fill="#4F46E5" />
+                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                        <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                        <Tooltip 
+                          cursor={{ strokeDasharray: '3 3' }}
+                          contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                          labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
+                        />
+                        <Scatter name="Alunos" data={dados.correlacao} fill="#4F46E5" opacity={0.6} />
                       </ScatterChart>
                     </ResponsiveContainer>
                     {/* LP x CH */}
@@ -981,42 +1015,42 @@ export default function GraficosPage() {
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Ranking de Desempenho</h3>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
+                    <table className="min-w-full">
                       <thead>
-                        <tr className="bg-gray-50">
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">Posição</th>
-                          <th className="px-4 py-2 text-left font-semibold text-gray-700">Nome</th>
-                          {dados.ranking[0]?.escola && <th className="px-4 py-2 text-left font-semibold text-gray-700">Escola</th>}
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">Alunos</th>
+                        <tr className="bg-gray-100 border-b-2 border-gray-300">
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">Posição</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-gray-900 text-sm sm:text-base">Nome</th>
+                          {dados.ranking[0]?.escola && <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-gray-900 text-sm sm:text-base">Escola</th>}
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">Alunos</th>
                           {dados.ranking[0]?.media_lp !== undefined && (
                             <>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700">LP</th>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700">CH</th>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700">MAT</th>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700">CN</th>
+                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">LP</th>
+                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">CH</th>
+                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">MAT</th>
+                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">CN</th>
                             </>
                           )}
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">Média Geral</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-base sm:text-lg">Média Geral</th>
                         </tr>
                       </thead>
                       <tbody>
                         {dados.ranking.map((item: any, index: number) => (
-                          <tr key={index} className={`border-b ${index < 3 ? 'bg-yellow-50' : ''}`}>
-                            <td className="px-4 py-2 text-center font-bold">
+                          <tr key={index} className={`border-b hover:bg-gray-50 ${index < 3 ? 'bg-yellow-50' : ''}`}>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-base sm:text-lg">
                               {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : item.posicao}
                             </td>
-                            <td className="px-4 py-2 font-medium">{item.nome}</td>
-                            {item.escola && <td className="px-4 py-2">{item.escola}</td>}
-                            <td className="px-4 py-2 text-center">{item.total_alunos}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-sm sm:text-base text-gray-900">{item.nome}</td>
+                            {item.escola && <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-gray-700">{item.escola}</td>}
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.total_alunos}</td>
                             {item.media_lp !== undefined && (
                               <>
-                                <td className="px-4 py-2 text-center">{item.media_lp.toFixed(2)}</td>
-                                <td className="px-4 py-2 text-center">{item.media_ch.toFixed(2)}</td>
-                                <td className="px-4 py-2 text-center">{item.media_mat.toFixed(2)}</td>
-                                <td className="px-4 py-2 text-center">{item.media_cn.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.media_lp.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.media_ch.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.media_mat.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.media_cn.toFixed(2)}</td>
                               </>
                             )}
-                            <td className="px-4 py-2 text-center font-bold text-indigo-600">{item.media_geral.toFixed(2)}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-base sm:text-lg text-indigo-600">{item.media_geral.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1032,21 +1066,27 @@ export default function GraficosPage() {
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Taxa de Aprovação Estimada</h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={Math.max(400, dados.aprovacao.length * 50)}>
                     <BarChart data={dados.aprovacao}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="categoria" 
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 13, fontWeight: 500 }}
                         angle={-15}
                         textAnchor="end"
-                        height={80}
+                        height={Math.min(120, dados.aprovacao.length * 10)}
                       />
-                      <YAxis domain={[0, 100]} label={{ value: 'Taxa de Aprovação (%)', angle: -90, position: 'insideLeft' }} />
+                      <YAxis 
+                        domain={[0, 100]} 
+                        tick={{ fontSize: 13, fontWeight: 500 }}
+                        label={{ value: 'Taxa de Aprovação (%)', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      />
                       <Tooltip 
                         formatter={(value: any) => [`${value.toFixed(2)}%`, 'Taxa']}
+                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
                       />
-                      <Legend />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="taxa_6" name="≥ 6.0" fill="#10B981" />
                       <Bar dataKey="taxa_7" name="≥ 7.0" fill="#3B82F6" />
                       <Bar dataKey="taxa_8" name="≥ 8.0" fill="#8B5CF6" />
@@ -1065,19 +1105,26 @@ export default function GraficosPage() {
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800">Análise de Gaps (Desigualdade de Desempenho)</h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={Math.max(400, dados.gaps.length * 50)}>
                     <BarChart data={dados.gaps}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="categoria" 
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 13, fontWeight: 500 }}
                         angle={-15}
                         textAnchor="end"
-                        height={80}
+                        height={Math.min(120, dados.gaps.length * 10)}
                       />
-                      <YAxis domain={[0, 10]} />
-                      <Tooltip />
-                      <Legend />
+                      <YAxis 
+                        domain={[0, 10]} 
+                        tick={{ fontSize: 13, fontWeight: 500 }}
+                        label={{ value: 'Nota', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="melhor_media" name="Melhor Média" fill="#10B981" />
                       <Bar dataKey="media_geral" name="Média Geral" fill="#3B82F6" />
                       <Bar dataKey="pior_media" name="Pior Média" fill="#EF4444" />
