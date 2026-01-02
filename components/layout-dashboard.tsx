@@ -54,8 +54,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     if (pathname) {
       const paginasMenuAberto = ['/alunos', '/resultados', '/graficos']
       const deveAbrirMenu = paginasMenuAberto.some(pagina => pathname.includes(pagina))
-      if (deveAbrirMenu) {
-        setMenuAberto(true)
+      // Abrir menu em tablet (md) quando estiver nessas páginas
+      if (deveAbrirMenu && typeof window !== 'undefined') {
+        const largura = window.innerWidth
+        if (largura >= 768 && largura < 1024) { // Tablet (md mas não lg)
+          setMenuAberto(true)
+        }
       }
     }
   }, [pathname])
