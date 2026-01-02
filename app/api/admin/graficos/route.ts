@@ -535,7 +535,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         } else if (disciplina === 'CH') {
           queryAcertosErros = `
@@ -549,7 +549,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         } else if (disciplina === 'MAT') {
           queryAcertosErros = `
@@ -563,7 +563,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         } else if (disciplina === 'CN') {
           queryAcertosErros = `
@@ -577,7 +577,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         } else {
           // Geral: soma de todas as disciplinas
@@ -592,7 +592,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         }
         const resAcertosErros = await pool.query(queryAcertosErros, params)
@@ -636,7 +636,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         } else if (disciplina === 'CH') {
           queryAcertosErros = `
@@ -650,7 +650,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         } else if (disciplina === 'MAT') {
           queryAcertosErros = `
@@ -664,7 +664,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         } else if (disciplina === 'CN') {
           queryAcertosErros = `
@@ -678,7 +678,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         } else {
           // Geral: soma de todas as disciplinas
@@ -693,7 +693,7 @@ export async function GET(request: NextRequest) {
             ${whereClause}
             GROUP BY e.id, e.nome
             ORDER BY e.nome
-            LIMIT 30
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
           `
         }
         const resAcertosErros = await pool.query(queryAcertosErros, params)
@@ -786,7 +786,7 @@ export async function GET(request: NextRequest) {
         ${whereClauseQuestoes}
         GROUP BY rp.questao_codigo, q.descricao, q.disciplina, q.area_conhecimento
         ORDER BY taxa_acerto ASC
-        LIMIT 50
+        ${deveRemoverLimites ? '' : 'LIMIT 50'}
       `
       const resQuestoes = await pool.query(queryQuestoes, paramsQuestoes)
       resultado.questoes = resQuestoes.rows.length > 0
@@ -818,7 +818,7 @@ export async function GET(request: NextRequest) {
         ${whereClause}
         GROUP BY e.id, e.nome
         ORDER BY e.nome
-        LIMIT 50
+        ${deveRemoverLimites ? '' : 'LIMIT 50'}
       `
       const resHeatmap = await pool.query(queryHeatmap, params)
       resultado.heatmap = resHeatmap.rows.length > 0
@@ -848,7 +848,7 @@ export async function GET(request: NextRequest) {
         ${whereClause}
         GROUP BY e.id, e.nome
         ORDER BY e.nome
-        LIMIT 10
+        ${deveRemoverLimites ? '' : 'LIMIT 10'}
       `
       const resRadar = await pool.query(queryRadar, params)
       resultado.radar = resRadar.rows.length > 0 
@@ -932,7 +932,7 @@ export async function GET(request: NextRequest) {
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereCorrelacao}
-        LIMIT 1000
+        ${deveRemoverLimites ? '' : 'LIMIT 1000'}
       `
       const resCorrelacao = await pool.query(queryCorrelacao, params)
       resultado.correlacao = resCorrelacao.rows.length > 0
@@ -965,7 +965,7 @@ export async function GET(request: NextRequest) {
           ${whereClause}
           GROUP BY e.id, e.nome
           ORDER BY media_geral DESC
-          LIMIT 50
+          ${deveRemoverLimites ? '' : 'LIMIT 50'}
         `
         const resRanking = await pool.query(queryRanking, params)
         resultado.ranking = resRanking.rows.length > 0
@@ -1001,7 +1001,7 @@ export async function GET(request: NextRequest) {
           ${whereRankingTurmas}
           GROUP BY t.id, t.codigo, t.nome, e.nome
           ORDER BY media_geral DESC
-          LIMIT 50
+          ${deveRemoverLimites ? '' : 'LIMIT 50'}
         `
         const resRanking = await pool.query(queryRanking, params)
         resultado.ranking = resRanking.rows.map((r: any, index: number) => ({
@@ -1037,7 +1037,7 @@ export async function GET(request: NextRequest) {
         ${whereAprovacao}
         GROUP BY e.id, e.nome
         ORDER BY media_geral DESC
-        LIMIT 30
+        ${deveRemoverLimites ? '' : 'LIMIT 30'}
       `
       const resAprovacao = await pool.query(queryAprovacao, params)
       resultado.aprovacao = resAprovacao.rows.length > 0
@@ -1076,7 +1076,7 @@ export async function GET(request: NextRequest) {
         ${whereGaps}
         GROUP BY e.id, e.nome
         ORDER BY gap DESC
-        LIMIT 30
+        ${deveRemoverLimites ? '' : 'LIMIT 30'}
       `
       const resGaps = await pool.query(queryGaps, params)
       resultado.gaps = resGaps.rows.length > 0
