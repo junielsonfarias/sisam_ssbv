@@ -264,7 +264,7 @@ export default function ResultadosPage() {
   }, [resultadosFiltrados])
 
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'admin']}>
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
