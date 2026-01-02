@@ -164,10 +164,22 @@ export default function ResultadosPage() {
     return 'bg-red-100 text-red-800'
   }
 
-  const formatarNota = (nota: number | string | null | undefined): string => {
+  const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
+    // Se aluno faltou, sempre retornar "-"
+    if (presenca === 'F' || presenca === 'f') {
+      return '-'
+    }
+    
+    // Se média do aluno for 0 ou null, considerar faltante
+    const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
+    if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) {
+      return '-'
+    }
+    
     if (nota === null || nota === undefined || nota === '') return '-'
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
     if (isNaN(num)) return '-'
+    if (num === 0) return '-' // Se nota for 0, também retornar "-"
     return num.toFixed(1)
   }
 
@@ -193,7 +205,7 @@ export default function ResultadosPage() {
     return 'bg-red-50 border-red-200'
   }
 
-  // Calcular estatísticas
+  // Calcular estatísticas - EXCLUIR alunos faltantes
   const estatisticas = useMemo(() => {
     if (resultadosFiltrados.length === 0) {
       return {
@@ -208,27 +220,35 @@ export default function ResultadosPage() {
       }
     }
 
-    const medias = resultadosFiltrados
+    // Filtrar apenas alunos presentes (não faltantes)
+    const alunosPresentes = resultadosFiltrados.filter((r) => {
+      const presenca = r.presenca?.toString().toUpperCase()
+      const mediaNum = getNotaNumero(r.media_aluno)
+      // Considerar presente se presenca = 'P' E media não for 0 ou null
+      return presenca === 'P' && mediaNum !== null && mediaNum !== 0
+    })
+
+    const medias = alunosPresentes
       .map((r) => getNotaNumero(r.media_aluno))
-      .filter((m): m is number => m !== null)
+      .filter((m): m is number => m !== null && m !== 0)
 
-    const mediasLP = resultadosFiltrados
+    const mediasLP = alunosPresentes
       .map((r) => getNotaNumero(r.nota_lp))
-      .filter((m): m is number => m !== null)
+      .filter((m): m is number => m !== null && m !== 0)
 
-    const mediasCH = resultadosFiltrados
+    const mediasCH = alunosPresentes
       .map((r) => getNotaNumero(r.nota_ch))
-      .filter((m): m is number => m !== null)
+      .filter((m): m is number => m !== null && m !== 0)
 
-    const mediasMAT = resultadosFiltrados
+    const mediasMAT = alunosPresentes
       .map((r) => getNotaNumero(r.nota_mat))
-      .filter((m): m is number => m !== null)
+      .filter((m): m is number => m !== null && m !== 0)
 
-    const mediasCN = resultadosFiltrados
+    const mediasCN = alunosPresentes
       .map((r) => getNotaNumero(r.nota_cn))
-      .filter((m): m is number => m !== null)
+      .filter((m): m is number => m !== null && m !== 0)
 
-    const presentes = resultadosFiltrados.filter((r) => r.presenca === 'P' || r.presenca === 'p').length
+    const presentes = alunosPresentes.length
     const faltas = resultadosFiltrados.length - presentes
 
     return {
@@ -578,9 +598,9 @@ export default function ResultadosPage() {
                             <div className="text-xs font-semibold text-gray-600 mb-1">Língua Portuguesa</div>
                             <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_lp}/20</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
-                              {formatarNota(resultado.nota_lp)}
+                              {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                             </div>
-                            {notaLP !== null && (
+                            {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
                               <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`h-1.5 rounded-full ${
@@ -597,9 +617,9 @@ export default function ResultadosPage() {
                             <div className="text-xs font-semibold text-gray-600 mb-1">Ciências Humanas</div>
                             <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_ch}/10</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
-                              {formatarNota(resultado.nota_ch)}
+                              {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                             </div>
-                            {notaCH !== null && (
+                            {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
                               <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`h-1.5 rounded-full ${
@@ -616,9 +636,9 @@ export default function ResultadosPage() {
                             <div className="text-xs font-semibold text-gray-600 mb-1">Matemática</div>
                             <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_mat}/20</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
-                              {formatarNota(resultado.nota_mat)}
+                              {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                             </div>
-                            {notaMAT !== null && (
+                            {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
                               <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`h-1.5 rounded-full ${
@@ -635,9 +655,9 @@ export default function ResultadosPage() {
                             <div className="text-xs font-semibold text-gray-600 mb-1">Ciências da Natureza</div>
                             <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_cn}/10</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
-                              {formatarNota(resultado.nota_cn)}
+                              {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                             </div>
-                            {notaCN !== null && (
+                            {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
                               <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`h-1.5 rounded-full ${
@@ -659,7 +679,7 @@ export default function ResultadosPage() {
                           }`}>
                             <div className="text-xs font-semibold text-gray-600 mb-1">Média Geral</div>
                             <div className={`text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
-                              {formatarNota(resultado.media_aluno)}
+                              {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                             </div>
                           </div>
                           <button
@@ -683,43 +703,42 @@ export default function ResultadosPage() {
                 </div>
 
                 {/* Visualização Tablet/Desktop - Tabela */}
-                <div className="hidden sm:block overflow-x-auto -mx-3 sm:-mx-4 md:mx-0">
-                  <div className="inline-block min-w-full align-middle">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '900px' }}>
+                <div className="hidden sm:block w-full">
+                  <div className="w-full overflow-x-auto">
+                    <table className="w-full divide-y divide-gray-200">
                       <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
                         <tr>
-                          <th className="text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[150px]">
+                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Aluno
                           </th>
-                          <th className="table-cell text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[120px]">
+                          <th className="hidden lg:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Escola
                           </th>
-                          <th className="table-cell text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[80px]">
+                          <th className="hidden md:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Turma
                           </th>
-                          <th className="text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[70px]">
+                          <th className="hidden xl:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Série
                           </th>
-                          <th className="table-cell text-center py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[90px]">
+                          <th className="hidden lg:table-cell text-center py-3 px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Presença
                           </th>
-                          <th className="text-center py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[70px]">
+                          <th className="text-center py-3 px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             LP
                           </th>
-                          <th className="table-cell text-center py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[70px]">
+                          <th className="text-center py-3 px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             CH
                           </th>
-                          <th className="text-center py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[70px]">
+                          <th className="text-center py-3 px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             MAT
                           </th>
-                          <th className="table-cell text-center py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[70px]">
+                          <th className="text-center py-3 px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             CN
                           </th>
-                          <th className="text-center py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[80px]">
+                          <th className="text-center py-3 px-1 md:py-4 md:px-2 lg:px-3 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Média
                           </th>
-                          <th className="text-center py-3 px-2 md:py-4 md:px-4 lg:px-6 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 whitespace-nowrap min-w-[100px]">
+                          <th className="text-center py-3 px-2 md:py-4 md:px-3 lg:px-4 font-bold text-indigo-900 text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Ações
                           </th>
                         </tr>
@@ -727,7 +746,7 @@ export default function ResultadosPage() {
                   <tbody className="divide-y divide-gray-200">
                     {resultadosFiltrados.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                        <td colSpan={7} className="py-8 sm:py-12 text-center text-gray-500 px-4">
                           <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
                           <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
                           <p className="text-xs sm:text-sm mt-1">Importe os dados primeiro</p>
@@ -743,7 +762,7 @@ export default function ResultadosPage() {
 
                         return (
                           <tr key={resultado.id} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
-                            <td className="py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                            <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
                               <div className="flex flex-col">
                                 <button
                                   onClick={() => {
@@ -756,16 +775,17 @@ export default function ResultadosPage() {
                                   className="flex items-center w-full text-left hover:opacity-80 transition-opacity mb-1"
                                   title="Clique para ver questões do aluno"
                                 >
-                                  <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-2 md:mr-3">
-                                    <span className="text-indigo-600 font-semibold text-xs md:text-sm">
+                                  <div className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full bg-indigo-100 flex items-center justify-center mr-2">
+                                    <span className="text-indigo-600 font-semibold text-xs">
                                       {resultado.aluno_nome.charAt(0).toUpperCase()}
                                     </span>
                                   </div>
-                                  <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-xs md:text-sm truncate max-w-[120px] md:max-w-none">{resultado.aluno_nome}</span>
+                                  <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-xs md:text-sm truncate">{resultado.aluno_nome}</span>
                                 </button>
-                                <div className="md:hidden text-xs text-gray-500 space-y-0.5 ml-10">
-                                  <div>Escola: {resultado.escola_nome}</div>
+                                <div className="lg:hidden text-xs text-gray-500 space-y-0.5 ml-10">
+                                  {resultado.escola_nome && <div>Escola: {resultado.escola_nome}</div>}
                                   {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
+                                  {resultado.serie && <div>Série: {resultado.serie}</div>}
                                   <div className="flex items-center gap-2">
                                     <span>Presença: </span>
                                     <span
@@ -779,40 +799,40 @@ export default function ResultadosPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                            <td className="hidden lg:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                               <span className="text-gray-700 font-medium text-xs md:text-sm">{resultado.escola_nome}</span>
                             </td>
-                            <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                            <td className="hidden md:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                               <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 font-mono text-xs font-medium">
                                 {resultado.turma_codigo || '-'}
                               </span>
                             </td>
-                            <td className="py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                            <td className="hidden xl:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                               <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium">
                                 {resultado.serie || '-'}
                               </span>
                             </td>
-                            <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6 text-center whitespace-nowrap">
+                            <td className="hidden lg:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4 text-center">
                               <span
-                                className={`inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${getPresencaColor(
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold shadow-sm ${getPresencaColor(
                                   resultado.presenca || 'P'
                                 )}`}
                               >
                                 {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
                               </span>
                             </td>
-                            <td className="py-3 px-2 md:py-4 md:px-4 lg:px-6 text-center whitespace-nowrap">
-                              <div className={`inline-flex flex-col items-center p-2 md:p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} min-w-[60px] md:min-w-[70px]`}>
-                                <div className="text-xs text-gray-600 mb-1 font-medium">
+                            <td className="py-3 px-1 md:py-4 md:px-2 lg:px-3 text-center">
+                              <div className={`inline-flex flex-col items-center p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[70px]`}>
+                                <div className="text-xs text-gray-600 mb-0.5 font-medium">
                                   {resultado.total_acertos_lp}/20
                                 </div>
-                                <div className={`text-sm md:text-base lg:text-lg font-bold ${getNotaColor(resultado.nota_lp)}`}>
-                                  {formatarNota(resultado.nota_lp)}
+                                <div className={`text-xs md:text-sm lg:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
+                                  {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                                 </div>
-                                {notaLP !== null && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1 md:h-1.5 mt-1 md:mt-2">
+                                {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
                                     <div
-                                      className={`h-1 md:h-1.5 rounded-full ${
+                                      className={`h-1 rounded-full ${
                                         notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
@@ -821,18 +841,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6 text-center whitespace-nowrap">
-                              <div className={`inline-flex flex-col items-center p-2 md:p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} min-w-[60px] md:min-w-[70px]`}>
-                                <div className="text-xs text-gray-600 mb-1 font-medium">
+                            <td className="py-3 px-1 md:py-4 md:px-2 lg:px-3 text-center">
+                              <div className={`inline-flex flex-col items-center p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_ch)} w-full max-w-[70px]`}>
+                                <div className="text-xs text-gray-600 mb-0.5 font-medium">
                                   {resultado.total_acertos_ch}/10
                                 </div>
-                                <div className={`text-sm md:text-base lg:text-lg font-bold ${getNotaColor(resultado.nota_ch)}`}>
-                                  {formatarNota(resultado.nota_ch)}
+                                <div className={`text-xs md:text-sm lg:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
+                                  {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                                 </div>
-                                {notaCH !== null && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1 md:h-1.5 mt-1 md:mt-2">
+                                {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
                                     <div
-                                      className={`h-1 md:h-1.5 rounded-full ${
+                                      className={`h-1 rounded-full ${
                                         notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
@@ -841,18 +861,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-3 px-2 md:py-4 md:px-4 lg:px-6 text-center whitespace-nowrap">
-                              <div className={`inline-flex flex-col items-center p-2 md:p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} min-w-[60px] md:min-w-[70px]`}>
-                                <div className="text-xs text-gray-600 mb-1 font-medium">
+                            <td className="py-3 px-1 md:py-4 md:px-2 lg:px-3 text-center">
+                              <div className={`inline-flex flex-col items-center p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[70px]`}>
+                                <div className="text-xs text-gray-600 mb-0.5 font-medium">
                                   {resultado.total_acertos_mat}/20
                                 </div>
-                                <div className={`text-sm md:text-base lg:text-lg font-bold ${getNotaColor(resultado.nota_mat)}`}>
-                                  {formatarNota(resultado.nota_mat)}
+                                <div className={`text-xs md:text-sm lg:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
+                                  {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                                 </div>
-                                {notaMAT !== null && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1 md:h-1.5 mt-1 md:mt-2">
+                                {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
                                     <div
-                                      className={`h-1 md:h-1.5 rounded-full ${
+                                      className={`h-1 rounded-full ${
                                         notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
@@ -861,18 +881,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6 text-center whitespace-nowrap">
-                              <div className={`inline-flex flex-col items-center p-2 md:p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} min-w-[60px] md:min-w-[70px]`}>
-                                <div className="text-xs text-gray-600 mb-1 font-medium">
+                            <td className="py-3 px-1 md:py-4 md:px-2 lg:px-3 text-center">
+                              <div className={`inline-flex flex-col items-center p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_cn)} w-full max-w-[70px]`}>
+                                <div className="text-xs text-gray-600 mb-0.5 font-medium">
                                   {resultado.total_acertos_cn}/10
                                 </div>
-                                <div className={`text-sm md:text-base lg:text-lg font-bold ${getNotaColor(resultado.nota_cn)}`}>
-                                  {formatarNota(resultado.nota_cn)}
+                                <div className={`text-xs md:text-sm lg:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
+                                  {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                                 </div>
-                                {notaCN !== null && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1 md:h-1.5 mt-1 md:mt-2">
+                                {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
                                     <div
-                                      className={`h-1 md:h-1.5 rounded-full ${
+                                      className={`h-1 rounded-full ${
                                         notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
@@ -881,23 +901,23 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
-                              <div className={`inline-flex flex-col items-center justify-center px-2 sm:px-3 py-2 sm:py-4 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
+                            <td className="py-3 px-1 md:py-4 md:px-2 lg:px-3 text-center">
+                              <div className={`inline-flex flex-col items-center justify-center px-1.5 md:px-2 py-1.5 md:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                                 mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
                                 mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
                                 'border-red-500'
-                              } min-w-[70px] sm:min-w-[80px]`}>
-                                <div className={`text-lg sm:text-xl lg:text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
-                                  {formatarNota(resultado.media_aluno)}
+                              } w-full max-w-[70px]`}>
+                                <div className={`text-sm md:text-base lg:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
+                                  {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                 </div>
-                                {mediaNum !== null && (
-                                  <div className="mt-1 sm:mt-2 text-xs font-medium text-gray-600">
+                                {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="mt-0.5 text-xs font-medium text-gray-600">
                                     Média
                                   </div>
                                 )}
                               </div>
                             </td>
-                            <td className="py-3 px-3 sm:py-4 sm:px-6 text-center whitespace-nowrap">
+                            <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4 text-center">
                               <button
                                 onClick={() => {
                                   setAlunoSelecionado({
@@ -906,11 +926,12 @@ export default function ResultadosPage() {
                                   })
                                   setModalAberto(true)
                                 }}
-                                className="w-full sm:w-auto inline-flex items-center justify-center px-3 sm:px-3 py-2 sm:py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-medium shadow-sm"
+                                className="w-full inline-flex items-center justify-center px-2 md:px-3 py-1.5 md:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium shadow-sm"
                                 title="Ver questões do aluno"
                               >
-                                <Eye className="w-4 h-4 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 flex-shrink-0" />
-                                <span className="sm:inline">Ver Questões</span>
+                                <Eye className="w-3 h-3 md:w-4 md:h-4 mr-1 flex-shrink-0" />
+                                <span className="hidden sm:inline">Ver Questões</span>
+                                <span className="sm:hidden">Ver</span>
                               </button>
                             </td>
                           </tr>
@@ -921,7 +942,6 @@ export default function ResultadosPage() {
                     </table>
                   </div>
                 </div>
-              </div>
                 </>
               )}
             </div>

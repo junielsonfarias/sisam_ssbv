@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0; // Sempre revalidar, sem cache
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,8 +88,8 @@ export async function GET(request: NextRequest) {
       if (disciplina === 'LP') {
         const queryDisciplina = `
           SELECT 
-            ROUND(AVG(CAST(rc.nota_lp AS DECIMAL)), 2) as media,
-            COUNT(*) as total_alunos
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN 1 END) as total_alunos
           FROM resultados_consolidados rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -104,8 +105,8 @@ export async function GET(request: NextRequest) {
       } else if (disciplina === 'CH') {
         const queryDisciplina = `
           SELECT 
-            ROUND(AVG(CAST(rc.nota_ch AS DECIMAL)), 2) as media,
-            COUNT(*) as total_alunos
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN 1 END) as total_alunos
           FROM resultados_consolidados rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -121,8 +122,8 @@ export async function GET(request: NextRequest) {
       } else if (disciplina === 'MAT') {
         const queryDisciplina = `
           SELECT 
-            ROUND(AVG(CAST(rc.nota_mat AS DECIMAL)), 2) as media,
-            COUNT(*) as total_alunos
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN 1 END) as total_alunos
           FROM resultados_consolidados rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -138,8 +139,8 @@ export async function GET(request: NextRequest) {
       } else if (disciplina === 'CN') {
         const queryDisciplina = `
           SELECT 
-            ROUND(AVG(CAST(rc.nota_cn AS DECIMAL)), 2) as media,
-            COUNT(*) as total_alunos
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN 1 END) as total_alunos
           FROM resultados_consolidados rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -156,19 +157,19 @@ export async function GET(request: NextRequest) {
         // Sem disciplina específica, mostrar todas com indicadores estatísticos
         const queryDisciplinas = `
           SELECT 
-            ROUND(AVG(CAST(rc.nota_lp AS DECIMAL)), 2) as media_lp,
-            ROUND(AVG(CAST(rc.nota_ch AS DECIMAL)), 2) as media_ch,
-            ROUND(AVG(CAST(rc.nota_mat AS DECIMAL)), 2) as media_mat,
-            ROUND(AVG(CAST(rc.nota_cn AS DECIMAL)), 2) as media_cn,
-            ROUND(STDDEV(CAST(rc.nota_lp AS DECIMAL)), 2) as desvio_lp,
-            ROUND(STDDEV(CAST(rc.nota_ch AS DECIMAL)), 2) as desvio_ch,
-            ROUND(STDDEV(CAST(rc.nota_mat AS DECIMAL)), 2) as desvio_mat,
-            ROUND(STDDEV(CAST(rc.nota_cn AS DECIMAL)), 2) as desvio_cn,
-            COUNT(*) as total_alunos,
-            SUM(CASE WHEN CAST(rc.nota_lp AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_lp,
-            SUM(CASE WHEN CAST(rc.nota_ch AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_ch,
-            SUM(CASE WHEN CAST(rc.nota_mat AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_mat,
-            SUM(CASE WHEN CAST(rc.nota_cn AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_cn
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+            ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as desvio_lp,
+            ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as desvio_ch,
+            ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as desvio_mat,
+            ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as desvio_cn,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos,
+            SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_lp AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_lp,
+            SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_ch AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_ch,
+            SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_mat AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_mat,
+            SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_cn AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_cn
           FROM resultados_consolidados rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -215,8 +216,8 @@ export async function GET(request: NextRequest) {
       const queryEscolas = `
         SELECT 
           e.nome as escola,
-          ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
-          COUNT(*) as total_alunos
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
         FROM resultados_consolidados rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
@@ -239,8 +240,8 @@ export async function GET(request: NextRequest) {
       const querySeries = `
         SELECT 
           rc.serie,
-          ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
-          COUNT(*) as total_alunos
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
         FROM resultados_consolidados rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
@@ -262,8 +263,8 @@ export async function GET(request: NextRequest) {
       const queryPolos = `
         SELECT 
           p.nome as polo,
-          ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
-          COUNT(*) as total_alunos
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
         FROM resultados_consolidados rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         INNER JOIN polos p ON e.polo_id = p.id
@@ -335,14 +336,14 @@ export async function GET(request: NextRequest) {
         WITH ranking_escolas AS (
           SELECT 
             e.nome as escola,
-            ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral,
-            ROUND(AVG(CAST(rc.nota_lp AS DECIMAL)), 2) as media_lp,
-            ROUND(AVG(CAST(rc.nota_ch AS DECIMAL)), 2) as media_ch,
-            ROUND(AVG(CAST(rc.nota_mat AS DECIMAL)), 2) as media_mat,
-            ROUND(AVG(CAST(rc.nota_cn AS DECIMAL)), 2) as media_cn,
-            COUNT(*) as total_alunos,
-            ROW_NUMBER() OVER (ORDER BY AVG(CAST(rc.media_aluno AS DECIMAL)) DESC) as rank_desc,
-            ROW_NUMBER() OVER (ORDER BY AVG(CAST(rc.media_aluno AS DECIMAL)) ASC) as rank_asc
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos,
+            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC) as rank_desc,
+            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) ASC) as rank_asc
           FROM resultados_consolidados rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -765,11 +766,11 @@ export async function GET(request: NextRequest) {
         SELECT 
           e.id as escola_id,
           e.nome as escola_nome,
-          ROUND(AVG(CAST(rc.nota_lp AS DECIMAL)), 2) as media_lp,
-          ROUND(AVG(CAST(rc.nota_ch AS DECIMAL)), 2) as media_ch,
-          ROUND(AVG(CAST(rc.nota_mat AS DECIMAL)), 2) as media_mat,
-          ROUND(AVG(CAST(rc.nota_cn AS DECIMAL)), 2) as media_cn,
-          ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
         FROM resultados_consolidados rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
@@ -796,10 +797,10 @@ export async function GET(request: NextRequest) {
       const queryRadar = `
         SELECT 
           COALESCE(e.nome, 'Geral') as nome,
-          ROUND(AVG(CAST(rc.nota_lp AS DECIMAL)), 2) as lp,
-          ROUND(AVG(CAST(rc.nota_ch AS DECIMAL)), 2) as ch,
-          ROUND(AVG(CAST(rc.nota_mat AS DECIMAL)), 2) as mat,
-          ROUND(AVG(CAST(rc.nota_cn AS DECIMAL)), 2) as cn
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as lp,
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as ch,
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as mat,
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as cn
         FROM resultados_consolidados rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
@@ -822,8 +823,8 @@ export async function GET(request: NextRequest) {
     // 4. Box Plot (Distribuição de Notas)
     if (tipoGrafico === 'boxplot') {
       const whereBoxPlot = whereClause 
-        ? `${whereClause} AND rc.media_aluno IS NOT NULL`
-        : 'WHERE rc.media_aluno IS NOT NULL'
+        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
+        : 'WHERE (rc.presenca = \'P\' OR rc.presenca = \'p\') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0'
       
       const queryBoxPlot = `
         SELECT 
@@ -911,12 +912,12 @@ export async function GET(request: NextRequest) {
           SELECT 
             e.id,
             e.nome,
-            COUNT(DISTINCT rc.aluno_id) as total_alunos,
-            ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral,
-            ROUND(AVG(CAST(rc.nota_lp AS DECIMAL)), 2) as media_lp,
-            ROUND(AVG(CAST(rc.nota_ch AS DECIMAL)), 2) as media_ch,
-            ROUND(AVG(CAST(rc.nota_mat AS DECIMAL)), 2) as media_mat,
-            ROUND(AVG(CAST(rc.nota_cn AS DECIMAL)), 2) as media_cn
+            COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN rc.aluno_id END) as total_alunos,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn
           FROM resultados_consolidados rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -950,8 +951,8 @@ export async function GET(request: NextRequest) {
             t.codigo,
             t.nome,
             e.nome as escola_nome,
-            COUNT(DISTINCT rc.aluno_id) as total_alunos,
-            ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral
+            COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN rc.aluno_id END) as total_alunos,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
           FROM resultados_consolidados rc
           INNER JOIN turmas t ON rc.turma_id = t.id
           INNER JOIN escolas e ON rc.escola_id = e.id
@@ -978,8 +979,8 @@ export async function GET(request: NextRequest) {
     // 7. Taxa de Aprovação Estimada
     if (tipoGrafico === 'aprovacao') {
       const whereAprovacao = whereClause 
-        ? `${whereClause} AND rc.media_aluno IS NOT NULL`
-        : 'WHERE rc.media_aluno IS NOT NULL'
+        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
+        : 'WHERE (rc.presenca = \'P\' OR rc.presenca = \'p\') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0'
       
       const queryAprovacao = `
         SELECT 
@@ -1018,8 +1019,8 @@ export async function GET(request: NextRequest) {
     // 8. Análise de Gaps
     if (tipoGrafico === 'gaps') {
       const whereGaps = whereClause 
-        ? `${whereClause} AND rc.media_aluno IS NOT NULL`
-        : 'WHERE rc.media_aluno IS NOT NULL'
+        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
+        : 'WHERE (rc.presenca = \'P\' OR rc.presenca = \'p\') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0'
       
       const queryGaps = `
         SELECT 

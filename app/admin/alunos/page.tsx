@@ -133,7 +133,15 @@ export default function AlunosPage() {
       if (filtroAno) params.append('ano_letivo', filtroAno)
       if (busca) params.append('busca', busca)
 
-      const data = await fetch(`/api/admin/alunos?${params}`).then(r => r.json())
+      // Adicionar timestamp para evitar cache
+      params.append('_t', Date.now().toString())
+      const data = await fetch(`/api/admin/alunos?${params}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        }
+      }).then(r => r.json())
       
       // Aplicar filtro de polo apenas se não houver filtro de escola específica
       let alunosFiltrados = data
@@ -396,34 +404,32 @@ export default function AlunosPage() {
                 <p className="text-gray-500 mt-4">Carregando alunos...</p>
               </div>
             ) : (
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <div className="inline-block min-w-full align-middle">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+              <div className="w-full overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                              <th className="text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
+                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
                             Código
                           </th>
-                          <th className="text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider min-w-[150px]">
+                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
                             Nome
                           </th>
-                          <th className="table-cell text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
+                          <th className="hidden lg:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
                             Polo
                           </th>
-                          <th className="table-cell text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider min-w-[150px]">
+                          <th className="hidden md:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
                             Escola
                           </th>
-                          <th className="table-cell text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
+                          <th className="hidden xl:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
                             Turma
                           </th>
-                          <th className="text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[80px]">
+                          <th className="hidden lg:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
                             Série
                           </th>
-                          <th className="table-cell text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
+                          <th className="hidden xl:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
                             Ano Letivo
                           </th>
-                          <th className="text-left py-3 px-2 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
+                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
                             Ações
                           </th>
                         </tr>
@@ -431,7 +437,7 @@ export default function AlunosPage() {
                   <tbody className="divide-y divide-gray-200">
                     {alunos.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                        <td colSpan={3} className="py-8 sm:py-12 text-center text-gray-500 px-4">
                           <p className="text-base sm:text-lg font-medium">Nenhum aluno encontrado</p>
                           <p className="text-xs sm:text-sm mt-1">Tente ajustar os filtros de busca</p>
                         </td>
@@ -439,70 +445,72 @@ export default function AlunosPage() {
                     ) : (
                       alunos.map((aluno) => (
                         <tr key={aluno.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <span className="font-mono text-xs md:text-sm text-gray-900">{aluno.codigo || '-'}</span>
                           </td>
-                          <td className="py-3 px-2 md:py-4 md:px-4 lg:px-6">
+                          <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <div className="flex flex-col">
                               <button
                                 onClick={() => handleAbrirModal(aluno)}
-                                className="text-indigo-600 hover:text-indigo-800 font-medium text-xs md:text-sm lg:text-base underline cursor-pointer text-left mb-1"
+                                className="text-indigo-600 hover:text-indigo-800 font-medium text-xs md:text-sm underline cursor-pointer text-left mb-1"
                                 title="Clique para visualizar/editar aluno"
                               >
                                 {aluno.nome}
                               </button>
-                              <div className="md:hidden text-xs text-gray-500 space-y-0.5">
+                              <div className="lg:hidden text-xs text-gray-500 space-y-0.5">
+                                {aluno.polo_nome && <div>Polo: {aluno.polo_nome}</div>}
                                 {aluno.escola_nome && <div>Escola: {aluno.escola_nome}</div>}
                                 {aluno.turma_codigo && <div>Turma: {aluno.turma_codigo}</div>}
+                                {aluno.serie && <div>Série: {aluno.serie}</div>}
                                 {aluno.ano_letivo && <div>Ano: {aluno.ano_letivo}</div>}
                               </div>
                             </div>
                           </td>
-                          <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="hidden lg:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <span className="text-gray-700 text-xs md:text-sm">{aluno.polo_nome || '-'}</span>
                           </td>
-                          <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6">
+                          <td className="hidden md:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <span className="text-gray-700 text-xs md:text-sm">{aluno.escola_nome || '-'}</span>
                           </td>
-                          <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="hidden xl:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <span className="text-gray-700 text-xs md:text-sm">{aluno.turma_codigo || '-'}</span>
                           </td>
-                          <td className="py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="hidden lg:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             {aluno.serie ? (
-                              <span className="inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 {aluno.serie}
                               </span>
                             ) : (
                               <span className="text-gray-400">-</span>
                             )}
                           </td>
-                          <td className="table-cell py-3 px-2 md:py-4 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="hidden xl:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <span className="text-gray-700 text-xs md:text-sm">{aluno.ano_letivo || '-'}</span>
                           </td>
-                          <td className="py-3 px-2 md:py-4 md:px-4 lg:px-6">
-                            <div className="flex flex-col md:flex-row items-start md:items-center md:justify-end gap-2 md:gap-1">
+                          <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-end gap-1.5">
                               <button
                                 onClick={() => handleVisualizarHistorico(aluno)}
-                                className="w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-1 px-2 sm:px-1.5 py-1.5 sm:py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-xs sm:text-sm font-medium border border-blue-200 sm:border-0"
+                                className="w-full sm:w-auto flex items-center justify-center gap-1 px-2 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-xs font-medium border border-blue-200 sm:border-0"
                                 title="Visualizar Histórico"
                               >
-                                <Eye className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                                <Eye className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
                                 <span className="sm:hidden">Histórico</span>
                               </button>
                               <button
                                 onClick={() => handleAbrirModal(aluno)}
-                                className="w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-1 px-2 sm:px-1.5 py-1.5 sm:py-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-xs sm:text-sm font-medium border border-indigo-200 sm:border-0"
+                                className="w-full sm:w-auto flex items-center justify-center gap-1 px-2 py-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-xs font-medium border border-indigo-200 sm:border-0"
                                 title="Editar"
                               >
-                                <Edit className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                                <Edit className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
                                 <span className="sm:hidden">Editar</span>
                               </button>
                               <button
                                 onClick={() => handleExcluir(aluno.id)}
-                                className="w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-1 px-2 sm:px-1.5 py-1.5 sm:py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-xs sm:text-sm font-medium border border-red-200 sm:border-0"
+                                className="w-full sm:w-auto flex items-center justify-center gap-1 px-2 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-xs font-medium border border-red-200 sm:border-0"
                                 title="Excluir"
                               >
-                                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                                <Trash2 className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
                                 <span className="sm:hidden">Excluir</span>
                               </button>
                             </div>
@@ -512,8 +520,6 @@ export default function AlunosPage() {
                     )}
                   </tbody>
                     </table>
-                  </div>
-                </div>
               </div>
             )}
           </div>

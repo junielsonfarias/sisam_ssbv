@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Sempre revalidar, sem cache
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)

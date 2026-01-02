@@ -131,6 +131,67 @@ export default function EscolasPage() {
     setMostrarModal(true)
   }
 
+  const handleExcluir = async (id: string, nome: string) => {
+    // Verificar se a escola tem alunos vinculados
+    try {
+      const verificarVinculos = await fetch(`/api/admin/escolas/verificar-vinculos?id=${id}`)
+      
+      if (!verificarVinculos.ok) {
+        alert('Erro ao verificar vínculos da escola')
+        return
+      }
+
+      const vinculos = await verificarVinculos.json()
+      
+      if (vinculos.totalAlunos > 0 || vinculos.totalTurmas > 0 || vinculos.totalResultados > 0 || vinculos.totalConsolidados > 0 || vinculos.totalUsuarios > 0) {
+        let mensagem = `A escola "${nome}" não pode ser excluída porque possui vínculos:\n\n`
+        if (vinculos.totalAlunos > 0) mensagem += `• ${vinculos.totalAlunos} aluno(s)\n`
+        if (vinculos.totalTurmas > 0) mensagem += `• ${vinculos.totalTurmas} turma(s)\n`
+        if (vinculos.totalResultados > 0) mensagem += `• ${vinculos.totalResultados} resultado(s) de provas\n`
+        if (vinculos.totalConsolidados > 0) mensagem += `• ${vinculos.totalConsolidados} resultado(s) consolidado(s)\n`
+        if (vinculos.totalUsuarios > 0) mensagem += `• ${vinculos.totalUsuarios} usuário(s)\n`
+        alert(mensagem)
+        return
+      }
+    } catch (error) {
+      console.error('Erro ao verificar vínculos:', error)
+      alert('Erro ao verificar vínculos da escola')
+      return
+    }
+
+    if (!confirm(`Tem certeza que deseja excluir a escola "${nome}"?\n\nEsta ação não pode ser desfeita.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/escolas?id=${id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        await carregarDados()
+        alert('Escola excluída com sucesso!')
+      } else {
+        if (data.vinculos) {
+          let mensagem = `Não foi possível excluir a escola "${nome}" porque possui vínculos:\n\n`
+          if (data.vinculos.totalAlunos > 0) mensagem += `• ${data.vinculos.totalAlunos} aluno(s)\n`
+          if (data.vinculos.totalTurmas > 0) mensagem += `• ${data.vinculos.totalTurmas} turma(s)\n`
+          if (data.vinculos.totalResultados > 0) mensagem += `• ${data.vinculos.totalResultados} resultado(s) de provas\n`
+          if (data.vinculos.totalConsolidados > 0) mensagem += `• ${data.vinculos.totalConsolidados} resultado(s) consolidado(s)\n`
+          if (data.vinculos.totalUsuarios > 0) mensagem += `• ${data.vinculos.totalUsuarios} usuário(s)\n`
+          alert(mensagem)
+        } else {
+          alert(data.mensagem || 'Erro ao excluir escola')
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao excluir escola:', error)
+      alert('Erro ao excluir escola')
+    }
+  }
+
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
@@ -240,6 +301,7 @@ export default function EscolasPage() {
                                 <Edit className="w-4 h-4 md:w-5 md:h-5" />
                               </button>
                               <button
+                                onClick={() => handleExcluir(escola.id, escola.nome)}
                                 className="p-1.5 md:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 aria-label="Excluir"
                                 title="Excluir"
