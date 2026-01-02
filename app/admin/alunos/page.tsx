@@ -4,7 +4,7 @@ import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalAluno from '@/components/modal-aluno'
 import ModalHistoricoAluno from '@/components/modal-historico-aluno'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Plus, Edit, Trash2, Search, Eye } from 'lucide-react'
 
 interface Aluno {
@@ -54,6 +54,7 @@ export default function AlunosPage() {
   const [turmas, setTurmas] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
+  const [buscaDebounced, setBuscaDebounced] = useState('')
   const [filtroPolo, setFiltroPolo] = useState('')
   const [filtroEscola, setFiltroEscola] = useState('')
   const [filtroTurma, setFiltroTurma] = useState('')
@@ -108,9 +109,18 @@ export default function AlunosPage() {
     }
   }, [filtroEscola])
 
+  // Debounce para busca (evita múltiplas requisições enquanto digita)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBuscaDebounced(busca)
+    }, 300) // Aguarda 300ms após parar de digitar
+
+    return () => clearTimeout(timer)
+  }, [busca])
+
   useEffect(() => {
     carregarAlunos()
-  }, [busca, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, escolas])
+  }, [buscaDebounced, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, escolas])
 
   const carregarAlunos = async () => {
     try {
@@ -131,17 +141,9 @@ export default function AlunosPage() {
       if (filtroTurma) params.append('turma_id', filtroTurma)
       if (filtroSerie) params.append('serie', filtroSerie)
       if (filtroAno) params.append('ano_letivo', filtroAno)
-      if (busca) params.append('busca', busca)
+      if (buscaDebounced) params.append('busca', buscaDebounced)
 
-      // Adicionar timestamp para evitar cache
-      params.append('_t', Date.now().toString())
-      const data = await fetch(`/api/admin/alunos?${params}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        }
-      }).then(r => r.json())
+      const data = await fetch(`/api/admin/alunos?${params}`).then(r => r.json())
       
       // Aplicar filtro de polo apenas se não houver filtro de escola específica
       let alunosFiltrados = data

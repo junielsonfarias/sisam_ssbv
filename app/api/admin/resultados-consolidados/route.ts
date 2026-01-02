@@ -3,7 +3,8 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Sempre revalidar, sem cache
+// Cache de 30 segundos para dados que não mudam frequentemente
+export const revalidate = 30;
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -23,12 +24,14 @@ export async function GET(request: NextRequest) {
     const presenca = searchParams.get('presenca')
     const turmaId = searchParams.get('turma_id')
 
+    // Otimizar query: usar JOIN ao invés de subconsultas
     let query = `
       SELECT 
         rc.*,
         rc.aluno_id,
         a.nome as aluno_nome,
         e.nome as escola_nome,
+        e.polo_id,
         t.codigo as turma_codigo
       FROM resultados_consolidados_unificada rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
@@ -40,9 +43,9 @@ export async function GET(request: NextRequest) {
     const params: any[] = []
     let paramIndex = 1
 
-    // Aplicar restrições de acesso
+    // Aplicar restrições de acesso usando JOIN ao invés de subconsulta
     if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      query += ` AND rc.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex})`
+      query += ` AND e.polo_id = $${paramIndex}`
       params.push(usuario.polo_id)
       paramIndex++
     } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
@@ -59,7 +62,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (poloId) {
-      query += ` AND rc.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex})`
+      // Otimizar: usar JOIN ao invés de subconsulta
+      query += ` AND e.polo_id = $${paramIndex}`
       params.push(poloId)
       paramIndex++
     }

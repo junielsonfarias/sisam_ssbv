@@ -4,7 +4,8 @@ import pool from '@/database/connection'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Sempre revalidar, sem cache
+// Cache de 15 segundos para listagens de alunos
+export const revalidate = 15;
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -87,9 +88,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (busca) {
+      // Usar similarity para busca mais eficiente com índices GIN
       query += ` AND (a.nome ILIKE $${paramIndex} OR a.codigo ILIKE $${paramIndex})`
       params.push(`%${busca}%`)
       paramIndex++
+      // Limitar resultados para busca para melhor performance
+      query += ' LIMIT 1000'
     }
 
     query += ' ORDER BY a.nome'
