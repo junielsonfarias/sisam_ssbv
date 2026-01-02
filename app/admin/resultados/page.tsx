@@ -710,43 +710,43 @@ export default function ResultadosPage() {
                 {/* Visualização Tablet/Desktop - Tabela */}
                 <div className="hidden sm:block w-full">
                   <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
-                    <table className="w-full divide-y divide-gray-200 min-w-[700px]">
+                    <table className="w-full divide-y divide-gray-200 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
                       <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
                         <tr>
-                          <th className="text-center py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 w-12">
+                          <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12">
                             #
                           </th>
-                          <th className="text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-left py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 min-w-[120px] md:min-w-[140px] lg:min-w-[160px]">
                             Aluno
                           </th>
-                          <th className="hidden lg:table-cell text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="hidden lg:table-cell text-left py-1 px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 min-w-[150px]">
                             Escola
                           </th>
-                          <th className="hidden md:table-cell text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="hidden md:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20">
                             Turma
                           </th>
-                          <th className="hidden xl:table-cell text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="hidden xl:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
                             Série
                           </th>
-                          <th className="hidden lg:table-cell text-center py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
                             Presença
                           </th>
-                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
                             LP
                           </th>
-                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
                             CH
                           </th>
-                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
                             MAT
                           </th>
-                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
                             CN
                           </th>
-                          <th className="text-center py-1.5 px-0.5 sm:py-2 sm:px-1 md:py-2.5 md:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
                             Média
                           </th>
-                          <th className="text-center py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
+                          <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20 lg:w-24">
                             Ações
                           </th>
                         </tr>
@@ -770,12 +770,12 @@ export default function ResultadosPage() {
 
                         return (
                           <tr key={resultado.id} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
-                            <td className="text-center py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
-                              <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] sm:text-xs md:text-sm">
+                            <td className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2">
+                              <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
                                 {index + 1}
                               </span>
                             </td>
-                            <td className="py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
+                            <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2">
                               <div className="flex flex-col">
                                 <button
                                   onClick={() => {
@@ -788,14 +788,14 @@ export default function ResultadosPage() {
                                   className="flex items-center w-full text-left hover:opacity-80 transition-opacity mb-1"
                                   title="Clique para ver questões do aluno"
                                 >
-                                  <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full bg-indigo-100 flex items-center justify-center mr-1 sm:mr-2">
-                                    <span className="text-indigo-600 font-semibold text-[10px] sm:text-xs">
+                                  <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-9 rounded-full bg-indigo-100 flex items-center justify-center mr-1 sm:mr-1.5 md:mr-2">
+                                    <span className="text-indigo-600 font-semibold text-[9px] sm:text-[10px] md:text-xs">
                                       {resultado.aluno_nome.charAt(0).toUpperCase()}
                                     </span>
                                   </div>
-                                  <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-[11px] sm:text-xs md:text-sm truncate">{resultado.aluno_nome}</span>
+                                  <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-[10px] sm:text-[11px] md:text-xs lg:text-sm truncate">{resultado.aluno_nome}</span>
                                 </button>
-                                <div className="lg:hidden text-[10px] sm:text-xs text-gray-500 space-y-0.5 ml-7 sm:ml-10">
+                                <div className="lg:hidden text-[9px] sm:text-[10px] md:text-xs text-gray-500 space-y-0.5 ml-6 sm:ml-7 md:ml-8 lg:ml-10">
                                   {resultado.escola_nome && <div className="whitespace-normal break-words">Escola: {resultado.escola_nome}</div>}
                                   {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
                                   {resultado.serie && <div>Série: {resultado.serie}</div>}
@@ -812,20 +812,20 @@ export default function ResultadosPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="hidden lg:table-cell py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
-                              <span className="text-gray-700 font-medium text-[11px] sm:text-xs md:text-sm block whitespace-normal break-words">{resultado.escola_nome}</span>
+                            <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-2">
+                              <span className="text-gray-700 font-medium text-[10px] md:text-xs lg:text-sm block whitespace-normal break-words">{resultado.escola_nome}</span>
                             </td>
-                            <td className="hidden md:table-cell py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
-                              <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-gray-100 text-gray-700 font-mono text-[10px] sm:text-xs font-medium">
+                            <td className="hidden md:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
+                              <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-mono text-[9px] md:text-[10px] lg:text-xs font-medium">
                                 {resultado.turma_codigo || '-'}
                               </span>
                             </td>
-                            <td className="hidden xl:table-cell py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
-                              <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-blue-100 text-blue-800 text-[10px] sm:text-xs font-medium">
+                            <td className="hidden xl:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
+                              <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] md:text-[10px] lg:text-xs font-medium">
                                 {resultado.serie || '-'}
                               </span>
                             </td>
-                            <td className="hidden lg:table-cell py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4 text-center">
+                            <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                               <span
                                 className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold shadow-sm ${getPresencaColor(
                                   resultado.presenca || 'P'
@@ -834,18 +834,18 @@ export default function ResultadosPage() {
                                 {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
                               </span>
                             </td>
-                            <td className="py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 text-center">
-                              <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[60px] sm:max-w-[65px] md:max-w-[70px]`}>
-                                <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 font-medium">
+                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
                                   {resultado.total_acertos_lp}/20
                                 </div>
-                                <div className={`text-[11px] sm:text-xs md:text-sm lg:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
+                                <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
                                   {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                                 </div>
                                 {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-0.5 sm:h-1 mt-0.5 sm:mt-1">
+                                  <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                     <div
-                                      className={`h-0.5 sm:h-1 rounded-full ${
+                                      className={`h-0.5 md:h-1 rounded-full ${
                                         notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
@@ -854,18 +854,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 text-center">
-                              <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_ch)} w-full max-w-[60px] sm:max-w-[65px] md:max-w-[70px]`}>
-                                <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 font-medium">
+                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_ch)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
                                   {resultado.total_acertos_ch}/10
                                 </div>
-                                <div className={`text-[11px] sm:text-xs md:text-sm lg:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
+                                <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
                                   {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                                 </div>
                                 {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-0.5 sm:h-1 mt-0.5 sm:mt-1">
+                                  <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                     <div
-                                      className={`h-0.5 sm:h-1 rounded-full ${
+                                      className={`h-0.5 md:h-1 rounded-full ${
                                         notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
@@ -874,18 +874,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 text-center">
-                              <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[60px] sm:max-w-[65px] md:max-w-[70px]`}>
-                                <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 font-medium">
+                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
                                   {resultado.total_acertos_mat}/20
                                 </div>
-                                <div className={`text-[11px] sm:text-xs md:text-sm lg:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
+                                <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
                                   {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                                 </div>
                                 {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-0.5 sm:h-1 mt-0.5 sm:mt-1">
+                                  <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                     <div
-                                      className={`h-0.5 sm:h-1 rounded-full ${
+                                      className={`h-0.5 md:h-1 rounded-full ${
                                         notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
@@ -894,18 +894,18 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 text-center">
-                              <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_cn)} w-full max-w-[60px] sm:max-w-[65px] md:max-w-[70px]`}>
-                                <div className="text-[10px] sm:text-xs text-gray-600 mb-0.5 font-medium">
+                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_cn)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
                                   {resultado.total_acertos_cn}/10
                                 </div>
-                                <div className={`text-[11px] sm:text-xs md:text-sm lg:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
+                                <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
                                   {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                                 </div>
                                 {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-0.5 sm:h-1 mt-0.5 sm:mt-1">
+                                  <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                     <div
-                                      className={`h-0.5 sm:h-1 rounded-full ${
+                                      className={`h-0.5 md:h-1 rounded-full ${
                                         notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                       }`}
                                       style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
@@ -914,23 +914,23 @@ export default function ResultadosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="py-2 px-0.5 sm:py-3 sm:px-1 md:py-4 md:px-2 lg:px-3 text-center">
-                              <div className={`inline-flex flex-col items-center justify-center px-1 sm:px-1.5 md:px-2 py-1 sm:py-1.5 md:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
+                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                                 mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
                                 mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
                                 'border-red-500'
-                              } w-full max-w-[60px] sm:max-w-[65px] md:max-w-[70px]`}>
-                                <div className={`text-xs sm:text-sm md:text-base lg:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
+                              } w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                <div className={`text-[10px] sm:text-xs md:text-sm lg:text-base xl:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                                   {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                 </div>
                                 {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-600">
+                                  <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600">
                                     Média
                                   </div>
                                 )}
                               </div>
                             </td>
-                            <td className="py-2 px-1 sm:py-3 sm:px-2 md:py-4 md:px-3 lg:px-4 text-center">
+                            <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-3 lg:px-2 text-center">
                               <button
                                 onClick={() => {
                                   setAlunoSelecionado({
@@ -939,12 +939,12 @@ export default function ResultadosPage() {
                                   })
                                   setModalAberto(true)
                                 }}
-                                className="w-full inline-flex items-center justify-center px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-[10px] sm:text-xs font-medium shadow-sm"
+                                className="w-full inline-flex items-center justify-center px-1 sm:px-1.5 md:px-2 lg:px-3 py-1 sm:py-1 md:py-1.5 lg:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-[9px] sm:text-[10px] md:text-xs font-medium shadow-sm"
                                 title="Ver questões do aluno"
                               >
-                                <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 mr-0.5 sm:mr-1 flex-shrink-0" />
-                                <span className="hidden sm:inline">Ver Questões</span>
-                                <span className="sm:hidden">Ver</span>
+                                <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 mr-0.5 sm:mr-1 flex-shrink-0" />
+                                <span className="hidden md:inline">Ver Questões</span>
+                                <span className="md:hidden">Ver</span>
                               </button>
                             </td>
                           </tr>
