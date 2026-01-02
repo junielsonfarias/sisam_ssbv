@@ -3,7 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
-import { BarChart3, TrendingUp, GraduationCap, BookOpen, CheckCircle, XCircle, Award } from 'lucide-react'
+import { BarChart3, TrendingUp, GraduationCap, BookOpen, CheckCircle, XCircle } from 'lucide-react'
 
 export default function EscolaDashboard() {
   const [estatisticas, setEstatisticas] = useState({
@@ -14,7 +14,6 @@ export default function EscolaDashboard() {
     totalAlunosPresentes: 0,
     totalAlunosFaltantes: 0,
     mediaGeral: 0,
-    taxaAprovacao: 0,
   })
 
   useEffect(() => {
@@ -37,7 +36,6 @@ export default function EscolaDashboard() {
             totalAlunosPresentes: Number(data.totalAlunosPresentes) || 0,
             totalAlunosFaltantes: Number(data.totalAlunosFaltantes) || 0,
             mediaGeral: Number(data.mediaGeral) || 0,
-            taxaAprovacao: Number(data.taxaAprovacao) || 0,
           })
         }
       } catch (error) {
@@ -140,21 +138,6 @@ export default function EscolaDashboard() {
               {estatisticas.mediaGeral > 0 && (
                 <p className="text-xs text-blue-600 mt-1">
                   {estatisticas.mediaGeral >= 7 ? 'Excelente' : estatisticas.mediaGeral >= 5 ? 'Bom' : 'Abaixo da média'}
-                </p>
-              )}
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 sm:p-6 rounded-lg shadow-md border border-purple-200">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-700 text-xs sm:text-sm font-medium">Taxa de Aprovação</p>
-                <Award className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 flex-shrink-0" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-purple-700">
-                {estatisticas.taxaAprovacao > 0 ? `${estatisticas.taxaAprovacao.toFixed(1)}%` : '-'}
-              </p>
-              {estatisticas.taxaAprovacao > 0 && (
-                <p className="text-xs text-purple-600 mt-1">
-                  {estatisticas.taxaAprovacao >= 70 ? 'Ótimo' : estatisticas.taxaAprovacao >= 50 ? 'Regular' : 'Atenção'}
                 </p>
               )}
             </div>

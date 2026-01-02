@@ -17,7 +17,6 @@ export default function AdminDashboard() {
     totalAlunosPresentes: 0,
     totalAlunosFaltantes: 0,
     mediaGeral: 0,
-    taxaAprovacao: 0,
   })
 
   useEffect(() => {
@@ -52,7 +51,6 @@ export default function AdminDashboard() {
             totalAlunosPresentes: Number(data.totalAlunosPresentes) || 0,
             totalAlunosFaltantes: Number(data.totalAlunosFaltantes) || 0,
             mediaGeral: Number(data.mediaGeral) || 0,
-            taxaAprovacao: Number(data.taxaAprovacao) || 0,
           })
         }
       } catch (error) {
@@ -146,7 +144,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 sm:p-6 rounded-lg shadow-md border border-green-200">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-gray-700 text-xs sm:text-sm font-medium">Alunos Presentes</p>
@@ -184,21 +182,6 @@ export default function AdminDashboard() {
               {estatisticas.mediaGeral > 0 && (
                 <p className="text-xs text-blue-600 mt-1">
                   {estatisticas.mediaGeral >= 7 ? 'Excelente' : estatisticas.mediaGeral >= 5 ? 'Bom' : 'Abaixo da média'}
-                </p>
-              )}
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 sm:p-6 rounded-lg shadow-md border border-purple-200">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-700 text-xs sm:text-sm font-medium">Taxa de Aprovação</p>
-                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 flex-shrink-0" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-purple-700">
-                {estatisticas.taxaAprovacao > 0 ? `${estatisticas.taxaAprovacao.toFixed(1)}%` : '-'}
-              </p>
-              {estatisticas.taxaAprovacao > 0 && (
-                <p className="text-xs text-purple-600 mt-1">
-                  {estatisticas.taxaAprovacao >= 70 ? 'Ótimo' : estatisticas.taxaAprovacao >= 50 ? 'Regular' : 'Atenção'}
                 </p>
               )}
             </div>
