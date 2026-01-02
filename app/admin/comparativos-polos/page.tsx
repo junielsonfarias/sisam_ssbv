@@ -469,7 +469,11 @@ export default function ComparativosPolosPage() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                              {dadosSerie.map((item, index) => (
+                              {[...dadosSerie].sort((a, b) => {
+                                const mediaA = typeof a.media_geral === 'string' ? parseFloat(a.media_geral) : (a.media_geral || 0)
+                                const mediaB = typeof b.media_geral === 'string' ? parseFloat(b.media_geral) : (b.media_geral || 0)
+                                return mediaB - mediaA
+                              }).map((item, index) => (
                                 <tr key={`agregado-${item.polo_id}-${item.serie}-${index}`} className="hover:bg-indigo-50 bg-indigo-50/30">
                                   <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
                                     <div className="flex items-center">
@@ -581,7 +585,11 @@ export default function ComparativosPolosPage() {
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-gray-200">
-                                    {escolasData.map((item, index) => (
+                                    {[...escolasData].sort((a, b) => {
+                                      const mediaA = typeof a.media_geral === 'string' ? parseFloat(a.media_geral) : (a.media_geral || 0)
+                                      const mediaB = typeof b.media_geral === 'string' ? parseFloat(b.media_geral) : (b.media_geral || 0)
+                                      return mediaB - mediaA
+                                    }).map((item, index) => (
                                       <tr key={`escola-${item.escola_id}-${item.serie}-${index}`} className="hover:bg-blue-50 bg-blue-50/30">
                                         <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
                                           <div className="flex items-center">

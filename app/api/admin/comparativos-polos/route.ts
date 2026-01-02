@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
       GROUP BY 
         p.id, p.nome, rc.serie
       ORDER BY 
-        p.nome, rc.serie
+        rc.serie, AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC NULLS LAST
     `
 
     const resultAgregado = await pool.query(queryAgregado, paramsAgregado)
@@ -178,6 +178,15 @@ export async function GET(request: NextRequest) {
         dadosPorSerieAgregado[serieKey] = []
       }
       dadosPorSerieAgregado[serieKey].push(row)
+    })
+    
+    // Garantir ordenação por média geral (descendente) dentro de cada série
+    Object.keys(dadosPorSerieAgregado).forEach((serieKey) => {
+      dadosPorSerieAgregado[serieKey].sort((a, b) => {
+        const mediaA = parseFloat(a.media_geral) || 0
+        const mediaB = parseFloat(b.media_geral) || 0
+        return mediaB - mediaA
+      })
     })
 
     // ===== QUERY PARA DADOS POR ESCOLA DENTRO DE CADA POLO =====
@@ -239,7 +248,7 @@ export async function GET(request: NextRequest) {
       GROUP BY 
         p.id, p.nome, e.id, e.nome, rc.serie
       ORDER BY 
-        p.nome, rc.serie, e.nome
+        p.id, rc.serie, AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC NULLS LAST
     `
 
     const resultEscolas = await pool.query(queryEscolas, paramsEscolas)
@@ -257,6 +266,17 @@ export async function GET(request: NextRequest) {
         dadosPorSerieEscola[serieKey][poloKey] = []
       }
       dadosPorSerieEscola[serieKey][poloKey].push(row)
+    })
+    
+    // Garantir ordenação por média geral (descendente) dentro de cada polo
+    Object.keys(dadosPorSerieEscola).forEach((serieKey) => {
+      Object.keys(dadosPorSerieEscola[serieKey]).forEach((poloKey) => {
+        dadosPorSerieEscola[serieKey][poloKey].sort((a, b) => {
+          const mediaA = parseFloat(a.media_geral) || 0
+          const mediaB = parseFloat(b.media_geral) || 0
+          return mediaB - mediaA
+        })
+      })
     })
 
     return NextResponse.json({
