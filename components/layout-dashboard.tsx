@@ -55,16 +55,17 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
   // Mapear tipoUsuario para o caminho correto
   const getBasePath = () => {
+    if (!tipoUsuario) return 'admin' // Fallback
     if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') return 'admin'
     return tipoUsuario
   }
 
-  const basePath = getBasePath()
+  const basePath = getBasePath() || 'admin' // Garantir que nunca seja undefined
 
   const menuItems = [
     { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
     { icon: BarChart3, label: 'Análise de Dados', href: `/${basePath}/analise` },
-    { icon: TrendingUp, label: 'Análise Gráfica', href: '/admin/graficos' },
+    { icon: TrendingUp, label: 'Análise Gráfica', href: `/${basePath}/graficos` },
   ]
 
   if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
@@ -99,7 +100,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       { icon: FileText, label: 'Questões', href: '/admin/questoes' },
       { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
       { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
-      { icon: Database, label: 'Importação Completa', href: '/admin/importar-completo' }
+      { icon: Database, label: 'Importação Completa', href: '/admin/importar-completo' },
+      { icon: FileCheck, label: 'Histórico de Importações', href: '/admin/importacoes' }
     )
   }
 

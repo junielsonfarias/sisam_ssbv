@@ -431,10 +431,12 @@ export default function ResultadosPage() {
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400 flex-shrink-0 ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
                   <div
-                    className={`h-1.5 sm:h-2 rounded-full ${getNotaBgColor(estatisticas.mediaLP)}`}
-                    style={{ width: `${Math.min((estatisticas.mediaLP / 10) * 100, 100)}%` }}
+                    className={`h-2 sm:h-3 rounded-full ${
+                      estatisticas.mediaLP >= 7 ? 'bg-green-500' : estatisticas.mediaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.min((estatisticas.mediaLP / 10) * 100, 100)}%`, minWidth: '2px' }}
                   ></div>
                 </div>
               </div>
@@ -449,10 +451,12 @@ export default function ResultadosPage() {
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 flex-shrink-0 ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
                   <div
-                    className={`h-1.5 sm:h-2 rounded-full ${getNotaBgColor(estatisticas.mediaCH)}`}
-                    style={{ width: `${Math.min((estatisticas.mediaCH / 10) * 100, 100)}%` }}
+                    className={`h-2 sm:h-3 rounded-full ${
+                      estatisticas.mediaCH >= 7 ? 'bg-green-500' : estatisticas.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.min((estatisticas.mediaCH / 10) * 100, 100)}%`, minWidth: '2px' }}
                   ></div>
                 </div>
               </div>
@@ -467,10 +471,12 @@ export default function ResultadosPage() {
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400 flex-shrink-0 ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
                   <div
-                    className={`h-1.5 sm:h-2 rounded-full ${getNotaBgColor(estatisticas.mediaMAT)}`}
-                    style={{ width: `${Math.min((estatisticas.mediaMAT / 10) * 100, 100)}%` }}
+                    className={`h-2 sm:h-3 rounded-full ${
+                      estatisticas.mediaMAT >= 7 ? 'bg-green-500' : estatisticas.mediaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.min((estatisticas.mediaMAT / 10) * 100, 100)}%`, minWidth: '2px' }}
                   ></div>
                 </div>
               </div>
@@ -485,10 +491,12 @@ export default function ResultadosPage() {
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400 flex-shrink-0 ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
                   <div
-                    className={`h-1.5 sm:h-2 rounded-full ${getNotaBgColor(estatisticas.mediaCN)}`}
-                    style={{ width: `${Math.min((estatisticas.mediaCN / 10) * 100, 100)}%` }}
+                    className={`h-2 sm:h-3 rounded-full ${
+                      estatisticas.mediaCN >= 7 ? 'bg-green-500' : estatisticas.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.min((estatisticas.mediaCN / 10) * 100, 100)}%`, minWidth: '2px' }}
                   ></div>
                 </div>
               </div>

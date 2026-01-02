@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
       return NextResponse.json(
         { mensagem: 'Não autorizado' },
         { status: 403 }
@@ -54,9 +54,9 @@ export async function GET(request: NextRequest) {
       paramIndex += escolasIds.length
     }
 
-    if (serie) {
+    if (serie && serie.trim() !== '') {
       query += ` AND t.serie = $${paramIndex}`
-      params.push(serie)
+      params.push(serie.trim())
       paramIndex++
     }
 
