@@ -264,7 +264,7 @@ export default function ResultadosPage() {
   }, [resultadosFiltrados])
 
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'admin']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
@@ -541,7 +541,7 @@ export default function ResultadosPage() {
                       <p className="text-sm mt-1 text-gray-400">Importe os dados primeiro</p>
                     </div>
                   ) : (
-                    resultadosFiltrados.map((resultado) => {
+                    resultadosFiltrados.map((resultado, index) => {
                     const mediaNum = getNotaNumero(resultado.media_aluno)
                     const notaLP = getNotaNumero(resultado.nota_lp)
                     const notaCH = getNotaNumero(resultado.nota_ch)
@@ -552,6 +552,11 @@ export default function ResultadosPage() {
                       <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                         {/* Cabeçalho do Card */}
                         <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200">
+                          <div className="flex items-center gap-2 mr-2">
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-sm flex-shrink-0">
+                              {index + 1}
+                            </span>
+                          </div>
                           <button
                             onClick={() => {
                               setAlunoSelecionado({

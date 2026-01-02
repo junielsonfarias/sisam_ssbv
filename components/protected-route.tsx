@@ -26,7 +26,18 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
           return
         }
 
-        if (!tiposPermitidos.includes(data.usuario.tipo_usuario)) {
+        // Normalizar tipo de usuário para comparação
+        const tipoUsuarioOriginal = data.usuario.tipo_usuario
+        // Verificar se o tipo está nos permitidos, considerando que 'administrador' e 'admin' são equivalentes
+        const tiposPermitidosExpandidos = [...tiposPermitidos]
+        if (tiposPermitidos.includes('administrador')) {
+          tiposPermitidosExpandidos.push('admin' as TipoUsuario)
+        }
+        if (tiposPermitidos.includes('admin')) {
+          tiposPermitidosExpandidos.push('administrador' as TipoUsuario)
+        }
+        
+        if (!tiposPermitidosExpandidos.includes(tipoUsuarioOriginal)) {
           router.push('/login')
           return
         }
