@@ -242,7 +242,8 @@ export default function AlunosPage() {
     setHistoricoAluno(null)
 
     try {
-      const response = await fetch(`/api/admin/alunos/historico?aluno_nome=${encodeURIComponent(aluno.nome)}`)
+      // Usar aluno_id para busca mais precisa
+      const response = await fetch(`/api/admin/alunos/historico?aluno_id=${encodeURIComponent(aluno.id)}`)
       const data = await response.json()
       if (response.ok) {
         setHistoricoAluno(data)
@@ -451,9 +452,9 @@ export default function AlunosPage() {
                           <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <div className="flex flex-col">
                               <button
-                                onClick={() => handleAbrirModal(aluno)}
+                                onClick={() => handleVisualizarHistorico(aluno)}
                                 className="text-indigo-600 hover:text-indigo-800 font-medium text-xs md:text-sm underline cursor-pointer text-left mb-1"
-                                title="Clique para visualizar/editar aluno"
+                                title="Clique para visualizar histórico do aluno"
                               >
                                 {aluno.nome}
                               </button>

@@ -62,7 +62,7 @@ export default function ModalHistoricoAluno({ mostrar, historico, carregando, on
                             <InfoItem icon={Users} label="Turma" value={r.turma_codigo || '-'} subValue={r.turma_nome || null} />
                           </div>
 
-                          {r.resultado_id ? (
+                          {(r.resultado_presenca != null || r.nota_lp != null || r.nota_ch != null || r.nota_mat != null || r.nota_cn != null || r.total_acertos_lp != null || r.total_acertos_ch != null || r.total_acertos_mat != null || r.total_acertos_cn != null) ? (
                             <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-indigo-200">
                               <div className="flex flex-wrap items-center gap-2 mb-2 sm:mb-3">
                                 <Award className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
