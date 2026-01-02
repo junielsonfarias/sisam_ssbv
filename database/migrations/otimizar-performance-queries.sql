@@ -123,16 +123,18 @@ ON alunos(serie)
 WHERE serie IS NOT NULL;
 
 -- ============================================
--- 7. ANÁLISE DE ÍNDICES (VACUUM ANALYZE)
+-- 7. ANÁLISE DE ÍNDICES (ANALYZE)
 -- ============================================
 -- Atualizar estatísticas do PostgreSQL para otimizador usar índices corretamente
+-- NOTA: ANALYZE pode ser executado em transação, VACUUM não pode
+-- Se necessário, execute VACUUM ANALYZE manualmente após esta migration
 
-VACUUM ANALYZE alunos;
-VACUUM ANALYZE escolas;
-VACUUM ANALYZE turmas;
-VACUUM ANALYZE resultados_consolidados;
-VACUUM ANALYZE resultados_provas;
-VACUUM ANALYZE polos;
+ANALYZE alunos;
+ANALYZE escolas;
+ANALYZE turmas;
+ANALYZE resultados_consolidados;
+ANALYZE resultados_provas;
+ANALYZE polos;
 
 -- ============================================
 -- COMENTÁRIOS
