@@ -71,8 +71,9 @@ export default function UsuariosPage() {
   )
 
   const getTipoColor = (tipo: TipoUsuario) => {
-    const colors = {
+    const colors: Record<TipoUsuario, string> = {
       administrador: 'bg-purple-100 text-purple-800',
+      admin: 'bg-purple-100 text-purple-800', // admin é equivalente a administrador
       tecnico: 'bg-blue-100 text-blue-800',
       polo: 'bg-indigo-100 text-indigo-800',
       escola: 'bg-green-100 text-green-800',
@@ -81,8 +82,9 @@ export default function UsuariosPage() {
   }
 
   const getTipoLabel = (tipo: TipoUsuario) => {
-    const labels = {
+    const labels: Record<TipoUsuario, string> = {
       administrador: 'Administrador',
+      admin: 'Administrador', // admin é equivalente a administrador
       tecnico: 'Técnico',
       polo: 'Polo',
       escola: 'Escola',
