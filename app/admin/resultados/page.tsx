@@ -708,6 +708,9 @@ export default function ResultadosPage() {
                     <table className="w-full divide-y divide-gray-200 min-w-[700px]">
                       <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
                         <tr>
+                          <th className="text-center py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200 w-12">
+                            #
+                          </th>
                           <th className="text-left py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2 font-bold text-indigo-900 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider border-b border-indigo-200">
                             Aluno
                           </th>
@@ -746,14 +749,14 @@ export default function ResultadosPage() {
                   <tbody className="divide-y divide-gray-200">
                     {resultadosFiltrados.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                        <td colSpan={12} className="py-8 sm:py-12 text-center text-gray-500 px-4">
                           <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
                           <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
                           <p className="text-xs sm:text-sm mt-1">Importe os dados primeiro</p>
                         </td>
                       </tr>
                     ) : (
-                      resultadosFiltrados.map((resultado) => {
+                      resultadosFiltrados.map((resultado, index) => {
                         const mediaNum = getNotaNumero(resultado.media_aluno)
                         const notaLP = getNotaNumero(resultado.nota_lp)
                         const notaCH = getNotaNumero(resultado.nota_ch)
@@ -762,6 +765,11 @@ export default function ResultadosPage() {
 
                         return (
                           <tr key={resultado.id} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
+                            <td className="text-center py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
+                              <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] sm:text-xs md:text-sm">
+                                {index + 1}
+                              </span>
+                            </td>
                             <td className="py-1.5 px-1 sm:py-2 sm:px-1.5 md:py-2.5 md:px-2">
                               <div className="flex flex-col">
                                 <button
