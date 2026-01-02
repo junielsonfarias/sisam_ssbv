@@ -77,10 +77,19 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
       const response = await fetch(`/api/admin/aluno-questoes?${params.toString()}`)
 
       if (!response.ok) {
-        throw new Error('Erro ao carregar questões do aluno')
+        const errorData = await response.json().catch(() => ({ mensagem: 'Erro desconhecido' }))
+        throw new Error(errorData.mensagem || 'Erro ao carregar questões do aluno')
       }
 
       const data = await response.json()
+      
+      // Se não houver questões, mostrar mensagem específica
+      if (!data.estatisticas || data.estatisticas.total === 0) {
+        setErro('Nenhuma questão encontrada para este aluno. Verifique se os resultados foram importados corretamente.')
+        setDados(null)
+        return
+      }
+      
       setDados(data)
     } catch (error: any) {
       console.error('Erro ao carregar questões:', error)

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     try {
       const presencaResult = await pool.query(
         `SELECT COUNT(*) as presentes
-         FROM resultados_consolidados rc
+         FROM resultados_consolidados_unificada rc
          INNER JOIN escolas e ON rc.escola_id = e.id
          WHERE e.polo_id = $1 AND (rc.presenca = 'P' OR rc.presenca = 'p')`,
         [usuario.polo_id]
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     try {
       const mediaResult = await pool.query(
         `SELECT ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
-         FROM resultados_consolidados rc
+         FROM resultados_consolidados_unificada rc
          INNER JOIN escolas e ON rc.escola_id = e.id
          WHERE e.polo_id = $1`,
         [usuario.polo_id]

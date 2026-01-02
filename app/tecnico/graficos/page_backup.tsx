@@ -17,8 +17,8 @@ interface FiltrosGraficos {
   turma_id?: string
 }
 
-export default function GraficosTecnicoPage() {
-  const [tipoUsuario, setTipoUsuario] = useState<string>('tecnico')
+export default function GraficosPage() {
+  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [filtros, setFiltros] = useState<FiltrosGraficos>({})
   const [polos, setPolos] = useState<any[]>([])
   const [escolas, setEscolas] = useState<any[]>([])
@@ -30,8 +30,16 @@ export default function GraficosTecnicoPage() {
   const [erro, setErro] = useState<string>('')
 
   useEffect(() => {
-    carregarDadosIniciais()
+    carregarTipoUsuario()
   }, [])
+
+  useEffect(() => {
+    if (tipoUsuario && tipoUsuario !== 'admin') {
+      carregarDadosIniciais()
+    } else if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
+      carregarDadosIniciais()
+    }
+  }, [tipoUsuario])
 
   // Carregar turmas quando escola for selecionada
   useEffect(() => {
@@ -88,6 +96,37 @@ export default function GraficosTecnicoPage() {
       setFiltros(prev => ({ ...prev, turma_id: undefined }))
     }
   }, [filtros.escola_id, filtros.ano_letivo, filtros.serie])
+
+  const carregarTipoUsuario = async () => {
+    try {
+      const response = await fetch('/api/auth/verificar')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.usuario && data.usuario.tipo_usuario) {
+          // Normalizar tipo de usuário
+          const tipo = data.usuario.tipo_usuario
+          if (tipo === 'administrador') {
+            setTipoUsuario('admin')
+          } else {
+            setTipoUsuario(tipo)
+          }
+        } else if (data.tipo_usuario) {
+          // Fallback para formato antigo
+          const tipo = data.tipo_usuario
+          if (tipo === 'administrador') {
+            setTipoUsuario('admin')
+          } else {
+            setTipoUsuario(tipo)
+          }
+        }
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao carregar tipo de usuário:', error)
+      }
+      setTipoUsuario('admin') // Fallback
+    }
+  }
 
   const carregarDadosIniciais = async () => {
     try {
@@ -226,8 +265,8 @@ export default function GraficosTecnicoPage() {
   }
 
   return (
-    <ProtectedRoute tiposPermitidos={['tecnico']}>
-      <LayoutDashboard tipoUsuario="tecnico">
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola', 'polo']}>
+      <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           {/* Header */}
           <div>

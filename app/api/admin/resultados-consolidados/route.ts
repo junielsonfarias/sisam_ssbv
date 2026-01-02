@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         a.nome as aluno_nome,
         e.nome as escola_nome,
         t.codigo as turma_codigo
-      FROM resultados_consolidados rc
+      FROM resultados_consolidados_unificada rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id

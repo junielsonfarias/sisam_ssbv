@@ -136,7 +136,7 @@ export async function DELETE(request: NextRequest) {
         (SELECT COUNT(*) FROM alunos WHERE escola_id = $1) as total_alunos,
         (SELECT COUNT(*) FROM turmas WHERE escola_id = $1) as total_turmas,
         (SELECT COUNT(*) FROM resultados_provas WHERE escola_id = $1) as total_resultados,
-        (SELECT COUNT(*) FROM resultados_consolidados WHERE escola_id = $1) as total_consolidados,
+        (SELECT COUNT(*) FROM resultados_consolidados_unificada WHERE escola_id = $1) as total_consolidados,
         (SELECT COUNT(*) FROM usuarios WHERE escola_id = $1) as total_usuarios
     `, [escolaId])
 

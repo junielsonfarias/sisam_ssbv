@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
           SELECT 
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN 1 END) as total_alunos
-          FROM resultados_consolidados rc
+          FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
         `
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
           SELECT 
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN 1 END) as total_alunos
-          FROM resultados_consolidados rc
+          FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
         `
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
           SELECT 
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN 1 END) as total_alunos
-          FROM resultados_consolidados rc
+          FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
         `
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
           SELECT 
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN 1 END) as total_alunos
-          FROM resultados_consolidados rc
+          FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
         `
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
             SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_ch AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_ch,
             SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_mat AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_mat,
             SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_cn AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_cn
-          FROM resultados_consolidados rc
+          FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
         `
@@ -344,7 +344,7 @@ export async function GET(request: NextRequest) {
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos,
             ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC) as rank_desc,
             ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) ASC) as rank_asc
-          FROM resultados_consolidados rc
+          FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
           GROUP BY e.id, e.nome
@@ -381,7 +381,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             LEFT JOIN turmas t ON rc.turma_id = t.id
             ${whereClause}
@@ -397,7 +397,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             LEFT JOIN turmas t ON rc.turma_id = t.id
             ${whereClause}
@@ -413,7 +413,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             LEFT JOIN turmas t ON rc.turma_id = t.id
             ${whereClause}
@@ -429,7 +429,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             LEFT JOIN turmas t ON rc.turma_id = t.id
             ${whereClause}
@@ -446,7 +446,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 60 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             LEFT JOIN turmas t ON rc.turma_id = t.id
             ${whereClause}
@@ -469,7 +469,7 @@ export async function GET(request: NextRequest) {
           // Verificar se há dados no banco com os filtros
           const queryVerificacao = `
             SELECT COUNT(*) as total
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
           `
@@ -488,7 +488,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -502,7 +502,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -516,7 +516,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -530,7 +530,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -545,7 +545,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 60 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -571,7 +571,7 @@ export async function GET(request: NextRequest) {
           // Verificar se há dados no banco com os filtros
           const queryVerificacao = `
             SELECT COUNT(*) as total
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
           `
@@ -589,7 +589,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -603,7 +603,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -617,7 +617,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -631,7 +631,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -646,7 +646,7 @@ export async function GET(request: NextRequest) {
               SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
               COUNT(*) * 60 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
               COUNT(*) as total_alunos
-            FROM resultados_consolidados rc
+            FROM resultados_consolidados_unificada rc
             INNER JOIN escolas e ON rc.escola_id = e.id
             ${whereClause}
             GROUP BY e.id, e.nome
@@ -918,7 +918,7 @@ export async function GET(request: NextRequest) {
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn
-          FROM resultados_consolidados rc
+          FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
           GROUP BY e.id, e.nome
@@ -953,7 +953,7 @@ export async function GET(request: NextRequest) {
             e.nome as escola_nome,
             COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN rc.aluno_id END) as total_alunos,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
-          FROM resultados_consolidados rc
+          FROM resultados_consolidados_unificada rc
           INNER JOIN turmas t ON rc.turma_id = t.id
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereRankingTurmas}

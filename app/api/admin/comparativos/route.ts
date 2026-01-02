@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_ch IS NOT NULL) THEN CAST(rc.total_acertos_ch AS INTEGER) ELSE NULL END) as media_acertos_ch,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_mat IS NOT NULL) THEN CAST(rc.total_acertos_mat AS INTEGER) ELSE NULL END) as media_acertos_mat,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_cn IS NOT NULL) THEN CAST(rc.total_acertos_cn AS INTEGER) ELSE NULL END) as media_acertos_cn
-      FROM resultados_consolidados rc
+      FROM resultados_consolidados_unificada rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       INNER JOIN polos p ON e.polo_id = p.id
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
         AVG(CAST(rc.total_acertos_mat AS INTEGER)) as media_acertos_mat,
         AVG(CAST(rc.total_acertos_cn AS INTEGER)) as media_acertos_cn,
         COUNT(DISTINCT t.id) as total_turmas
-      FROM resultados_consolidados rc
+      FROM resultados_consolidados_unificada rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       INNER JOIN polos p ON e.polo_id = p.id

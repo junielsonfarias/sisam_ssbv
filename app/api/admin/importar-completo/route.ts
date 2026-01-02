@@ -444,14 +444,64 @@ async function processarImportacao(
         })
 
         // Processar questões
+        let questoesProcessadasAluno = 0
+        let questoesVazias = 0
+        let questoesComValor = 0
+        
+        // DIAGNÓSTICO: Verificar se as colunas existem no Excel (apenas para primeiro aluno)
+        if (i === 0) {
+          const colunasDisponiveis = Object.keys(linha)
+          const colunasQuestoes = colunasDisponiveis.filter(c => c.startsWith('Q') || c.match(/^Q\s*\d+$/i))
+          console.log(`[FASE 5] Diagnóstico - Primeiro aluno: ${colunasQuestoes.length} colunas de questões encontradas`)
+          if (colunasQuestoes.length < 10) {
+            console.error(`⚠️ ATENÇÃO: Apenas ${colunasQuestoes.length} colunas de questões encontradas! Esperado: 60`)
+            console.error(`  → Colunas encontradas: ${colunasQuestoes.slice(0, 10).join(', ')}...`)
+          }
+        }
+        
         for (const { inicio, fim, area, disciplina } of areas) {
           for (let num = inicio; num <= fim; num++) {
-            const colunaQuestao = `Q${num}`
-            const valorQuestao = linha[colunaQuestao]
+            // Tentar diferentes variações do nome da coluna
+            const variacoesColuna = [
+              `Q${num}`,           // Q1, Q2, etc.
+              `Q ${num}`,          // Q 1, Q 2, etc.
+              `q${num}`,           // q1, q2, etc.
+              `q ${num}`,          // q 1, q 2, etc.
+              `Questão ${num}`,    // Questão 1, etc.
+              `Questao ${num}`,    // Questao 1, etc.
+            ]
+            
+            let valorQuestao: any = undefined
+            let colunaQuestao = `Q${num}`
+            
+            // Tentar encontrar a coluna em qualquer uma das variações
+            for (const variacao of variacoesColuna) {
+              if (linha[variacao] !== undefined) {
+                valorQuestao = linha[variacao]
+                colunaQuestao = variacao
+                break
+              }
+            }
+            
+            // Se ainda não encontrou, tentar buscar case-insensitive
+            if (valorQuestao === undefined) {
+              const todasColunas = Object.keys(linha)
+              const colunaEncontrada = todasColunas.find(c => 
+                c.replace(/\s+/g, '').toUpperCase() === `Q${num}`.toUpperCase()
+              )
+              if (colunaEncontrada) {
+                valorQuestao = linha[colunaEncontrada]
+                colunaQuestao = colunaEncontrada
+              }
+            }
 
             if (valorQuestao === undefined || valorQuestao === null || valorQuestao === '') {
+              questoesVazias++
               continue
             }
+            
+            questoesProcessadasAluno++
+            questoesComValor++
 
             const acertou = valorQuestao === '1' || valorQuestao === 1 || valorQuestao === 'X' || valorQuestao === 'x'
             const nota = acertou ? 1 : 0
@@ -482,6 +532,20 @@ async function processarImportacao(
               presenca: presencaFinalQuestao,
             })
           }
+        }
+        
+        // Log diagnóstico apenas para os primeiros 5 alunos
+        if (i < 5) {
+          console.log(`  → Aluno ${i + 1} "${alunoNome}": ${questoesProcessadasAluno} questões processadas (${questoesComValor} com valor, ${questoesVazias} vazias)`)
+        }
+        
+        // Log de alerta se nenhuma questão foi processada
+        if (questoesProcessadasAluno === 0 && i === 0) {
+          console.error(`❌ ATENÇÃO: Primeiro aluno não teve nenhuma questão processada!`)
+          console.error(`  → Verificando colunas disponíveis no Excel...`)
+          const todasColunas = Object.keys(linha)
+          const colunasQ = todasColunas.filter(c => c.toUpperCase().startsWith('Q'))
+          console.error(`  → Colunas que começam com 'Q': ${colunasQ.slice(0, 20).join(', ')}${colunasQ.length > 20 ? '...' : ''}`)
         }
 
         resultado.resultados.processados++
@@ -531,6 +595,35 @@ async function processarImportacao(
     }
 
     console.log(`[FASE 5] Concluído: ${resultado.resultados.processados} linhas processadas`)
+    console.log(`  → Resultados para inserir: ${resultadosParaInserir.length} registros no array`)
+    
+    // DIAGNÓSTICO: Verificar amostra de aluno_id no array
+    if (resultadosParaInserir.length > 0) {
+      const amostraIds = [...new Set(resultadosParaInserir.slice(0, 10).map(r => r.aluno_id))].slice(0, 5)
+      console.log(`  → Amostra de aluno_id no array: ${amostraIds.join(', ')}`)
+      
+      // Verificar quantos têm IDs temporários
+      const comTempId = resultadosParaInserir.filter(r => r.aluno_id && r.aluno_id.startsWith('TEMP_')).length
+      console.log(`  → Resultados com ID temporário: ${comTempId} (serão convertidos na FASE 7)`)
+      
+      // Mostrar amostra de dados
+      const amostra = resultadosParaInserir[0]
+      console.log(`  → Amostra de dados:`, {
+        aluno_id: amostra.aluno_id,
+        questao_codigo: amostra.questao_codigo,
+        acertou: amostra.acertou,
+        ano_letivo: amostra.ano_letivo
+      })
+    } else {
+      console.error(`❌ ERRO CRÍTICO: Array resultadosParaInserir está VAZIO!`)
+      console.error(`  → Isso significa que NENHUMA questão foi processada`)
+      console.error(`  → Possíveis causas:`)
+      console.error(`    1. Colunas Q1-Q60 não existem no Excel`)
+      console.error(`    2. Todas as questões estão vazias/null`)
+      console.error(`    3. Nomes das colunas estão diferentes (ex: "Q 1" em vez de "Q1")`)
+      console.error(`  → SOLUÇÃO: Execute o script de diagnóstico:`)
+      console.error(`     node scripts/diagnosticar-excel.js "caminho-do-arquivo.xlsx"`)
+    }
 
     // ========== FASE 6: BATCH INSERT DE TURMAS ==========
     console.log('[FASE 6] Criando turmas em batch...')
@@ -641,8 +734,22 @@ async function processarImportacao(
         console.error(`⚠️ ${consolidadosSemAluno} consolidados sem aluno válido`)
       }
       if (resultadosSemAluno > 0) {
-        console.error(`⚠️ ${resultadosSemAluno} resultados sem aluno válido`)
+        console.error(`⚠️ ${resultadosSemAluno} resultados sem aluno válido após conversão de IDs`)
+        // DIAGNÓSTICO: Mostrar exemplos de IDs temporários que não foram convertidos
+        const exemplosNaoConvertidos = resultadosParaInserir
+          .filter(r => r.aluno_id && r.aluno_id.startsWith('TEMP_ALUNO_'))
+          .slice(0, 5)
+          .map(r => r.aluno_id)
+        if (exemplosNaoConvertidos.length > 0) {
+          console.error(`  → Exemplos de IDs temporários não convertidos: ${exemplosNaoConvertidos.join(', ')}`)
+          console.error(`  → Total de alunos criados no mapa: ${tempToRealAlunos.size}`)
+        }
       }
+      
+      // DIAGNÓSTICO: Verificar quantos resultados têm IDs reais após conversão
+      const resultadosComIdReal = resultadosParaInserir.filter(r => r.aluno_id && !r.aluno_id.startsWith('TEMP_')).length
+      const resultadosComIdTemporario = resultadosParaInserir.filter(r => r.aluno_id && r.aluno_id.startsWith('TEMP_')).length
+      console.log(`  → Após conversão: ${resultadosComIdReal} resultados com ID real, ${resultadosComIdTemporario} ainda com ID temporário`)
       
       console.log(`  → ${alunosCriadosComSucesso} alunos criados com sucesso`)
       console.log(`  → ${alunosNaoCriados} alunos falharam`)
@@ -725,7 +832,16 @@ async function processarImportacao(
 
     // ========== FASE 9: BATCH INSERT DE RESULTADOS DE PROVAS ==========
     console.log('[FASE 9] Criando resultados de provas em batch...')
+    console.log(`  → Total de resultados no array: ${resultadosParaInserir.length}`)
+    
     if (resultadosParaInserir.length > 0) {
+      // DIAGNÓSTICO: Verificar quantos têm IDs temporários
+      const comIdTemporario = resultadosParaInserir.filter(r => r.aluno_id && r.aluno_id.startsWith('TEMP_')).length
+      const semAlunoId = resultadosParaInserir.filter(r => !r.aluno_id).length
+      const comIdReal = resultadosParaInserir.filter(r => r.aluno_id && !r.aluno_id.startsWith('TEMP_')).length
+      
+      console.log(`  → Diagnóstico: ${comIdReal} com ID real, ${comIdTemporario} com ID temporário, ${semAlunoId} sem aluno_id`)
+      
       // Filtrar apenas resultados com IDs reais (não temporários)
       const resultadosValidos = resultadosParaInserir.filter(
         r => r.aluno_id && !r.aluno_id.startsWith('TEMP_')
@@ -733,7 +849,15 @@ async function processarImportacao(
       
       const resultadosInvalidos = resultadosParaInserir.length - resultadosValidos.length
       if (resultadosInvalidos > 0) {
-        console.error(`⚠️ ${resultadosInvalidos} resultados descartados (alunos não criados)`)
+        console.error(`⚠️ ${resultadosInvalidos} resultados descartados (alunos não criados ou IDs temporários não convertidos)`)
+        // Mostrar exemplos de IDs temporários para diagnóstico
+        const exemplosTemporarios = resultadosParaInserir
+          .filter(r => r.aluno_id && r.aluno_id.startsWith('TEMP_'))
+          .slice(0, 5)
+          .map(r => r.aluno_id)
+        if (exemplosTemporarios.length > 0) {
+          console.error(`  → Exemplos de IDs temporários: ${exemplosTemporarios.join(', ')}`)
+        }
       }
 
       const BATCH_SIZE = 500
@@ -759,7 +883,12 @@ async function processarImportacao(
              (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo, 
               resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca)
              VALUES ${valores}
-             ON CONFLICT (aluno_id, questao_codigo, ano_letivo) DO NOTHING
+             ON CONFLICT (aluno_id, questao_codigo, ano_letivo) 
+             DO UPDATE SET 
+               resposta_aluno = EXCLUDED.resposta_aluno,
+               acertou = EXCLUDED.acertou,
+               nota = EXCLUDED.nota,
+               atualizado_em = CURRENT_TIMESTAMP
              RETURNING id`,
             params
           )
@@ -778,19 +907,29 @@ async function processarImportacao(
           console.log(`  → Tentando inserir ${batch.length} resultados individualmente...`)
           for (const r of batch) {
             try {
-              await pool.query(
+              const individualResult = await pool.query(
                 `INSERT INTO resultados_provas 
                  (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo, 
                   resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-                 ON CONFLICT (aluno_id, questao_codigo, ano_letivo) DO NOTHING`,
+                 ON CONFLICT (aluno_id, questao_codigo, ano_letivo) 
+                 DO UPDATE SET 
+                   resposta_aluno = EXCLUDED.resposta_aluno,
+                   acertou = EXCLUDED.acertou,
+                   nota = EXCLUDED.nota,
+                   atualizado_em = CURRENT_TIMESTAMP
+                 RETURNING id`,
                 [
                   r.escola_id, r.aluno_id, r.aluno_codigo, r.aluno_nome, r.turma_id,
                   r.questao_id, r.questao_codigo, r.resposta_aluno, r.acertou, r.nota,
                   r.ano_letivo, r.serie, r.turma, r.disciplina, r.area_conhecimento, r.presenca,
                 ]
               )
-              resultado.resultados.novos++
+              if (individualResult.rows.length > 0) {
+                resultado.resultados.novos++
+              } else {
+                resultado.resultados.duplicados++
+              }
             } catch (err: any) {
               resultado.resultados.duplicados++
             }
@@ -803,6 +942,10 @@ async function processarImportacao(
       }
       console.log(`  → ${resultado.resultados.novos} novos, ${resultado.resultados.duplicados} duplicados`)
       console.log(`  → ${resultadosInvalidos} descartados (alunos não criados)`)
+    } else {
+      console.error(`❌ ATENÇÃO: Nenhum resultado para inserir! Array resultadosParaInserir está vazio.`)
+      console.error(`  → Isso pode indicar que as colunas Q1-Q60 não foram encontradas no Excel`)
+      console.error(`  → ou que todas as questões estavam vazias/null`)
     }
 
     // ========== VALIDAÇÃO FINAL ==========

@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         SELECT 
           COUNT(CASE WHEN presenca = 'P' OR presenca = 'p' THEN 1 END) as presentes,
           COUNT(CASE WHEN presenca = 'F' OR presenca = 'f' THEN 1 END) as faltantes
-        FROM resultados_consolidados
+        FROM resultados_consolidados_unificada
       `)
       totalAlunosPresentes = parseInt(presencaResult.rows[0]?.presentes || '0', 10) || 0
       totalAlunosFaltantes = parseInt(presencaResult.rows[0]?.faltantes || '0', 10) || 0
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
           ROUND(AVG(CASE WHEN (presenca = 'P' OR presenca = 'p') AND (media_aluno IS NOT NULL AND CAST(media_aluno AS DECIMAL) > 0) THEN CAST(media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
           COUNT(CASE WHEN (presenca = 'P' OR presenca = 'p') AND (media_aluno IS NOT NULL AND CAST(media_aluno AS DECIMAL) >= 6.0) THEN 1 END) as aprovados,
           COUNT(CASE WHEN (presenca = 'P' OR presenca = 'p') AND (media_aluno IS NOT NULL AND CAST(media_aluno AS DECIMAL) > 0) THEN 1 END) as total_presentes
-        FROM resultados_consolidados
+        FROM resultados_consolidados_unificada
       `)
       mediaGeral = parseFloat(mediaResult.rows[0]?.media_geral || '0') || 0
       const aprovados = parseInt(mediaResult.rows[0]?.aprovados || '0', 10) || 0

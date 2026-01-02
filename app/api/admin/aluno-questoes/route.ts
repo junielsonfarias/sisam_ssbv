@@ -3,11 +3,12 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola', 'polo'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
@@ -38,6 +39,39 @@ export async function GET(request: NextRequest) {
     const aluno = alunoResult.rows[0]
 
     // Buscar todas as questões do aluno
+    // Tentar múltiplas estratégias: aluno_id, código, nome (case-insensitive)
+    let whereConditions: string[] = []
+    const params: any[] = []
+    let paramIndex = 1
+
+    // Estratégia 1: Por aluno_id (mais confiável)
+    whereConditions.push(`(rp.aluno_id = $${paramIndex})`)
+    params.push(alunoId)
+    paramIndex++
+
+    // Estratégia 2: Por código do aluno (se disponível)
+    if (aluno.codigo) {
+      whereConditions.push(`(rp.aluno_codigo = $${paramIndex})`)
+      params.push(aluno.codigo)
+      paramIndex++
+    }
+
+    // Estratégia 3: Por nome do aluno (case-insensitive, trimmed)
+    if (aluno.nome) {
+      // Remover espaços extras e normalizar
+      const nomeNormalizado = aluno.nome.trim().replace(/\s+/g, ' ')
+      whereConditions.push(`(UPPER(TRIM(rp.aluno_nome)) = UPPER($${paramIndex}))`)
+      params.push(nomeNormalizado)
+      paramIndex++
+    }
+
+    // Se nenhuma condição foi criada, usar apenas o aluno_id
+    if (whereConditions.length === 0) {
+      whereConditions.push(`(rp.aluno_id = $${paramIndex})`)
+      params.push(alunoId)
+      paramIndex++
+    }
+
     let query = `
       SELECT 
         rp.questao_codigo,
@@ -49,20 +83,59 @@ export async function GET(request: NextRequest) {
         q.descricao as questao_descricao,
         q.gabarito
       FROM resultados_provas rp
-      LEFT JOIN questoes q ON rp.questao_id = q.id OR rp.questao_codigo = q.codigo
-      WHERE rp.aluno_id = $1
+      LEFT JOIN questoes q ON (rp.questao_id = q.id OR rp.questao_codigo = q.codigo)
+      WHERE (${whereConditions.join(' OR ')})
     `
 
-    const params: any[] = [alunoId]
-
     if (anoLetivo) {
-      query += ' AND rp.ano_letivo = $2'
+      query += ` AND rp.ano_letivo = $${paramIndex}`
       params.push(anoLetivo)
+      paramIndex++
     }
 
     query += ' ORDER BY rp.questao_codigo'
 
     const questoesResult = await pool.query(query, params)
+
+    console.log(`[API] Questões encontradas para aluno ${alunoId} (${aluno.nome}):`, questoesResult.rows.length)
+    console.log(`[API] Query: ${query.substring(0, 200)}...`)
+    console.log(`[API] Params:`, params)
+
+    // Se não encontrou questões, tentar diagnóstico mais detalhado
+    if (questoesResult.rows.length === 0) {
+      // Diagnóstico geral
+      const diagnostico = await pool.query(`
+        SELECT 
+          COUNT(*) as total_geral,
+          COUNT(DISTINCT aluno_id) FILTER (WHERE aluno_id IS NOT NULL) as registros_com_aluno_id,
+          COUNT(DISTINCT aluno_codigo) FILTER (WHERE aluno_codigo IS NOT NULL) as registros_com_codigo,
+          COUNT(DISTINCT aluno_nome) FILTER (WHERE aluno_nome IS NOT NULL) as registros_com_nome
+        FROM resultados_provas
+        WHERE ($1::varchar IS NULL OR ano_letivo = $1)
+      `, [anoLetivo])
+      
+      console.log('[API] Diagnóstico geral:', diagnostico.rows[0])
+      console.log(`[API] Buscando por: aluno_id=${alunoId}, codigo=${aluno.codigo}, nome=${aluno.nome}`)
+      
+      // Tentar buscar especificamente por cada critério
+      if (aluno.codigo) {
+        const porCodigo = await pool.query(`
+          SELECT COUNT(*) as total
+          FROM resultados_provas
+          WHERE aluno_codigo = $1 AND ($2::varchar IS NULL OR ano_letivo = $2)
+        `, [aluno.codigo, anoLetivo])
+        console.log(`[API] Questões encontradas por código (${aluno.codigo}):`, porCodigo.rows[0].total)
+      }
+      
+      if (aluno.nome) {
+        const porNome = await pool.query(`
+          SELECT COUNT(*) as total
+          FROM resultados_provas
+          WHERE UPPER(TRIM(aluno_nome)) = UPPER($1) AND ($2::varchar IS NULL OR ano_letivo = $2)
+        `, [aluno.nome.trim(), anoLetivo])
+        console.log(`[API] Questões encontradas por nome (${aluno.nome}):`, porNome.rows[0].total)
+      }
+    }
 
     // Organizar questões por área
     const questoesPorArea: Record<string, any[]> = {
