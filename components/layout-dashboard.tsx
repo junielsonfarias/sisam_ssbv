@@ -73,7 +73,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
     menuItems.push(
       { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
-      { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' }
+      { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
+      { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' }
     )
   }
 
