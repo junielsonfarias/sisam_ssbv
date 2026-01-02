@@ -392,6 +392,25 @@ export default function ResultadosPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Turma
+                </label>
+                <select
+                  value={filtros.turma_id || ''}
+                  onChange={(e) => handleFiltroChange('turma_id', e.target.value)}
+                  disabled={!filtros.escola_id || !filtros.serie || turmas.length === 0}
+                  className="select-custom w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Todas</option>
+                  {turmas.map((turma) => (
+                    <option key={turma.id} value={turma.id}>
+                      {turma.codigo || turma.nome || `Turma ${turma.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Ano Letivo
                 </label>
                 <input
