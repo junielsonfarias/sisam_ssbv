@@ -28,6 +28,7 @@ interface ResultadoConsolidado {
 interface Filtros {
   polo_id?: string
   escola_id?: string
+  turma_id?: string
   ano_letivo?: string
   serie?: string
   presenca?: string
@@ -41,6 +42,7 @@ export default function ResultadosPage() {
   const [filtros, setFiltros] = useState<Filtros>({})
   const [polos, setPolos] = useState<any[]>([])
   const [escolas, setEscolas] = useState<any[]>([])
+  const [turmas, setTurmas] = useState<any[]>([])
   const [series, setSeries] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string } | null>(null)
@@ -73,10 +75,14 @@ export default function ResultadosPage() {
       // Se já temos as escolas carregadas, não precisamos fazer nova requisição
       // Se não tiver escolas do polo, limpar escola selecionada
       if (escolasDoPolo.length === 0 && filtros.escola_id) {
-        setFiltros((prev) => ({ ...prev, escola_id: undefined }))
+        setFiltros((prev) => ({ ...prev, escola_id: undefined, turma_id: undefined }))
       }
     }
   }, [filtros.polo_id, escolas])
+
+  useEffect(() => {
+    carregarTurmas()
+  }, [filtros.escola_id, filtros.serie, filtros.ano_letivo])
 
   const carregarDadosIniciais = async () => {
     try {
@@ -92,6 +98,36 @@ export default function ResultadosPage() {
       setEscolas(escolasData)
     } catch (error) {
       console.error('Erro ao carregar dados iniciais:', error)
+    }
+  }
+
+  const carregarTurmas = async () => {
+    // Só carrega turmas se houver escola e série selecionadas
+    if (!filtros.escola_id || !filtros.serie) {
+      setTurmas([])
+      return
+    }
+
+    try {
+      const params = new URLSearchParams()
+      params.append('serie', filtros.serie)
+      params.append('escolas_ids', filtros.escola_id)
+      
+      if (filtros.ano_letivo) {
+        params.append('ano_letivo', filtros.ano_letivo)
+      }
+
+      const response = await fetch(`/api/admin/turmas?${params.toString()}`)
+      const data = await response.json()
+
+      if (response.ok && Array.isArray(data)) {
+        setTurmas(data)
+      } else {
+        setTurmas([])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar turmas:', error)
+      setTurmas([])
     }
   }
 
@@ -141,9 +177,20 @@ export default function ResultadosPage() {
         delete novo[campo]
       }
       
-      // Se mudou o polo, limpar escola selecionada
+      // Se mudou o polo, limpar escola e turma selecionadas
       if (campo === 'polo_id' && !valor) {
         delete novo.escola_id
+        delete novo.turma_id
+      }
+      
+      // Se mudou a escola, limpar turma selecionada
+      if (campo === 'escola_id' && !valor) {
+        delete novo.turma_id
+      }
+      
+      // Se mudou a série, limpar turma selecionada
+      if (campo === 'serie' && !valor) {
+        delete novo.turma_id
       }
       
       return novo
@@ -304,7 +351,7 @@ export default function ResultadosPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 sm:gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Polo
