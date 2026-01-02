@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
         t.nome as turma_nome,
         t.serie as turma_serie,
         t.ano_letivo as turma_ano_letivo,
-        rc.id as resultado_id,
         rc.presenca as resultado_presenca,
         rc.total_acertos_lp,
         rc.total_acertos_ch,
@@ -86,7 +85,8 @@ export async function GET(request: NextRequest) {
       params.push(alunoId)
       paramIndex++
     } else if (alunoNome) {
-      query += ` AND UPPER(TRIM(a.nome)) = UPPER(TRIM($${paramIndex}))`
+      // Busca exata por nome, normalizando espaços
+      query += ` AND TRIM(a.nome) ILIKE TRIM($${paramIndex})`
       params.push(alunoNome)
       paramIndex++
     } else if (alunoCodigo) {
@@ -118,10 +118,14 @@ export async function GET(request: NextRequest) {
     const historico = Array.from(alunosAgrupados.values())
 
     return NextResponse.json(historico)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar histórico do aluno:', error)
+    console.error('Stack trace:', error?.stack)
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
+      { 
+        mensagem: 'Erro interno do servidor',
+        erro: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     )
   }
