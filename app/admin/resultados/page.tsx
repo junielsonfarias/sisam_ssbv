@@ -23,6 +23,37 @@ interface ResultadoConsolidado {
   nota_mat: number | string | null
   nota_cn: number | string | null
   media_aluno: number | string | null
+  // Novos campos para produção textual e nível de aprendizagem
+  nota_producao?: number | string | null
+  nivel_aprendizagem?: string | null
+  nivel_aprendizagem_id?: string | null
+  tipo_avaliacao?: string | null
+  item_producao_1?: number | string | null
+  item_producao_2?: number | string | null
+  item_producao_3?: number | string | null
+  item_producao_4?: number | string | null
+  item_producao_5?: number | string | null
+  item_producao_6?: number | string | null
+  item_producao_7?: number | string | null
+  item_producao_8?: number | string | null
+}
+
+// Função para verificar se a série é dos anos iniciais (2º, 3º ou 5º ano)
+const isAnosIniciais = (serie: string | undefined | null): boolean => {
+  if (!serie) return false
+  const numero = serie.match(/(\d+)/)?.[1]
+  return numero === '2' || numero === '3' || numero === '5'
+}
+
+// Função para obter a cor do nível de aprendizagem
+const getNivelColor = (nivel: string | undefined | null): string => {
+  if (!nivel) return 'bg-gray-100 text-gray-700'
+  const nivelLower = nivel.toLowerCase()
+  if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 text-green-800 border-green-300'
+  if (nivelLower.includes('adequado')) return 'bg-blue-100 text-blue-800 border-blue-300'
+  if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 text-yellow-800 border-yellow-300'
+  if (nivelLower.includes('insuficiente')) return 'bg-red-100 text-red-800 border-red-300'
+  return 'bg-gray-100 text-gray-700'
 }
 
 interface Filtros {
@@ -264,6 +295,18 @@ export default function ResultadosPage() {
     return 'bg-red-50 border-red-200'
   }
 
+  // Detectar se está filtrando anos iniciais (2º, 3º ou 5º ano)
+  const filtrandoAnosIniciais = useMemo(() => {
+    if (filtros.serie) {
+      return isAnosIniciais(filtros.serie)
+    }
+    // Se não tem filtro de série, verificar se todos os resultados são de anos iniciais
+    if (resultadosFiltrados.length > 0) {
+      return resultadosFiltrados.every(r => isAnosIniciais(r.serie))
+    }
+    return false
+  }, [filtros.serie, resultadosFiltrados])
+
   // Calcular estatísticas - EXCLUIR alunos faltantes
   const estatisticas = useMemo(() => {
     if (resultadosFiltrados.length === 0) {
@@ -276,6 +319,12 @@ export default function ResultadosPage() {
         mediaCH: 0,
         mediaMAT: 0,
         mediaCN: 0,
+        mediaProducao: 0,
+        // Distribuição por nível de aprendizagem
+        qtdInsuficiente: 0,
+        qtdBasico: 0,
+        qtdAdequado: 0,
+        qtdAvancado: 0,
       }
     }
 
@@ -307,6 +356,17 @@ export default function ResultadosPage() {
       .map((r) => getNotaNumero(r.nota_cn))
       .filter((m): m is number => m !== null && m !== 0)
 
+    // Médias de produção textual (apenas para anos iniciais)
+    const mediasProducao = alunosPresentes
+      .map((r) => getNotaNumero(r.nota_producao))
+      .filter((m): m is number => m !== null && m !== 0)
+
+    // Contagem por nível de aprendizagem
+    const qtdInsuficiente = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('insuficiente')).length
+    const qtdBasico = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('básico') || r.nivel_aprendizagem?.toLowerCase().includes('basico')).length
+    const qtdAdequado = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('adequado')).length
+    const qtdAvancado = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('avançado') || r.nivel_aprendizagem?.toLowerCase().includes('avancado')).length
+
     const presentes = alunosPresentes.length
     const faltas = resultadosFiltrados.length - presentes
 
@@ -319,6 +379,11 @@ export default function ResultadosPage() {
       mediaCH: mediasCH.length > 0 ? mediasCH.reduce((a, b) => a + b, 0) / mediasCH.length : 0,
       mediaMAT: mediasMAT.length > 0 ? mediasMAT.reduce((a, b) => a + b, 0) / mediasMAT.length : 0,
       mediaCN: mediasCN.length > 0 ? mediasCN.reduce((a, b) => a + b, 0) / mediasCN.length : 0,
+      mediaProducao: mediasProducao.length > 0 ? mediasProducao.reduce((a, b) => a + b, 0) / mediasProducao.length : 0,
+      qtdInsuficiente,
+      qtdBasico,
+      qtdAdequado,
+      qtdAvancado,
     }
   }, [resultadosFiltrados])
 

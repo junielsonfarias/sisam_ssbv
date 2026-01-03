@@ -26,14 +26,41 @@ export async function GET(request: NextRequest) {
 
     // Otimizar query: usar JOIN ao invés de subconsultas
     let query = `
-      SELECT 
-        rc.*,
+      SELECT
+        rc.id,
         rc.aluno_id,
+        rc.escola_id,
+        rc.turma_id,
+        rc.ano_letivo,
+        rc.serie,
+        rc.presenca,
+        rc.total_acertos_lp,
+        rc.total_acertos_ch,
+        rc.total_acertos_mat,
+        rc.total_acertos_cn,
+        rc.nota_lp,
+        rc.nota_ch,
+        rc.nota_mat,
+        rc.nota_cn,
+        rc.media_aluno,
+        rc.nota_producao,
+        rc.nivel_aprendizagem,
+        rc.nivel_aprendizagem_id,
+        rc.tipo_avaliacao,
+        rc.total_questoes_esperadas,
+        rc.item_producao_1,
+        rc.item_producao_2,
+        rc.item_producao_3,
+        rc.item_producao_4,
+        rc.item_producao_5,
+        rc.item_producao_6,
+        rc.item_producao_7,
+        rc.item_producao_8,
         a.nome as aluno_nome,
         e.nome as escola_nome,
         e.polo_id,
         t.codigo as turma_codigo
-      FROM resultados_consolidados_unificada rc
+      FROM resultados_consolidados rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id

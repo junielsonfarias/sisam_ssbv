@@ -1,9 +1,31 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { getPersonalizacaoRodape } from '@/lib/personalizacao'
 
 export default function Rodape() {
-  const rodape = getPersonalizacaoRodape()
+  const [rodape, setRodape] = useState(getPersonalizacaoRodape())
+
+  useEffect(() => {
+    const carregarPersonalizacao = async () => {
+      try {
+        const response = await fetch('/api/admin/personalizacao')
+        const data = await response.json()
+        if (data) {
+          setRodape({
+            texto: data.rodape_texto || '© 2026 SISAM - Todos os direitos reservados',
+            link: data.rodape_link || null,
+            link_texto: data.rodape_link_texto || null,
+            ativo: data.rodape_ativo !== undefined ? data.rodape_ativo : true,
+          })
+        }
+      } catch (error) {
+        console.error('Erro ao carregar personalização:', error)
+        // Manter valores padrão em caso de erro
+      }
+    }
+    carregarPersonalizacao()
+  }, [])
 
   if (!rodape.ativo) {
     return null

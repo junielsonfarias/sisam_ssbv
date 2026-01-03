@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogIn, Eye, EyeOff } from 'lucide-react'
 import Rodape from '@/components/rodape'
@@ -13,7 +13,29 @@ export default function LoginPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const personalizacao = getPersonalizacaoLogin()
+  const [personalizacao, setPersonalizacao] = useState(getPersonalizacaoLogin())
+
+  useEffect(() => {
+    const carregarPersonalizacao = async () => {
+      try {
+        const response = await fetch('/api/admin/personalizacao')
+        const data = await response.json()
+        if (data) {
+          setPersonalizacao({
+            titulo: data.login_titulo || 'SISAM',
+            subtitulo: data.login_subtitulo || 'Sistema de Análise de Provas',
+            imagem_url: data.login_imagem_url || null,
+            cor_primaria: data.login_cor_primaria || '#4f46e5',
+            cor_secundaria: data.login_cor_secundaria || '#818cf8',
+          })
+        }
+      } catch (error) {
+        console.error('Erro ao carregar personalização:', error)
+        // Manter valores padrão em caso de erro
+      }
+    }
+    carregarPersonalizacao()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

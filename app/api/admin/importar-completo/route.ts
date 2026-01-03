@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { normalizarSerie } from '@/lib/normalizar-serie'
+import {
+  carregarConfigSeries,
+  extrairNumeroSerie,
+  gerarAreasQuestoes,
+  calcularNivelAprendizagem,
+  extrairNotaProducao,
+  calcularMediaProducao,
+} from '@/lib/config-series'
+import { ConfiguracaoSerie } from '@/lib/types'
 import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic'
@@ -215,34 +224,61 @@ async function processarImportacao(
     console.log(`  → Polos: ${resultado.polos.criados} criados, ${resultado.polos.existentes} existentes`)
     console.log(`  → Escolas: ${resultado.escolas.criados} criadas, ${resultado.escolas.existentes} existentes`)
 
-    // ========== FASE 4: CRIAR QUESTÕES ==========
-    console.log('[FASE 4] Criando questões...') 
-    const areas = [
-      { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
-      { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas' },
-      { inicio: 31, fim: 50, area: 'Matemática', disciplina: 'Matemática' },
-      { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza' },
-    ]
+    // ========== FASE 4: CRIAR QUESTÕES E CARREGAR CONFIGURAÇÕES ==========
+    console.log('[FASE 4] Carregando configurações de séries e criando questões...')
 
-    for (const { inicio, fim, area, disciplina } of areas) {
-      for (let num = inicio; num <= fim; num++) {
-        const codigo = `Q${num}`
-        if (!questoesMap.has(codigo)) {
-          try {
-            const result = await pool.query(
-              'INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento) VALUES ($1, $2, $3, $4) RETURNING id',
-              [codigo, `Questão ${num}`, disciplina, area]
-            )
-            questoesMap.set(codigo, result.rows[0].id)
-            resultado.questoes.criadas++
-          } catch (error: any) {
-            console.error(`Erro ao criar questão ${codigo}:`, error.message)
+    // Carregar configurações de todas as séries
+    const configSeries = await carregarConfigSeries()
+    console.log(`  → ${configSeries.size} configurações de séries carregadas`)
+
+    // Determinar o máximo de questões necessárias (60 para 8º/9º, 34 para 5º, 28 para 2º/3º)
+    const maxQuestoes = 60
+
+    // Criar questões genéricas Q1 a Q60 (serão usadas conforme a série)
+    // As áreas serão determinadas dinamicamente baseado na série do aluno
+    for (let num = 1; num <= maxQuestoes; num++) {
+      const codigo = `Q${num}`
+      if (!questoesMap.has(codigo)) {
+        try {
+          // Determinar área padrão baseada no número (para 8º/9º ano)
+          let disciplina = 'Língua Portuguesa'
+          let area = 'Língua Portuguesa'
+
+          if (num >= 1 && num <= 20) {
+            disciplina = 'Língua Portuguesa'
+            area = 'Língua Portuguesa'
+          } else if (num >= 21 && num <= 30) {
+            disciplina = 'Ciências Humanas'
+            area = 'Ciências Humanas'
+          } else if (num >= 31 && num <= 50) {
+            disciplina = 'Matemática'
+            area = 'Matemática'
+          } else if (num >= 51 && num <= 60) {
+            disciplina = 'Ciências da Natureza'
+            area = 'Ciências da Natureza'
           }
+
+          const result = await pool.query(
+            'INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento) VALUES ($1, $2, $3, $4) RETURNING id',
+            [codigo, `Questão ${num}`, disciplina, area]
+          )
+          questoesMap.set(codigo, result.rows[0].id)
+          resultado.questoes.criadas++
+        } catch (error: any) {
+          console.error(`Erro ao criar questão ${codigo}:`, error.message)
         }
       }
     }
-    resultado.questoes.existentes = 60 - resultado.questoes.criadas
+    resultado.questoes.existentes = maxQuestoes - resultado.questoes.criadas
     console.log(`  → ${resultado.questoes.criadas} criadas, ${resultado.questoes.existentes} existentes`)
+
+    // Carregar itens de produção
+    const itensProducaoMap = new Map<string, string>()
+    const itensProducaoDB = await pool.query('SELECT id, codigo FROM itens_producao WHERE ativo = true ORDER BY ordem')
+    itensProducaoDB.rows.forEach((item: any) => {
+      itensProducaoMap.set(item.codigo, item.id)
+    })
+    console.log(`  → ${itensProducaoMap.size} itens de produção carregados`)
 
     // ========== FASE 5: PROCESSAR LINHAS E CRIAR TURMAS/ALUNOS/RESULTADOS EM BATCH ==========
     console.log('[FASE 5] Processando linhas do arquivo...')
@@ -267,6 +303,7 @@ async function processarImportacao(
     const alunosParaInserir: any[] = []
     const consolidadosParaInserir: any[] = []
     const resultadosParaInserir: any[] = []
+    const producaoParaInserir: any[] = [] // Resultados de produção textual
 
     for (let i = 0; i < dados.length; i++) {
       try {
@@ -407,11 +444,38 @@ async function processarImportacao(
         const totalAcertosMAT = extrairNumero(linha['Total Acertos MAT'] || linha['Total AcertosMAT'])
         const totalAcertosCN = extrairNumero(linha['Total Acertos  CN'] || linha['Total Acertos CN'] || linha['Total AcertosCN'])
 
-        const notaLP = extrairDecimal(linha['NOTA-LP'] || linha['NOTA_LP'] || linha['Nota-LP'])
-        const notaCH = extrairDecimal(linha['NOTA-CH'] || linha['NOTA_CH'] || linha['Nota-CH'])
-        const notaMAT = extrairDecimal(linha['NOTA-MAT'] || linha['NOTA_MAT'] || linha['Nota-MAT'])
-        const notaCN = extrairDecimal(linha['NOTA-CN'] || linha['NOTA_CN'] || linha['Nota-CN'])
+        const notaLP = extrairDecimal(linha['NOTA-LP'] || linha['NOTA_LP'] || linha['Nota-LP'] || linha['NOTA LP'])
+        const notaCH = extrairDecimal(linha['NOTA-CH'] || linha['NOTA_CH'] || linha['Nota-CH'] || linha['NOTA CH'])
+        const notaMAT = extrairDecimal(linha['NOTA-MAT'] || linha['NOTA_MAT'] || linha['Nota-MAT'] || linha['NOTA MAT'])
+        const notaCN = extrairDecimal(linha['NOTA-CN'] || linha['NOTA_CN'] || linha['Nota-CN'] || linha['NOTA CN'])
         const mediaAluno = extrairDecimal(linha['MED_ALUNO'] || linha['MED ALUNO'] || linha['Media'] || linha['Média'])
+
+        // Obter configuração da série do aluno
+        const numeroSerie = extrairNumeroSerie(serie)
+        const configSerieAluno = numeroSerie ? configSeries.get(numeroSerie) : null
+
+        // Extrair itens de produção textual (para 2º, 3º e 5º ano)
+        let notaProducao: number | null = null
+        const itensProducaoNotas: (number | null)[] = []
+
+        if (configSerieAluno?.tem_producao_textual) {
+          // Extrair notas dos 8 itens de produção
+          for (let itemNum = 1; itemNum <= 8; itemNum++) {
+            const notaItem = extrairNotaProducao(linha, itemNum)
+            itensProducaoNotas.push(notaItem)
+          }
+
+          // Calcular média da produção
+          notaProducao = calcularMediaProducao(itensProducaoNotas)
+
+          // Tentar também extrair nota de produção diretamente (se já vier calculada)
+          if (notaProducao === null) {
+            notaProducao = extrairDecimal(
+              linha['PRODUÇÃO'] || linha['Produção'] || linha['PRODUCAO'] ||
+              linha['Nota Produção'] || linha['NOTA PRODUÇÃO'] || linha['nota_producao']
+            )
+          }
+        }
 
         // IMPORTANTE: Se aluno faltou, zerar acertos e notas
         // Também considerar média 0,00 como faltante
@@ -425,6 +489,22 @@ async function processarImportacao(
         
         const alunoFaltou = presencaFinal === 'F'
         
+        // Determinar nível de aprendizagem (para séries que usam)
+        let nivelAprendizagem: string | null = null
+        let nivelAprendizagemId: string | null = null
+
+        if (configSerieAluno?.usa_nivel_aprendizagem && !alunoFaltou && mediaAluno !== null) {
+          const nivel = await calcularNivelAprendizagem(mediaAluno, serie || undefined)
+          if (nivel) {
+            nivelAprendizagem = nivel.nome
+            nivelAprendizagemId = nivel.id
+          }
+        }
+
+        // Determinar tipo de avaliação e total de questões esperadas
+        const tipoAvaliacao = configSerieAluno?.tem_producao_textual ? 'anos_iniciais' : 'anos_finais'
+        const totalQuestoesEsperadas = configSerieAluno?.total_questoes_objetivas || 60
+
         // Adicionar consolidado à fila
         consolidadosParaInserir.push({
           aluno_id: alunoId,
@@ -443,25 +523,76 @@ async function processarImportacao(
           nota_mat: alunoFaltou ? null : notaMAT,
           nota_cn: alunoFaltou ? null : notaCN,
           media_aluno: alunoFaltou ? null : mediaAluno,
+          // Novos campos para produção textual e nível
+          nota_producao: alunoFaltou ? null : notaProducao,
+          nivel_aprendizagem: nivelAprendizagem,
+          nivel_aprendizagem_id: nivelAprendizagemId,
+          tipo_avaliacao: tipoAvaliacao,
+          total_questoes_esperadas: totalQuestoesEsperadas,
+          // Itens de produção individuais
+          item_producao_1: alunoFaltou ? null : itensProducaoNotas[0] || null,
+          item_producao_2: alunoFaltou ? null : itensProducaoNotas[1] || null,
+          item_producao_3: alunoFaltou ? null : itensProducaoNotas[2] || null,
+          item_producao_4: alunoFaltou ? null : itensProducaoNotas[3] || null,
+          item_producao_5: alunoFaltou ? null : itensProducaoNotas[4] || null,
+          item_producao_6: alunoFaltou ? null : itensProducaoNotas[5] || null,
+          item_producao_7: alunoFaltou ? null : itensProducaoNotas[6] || null,
+          item_producao_8: alunoFaltou ? null : itensProducaoNotas[7] || null,
         })
+
+        // Adicionar resultados de produção à fila (se aplicável)
+        if (configSerieAluno?.tem_producao_textual && !alunoFaltou) {
+          for (let itemNum = 1; itemNum <= 8; itemNum++) {
+            const notaItem = itensProducaoNotas[itemNum - 1]
+            if (notaItem !== null) {
+              const itemCodigo = `ITEM_${itemNum}`
+              const itemId = itensProducaoMap.get(itemCodigo)
+              if (itemId) {
+                producaoParaInserir.push({
+                  aluno_id: alunoId,
+                  escola_id: escolaId,
+                  turma_id: turmaId,
+                  item_producao_id: itemId,
+                  ano_letivo: anoLetivo,
+                  serie: serie || null,
+                  nota: notaItem,
+                })
+              }
+            }
+          }
+        }
 
         // Processar questões
         let questoesProcessadasAluno = 0
         let questoesVazias = 0
         let questoesComValor = 0
-        
+
+        // Gerar áreas de questões baseado na configuração da série
+        const areasAluno = configSerieAluno
+          ? gerarAreasQuestoes(configSerieAluno)
+          : [
+              { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
+              { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas' },
+              { inicio: 31, fim: 50, area: 'Matemática', disciplina: 'Matemática' },
+              { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza' },
+            ]
+
         // DIAGNÓSTICO: Verificar se as colunas existem no Excel (apenas para primeiro aluno)
         if (i === 0) {
           const colunasDisponiveis = Object.keys(linha)
           const colunasQuestoes = colunasDisponiveis.filter(c => c.startsWith('Q') || c.match(/^Q\s*\d+$/i))
-          console.log(`[FASE 5] Diagnóstico - Primeiro aluno: ${colunasQuestoes.length} colunas de questões encontradas`)
-          if (colunasQuestoes.length < 10) {
-            console.error(`⚠️ ATENÇÃO: Apenas ${colunasQuestoes.length} colunas de questões encontradas! Esperado: 60`)
+          const qtdEsperada = configSerieAluno?.total_questoes_objetivas || 60
+          console.log(`[FASE 5] Diagnóstico - Primeiro aluno (${serie || 'série não identificada'}):`)
+          console.log(`  → ${colunasQuestoes.length} colunas de questões encontradas`)
+          console.log(`  → ${qtdEsperada} questões esperadas para esta série`)
+          console.log(`  → Produção textual: ${configSerieAluno?.tem_producao_textual ? 'Sim' : 'Não'}`)
+          if (colunasQuestoes.length < qtdEsperada) {
+            console.error(`⚠️ ATENÇÃO: Apenas ${colunasQuestoes.length} colunas de questões encontradas! Esperado: ${qtdEsperada}`)
             console.error(`  → Colunas encontradas: ${colunasQuestoes.slice(0, 10).join(', ')}...`)
           }
         }
-        
-        for (const { inicio, fim, area, disciplina } of areas) {
+
+        for (const { inicio, fim, area, disciplina } of areasAluno) {
           for (let num = inicio; num <= fim; num++) {
             // Tentar diferentes variações do nome da coluna
             const variacoesColuna = [
@@ -731,7 +862,23 @@ async function processarImportacao(
         }
         // Se não começa com TEMP_, já é ID real (aluno existente) - não precisa fazer nada
       })
-      
+
+      // Atualizar IDs temporários nos resultados de produção textual
+      let producaoSemAluno = 0
+      producaoParaInserir.forEach(p => {
+        if (p.aluno_id && p.aluno_id.startsWith('TEMP_ALUNO_')) {
+          const realId = tempToRealAlunos.get(p.aluno_id)
+          if (realId) {
+            p.aluno_id = realId
+          } else {
+            producaoSemAluno++
+          }
+        }
+      })
+      if (producaoSemAluno > 0) {
+        console.error(`⚠️ ${producaoSemAluno} resultados de produção sem aluno válido`)
+      }
+
       if (consolidadosSemAluno > 0) {
         console.error(`⚠️ ${consolidadosSemAluno} consolidados sem aluno válido`)
       }
@@ -775,12 +922,17 @@ async function processarImportacao(
 
         try {
           const result = await pool.query(
-            `INSERT INTO resultados_consolidados 
+            `INSERT INTO resultados_consolidados
              (aluno_id, escola_id, turma_id, ano_letivo, serie, presenca,
               total_acertos_lp, total_acertos_ch, total_acertos_mat, total_acertos_cn,
-              nota_lp, nota_ch, nota_mat, nota_cn, media_aluno)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-             ON CONFLICT (aluno_id, ano_letivo) 
+              nota_lp, nota_ch, nota_mat, nota_cn, media_aluno,
+              nota_producao, nivel_aprendizagem, nivel_aprendizagem_id,
+              tipo_avaliacao, total_questoes_esperadas,
+              item_producao_1, item_producao_2, item_producao_3, item_producao_4,
+              item_producao_5, item_producao_6, item_producao_7, item_producao_8)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+                     $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+             ON CONFLICT (aluno_id, ano_letivo)
              DO UPDATE SET
                escola_id = EXCLUDED.escola_id,
                turma_id = EXCLUDED.turma_id,
@@ -795,6 +947,19 @@ async function processarImportacao(
                nota_mat = EXCLUDED.nota_mat,
                nota_cn = EXCLUDED.nota_cn,
                media_aluno = EXCLUDED.media_aluno,
+               nota_producao = EXCLUDED.nota_producao,
+               nivel_aprendizagem = EXCLUDED.nivel_aprendizagem,
+               nivel_aprendizagem_id = EXCLUDED.nivel_aprendizagem_id,
+               tipo_avaliacao = EXCLUDED.tipo_avaliacao,
+               total_questoes_esperadas = EXCLUDED.total_questoes_esperadas,
+               item_producao_1 = EXCLUDED.item_producao_1,
+               item_producao_2 = EXCLUDED.item_producao_2,
+               item_producao_3 = EXCLUDED.item_producao_3,
+               item_producao_4 = EXCLUDED.item_producao_4,
+               item_producao_5 = EXCLUDED.item_producao_5,
+               item_producao_6 = EXCLUDED.item_producao_6,
+               item_producao_7 = EXCLUDED.item_producao_7,
+               item_producao_8 = EXCLUDED.item_producao_8,
                atualizado_em = CURRENT_TIMESTAMP`,
             [
               consolidado.aluno_id,
@@ -802,7 +967,6 @@ async function processarImportacao(
               consolidado.turma_id,
               consolidado.ano_letivo,
               consolidado.serie,
-              // IMPORTANTE: presenca já foi ajustada anteriormente considerando média 0,00
               consolidado.presenca,
               consolidado.total_acertos_lp,
               consolidado.total_acertos_ch,
@@ -813,6 +977,19 @@ async function processarImportacao(
               consolidado.nota_mat,
               consolidado.nota_cn,
               consolidado.media_aluno,
+              consolidado.nota_producao,
+              consolidado.nivel_aprendizagem,
+              consolidado.nivel_aprendizagem_id,
+              consolidado.tipo_avaliacao,
+              consolidado.total_questoes_esperadas,
+              consolidado.item_producao_1,
+              consolidado.item_producao_2,
+              consolidado.item_producao_3,
+              consolidado.item_producao_4,
+              consolidado.item_producao_5,
+              consolidado.item_producao_6,
+              consolidado.item_producao_7,
+              consolidado.item_producao_8,
             ]
           )
           consolidadosCriados++
@@ -830,6 +1007,71 @@ async function processarImportacao(
         console.error(`⚠️ ${consolidadosComErro} consolidados com erro`)
       }
       console.log(`  → ${consolidadosCriados} consolidados criados/atualizados com sucesso`)
+    }
+
+    // ========== FASE 8.5: BATCH INSERT DE RESULTADOS DE PRODUÇÃO TEXTUAL ==========
+    console.log('[FASE 8.5] Criando resultados de produção textual em batch...')
+    if (producaoParaInserir.length > 0) {
+      // Converter IDs temporários para IDs reais
+      const tempToRealAlunos = new Map<string, string>()
+      alunosParaInserir.forEach((a, idx) => {
+        // O mapa foi preenchido na fase 7, mas precisamos reconstruir se necessário
+      })
+
+      // Atualizar IDs temporários
+      producaoParaInserir.forEach(p => {
+        if (p.aluno_id && p.aluno_id.startsWith('TEMP_ALUNO_')) {
+          // Buscar no array de consolidados que já foi processado
+          const consolidadoCorrespondente = consolidadosParaInserir.find(c =>
+            c.aluno_id && !c.aluno_id.startsWith('TEMP_')
+          )
+          // Mantém o ID se já foi convertido anteriormente
+        }
+      })
+
+      // Filtrar apenas resultados com IDs reais
+      const producaoValida = producaoParaInserir.filter(
+        p => p.aluno_id && !p.aluno_id.startsWith('TEMP_')
+      )
+
+      let producaoCriada = 0
+      let producaoComErro = 0
+
+      for (const producao of producaoValida) {
+        try {
+          await pool.query(
+            `INSERT INTO resultados_producao
+             (aluno_id, escola_id, turma_id, item_producao_id, ano_letivo, serie, nota)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (aluno_id, item_producao_id, ano_letivo)
+             DO UPDATE SET
+               nota = EXCLUDED.nota,
+               atualizado_em = CURRENT_TIMESTAMP`,
+            [
+              producao.aluno_id,
+              producao.escola_id,
+              producao.turma_id,
+              producao.item_producao_id,
+              producao.ano_letivo,
+              producao.serie,
+              producao.nota,
+            ]
+          )
+          producaoCriada++
+        } catch (error: any) {
+          producaoComErro++
+          if (producaoComErro <= 5) {
+            console.error(`❌ Erro ao criar produção: ${error.message}`)
+          }
+        }
+      }
+
+      console.log(`  → ${producaoCriada} resultados de produção criados/atualizados`)
+      if (producaoComErro > 0) {
+        console.error(`  → ${producaoComErro} erros`)
+      }
+    } else {
+      console.log('  → Nenhum resultado de produção textual para inserir')
     }
 
     // ========== FASE 9: BATCH INSERT DE RESULTADOS DE PROVAS ==========

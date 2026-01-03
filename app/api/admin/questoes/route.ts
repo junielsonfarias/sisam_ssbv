@@ -15,17 +15,12 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT q.*, 
-       COALESCE(
-         json_agg(
-           json_build_object('serie', g.serie, 'gabarito', g.gabarito)
-         ) FILTER (WHERE g.id IS NOT NULL),
-         '[]'::json
-       ) as gabaritos_por_serie
-       FROM questoes q
-       LEFT JOIN questoes_gabaritos g ON q.id = g.questao_id
-       GROUP BY q.id
-       ORDER BY q.ano_letivo DESC NULLS LAST, q.criado_em DESC`
+      `SELECT
+        id, codigo, descricao, disciplina, area_conhecimento,
+        dificuldade, gabarito, criado_em,
+        serie_aplicavel, tipo_questao, numero_questao
+       FROM questoes
+       ORDER BY criado_em DESC`
     )
 
     return NextResponse.json(result.rows)
@@ -49,7 +44,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, ano_letivo, tipo, gabaritos_por_serie } = await request.json()
+    const { codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao } = await request.json()
 
     // Normalizar valores vazios para null
     const normalizeValue = (value: any) => {
@@ -57,68 +52,23 @@ export async function POST(request: NextRequest) {
       return value
     }
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
+    const result = await pool.query(
+      `INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        normalizeValue(codigo),
+        normalizeValue(descricao),
+        normalizeValue(disciplina),
+        normalizeValue(area_conhecimento),
+        normalizeValue(dificuldade),
+        normalizeValue(gabarito),
+        normalizeValue(serie_aplicavel),
+        normalizeValue(tipo_questao) || 'objetiva',
+      ]
+    )
 
-      const result = await client.query(
-        `INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, ano_letivo, tipo)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         RETURNING *`,
-        [
-          normalizeValue(codigo),
-          normalizeValue(descricao),
-          normalizeValue(disciplina),
-          normalizeValue(area_conhecimento),
-          normalizeValue(dificuldade),
-          normalizeValue(gabarito),
-          normalizeValue(ano_letivo),
-          normalizeValue(tipo) || 'objetiva',
-        ]
-      )
-
-      const questaoId = result.rows[0].id
-
-      // Inserir gabaritos por série se fornecidos
-      if (gabaritos_por_serie && Array.isArray(gabaritos_por_serie)) {
-        for (const gab of gabaritos_por_serie) {
-          if (gab.serie && gab.gabarito) {
-            await client.query(
-              `INSERT INTO questoes_gabaritos (questao_id, serie, gabarito)
-               VALUES ($1, $2, $3)
-               ON CONFLICT (questao_id, serie) 
-               DO UPDATE SET gabarito = $3, atualizado_em = CURRENT_TIMESTAMP`,
-              [questaoId, gab.serie, gab.gabarito]
-            )
-          }
-        }
-      }
-
-      await client.query('COMMIT')
-
-      // Buscar questão completa com gabaritos
-      const questaoCompleta = await client.query(
-        `SELECT q.*, 
-         COALESCE(
-           json_agg(
-             json_build_object('serie', g.serie, 'gabarito', g.gabarito)
-           ) FILTER (WHERE g.id IS NOT NULL),
-           '[]'::json
-         ) as gabaritos_por_serie
-         FROM questoes q
-         LEFT JOIN questoes_gabaritos g ON q.id = g.questao_id
-         WHERE q.id = $1
-         GROUP BY q.id`,
-        [questaoId]
-      )
-
-      return NextResponse.json(questaoCompleta.rows[0], { status: 201 })
-    } catch (error: any) {
-      await client.query('ROLLBACK')
-      throw error
-    } finally {
-      client.release()
-    }
+    return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: any) {
     if (error.code === '23505') {
       return NextResponse.json(
@@ -146,7 +96,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { id, codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, ano_letivo, tipo, gabaritos_por_serie } = body
+    const { id, codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao } = body
 
     if (!id) {
       return NextResponse.json(
@@ -161,77 +111,33 @@ export async function PUT(request: NextRequest) {
       return value
     }
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
+    const result = await pool.query(
+      `UPDATE questoes
+       SET codigo = $1, descricao = $2, disciplina = $3, area_conhecimento = $4,
+           dificuldade = $5, gabarito = $6, serie_aplicavel = $7, tipo_questao = $8
+       WHERE id = $9
+       RETURNING *`,
+      [
+        normalizeValue(codigo),
+        normalizeValue(descricao),
+        normalizeValue(disciplina),
+        normalizeValue(area_conhecimento),
+        normalizeValue(dificuldade),
+        normalizeValue(gabarito),
+        normalizeValue(serie_aplicavel),
+        normalizeValue(tipo_questao) || 'objetiva',
+        id,
+      ]
+    )
 
-      const result = await client.query(
-        `UPDATE questoes 
-         SET codigo = $1, descricao = $2, disciplina = $3, area_conhecimento = $4, dificuldade = $5, gabarito = $6, ano_letivo = $7, tipo = $8
-         WHERE id = $9
-         RETURNING *`,
-        [
-          normalizeValue(codigo),
-          normalizeValue(descricao),
-          normalizeValue(disciplina),
-          normalizeValue(area_conhecimento),
-          normalizeValue(dificuldade),
-          normalizeValue(gabarito),
-          normalizeValue(ano_letivo),
-          normalizeValue(tipo) || 'objetiva',
-          id,
-        ]
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { mensagem: 'Questão não encontrada' },
+        { status: 404 }
       )
-
-      if (result.rows.length === 0) {
-        await client.query('ROLLBACK')
-        return NextResponse.json(
-          { mensagem: 'Questão não encontrada' },
-          { status: 404 }
-        )
-      }
-
-      // Remover gabaritos antigos e inserir novos
-      await client.query('DELETE FROM questoes_gabaritos WHERE questao_id = $1', [id])
-
-      // Inserir gabaritos por série se fornecidos
-      if (gabaritos_por_serie && Array.isArray(gabaritos_por_serie)) {
-        for (const gab of gabaritos_por_serie) {
-          if (gab.serie && gab.gabarito) {
-            await client.query(
-              `INSERT INTO questoes_gabaritos (questao_id, serie, gabarito)
-               VALUES ($1, $2, $3)`,
-              [id, gab.serie, gab.gabarito]
-            )
-          }
-        }
-      }
-
-      await client.query('COMMIT')
-
-      // Buscar questão completa com gabaritos
-      const questaoCompleta = await client.query(
-        `SELECT q.*, 
-         COALESCE(
-           json_agg(
-             json_build_object('serie', g.serie, 'gabarito', g.gabarito)
-           ) FILTER (WHERE g.id IS NOT NULL),
-           '[]'::json
-         ) as gabaritos_por_serie
-         FROM questoes q
-         LEFT JOIN questoes_gabaritos g ON q.id = g.questao_id
-         WHERE q.id = $1
-         GROUP BY q.id`,
-        [id]
-      )
-
-      return NextResponse.json(questaoCompleta.rows[0])
-    } catch (error: any) {
-      await client.query('ROLLBACK')
-      throw error
-    } finally {
-      client.release()
     }
+
+    return NextResponse.json(result.rows[0])
   } catch (error: any) {
     console.error('Erro completo ao atualizar questão:', {
       message: error.message,

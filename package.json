@@ -70,6 +70,7 @@
     "testar-connection-modes": "node scripts/testar-connection-modes.js",
     "testar-dns-producao": "node scripts/testar-dns-producao.js",
     "diagnostico-conexao": "node scripts/diagnostico-conexao.js",
+    "migrate-estrutura-series": "node scripts/migrate-estrutura-series.js",
     "backup": "bash scripts/backup-database.sh",
     "restore": "bash scripts/restore-database.sh"
   },

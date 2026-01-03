@@ -50,6 +50,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     carregarUsuario()
   }, [router])
 
+  const [modulosCarregados, setModulosCarregados] = useState(false)
+
   useEffect(() => {
     const carregarModulosTecnico = async () => {
       const tipoUsuarioReal = usuario?.tipo_usuario === 'administrador' ? 'admin' : (usuario?.tipo_usuario || tipoUsuario)
@@ -59,14 +61,26 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           const data = await response.json()
           if (Array.isArray(data)) {
             setModulosTecnico(data.filter((m: any) => m.habilitado))
+          } else {
+            // Se não houver módulos, definir array vazio para evitar re-renderizações
+            setModulosTecnico([])
           }
+          setModulosCarregados(true)
         } catch (error) {
           console.error('Erro ao carregar módulos do técnico:', error)
+          // Em caso de erro, usar array vazio para mostrar menu padrão
+          setModulosTecnico([])
+          setModulosCarregados(true)
         }
+      } else {
+        // Se não for técnico, marcar como carregado imediatamente
+        setModulosCarregados(true)
       }
     }
     if (usuario) {
       carregarModulosTecnico()
+    } else {
+      setModulosCarregados(true)
     }
   }, [usuario, tipoUsuario])
 
@@ -169,7 +183,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     }
 
     return items
-  }, [tipoUsuarioReal, basePath, modulosTecnico, usuario])
+  }, [tipoUsuarioReal, basePath, modulosTecnico, usuario, modulosCarregados])
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

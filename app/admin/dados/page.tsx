@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
+import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -232,6 +233,10 @@ export default function DadosPage() {
   const [ordenacao, setOrdenacao] = useState<{ coluna: string; direcao: 'asc' | 'desc' }>({ coluna: 'media_geral', direcao: 'desc' })
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina] = useState(15)
+  
+  // Modal de questões
+  const [modalAberto, setModalAberto] = useState(false)
+  const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string } | null>(null)
 
   useEffect(() => {
     carregarDados()
@@ -1299,6 +1304,13 @@ export default function DadosPage() {
                                   </td>
                                   <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-3 lg:px-2 text-center">
                                     <button
+                                      onClick={() => {
+                                        setAlunoSelecionado({
+                                          id: resultado.id || resultado.aluno_id || '',
+                                          anoLetivo: filtroAnoLetivo || undefined,
+                                        })
+                                        setModalAberto(true)
+                                      }}
                                       className="w-full inline-flex items-center justify-center px-1 sm:px-1.5 md:px-2 lg:px-3 py-1 sm:py-1 md:py-1.5 lg:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-[9px] sm:text-[10px] md:text-xs font-medium shadow-sm"
                                       title="Ver questões do aluno"
                                     >
@@ -1369,7 +1381,7 @@ export default function DadosPage() {
               )}
 
               {abaAtiva === 'analises' && dados.analiseAcertosErros && (
-                <div className="space-y-6">
+                <div className="space-y-6 overflow-x-hidden">
                   {/* Taxa de Acerto Geral */}
                   {dados.analiseAcertosErros.taxaAcertoGeral && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1432,9 +1444,10 @@ export default function DadosPage() {
 
                   {/* Questões com Mais Erros */}
                   {dados.analiseAcertosErros.questoesComMaisErros && dados.analiseAcertosErros.questoesComMaisErros.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Questões com Mais Erros</h3>
-                      <TabelaPaginada
+                      <div className="overflow-x-auto">
+                        <TabelaPaginada
                         dados={dados.analiseAcertosErros.questoesComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
                         colunas={[
                           { key: 'questao_codigo', label: 'Questão', align: 'center' },
@@ -1454,14 +1467,16 @@ export default function DadosPage() {
                         totalRegistros={dados.analiseAcertosErros.questoesComMaisErros.length}
                         itensPorPagina={itensPorPagina}
                       />
+                      </div>
                     </div>
                   )}
 
                   {/* Escolas com Mais Erros */}
                   {dados.analiseAcertosErros.escolasComMaisErros && dados.analiseAcertosErros.escolasComMaisErros.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Escolas com Mais Erros</h3>
-                      <TabelaPaginada
+                      <div className="overflow-x-auto">
+                        <TabelaPaginada
                         dados={dados.analiseAcertosErros.escolasComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
                         colunas={[
                           { key: 'escola', label: 'Escola', align: 'left' },
@@ -1486,9 +1501,10 @@ export default function DadosPage() {
 
                   {/* Turmas com Mais Erros */}
                   {dados.analiseAcertosErros.turmasComMaisErros && dados.analiseAcertosErros.turmasComMaisErros.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Turmas com Mais Erros</h3>
-                      <TabelaPaginada
+                      <div className="overflow-x-auto">
+                        <TabelaPaginada
                         dados={dados.analiseAcertosErros.turmasComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
                         colunas={[
                           { key: 'turma', label: 'Turma', align: 'left' },
@@ -1509,14 +1525,16 @@ export default function DadosPage() {
                         totalRegistros={dados.analiseAcertosErros.turmasComMaisErros.length}
                         itensPorPagina={itensPorPagina}
                       />
+                      </div>
                     </div>
                   )}
 
                   {/* Questões com Mais Acertos */}
                   {dados.analiseAcertosErros.questoesComMaisAcertos && dados.analiseAcertosErros.questoesComMaisAcertos.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Questões com Mais Acertos</h3>
-                      <TabelaPaginada
+                      <div className="overflow-x-auto">
+                        <TabelaPaginada
                         dados={dados.analiseAcertosErros.questoesComMaisAcertos.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
                         colunas={[
                           { key: 'questao_codigo', label: 'Questão', align: 'center' },
@@ -1536,14 +1554,16 @@ export default function DadosPage() {
                         totalRegistros={dados.analiseAcertosErros.questoesComMaisAcertos.length}
                         itensPorPagina={itensPorPagina}
                       />
+                      </div>
                     </div>
                   )}
 
                   {/* Escolas com Mais Acertos */}
                   {dados.analiseAcertosErros.escolasComMaisAcertos && dados.analiseAcertosErros.escolasComMaisAcertos.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Escolas com Mais Acertos</h3>
-                      <TabelaPaginada
+                      <div className="overflow-x-auto">
+                        <TabelaPaginada
                         dados={dados.analiseAcertosErros.escolasComMaisAcertos.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
                         colunas={[
                           { key: 'escola', label: 'Escola', align: 'left' },
@@ -1563,14 +1583,16 @@ export default function DadosPage() {
                         totalRegistros={dados.analiseAcertosErros.escolasComMaisAcertos.length}
                         itensPorPagina={itensPorPagina}
                       />
+                      </div>
                     </div>
                   )}
 
                   {/* Turmas com Mais Acertos */}
                   {dados.analiseAcertosErros.turmasComMaisAcertos && dados.analiseAcertosErros.turmasComMaisAcertos.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Turmas com Mais Acertos</h3>
-                      <TabelaPaginada
+                      <div className="overflow-x-auto">
+                        <TabelaPaginada
                         dados={dados.analiseAcertosErros.turmasComMaisAcertos.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
                         colunas={[
                           { key: 'turma', label: 'Turma', align: 'left' },
@@ -1604,6 +1626,18 @@ export default function DadosPage() {
             </div>
           )}
         </div>
+        
+        {/* Modal de Questões do Aluno */}
+        {modalAberto && alunoSelecionado && (
+          <ModalQuestoesAluno
+            alunoId={alunoSelecionado.id}
+            anoLetivo={alunoSelecionado.anoLetivo}
+            onClose={() => {
+              setModalAberto(false)
+              setAlunoSelecionado(null)
+            }}
+          />
+        )}
       </LayoutDashboard>
     </ProtectedRoute>
   )
