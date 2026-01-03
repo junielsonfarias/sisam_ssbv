@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  webpack: (config, { isServer }) => {
+  // Melhorar tratamento de chunks para evitar erros de módulos ausentes
+  webpack: (config, { isServer, dev }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -29,6 +30,15 @@ const nextConfig = {
         'fontkit': 'commonjs fontkit',
         'iconv-lite': 'commonjs iconv-lite',
       })
+    }
+    
+    // Melhorar cache de chunks em desenvolvimento
+    if (dev) {
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'named',
+        chunkIds: 'named',
+      }
     }
     
     return config
