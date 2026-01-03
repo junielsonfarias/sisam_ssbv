@@ -1451,25 +1451,25 @@ export default function DadosPage() {
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Questões com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
-                        dados={dados.analiseAcertosErros.questoesComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
-                        colunas={[
-                          { key: 'questao_codigo', label: 'Questão', align: 'center' },
-                          { key: 'questao_descricao', label: 'Descrição', align: 'left' },
-                          { key: 'disciplina', label: 'Disciplina', align: 'center' },
-                          { key: 'total_respostas', label: 'Total', align: 'center' },
-                          { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                          { key: 'total_erros', label: 'Erros', align: 'center' },
-                          { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                          { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                        ]}
-                        ordenacao={ordenacao}
-                        onOrdenar={handleOrdenacao}
-                        paginaAtual={paginaAtual}
-                        totalPaginas={Math.ceil(dados.analiseAcertosErros.questoesComMaisErros.length / itensPorPagina)}
-                        onPaginar={setPaginaAtual}
-                        totalRegistros={dados.analiseAcertosErros.questoesComMaisErros.length}
-                        itensPorPagina={itensPorPagina}
-                      />
+                          dados={dados.analiseAcertosErros.questoesComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
+                          colunas={[
+                            { key: 'questao_codigo', label: 'Questão', align: 'center' },
+                            { key: 'questao_descricao', label: 'Descrição', align: 'left' },
+                            { key: 'disciplina', label: 'Disciplina', align: 'center' },
+                            { key: 'total_respostas', label: 'Total', align: 'center' },
+                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                            { key: 'total_erros', label: 'Erros', align: 'center' },
+                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                          ]}
+                          ordenacao={ordenacao}
+                          onOrdenar={handleOrdenacao}
+                          paginaAtual={paginaAtual}
+                          totalPaginas={Math.ceil(dados.analiseAcertosErros.questoesComMaisErros.length / itensPorPagina)}
+                          onPaginar={setPaginaAtual}
+                          totalRegistros={dados.analiseAcertosErros.questoesComMaisErros.length}
+                          itensPorPagina={itensPorPagina}
+                        />
                       </div>
                     </div>
                   )}
@@ -1480,26 +1480,26 @@ export default function DadosPage() {
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Escolas com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
-                        dados={dados.analiseAcertosErros.escolasComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
-                        colunas={[
-                          { key: 'escola', label: 'Escola', align: 'left' },
-                          { key: 'polo', label: 'Polo', align: 'left' },
-                          { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                          { key: 'total_respostas', label: 'Total', align: 'center' },
-                          { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                          { key: 'total_erros', label: 'Erros', align: 'center' },
-                          { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                          { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                        ]}
-                        ordenacao={ordenacao}
-                        onOrdenar={handleOrdenacao}
-                        paginaAtual={paginaAtual}
-                        totalPaginas={Math.ceil(dados.analiseAcertosErros.escolasComMaisErros.length / itensPorPagina)}
-                        onPaginar={setPaginaAtual}
-                        totalRegistros={dados.analiseAcertosErros.escolasComMaisErros.length}
-                        itensPorPagina={itensPorPagina}
-                      />
-                    </div>
+                          dados={dados.analiseAcertosErros.escolasComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
+                          colunas={[
+                            { key: 'escola', label: 'Escola', align: 'left' },
+                            { key: 'polo', label: 'Polo', align: 'left' },
+                            { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                            { key: 'total_respostas', label: 'Total', align: 'center' },
+                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                            { key: 'total_erros', label: 'Erros', align: 'center' },
+                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                          ]}
+                          ordenacao={ordenacao}
+                          onOrdenar={handleOrdenacao}
+                          paginaAtual={paginaAtual}
+                          totalPaginas={Math.ceil(dados.analiseAcertosErros.escolasComMaisErros.length / itensPorPagina)}
+                          onPaginar={setPaginaAtual}
+                          totalRegistros={dados.analiseAcertosErros.escolasComMaisErros.length}
+                          itensPorPagina={itensPorPagina}
+                        />
+                      </div>
                   )}
 
                   {/* Turmas com Mais Erros */}
@@ -1508,26 +1508,26 @@ export default function DadosPage() {
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Turmas com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
-                        dados={dados.analiseAcertosErros.turmasComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
-                        colunas={[
-                          { key: 'turma', label: 'Turma', align: 'left' },
-                          { key: 'escola', label: 'Escola', align: 'left' },
-                          { key: 'serie', label: 'Série', align: 'center' },
-                          { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                          { key: 'total_respostas', label: 'Total', align: 'center' },
-                          { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                          { key: 'total_erros', label: 'Erros', align: 'center' },
-                          { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                          { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                        ]}
-                        ordenacao={ordenacao}
-                        onOrdenar={handleOrdenacao}
-                        paginaAtual={paginaAtual}
-                        totalPaginas={Math.ceil(dados.analiseAcertosErros.turmasComMaisErros.length / itensPorPagina)}
-                        onPaginar={setPaginaAtual}
-                        totalRegistros={dados.analiseAcertosErros.turmasComMaisErros.length}
-                        itensPorPagina={itensPorPagina}
-                      />
+                          dados={dados.analiseAcertosErros.turmasComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
+                          colunas={[
+                            { key: 'turma', label: 'Turma', align: 'left' },
+                            { key: 'escola', label: 'Escola', align: 'left' },
+                            { key: 'serie', label: 'Série', align: 'center' },
+                            { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                            { key: 'total_respostas', label: 'Total', align: 'center' },
+                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                            { key: 'total_erros', label: 'Erros', align: 'center' },
+                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                          ]}
+                          ordenacao={ordenacao}
+                          onOrdenar={handleOrdenacao}
+                          paginaAtual={paginaAtual}
+                          totalPaginas={Math.ceil(dados.analiseAcertosErros.turmasComMaisErros.length / itensPorPagina)}
+                          onPaginar={setPaginaAtual}
+                          totalRegistros={dados.analiseAcertosErros.turmasComMaisErros.length}
+                          itensPorPagina={itensPorPagina}
+                        />
                       </div>
                     </div>
                   )}
