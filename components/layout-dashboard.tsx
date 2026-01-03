@@ -85,8 +85,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const menuItems = [
     { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
     // { icon: BarChart3, label: 'Análise de Dados', href: `/${basePath}/analise` }, // Desabilitado
-    { icon: TrendingUp, label: 'Análise Gráfica', href: `/${basePath}/graficos` },
   ]
+
+  // Adicionar Análise Gráfica apenas se não for usuário escola (escola tem menu próprio)
+  if (tipoUsuario !== 'escola') {
+    menuItems.push({ icon: TrendingUp, label: 'Análise Gráfica', href: `/${basePath}/graficos` })
+  }
 
   if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
     menuItems.push(
@@ -130,6 +134,14 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   if (tipoUsuario === 'polo') {
     menuItems.push(
       { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' }
+    )
+  }
+
+  if (tipoUsuario === 'escola') {
+    menuItems.push(
+      { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
+      { icon: BarChart3, label: 'Análise Gráfica', href: '/escola/graficos' },
+      { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' }
     )
   }
 

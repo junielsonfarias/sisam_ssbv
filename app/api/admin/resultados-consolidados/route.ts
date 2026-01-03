@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json(
         { mensagem: 'Não autorizado' },
         { status: 403 }
