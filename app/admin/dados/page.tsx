@@ -435,7 +435,8 @@ export default function DadosPage() {
                 <select
                   value={filtroPoloId}
                   onChange={(e) => { setFiltroPoloId(e.target.value); setFiltroEscolaId(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  disabled={usuario?.tipo_usuario === 'escola' || usuario?.tipo_usuario === 'polo'}
+                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
                   <option value="">Todos os polos</option>
                   {dados?.filtros.polos.map(polo => (
