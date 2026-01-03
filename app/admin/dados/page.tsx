@@ -158,6 +158,55 @@ const COLORS = {
   faixas: ['#EF4444', '#F97316', '#FBBF24', '#84CC16', '#22C55E']
 }
 
+// Funções helper para formatação
+const getPresencaColor = (presenca: string) => {
+  if (presenca === 'P' || presenca === 'p') {
+    return 'bg-green-100 text-green-800'
+  }
+  return 'bg-red-100 text-red-800'
+}
+
+const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
+  // Se aluno faltou, sempre retornar "-"
+  if (presenca === 'F' || presenca === 'f') {
+    return '-'
+  }
+  
+  // Se média do aluno for 0 ou null, considerar faltante
+  const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
+  if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) {
+    return '-'
+  }
+  
+  if (nota === null || nota === undefined || nota === '') return '-'
+  const num = typeof nota === 'string' ? parseFloat(nota) : nota
+  if (isNaN(num)) return '-'
+  if (num === 0) return '-' // Se nota for 0, também retornar "-"
+  return num.toFixed(1)
+}
+
+const getNotaNumero = (nota: number | string | null | undefined): number | null => {
+  if (nota === null || nota === undefined || nota === '') return null
+  const num = typeof nota === 'string' ? parseFloat(nota) : nota
+  return isNaN(num) ? null : num
+}
+
+const getNotaColor = (nota: number | string | null | undefined) => {
+  const num = getNotaNumero(nota)
+  if (num === null) return 'text-gray-500'
+  if (num >= 7) return 'text-green-600 font-semibold'
+  if (num >= 5) return 'text-yellow-600 font-semibold'
+  return 'text-red-600 font-semibold'
+}
+
+const getNotaBgColor = (nota: number | string | null | undefined) => {
+  const num = getNotaNumero(nota)
+  if (num === null) return 'bg-gray-50'
+  if (num >= 7) return 'bg-green-50 border-green-200'
+  if (num >= 5) return 'bg-yellow-50 border-yellow-200'
+  return 'bg-red-50 border-red-200'
+}
+
 export default function DadosPage() {
   const [dados, setDados] = useState<DashboardData | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -676,7 +725,7 @@ export default function DadosPage() {
                 <MetricCard titulo="Media Geral" valor={dados.metricas.media_geral.toFixed(2)} icon={Award} cor="amber" isDecimal />
                 <MetricCard titulo="Menor" valor={dados.metricas.menor_media.toFixed(2)} icon={TrendingDown} cor="rose" isDecimal />
                 <MetricCard titulo="Maior" valor={dados.metricas.maior_media.toFixed(2)} icon={TrendingUp} cor="emerald" isDecimal />
-                {dados.metricas.taxa_acerto_geral !== undefined && (
+                {dados.metricas.taxa_acerto_geral !== undefined && dados.metricas.taxa_erro_geral !== undefined && (
                   <>
                     <MetricCard titulo="Taxa Acerto" valor={`${dados.metricas.taxa_acerto_geral.toFixed(1)}%`} icon={Target} cor="green" />
                     <MetricCard titulo="Taxa Erro" valor={`${dados.metricas.taxa_erro_geral.toFixed(1)}%`} icon={AlertTriangle} cor="red" />
@@ -880,49 +929,49 @@ export default function DadosPage() {
               )}
 
               {abaAtiva === 'alunos' && (
-                <div className="space-y-4">
+                <div className="space-y-4 overflow-x-hidden">
                   {/* Visualização Mobile - Cards */}
-                  <div className="block md:hidden space-y-4">
+                  <div className="block sm:hidden space-y-4 p-4">
                     {alunosPaginados.length === 0 ? (
-                      <div className="text-center py-12 bg-white rounded-xl">
-                        <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-lg font-medium text-gray-500">Nenhum aluno encontrado</p>
-                        <p className="text-sm mt-1 text-gray-400">Ajuste os filtros para ver mais resultados</p>
+                      <div className="text-center py-12">
+                        <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                        <p className="text-base font-medium text-gray-500">Nenhum resultado encontrado</p>
+                        <p className="text-sm mt-1 text-gray-400">Importe os dados primeiro</p>
                       </div>
                     ) : (
-                      alunosPaginados.map((aluno: any, index: number) => {
-                        const notaLP = typeof aluno.nota_lp === 'number' ? aluno.nota_lp : parseFloat(aluno.nota_lp || '0')
-                        const notaCH = typeof aluno.nota_ch === 'number' ? aluno.nota_ch : parseFloat(aluno.nota_ch || '0')
-                        const notaMAT = typeof aluno.nota_mat === 'number' ? aluno.nota_mat : parseFloat(aluno.nota_mat || '0')
-                        const notaCN = typeof aluno.nota_cn === 'number' ? aluno.nota_cn : parseFloat(aluno.nota_cn || '0')
-                        const media = typeof aluno.media_aluno === 'number' ? aluno.media_aluno : parseFloat(aluno.media_aluno || '0')
-                        
+                      alunosPaginados.map((resultado: any, index: number) => {
+                        const mediaNum = getNotaNumero(resultado.media_aluno)
+                        const notaLP = getNotaNumero(resultado.nota_lp)
+                        const notaCH = getNotaNumero(resultado.nota_ch)
+                        const notaMAT = getNotaNumero(resultado.nota_mat)
+                        const notaCN = getNotaNumero(resultado.nota_cn)
+
                         return (
-                          <div key={aluno.id || index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm">
+                          <div key={resultado.id || index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex-shrink-0">
                                   {index + 1 + (paginaAtual - 1) * itensPorPagina}
                                 </span>
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                  <span className="text-indigo-600 font-semibold text-sm">
-                                    {aluno.aluno?.charAt(0).toUpperCase() || 'A'}
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                                  <span className="text-indigo-600 font-semibold text-xs">
+                                    {resultado.aluno?.charAt(0).toUpperCase() || 'A'}
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-semibold text-gray-900 text-sm mb-1 truncate">{aluno.aluno}</div>
+                                  <div className="font-semibold text-gray-900 text-sm mb-1 truncate">{resultado.aluno}</div>
                                   <div className="text-xs text-gray-500 space-y-0.5">
-                                    <div>{aluno.escola}</div>
-                                    {aluno.turma && <div>Turma: {aluno.turma}</div>}
+                                    {resultado.escola && <div className="whitespace-normal break-words">Escola: {resultado.escola}</div>}
+                                    {resultado.turma && <div>Turma: {resultado.turma}</div>}
+                                    {resultado.serie && <div>Série: {resultado.serie}</div>}
                                     <div className="flex items-center gap-2">
-                                      <span>Série: {aluno.serie || '-'}</span>
-                                      <span className="text-gray-300">|</span>
-                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                        aluno.presenca === 'P' || aluno.presenca === 'p' 
-                                          ? 'bg-green-100 text-green-800' 
-                                          : 'bg-red-100 text-red-800'
-                                      }`}>
-                                        {aluno.presenca === 'P' || aluno.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                      <span>Presença: </span>
+                                      <span
+                                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold ${getPresencaColor(
+                                          resultado.presenca || 'P'
+                                        )}`}
+                                      >
+                                        {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
                                       </span>
                                     </div>
                                   </div>
@@ -930,56 +979,102 @@ export default function DadosPage() {
                               </div>
                             </div>
                             
+                            {/* Notas em Grid */}
                             <div className="grid grid-cols-2 gap-3 mb-3">
-                              <div className={`p-3 rounded-lg ${notaLP >= 7 ? 'bg-green-50 border-green-200' : notaLP >= 5 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} border`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">LP</div>
-                                <div className="text-xs text-gray-600 mb-1">{aluno.total_acertos_lp || 0}/20</div>
-                                <div className={`text-lg font-bold ${notaLP >= 7 ? 'text-green-600' : notaLP >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                  {notaLP > 0 ? notaLP.toFixed(1) : '-'}
+                              {/* LP */}
+                              <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
+                                <div className="text-xs font-semibold text-gray-600 mb-1">Língua Portuguesa</div>
+                                <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_lp || 0}/20</div>
+                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
+                                  {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                                 </div>
+                                {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                    <div
+                                      className={`h-1.5 rounded-full ${
+                                        notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                      }`}
+                                      style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
+                                    ></div>
+                                  </div>
+                                )}
                               </div>
-                              <div className={`p-3 rounded-lg ${notaCH >= 7 ? 'bg-green-50 border-green-200' : notaCH >= 5 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} border`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">CH</div>
-                                <div className="text-xs text-gray-600 mb-1">{aluno.total_acertos_ch || 0}/10</div>
-                                <div className={`text-lg font-bold ${notaCH >= 7 ? 'text-green-600' : notaCH >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                  {notaCH > 0 ? notaCH.toFixed(1) : '-'}
+                              {/* CH */}
+                              <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
+                                <div className="text-xs font-semibold text-gray-600 mb-1">Ciências Humanas</div>
+                                <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_ch || 0}/10</div>
+                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
+                                  {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                                 </div>
+                                {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                    <div
+                                      className={`h-1.5 rounded-full ${
+                                        notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                      }`}
+                                      style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
+                                    ></div>
+                                  </div>
+                                )}
                               </div>
-                              <div className={`p-3 rounded-lg ${notaMAT >= 7 ? 'bg-green-50 border-green-200' : notaMAT >= 5 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} border`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">MAT</div>
-                                <div className="text-xs text-gray-600 mb-1">{aluno.total_acertos_mat || 0}/20</div>
-                                <div className={`text-lg font-bold ${notaMAT >= 7 ? 'text-green-600' : notaMAT >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                  {notaMAT > 0 ? notaMAT.toFixed(1) : '-'}
+                              {/* MAT */}
+                              <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
+                                <div className="text-xs font-semibold text-gray-600 mb-1">Matemática</div>
+                                <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_mat || 0}/20</div>
+                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
+                                  {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                                 </div>
+                                {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                    <div
+                                      className={`h-1.5 rounded-full ${
+                                        notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                      }`}
+                                      style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
+                                    ></div>
+                                  </div>
+                                )}
                               </div>
-                              <div className={`p-3 rounded-lg ${notaCN >= 7 ? 'bg-green-50 border-green-200' : notaCN >= 5 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} border`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">CN</div>
-                                <div className="text-xs text-gray-600 mb-1">{aluno.total_acertos_cn || 0}/10</div>
-                                <div className={`text-lg font-bold ${notaCN >= 7 ? 'text-green-600' : notaCN >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                  {notaCN > 0 ? notaCN.toFixed(1) : '-'}
+                              {/* CN */}
+                              <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
+                                <div className="text-xs font-semibold text-gray-600 mb-1">Ciências da Natureza</div>
+                                <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_cn || 0}/10</div>
+                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
+                                  {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                                 </div>
+                                {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                    <div
+                                      className={`h-1.5 rounded-full ${
+                                        notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                      }`}
+                                      style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
+                                    ></div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                             
+                            {/* Média e Nível */}
                             <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                               <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-xl ${
-                                media >= 7 ? 'bg-green-50 border-green-500' : 
-                                media >= 5 ? 'bg-yellow-50 border-yellow-500' : 
+                                mediaNum !== null && mediaNum >= 7 ? 'bg-green-50 border-green-500' : 
+                                mediaNum !== null && mediaNum >= 5 ? 'bg-yellow-50 border-yellow-500' : 
                                 'bg-red-50 border-red-500'
                               } border-2`}>
                                 <div className="text-xs font-semibold text-gray-600 mb-1">Média</div>
                                 <div className={`text-2xl font-extrabold ${
-                                  media >= 7 ? 'text-green-600' : 
-                                  media >= 5 ? 'text-yellow-600' : 
+                                  mediaNum !== null && mediaNum >= 7 ? 'text-green-600' : 
+                                  mediaNum !== null && mediaNum >= 5 ? 'text-yellow-600' : 
                                   'text-red-600'
                                 }`}>
-                                  {media > 0 ? media.toFixed(1) : '-'}
+                                  {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                 </div>
                               </div>
-                              {aluno.nivel_aprendizagem && (
+                              {resultado.nivel_aprendizagem && (
                                 <div className="text-center">
                                   <div className="text-xs font-semibold text-gray-600 mb-1">Nível</div>
-                                  <div className="text-sm font-bold text-indigo-600">{aluno.nivel_aprendizagem}</div>
+                                  <div className="text-sm font-bold text-indigo-600">{resultado.nivel_aprendizagem}</div>
                                 </div>
                               )}
                             </div>
@@ -989,31 +1084,286 @@ export default function DadosPage() {
                     )}
                   </div>
                   
-                  {/* Visualização Desktop - Tabela */}
-                  <div className="hidden md:block">
-                    <TabelaPaginada
-                      dados={alunosPaginados}
-                      colunas={[
-                        { key: 'aluno', label: 'Aluno', align: 'left' },
-                        { key: 'escola', label: 'Escola', align: 'left' },
-                        { key: 'serie', label: 'Serie', align: 'center' },
-                        { key: 'turma', label: 'Turma', align: 'center' },
-                        { key: 'presenca', label: 'Pres.', align: 'center', format: 'presenca' },
-                        { key: 'media_aluno', label: 'Media', align: 'center', format: 'nota' },
-                        { key: 'nota_lp', label: 'LP', align: 'center', format: 'decimal' },
-                        { key: 'nota_ch', label: 'CH', align: 'center', format: 'decimal' },
-                        { key: 'nota_mat', label: 'MAT', align: 'center', format: 'decimal' },
-                        { key: 'nota_cn', label: 'CN', align: 'center', format: 'decimal' },
-                        { key: 'nivel_aprendizagem', label: 'Nivel', align: 'center', format: 'nivel' },
-                      ]}
-                      ordenacao={ordenacao}
-                      onOrdenar={handleOrdenacao}
-                      paginaAtual={paginaAtual}
-                      totalPaginas={totalPaginas}
-                      onPaginar={setPaginaAtual}
-                      totalRegistros={alunosOrdenados.length}
-                      itensPorPagina={itensPorPagina}
-                    />
+                  {/* Visualização Tablet/Desktop - Tabela */}
+                  <div className="hidden sm:block w-full">
+                    <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
+                      <table className="w-full divide-y divide-gray-200 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
+                        <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
+                          <tr>
+                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12">
+                              #
+                            </th>
+                            <th className="text-left py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 min-w-[120px] md:min-w-[140px] lg:min-w-[160px]">
+                              Aluno
+                            </th>
+                            <th className="hidden lg:table-cell text-left py-1 px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 min-w-[150px]">
+                              Escola
+                            </th>
+                            <th className="hidden md:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20">
+                              Turma
+                            </th>
+                            <th className="hidden xl:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
+                              Série
+                            </th>
+                            <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
+                              Presença
+                            </th>
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                              LP
+                            </th>
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                              CH
+                            </th>
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                              MAT
+                            </th>
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                              CN
+                            </th>
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                              Média
+                            </th>
+                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20 lg:w-24">
+                              Ações
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {alunosPaginados.length === 0 ? (
+                            <tr>
+                              <td colSpan={12} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                                <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
+                                <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
+                                <p className="text-xs sm:text-sm mt-1">Importe os dados primeiro</p>
+                              </td>
+                            </tr>
+                          ) : (
+                            alunosPaginados.map((resultado: any, index: number) => {
+                              const mediaNum = getNotaNumero(resultado.media_aluno)
+                              const notaLP = getNotaNumero(resultado.nota_lp)
+                              const notaCH = getNotaNumero(resultado.nota_ch)
+                              const notaMAT = getNotaNumero(resultado.nota_mat)
+                              const notaCN = getNotaNumero(resultado.nota_cn)
+
+                              return (
+                                <tr key={resultado.id || index} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
+                                  <td className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2">
+                                    <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
+                                      {index + 1 + (paginaAtual - 1) * itensPorPagina}
+                                    </span>
+                                  </td>
+                                  <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2">
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center w-full text-left mb-1">
+                                        <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-9 rounded-full bg-indigo-100 flex items-center justify-center mr-1 sm:mr-1.5 md:mr-2">
+                                          <span className="text-indigo-600 font-semibold text-[9px] sm:text-[10px] md:text-xs">
+                                            {resultado.aluno?.charAt(0).toUpperCase() || 'A'}
+                                          </span>
+                                        </div>
+                                        <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-[10px] sm:text-[11px] md:text-xs lg:text-sm truncate">{resultado.aluno}</span>
+                                      </div>
+                                      <div className="lg:hidden text-[9px] sm:text-[10px] md:text-xs text-gray-500 space-y-0.5 ml-6 sm:ml-7 md:ml-8 lg:ml-10">
+                                        {resultado.escola && <div className="whitespace-normal break-words">Escola: {resultado.escola}</div>}
+                                        {resultado.turma && <div>Turma: {resultado.turma}</div>}
+                                        {resultado.serie && <div>Série: {resultado.serie}</div>}
+                                        <div className="flex items-center gap-2">
+                                          <span>Presença: </span>
+                                          <span
+                                            className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${getPresencaColor(
+                                              resultado.presenca || 'P'
+                                            )}`}
+                                          >
+                                            {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-2">
+                                    <span className="text-gray-700 font-medium text-[10px] md:text-xs lg:text-sm block whitespace-normal break-words">{resultado.escola}</span>
+                                  </td>
+                                  <td className="hidden md:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
+                                    <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-mono text-[9px] md:text-[10px] lg:text-xs font-medium">
+                                      {resultado.turma || '-'}
+                                    </span>
+                                  </td>
+                                  <td className="hidden xl:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
+                                    <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] md:text-[10px] lg:text-xs font-medium">
+                                      {resultado.serie || '-'}
+                                    </span>
+                                  </td>
+                                  <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <span
+                                      className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold shadow-sm ${getPresencaColor(
+                                        resultado.presenca || 'P'
+                                      )}`}
+                                    >
+                                      {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                    </span>
+                                  </td>
+                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                        {resultado.total_acertos_lp || 0}/20
+                                      </div>
+                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
+                                        {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
+                                      </div>
+                                      {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                          <div
+                                            className={`h-0.5 md:h-1 rounded-full ${
+                                              notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                            }`}
+                                            style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
+                                          ></div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_ch)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                        {resultado.total_acertos_ch || 0}/10
+                                      </div>
+                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
+                                        {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
+                                      </div>
+                                      {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                          <div
+                                            className={`h-0.5 md:h-1 rounded-full ${
+                                              notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                            }`}
+                                            style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
+                                          ></div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                        {resultado.total_acertos_mat || 0}/20
+                                      </div>
+                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
+                                        {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
+                                      </div>
+                                      {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                          <div
+                                            className={`h-0.5 md:h-1 rounded-full ${
+                                              notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                            }`}
+                                            style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
+                                          ></div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_cn)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                        {resultado.total_acertos_cn || 0}/10
+                                      </div>
+                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
+                                        {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
+                                      </div>
+                                      {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                          <div
+                                            className={`h-0.5 md:h-1 rounded-full ${
+                                              notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                            }`}
+                                            style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
+                                          ></div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
+                                      mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
+                                      mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
+                                      'border-red-500'
+                                    } w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      <div className={`text-[10px] sm:text-xs md:text-sm lg:text-base xl:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
+                                        {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
+                                      </div>
+                                      {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                        <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600">
+                                          Média
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-3 lg:px-2 text-center">
+                                    <button
+                                      className="w-full inline-flex items-center justify-center px-1 sm:px-1.5 md:px-2 lg:px-3 py-1 sm:py-1 md:py-1.5 lg:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-[9px] sm:text-[10px] md:text-xs font-medium shadow-sm"
+                                      title="Ver questões do aluno"
+                                    >
+                                      <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 mr-0.5 sm:mr-1 flex-shrink-0" />
+                                      <span className="hidden md:inline">Ver Questões</span>
+                                      <span className="md:hidden">Ver</span>
+                                    </button>
+                                  </td>
+                                </tr>
+                              )
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Paginação */}
+                    {totalPaginas > 1 && (
+                      <div className="px-6 py-4 border-t-2 border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-gray-100">
+                        <p className="text-sm font-medium text-gray-700">
+                          Mostrando <span className="font-bold text-indigo-600">{((paginaAtual - 1) * itensPorPagina) + 1}</span> até{' '}
+                          <span className="font-bold text-indigo-600">{Math.min(paginaAtual * itensPorPagina, alunosOrdenados.length)}</span> de{' '}
+                          <span className="font-bold text-gray-900">{alunosOrdenados.length.toLocaleString('pt-BR')}</span> registros
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))} 
+                            disabled={paginaAtual === 1} 
+                            className="px-4 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Anterior
+                          </button>
+                          <div className="flex gap-1">
+                            {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
+                              let p = i + 1
+                              if (totalPaginas > 5) {
+                                if (paginaAtual <= 3) p = i + 1
+                                else if (paginaAtual >= totalPaginas - 2) p = totalPaginas - 4 + i
+                                else p = paginaAtual - 2 + i
+                              }
+                              return (
+                                <button 
+                                  key={p} 
+                                  onClick={() => setPaginaAtual(p)} 
+                                  className={`px-3 py-2 text-sm font-semibold border-2 rounded-lg transition-colors ${
+                                    paginaAtual === p 
+                                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                                      : 'border-gray-300 hover:bg-gray-100 text-gray-700'
+                                  }`}
+                                >
+                                  {p}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <button 
+                            onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))} 
+                            disabled={paginaAtual === totalPaginas} 
+                            className="px-4 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Próximo
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
