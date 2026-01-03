@@ -242,10 +242,6 @@ export default function DadosPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [usuario, setUsuario] = useState<any>(null)
 
-  useEffect(() => {
-    carregarDados()
-  }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
-
   const carregarDados = async () => {
     setCarregando(true)
     setErro(null)
@@ -279,6 +275,11 @@ export default function DadosPage() {
       setCarregando(false)
     }
   }
+
+  useEffect(() => {
+    carregarDados()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
 
   const limparFiltros = () => {
     setFiltroPoloId('')
