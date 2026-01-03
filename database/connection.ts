@@ -1,12 +1,40 @@
 import { Pool } from 'pg';
 
 let pool: Pool | null = null;
+let poolConfig: {
+  host?: string;
+  database?: string;
+  user?: string;
+  port?: number;
+} | null = null;
 
 function createPool(): Pool {
   // Detectar se está conectando ao Supabase
   const isSupabase = process.env.DB_HOST?.includes('supabase.co') || 
-                     process.env.DB_HOST?.includes('pooler.supabase.com');
+                     process.env.DB_HOST?.includes('pooler.supabase.com') ||
+                     process.env.DB_HOST?.includes('aws-0-');
   
+  // Validar variáveis de ambiente obrigatórias
+  const host = process.env.DB_HOST;
+  const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined;
+  const database = process.env.DB_NAME;
+  const user = process.env.DB_USER;
+  const password = process.env.DB_PASSWORD;
+
+  // Validação básica
+  if (!host) {
+    throw new Error('DB_HOST não está configurado');
+  }
+  if (!database) {
+    throw new Error('DB_NAME não está configurado');
+  }
+  if (!user) {
+    throw new Error('DB_USER não está configurado');
+  }
+  if (!password) {
+    throw new Error('DB_PASSWORD não está configurado');
+  }
+
   // Configuração SSL: sempre usar para Supabase, produção ou quando DB_SSL=true
   const sslConfig = process.env.NODE_ENV === 'production' || 
                     process.env.DB_SSL === 'true' || 
@@ -16,22 +44,15 @@ function createPool(): Pool {
       }
     : false;
 
-  // Ler variáveis de ambiente diretamente
-  const host = process.env.DB_HOST;
-  const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined;
-  const database = process.env.DB_NAME;
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASSWORD;
-
   const config: any = {
-    host: host || 'localhost',
+    host: host,
     port: port || 5432,
-    database: database || 'sisam',
-    user: user || 'postgres',
-    password: password || 'postgres',
+    database: database,
+    user: user,
+    password: password,
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: isSupabase ? 20000 : 10000, // Aumentado timeout
+    connectionTimeoutMillis: isSupabase ? 30000 : 10000,
     ssl: sslConfig,
     // Opções adicionais para melhorar conectividade
     keepAlive: true,
@@ -40,8 +61,8 @@ function createPool(): Pool {
 
   // Configurações especiais para Vercel + Supabase
   if (process.env.NODE_ENV === 'production' && isSupabase) {
-    // Tentar IPv4 e IPv6 (auto)
-    config.family = 0; // 0 = auto (tenta IPv6 primeiro, depois IPv4)
+    // Forçar IPv4 primeiro (mais confiável na Vercel)
+    config.family = 4; // 4 = IPv4 apenas
     
     // Aumentar timeouts para dar tempo de resolver DNS
     config.connectionTimeoutMillis = 30000;
@@ -56,42 +77,74 @@ function createPool(): Pool {
     database: config.database,
     user: config.user,
     ssl: !!sslConfig,
+    isSupabase,
     nodeEnv: process.env.NODE_ENV,
-    envHost: process.env.DB_HOST,
-    envDatabase: process.env.DB_NAME,
-    envUser: process.env.DB_USER,
-    envPort: process.env.DB_PORT,
+    family: config.family || 'auto',
   });
 
   const newPool = new Pool(config);
 
   // Tratamento de erros de conexão
-  newPool.on('error', (err) => {
-    console.error('Erro inesperado no pool de conexões:', err);
+  newPool.on('error', (err: any) => {
+    console.error('Erro inesperado no pool de conexões:', {
+      code: err?.code || 'UNKNOWN',
+      message: err?.message || 'Erro desconhecido',
+      host: config.host,
+    });
+    
+    // Se for erro de conexão, resetar pool para forçar recriação
+    const errorCode = err?.code;
+    if (errorCode === 'ECONNREFUSED' || errorCode === 'ENOTFOUND' || errorCode === 'ETIMEDOUT') {
+      console.log('Erro de conexão detectado, pool será recriado na próxima requisição');
+      pool = null;
+      poolConfig = null;
+    }
   });
+
+  // Armazenar configuração atual para comparação futura
+  poolConfig = {
+    host,
+    database,
+    user,
+    port: port || 5432,
+  };
 
   return newPool;
 }
 
 // Criar pool de forma lazy (apenas quando necessário)
 function getPool(): Pool {
-  // Se o pool já existe mas as variáveis mudaram, recriar
-  if (pool) {
-    // Verificar se as variáveis de ambiente mudaram
-    const currentHost = process.env.DB_HOST;
-    const currentDatabase = process.env.DB_NAME;
+  const currentHost = process.env.DB_HOST;
+  const currentDatabase = process.env.DB_NAME;
+  const currentUser = process.env.DB_USER;
+  const currentPort = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432;
+  
+  // Verificar se o pool existe e se as configurações mudaram
+  if (pool && poolConfig) {
+    const configChanged = 
+      poolConfig.host !== currentHost ||
+      poolConfig.database !== currentDatabase ||
+      poolConfig.user !== currentUser ||
+      poolConfig.port !== currentPort;
     
-    // Se estamos em produção e as variáveis não batem, recriar pool
-    if (process.env.NODE_ENV === 'production') {
-      // Forçar recriação se necessário (pool pode ter sido criado com valores antigos)
-      // Isso garante que sempre use as variáveis atuais
+    if (configChanged) {
+      console.log('Configuração do banco mudou, recriando pool...');
+      pool.end().catch(console.error);
+      pool = null;
+      poolConfig = null;
     }
   }
   
   if (!pool) {
     console.log('Criando novo pool PostgreSQL...');
-    pool = createPool();
+    try {
+      pool = createPool();
+    } catch (error: any) {
+      console.error('Erro ao criar pool PostgreSQL:', error.message);
+      throw error;
+    }
   }
+  
   return pool;
 }
 
@@ -100,6 +153,30 @@ export function resetPool() {
   if (pool) {
     pool.end().catch(console.error);
     pool = null;
+    poolConfig = null;
+  }
+}
+
+// Função para testar conexão
+export async function testConnection(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const testPool = getPool();
+    await testPool.query('SELECT 1');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Erro ao testar conexão:', {
+      code: error.code,
+      message: error.message,
+      host: process.env.DB_HOST,
+    });
+    
+    // Resetar pool em caso de erro
+    resetPool();
+    
+    return {
+      success: false,
+      error: error.message || 'Erro desconhecido ao conectar ao banco de dados',
+    };
   }
 }
 
