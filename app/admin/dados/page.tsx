@@ -208,6 +208,24 @@ const getNotaBgColor = (nota: number | string | null | undefined) => {
   return 'bg-red-50 border-red-200'
 }
 
+// Componente auxiliar para tooltip customizado
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 text-sm">
+        <p className="font-semibold text-gray-900 mb-1">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }} className="flex justify-between gap-4">
+            <span>{entry.name}:</span>
+            <span className="font-medium">{typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}</span>
+          </p>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
 export default function DadosPage() {
   const [dados, setDados] = useState<DashboardData | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -401,24 +419,6 @@ export default function DadosPage() {
     }
     carregarTipoUsuario()
   }, [])
-
-  // Função auxiliar para tooltip customizado
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 text-sm">
-          <p className="font-semibold text-gray-900 mb-1">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }} className="flex justify-between gap-4">
-              <span>{entry.name}:</span>
-              <span className="font-medium">{typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}</span>
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
