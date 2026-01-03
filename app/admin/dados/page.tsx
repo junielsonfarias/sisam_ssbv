@@ -340,6 +340,7 @@ export default function DadosPage() {
   }
 
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
+  const [usuario, setUsuario] = useState<any>(null)
 
   useEffect(() => {
     const carregarTipoUsuario = async () => {
@@ -349,6 +350,11 @@ export default function DadosPage() {
         if (data.usuario) {
           const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
           setTipoUsuario(tipo)
+          setUsuario(data.usuario)
+          // Se for usuário escola, definir automaticamente o filtro de escola
+          if (data.usuario.tipo_usuario === 'escola' && data.usuario.escola_id) {
+            setFiltroEscolaId(data.usuario.escola_id)
+          }
         }
       } catch (error) {
         console.error('Erro ao carregar tipo de usuário:', error)
