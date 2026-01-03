@@ -957,7 +957,7 @@ export default function ResultadosEscolaPage() {
                 </>
               )}
             </div>
-          )}
+          </div>
 
           {modalAberto && alunoSelecionado && (
             <ModalQuestoesAluno
