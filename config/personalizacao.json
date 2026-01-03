@@ -1,0 +1,16 @@
+{
+  "login": {
+    "titulo": "SISAM",
+    "subtitulo": "Sistema de Análise de Provas",
+    "imagem_url": null,
+    "cor_primaria": "#4f46e5",
+    "cor_secundaria": "#818cf8"
+  },
+  "rodape": {
+    "texto": "© 2026 SISAM - Todos os direitos reservados",
+    "link": null,
+    "link_texto": null,
+    "ativo": true
+  }
+}
+

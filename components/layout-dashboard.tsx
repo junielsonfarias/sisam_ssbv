@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -52,7 +52,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
   useEffect(() => {
     const carregarModulosTecnico = async () => {
-      if (tipoUsuario === 'tecnico') {
+      const tipoUsuarioReal = usuario?.tipo_usuario === 'administrador' ? 'admin' : (usuario?.tipo_usuario || tipoUsuario)
+      if (tipoUsuarioReal === 'tecnico') {
         try {
           const response = await fetch('/api/admin/modulos-tecnico')
           const data = await response.json()
@@ -64,8 +65,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         }
       }
     }
-    carregarModulosTecnico()
-  }, [tipoUsuario])
+    if (usuario) {
+      carregarModulosTecnico()
+    }
+  }, [usuario, tipoUsuario])
 
 
   const handleLogout = async () => {
@@ -80,85 +83,93 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     return tipoUsuario
   }
 
+  // Usar tipo de usuário do estado se disponível, senão usar o prop
+  // Usar useMemo para garantir que o menu seja recalculado quando o usuário mudar
+  const tipoUsuarioReal = usuario?.tipo_usuario === 'administrador' ? 'admin' : (usuario?.tipo_usuario || tipoUsuario || 'admin')
   const basePath = getBasePath() || 'admin' // Garantir que nunca seja undefined
 
-  const menuItems = [
-    { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
-    // { icon: BarChart3, label: 'Análise de Dados', href: `/${basePath}/analise` }, // Desabilitado
-  ]
+  // Usar useMemo para garantir que menuItems seja estável
+  const menuItems = useMemo(() => {
+    const items = [
+      { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
+      // { icon: BarChart3, label: 'Análise de Dados', href: `/${basePath}/analise` }, // Desabilitado
+    ]
 
-  // Adicionar Análise Gráfica apenas se não for usuário escola (escola tem menu próprio)
-  if (tipoUsuario !== 'escola') {
-    menuItems.push({ icon: TrendingUp, label: 'Análise Gráfica', href: `/${basePath}/graficos` })
-  }
-
-  if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
-    menuItems.push(
-      { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
-      { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
-      { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' }
-    )
-  }
-
-  if (tipoUsuario === 'tecnico') {
-    // Mapear módulos habilitados para itens de menu
-    const moduloMap: Record<string, { icon: any; label: string; href: string }> = {
-      resultados: { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
-      comparativos: { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
-      escolas: { icon: School, label: 'Escolas', href: '/admin/escolas' },
-      polos: { icon: MapPin, label: 'Polos', href: '/admin/polos' },
-      alunos: { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
+    // Adicionar Análise Gráfica apenas se não for usuário escola (escola tem menu próprio)
+    if (tipoUsuarioReal !== 'escola') {
+      items.push({ icon: TrendingUp, label: 'Análise Gráfica', href: `/${basePath}/graficos` })
     }
 
-    // Adicionar apenas módulos habilitados, ordenados por ordem
-    const modulosOrdenados = [...modulosTecnico].sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
-    modulosOrdenados.forEach((modulo) => {
-      const item = moduloMap[modulo.modulo_key]
-      if (item) {
-        menuItems.push(item)
-      }
-    })
-
-    // Se não houver módulos configurados ou se modulosTecnico estiver vazio, usar padrão
-    if (modulosTecnico.length === 0) {
-      menuItems.push(
+    // Menu específico para ADMINISTRADOR
+    if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
+      items.push(
         { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
+        { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
+        { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+        { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
         { icon: School, label: 'Escolas', href: '/admin/escolas' },
         { icon: MapPin, label: 'Polos', href: '/admin/polos' },
-        { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
+        { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
+        { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
+        { icon: Settings, label: 'Configurar Séries', href: '/admin/configurar-series' },
+        { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
+        { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
+        { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' }
       )
     }
-  }
 
-  if (tipoUsuario === 'polo') {
-    menuItems.push(
-      { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' }
-    )
-  }
+    // Menu específico para TÉCNICO
+    if (tipoUsuarioReal === 'tecnico') {
+      // Mapear módulos habilitados para itens de menu
+      const moduloMap: Record<string, { icon: any; label: string; href: string }> = {
+        resultados: { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
+        comparativos: { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
+        dados: { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+        escolas: { icon: School, label: 'Escolas', href: '/admin/escolas' },
+        polos: { icon: MapPin, label: 'Polos', href: '/admin/polos' },
+        alunos: { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
+      }
 
-  if (tipoUsuario === 'escola') {
-    menuItems.push(
-      { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
-      { icon: BarChart3, label: 'Análise Gráfica', href: '/escola/graficos' },
-      { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' }
-    )
-  }
+      // Adicionar apenas módulos habilitados, ordenados por ordem
+      const modulosOrdenados = [...modulosTecnico].sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+      modulosOrdenados.forEach((modulo) => {
+        const item = moduloMap[modulo.modulo_key]
+        if (item) {
+          items.push(item)
+        }
+      })
 
-  if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
-    menuItems.push(
-      { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
-      { icon: School, label: 'Escolas', href: '/admin/escolas' },
-      { icon: MapPin, label: 'Polos', href: '/admin/polos' },
-      { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
-      { icon: FileText, label: 'Questões', href: '/admin/questoes' },
-      { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
-      { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
-      { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' },
-      { icon: Database, label: 'Importação Completa', href: '/admin/importar-completo' },
-      { icon: FileCheck, label: 'Histórico de Importações', href: '/admin/importacoes' }
-    )
-  }
+      // Se não houver módulos configurados ou se modulosTecnico estiver vazio, usar padrão
+      if (modulosTecnico.length === 0) {
+        items.push(
+          { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
+          { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
+          { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+          { icon: School, label: 'Escolas', href: '/admin/escolas' },
+          { icon: MapPin, label: 'Polos', href: '/admin/polos' },
+          { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
+        )
+      }
+    }
+
+    if (tipoUsuarioReal === 'polo') {
+      items.push(
+        { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' }
+      )
+    }
+
+    if (tipoUsuarioReal === 'escola') {
+      items.push(
+        { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
+        { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+        { icon: BarChart3, label: 'Análise Gráfica', href: '/escola/graficos' },
+        { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' }
+      )
+    }
+
+    return items
+  }, [tipoUsuarioReal, basePath, modulosTecnico, usuario])
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

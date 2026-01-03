@@ -1,17 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogIn, Eye, EyeOff } from 'lucide-react'
 import Rodape from '@/components/rodape'
-
-interface Personalizacao {
-  login_titulo: string
-  login_subtitulo: string
-  login_imagem_url: string | null
-  login_cor_primaria: string
-  login_cor_secundaria: string
-}
+import { getPersonalizacaoLogin } from '@/lib/personalizacao'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -20,37 +13,7 @@ export default function LoginPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const [personalizacao, setPersonalizacao] = useState<Personalizacao>({
-    login_titulo: 'SISAM',
-    login_subtitulo: 'Sistema de Análise de Provas',
-    login_imagem_url: null,
-    login_cor_primaria: '#4f46e5',
-    login_cor_secundaria: '#818cf8',
-  })
-
-  useEffect(() => {
-    const carregarPersonalizacao = async () => {
-      try {
-        const response = await fetch('/api/admin/personalizacao')
-        if (response.ok) {
-          const data = await response.json()
-          if (data) {
-            setPersonalizacao({
-              login_titulo: data.login_titulo || 'SISAM',
-              login_subtitulo: data.login_subtitulo || 'Sistema de Análise de Provas',
-              login_imagem_url: data.login_imagem_url || null,
-              login_cor_primaria: data.login_cor_primaria || '#4f46e5',
-              login_cor_secundaria: data.login_cor_secundaria || '#818cf8',
-            })
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao carregar personalização:', error)
-        // Manter valores padrão em caso de erro
-      }
-    }
-    carregarPersonalizacao()
-  }, [])
+  const personalizacao = getPersonalizacaoLogin()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -104,29 +67,29 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100" style={{
-      background: `linear-gradient(to bottom right, ${personalizacao.login_cor_secundaria}15, ${personalizacao.login_cor_primaria}25)`
+      background: `linear-gradient(to bottom right, ${personalizacao.cor_secundaria}15, ${personalizacao.cor_primaria}25)`
     }}>
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-md">
           <div className="flex items-center justify-center mb-6">
-            {personalizacao.login_imagem_url ? (
+            {personalizacao.imagem_url ? (
               <img
-                src={personalizacao.login_imagem_url}
+                src={personalizacao.imagem_url}
                 alt="Logo"
                 className="max-h-20 max-w-full object-contain"
               />
             ) : (
-              <div className="p-3 rounded-full" style={{ backgroundColor: personalizacao.login_cor_primaria }}>
+              <div className="p-3 rounded-full" style={{ backgroundColor: personalizacao.cor_primaria }}>
                 <LogIn className="w-8 h-8 text-white" />
               </div>
             )}
           </div>
           
-          <h1 className="text-2xl font-bold text-center text-gray-800 mb-2" style={{ color: personalizacao.login_cor_primaria }}>
-            {personalizacao.login_titulo}
+          <h1 className="text-2xl font-bold text-center text-gray-800 mb-2" style={{ color: personalizacao.cor_primaria }}>
+            {personalizacao.titulo}
           </h1>
           <p className="text-center text-gray-600 mb-8">
-            {personalizacao.login_subtitulo}
+            {personalizacao.subtitulo}
           </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -185,10 +148,10 @@ export default function LoginPage() {
             disabled={carregando}
             className="w-full text-white py-2 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             style={{
-              backgroundColor: personalizacao.login_cor_primaria,
+              backgroundColor: personalizacao.cor_primaria,
             } as React.CSSProperties}
             onMouseEnter={(e) => {
-              const color = personalizacao.login_cor_primaria
+              const color = personalizacao.cor_primaria
               const r = parseInt(color.slice(1, 3), 16)
               const g = parseInt(color.slice(3, 5), 16)
               const b = parseInt(color.slice(5, 7), 16)
@@ -196,7 +159,7 @@ export default function LoginPage() {
               e.currentTarget.style.backgroundColor = darker
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = personalizacao.login_cor_primaria
+              e.currentTarget.style.backgroundColor = personalizacao.cor_primaria
             }}
           >
             {carregando ? 'Entrando...' : 'Entrar'}
