@@ -237,6 +237,10 @@ export default function DadosPage() {
   // Modal de questões
   const [modalAberto, setModalAberto] = useState(false)
   const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string } | null>(null)
+  
+  // Usuário e tipo de usuário
+  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
+  const [usuario, setUsuario] = useState<any>(null)
 
   useEffect(() => {
     carregarDados()
@@ -392,9 +396,6 @@ export default function DadosPage() {
     }
     return null
   }
-
-  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
-  const [usuario, setUsuario] = useState<any>(null)
 
   useEffect(() => {
     const carregarTipoUsuario = async () => {
