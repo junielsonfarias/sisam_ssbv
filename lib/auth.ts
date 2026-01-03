@@ -59,16 +59,28 @@ export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuar
     return null;
   }
 
-  const result = await pool.query(
-    'SELECT * FROM usuarios WHERE id = $1 AND ativo = true',
-    [payload.userId]
-  );
+  try {
+    const result = await pool.query(
+      'SELECT * FROM usuarios WHERE id = $1 AND ativo = true',
+      [payload.userId]
+    );
 
-  if (result.rows.length === 0) {
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0] as Usuario;
+  } catch (error: any) {
+    console.error('Erro ao buscar usuário no banco de dados:', {
+      code: error?.code,
+      message: error?.message,
+      userId: payload.userId,
+    });
+    
+    // Em caso de erro de conexão, retornar null para não quebrar a aplicação
+    // O erro será logado para diagnóstico
     return null;
   }
-
-  return result.rows[0] as Usuario;
 }
 
 export function verificarPermissao(
