@@ -89,9 +89,11 @@ export default function AlunosPage() {
       }
     }
     carregarTipoUsuario()
-    fetch('/api/admin/polos').then(r => r.json()).then(setPolos).catch(() => setPolos([]))
-    // Carregar alunos iniciais para popular filtros
-    carregarAlunos().finally(() => setCarregando(false))
+    fetch('/api/admin/polos')
+      .then(r => r.json())
+      .then(setPolos)
+      .catch(() => setPolos([]))
+      .finally(() => setCarregando(false))
   }, [])
 
   useEffect(() => {
@@ -167,8 +169,13 @@ export default function AlunosPage() {
       setAlunos(alunosFiltrados)
     } catch (error) {
       console.error('Erro ao carregar alunos:', error)
+      setAlunos([])
     }
   }
+
+  useEffect(() => {
+    carregarAlunos()
+  }, [buscaDebounced, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, escolas])
 
   const handleAbrirModal = async (aluno?: Aluno) => {
     if (aluno) {
