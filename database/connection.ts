@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, QueryResult } from 'pg';
 
 let pool: Pool | null = null;
 let poolConfig: {
@@ -221,7 +221,7 @@ async function queryWithRetry(
   queryText: string,
   params?: any[],
   maxRetries: number = 3
-): Promise<any> {
+): Promise<QueryResult<any>> {
   let lastError: any;
   
   for (let attempt = 0; attempt < maxRetries; attempt++) {
