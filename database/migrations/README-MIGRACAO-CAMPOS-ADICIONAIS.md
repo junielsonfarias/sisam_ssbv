@@ -88,3 +88,4 @@ DROP COLUMN IF EXISTS nivel_aprendizagem;
 -- (Execute a migração anterior para restaurar as views)
 ```
 
+

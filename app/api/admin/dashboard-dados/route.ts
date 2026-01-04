@@ -1119,9 +1119,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Salvar no cache para proximas requisicoes
+    // Limpar caches expirados antes de salvar novo cache
     try {
-      salvarCache(cacheOptions, dadosResposta)
+      const { limparCachesExpirados } = await import('@/lib/cache-dashboard')
+      limparCachesExpirados()
+    } catch (cacheError) {
+      // Não crítico, continuar
+    }
+
+    // Salvar no cache para proximas requisicoes (expira em 1 hora)
+    try {
+      salvarCache(cacheOptions, dadosResposta, 'dashboard')
     } catch (cacheError) {
       console.error('Erro ao salvar cache (nao critico):', cacheError)
     }

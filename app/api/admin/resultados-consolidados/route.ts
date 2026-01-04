@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache-dashboard'
 
 export const dynamic = 'force-dynamic';
-// Cache de 30 segundos para dados que não mudam frequentemente
-export const revalidate = 30;
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -16,6 +15,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Limpar caches expirados
+    try {
+      limparCachesExpirados()
+    } catch (error) {
+      // Não crítico
+    }
+
     const { searchParams } = new URL(request.url)
     const escolaId = searchParams.get('escola_id')
     const poloId = searchParams.get('polo_id')
@@ -23,6 +29,32 @@ export async function GET(request: NextRequest) {
     const serie = searchParams.get('serie')
     const presenca = searchParams.get('presenca')
     const turmaId = searchParams.get('turma_id')
+
+    // Verificar cache
+    const cacheOptions = {
+      filtros: {
+        escolaId,
+        poloId,
+        anoLetivo,
+        serie,
+        presenca,
+        turmaId
+      },
+      tipoUsuario: usuario.tipo_usuario,
+      usuarioId: usuario.id,
+      poloId: usuario.polo_id || null,
+      escolaId: usuario.escola_id || null
+    }
+
+    const forcarAtualizacao = searchParams.get('atualizar_cache') === 'true'
+
+    if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+      const dadosCache = carregarCache<any>(cacheOptions)
+      if (dadosCache) {
+        console.log('Retornando resultados consolidados do cache')
+        return NextResponse.json(dadosCache)
+      }
+    }
 
     // Otimizar query: usar JOIN ao invés de subconsultas
     let query = `
@@ -124,6 +156,13 @@ export async function GET(request: NextRequest) {
     query += ' ORDER BY rc.media_aluno DESC NULLS LAST, a.nome'
 
     const result = await pool.query(query, params)
+
+    // Salvar no cache (expira em 1 hora)
+    try {
+      salvarCache(cacheOptions, result.rows, 'resultados-consolidados')
+    } catch (cacheError) {
+      console.error('Erro ao salvar cache (nao critico):', cacheError)
+    }
 
     return NextResponse.json(result.rows)
   } catch (error) {

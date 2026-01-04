@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache-dashboard'
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Sempre revalidar, sem cache
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -13,6 +13,38 @@ export async function GET(request: NextRequest) {
         { mensagem: 'Não autorizado' },
         { status: 403 }
       )
+    }
+
+    // Limpar caches expirados
+    try {
+      limparCachesExpirados()
+    } catch (error) {
+      // Não crítico
+    }
+
+    // Verificar cache
+    const cacheOptions = {
+      filtros: {},
+      tipoUsuario: usuario.tipo_usuario,
+      usuarioId: usuario.id,
+      poloId: usuario.polo_id || null,
+      escolaId: usuario.escola_id || null
+    }
+
+    const forcarAtualizacao = request.nextUrl.searchParams.get('atualizar_cache') === 'true'
+
+    if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+      const dadosCache = carregarCache<any>(cacheOptions)
+      if (dadosCache) {
+        console.log('Retornando estatísticas do cache')
+        return NextResponse.json({
+          ...dadosCache,
+          _cache: {
+            origem: 'cache',
+            carregadoEm: new Date().toISOString()
+          }
+        })
+      }
     }
 
     // Tratamento individual de cada query para evitar que uma falha quebre todas
@@ -106,7 +138,7 @@ export async function GET(request: NextRequest) {
       console.error('Erro ao buscar média e aprovação:', error.message)
     }
 
-    return NextResponse.json({
+    const dadosResposta = {
       totalUsuarios,
       totalEscolas,
       totalPolos,
@@ -118,6 +150,21 @@ export async function GET(request: NextRequest) {
       totalAlunosFaltantes,
       mediaGeral,
       taxaAprovacao,
+    }
+
+    // Salvar no cache (expira em 1 hora)
+    try {
+      salvarCache(cacheOptions, dadosResposta, 'estatisticas')
+    } catch (cacheError) {
+      console.error('Erro ao salvar cache (nao critico):', cacheError)
+    }
+
+    return NextResponse.json({
+      ...dadosResposta,
+      _cache: {
+        origem: 'banco',
+        geradoEm: new Date().toISOString()
+      }
     })
   } catch (error: any) {
     console.error('Erro geral ao buscar estatísticas:', error)

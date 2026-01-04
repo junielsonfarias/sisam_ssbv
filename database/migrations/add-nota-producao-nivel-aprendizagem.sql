@@ -185,3 +185,4 @@ COMMENT ON VIEW resultados_consolidados_v2 IS
 COMMENT ON VIEW resultados_consolidados_unificada IS 
   'VIEW unificada que usa resultados_consolidados_v2 quando disponível, ou resultados_consolidados como fallback. Inclui nota_producao e nivel_aprendizagem.';
 
+

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache-dashboard'
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Sempre revalidar, sem cache
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -15,12 +15,50 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Limpar caches expirados
+    try {
+      limparCachesExpirados()
+    } catch (error) {
+      // Não crítico
+    }
+
     const { searchParams } = new URL(request.url)
     const escolasIds = searchParams.get('escolas_ids')?.split(',').filter(Boolean) || []
     const poloId = searchParams.get('polo_id')
     const anoLetivo = searchParams.get('ano_letivo')
     const serie = searchParams.get('serie')
     const turmaId = searchParams.get('turma_id')
+
+    // Verificar cache
+    const cacheOptions = {
+      filtros: {
+        escolasIds: escolasIds.join(','),
+        poloId,
+        anoLetivo,
+        serie,
+        turmaId
+      },
+      tipoUsuario: usuario.tipo_usuario,
+      usuarioId: usuario.id,
+      poloId: usuario.polo_id || null,
+      escolaId: usuario.escola_id || null
+    }
+
+    const forcarAtualizacao = searchParams.get('atualizar_cache') === 'true'
+
+    if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+      const dadosCache = carregarCache<any>(cacheOptions)
+      if (dadosCache) {
+        console.log('Retornando comparativos do cache')
+        return NextResponse.json({
+          ...dadosCache,
+          _cache: {
+            origem: 'cache',
+            carregadoEm: new Date().toISOString()
+          }
+        })
+      }
+    }
 
     if (escolasIds.length === 0 && !poloId) {
       return NextResponse.json(
@@ -338,13 +376,28 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const dadosResposta = {
       dados: result.rows,
       dadosPorSerie, // Por turma (atual)
       dadosPorSerieAgregado, // Agregado por série (novo)
       melhoresAlunos, // Melhores alunos por escola/série
       totalEscolas: new Set(result.rows.map((r: any) => r.escola_id)).size,
       totalSeries: Object.keys(dadosPorSerie).length,
+    }
+
+    // Salvar no cache (expira em 1 hora)
+    try {
+      salvarCache(cacheOptions, dadosResposta, 'comparativos')
+    } catch (cacheError) {
+      console.error('Erro ao salvar cache (nao critico):', cacheError)
+    }
+
+    return NextResponse.json({
+      ...dadosResposta,
+      _cache: {
+        origem: 'banco',
+        geradoEm: new Date().toISOString()
+      }
     })
   } catch (error) {
     console.error('Erro ao buscar comparativos:', error)

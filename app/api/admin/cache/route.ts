@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
-import { limparTodosOsCaches, obterInfoCaches } from '@/lib/cache-dashboard'
+import { 
+  limparTodosOsCaches, 
+  limparCachesExpirados, 
+  obterInfoCaches,
+  obterInfoCache 
+} from '@/lib/cache-dashboard'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/admin/cache
- * Retorna informacoes sobre os caches existentes
+ * Retorna informações sobre os caches
  */
 export async function GET(request: NextRequest) {
   try {
@@ -14,52 +19,42 @@ export async function GET(request: NextRequest) {
 
     if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
       return NextResponse.json(
-        { mensagem: 'Nao autorizado' },
+        { mensagem: 'Não autorizado' },
         { status: 403 }
       )
     }
 
+    const acao = request.nextUrl.searchParams.get('acao')
+    
+    // Limpar caches expirados
+    if (acao === 'limpar_expirados') {
+      const removidos = limparCachesExpirados()
+      return NextResponse.json({
+        mensagem: `${removidos} cache(s) expirado(s) removido(s)`,
+        removidos
+      })
+    }
+
+    // Limpar todos os caches
+    if (acao === 'limpar_todos') {
+      limparTodosOsCaches()
+      return NextResponse.json({
+        mensagem: 'Todos os caches foram limpos com sucesso'
+      })
+    }
+
+    // Retornar informações dos caches
     const info = obterInfoCaches()
-
+    
     return NextResponse.json({
-      sucesso: true,
       ...info,
-      tamanhoTotalFormatado: `${(info.tamanhoTotal / 1024 / 1024).toFixed(2)} MB`
+      tamanhoTotalKB: (info.tamanhoTotal / 1024).toFixed(2),
+      tamanhoTotalMB: (info.tamanhoTotal / 1024 / 1024).toFixed(2)
     })
   } catch (error: any) {
-    console.error('Erro ao obter informacoes do cache:', error)
+    console.error('Erro ao gerenciar cache:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
-      { status: 500 }
-    )
-  }
-}
-
-/**
- * DELETE /api/admin/cache
- * Limpa todos os caches
- */
-export async function DELETE(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Apenas administradores podem limpar o cache' },
-        { status: 403 }
-      )
-    }
-
-    limparTodosOsCaches()
-
-    return NextResponse.json({
-      sucesso: true,
-      mensagem: 'Todos os caches foram limpos com sucesso'
-    })
-  } catch (error: any) {
-    console.error('Erro ao limpar cache:', error)
-    return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: error.message || 'Erro ao gerenciar cache' },
       { status: 500 }
     )
   }
