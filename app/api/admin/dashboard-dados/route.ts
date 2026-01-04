@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { verificarCache, carregarCache, salvarCache } from '@/lib/cache-dashboard'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +42,50 @@ export async function GET(request: NextRequest) {
     const paginaAlunos = parseInt(searchParams.get('pagina_alunos') || '1')
     const limiteAlunos = Math.min(parseInt(searchParams.get('limite_alunos') || '100'), 500) // Máximo 500 por página
     const offsetAlunos = (paginaAlunos - 1) * limiteAlunos
+
+    // Parametro para forcar atualizacao do cache
+    const forcarAtualizacao = searchParams.get('atualizar_cache') === 'true'
+
+    // Configurar opcoes de cache
+    const cacheOptions = {
+      filtros: {
+        poloId,
+        escolaId,
+        anoLetivo,
+        serie,
+        turmaId,
+        presenca,
+        nivelAprendizagem,
+        faixaMedia,
+        disciplina,
+        taxaAcertoMin,
+        taxaAcertoMax,
+        questaoCodigo,
+        areaConhecimento,
+        tipoAnalise,
+        paginaAlunos,
+        limiteAlunos
+      },
+      tipoUsuario: usuario.tipo_usuario,
+      usuarioId: usuario.id,
+      poloId: usuario.polo_id || null,
+      escolaId: usuario.escola_id || null
+    }
+
+    // Verificar se existe cache valido (apenas se nao estiver forcando atualizacao)
+    if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+      const dadosCache = carregarCache<any>(cacheOptions)
+      if (dadosCache) {
+        console.log('Retornando dados do cache')
+        return NextResponse.json({
+          ...dadosCache,
+          _cache: {
+            origem: 'cache',
+            carregadoEm: new Date().toISOString()
+          }
+        })
+      }
+    }
 
     // Construir condições de filtro
     let whereConditions: string[] = []
@@ -830,7 +875,8 @@ export async function GET(request: NextRequest) {
     const metricas = metricasResult.rows[0] || {}
     const taxaAcertoGeral = taxaAcertoGeralResult.rows[0] || {}
 
-    return NextResponse.json({
+    // Construir objeto de resposta
+    const dadosResposta = {
       metricas: {
         total_alunos: parseInt(metricas.total_alunos) || 0,
         total_escolas: parseInt(metricas.total_escolas) || 0,
@@ -1013,6 +1059,21 @@ export async function GET(request: NextRequest) {
           taxa_erro: parseFloat(row.taxa_erro) || 0,
           total_alunos: parseInt(row.total_alunos) || 0
         }))
+      }
+    }
+
+    // Salvar no cache para proximas requisicoes
+    try {
+      salvarCache(cacheOptions, dadosResposta)
+    } catch (cacheError) {
+      console.error('Erro ao salvar cache (nao critico):', cacheError)
+    }
+
+    return NextResponse.json({
+      ...dadosResposta,
+      _cache: {
+        origem: 'banco',
+        geradoEm: new Date().toISOString()
       }
     })
   } catch (error: any) {

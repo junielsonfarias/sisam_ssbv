@@ -102,8 +102,16 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const tipoUsuarioReal = usuario?.tipo_usuario === 'administrador' ? 'admin' : (usuario?.tipo_usuario || tipoUsuario || 'admin')
   const basePath = getBasePath() || 'admin' // Garantir que nunca seja undefined
 
+  // Verificar se o menu está pronto para ser exibido (evita flickering)
+  const menuPronto = usuario !== null && modulosCarregados
+
   // Usar useMemo para garantir que menuItems seja estável
   const menuItems = useMemo(() => {
+    // Se não está pronto, retornar apenas o item básico para evitar flickering
+    if (!menuPronto) {
+      return [{ icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` }]
+    }
+
     const items = [
       { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
       // { icon: BarChart3, label: 'Análise de Dados', href: `/${basePath}/analise` }, // Desabilitado
@@ -126,7 +134,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         { icon: MapPin, label: 'Polos', href: '/admin/polos' },
         { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
         { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
-        { icon: Settings, label: 'Configurar Séries', href: '/admin/configurar-series' },
+        { icon: Settings, label: 'Configurar Séries', href: '/admin/configuracao-series' },
         { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
         { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
         { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' }
@@ -183,7 +191,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     }
 
     return items
-  }, [tipoUsuarioReal, basePath, modulosTecnico, usuario, modulosCarregados])
+  }, [tipoUsuarioReal, basePath, modulosTecnico, menuPronto])
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -226,23 +234,37 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           `}
         >
           <nav className="mt-4 sm:mt-8 px-2 sm:px-4">
-            <ul className="space-y-1 sm:space-y-2">
-              {menuItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className="flex items-center px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                      onClick={() => setMenuAberto(false)}
-                    >
-                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
+            {!menuPronto ? (
+              // Skeleton loading para o menu
+              <ul className="space-y-1 sm:space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <li key={i} className="animate-pulse">
+                    <div className="flex items-center px-3 sm:px-4 py-2 sm:py-3">
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 bg-gray-200 rounded" />
+                      <div className="h-4 bg-gray-200 rounded w-24" />
+                    </div>
                   </li>
-                )
-              })}
-            </ul>
+                ))}
+              </ul>
+            ) : (
+              <ul className="space-y-1 sm:space-y-2">
+                {menuItems.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className="flex items-center px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                        onClick={() => setMenuAberto(false)}
+                      >
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </nav>
         </aside>
 

@@ -50,3 +50,7 @@ analisar-excel.py
 public/uploads/*
 !public/uploads/.gitkeep
 
+# cache do dashboard
+config/cache/*
+!config/cache/.gitkeep
+
