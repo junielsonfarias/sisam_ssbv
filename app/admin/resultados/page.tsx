@@ -5,6 +5,7 @@ import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo } from 'react'
 import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Target, CheckCircle2, Eye } from 'lucide-react'
+import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 
 interface ResultadoConsolidado {
   id: string
@@ -251,10 +252,18 @@ export default function ResultadosPage() {
     if (presenca === 'P' || presenca === 'p') {
       return 'bg-green-100 text-green-800'
     }
+    if (presenca === '-') {
+      return 'bg-gray-100 text-gray-600'
+    }
     return 'bg-red-100 text-red-800'
   }
 
   const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
+    // Se não houver dados de frequência, sempre retornar "-"
+    if (presenca === '-') {
+      return '-'
+    }
+    
     // Se aluno faltou, sempre retornar "-"
     if (presenca === 'F' || presenca === 'f') {
       return '-'
@@ -305,6 +314,11 @@ export default function ResultadosPage() {
       return resultadosFiltrados.every(r => isAnosIniciais(r.serie))
     }
     return false
+  }, [filtros.serie, resultadosFiltrados])
+
+  // Obter disciplinas que devem ser exibidas baseadas na série selecionada
+  const disciplinasExibir = useMemo(() => {
+    return obterDisciplinasPorSerieSync(filtros.serie || resultadosFiltrados[0]?.serie)
   }, [filtros.serie, resultadosFiltrados])
 
   // Calcular estatísticas - EXCLUIR alunos faltantes
@@ -368,10 +382,17 @@ export default function ResultadosPage() {
     const qtdAvancado = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('avançado') || r.nivel_aprendizagem?.toLowerCase().includes('avancado')).length
 
     const presentes = alunosPresentes.length
-    const faltas = resultadosFiltrados.length - presentes
+    // Contar apenas alunos com presença = 'F' (não incluir alunos com presença = '-' que não têm dados)
+    const faltas = resultadosFiltrados.filter((r) => {
+      const presenca = r.presenca?.toString().toUpperCase()
+      return presenca === 'F'
+    }).length
+
+    // Total de alunos incluindo todos (P, F, e -)
+    const totalAlunos = resultadosFiltrados.length
 
     return {
-      total: resultadosFiltrados.length,
+      total: totalAlunos,
       mediaGeral: medias.length > 0 ? medias.reduce((a, b) => a + b, 0) / medias.length : 0,
       presentes,
       faltas,
@@ -564,7 +585,7 @@ export default function ResultadosPage() {
                 </div>
                 <p className="text-sm opacity-90">Presentes</p>
                 <p className="text-xs opacity-75 mt-1">
-                  {estatisticas.total > 0 ? ((estatisticas.presentes / estatisticas.total) * 100).toFixed(1) : 0}%
+                  {estatisticas.total > 0 ? ((estatisticas.presentes / (estatisticas.presentes + estatisticas.faltas)) * 100).toFixed(1) : 0}%
                 </p>
               </div>
 
@@ -575,7 +596,7 @@ export default function ResultadosPage() {
                 </div>
                 <p className="text-sm opacity-90">Faltas</p>
                 <p className="text-xs opacity-75 mt-1">
-                  {estatisticas.total > 0 ? ((estatisticas.faltas / estatisticas.total) * 100).toFixed(1) : 0}%
+                  {estatisticas.presentes + estatisticas.faltas > 0 ? ((estatisticas.faltas / (estatisticas.presentes + estatisticas.faltas)) * 100).toFixed(1) : 0}%
                 </p>
               </div>
             </div>
@@ -731,7 +752,7 @@ export default function ResultadosPage() {
                                       resultado.presenca || 'P'
                                     )}`}
                                   >
-                                    {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                    {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : resultado.presenca === '-' ? '— Sem dados' : '✗ Falta'}
                                   </span>
                                 </div>
                               </div>
@@ -739,83 +760,43 @@ export default function ResultadosPage() {
                           </button>
                         </div>
 
-                        {/* Notas em Grid */}
+                        {/* Notas em Grid - Dinâmico baseado na série */}
                         <div className="grid grid-cols-2 gap-3 mb-3">
-                          {/* LP */}
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Língua Portuguesa</div>
-                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_lp}/20</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
-                              {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
-                                ></div>
+                          {disciplinasExibir.map((disciplina) => {
+                            const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
+                            const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
+                            const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
+                            
+                            return (
+                              <div key={disciplina.codigo} className={`p-3 rounded-lg ${getNotaBgColor(nota)} border border-gray-200`}>
+                                <div className="text-xs font-semibold text-gray-600 mb-1">{disciplina.nome}</div>
+                                {disciplina.tipo === 'nivel' ? (
+                                  <div className={`text-sm font-bold ${nivelAprendizagem ? getNivelColor(nivelAprendizagem).replace('bg-', 'text-').split(' ')[0] : 'text-gray-500'}`}>
+                                    {nivelAprendizagem || '-'}
+                                  </div>
+                                ) : (
+                                  <>
+                                    {disciplina.total_questoes && acertos !== null && (
+                                      <div className="text-xs text-gray-600 mb-1">{acertos}/{disciplina.total_questoes}</div>
+                                    )}
+                                    <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
+                                      {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                    </div>
+                                    {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                        <div
+                                          className={`h-1.5 rounded-full ${
+                                            nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                          }`}
+                                          style={{ width: `${Math.min((nota / 10) * 100, 100)}%` }}
+                                        ></div>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
                               </div>
-                            )}
-                          </div>
-
-                          {/* CH */}
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Ciências Humanas</div>
-                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_ch}/10</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
-                              {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* MAT */}
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Matemática</div>
-                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_mat}/20</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
-                              {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* CN */}
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Ciências da Natureza</div>
-                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_cn}/10</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
-                              {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
+                            )
+                          })}
                         </div>
 
                         {/* Média e Ações */}
@@ -874,18 +855,11 @@ export default function ResultadosPage() {
                           <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
                             Presença
                           </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                            LP
-                          </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                            CH
-                          </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                            MAT
-                          </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                            CN
-                          </th>
+                          {disciplinasExibir.map((disciplina) => (
+                            <th key={disciplina.codigo} className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                              {disciplina.codigo}
+                            </th>
+                          ))}
                           <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
                             Média
                           </th>
@@ -897,7 +871,7 @@ export default function ResultadosPage() {
                   <tbody className="divide-y divide-gray-200">
                     {resultadosFiltrados.length === 0 ? (
                       <tr>
-                        <td colSpan={12} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                        <td colSpan={6 + disciplinasExibir.length + 1} className="py-8 sm:py-12 text-center text-gray-500 px-4">
                           <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
                           <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
                           <p className="text-xs sm:text-sm mt-1">Importe os dados primeiro</p>
@@ -949,7 +923,7 @@ export default function ResultadosPage() {
                                         resultado.presenca || 'P'
                                       )}`}
                                     >
-                                      {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                      {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : resultado.presenca === '-' ? '— Sem dados' : '✗ Falta'}
                                     </span>
                                   </div>
                                 </div>
@@ -974,89 +948,49 @@ export default function ResultadosPage() {
                                   resultado.presenca || 'P'
                                 )}`}
                               >
-                                {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                {resultado.presenca === 'P' || resultado.presenca === 'p' 
+                                  ? '✓ Presente' 
+                                  : resultado.presenca === '-' 
+                                  ? '— Sem dados' 
+                                  : '✗ Falta'}
                               </span>
                             </td>
-                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                              <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                  {resultado.total_acertos_lp}/20
-                                </div>
-                                <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
-                                  {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
-                                </div>
-                                {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                    <div
-                                      className={`h-0.5 md:h-1 rounded-full ${
-                                        notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
-                                    ></div>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                              <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_ch)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                  {resultado.total_acertos_ch}/10
-                                </div>
-                                <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
-                                  {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
-                                </div>
-                                {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                    <div
-                                      className={`h-0.5 md:h-1 rounded-full ${
-                                        notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
-                                    ></div>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                              <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                  {resultado.total_acertos_mat}/20
-                                </div>
-                                <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
-                                  {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
-                                </div>
-                                {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                    <div
-                                      className={`h-0.5 md:h-1 rounded-full ${
-                                        notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
-                                    ></div>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                              <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_cn)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                  {resultado.total_acertos_cn}/10
-                                </div>
-                                <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
-                                  {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
-                                </div>
-                                {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                    <div
-                                      className={`h-0.5 md:h-1 rounded-full ${
-                                        notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
-                                    ></div>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
+                            {disciplinasExibir.map((disciplina) => {
+                              const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
+                              const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
+                              const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
+                              
+                              return (
+                                <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                  {disciplina.tipo === 'nivel' ? (
+                                    <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] md:text-xs font-semibold ${getNivelColor(nivelAprendizagem || '')}`}>
+                                      {nivelAprendizagem || '-'}
+                                    </span>
+                                  ) : (
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      {disciplina.total_questoes && acertos !== null && (
+                                        <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                          {acertos}/{disciplina.total_questoes}
+                                        </div>
+                                      )}
+                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota)}`}>
+                                        {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                      </div>
+                                      {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                          <div
+                                            className={`h-0.5 md:h-1 rounded-full ${
+                                              nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                            }`}
+                                            style={{ width: `${Math.min((nota / 10) * 100, 100)}%` }}
+                                          ></div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                              )
+                            })}
                             <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                               <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                                 mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 

@@ -14,6 +14,7 @@ import {
   BookOpen, Calculator, Award, UserCheck, UserX, BarChart3,
   Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target
 } from 'lucide-react'
+import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 
 interface DashboardData {
   metricas: {
@@ -164,10 +165,18 @@ const getPresencaColor = (presenca: string) => {
   if (presenca === 'P' || presenca === 'p') {
     return 'bg-green-100 text-green-800'
   }
+  if (presenca === '-') {
+    return 'bg-gray-100 text-gray-600'
+  }
   return 'bg-red-100 text-red-800'
 }
 
 const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
+  // Se não houver dados de frequência, sempre retornar "-"
+  if (presenca === '-') {
+    return '-'
+  }
+  
   // Se aluno faltou, sempre retornar "-"
   if (presenca === 'F' || presenca === 'f') {
     return '-'
@@ -318,6 +327,11 @@ export default function DadosPage() {
   const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroSerie || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo
   const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo].filter(Boolean).length
 
+  // Obter disciplinas que devem ser exibidas baseadas na série selecionada
+  const disciplinasExibir = useMemo(() => {
+    return obterDisciplinasPorSerieSync(filtroSerie || dados?.alunosDetalhados[0]?.serie)
+  }, [filtroSerie, dados?.alunosDetalhados])
+
   // Escolas e turmas filtradas
   const escolasFiltradas = useMemo(() => {
     if (!dados?.filtros.escolas) return []
@@ -466,15 +480,19 @@ export default function DadosPage() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {/* Ano Letivo */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroAnoLetivo ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroAnoLetivo ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Ano Letivo
                 </label>
                 <select
                   value={filtroAnoLetivo}
                   onChange={(e) => { setFiltroAnoLetivo(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroAnoLetivo 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todos os anos</option>
                   {dados?.filtros.anosLetivos.map(ano => (
@@ -484,16 +502,20 @@ export default function DadosPage() {
               </div>
 
               {/* Polo */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPoloId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroPoloId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Polo
                 </label>
                 <select
                   value={filtroPoloId}
                   onChange={(e) => { setFiltroPoloId(e.target.value); setFiltroEscolaId(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
                   disabled={usuario?.tipo_usuario === 'escola' || usuario?.tipo_usuario === 'polo'}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
+                    filtroPoloId 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todos os polos</option>
                   {dados?.filtros.polos.map(polo => (
@@ -503,16 +525,20 @@ export default function DadosPage() {
               </div>
 
               {/* Escola */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroEscolaId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroEscolaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Escola
                 </label>
                 <select
                   value={filtroEscolaId}
                   onChange={(e) => { setFiltroEscolaId(e.target.value); setFiltroTurmaId(''); setPaginaAtual(1); }}
                   disabled={usuario?.tipo_usuario === 'escola'}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
+                    filtroEscolaId 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todas as escolas</option>
                   {escolasFiltradas.map(escola => (
@@ -522,15 +548,19 @@ export default function DadosPage() {
               </div>
 
               {/* Serie */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroSerie ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroSerie ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Série
                 </label>
                 <select
                   value={filtroSerie}
                   onChange={(e) => { setFiltroSerie(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroSerie 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todas as séries</option>
                   {dados?.filtros.series.map(serie => (
@@ -540,15 +570,19 @@ export default function DadosPage() {
               </div>
 
               {/* Turma */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTurmaId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroTurmaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Turma
                 </label>
                 <select
                   value={filtroTurmaId}
                   onChange={(e) => { setFiltroTurmaId(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroTurmaId 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todas as turmas</option>
                   {turmasFiltradas.map(turma => (
@@ -558,15 +592,19 @@ export default function DadosPage() {
               </div>
 
               {/* Disciplina */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroDisciplina ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroDisciplina ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Disciplina
                 </label>
                 <select
                   value={filtroDisciplina}
                   onChange={(e) => { setFiltroDisciplina(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroDisciplina 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todas as disciplinas</option>
                   <option value="LP">Língua Portuguesa</option>
@@ -578,15 +616,19 @@ export default function DadosPage() {
               </div>
 
               {/* Presenca */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPresenca ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroPresenca ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Presença
                 </label>
                 <select
                   value={filtroPresenca}
                   onChange={(e) => { setFiltroPresenca(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroPresenca 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todos</option>
                   <option value="P">Presentes</option>
@@ -595,15 +637,19 @@ export default function DadosPage() {
               </div>
 
               {/* Nivel */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroNivel ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroNivel ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Nível
                 </label>
                 <select
                   value={filtroNivel}
                   onChange={(e) => { setFiltroNivel(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroNivel 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todos os níveis</option>
                   {dados?.filtros.niveis.map(nivel => (
@@ -613,15 +659,19 @@ export default function DadosPage() {
               </div>
 
               {/* Faixa de Media */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroFaixaMedia ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroFaixaMedia ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Faixa de Média
                 </label>
                 <select
                   value={filtroFaixaMedia}
                   onChange={(e) => { setFiltroFaixaMedia(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroFaixaMedia 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                 >
                   <option value="">Todas as faixas</option>
                   {dados?.filtros.faixasMedia.map(faixa => (
@@ -631,9 +681,9 @@ export default function DadosPage() {
               </div>
 
               {/* Taxa de Acerto Mínima */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMin ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroTaxaAcertoMin ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Taxa de Acerto Mín. (%)
                 </label>
                 <input
@@ -642,15 +692,19 @@ export default function DadosPage() {
                   max="100"
                   value={filtroTaxaAcertoMin}
                   onChange={(e) => { setFiltroTaxaAcertoMin(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroTaxaAcertoMin 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                   placeholder="Ex: 50"
                 />
               </div>
 
               {/* Taxa de Acerto Máxima */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMax ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroTaxaAcertoMax ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Taxa de Acerto Máx. (%)
                 </label>
                 <input
@@ -659,22 +713,30 @@ export default function DadosPage() {
                   max="100"
                   value={filtroTaxaAcertoMax}
                   onChange={(e) => { setFiltroTaxaAcertoMax(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroTaxaAcertoMax 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                   placeholder="Ex: 80"
                 />
               </div>
 
               {/* Questão Específica */}
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroQuestaoCodigo ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroQuestaoCodigo ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Questão Específica
                 </label>
                 <input
                   type="text"
                   value={filtroQuestaoCodigo}
                   onChange={(e) => { setFiltroQuestaoCodigo(e.target.value); setPaginaAtual(1); }}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-400"
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroQuestaoCodigo 
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                  }`}
                   placeholder="Ex: Q1, Q25"
                 />
               </div>
@@ -949,10 +1011,7 @@ export default function DadosPage() {
                     ) : (
                       alunosPaginados.map((resultado: any, index: number) => {
                         const mediaNum = getNotaNumero(resultado.media_aluno)
-                        const notaLP = getNotaNumero(resultado.nota_lp)
-                        const notaCH = getNotaNumero(resultado.nota_ch)
-                        const notaMAT = getNotaNumero(resultado.nota_mat)
-                        const notaCN = getNotaNumero(resultado.nota_cn)
+                        // Notas serão obtidas dinamicamente pelas disciplinas
 
                         return (
                           <div key={resultado.id || index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
@@ -979,7 +1038,7 @@ export default function DadosPage() {
                                           resultado.presenca || 'P'
                                         )}`}
                                       >
-                                        {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                        {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : resultado.presenca === '-' ? '— Sem dados' : '✗ Falta'}
                                       </span>
                                     </div>
                                   </div>
@@ -987,80 +1046,52 @@ export default function DadosPage() {
                               </div>
                             </div>
                             
-                            {/* Notas em Grid */}
+                            {/* Notas em Grid - Dinâmico baseado na série */}
                             <div className="grid grid-cols-2 gap-3 mb-3">
-                              {/* LP */}
-                              <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">Língua Portuguesa</div>
-                                <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_lp || 0}/20</div>
-                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
-                                  {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
-                                </div>
-                                {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                    <div
-                                      className={`h-1.5 rounded-full ${
-                                        notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
-                                    ></div>
+                              {disciplinasExibir.map((disciplina) => {
+                                const nota = getNotaNumero((resultado as any)[disciplina.campo_nota])
+                                const acertos = disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
+                                const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
+                                const getNivelColor = (nivel: string | undefined | null): string => {
+                                  if (!nivel) return 'bg-gray-100 text-gray-700'
+                                  const nivelLower = nivel.toLowerCase()
+                                  if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 text-green-800 border-green-300'
+                                  if (nivelLower.includes('adequado')) return 'bg-blue-100 text-blue-800 border-blue-300'
+                                  if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                  if (nivelLower.includes('insuficiente')) return 'bg-red-100 text-red-800 border-red-300'
+                                  return 'bg-gray-100 text-gray-700'
+                                }
+                                
+                                return (
+                                  <div key={disciplina.codigo} className={`p-3 rounded-lg ${getNotaBgColor(nota)} border border-gray-200`}>
+                                    <div className="text-xs font-semibold text-gray-600 mb-1">{disciplina.nome}</div>
+                                    {disciplina.tipo === 'nivel' ? (
+                                      <div className={`text-sm font-bold ${nivelAprendizagem ? getNivelColor(nivelAprendizagem).replace('bg-', 'text-').split(' ')[0] : 'text-gray-500'}`}>
+                                        {nivelAprendizagem || '-'}
+                                      </div>
+                                    ) : (
+                                      <>
+                                        {disciplina.total_questoes && acertos !== null && (
+                                          <div className="text-xs text-gray-600 mb-1">{acertos}/{disciplina.total_questoes}</div>
+                                        )}
+                                        <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
+                                          {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                        </div>
+                                        {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                            <div
+                                              className={`h-1.5 rounded-full ${
+                                                nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                              }`}
+                                              style={{ width: `${Math.min((nota / 10) * 100, 100)}%` }}
+                                            ></div>
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                              {/* CH */}
-                              <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">Ciências Humanas</div>
-                                <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_ch || 0}/10</div>
-                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
-                                  {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
-                                </div>
-                                {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                    <div
-                                      className={`h-1.5 rounded-full ${
-                                        notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
-                                    ></div>
-                                  </div>
-                                )}
-                              </div>
-                              {/* MAT */}
-                              <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">Matemática</div>
-                                <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_mat || 0}/20</div>
-                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
-                                  {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
-                                </div>
-                                {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                    <div
-                                      className={`h-1.5 rounded-full ${
-                                        notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
-                                    ></div>
-                                  </div>
-                                )}
-                              </div>
-                              {/* CN */}
-                              <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">Ciências da Natureza</div>
-                                <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_cn || 0}/10</div>
-                                <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
-                                  {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
-                                </div>
-                                {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                    <div
-                                      className={`h-1.5 rounded-full ${
-                                        notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
-                                    ></div>
-                                  </div>
-                                )}
-                              </div>
+                                )
+                              })}
                             </div>
                             
                             {/* Média e Nível */}
@@ -1116,18 +1147,11 @@ export default function DadosPage() {
                             <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
                               Presença
                             </th>
-                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                              LP
-                            </th>
-                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                              CH
-                            </th>
-                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                              MAT
-                            </th>
-                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                              CN
-                            </th>
+                            {disciplinasExibir.map((disciplina) => (
+                              <th key={disciplina.codigo} className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                                {disciplina.codigo}
+                              </th>
+                            ))}
                             <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
                               Média
                             </th>
@@ -1139,7 +1163,7 @@ export default function DadosPage() {
                         <tbody className="divide-y divide-gray-200">
                           {alunosPaginados.length === 0 ? (
                             <tr>
-                              <td colSpan={12} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                              <td colSpan={6 + disciplinasExibir.length + 1} className="py-8 sm:py-12 text-center text-gray-500 px-4">
                                 <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
                                 <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
                                 <p className="text-xs sm:text-sm mt-1">Importe os dados primeiro</p>
@@ -1148,10 +1172,7 @@ export default function DadosPage() {
                           ) : (
                             alunosPaginados.map((resultado: any, index: number) => {
                               const mediaNum = getNotaNumero(resultado.media_aluno)
-                              const notaLP = getNotaNumero(resultado.nota_lp)
-                              const notaCH = getNotaNumero(resultado.nota_ch)
-                              const notaMAT = getNotaNumero(resultado.nota_mat)
-                              const notaCN = getNotaNumero(resultado.nota_cn)
+                              // Notas serão obtidas dinamicamente pelas disciplinas
 
                               return (
                                 <tr key={resultado.id || index} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
@@ -1181,7 +1202,7 @@ export default function DadosPage() {
                                               resultado.presenca || 'P'
                                             )}`}
                                           >
-                                            {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                            {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : resultado.presenca === '-' ? '— Sem dados' : '✗ Falta'}
                                           </span>
                                         </div>
                                       </div>
@@ -1209,86 +1230,51 @@ export default function DadosPage() {
                                       {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
                                     </span>
                                   </td>
-                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                      <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                        {resultado.total_acertos_lp || 0}/20
-                                      </div>
-                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
-                                        {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
-                                      </div>
-                                      {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                          <div
-                                            className={`h-0.5 md:h-1 rounded-full ${
-                                              notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                            }`}
-                                            style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
-                                          ></div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_ch)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                      <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                        {resultado.total_acertos_ch || 0}/10
-                                      </div>
-                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
-                                        {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
-                                      </div>
-                                      {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                          <div
-                                            className={`h-0.5 md:h-1 rounded-full ${
-                                              notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                            }`}
-                                            style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
-                                          ></div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                      <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                        {resultado.total_acertos_mat || 0}/20
-                                      </div>
-                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
-                                        {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
-                                      </div>
-                                      {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                          <div
-                                            className={`h-0.5 md:h-1 rounded-full ${
-                                              notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                            }`}
-                                            style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
-                                          ></div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_cn)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                      <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                        {resultado.total_acertos_cn || 0}/10
-                                      </div>
-                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
-                                        {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
-                                      </div>
-                                      {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                          <div
-                                            className={`h-0.5 md:h-1 rounded-full ${
-                                              notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                            }`}
-                                            style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
-                                          ></div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
+                                  {disciplinasExibir.map((disciplina) => {
+                                    const nota = getNotaNumero((resultado as any)[disciplina.campo_nota])
+                                    const acertos = disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
+                                    const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
+                                    const getNivelColor = (nivel: string | undefined | null): string => {
+                                      if (!nivel) return 'bg-gray-100 text-gray-700'
+                                      const nivelLower = nivel.toLowerCase()
+                                      if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 text-green-800 border-green-300'
+                                      if (nivelLower.includes('adequado')) return 'bg-blue-100 text-blue-800 border-blue-300'
+                                      if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                      if (nivelLower.includes('insuficiente')) return 'bg-red-100 text-red-800 border-red-300'
+                                      return 'bg-gray-100 text-gray-700'
+                                    }
+                                    
+                                    return (
+                                      <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                        {disciplina.tipo === 'nivel' ? (
+                                          <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] md:text-xs font-semibold ${getNivelColor(nivelAprendizagem || '')}`}>
+                                            {nivelAprendizagem || '-'}
+                                          </span>
+                                        ) : (
+                                          <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                            {disciplina.total_questoes && acertos !== null && (
+                                              <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                                {acertos}/{disciplina.total_questoes}
+                                              </div>
+                                            )}
+                                            <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota)}`}>
+                                              {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                            </div>
+                                            {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                              <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                                <div
+                                                  className={`h-0.5 md:h-1 rounded-full ${
+                                                    nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                                  }`}
+                                                  style={{ width: `${Math.min((nota / 10) * 100, 100)}%` }}
+                                                ></div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </td>
+                                    )
+                                  })}
                                   <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                     <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                                       mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 

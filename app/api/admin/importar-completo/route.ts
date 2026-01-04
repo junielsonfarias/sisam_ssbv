@@ -147,12 +147,27 @@ async function processarImportacao(
     })
     console.log(`  → ${polosDB.rows.length} polos carregados`)
 
-    // Carregar escolas existentes
-    const escolasDB = await pool.query('SELECT id, nome FROM escolas')
+    // Função para normalizar nome de escola (remove pontos, espaços extras, etc.)
+    const normalizarNomeEscola = (nome: string): string => {
+      return nome
+        .toUpperCase()
+        .trim()
+        // Remover pontos
+        .replace(/\./g, '')
+        // Remover múltiplos espaços
+        .replace(/\s+/g, ' ')
+    }
+
+    // Carregar escolas existentes (usando normalização para evitar duplicatas)
+    const escolasDB = await pool.query('SELECT id, nome FROM escolas WHERE ativo = true')
     escolasDB.rows.forEach((e: any) => {
-      escolasMap.set(e.nome.toUpperCase().trim(), e.id)
+      const nomeNormalizado = normalizarNomeEscola(e.nome)
+      // Armazenar tanto o nome original quanto o normalizado
+      if (!escolasMap.has(nomeNormalizado)) {
+        escolasMap.set(nomeNormalizado, e.id)
+      }
     })
-    console.log(`  → ${escolasDB.rows.length} escolas carregadas`)
+    console.log(`  → ${escolasDB.rows.length} escolas carregadas (normalizadas para comparação)`)
 
     // Carregar turmas existentes do ano letivo
     const turmasDB = await pool.query(
@@ -164,14 +179,19 @@ async function processarImportacao(
     })
     console.log(`  → ${turmasDB.rows.length} turmas carregadas (ano ${anoLetivo})`)
 
-    // Carregar alunos existentes do ano letivo (apenas para referência, não para evitar duplicados)
-    // IMPORTANTE: Não vamos usar este mapa para evitar duplicados, pois queremos importar TODOS
+    // Carregar alunos existentes do ano letivo para evitar duplicatas
     const alunosDB = await pool.query(
-      'SELECT id, nome, escola_id FROM alunos WHERE ano_letivo = $1',
+      'SELECT id, nome, escola_id, turma_id, ano_letivo FROM alunos WHERE ano_letivo = $1 AND ativo = true',
       [anoLetivo]
     )
-    // Não mapear alunos existentes - vamos criar novos para cada linha do Excel
-    console.log(`  → ${alunosDB.rows.length} alunos existentes no banco (ano ${anoLetivo}) - serão criados novos mesmo se duplicados`)
+    alunosDB.rows.forEach((a: any) => {
+      const nomeNormalizado = (a.nome || '').toString().toUpperCase().trim()
+      // Chave única: nome_escola_turma_ano (turma_id pode ser NULL, usar 'NULL' como string)
+      const turmaKey = a.turma_id ? a.turma_id.toString() : 'NULL'
+      const alunoKey = `${nomeNormalizado}_${a.escola_id}_${turmaKey}_${a.ano_letivo || ''}`
+      alunosMap.set(alunoKey, a.id)
+    })
+    console.log(`  → ${alunosDB.rows.length} alunos existentes no banco (ano ${anoLetivo}) - serão atualizados se duplicados`)
 
     // Carregar questões existentes
     const questoesDB = await pool.query('SELECT id, codigo FROM questoes')
@@ -201,26 +221,46 @@ async function processarImportacao(
     }
     resultado.polos.existentes = polosUnicos.size - resultado.polos.criados
 
-    // Criar escolas faltantes
+    // Criar escolas faltantes (usando normalização para evitar duplicatas)
     for (const [nomeEscola, nomePolo] of escolasUnicas) {
-      const escolaNorm = nomeEscola.toUpperCase().trim()
+      const escolaNorm = normalizarNomeEscola(nomeEscola)
       if (!escolasMap.has(escolaNorm)) {
         const poloId = polosMap.get(nomePolo.toUpperCase().trim())
         if (poloId) {
           try {
-            const result = await pool.query(
-              'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
-              [nomeEscola, escolaNorm.replace(/\s+/g, '_').substring(0, 50), poloId]
+            // Verificar novamente no banco com normalização para evitar race condition
+            // Usar função SQL para normalização (se disponível) ou comparar diretamente
+            const escolaExistente = await pool.query(
+              `SELECT id FROM escolas 
+               WHERE UPPER(TRIM(REGEXP_REPLACE(REGEXP_REPLACE(nome, '\\.', '', 'g'), '\\s+', ' ', 'g'))) = $1 
+               AND ativo = true 
+               LIMIT 1`,
+              [escolaNorm]
             )
-            escolasMap.set(escolaNorm, result.rows[0].id)
-            resultado.escolas.criados++
+            
+            if (escolaExistente.rows.length > 0) {
+              // Escola já existe (normalizada), usar a existente
+              escolasMap.set(escolaNorm, escolaExistente.rows[0].id)
+              resultado.escolas.existentes++
+            } else {
+              // Criar nova escola
+              const codigoEscola = nomeEscola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, '_').substring(0, 50)
+              const result = await pool.query(
+                'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
+                [nomeEscola.trim(), codigoEscola, poloId]
+              )
+              escolasMap.set(escolaNorm, result.rows[0].id)
+              resultado.escolas.criados++
+            }
           } catch (error: any) {
             erros.push(`Escola "${nomeEscola}": ${error.message}`)
           }
         }
+      } else {
+        resultado.escolas.existentes++
       }
     }
-    resultado.escolas.existentes = escolasUnicas.size - resultado.escolas.criados
+    // resultado.escolas.existentes já é contado dentro do loop acima
     console.log(`  → Polos: ${resultado.polos.criados} criados, ${resultado.polos.existentes} existentes`)
     console.log(`  → Escolas: ${resultado.escolas.criados} criadas, ${resultado.escolas.existentes} existentes`)
 
@@ -331,13 +371,18 @@ async function processarImportacao(
         // IMPORTANTE: Importar TODOS os alunos, presentes E faltantes
         // Coluna pode vir como: FALTA, Falta, Presença, PRESENÇA
         // Valores possíveis: P, F, Presente, Faltou, Ausente, vazio, etc.
-        let presenca = 'P' // Padrão: Presente
+        // Se não houver coluna de frequência, usar "-" (não deve ser contado nas médias)
+        let presenca: string | null = null // null indica que não há dados de frequência
         
         // Verificar se existe coluna FALTA (indica falta)
         const colunaFalta = linha['FALTA'] || linha['Falta'] || linha['falta']
         const colunaPresenca = linha['PRESENÇA'] || linha['Presença'] || linha['presenca']
         
-        if (colunaFalta !== undefined && colunaFalta !== null && colunaFalta !== '') {
+        // Verificar se existe alguma coluna de frequência com valor
+        const temColunaFalta = colunaFalta !== undefined && colunaFalta !== null && colunaFalta !== ''
+        const temColunaPresenca = colunaPresenca !== undefined && colunaPresenca !== null && colunaPresenca !== ''
+        
+        if (temColunaFalta) {
           // Se existe coluna FALTA e tem valor, verificar o valor
           const valorFalta = colunaFalta.toString().trim().toUpperCase()
           // Se tem qualquer valor na coluna FALTA (exceto valores que indicam presente), marca como faltou
@@ -349,7 +394,7 @@ async function processarImportacao(
             // Se tem qualquer outro valor não vazio na coluna FALTA, assume que faltou
             presenca = 'F'
           }
-        } else if (colunaPresenca !== undefined && colunaPresenca !== null && colunaPresenca !== '') {
+        } else if (temColunaPresenca) {
           // Se existe coluna PRESENÇA, verificar o valor
           const valorPresenca = colunaPresenca.toString().trim().toUpperCase()
           if (valorPresenca === 'P' || valorPresenca === 'PRESENTE' || valorPresenca === 'SIM' || valorPresenca === '1' || valorPresenca === 'S') {
@@ -358,10 +403,15 @@ async function processarImportacao(
             presenca = 'F'
           }
         }
+        // Se não houver coluna de frequência (nem FALTA nem PRESENÇA), presenca permanece null (será tratado como "-")
         
-        // Log para debug (apenas primeiras 5 linhas com falta)
-        if (presenca === 'F' && i < 5) {
-          console.log(`[DEBUG] Linha ${i + 2}: Aluno "${alunoNome}" marcado como FALTANTE (FALTA: "${colunaFalta}", PRESENÇA: "${colunaPresenca}")`)
+        // Log para debug (apenas primeiras 5 linhas)
+        if (i < 5) {
+          if (presenca === null) {
+            console.log(`[DEBUG] Linha ${i + 2}: Aluno "${alunoNome}" SEM dados de frequência (será marcado como "-")`)
+          } else if (presenca === 'F') {
+            console.log(`[DEBUG] Linha ${i + 2}: Aluno "${alunoNome}" marcado como FALTANTE (FALTA: "${colunaFalta}", PRESENÇA: "${colunaPresenca}")`)
+          }
         }
 
         const escolaId = escolasMap.get(escolaNome.toUpperCase().trim())
@@ -400,30 +450,37 @@ async function processarImportacao(
           }
         }
 
-        // Criar aluno
-        // IMPORTANTE: SEMPRE criar um novo aluno para cada linha do Excel
-        // Mesmo que já exista um aluno com o mesmo nome na mesma escola, criar um novo
-        // Isso garante que todos os 978 alunos sejam importados, mesmo duplicados
-        const codigoAluno = `ALU${proximoNumeroAluno.toString().padStart(4, '0')}`
-        proximoNumeroAluno++
-        const alunoId = `TEMP_ALUNO_${alunosParaInserir.length}`
+        // Verificar se aluno já existe (mesmo nome, escola, turma e ano letivo)
+        const nomeNormalizado = alunoNome.toUpperCase().trim()
+        const turmaKey = turmaId && !turmaId.toString().startsWith('TEMP_') ? turmaId.toString() : 'NULL'
+        const alunoKey = `${nomeNormalizado}_${escolaId}_${turmaKey}_${anoLetivo}`
         
-        // Chave única por linha do Excel (incluindo índice)
-        const alunoKey = `${alunoNome.toUpperCase().trim()}_${escolaId}_${i}_${alunosParaInserir.length}`
+        let alunoId = alunosMap.get(alunoKey)
         
-        alunosParaInserir.push({
-          tempId: alunoId,
-          codigo: codigoAluno,
-          nome: alunoNome,
-          escola_id: escolaId,
-          turma_id: turmaId,
-          serie: serie || null,
-          ano_letivo: anoLetivo,
-        })
+        if (alunoId) {
+          // Aluno já existe - usar ID existente
+          // O aluno será atualizado na FASE 7 (mas não precisa adicionar à lista de inserção)
+          // Usar ID real diretamente
+        } else {
+          // Aluno não existe - criar novo (adicionar à lista de inserção)
+          const codigoAluno = `ALU${proximoNumeroAluno.toString().padStart(4, '0')}`
+          proximoNumeroAluno++
+          alunoId = `TEMP_ALUNO_${alunosParaInserir.length}`
+          
+          alunosParaInserir.push({
+            tempId: alunoId,
+            codigo: codigoAluno,
+            nome: alunoNome,
+            escola_id: escolaId,
+            turma_id: turmaId,
+            serie: serie || null,
+            ano_letivo: anoLetivo,
+          })
+          
+          // Mapear para usar depois (será substituído pelo ID real após inserção)
+          alunosMap.set(alunoKey, alunoId)
+        }
         
-        // Mapear apenas pela chave única desta linha
-        alunosMap.set(alunoKey, alunoId)
-        resultado.alunos.criados++
 
         // Extrair notas e acertos
         const extrairNumero = (valor: any): number => {
@@ -477,17 +534,36 @@ async function processarImportacao(
           }
         }
 
-        // IMPORTANTE: Se aluno faltou, zerar acertos e notas
-        // Também considerar média 0,00 como faltante
-        let presencaFinal = presenca || 'P'
-        const mediaFinal = mediaAluno !== null && mediaAluno !== undefined ? parseFloat(mediaAluno.toString()) : null
+        // Verificar se há dados de resultados (notas)
+        const temNotas = notaLP !== null || notaCH !== null || notaMAT !== null || notaCN !== null || mediaAluno !== null || notaProducao !== null
+        const temAcertos = totalAcertosLP > 0 || totalAcertosCH > 0 || totalAcertosMAT > 0 || totalAcertosCN > 0
         
-        // Se média for 0,00 ou null, considerar como faltante
-        if (mediaFinal === 0 || mediaFinal === null || mediaFinal === undefined) {
-          presencaFinal = 'F'
+        // Determinar presença final
+        // Se não houver dados de frequência E não houver resultados, usar "-" (não deve ser contado)
+        let presencaFinal: string
+        if (presenca === null && !temNotas && !temAcertos) {
+          // Não há frequência nem resultados - usar "-"
+          presencaFinal = '-'
+        } else if (presenca === null) {
+          // Não há frequência, mas há resultados - assumir presente para não perder os dados
+          presencaFinal = 'P'
+        } else {
+          // Há dados de frequência - usar o valor
+          presencaFinal = presenca
         }
         
+        // Se aluno faltou explicitamente, considerar como faltante
         const alunoFaltou = presencaFinal === 'F'
+        
+        // Se não houver frequência E não houver resultados, não calcular médias (usar null)
+        const mediaFinal = (presencaFinal === '-' || (presenca === null && !temNotas && !temAcertos)) 
+          ? null 
+          : (mediaAluno !== null && mediaAluno !== undefined ? parseFloat(mediaAluno.toString()) : null)
+        
+        // Se média for 0,00 ou null E aluno não está marcado como "-", considerar como faltante
+        if (presencaFinal !== '-' && (mediaFinal === 0 || mediaFinal === null || mediaFinal === undefined) && presencaFinal !== 'F') {
+          presencaFinal = 'F'
+        }
         
         // Determinar nível de aprendizagem (para séries que usam)
         let nivelAprendizagem: string | null = null
@@ -505,6 +581,9 @@ async function processarImportacao(
         const tipoAvaliacao = configSerieAluno?.tem_producao_textual ? 'anos_iniciais' : 'anos_finais'
         const totalQuestoesEsperadas = configSerieAluno?.total_questoes_objetivas || 60
 
+        // Se presença for "-" (sem dados), não calcular médias e zerar acertos
+        const semDados = presencaFinal === '-'
+        
         // Adicionar consolidado à fila
         consolidadosParaInserir.push({
           aluno_id: alunoId,
@@ -513,31 +592,31 @@ async function processarImportacao(
           ano_letivo: anoLetivo,
           serie: serie || null,
           presenca: presencaFinal,
-          // Se faltou, zerar acertos e notas
-          total_acertos_lp: alunoFaltou ? 0 : totalAcertosLP,
-          total_acertos_ch: alunoFaltou ? 0 : totalAcertosCH,
-          total_acertos_mat: alunoFaltou ? 0 : totalAcertosMAT,
-          total_acertos_cn: alunoFaltou ? 0 : totalAcertosCN,
-          nota_lp: alunoFaltou ? null : notaLP,
-          nota_ch: alunoFaltou ? null : notaCH,
-          nota_mat: alunoFaltou ? null : notaMAT,
-          nota_cn: alunoFaltou ? null : notaCN,
-          media_aluno: alunoFaltou ? null : mediaAluno,
+          // Se faltou ou sem dados, zerar acertos e notas
+          total_acertos_lp: (alunoFaltou || semDados) ? 0 : totalAcertosLP,
+          total_acertos_ch: (alunoFaltou || semDados) ? 0 : totalAcertosCH,
+          total_acertos_mat: (alunoFaltou || semDados) ? 0 : totalAcertosMAT,
+          total_acertos_cn: (alunoFaltou || semDados) ? 0 : totalAcertosCN,
+          nota_lp: (alunoFaltou || semDados) ? null : notaLP,
+          nota_ch: (alunoFaltou || semDados) ? null : notaCH,
+          nota_mat: (alunoFaltou || semDados) ? null : notaMAT,
+          nota_cn: (alunoFaltou || semDados) ? null : notaCN,
+          media_aluno: (alunoFaltou || semDados) ? null : mediaFinal,
           // Novos campos para produção textual e nível
-          nota_producao: alunoFaltou ? null : notaProducao,
-          nivel_aprendizagem: nivelAprendizagem,
-          nivel_aprendizagem_id: nivelAprendizagemId,
+          nota_producao: (alunoFaltou || semDados) ? null : notaProducao,
+          nivel_aprendizagem: (semDados ? null : nivelAprendizagem),
+          nivel_aprendizagem_id: (semDados ? null : nivelAprendizagemId),
           tipo_avaliacao: tipoAvaliacao,
           total_questoes_esperadas: totalQuestoesEsperadas,
           // Itens de produção individuais
-          item_producao_1: alunoFaltou ? null : itensProducaoNotas[0] || null,
-          item_producao_2: alunoFaltou ? null : itensProducaoNotas[1] || null,
-          item_producao_3: alunoFaltou ? null : itensProducaoNotas[2] || null,
-          item_producao_4: alunoFaltou ? null : itensProducaoNotas[3] || null,
-          item_producao_5: alunoFaltou ? null : itensProducaoNotas[4] || null,
-          item_producao_6: alunoFaltou ? null : itensProducaoNotas[5] || null,
-          item_producao_7: alunoFaltou ? null : itensProducaoNotas[6] || null,
-          item_producao_8: alunoFaltou ? null : itensProducaoNotas[7] || null,
+          item_producao_1: (alunoFaltou || semDados) ? null : itensProducaoNotas[0] || null,
+          item_producao_2: (alunoFaltou || semDados) ? null : itensProducaoNotas[1] || null,
+          item_producao_3: (alunoFaltou || semDados) ? null : itensProducaoNotas[2] || null,
+          item_producao_4: (alunoFaltou || semDados) ? null : itensProducaoNotas[3] || null,
+          item_producao_5: (alunoFaltou || semDados) ? null : itensProducaoNotas[4] || null,
+          item_producao_6: (alunoFaltou || semDados) ? null : itensProducaoNotas[5] || null,
+          item_producao_7: (alunoFaltou || semDados) ? null : itensProducaoNotas[6] || null,
+          item_producao_8: (alunoFaltou || semDados) ? null : itensProducaoNotas[7] || null,
         })
 
         // Adicionar resultados de produção à fila (se aplicável)
@@ -641,10 +720,11 @@ async function processarImportacao(
             const questaoCodigo = `Q${num}`
             const questaoId = questoesMap.get(questaoCodigo) || null
 
-            // IMPORTANTE: Se aluno faltou, zerar nota e acerto
-            // Usar presencaFinal que já considera média 0,00
-            const presencaFinalQuestao = (mediaFinal === 0 || mediaFinal === null || mediaFinal === undefined) ? 'F' : (presenca || 'P')
+            // IMPORTANTE: Se aluno faltou ou não tem dados, zerar nota e acerto
+            // Usar presencaFinal que já considera média 0,00 e ausência de dados
+            const presencaFinalQuestao = presencaFinal // Já calculado anteriormente
             const alunoFaltouQuestao = presencaFinalQuestao === 'F'
+            const semDadosQuestao = presencaFinalQuestao === '-'
             
             resultadosParaInserir.push({
               escola_id: escolaId,
@@ -654,9 +734,9 @@ async function processarImportacao(
               turma_id: turmaId,
               questao_id: questaoId,
               questao_codigo: questaoCodigo,
-              resposta_aluno: alunoFaltouQuestao ? null : (acertou ? '1' : '0'),
-              acertou: alunoFaltouQuestao ? false : acertou,
-              nota: alunoFaltouQuestao ? 0 : nota,
+              resposta_aluno: (alunoFaltouQuestao || semDadosQuestao) ? null : (acertou ? '1' : '0'),
+              acertou: (alunoFaltouQuestao || semDadosQuestao) ? false : acertou,
+              nota: (alunoFaltouQuestao || semDadosQuestao) ? 0 : nota,
               ano_letivo: anoLetivo,
               serie: serie || null,
               turma: turmaCodigo || null,
@@ -802,31 +882,56 @@ async function processarImportacao(
       
       for (const aluno of alunosParaInserir) {
         try {
-          const result = await pool.query(
-            'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-            [aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo]
+          // Verificar se aluno já existe (mesmo nome, escola, turma e ano letivo)
+          const nomeNormalizado = aluno.nome.toUpperCase().trim()
+          const checkResult = await pool.query(
+            `SELECT id FROM alunos 
+             WHERE UPPER(TRIM(nome)) = $1 
+             AND escola_id = $2 
+             AND (turma_id = $3 OR (turma_id IS NULL AND $3::uuid IS NULL))
+             AND (ano_letivo = $4 OR (ano_letivo IS NULL AND $4 IS NULL))
+             AND ativo = true
+             LIMIT 1`,
+            [nomeNormalizado, aluno.escola_id, aluno.turma_id, aluno.ano_letivo]
           )
-          if (result.rows.length > 0 && result.rows[0].id) {
-            tempToRealAlunos.set(aluno.tempId, result.rows[0].id)
+          
+          if (checkResult.rows.length > 0) {
+            // Aluno já existe - atualizar e usar ID existente
+            const alunoIdExistente = checkResult.rows[0].id
+            await pool.query(
+              `UPDATE alunos 
+               SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
+               WHERE id = $3`,
+              [aluno.turma_id, aluno.serie, alunoIdExistente]
+            )
+            tempToRealAlunos.set(aluno.tempId, alunoIdExistente)
+            resultado.alunos.existentes++
           } else {
-            alunosComErro++
-            alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): Não retornou ID`)
-            console.error(`⚠️ Aluno "${aluno.nome}" não retornou ID após inserção`)
+            // Aluno não existe - criar novo
+            const result = await pool.query(
+              'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+              [aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo]
+            )
+            if (result.rows.length > 0 && result.rows[0].id) {
+              tempToRealAlunos.set(aluno.tempId, result.rows[0].id)
+              resultado.alunos.criados++
+            } else {
+              alunosComErro++
+              alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): Não retornou ID`)
+              console.error(`⚠️ Aluno "${aluno.nome}" não retornou ID após inserção`)
+            }
           }
         } catch (error: any) {
           alunosComErro++
           alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): ${error.message}`)
-          console.error(`❌ Erro ao criar aluno ${aluno.nome} (${aluno.codigo}):`, error.message)
+          console.error(`❌ Erro ao criar/atualizar aluno ${aluno.nome} (${aluno.codigo}):`, error.message)
           erros.push(`Aluno "${aluno.nome}": ${error.message}`)
         }
       }
 
-      // Verificar quantos alunos foram criados com sucesso
-      const alunosCriadosComSucesso = tempToRealAlunos.size
-      const alunosNaoCriados = alunosParaInserir.length - alunosCriadosComSucesso
-      
-      if (alunosNaoCriados > 0) {
-        console.error(`⚠️ ATENÇÃO: ${alunosNaoCriados} alunos não foram criados!`)
+      // Contagem já feita dentro do loop (resultado.alunos.criados e resultado.alunos.existentes)
+      if (alunosComErro > 0) {
+        console.error(`⚠️ ATENÇÃO: ${alunosComErro} alunos tiveram erros!`)
         console.error(`   Alunos com erro:`, alunosComErroList.slice(0, 10))
         if (alunosComErroList.length > 10) {
           console.error(`   ... e mais ${alunosComErroList.length - 10} alunos com erro`)
@@ -900,10 +1005,11 @@ async function processarImportacao(
       const resultadosComIdTemporario = resultadosParaInserir.filter(r => r.aluno_id && r.aluno_id.startsWith('TEMP_')).length
       console.log(`  → Após conversão: ${resultadosComIdReal} resultados com ID real, ${resultadosComIdTemporario} ainda com ID temporário`)
       
-      console.log(`  → ${alunosCriadosComSucesso} alunos criados com sucesso`)
-      console.log(`  → ${alunosNaoCriados} alunos falharam`)
-      resultado.alunos.criados = alunosCriadosComSucesso
-      resultado.alunos.existentes = alunosParaInserir.length - alunosCriadosComSucesso - alunosNaoCriados
+      console.log(`  → ${resultado.alunos.criados} alunos criados`)
+      console.log(`  → ${resultado.alunos.existentes} alunos atualizados (já existiam)`)
+      if (alunosComErro > 0) {
+        console.log(`  → ${alunosComErro} alunos falharam`)
+      }
     }
 
     // ========== FASE 8: BATCH INSERT DE RESULTADOS CONSOLIDADOS ==========

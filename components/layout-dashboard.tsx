@@ -18,7 +18,11 @@ import {
   TrendingUp,
   FileScan,
   GraduationCap,
-  Settings
+  Settings,
+  Upload,
+  History,
+  FilePlus,
+  UserPlus
 } from 'lucide-react'
 import Rodape from './rodape'
 
@@ -79,6 +83,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para ADMINISTRADOR
     if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
       items.push(
+        { icon: Upload, label: 'Importar Dados', href: '/admin/importar-completo' },
+        { icon: UserPlus, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
+        { icon: FilePlus, label: 'Importar Resultados', href: '/admin/importar-resultados' },
+        { icon: History, label: 'Importacoes', href: '/admin/importacoes' },
         { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
         { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },

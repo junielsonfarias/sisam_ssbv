@@ -76,7 +76,39 @@ export async function POST(request: NextRequest) {
         const alunoNome = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
         const turmaCodigo = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
         const serie = (linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['serie'] || linha['Ano'] || '').toString().trim()
-        const presenca = (linha['FALTA'] || linha['Falta'] || linha['falta'] || linha['Presença'] || linha['presenca'] || 'P').toString().trim().toUpperCase()
+        
+        // Tratamento da presença/falta (mesma lógica do importar-completo)
+        // Se não houver coluna de frequência, usar "-" (não deve ser contado nas médias)
+        let presenca: string | null = null // null indica que não há dados de frequência
+        
+        // Verificar se existe coluna FALTA (indica falta)
+        const colunaFalta = linha['FALTA'] || linha['Falta'] || linha['falta']
+        const colunaPresenca = linha['PRESENÇA'] || linha['Presença'] || linha['presenca']
+        
+        // Verificar se existe alguma coluna de frequência com valor
+        const temColunaFalta = colunaFalta !== undefined && colunaFalta !== null && colunaFalta !== ''
+        const temColunaPresenca = colunaPresenca !== undefined && colunaPresenca !== null && colunaPresenca !== ''
+        
+        if (temColunaFalta) {
+          // Se existe coluna FALTA e tem valor, verificar o valor
+          const valorFalta = colunaFalta.toString().trim().toUpperCase()
+          if (valorFalta === 'F' || valorFalta === 'X' || valorFalta === 'FALTOU' || valorFalta === 'AUSENTE' || valorFalta === 'SIM' || valorFalta === '1' || valorFalta === 'S') {
+            presenca = 'F'
+          } else if (valorFalta === 'P' || valorFalta === 'PRESENTE' || valorFalta === 'NAO' || valorFalta === 'NÃO' || valorFalta === '0' || valorFalta === 'N') {
+            presenca = 'P'
+          } else {
+            presenca = 'F'
+          }
+        } else if (temColunaPresenca) {
+          // Se existe coluna PRESENÇA, verificar o valor
+          const valorPresenca = colunaPresenca.toString().trim().toUpperCase()
+          if (valorPresenca === 'P' || valorPresenca === 'PRESENTE' || valorPresenca === 'SIM' || valorPresenca === '1' || valorPresenca === 'S') {
+            presenca = 'P'
+          } else if (valorPresenca === 'F' || valorPresenca === 'FALTOU' || valorPresenca === 'AUSENTE' || valorPresenca === 'NAO' || valorPresenca === 'NÃO' || valorPresenca === '0' || valorPresenca === 'N') {
+            presenca = 'F'
+          }
+        }
+        // Se não houver coluna de frequência (nem FALTA nem PRESENÇA), presenca permanece null (será tratado como "-")
 
         if (!escolaNome || !alunoNome) {
           throw new Error('Linha sem escola ou aluno')
@@ -138,6 +170,37 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Verificar se há dados de resultados (questões respondidas)
+        let temResultados = false
+        for (const { inicio, fim } of questoesMap) {
+          for (let num = inicio; num <= fim; num++) {
+            const colunaQuestao = `Q${num}`
+            const valorQuestao = linha[colunaQuestao]
+            if (valorQuestao !== undefined && valorQuestao !== null && valorQuestao !== '') {
+              temResultados = true
+              break
+            }
+          }
+          if (temResultados) break
+        }
+        
+        // Determinar presença final
+        // Se não houver dados de frequência E não houver resultados, usar "-" (não deve ser contado)
+        let presencaFinal: string
+        if (presenca === null && !temResultados) {
+          // Não há frequência nem resultados - usar "-"
+          presencaFinal = '-'
+        } else if (presenca === null) {
+          // Não há frequência, mas há resultados - assumir presente para não perder os dados
+          presencaFinal = 'P'
+        } else {
+          // Há dados de frequência - usar o valor
+          presencaFinal = presenca
+        }
+        
+        const alunoFaltou = presencaFinal === 'F'
+        const semDados = presencaFinal === '-'
+        
         // Processar cada questão (Q1 a Q60)
         for (const { inicio, fim, area, disciplina } of questoesMap) {
           for (let num = inicio; num <= fim; num++) {
@@ -166,7 +229,14 @@ export async function POST(request: NextRequest) {
               `INSERT INTO resultados_provas 
                (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo, 
                 resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+               ON CONFLICT (aluno_id, questao_codigo, ano_letivo) 
+               DO UPDATE SET
+                 resposta_aluno = EXCLUDED.resposta_aluno,
+                 acertou = EXCLUDED.acertou,
+                 nota = EXCLUDED.nota,
+                 presenca = EXCLUDED.presenca,
+                 atualizado_em = CURRENT_TIMESTAMP`,
               [
                 escolaId,
                 alunoId || null,
@@ -175,15 +245,15 @@ export async function POST(request: NextRequest) {
                 turmaId,
                 questaoId,
                 questaoCodigo,
-                acertou ? '1' : '0',
-                acertou,
-                nota,
+                (alunoFaltou || semDados) ? null : (acertou ? '1' : '0'),
+                (alunoFaltou || semDados) ? false : acertou,
+                (alunoFaltou || semDados) ? 0 : nota,
                 anoLetivo,
                 serie || null,
                 turmaCodigo || null,
                 disciplina,
                 area,
-                presenca || 'P',
+                presencaFinal,
               ]
             )
           }

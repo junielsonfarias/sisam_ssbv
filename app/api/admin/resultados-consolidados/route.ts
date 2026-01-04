@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE 1=1
+      -- IMPORTANTE: Filtrar apenas alunos com presença 'P' ou 'F' (excluir '-' sem dados)
+      AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
     `
 
     const params: any[] = []

@@ -134,10 +134,15 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    // IMPORTANTE: Filtro de presença - respeitar seleção do usuário ou aplicar padrão
     if (presenca) {
+      // Se o usuário selecionou presença, usar apenas o filtro do usuário
       whereConditions.push(`(rc.presenca = $${paramIndex} OR rc.presenca = LOWER($${paramIndex}))`)
       params.push(presenca.toUpperCase())
       paramIndex++
+    } else {
+      // Se não houver filtro de presença do usuário, aplicar filtro padrão para excluir '-' (sem dados)
+      whereConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`)
     }
 
     if (nivelAprendizagem) {
@@ -203,7 +208,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Filtro por área de conhecimento
-
+    
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
     // ========== MÉTRICAS GERAIS ==========
@@ -477,12 +482,28 @@ export async function GET(request: NextRequest) {
       ? `WHERE ${filtrosWhereConditions.join(' AND ')}` 
       : ''
 
+    // IMPORTANTE: Aplicar filtro de presença nos filtros de dropdown
+    // Se o usuário selecionou presença, usar apenas o filtro do usuário; senão, excluir '-' (sem dados)
+    const filtrosComPresenca = [...filtrosWhereConditions]
+    if (presenca) {
+      // Se o usuário selecionou presença, usar apenas o filtro do usuário
+      filtrosComPresenca.push(`(rc.presenca = $${filtrosParamIndex} OR rc.presenca = LOWER($${filtrosParamIndex}))`)
+      filtrosParams.push(presenca.toUpperCase())
+      filtrosParamIndex++
+    } else {
+      // Se não houver filtro de presença do usuário, aplicar filtro padrão para excluir '-' (sem dados)
+      filtrosComPresenca.push(`(rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`)
+    }
+    const filtrosWhereClauseComPresenca = filtrosComPresenca.length > 0 
+      ? `WHERE ${filtrosComPresenca.join(' AND ')}` 
+      : ''
+
     const polosQuery = `
       SELECT DISTINCT p.id, p.nome
       FROM polos p
       INNER JOIN escolas e ON e.polo_id = p.id
       INNER JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
-      ${filtrosWhereClause}
+      ${filtrosWhereClauseComPresenca}
       ORDER BY p.nome
     `
 
@@ -490,12 +511,20 @@ export async function GET(request: NextRequest) {
       SELECT DISTINCT e.id, e.nome, e.polo_id
       FROM escolas e
       INNER JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
-      ${filtrosWhereClause}
+      ${filtrosWhereClauseComPresenca}
       ORDER BY e.nome
     `
 
     const seriesConditions = [...filtrosWhereConditions]
     seriesConditions.push(`rc.serie IS NOT NULL AND rc.serie != ''`)
+    // IMPORTANTE: Aplicar filtro de presença - respeitar seleção do usuário ou aplicar padrão
+    if (presenca) {
+      seriesConditions.push(`(rc.presenca = $${filtrosParamIndex} OR rc.presenca = LOWER($${filtrosParamIndex}))`)
+      filtrosParams.push(presenca.toUpperCase())
+      filtrosParamIndex++
+    } else {
+      seriesConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`)
+    }
     const seriesWhereClause = seriesConditions.length > 0 ? `WHERE ${seriesConditions.join(' AND ')}` : ''
     
     const seriesQuery = `
@@ -506,17 +535,36 @@ export async function GET(request: NextRequest) {
       ORDER BY serie_numero
     `
 
+    // IMPORTANTE: Aplicar filtro de presença - respeitar seleção do usuário ou aplicar padrão
+    const turmasConditions = [...filtrosWhereConditions]
+    if (presenca) {
+      turmasConditions.push(`(rc.presenca = $${filtrosParamIndex} OR rc.presenca = LOWER($${filtrosParamIndex}))`)
+      filtrosParams.push(presenca.toUpperCase())
+      filtrosParamIndex++
+    } else {
+      turmasConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`)
+    }
+    const turmasWhereClause = turmasConditions.length > 0 ? `WHERE ${turmasConditions.join(' AND ')}` : ''
+
     const turmasQuery = `
       SELECT DISTINCT t.id, t.codigo, t.escola_id
       FROM turmas t
       INNER JOIN resultados_consolidados_unificada rc ON rc.turma_id = t.id
       INNER JOIN escolas e ON rc.escola_id = e.id
-      ${filtrosWhereClause}
+      ${turmasWhereClause}
       ORDER BY t.codigo
     `
 
     const anosLetivosConditions = [...filtrosWhereConditions]
     anosLetivosConditions.push(`rc.ano_letivo IS NOT NULL AND rc.ano_letivo != ''`)
+    // IMPORTANTE: Aplicar filtro de presença - respeitar seleção do usuário ou aplicar padrão
+    if (presenca) {
+      anosLetivosConditions.push(`(rc.presenca = $${filtrosParamIndex} OR rc.presenca = LOWER($${filtrosParamIndex}))`)
+      filtrosParams.push(presenca.toUpperCase())
+      filtrosParamIndex++
+    } else {
+      anosLetivosConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`)
+    }
     const anosLetivosWhereClause = anosLetivosConditions.length > 0 ? `WHERE ${anosLetivosConditions.join(' AND ')}` : ''
     
     const anosLetivosQuery = `
@@ -533,7 +581,7 @@ export async function GET(request: NextRequest) {
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
-      ${filtrosWhereClause}
+      ${filtrosWhereClauseComPresenca}
       ORDER BY nivel
     `
 
@@ -635,8 +683,11 @@ export async function GET(request: NextRequest) {
 
     // Adicionar filtro de presença se necessário para análises
     const rpWhereConditionsComPresenca = [...rpWhereConditions]
-    if (!presenca) {
-      // Se não há filtro de presença, filtrar apenas presentes por padrão para análises
+    if (presenca) {
+      // Se o usuário selecionou presença, usar apenas o filtro do usuário
+      // (já foi adicionado em rpWhereConditions acima)
+    } else {
+      // Se não há filtro de presença, excluir '-' (sem dados) e filtrar apenas presentes por padrão para análises
       rpWhereConditionsComPresenca.push(`(rp.presenca = 'P' OR rp.presenca = 'p')`)
     }
     const rpWhereClauseComPresenca = rpWhereConditionsComPresenca.length > 0 

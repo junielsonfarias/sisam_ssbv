@@ -137,20 +137,32 @@ export async function POST(request: NextRequest) {
 
         const poloId = poloResult.rows[0].id
 
+        // Normalizar nome da escola para comparação (remove pontos, espaços extras)
+        const nomeEscolaNormalizado = nomeEscola
+          .toUpperCase()
+          .trim()
+          .replace(/\./g, '')
+          .replace(/\s+/g, ' ')
+
+        // Buscar escola existente usando normalização
         const existe = await pool.query(
-          'SELECT id FROM escolas WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1))',
-          [nomeEscola]
+          `SELECT id FROM escolas 
+           WHERE UPPER(TRIM(REGEXP_REPLACE(REGEXP_REPLACE(nome, '\\.', '', 'g'), '\\s+', ' ', 'g'))) = $1 
+           AND ativo = true 
+           LIMIT 1`,
+          [nomeEscolaNormalizado]
         )
 
         if (existe.rows.length > 0) {
           escolasMap.set(nomeEscola, existe.rows[0].id)
           resultado.escolas.existentes++
         } else {
+          const codigoEscola = nomeEscolaNormalizado.replace(/\s+/g, '_').substring(0, 50)
           const escolaResult = await pool.query(
             'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
             [
-              nomeEscola,
-              nomeEscola.toUpperCase().replace(/\s+/g, '_').substring(0, 50),
+              nomeEscola.trim(),
+              codigoEscola,
               poloId
             ]
           )
@@ -205,11 +217,25 @@ export async function POST(request: NextRequest) {
         const turmaId = turma ? turmasMap.get(turma) : null
 
         const existe = await pool.query(
-          'SELECT id FROM alunos WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1)) AND escola_id = $2 AND ano_letivo = $3',
-          [nomeAluno, escolaId, anoLetivo]
+          `SELECT id FROM alunos 
+           WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1)) 
+           AND escola_id = $2 
+           AND (turma_id = $3 OR (turma_id IS NULL AND $3::uuid IS NULL))
+           AND (ano_letivo = $4 OR (ano_letivo IS NULL AND $4 IS NULL))
+           AND ativo = true
+           LIMIT 1`,
+          [nomeAluno, escolaId, turmaId, anoLetivo]
         )
 
         if (existe.rows.length > 0) {
+          // Aluno já existe - atualizar turma e série se necessário
+          const alunoIdExistente = existe.rows[0].id
+          await pool.query(
+            `UPDATE alunos 
+             SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
+             WHERE id = $3`,
+            [turmaId, serie || null, alunoIdExistente]
+          )
           resultado.alunos.existentes++
         } else {
           // Gerar código único para o aluno

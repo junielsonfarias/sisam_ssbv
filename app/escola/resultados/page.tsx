@@ -188,10 +188,18 @@ export default function ResultadosEscolaPage() {
     if (presenca === 'P' || presenca === 'p') {
       return 'bg-green-100 text-green-800'
     }
+    if (presenca === '-') {
+      return 'bg-gray-100 text-gray-600'
+    }
     return 'bg-red-100 text-red-800'
   }
 
   const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
+    // Se não houver dados de frequência, sempre retornar "-"
+    if (presenca === '-') {
+      return '-'
+    }
+    
     // Se aluno faltou, sempre retornar "-"
     if (presenca === 'F' || presenca === 'f') {
       return '-'
@@ -612,7 +620,7 @@ export default function ResultadosEscolaPage() {
                                       resultado.presenca || 'P'
                                     )}`}
                                   >
-                                    {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                    {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : resultado.presenca === '-' ? '— Sem dados' : '✗ Falta'}
                                   </span>
                                 </div>
                               </div>
@@ -814,7 +822,7 @@ export default function ResultadosEscolaPage() {
                                         resultado.presenca || 'P'
                                       )}`}
                                     >
-                                      {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                      {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : resultado.presenca === '-' ? '— Sem dados' : '✗ Falta'}
                                     </span>
                                   </div>
                                 </div>
