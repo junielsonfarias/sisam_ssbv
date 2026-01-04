@@ -17,6 +17,13 @@ let queryQueue: Array<{
 let activeQueries = 0;
 const MAX_CONCURRENT_QUERIES = 8; // Máximo de queries paralelas
 
+// Estado de saúde da conexão
+let lastHealthCheck: number = 0;
+let isHealthy: boolean = true;
+let consecutiveFailures: number = 0;
+const HEALTH_CHECK_INTERVAL = 30000; // 30 segundos
+const MAX_CONSECUTIVE_FAILURES = 3;
+
 /**
  * Detecta o modo de conexão do Supabase
  * - Transaction Mode (porta 6543): Permite MUITAS conexões, ideal para serverless
@@ -250,6 +257,8 @@ export async function testConnection(): Promise<{ success: boolean; error?: stri
   try {
     const testPool = getPool();
     await testPool.query('SELECT 1');
+    consecutiveFailures = 0;
+    isHealthy = true;
     return { success: true };
   } catch (error: any) {
     console.error('Erro ao testar conexão:', {
@@ -257,10 +266,13 @@ export async function testConnection(): Promise<{ success: boolean; error?: stri
       message: error.message,
       host: process.env.DB_HOST,
     });
-    
+
+    consecutiveFailures++;
+    isHealthy = false;
+
     // Resetar pool em caso de erro
     resetPool();
-    
+
     return {
       success: false,
       error: error.message || 'Erro desconhecido ao conectar ao banco de dados',
@@ -268,37 +280,132 @@ export async function testConnection(): Promise<{ success: boolean; error?: stri
   }
 }
 
-// Função helper para retry com backoff exponencial
+/**
+ * Verifica a saúde da conexão e reconecta se necessário
+ */
+async function healthCheck(): Promise<boolean> {
+  const now = Date.now();
+
+  // Se verificou recentemente e está saudável, pular
+  if (isHealthy && (now - lastHealthCheck) < HEALTH_CHECK_INTERVAL) {
+    return true;
+  }
+
+  lastHealthCheck = now;
+
+  try {
+    const poolInstance = getPool();
+    await poolInstance.query('SELECT 1');
+    consecutiveFailures = 0;
+    isHealthy = true;
+    return true;
+  } catch (error: any) {
+    consecutiveFailures++;
+    console.warn(`[HealthCheck] Falha ${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}:`, error.message);
+
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      console.error('[HealthCheck] Muitas falhas consecutivas, recriando pool...');
+      isHealthy = false;
+      resetPool();
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Verifica se o erro é recuperável (pode tentar reconectar)
+ */
+function isRecoverableError(error: any): boolean {
+  const errorMessage = error?.message || '';
+  const errorCode = error?.code || '';
+
+  const recoverableMessages = [
+    'MaxClientsInSessionMode',
+    'max clients reached',
+    'too many clients',
+    'Connection terminated',
+    'connection terminated',
+    'Client has encountered a connection error',
+    'Connection refused',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'ENOTFOUND',
+    'socket hang up',
+    'read ECONNRESET',
+    'write ECONNRESET',
+    'terminating connection due to administrator command',
+    'sorry, too many clients already',
+    'the database system is starting up',
+    'the database system is shutting down',
+  ];
+
+  return recoverableMessages.some(msg =>
+    errorMessage.includes(msg) || errorCode.includes(msg)
+  );
+}
+
+/**
+ * Aguarda um tempo antes de tentar novamente
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Função helper para retry com backoff exponencial e reconexão automática
 async function queryWithRetry(
-  pool: Pool,
+  poolInstance: Pool,
   queryText: string,
   params?: any[],
-  maxRetries: number = 3
+  maxRetries: number = 4
 ): Promise<QueryResult<any>> {
   let lastError: any;
+  let currentPool = poolInstance;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      return await pool.query(queryText, params);
+      const result = await currentPool.query(queryText, params);
+
+      // Query bem-sucedida, resetar contadores de falha
+      if (attempt > 0) {
+        console.log(`[Query] Sucesso após ${attempt + 1} tentativas`);
+      }
+      consecutiveFailures = 0;
+      isHealthy = true;
+
+      return result;
     } catch (error: any) {
       lastError = error;
-      const errorMessage = error.message || '';
+      consecutiveFailures++;
 
-      // Se for MaxClientsInSessionMode, fazer retry com backoff
-      if (errorMessage.includes('MaxClientsInSessionMode') ||
-          errorMessage.includes('max clients reached') ||
-          errorMessage.includes('too many clients')) {
+      const isRecoverable = isRecoverableError(error);
+      const errorMsg = error.message?.substring(0, 100) || 'Erro desconhecido';
 
-        if (attempt < maxRetries - 1) {
-          // Backoff exponencial: 200ms, 400ms, 800ms
-          const delay = Math.min(200 * Math.pow(2, attempt), 2000);
-          console.warn(`[Pool] Limite de conexões - tentativa ${attempt + 1}/${maxRetries}, aguardando ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
+      console.warn(`[Query] Erro (tentativa ${attempt + 1}/${maxRetries}): ${errorMsg}`);
+
+      // Se for erro recuperável, tentar novamente
+      if (isRecoverable && attempt < maxRetries - 1) {
+        // Backoff exponencial: 300ms, 600ms, 1200ms, 2400ms
+        const waitTime = Math.min(300 * Math.pow(2, attempt), 3000);
+        console.warn(`[Query] Aguardando ${waitTime}ms antes de tentar novamente...`);
+        await delay(waitTime);
+
+        // Se muitas falhas, recriar pool
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          console.warn('[Query] Recriando pool após múltiplas falhas...');
+          resetPool();
+          currentPool = getPool();
         }
+
+        continue;
       }
 
-      // Para outros erros, não fazer retry
+      // Se não for recuperável ou esgotou tentativas, lançar erro
+      if (!isRecoverable) {
+        console.error('[Query] Erro não recuperável:', errorMsg);
+      }
+
       throw error;
     }
   }
@@ -401,6 +508,9 @@ export function getPoolStats(): {
   waiting: number;
   activeQueries: number;
   queuedQueries: number;
+  isHealthy: boolean;
+  consecutiveFailures: number;
+  lastHealthCheck: string;
 } {
   const poolInstance = pool;
   return {
@@ -408,8 +518,62 @@ export function getPoolStats(): {
     idle: poolInstance?.idleCount || 0,
     waiting: poolInstance?.waitingCount || 0,
     activeQueries,
-    queuedQueries: queryQueue.length
+    queuedQueries: queryQueue.length,
+    isHealthy,
+    consecutiveFailures,
+    lastHealthCheck: lastHealthCheck ? new Date(lastHealthCheck).toISOString() : 'never'
   };
+}
+
+/**
+ * Força uma verificação de saúde da conexão
+ */
+export async function forceHealthCheck(): Promise<{
+  healthy: boolean;
+  latency: number;
+  error?: string;
+}> {
+  const start = Date.now();
+
+  try {
+    const poolInstance = getPool();
+    await poolInstance.query('SELECT 1');
+    const latency = Date.now() - start;
+
+    consecutiveFailures = 0;
+    isHealthy = true;
+    lastHealthCheck = Date.now();
+
+    return { healthy: true, latency };
+  } catch (error: any) {
+    const latency = Date.now() - start;
+    consecutiveFailures++;
+    isHealthy = false;
+
+    return {
+      healthy: false,
+      latency,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Pré-aquece o pool criando uma conexão inicial
+ */
+export async function warmupPool(): Promise<boolean> {
+  try {
+    console.log('[Pool] Iniciando warmup...');
+    const poolInstance = getPool();
+    await poolInstance.query('SELECT 1');
+    console.log('[Pool] Warmup concluído com sucesso');
+    isHealthy = true;
+    consecutiveFailures = 0;
+    return true;
+  } catch (error: any) {
+    console.error('[Pool] Erro no warmup:', error.message);
+    return false;
+  }
 }
 
 // Criar wrapper que mantém compatibilidade com código existente
