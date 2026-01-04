@@ -113,7 +113,6 @@ export async function GET(request: NextRequest) {
     if (!presenca) {
       query += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
     }
-    `
 
     const params: any[] = []
     let paramIndex = 1
