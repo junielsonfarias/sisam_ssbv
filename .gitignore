@@ -46,3 +46,7 @@ env/
 estrutura-dados.json
 analisar-excel.py
 
+# uploads (imagens de logo)
+public/uploads/*
+!public/uploads/.gitkeep
+

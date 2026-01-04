@@ -395,7 +395,6 @@ export async function GET(request: NextRequest) {
       LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
       ${whereClause}
       ORDER BY rc.media_aluno DESC NULLS LAST
-      LIMIT 500
     `
 
     // ========== DADOS PARA FILTROS ==========
