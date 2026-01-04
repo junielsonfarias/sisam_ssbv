@@ -54,6 +54,8 @@ export async function GET(request: NextRequest) {
         rc.nota_ch,
         rc.nota_mat,
         rc.nota_cn,
+        rc.nota_producao,
+        rc.nivel_aprendizagem,
         rc.media_aluno,
         rc.criado_em as resultado_criado_em,
         rc.atualizado_em as resultado_atualizado_em
