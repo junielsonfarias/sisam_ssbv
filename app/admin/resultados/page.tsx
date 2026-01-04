@@ -78,6 +78,42 @@ export default function ResultadosPage() {
   const [series, setSeries] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string } | null>(null)
+  
+  // Estados de paginação
+  const [paginaAtual, setPaginaAtual] = useState(1)
+  const [paginacao, setPaginacao] = useState<{
+    pagina: number
+    limite: number
+    total: number
+    totalPaginas: number
+    temProxima: boolean
+    temAnterior: boolean
+  }>({
+    pagina: 1,
+    limite: 50,
+    total: 0,
+    totalPaginas: 0,
+    temProxima: false,
+    temAnterior: false
+  })
+  
+  // Funções de navegação de página
+  const irParaPagina = (pagina: number) => {
+    setPaginaAtual(pagina)
+    carregarResultados(pagina)
+  }
+  
+  const paginaAnterior = () => {
+    if (paginacao.temAnterior) {
+      irParaPagina(paginaAtual - 1)
+    }
+  }
+  
+  const proximaPagina = () => {
+    if (paginacao.temProxima) {
+      irParaPagina(paginaAtual + 1)
+    }
+  }
 
   useEffect(() => {
     const carregarTipoUsuario = async () => {
@@ -97,7 +133,8 @@ export default function ResultadosPage() {
   }, [])
 
   useEffect(() => {
-    carregarResultados()
+    setPaginaAtual(1) // Resetar para primeira página ao mudar filtros
+    carregarResultados(1)
   }, [filtros])
 
   useEffect(() => {
@@ -163,7 +200,7 @@ export default function ResultadosPage() {
     }
   }
 
-  const carregarResultados = async () => {
+  const carregarResultados = async (pagina: number = paginaAtual) => {
     try {
       setCarregando(true)
       
@@ -171,6 +208,10 @@ export default function ResultadosPage() {
       Object.entries(filtros).forEach(([key, value]) => {
         if (value) params.append(key, value)
       })
+      
+      // Parâmetros de paginação
+      params.append('pagina', pagina.toString())
+      params.append('limite', '50')
       
       const response = await fetch(`/api/admin/resultados-consolidados?${params.toString()}`)
       
@@ -180,21 +221,66 @@ export default function ResultadosPage() {
       
       const data = await response.json()
       
-      // Garantir que os dados sejam um array
-      if (Array.isArray(data)) {
-        setResultados(data)
-        
-        // Extrair séries únicas dos resultados
-        const seriesUnicas = [...new Set(data.map((r: ResultadoConsolidado) => r.serie).filter(Boolean))] as string[]
-        setSeries(seriesUnicas.sort())
-      } else {
-        setResultados([])
-        setSeries([])
+      // Nova estrutura: { resultados: [], paginacao: {} } ou array direto (compatibilidade)
+      let resultadosData: ResultadoConsolidado[] = []
+      let paginacaoData: Paginacao = {
+        pagina: 1,
+        limite: 50,
+        total: 0,
+        totalPaginas: 0,
+        temProxima: false,
+        temAnterior: false
       }
+      
+      if (Array.isArray(data)) {
+        // Compatibilidade: resposta antiga (array direto)
+        resultadosData = data
+        paginacaoData = {
+          pagina: 1,
+          limite: 50,
+          total: data.length,
+          totalPaginas: Math.ceil(data.length / 50),
+          temProxima: false,
+          temAnterior: false
+        }
+      } else if (data && typeof data === 'object') {
+        if (Array.isArray(data.resultados)) {
+          resultadosData = data.resultados
+        } else if (Array.isArray(data)) {
+          resultadosData = data
+        }
+        
+        if (data.paginacao && typeof data.paginacao === 'object') {
+          paginacaoData = {
+            pagina: data.paginacao.pagina || 1,
+            limite: data.paginacao.limite || 50,
+            total: data.paginacao.total || 0,
+            totalPaginas: data.paginacao.totalPaginas || data.paginacao.total_paginas || 0,
+            temProxima: data.paginacao.temProxima || false,
+            temAnterior: data.paginacao.temAnterior || false
+          }
+        }
+      }
+      
+      setResultados(resultadosData)
+      setPaginacao(paginacaoData)
+      setPaginaAtual(paginacaoData.pagina)
+      
+      // Extrair séries únicas dos resultados
+      const seriesUnicas = [...new Set(resultadosData.map((r: ResultadoConsolidado) => r.serie).filter(Boolean))] as string[]
+      setSeries(seriesUnicas.sort())
     } catch (error) {
       console.error('Erro ao carregar resultados:', error)
       setResultados([])
       setSeries([])
+      setPaginacao({
+        pagina: 1,
+        limite: 50,
+        total: 0,
+        totalPaginas: 0,
+        temProxima: false,
+        temAnterior: false
+      })
     } finally {
       setCarregando(false)
     }

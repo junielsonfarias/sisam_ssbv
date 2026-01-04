@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     // Parâmetros de paginação para alunos detalhados
     const paginaAlunos = parseInt(searchParams.get('pagina_alunos') || '1')
-    const limiteAlunos = Math.min(parseInt(searchParams.get('limite_alunos') || '100'), 500) // Máximo 500 por página
+    const limiteAlunos = Math.min(parseInt(searchParams.get('limite_alunos') || '50'), 500) // Padrão 50, máximo 500 por página
     const offsetAlunos = (paginaAlunos - 1) * limiteAlunos
 
     // Parametro para forcar atualizacao do cache

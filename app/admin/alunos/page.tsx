@@ -53,6 +53,15 @@ const formDataInicial = {
   ano_letivo: new Date().getFullYear().toString(),
 }
 
+interface Paginacao {
+  pagina: number
+  limite: number
+  total: number
+  totalPaginas: number
+  temProxima: boolean
+  temAnterior: boolean
+}
+
 export default function AlunosPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [alunos, setAlunos] = useState<Aluno[]>([])
@@ -74,6 +83,17 @@ export default function AlunosPage() {
   const [mostrarModalHistorico, setMostrarModalHistorico] = useState(false)
   const [historicoAluno, setHistoricoAluno] = useState<any>(null)
   const [carregandoHistorico, setCarregandoHistorico] = useState(false)
+
+  // Estado de paginação
+  const [paginacao, setPaginacao] = useState<Paginacao>({
+    pagina: 1,
+    limite: 50,
+    total: 0,
+    totalPaginas: 0,
+    temProxima: false,
+    temAnterior: false
+  })
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   useEffect(() => {
     const carregarTipoUsuario = async () => {
@@ -135,41 +155,120 @@ export default function AlunosPage() {
     }
   }, [buscaDebounced, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, escolas])
 
-  const carregarAlunos = async () => {
+  const carregarAlunos = async (pagina: number = paginaAtual) => {
     try {
+      setCarregando(true)
       const params = new URLSearchParams()
-      
-      // IMPORTANTE: Se escola foi selecionada diretamente, usar filtro de escola
-      // Se não, mas polo foi selecionado, filtrar por polo no frontend
+
+      // Paginação
+      params.append('pagina', pagina.toString())
+      params.append('limite', '50')
+
+      // Filtros
       if (filtroEscola) {
         params.append('escola_id', filtroEscola)
-      } else if (filtroPolo && escolas.length > 0) {
-        // Se polo foi selecionado mas não escola, buscar todas as escolas do polo
-        const escolasDoPolo = escolas.filter(e => e.polo_id === filtroPolo).map(e => e.id)
-        if (escolasDoPolo.length > 0) {
-          // Não há parâmetro para múltiplas escolas, então filtrar no frontend
-        }
       }
-      
+
       if (filtroTurma) params.append('turma_id', filtroTurma)
       if (filtroSerie) params.append('serie', filtroSerie)
       if (filtroAno) params.append('ano_letivo', filtroAno)
       if (buscaDebounced) params.append('busca', buscaDebounced)
 
-      const data = await fetch(`/api/admin/alunos?${params}`).then(r => r.json())
+      const response = await fetch(`/api/admin/alunos?${params}`)
       
-      // Aplicar filtro de polo apenas se não houver filtro de escola específica
-      let alunosFiltrados = data
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      // Garantir que sempre temos um array, mesmo em caso de erro
+      let alunosData: Aluno[] = []
+      let paginacaoData: Paginacao = {
+        pagina: 1,
+        limite: 50,
+        total: 0,
+        totalPaginas: 0,
+        temProxima: false,
+        temAnterior: false
+      }
+
+      // Nova estrutura de resposta: { alunos: [], paginacao: {} }
+      if (data && typeof data === 'object') {
+        if (Array.isArray(data.alunos)) {
+          alunosData = data.alunos
+        } else if (Array.isArray(data)) {
+          // Fallback: se for array direto (compatibilidade)
+          alunosData = data
+        }
+
+        if (data.paginacao && typeof data.paginacao === 'object') {
+          paginacaoData = {
+            pagina: data.paginacao.pagina || 1,
+            limite: data.paginacao.limite || 50,
+            total: data.paginacao.total || 0,
+            totalPaginas: data.paginacao.totalPaginas || data.paginacao.total_paginas || 0,
+            temProxima: data.paginacao.temProxima || false,
+            temAnterior: data.paginacao.temAnterior || false
+          }
+        } else {
+          // Se não tem paginação, calcular baseado nos dados
+          paginacaoData = {
+            pagina: 1,
+            limite: 50,
+            total: alunosData.length,
+            totalPaginas: Math.ceil(alunosData.length / 50),
+            temProxima: false,
+            temAnterior: false
+          }
+        }
+      }
+
+      // Aplicar filtro de polo no frontend se necessário
+      let alunosFiltrados = Array.isArray(alunosData) ? alunosData : []
       if (filtroPolo && !filtroEscola && escolas.length > 0) {
-        alunosFiltrados = data.filter((a: Aluno) => 
+        alunosFiltrados = alunosFiltrados.filter((a: Aluno) =>
           escolas.some(e => e.id === a.escola_id && e.polo_id === filtroPolo)
         )
+        // Ajustar paginação se filtrar no frontend
+        paginacaoData.total = alunosFiltrados.length
+        paginacaoData.totalPaginas = Math.ceil(alunosFiltrados.length / paginacaoData.limite)
       }
-      
+
       setAlunos(alunosFiltrados)
+      setPaginacao(paginacaoData)
+      setPaginaAtual(paginacaoData.pagina)
     } catch (error) {
       console.error('Erro ao carregar alunos:', error)
       setAlunos([])
+      setPaginacao({
+        pagina: 1,
+        limite: 50,
+        total: 0,
+        totalPaginas: 0,
+        temProxima: false,
+        temAnterior: false
+      })
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  // Funções de navegação de página
+  const irParaPagina = (pagina: number) => {
+    setPaginaAtual(pagina)
+    carregarAlunos(pagina)
+  }
+
+  const paginaAnterior = () => {
+    if (paginacao.temAnterior) {
+      irParaPagina(paginaAtual - 1)
+    }
+  }
+
+  const proximaPagina = () => {
+    if (paginacao.temProxima) {
+      irParaPagina(paginaAtual + 1)
     }
   }
 
@@ -416,12 +515,17 @@ export default function AlunosPage() {
           </div>
 
           {/* Card com total de alunos */}
-          {!carregando && alunos.length > 0 && (
+          {!carregando && (
             <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm sm:text-base opacity-90 mb-1">Total de Alunos Cadastrados</p>
-                  <p className="text-3xl sm:text-4xl font-bold">{alunos.length}</p>
+                  <p className="text-sm sm:text-base opacity-90 mb-1">Total de Alunos</p>
+                  <p className="text-3xl sm:text-4xl font-bold">{paginacao.total}</p>
+                  {paginacao.totalPaginas > 1 && (
+                    <p className="text-sm opacity-75 mt-1">
+                      Mostrando {alunos.length} de {paginacao.total} (Página {paginacao.pagina} de {paginacao.totalPaginas})
+                    </p>
+                  )}
                 </div>
                 <div className="bg-white bg-opacity-20 rounded-full p-3 sm:p-4">
                   <Plus className="w-8 h-8 sm:w-10 sm:h-10" />
@@ -553,6 +657,74 @@ export default function AlunosPage() {
                     )}
                   </tbody>
                     </table>
+              </div>
+            )}
+
+            {/* Controles de Paginação */}
+            {!carregando && paginacao.totalPaginas > 1 && (
+              <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                <div className="flex-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
+                  <div className="text-sm text-gray-700">
+                    <span className="font-medium">Página {paginacao.pagina}</span> de {paginacao.totalPaginas}
+                    {' • '}
+                    <span className="font-medium">{paginacao.total}</span> alunos no total
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={paginaAnterior}
+                      disabled={!paginacao.temAnterior}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        paginacao.temAnterior
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Anterior
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {/* Mostrar até 5 números de página */}
+                      {Array.from({ length: Math.min(5, paginacao.totalPaginas) }, (_, i) => {
+                        let paginaNum
+                        if (paginacao.totalPaginas <= 5) {
+                          paginaNum = i + 1
+                        } else if (paginacao.pagina <= 3) {
+                          paginaNum = i + 1
+                        } else if (paginacao.pagina >= paginacao.totalPaginas - 2) {
+                          paginaNum = paginacao.totalPaginas - 4 + i
+                        } else {
+                          paginaNum = paginacao.pagina - 2 + i
+                        }
+
+                        if (paginaNum > paginacao.totalPaginas) return null
+
+                        return (
+                          <button
+                            key={paginaNum}
+                            onClick={() => irParaPagina(paginaNum)}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                              paginacao.pagina === paginaNum
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {paginaNum}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button
+                      onClick={proximaPagina}
+                      disabled={!paginacao.temProxima}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        paginacao.temProxima
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Próxima
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

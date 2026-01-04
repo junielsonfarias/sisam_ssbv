@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
     const serie = searchParams.get('serie')
     const presenca = searchParams.get('presenca')
     const turmaId = searchParams.get('turma_id')
+    
+    // Parâmetros de paginação
+    const pagina = Math.max(1, parseInt(searchParams.get('pagina') || '1'))
+    const limite = Math.min(200, Math.max(1, parseInt(searchParams.get('limite') || '50')))
+    const offset = (pagina - 1) * limite
 
     // Verificar cache
     const cacheOptions = {
@@ -154,17 +159,44 @@ export async function GET(request: NextRequest) {
     }
 
     query += ' ORDER BY rc.media_aluno DESC NULLS LAST, a.nome'
+    
+    // Query para contar total
+    const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM')
+      .replace(/ORDER BY[\s\S]*$/, '')
+    
+    // Adicionar LIMIT e OFFSET à query principal
+    query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
+    params.push(limite, offset)
 
-    const result = await pool.query(query, params)
+    // Executar queries em paralelo
+    const [countResult, dataResult] = await Promise.all([
+      pool.query(countQuery, params.slice(0, -2)), // Remover limit e offset do count
+      pool.query(query, params)
+    ])
 
-    // Salvar no cache (expira em 1 hora)
+    const total = parseInt(countResult.rows[0]?.total || '0')
+    const totalPaginas = Math.ceil(total / limite)
+
+    const resultado = {
+      resultados: dataResult.rows,
+      paginacao: {
+        pagina,
+        limite,
+        total,
+        totalPaginas,
+        temProxima: pagina < totalPaginas,
+        temAnterior: pagina > 1
+      }
+    }
+
+    // Salvar no cache (expira em 1 hora) - incluir paginação no cache key
     try {
-      salvarCache(cacheOptions, result.rows, 'resultados-consolidados')
+      salvarCache({ ...cacheOptions, pagina, limite }, resultado, 'resultados-consolidados')
     } catch (cacheError) {
       console.error('Erro ao salvar cache (nao critico):', cacheError)
     }
 
-    return NextResponse.json(result.rows)
+    return NextResponse.json(resultado)
   } catch (error) {
     console.error('Erro ao buscar resultados consolidados:', error)
     return NextResponse.json(
