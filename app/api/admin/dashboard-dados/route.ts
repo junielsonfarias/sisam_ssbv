@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { verificarCache, carregarCache, salvarCache } from '@/lib/cache-dashboard'
+import {
+  memoryCache,
+  CACHE_TTL,
+  getCacheKeyDashboard,
+  getCacheKeyFiltros
+} from '@/lib/cache-memoria'
 
 export const dynamic = 'force-dynamic'
+
+// Flag para usar cache em memória (mais rápido) ou arquivo (persistente)
+const USE_MEMORY_CACHE = true
 
 /**
  * GET /api/admin/dashboard-dados
@@ -72,15 +81,55 @@ export async function GET(request: NextRequest) {
       escolaId: usuario.escola_id || null
     }
 
-    // Verificar se existe cache valido (apenas se nao estiver forcando atualizacao)
+    // Gerar chave de cache em memória (sem paginação para aumentar hit rate)
+    const memoryCacheKey = getCacheKeyDashboard(
+      usuario.tipo_usuario,
+      usuario.polo_id || poloId,
+      usuario.escola_id || escolaId,
+      { poloId, escolaId, anoLetivo, serie, turmaId, presenca, nivelAprendizagem, faixaMedia, disciplina }
+    )
+
+    // VERIFICAR CACHE EM MEMÓRIA PRIMEIRO (mais rápido)
+    if (USE_MEMORY_CACHE && !forcarAtualizacao) {
+      const cachedData = memoryCache.get<any>(memoryCacheKey)
+      if (cachedData) {
+        console.log('[Dashboard] Cache em memória encontrado')
+        // Aplicar paginação nos dados em cache
+        const alunosDetalhados = cachedData.alunosDetalhados || []
+        const totalItens = alunosDetalhados.length
+        const alunosPaginados = alunosDetalhados.slice(offsetAlunos, offsetAlunos + limiteAlunos)
+
+        return NextResponse.json({
+          ...cachedData,
+          alunosDetalhados: alunosPaginados,
+          paginacaoAlunos: {
+            paginaAtual: paginaAlunos,
+            itensPorPagina: limiteAlunos,
+            totalItens,
+            totalPaginas: Math.ceil(totalItens / limiteAlunos)
+          },
+          _cache: {
+            origem: 'memoria',
+            carregadoEm: new Date().toISOString(),
+            ttlRestante: memoryCache.getTTL(memoryCacheKey)
+          }
+        })
+      }
+    }
+
+    // Verificar cache em arquivo (fallback)
     if (!forcarAtualizacao && verificarCache(cacheOptions)) {
       const dadosCache = carregarCache<any>(cacheOptions)
       if (dadosCache) {
-        console.log('Retornando dados do cache')
+        console.log('[Dashboard] Cache em arquivo encontrado')
+        // Salvar no cache em memória para próximas requisições
+        if (USE_MEMORY_CACHE) {
+          memoryCache.set(memoryCacheKey, dadosCache, CACHE_TTL.DASHBOARD)
+        }
         return NextResponse.json({
           ...dadosCache,
           _cache: {
-            origem: 'cache',
+            origem: 'arquivo',
             carregadoEm: new Date().toISOString()
           }
         })
@@ -1119,19 +1168,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Limpar caches expirados antes de salvar novo cache
+    // SALVAR NO CACHE EM MEMÓRIA (prioridade)
+    if (USE_MEMORY_CACHE) {
+      try {
+        memoryCache.set(memoryCacheKey, dadosResposta, CACHE_TTL.DASHBOARD)
+        console.log('[Dashboard] Cache em memória salvo')
+      } catch (cacheError) {
+        console.error('[Dashboard] Erro ao salvar cache em memória:', cacheError)
+      }
+    }
+
+    // Salvar também no cache em arquivo (backup/persistência)
     try {
       const { limparCachesExpirados } = await import('@/lib/cache-dashboard')
       limparCachesExpirados()
-    } catch (cacheError) {
-      // Não crítico, continuar
-    }
-
-    // Salvar no cache para proximas requisicoes (expira em 1 hora)
-    try {
       salvarCache(cacheOptions, dadosResposta, 'dashboard')
     } catch (cacheError) {
-      console.error('Erro ao salvar cache (nao critico):', cacheError)
+      // Não crítico, continuar
     }
 
     return NextResponse.json({
@@ -1139,7 +1192,8 @@ export async function GET(request: NextRequest) {
       _cache: {
         origem: 'banco',
         geradoEm: new Date().toISOString()
-      }
+      },
+      _stats: memoryCache.getStats()
     })
   } catch (error: any) {
     console.error('Erro ao buscar dados do dashboard:', error)

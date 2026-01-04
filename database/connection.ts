@@ -1,4 +1,4 @@
-import { Pool, QueryResult } from 'pg';
+import { Pool, QueryResult, PoolClient } from 'pg';
 
 let pool: Pool | null = null;
 let poolConfig: {
@@ -8,15 +8,54 @@ let poolConfig: {
   port?: number;
 } | null = null;
 
+// Fila de queries para controlar concorrência
+let queryQueue: Array<{
+  resolve: (value: any) => void;
+  reject: (error: any) => void;
+  queryFn: () => Promise<any>;
+}> = [];
+let activeQueries = 0;
+const MAX_CONCURRENT_QUERIES = 8; // Máximo de queries paralelas
+
+/**
+ * Detecta o modo de conexão do Supabase
+ * - Transaction Mode (porta 6543): Permite MUITAS conexões, ideal para serverless
+ * - Session Mode (porta 5432): Limitado a pool_size (~15-20)
+ */
+function detectSupabaseMode(host: string, port: number): {
+  isSupabase: boolean;
+  isTransactionMode: boolean;
+  recommendedMax: number;
+} {
+  const isSupabase = host?.includes('supabase.co') ||
+                     host?.includes('pooler.supabase.com') ||
+                     host?.includes('aws-0-');
+
+  // Porta 6543 = Transaction Mode (recomendado para serverless)
+  // Porta 5432 = Session Mode (limitado)
+  const isTransactionMode = port === 6543;
+
+  // Recomendações de pool baseadas no modo
+  let recommendedMax = 10;
+  if (isSupabase) {
+    if (isTransactionMode) {
+      // Transaction Mode: pode ter mais conexões
+      // Para 50 usuários, usar 15-20 conexões no pool
+      recommendedMax = 15;
+    } else {
+      // Session Mode: muito limitado
+      // Manter baixo para evitar MaxClientsInSessionMode
+      recommendedMax = 3;
+    }
+  }
+
+  return { isSupabase, isTransactionMode, recommendedMax };
+}
+
 function createPool(): Pool {
-  // Detectar se está conectando ao Supabase
-  const isSupabase = process.env.DB_HOST?.includes('supabase.co') || 
-                     process.env.DB_HOST?.includes('pooler.supabase.com') ||
-                     process.env.DB_HOST?.includes('aws-0-');
-  
   // Validar variáveis de ambiente obrigatórias
   const host = process.env.DB_HOST;
-  const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined;
+  const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432;
   const database = process.env.DB_NAME;
   const user = process.env.DB_USER;
   const password = process.env.DB_PASSWORD;
@@ -35,9 +74,26 @@ function createPool(): Pool {
     throw new Error('DB_PASSWORD não está configurado');
   }
 
+  const { isSupabase, isTransactionMode, recommendedMax } = detectSupabaseMode(host, port);
+
+  // Log de diagnóstico
+  console.log('=== Configuração de Conexão ===');
+  console.log(`Host: ${host}`);
+  console.log(`Porta: ${port}`);
+  console.log(`Supabase: ${isSupabase ? 'Sim' : 'Não'}`);
+  console.log(`Modo: ${isTransactionMode ? 'Transaction (otimizado)' : 'Session (limitado)'}`);
+  console.log(`Pool máximo: ${recommendedMax}`);
+
+  if (isSupabase && !isTransactionMode) {
+    console.warn('⚠️  AVISO: Usando Session Mode no Supabase!');
+    console.warn('   Para melhor performance com 50+ usuários, use Transaction Mode:');
+    console.warn('   - Altere DB_PORT para 6543');
+    console.warn('   - Use o endpoint pooler.supabase.com');
+  }
+
   // Configuração SSL: sempre usar para Supabase, produção ou quando DB_SSL=true
-  const sslConfig = process.env.NODE_ENV === 'production' || 
-                    process.env.DB_SSL === 'true' || 
+  const sslConfig = process.env.NODE_ENV === 'production' ||
+                    process.env.DB_SSL === 'true' ||
                     isSupabase
     ? {
         rejectUnauthorized: false, // Aceita certificados auto-assinados
@@ -46,20 +102,18 @@ function createPool(): Pool {
 
   const config: any = {
     host: host,
-    port: port || 5432,
+    port: port,
     database: database,
     user: user,
     password: password,
-    // Configuração otimizada para Supabase Connection Pooler
-    // Session mode limita a pool_size (geralmente 15-20)
-    // Reduzimos drasticamente para evitar MaxClientsInSessionMode
-    max: isSupabase ? 2 : 10, // Reduzido para 2 conexões simultâneas no Supabase
+    // Pool otimizado para modo detectado
+    max: recommendedMax,
     min: 0, // Não manter conexões idle (importante para serverless)
-    idleTimeoutMillis: isSupabase ? 10000 : 30000, // Fechar conexões idle rapidamente
-    connectionTimeoutMillis: isSupabase ? 20000 : 10000,
+    idleTimeoutMillis: isSupabase ? 10000 : 30000,
+    connectionTimeoutMillis: isTransactionMode ? 10000 : 20000,
     ssl: sslConfig,
     // Opções para serverless/Vercel
-    allowExitOnIdle: true, // Permite que o processo termine quando não há conexões
+    allowExitOnIdle: true,
     keepAlive: true,
     keepAliveInitialDelayMillis: 10000,
   };
@@ -67,11 +121,10 @@ function createPool(): Pool {
   // Configurações especiais para Vercel + Supabase
   if (process.env.NODE_ENV === 'production' && isSupabase) {
     // Forçar IPv4 primeiro (mais confiável na Vercel)
-    config.family = 4; // 4 = IPv4 apenas
-    
-    // Timeouts otimizados para serverless
-    config.connectionTimeoutMillis = 20000; // Reduzido de 30s para 20s
-    config.query_timeout = 30000; // Reduzido de 60s para 30s (queries devem ser rápidas)
+    config.family = 4;
+
+    // Timeouts otimizados
+    config.query_timeout = 30000;
     config.statement_timeout = 30000;
   }
 
@@ -223,33 +276,140 @@ async function queryWithRetry(
   maxRetries: number = 3
 ): Promise<QueryResult<any>> {
   let lastError: any;
-  
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await pool.query(queryText, params);
     } catch (error: any) {
       lastError = error;
       const errorMessage = error.message || '';
-      
+
       // Se for MaxClientsInSessionMode, fazer retry com backoff
-      if (errorMessage.includes('MaxClientsInSessionMode') || 
-          errorMessage.includes('max clients reached')) {
-        
+      if (errorMessage.includes('MaxClientsInSessionMode') ||
+          errorMessage.includes('max clients reached') ||
+          errorMessage.includes('too many clients')) {
+
         if (attempt < maxRetries - 1) {
-          // Backoff exponencial: 100ms, 200ms, 400ms
-          const delay = Math.min(100 * Math.pow(2, attempt), 1000);
-          console.warn(`MaxClientsInSessionMode - tentativa ${attempt + 1}/${maxRetries}, aguardando ${delay}ms...`);
+          // Backoff exponencial: 200ms, 400ms, 800ms
+          const delay = Math.min(200 * Math.pow(2, attempt), 2000);
+          console.warn(`[Pool] Limite de conexões - tentativa ${attempt + 1}/${maxRetries}, aguardando ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
       }
-      
+
       // Para outros erros, não fazer retry
       throw error;
     }
   }
-  
+
   throw lastError;
+}
+
+/**
+ * Processa a fila de queries respeitando o limite de concorrência
+ */
+async function processQueryQueue(): Promise<void> {
+  while (queryQueue.length > 0 && activeQueries < MAX_CONCURRENT_QUERIES) {
+    const item = queryQueue.shift();
+    if (!item) break;
+
+    activeQueries++;
+    item.queryFn()
+      .then(result => {
+        activeQueries--;
+        item.resolve(result);
+        processQueryQueue();
+      })
+      .catch(error => {
+        activeQueries--;
+        item.reject(error);
+        processQueryQueue();
+      });
+  }
+}
+
+/**
+ * Executa query com controle de concorrência
+ */
+async function queuedQuery(
+  pool: Pool,
+  queryText: string,
+  params?: any[]
+): Promise<QueryResult<any>> {
+  return new Promise((resolve, reject) => {
+    queryQueue.push({
+      resolve,
+      reject,
+      queryFn: () => queryWithRetry(pool, queryText, params)
+    });
+    processQueryQueue();
+  });
+}
+
+/**
+ * Executa múltiplas queries em lotes controlados
+ * Útil para o dashboard que precisa executar muitas queries
+ */
+export async function batchQueries<T>(
+  queries: Array<{ sql: string; params?: any[] }>,
+  batchSize: number = 4
+): Promise<T[]> {
+  const results: T[] = [];
+  const poolInstance = getPool();
+
+  for (let i = 0; i < queries.length; i += batchSize) {
+    const batch = queries.slice(i, i + batchSize);
+    const batchResults = await Promise.all(
+      batch.map(q => queryWithRetry(poolInstance, q.sql, q.params))
+    );
+    results.push(...batchResults.map(r => r as unknown as T));
+
+    // Pequena pausa entre batches para liberar conexões
+    if (i + batchSize < queries.length) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Executa queries em série (uma de cada vez)
+ * Use quando precisa garantir ordem ou evitar sobrecarga
+ */
+export async function serialQueries<T>(
+  queries: Array<{ sql: string; params?: any[] }>
+): Promise<T[]> {
+  const results: T[] = [];
+  const poolInstance = getPool();
+
+  for (const query of queries) {
+    const result = await queryWithRetry(poolInstance, query.sql, query.params);
+    results.push(result as unknown as T);
+  }
+
+  return results;
+}
+
+/**
+ * Retorna informações sobre o estado atual do pool
+ */
+export function getPoolStats(): {
+  total: number;
+  idle: number;
+  waiting: number;
+  activeQueries: number;
+  queuedQueries: number;
+} {
+  const poolInstance = pool;
+  return {
+    total: poolInstance?.totalCount || 0,
+    idle: poolInstance?.idleCount || 0,
+    waiting: poolInstance?.waitingCount || 0,
+    activeQueries,
+    queuedQueries: queryQueue.length
+  };
 }
 
 // Criar wrapper que mantém compatibilidade com código existente
