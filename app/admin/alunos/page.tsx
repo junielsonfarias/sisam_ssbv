@@ -22,18 +22,25 @@ interface Aluno {
   turma_nome?: string
 }
 
-const SERIES_DISPONIVEIS = ['6º Ano', '7º Ano', '8º Ano', '9º Ano']
-
+// Função para normalizar série (mantida para compatibilidade)
 const normalizarSerie = (serie: string | null | undefined): string => {
   if (!serie) return ''
   const trim = serie.trim()
-  if (SERIES_DISPONIVEIS.includes(trim)) return trim
   const match = trim.match(/^(\d+)/)
   if (match) {
     const num = parseInt(match[1])
-    if (num >= 6 && num <= 9) return `${num}º Ano`
+    return `${num}º Ano`
   }
-  return ''
+  return trim
+}
+
+// Função para ordenar séries numericamente (2º, 3º, 5º, 6º, 7º, 8º, 9º)
+const ordenarSeries = (series: string[]): string[] => {
+  return series.sort((a, b) => {
+    const numA = parseInt(a.match(/^(\d+)/)?.[1] || '0')
+    const numB = parseInt(b.match(/^(\d+)/)?.[1] || '0')
+    return numA - numB
+  })
 }
 
 const formDataInicial = {
@@ -82,7 +89,9 @@ export default function AlunosPage() {
       }
     }
     carregarTipoUsuario()
-    fetch('/api/admin/polos').then(r => r.json()).then(setPolos).finally(() => setCarregando(false))
+    fetch('/api/admin/polos').then(r => r.json()).then(setPolos).catch(() => setPolos([]))
+    // Carregar alunos iniciais para popular filtros
+    carregarAlunos().finally(() => setCarregando(false))
   }, [])
 
   useEffect(() => {
@@ -119,7 +128,9 @@ export default function AlunosPage() {
   }, [busca])
 
   useEffect(() => {
-    carregarAlunos()
+    if (!carregando) {
+      carregarAlunos()
+    }
   }, [buscaDebounced, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, escolas])
 
   const carregarAlunos = async () => {
@@ -279,6 +290,18 @@ export default function AlunosPage() {
     }
   }
 
+  // Séries disponíveis baseadas nos dados reais dos alunos
+  const seriesDisponiveis: string[] = useMemo(() => {
+    const series = alunos
+      .map(a => a.serie)
+      .filter((serie): serie is string => Boolean(serie))
+      .map(serie => normalizarSerie(serie))
+      .filter(serie => serie !== '')
+    
+    const seriesUnicas = [...new Set(series)]
+    return ordenarSeries(seriesUnicas)
+  }, [alunos])
+
   const anosDisponiveis: string[] = useMemo(
     () => [...new Set(alunos.map(a => a.ano_letivo).filter((ano): ano is string => Boolean(ano)))].sort().reverse(),
     [alunos]
@@ -367,7 +390,7 @@ export default function AlunosPage() {
                 className="select-custom w-full"
               >
                 <option value="">Todas as séries</option>
-                {SERIES_DISPONIVEIS.map((s) => (
+                {seriesDisponiveis.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
@@ -535,7 +558,7 @@ export default function AlunosPage() {
             polos={polos}
             escolas={escolas}
             turmas={turmas}
-            seriesDisponiveis={SERIES_DISPONIVEIS}
+            seriesDisponiveis={seriesDisponiveis}
             salvando={salvando}
             onClose={() => {
               setMostrarModal(false)

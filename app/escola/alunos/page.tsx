@@ -20,7 +20,26 @@ interface Aluno {
   turma_nome?: string
 }
 
-const SERIES_DISPONIVEIS = ['6º Ano', '7º Ano', '8º Ano', '9º Ano']
+// Função para normalizar série
+const normalizarSerie = (serie: string | null | undefined): string => {
+  if (!serie) return ''
+  const trim = serie.trim()
+  const match = trim.match(/^(\d+)/)
+  if (match) {
+    const num = parseInt(match[1])
+    return `${num}º Ano`
+  }
+  return trim
+}
+
+// Função para ordenar séries numericamente (2º, 3º, 5º, 6º, 7º, 8º, 9º)
+const ordenarSeries = (series: string[]): string[] => {
+  return series.sort((a, b) => {
+    const numA = parseInt(a.match(/^(\d+)/)?.[1] || '0')
+    const numB = parseInt(b.match(/^(\d+)/)?.[1] || '0')
+    return numA - numB
+  })
+}
 
 export default function AlunosEscolaPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('escola')
@@ -164,6 +183,18 @@ export default function AlunosEscolaPage() {
     }
   }, [])
 
+  // Séries disponíveis baseadas nos dados reais dos alunos
+  const seriesDisponiveis: string[] = useMemo(() => {
+    const series = alunos
+      .map(a => a.serie)
+      .filter((serie): serie is string => Boolean(serie))
+      .map(serie => normalizarSerie(serie))
+      .filter(serie => serie !== '')
+    
+    const seriesUnicas = [...new Set(series)]
+    return ordenarSeries(seriesUnicas)
+  }, [alunos])
+
   const alunosFiltrados = useMemo(() => {
     return alunos.filter(aluno => {
       if (buscaDebounced && !aluno.nome.toLowerCase().includes(buscaDebounced.toLowerCase())) {
@@ -249,7 +280,7 @@ export default function AlunosEscolaPage() {
                   className="select-custom w-full"
                 >
                   <option value="">Todas</option>
-                  {SERIES_DISPONIVEIS.map((serie) => (
+                  {seriesDisponiveis.map((serie) => (
                     <option key={serie} value={serie}>
                       {serie}
                     </option>
