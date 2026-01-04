@@ -50,12 +50,16 @@ function createPool(): Pool {
     database: database,
     user: user,
     password: password,
-    // Reduzido para evitar MaxClientsInSessionMode em Supabase/Neon
-    max: isSupabase ? 5 : 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: isSupabase ? 30000 : 10000,
+    // Configuração otimizada para Supabase Connection Pooler
+    // Session mode limita a pool_size (geralmente 15-20)
+    // Reduzimos drasticamente para evitar MaxClientsInSessionMode
+    max: isSupabase ? 2 : 10, // Reduzido para 2 conexões simultâneas no Supabase
+    min: 0, // Não manter conexões idle (importante para serverless)
+    idleTimeoutMillis: isSupabase ? 10000 : 30000, // Fechar conexões idle rapidamente
+    connectionTimeoutMillis: isSupabase ? 20000 : 10000,
     ssl: sslConfig,
-    // Opções adicionais para melhorar conectividade
+    // Opções para serverless/Vercel
+    allowExitOnIdle: true, // Permite que o processo termine quando não há conexões
     keepAlive: true,
     keepAliveInitialDelayMillis: 10000,
   };
@@ -65,10 +69,10 @@ function createPool(): Pool {
     // Forçar IPv4 primeiro (mais confiável na Vercel)
     config.family = 4; // 4 = IPv4 apenas
     
-    // Aumentar timeouts para dar tempo de resolver DNS
-    config.connectionTimeoutMillis = 30000;
-    config.query_timeout = 60000;
-    config.statement_timeout = 60000;
+    // Timeouts otimizados para serverless
+    config.connectionTimeoutMillis = 20000; // Reduzido de 30s para 20s
+    config.query_timeout = 30000; // Reduzido de 60s para 30s (queries devem ser rápidas)
+    config.statement_timeout = 30000;
   }
 
   // Log das configurações (sem senha) para debug
@@ -87,14 +91,24 @@ function createPool(): Pool {
 
   // Tratamento de erros de conexão
   newPool.on('error', (err: any) => {
+    const errorCode = err?.code;
+    const errorMessage = err?.message || '';
+    
     console.error('Erro inesperado no pool de conexões:', {
-      code: err?.code || 'UNKNOWN',
-      message: err?.message || 'Erro desconhecido',
+      code: errorCode || 'UNKNOWN',
+      message: errorMessage,
       host: config.host,
     });
     
+    // Tratamento específico para MaxClientsInSessionMode
+    if (errorMessage.includes('MaxClientsInSessionMode') || errorMessage.includes('max clients reached')) {
+      console.warn('⚠️ MaxClientsInSessionMode detectado - muitas conexões simultâneas');
+      console.warn('Reduzindo pool e aguardando liberação de conexões...');
+      // Não resetar o pool imediatamente, apenas logar o problema
+      // O retry logic no query wrapper lidará com isso
+    }
+    
     // Se for erro de conexão, resetar pool para forçar recriação
-    const errorCode = err?.code;
     if (errorCode === 'ECONNREFUSED' || errorCode === 'ENOTFOUND' || errorCode === 'ETIMEDOUT') {
       console.log('Erro de conexão detectado, pool será recriado na próxima requisição');
       pool = null;
@@ -201,10 +215,58 @@ export async function testConnection(): Promise<{ success: boolean; error?: stri
   }
 }
 
+// Função helper para retry com backoff exponencial
+async function queryWithRetry(
+  pool: Pool,
+  queryText: string,
+  params?: any[],
+  maxRetries: number = 3
+): Promise<any> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await pool.query(queryText, params);
+    } catch (error: any) {
+      lastError = error;
+      const errorMessage = error.message || '';
+      
+      // Se for MaxClientsInSessionMode, fazer retry com backoff
+      if (errorMessage.includes('MaxClientsInSessionMode') || 
+          errorMessage.includes('max clients reached')) {
+        
+        if (attempt < maxRetries - 1) {
+          // Backoff exponencial: 100ms, 200ms, 400ms
+          const delay = Math.min(100 * Math.pow(2, attempt), 1000);
+          console.warn(`MaxClientsInSessionMode - tentativa ${attempt + 1}/${maxRetries}, aguardando ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+      }
+      
+      // Para outros erros, não fazer retry
+      throw error;
+    }
+  }
+  
+  throw lastError;
+}
+
 // Criar wrapper que mantém compatibilidade com código existente
-// mas garante lazy initialization
+// mas garante lazy initialization e retry automático
 const poolWrapper = {
-  query: (...args: Parameters<Pool['query']>) => getPool().query(...args),
+  query: async (...args: Parameters<Pool['query']>) => {
+    const pool = getPool();
+    const [queryText, params] = args;
+    
+    // Se for string (query), usar retry logic
+    if (typeof queryText === 'string') {
+      return queryWithRetry(pool, queryText, params);
+    }
+    
+    // Caso contrário, usar query normal
+    return pool.query(...args);
+  },
   connect: (...args: Parameters<Pool['connect']>) => getPool().connect(...args),
   end: (...args: Parameters<Pool['end']>) => getPool().end(...args),
   on: (...args: Parameters<Pool['on']>) => getPool().on(...args),
