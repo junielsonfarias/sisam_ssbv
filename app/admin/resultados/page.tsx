@@ -78,6 +78,25 @@ interface Filtros {
 export default function ResultadosPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [resultados, setResultados] = useState<ResultadoConsolidado[]>([])
+  const [estatisticasGerais, setEstatisticasGerais] = useState<{
+    totalAlunos: number
+    totalPresentes: number
+    totalFaltas: number
+    mediaGeral: number
+    mediaLP: number
+    mediaCH: number
+    mediaMAT: number
+    mediaCN: number
+  }>({
+    totalAlunos: 0,
+    totalPresentes: 0,
+    totalFaltas: 0,
+    mediaGeral: 0,
+    mediaLP: 0,
+    mediaCH: 0,
+    mediaMAT: 0,
+    mediaCN: 0
+  })
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<Filtros>({})
@@ -252,6 +271,19 @@ export default function ResultadosPage() {
           temProxima: false,
           temAnterior: false
         }
+        // Calcular estatísticas básicas do array (fallback)
+        const presentes = data.filter((r: any) => r.presenca === 'P' || r.presenca === 'p').length
+        const faltas = data.filter((r: any) => r.presenca === 'F' || r.presenca === 'f').length
+        setEstatisticasGerais({
+          totalAlunos: data.length,
+          totalPresentes: presentes,
+          totalFaltas: faltas,
+          mediaGeral: 0,
+          mediaLP: 0,
+          mediaCH: 0,
+          mediaMAT: 0,
+          mediaCN: 0
+        })
       } else if (data && typeof data === 'object') {
         if (Array.isArray(data.resultados)) {
           resultadosData = data.resultados
@@ -268,6 +300,20 @@ export default function ResultadosPage() {
             temProxima: data.paginacao.temProxima || false,
             temAnterior: data.paginacao.temAnterior || false
           }
+        }
+        
+        // Extrair estatísticas da API (calculadas sobre TODOS os alunos)
+        if (data.estatisticas && typeof data.estatisticas === 'object') {
+          setEstatisticasGerais({
+            totalAlunos: data.estatisticas.totalAlunos || 0,
+            totalPresentes: data.estatisticas.totalPresentes || 0,
+            totalFaltas: data.estatisticas.totalFaltas || 0,
+            mediaGeral: data.estatisticas.mediaGeral || 0,
+            mediaLP: data.estatisticas.mediaLP || 0,
+            mediaCH: data.estatisticas.mediaCH || 0,
+            mediaMAT: data.estatisticas.mediaMAT || 0,
+            mediaCN: data.estatisticas.mediaCN || 0
+          })
         }
       }
       
@@ -417,91 +463,46 @@ export default function ResultadosPage() {
   }, [filtros.serie, resultadosFiltrados])
 
   // Calcular estatísticas - EXCLUIR alunos faltantes
+  // Usar estatísticas da API (gerais, sem paginação) e calcular apenas dados locais (produção textual, nível)
   const estatisticas = useMemo(() => {
-    if (resultadosFiltrados.length === 0) {
-      return {
-        total: 0,
-        mediaGeral: 0,
-        presentes: 0,
-        faltas: 0,
-        mediaLP: 0,
-        mediaCH: 0,
-        mediaMAT: 0,
-        mediaCN: 0,
-        mediaProducao: 0,
-        // Distribuição por nível de aprendizagem
-        qtdInsuficiente: 0,
-        qtdBasico: 0,
-        qtdAdequado: 0,
-        qtdAvancado: 0,
-      }
+    // Usar estatísticas gerais da API (calculadas sobre TODOS os alunos, não apenas a página atual)
+    const baseStats = {
+      total: estatisticasGerais.totalAlunos,
+      mediaGeral: estatisticasGerais.mediaGeral,
+      presentes: estatisticasGerais.totalPresentes,
+      faltas: estatisticasGerais.totalFaltas,
+      mediaLP: estatisticasGerais.mediaLP,
+      mediaCH: estatisticasGerais.mediaCH,
+      mediaMAT: estatisticasGerais.mediaMAT,
+      mediaCN: estatisticasGerais.mediaCN,
     }
-
-    // Filtrar apenas alunos presentes (não faltantes)
+    
+    // Calcular apenas dados que não vêm da API (produção textual e nível de aprendizagem)
+    // Esses são calculados apenas dos resultados da página atual (limitação)
     const alunosPresentes = resultadosFiltrados.filter((r) => {
       const presenca = r.presenca?.toString().toUpperCase()
       const mediaNum = getNotaNumero(r.media_aluno)
-      // Considerar presente se presenca = 'P' E media não for 0 ou null
       return presenca === 'P' && mediaNum !== null && mediaNum !== 0
     })
 
-    const medias = alunosPresentes
-      .map((r) => getNotaNumero(r.media_aluno))
-      .filter((m): m is number => m !== null && m !== 0)
-
-    const mediasLP = alunosPresentes
-      .map((r) => getNotaNumero(r.nota_lp))
-      .filter((m): m is number => m !== null && m !== 0)
-
-    const mediasCH = alunosPresentes
-      .map((r) => getNotaNumero(r.nota_ch))
-      .filter((m): m is number => m !== null && m !== 0)
-
-    const mediasMAT = alunosPresentes
-      .map((r) => getNotaNumero(r.nota_mat))
-      .filter((m): m is number => m !== null && m !== 0)
-
-    const mediasCN = alunosPresentes
-      .map((r) => getNotaNumero(r.nota_cn))
-      .filter((m): m is number => m !== null && m !== 0)
-
-    // Médias de produção textual (apenas para anos iniciais)
     const mediasProducao = alunosPresentes
       .map((r) => getNotaNumero(r.nota_producao))
       .filter((m): m is number => m !== null && m !== 0)
 
-    // Contagem por nível de aprendizagem
     const qtdInsuficiente = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('insuficiente')).length
     const qtdBasico = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('básico') || r.nivel_aprendizagem?.toLowerCase().includes('basico')).length
     const qtdAdequado = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('adequado')).length
     const qtdAvancado = alunosPresentes.filter(r => r.nivel_aprendizagem?.toLowerCase().includes('avançado') || r.nivel_aprendizagem?.toLowerCase().includes('avancado')).length
 
-    const presentes = alunosPresentes.length
-    // Contar apenas alunos com presença = 'F' (não incluir alunos com presença = '-' que não têm dados)
-    const faltas = resultadosFiltrados.filter((r) => {
-      const presenca = r.presenca?.toString().toUpperCase()
-      return presenca === 'F'
-    }).length
-
-    // Total de alunos incluindo todos (P, F, e -)
-    const totalAlunos = resultadosFiltrados.length
-
     return {
-      total: totalAlunos,
-      mediaGeral: medias.length > 0 ? medias.reduce((a, b) => a + b, 0) / medias.length : 0,
-      presentes,
-      faltas,
-      mediaLP: mediasLP.length > 0 ? mediasLP.reduce((a, b) => a + b, 0) / mediasLP.length : 0,
-      mediaCH: mediasCH.length > 0 ? mediasCH.reduce((a, b) => a + b, 0) / mediasCH.length : 0,
-      mediaMAT: mediasMAT.length > 0 ? mediasMAT.reduce((a, b) => a + b, 0) / mediasMAT.length : 0,
-      mediaCN: mediasCN.length > 0 ? mediasCN.reduce((a, b) => a + b, 0) / mediasCN.length : 0,
+      ...baseStats,
       mediaProducao: mediasProducao.length > 0 ? mediasProducao.reduce((a, b) => a + b, 0) / mediasProducao.length : 0,
       qtdInsuficiente,
       qtdBasico,
       qtdAdequado,
       qtdAvancado,
     }
-  }, [resultadosFiltrados])
+  }, [estatisticasGerais, resultadosFiltrados])
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
