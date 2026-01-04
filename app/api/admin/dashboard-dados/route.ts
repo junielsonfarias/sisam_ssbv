@@ -37,6 +37,11 @@ export async function GET(request: NextRequest) {
     const areaConhecimento = searchParams.get('area_conhecimento')
     const tipoAnalise = searchParams.get('tipo_analise') // 'acertos' | 'erros' | 'ambos'
 
+    // Parâmetros de paginação para alunos detalhados
+    const paginaAlunos = parseInt(searchParams.get('pagina_alunos') || '1')
+    const limiteAlunos = Math.min(parseInt(searchParams.get('limite_alunos') || '100'), 500) // Máximo 500 por página
+    const offsetAlunos = (paginaAlunos - 1) * limiteAlunos
+
     // Construir condições de filtro
     let whereConditions: string[] = []
     const params: any[] = []
@@ -365,7 +370,16 @@ export async function GET(request: NextRequest) {
       LIMIT 10
     `
 
-    // ========== ALUNOS DETALHADOS (para tabela) ==========
+    // ========== CONTAGEM TOTAL DE ALUNOS (para paginação) ==========
+    const totalAlunosQuery = `
+      SELECT COUNT(DISTINCT rc.aluno_id) as total
+      FROM resultados_consolidados_unificada rc
+      INNER JOIN escolas e ON rc.escola_id = e.id
+      ${joinNivelAprendizagem}
+      ${whereClause}
+    `
+
+    // ========== ALUNOS DETALHADOS (para tabela com paginação) ==========
     const alunosDetalhadosQuery = `
       SELECT
         a.id,
@@ -395,6 +409,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
       ${whereClause}
       ORDER BY rc.media_aluno DESC NULLS LAST
+      LIMIT ${limiteAlunos} OFFSET ${offsetAlunos}
     `
 
     // ========== DADOS PARA FILTROS ==========
@@ -736,57 +751,80 @@ export async function GET(request: NextRequest) {
       ${rpWhereClauseComPresenca}
     `
 
-    // Executar todas as queries em paralelo
+    // Executar queries em lotes para evitar MaxClientsInSessionMode
+    // Lote 1: Métricas principais e dados básicos
     const [
       metricasResult,
       niveisResult,
       mediasPorSerieResult,
       mediasPorPoloResult,
-      mediasPorEscolaResult,
-      mediasPorTurmaResult,
-      faixasNotaResult,
-      presencaResult,
-      topAlunosResult,
-      alunosDetalhadosResult,
-      polosResult,
-      escolasResult,
-      seriesResult,
-      turmasResult,
-      anosLetivosResult,
-      niveisDispResult,
-      taxaAcertoPorDisciplinaResult,
-      questoesComMaisErrosResult,
-      escolasComMaisErrosResult,
-      turmasComMaisErrosResult,
-      questoesComMaisAcertosResult,
-      escolasComMaisAcertosResult,
-      turmasComMaisAcertosResult,
-      taxaAcertoGeralResult
+      faixasNotaResult
     ] = await Promise.all([
       pool.query(metricasQuery, params),
       pool.query(niveisQuery, params),
       pool.query(mediasPorSerieQuery, params),
       pool.query(mediasPorPoloQuery, params),
+      pool.query(faixasNotaQuery, params)
+    ])
+
+    // Lote 2: Escolas, turmas e presença
+    const [
+      mediasPorEscolaResult,
+      mediasPorTurmaResult,
+      presencaResult,
+      topAlunosResult,
+      totalAlunosResult
+    ] = await Promise.all([
       pool.query(mediasPorEscolaQuery, params),
       pool.query(mediasPorTurmaQuery, params),
-      pool.query(faixasNotaQuery, params),
       pool.query(presencaQuery, params),
       pool.query(topAlunosQuery, params),
+      pool.query(totalAlunosQuery, params)
+    ])
+
+    // Lote 3: Alunos detalhados e filtros
+    const [
+      alunosDetalhadosResult,
+      polosResult,
+      escolasResult,
+      seriesResult,
+      turmasResult
+    ] = await Promise.all([
       pool.query(alunosDetalhadosQuery, params),
       pool.query(polosQuery, filtrosParams),
       pool.query(escolasQuery, filtrosParams),
       pool.query(seriesQuery, filtrosParams),
-      pool.query(turmasQuery, filtrosParams),
+      pool.query(turmasQuery, filtrosParams)
+    ])
+
+    // Lote 4: Anos letivos, níveis e taxa de acerto
+    const [
+      anosLetivosResult,
+      niveisDispResult,
+      taxaAcertoPorDisciplinaResult,
+      taxaAcertoGeralResult
+    ] = await Promise.all([
       pool.query(anosLetivosQuery, filtrosParams),
       pool.query(niveisDispQuery, filtrosParams),
       pool.query(taxaAcertoPorDisciplinaQuery, rpParams),
+      pool.query(taxaAcertoGeralQuery, rpParams)
+    ])
+
+    // Lote 5: Análises de acertos/erros
+    const [
+      questoesComMaisErrosResult,
+      escolasComMaisErrosResult,
+      turmasComMaisErrosResult,
+      questoesComMaisAcertosResult,
+      escolasComMaisAcertosResult,
+      turmasComMaisAcertosResult
+    ] = await Promise.all([
       pool.query(questoesComMaisErrosQuery, rpParams),
       pool.query(escolasComMaisErrosQuery, rpParams),
       pool.query(turmasComMaisErrosQuery, rpParams),
       pool.query(questoesComMaisAcertosQuery, rpParams),
       pool.query(escolasComMaisAcertosQuery, rpParams),
-      pool.query(turmasComMaisAcertosQuery, rpParams),
-      pool.query(taxaAcertoGeralQuery, rpParams)
+      pool.query(turmasComMaisAcertosQuery, rpParams)
     ])
 
     const metricas = metricasResult.rows[0] || {}
@@ -877,6 +915,12 @@ export async function GET(request: NextRequest) {
       })),
       topAlunos: topAlunosResult.rows,
       alunosDetalhados: alunosDetalhadosResult.rows,
+      paginacaoAlunos: {
+        paginaAtual: paginaAlunos,
+        itensPorPagina: limiteAlunos,
+        totalItens: parseInt(totalAlunosResult.rows[0]?.total || '0'),
+        totalPaginas: Math.ceil(parseInt(totalAlunosResult.rows[0]?.total || '0') / limiteAlunos)
+      },
       filtros: {
         polos: polosResult.rows,
         escolas: escolasResult.rows,

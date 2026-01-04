@@ -50,7 +50,8 @@ function createPool(): Pool {
     database: database,
     user: user,
     password: password,
-    max: 20,
+    // Reduzido para evitar MaxClientsInSessionMode em Supabase/Neon
+    max: isSupabase ? 5 : 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: isSupabase ? 30000 : 10000,
     ssl: sslConfig,
