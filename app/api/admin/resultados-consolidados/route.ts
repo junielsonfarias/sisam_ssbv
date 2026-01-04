@@ -106,9 +106,13 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE 1=1
-      -- IMPORTANTE: Filtrar apenas alunos com presença 'P' ou 'F' (excluir '-' sem dados)
-      -- Mas apenas se não houver filtro específico de presença
-      ${!presenca ? "AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')" : ''}
+    `
+    
+    // IMPORTANTE: Filtrar apenas alunos com presença 'P' ou 'F' (excluir '-' sem dados)
+    // Mas apenas se não houver filtro específico de presença
+    if (!presenca) {
+      query += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
+    }
     `
 
     const params: any[] = []
@@ -173,8 +177,12 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE 1=1
-      ${!presenca ? "AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')" : ''}
     `
+    
+    // Aplicar filtro de presença padrão se não houver filtro específico
+    if (!presenca) {
+      countQuery += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
+    }
     
     const countParams: any[] = []
     let countParamIndex = 1
@@ -277,8 +285,12 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE 1=1
-      ${!presenca ? "AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')" : ''}
     `
+    
+    // Aplicar filtro de presença padrão se não houver filtro específico
+    if (!presenca) {
+      estatisticasQuery += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
+    }
     
     const estatisticasParams: any[] = []
     let estatisticasParamIndex = 1
@@ -331,12 +343,23 @@ export async function GET(request: NextRequest) {
       estatisticasParamIndex++
     }
 
+    // Adicionar logs para debug
+    console.log('Query principal:', query.substring(0, 200))
+    console.log('Query count:', countQuery.substring(0, 200))
+    console.log('Query estatísticas:', estatisticasQuery.substring(0, 200))
+    console.log('Filtro presenca:', presenca)
+    console.log('Params:', params.length)
+    
     // Executar queries em paralelo
     const [countResult, dataResult, estatisticasResult] = await Promise.all([
       pool.query(countQuery, countParams),
       pool.query(query, params),
       pool.query(estatisticasQuery, estatisticasParams)
     ])
+    
+    console.log('Count result:', countResult.rows[0])
+    console.log('Data result rows:', dataResult.rows.length)
+    console.log('Estatísticas result:', estatisticasResult.rows[0])
 
     const total = parseInt(countResult.rows[0]?.total || '0')
     const totalPaginas = Math.ceil(total / limite)
