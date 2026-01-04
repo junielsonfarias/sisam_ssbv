@@ -1,6 +1,8 @@
 'use client'
 
 import { X, User, Calendar, BookOpen, School, Users, Award, TrendingUp, BarChart3 } from 'lucide-react'
+import { useMemo } from 'react'
+import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 
 interface ModalHistoricoAlunoProps {
   mostrar: boolean
@@ -62,47 +64,155 @@ export default function ModalHistoricoAluno({ mostrar, historico, carregando, on
                             <InfoItem icon={Users} label="Turma" value={r.turma_codigo || '-'} subValue={r.turma_nome || null} />
                           </div>
 
-                          {(r.resultado_presenca != null || r.nota_lp != null || r.nota_ch != null || r.nota_mat != null || r.nota_cn != null || r.total_acertos_lp != null || r.total_acertos_ch != null || r.total_acertos_mat != null || r.total_acertos_cn != null) ? (
-                            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-indigo-200">
-                              <div className="flex flex-wrap items-center gap-2 mb-2 sm:mb-3">
-                                <Award className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-                                <h5 className="text-xs sm:text-sm font-semibold text-gray-900">Resultados da Prova</h5>
-                                {r.resultado_presenca && (
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    r.resultado_presenca === 'P' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                  }`}>
-                                    {r.resultado_presenca === 'P' ? 'Presente' : 'Faltou'}
-                                  </span>
+                          {(() => {
+                            // Obter disciplinas dinâmicas baseadas na série
+                            const disciplinasExibidas = obterDisciplinasPorSerieSync(r.serie)
+                            
+                            // Verificar se há dados para exibir (qualquer nota ou acertos das disciplinas exibidas ou presença)
+                            const temDados = r.resultado_presenca != null || disciplinasExibidas.some((disc: any) => {
+                              const campoNota = disc.campo_nota
+                              const campoAcertos = disc.campo_acertos
+                              return (r[campoNota] != null && r[campoNota] !== '') || 
+                                     (campoAcertos && r[campoAcertos] != null && r[campoAcertos] !== '')
+                            })
+                            
+                            if (!temDados) return null
+                            
+                            return (
+                              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-indigo-200">
+                                <div className="flex flex-wrap items-center gap-2 mb-2 sm:mb-3">
+                                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                                  <h5 className="text-xs sm:text-sm font-semibold text-gray-900">Resultados da Prova</h5>
+                                  {r.resultado_presenca && (
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      r.resultado_presenca === 'P' || r.resultado_presenca === 'p' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : r.resultado_presenca === '-' 
+                                        ? 'bg-gray-100 text-gray-800'
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {r.resultado_presenca === 'P' || r.resultado_presenca === 'p' 
+                                        ? 'Presente' 
+                                        : r.resultado_presenca === '-' 
+                                        ? 'Sem dados'
+                                        : 'Faltou'}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className={`grid gap-2 sm:gap-3 mb-2 sm:mb-3 ${
+                                  disciplinasExibidas.length === 2 ? 'grid-cols-2' :
+                                  disciplinasExibidas.length === 3 ? 'grid-cols-3' :
+                                  'grid-cols-2 md:grid-cols-4'
+                                }`}>
+                                  {disciplinasExibidas.map((disc: any, idx: number) => {
+                                    const campoNota = disc.campo_nota
+                                    const campoAcertos = disc.campo_acertos
+                                    const nota = r[campoNota]
+                                    const acertos = campoAcertos ? r[campoAcertos] : null
+                                    
+                                    // Mapear cores por tipo de disciplina
+                                    const cores = {
+                                      LP: 'blue',
+                                      MAT: 'orange',
+                                      CH: 'green',
+                                      CN: 'purple',
+                                      PROD: 'indigo',
+                                      NIVEL: 'pink'
+                                    } as const
+                                    
+                                    const cor = cores[disc.codigo as keyof typeof cores] || 'blue'
+                                    
+                                    // Para Nível de Aprendizagem, exibir badge colorido
+                                    if (disc.tipo === 'nivel') {
+                                      const nivel = nota || r.nivel_aprendizagem
+                                      const getNivelColor = (nivel: string | null | undefined) => {
+                                        if (!nivel) return 'bg-gray-100 text-gray-700 border-gray-300'
+                                        const nivelLower = String(nivel).toLowerCase()
+                                        if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 text-green-800 border-green-300'
+                                        if (nivelLower.includes('adequado')) return 'bg-blue-100 text-blue-800 border-blue-300'
+                                        if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                        if (nivelLower.includes('insuficiente')) return 'bg-red-100 text-red-800 border-red-300'
+                                        return 'bg-gray-100 text-gray-700 border-gray-300'
+                                      }
+                                      
+                                      return (
+                                        <div key={idx} className="bg-white rounded-lg p-2 sm:p-3 border-2 border-pink-200">
+                                          <p className="text-xs font-medium text-gray-500 uppercase mb-2">{disc.nome}</p>
+                                          {nivel ? (
+                                            <span className={`inline-block px-3 py-1.5 rounded-lg text-xs font-bold border-2 ${getNivelColor(nivel)}`}>
+                                              {nivel}
+                                            </span>
+                                          ) : (
+                                            <span className="text-base sm:text-lg font-bold text-gray-400">-</span>
+                                          )}
+                                        </div>
+                                      )
+                                    }
+                                    
+                                    // Para Produção Textual (sem acertos, apenas nota)
+                                    if (disc.tipo === 'textual') {
+                                      return (
+                                        <NotaCard 
+                                          key={idx}
+                                          titulo={disc.nome} 
+                                          nota={nota} 
+                                          acertos={null}
+                                          totalQuestoes={null}
+                                          cor={cor} 
+                                        />
+                                      )
+                                    }
+                                    
+                                    // Para disciplinas objetivas (com acertos e total de questões)
+                                    return (
+                                      <NotaCard 
+                                        key={idx}
+                                        titulo={disc.nome} 
+                                        nota={nota} 
+                                        acertos={acertos}
+                                        totalQuestoes={disc.total_questoes}
+                                        cor={cor} 
+                                      />
+                                    )
+                                  })}
+                                </div>
+
+                                {r.media_aluno && r.resultado_presenca !== '-' && (
+                                  <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-2 sm:p-3 border border-indigo-300 mt-2 sm:mt-3">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                                        <p className="text-xs sm:text-sm font-semibold text-gray-700">Média Geral</p>
+                                      </div>
+                                      <p className="text-xl sm:text-2xl font-bold text-indigo-600">{formatarMedia(r.media_aluno)}</p>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
-
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-3">
-                                <NotaCard titulo="Língua Portuguesa" nota={r.nota_lp} acertos={r.total_acertos_lp} cor="blue" />
-                                <NotaCard titulo="Ciências Humanas" nota={r.nota_ch} acertos={r.total_acertos_ch} cor="green" />
-                                <NotaCard titulo="Matemática" nota={r.nota_mat} acertos={r.total_acertos_mat} cor="orange" />
-                                <NotaCard titulo="Ciências da Natureza" nota={r.nota_cn} acertos={r.total_acertos_cn} cor="purple" />
-                              </div>
-
-                              {r.media_aluno && (
-                                <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-2 sm:p-3 border border-indigo-300">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-                                      <p className="text-xs sm:text-sm font-semibold text-gray-700">Média Geral</p>
-                                    </div>
-                                    <p className="text-xl sm:text-2xl font-bold text-indigo-600">{formatarMedia(r.media_aluno)}</p>
-                                  </div>
+                            )
+                          })()}
+                          {(() => {
+                            // Verificar se não há dados para exibir mensagem
+                            const disciplinasExibidas = obterDisciplinasPorSerieSync(r.serie)
+                            const temDados = r.resultado_presenca != null || disciplinasExibidas.some((disc: any) => {
+                              const campoNota = disc.campo_nota
+                              const campoAcertos = disc.campo_acertos
+                              return (r[campoNota] != null && r[campoNota] !== '') || 
+                                     (campoAcertos && r[campoAcertos] != null && r[campoAcertos] !== '')
+                            })
+                            
+                            if (temDados) return null
+                            
+                            return (
+                              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
+                                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500">
+                                  <BarChart3 className="w-4 h-4" />
+                                  <span>Nenhum resultado de prova registrado para este ano letivo</span>
                                 </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
-                              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500">
-                                <BarChart3 className="w-4 h-4" />
-                                <span>Nenhum resultado de prova registrado para este ano letivo</span>
                               </div>
-                            </div>
-                          )}
+                            )
+                          })()}
 
                           <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -161,20 +271,25 @@ function InfoItem({ icon: Icon, label, value, subValue }: any) {
   )
 }
 
-function NotaCard({ titulo, nota, acertos, cor }: any) {
+function NotaCard({ titulo, nota, acertos, totalQuestoes, cor }: any) {
   const cores = {
     blue: 'border-blue-200 text-blue-600',
     green: 'border-green-200 text-green-600',
     orange: 'border-orange-200 text-orange-600',
     purple: 'border-purple-200 text-purple-600',
+    indigo: 'border-indigo-200 text-indigo-600',
+    pink: 'border-pink-200 text-pink-600',
   }
 
   return (
-    <div className={`bg-white rounded-lg p-2 sm:p-3 border ${cores[cor as keyof typeof cores]}`}>
+    <div className={`bg-white rounded-lg p-2 sm:p-3 border ${cores[cor as keyof typeof cores] || cores.blue}`}>
       <p className="text-xs font-medium text-gray-500 uppercase mb-1">{titulo}</p>
       <div className="flex items-baseline gap-1 sm:gap-2">
-        <p className={`text-base sm:text-lg font-bold ${cores[cor as keyof typeof cores]}`}>{formatarNota(nota)}</p>
-        {acertos != null && acertos !== '' && (
+        <p className={`text-base sm:text-lg font-bold ${cores[cor as keyof typeof cores] || cores.blue}`}>{formatarNota(nota)}</p>
+        {acertos != null && acertos !== '' && totalQuestoes && (
+          <p className="text-xs text-gray-500">({acertos}/{totalQuestoes})</p>
+        )}
+        {acertos != null && acertos !== '' && !totalQuestoes && (
           <p className="text-xs text-gray-500">({acertos} acertos)</p>
         )}
       </div>
