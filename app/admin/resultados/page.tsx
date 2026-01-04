@@ -234,7 +234,10 @@ export default function ResultadosPage() {
       
       const params = new URLSearchParams()
       Object.entries(filtros).forEach(([key, value]) => {
-        if (value) params.append(key, value)
+        // Não enviar valores vazios, null, undefined ou "Todas"
+        if (value && value.toString().trim() !== '' && value.toString().toLowerCase() !== 'todas') {
+          params.append(key, value.toString())
+        }
       })
       
       // Parâmetros de paginação

@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
     const poloId = searchParams.get('polo_id')
     const anoLetivo = searchParams.get('ano_letivo')
     const serie = searchParams.get('serie')
-    const presenca = searchParams.get('presenca')
+    const presencaParam = searchParams.get('presenca')
+    // Filtrar valores vazios, "Todas", "todas" - considerar como sem filtro
+    const presenca = presencaParam && presencaParam.trim() !== '' && presencaParam.toLowerCase() !== 'todas' ? presencaParam : null
     const turmaId = searchParams.get('turma_id')
     
     // Parâmetros de paginação
@@ -105,7 +107,8 @@ export async function GET(request: NextRequest) {
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE 1=1
       -- IMPORTANTE: Filtrar apenas alunos com presença 'P' ou 'F' (excluir '-' sem dados)
-      AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+      -- Mas apenas se não houver filtro específico de presença
+      ${!presenca ? "AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')" : ''}
     `
 
     const params: any[] = []
@@ -170,7 +173,7 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE 1=1
-      AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+      ${!presenca ? "AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')" : ''}
     `
     
     const countParams: any[] = []
@@ -274,7 +277,7 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE 1=1
-      AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+      ${!presenca ? "AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')" : ''}
     `
     
     const estatisticasParams: any[] = []
