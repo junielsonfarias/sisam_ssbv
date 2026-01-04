@@ -160,9 +160,67 @@ export async function GET(request: NextRequest) {
 
     query += ' ORDER BY rc.media_aluno DESC NULLS LAST, a.nome'
     
-    // Query para contar total
-    const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM')
-      .replace(/ORDER BY[\s\S]*$/, '')
+    // Query para contar total (sem ORDER BY, LIMIT, OFFSET)
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM resultados_consolidados rc
+      INNER JOIN alunos a ON rc.aluno_id = a.id
+      INNER JOIN escolas e ON rc.escola_id = e.id
+      LEFT JOIN turmas t ON rc.turma_id = t.id
+      WHERE 1=1
+      AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+    `
+    
+    const countParams: any[] = []
+    let countParamIndex = 1
+    
+    // Aplicar mesmas restrições de acesso
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+      countQuery += ` AND e.polo_id = $${countParamIndex}`
+      countParams.push(usuario.polo_id)
+      countParamIndex++
+    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      countQuery += ` AND rc.escola_id = $${countParamIndex}`
+      countParams.push(usuario.escola_id)
+      countParamIndex++
+    }
+
+    // Aplicar mesmos filtros
+    if (escolaId) {
+      countQuery += ` AND rc.escola_id = $${countParamIndex}`
+      countParams.push(escolaId)
+      countParamIndex++
+    }
+
+    if (poloId) {
+      countQuery += ` AND e.polo_id = $${countParamIndex}`
+      countParams.push(poloId)
+      countParamIndex++
+    }
+
+    if (anoLetivo) {
+      countQuery += ` AND rc.ano_letivo = $${countParamIndex}`
+      countParams.push(anoLetivo)
+      countParamIndex++
+    }
+
+    if (serie) {
+      countQuery += ` AND rc.serie = $${countParamIndex}`
+      countParams.push(serie)
+      countParamIndex++
+    }
+
+    if (presenca) {
+      countQuery += ` AND UPPER(rc.presenca) = UPPER($${countParamIndex})`
+      countParams.push(presenca)
+      countParamIndex++
+    }
+
+    if (turmaId) {
+      countQuery += ` AND rc.turma_id = $${countParamIndex}`
+      countParams.push(turmaId)
+      countParamIndex++
+    }
     
     // Adicionar LIMIT e OFFSET à query principal
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
@@ -170,7 +228,7 @@ export async function GET(request: NextRequest) {
 
     // Executar queries em paralelo
     const [countResult, dataResult] = await Promise.all([
-      pool.query(countQuery, params.slice(0, -2)), // Remover limit e offset do count
+      pool.query(countQuery, countParams),
       pool.query(query, params)
     ])
 
