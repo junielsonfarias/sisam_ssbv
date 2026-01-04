@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const limite = Math.min(200, Math.max(1, parseInt(searchParams.get('limite') || '50')))
     const offset = (pagina - 1) * limite
 
-    // Verificar cache
+    // Verificar cache (incluir paginação nos filtros para cachear por página)
     const cacheOptions = {
       filtros: {
         escolaId,
@@ -43,7 +43,9 @@ export async function GET(request: NextRequest) {
         anoLetivo,
         serie,
         presenca,
-        turmaId
+        turmaId,
+        pagina,
+        limite
       },
       tipoUsuario: usuario.tipo_usuario,
       usuarioId: usuario.id,
@@ -247,9 +249,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Salvar no cache (expira em 1 hora) - incluir paginação no cache key
+    // Salvar no cache (expira em 1 hora) - paginação já está incluída nos filtros
     try {
-      salvarCache({ ...cacheOptions, pagina, limite }, resultado, 'resultados-consolidados')
+      salvarCache(cacheOptions, resultado, 'resultados-consolidados')
     } catch (cacheError) {
       console.error('Erro ao salvar cache (nao critico):', cacheError)
     }
