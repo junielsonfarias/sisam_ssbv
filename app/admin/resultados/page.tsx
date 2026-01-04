@@ -57,6 +57,15 @@ const getNivelColor = (nivel: string | undefined | null): string => {
   return 'bg-gray-100 text-gray-700'
 }
 
+interface Paginacao {
+  pagina: number
+  limite: number
+  total: number
+  totalPaginas: number
+  temProxima: boolean
+  temAnterior: boolean
+}
+
 interface Filtros {
   polo_id?: string
   escola_id?: string
