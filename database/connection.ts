@@ -120,6 +120,19 @@ function getPool(): Pool {
   const currentUser = process.env.DB_USER;
   const currentPort = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432;
   
+  // Verificar se as variáveis de ambiente básicas estão configuradas antes de tentar criar o pool
+  if (!currentHost || !currentDatabase || !currentUser || !process.env.DB_PASSWORD) {
+    const missingVars = []
+    if (!currentHost) missingVars.push('DB_HOST')
+    if (!currentDatabase) missingVars.push('DB_NAME')
+    if (!currentUser) missingVars.push('DB_USER')
+    if (!process.env.DB_PASSWORD) missingVars.push('DB_PASSWORD')
+    
+    const errorMsg = `Variáveis de ambiente não configuradas: ${missingVars.join(', ')}`
+    console.error('Erro de configuração:', errorMsg)
+    throw new Error(errorMsg)
+  }
+  
   // Verificar se o pool existe e se as configurações mudaram
   if (pool && poolConfig) {
     const configChanged = 
@@ -141,7 +154,14 @@ function getPool(): Pool {
     try {
       pool = createPool();
     } catch (error: any) {
-      console.error('Erro ao criar pool PostgreSQL:', error.message);
+      console.error('Erro ao criar pool PostgreSQL:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
+      // Resetar pool para permitir nova tentativa
+      pool = null;
+      poolConfig = null;
       throw error;
     }
   }

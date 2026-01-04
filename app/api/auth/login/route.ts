@@ -43,6 +43,24 @@ export async function POST(request: NextRequest) {
     // Verificar conexão com banco
     let result
     try {
+      // Verificar se as variáveis de ambiente estão configuradas antes de tentar conectar
+      const requiredEnvVars = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']
+      const missingVars = requiredEnvVars.filter(varName => !process.env[varName])
+      
+      if (missingVars.length > 0) {
+        console.error('Variáveis de ambiente não configuradas:', missingVars)
+        return NextResponse.json(
+          { 
+            mensagem: 'Erro na configuração do servidor: variáveis de ambiente do banco de dados não configuradas',
+            erro: 'DB_CONFIG_ERROR',
+            detalhes: process.env.NODE_ENV === 'development' 
+              ? `Variáveis faltando: ${missingVars.join(', ')}` 
+              : 'Verifique as configurações no Vercel'
+          },
+          { status: 500 }
+        )
+      }
+      
       result = await pool.query(
         'SELECT * FROM usuarios WHERE email = $1 AND ativo = true',
         [email.toLowerCase()]
@@ -51,29 +69,40 @@ export async function POST(request: NextRequest) {
       console.error('Erro ao consultar banco de dados:', dbError)
       console.error('Código do erro:', dbError.code)
       console.error('Mensagem do erro:', dbError.message)
+      console.error('Stack trace:', dbError.stack)
       
       let errorMessage = 'Erro ao conectar com o banco de dados'
       let errorCode = 'DB_ERROR'
       
-      if (dbError.code === 'ECONNREFUSED') {
-        errorMessage = 'Não foi possível conectar ao banco de dados'
+      // Verificar se é erro de configuração
+      if (dbError.message?.includes('não está configurado') || 
+          dbError.message?.includes('not configured')) {
+        errorMessage = 'Configuração do banco de dados incompleta. Verifique as variáveis de ambiente no Vercel'
+        errorCode = 'DB_CONFIG_ERROR'
+      } else if (dbError.code === 'ECONNREFUSED') {
+        errorMessage = 'Não foi possível conectar ao banco de dados. Verifique se o banco está ativo e acessível'
         errorCode = 'DB_CONNECTION_REFUSED'
       } else if (dbError.code === 'ENOTFOUND') {
-        errorMessage = 'Host do banco de dados não encontrado'
+        errorMessage = 'Host do banco de dados não encontrado. Verifique DB_HOST nas variáveis de ambiente'
         errorCode = 'DB_HOST_NOT_FOUND'
       } else if (dbError.code === 'ENETUNREACH') {
-        errorMessage = 'Rede não alcançável. Verifique a configuração do banco'
+        errorMessage = 'Rede não alcançável. Verifique a configuração do banco e conexão de rede'
         errorCode = 'DB_NETWORK_ERROR'
       } else if (dbError.code === '28P01') {
-        errorMessage = 'Credenciais do banco de dados inválidas'
+        errorMessage = 'Credenciais do banco de dados inválidas. Verifique DB_USER e DB_PASSWORD'
         errorCode = 'DB_AUTH_ERROR'
+      } else if (dbError.code === 'ETIMEDOUT') {
+        errorMessage = 'Timeout ao conectar ao banco de dados. Verifique se o banco está acessível'
+        errorCode = 'DB_TIMEOUT'
       }
       
       return NextResponse.json(
         { 
           mensagem: errorMessage,
           erro: errorCode,
-          detalhes: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+          detalhes: process.env.NODE_ENV === 'development' 
+            ? dbError.message 
+            : 'Verifique os logs do Vercel para mais detalhes'
         },
         { status: 500 }
       )
