@@ -421,30 +421,30 @@ export default function DadosPage() {
   }, [])
 
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-x-hidden max-w-full">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <BarChart3 className="w-8 h-8 text-indigo-600" />
-                Painel de Dados
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+                <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600 flex-shrink-0" />
+                <span className="truncate">Painel de Dados</span>
               </h1>
-              <p className="text-gray-600 mt-1">Visualize e analise os resultados da avaliacao</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Visualize e analise os resultados</p>
             </div>
             <button
               onClick={carregarDados}
               disabled={carregando}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm sm:text-base flex-shrink-0"
             >
               <RefreshCw className={`w-4 h-4 ${carregando ? 'animate-spin' : ''}`} />
-              Atualizar
+              <span className="hidden sm:inline">Atualizar</span>
             </button>
           </div>
 
           {/* Barra de Filtros */}
-          <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border-2 border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border-2 border-gray-200 p-3 sm:p-4 md:p-6">
             <div className="flex items-center gap-3 mb-4">
               <Filter className="w-5 h-5 text-indigo-600" />
               <h2 className="text-lg font-bold text-gray-800">Filtros de Pesquisa</h2>
@@ -1781,23 +1781,23 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden w-full">
-      <div className="overflow-x-auto max-w-full" style={{ maxWidth: '100%' }}>
-        <table className="w-full">
+    <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden w-full max-w-full">
+      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <table className="w-full min-w-[600px]">
           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
             <tr>
               {colunas.map((col: any) => (
                 <th
                   key={col.key}
                   onClick={() => onOrdenar(col.key)}
-                  className={`px-4 py-4 text-${col.align || 'left'} text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap transition-colors`}
+                  className={`px-2 sm:px-4 py-2 sm:py-4 text-${col.align || 'left'} text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap transition-colors`}
                 >
-                  <div className={`flex items-center gap-2 ${col.align === 'center' ? 'justify-center' : col.align === 'right' ? 'justify-end' : ''}`}>
+                  <div className={`flex items-center gap-1 sm:gap-2 ${col.align === 'center' ? 'justify-center' : col.align === 'right' ? 'justify-end' : ''}`}>
                     {col.label}
                     {ordenacao.coluna === col.key && (
-                      ordenacao.direcao === 'asc' ? 
-                        <ChevronUp className="w-4 h-4 text-indigo-600" /> : 
-                        <ChevronDown className="w-4 h-4 text-indigo-600" />
+                      ordenacao.direcao === 'asc' ?
+                        <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600" /> :
+                        <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600" />
                     )}
                   </div>
                 </th>
@@ -1807,33 +1807,33 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
           <tbody className="divide-y divide-gray-200">
             {dados.length === 0 ? (
               <tr>
-                <td colSpan={colunas.length} className="px-4 py-12 text-center">
+                <td colSpan={colunas.length} className="px-4 py-8 sm:py-12 text-center">
                   <div className="flex flex-col items-center justify-center">
-                    <Table className="w-12 h-12 text-gray-300 mb-2" />
-                    <p className="text-gray-500 font-medium">Nenhum registro encontrado</p>
-                    <p className="text-sm text-gray-400 mt-1">Tente ajustar os filtros</p>
+                    <Table className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mb-2" />
+                    <p className="text-gray-500 font-medium text-sm sm:text-base">Nenhum registro encontrado</p>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1">Tente ajustar os filtros</p>
                   </div>
                 </td>
               </tr>
             ) : (
               dados.map((row: any, i: number) => (
-                <tr 
-                  key={i} 
+                <tr
+                  key={i}
                   className="hover:bg-indigo-50/30 transition-colors border-b border-gray-100"
                 >
                   {colunas.map((col: any) => {
                     const valor = row[col.key]
                     const isNumero = typeof valor === 'number'
                     const alignClass = col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
-                    
+
                     return (
-                      <td 
-                        key={col.key} 
-                        className={`px-4 py-3 ${alignClass} whitespace-nowrap align-middle`}
+                      <td
+                        key={col.key}
+                        className={`px-2 sm:px-4 py-2 sm:py-3 ${alignClass} whitespace-nowrap align-middle`}
                       >
                         {col.format ? formatarValor(valor, col.format) : (
-                          <span className={`text-sm ${isNumero ? 'font-semibold text-gray-800' : 'font-medium text-gray-700'}`}>
-                            {valor !== null && valor !== undefined 
+                          <span className={`text-xs sm:text-sm ${isNumero ? 'font-semibold text-gray-800' : 'font-medium text-gray-700'}`}>
+                            {valor !== null && valor !== undefined
                               ? (isNumero ? valor.toLocaleString('pt-BR') : valor)
                               : <span className="text-gray-400 italic">-</span>
                             }
@@ -1849,35 +1849,34 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
         </table>
       </div>
       {totalPaginas > 1 && (
-        <div className="px-6 py-4 border-t-2 border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-gray-100">
-          <p className="text-sm font-medium text-gray-700">
-            Mostrando <span className="font-bold text-indigo-600">{((paginaAtual - 1) * itensPorPagina) + 1}</span> até{' '}
-            <span className="font-bold text-indigo-600">{Math.min(paginaAtual * itensPorPagina, totalRegistros)}</span> de{' '}
-            <span className="font-bold text-gray-900">{totalRegistros.toLocaleString('pt-BR')}</span> registros
+        <div className="px-3 sm:px-6 py-3 sm:py-4 border-t-2 border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-gradient-to-r from-gray-50 to-gray-100">
+          <p className="text-xs sm:text-sm font-medium text-gray-700 text-center sm:text-left">
+            <span className="font-bold text-indigo-600">{((paginaAtual - 1) * itensPorPagina) + 1}</span>-<span className="font-bold text-indigo-600">{Math.min(paginaAtual * itensPorPagina, totalRegistros)}</span> de{' '}
+            <span className="font-bold text-gray-900">{totalRegistros.toLocaleString('pt-BR')}</span>
           </p>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => onPaginar(Math.max(1, paginaAtual - 1))} 
-              disabled={paginaAtual === 1} 
-              className="px-4 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              onClick={() => onPaginar(Math.max(1, paginaAtual - 1))}
+              disabled={paginaAtual === 1}
+              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Anterior
+              Ant.
             </button>
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
+            <div className="flex gap-0.5 sm:gap-1">
+              {Array.from({ length: Math.min(3, totalPaginas) }, (_, i) => {
                 let p = i + 1
-                if (totalPaginas > 5) {
-                  if (paginaAtual <= 3) p = i + 1
-                  else if (paginaAtual >= totalPaginas - 2) p = totalPaginas - 4 + i
-                  else p = paginaAtual - 2 + i
+                if (totalPaginas > 3) {
+                  if (paginaAtual <= 2) p = i + 1
+                  else if (paginaAtual >= totalPaginas - 1) p = totalPaginas - 2 + i
+                  else p = paginaAtual - 1 + i
                 }
                 return (
-                  <button 
-                    key={p} 
-                    onClick={() => onPaginar(p)} 
-                    className={`px-3 py-2 text-sm font-semibold border-2 rounded-lg transition-colors ${
-                      paginaAtual === p 
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                  <button
+                    key={p}
+                    onClick={() => onPaginar(p)}
+                    className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg transition-colors ${
+                      paginaAtual === p
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
                         : 'border-gray-300 hover:bg-gray-100 text-gray-700'
                     }`}
                   >
@@ -1886,12 +1885,12 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                 )
               })}
             </div>
-            <button 
-              onClick={() => onPaginar(Math.min(totalPaginas, paginaAtual + 1))} 
-              disabled={paginaAtual === totalPaginas} 
-              className="px-4 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            <button
+              onClick={() => onPaginar(Math.min(totalPaginas, paginaAtual + 1))}
+              disabled={paginaAtual === totalPaginas}
+              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Próximo
+              Prox.
             </button>
           </div>
         </div>

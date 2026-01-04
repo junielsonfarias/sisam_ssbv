@@ -596,29 +596,35 @@ export async function GET(request: NextRequest) {
       // Buscar em disciplina e area_conhecimento para garantir compatibilidade
       // Mapear valores do frontend para padrões de busca no banco
       const disciplinaUpper = disciplina.toUpperCase().trim()
-      let searchPattern = `%${disciplina}%`
-      
-      // Se for um código de disciplina (LP, MAT, etc), buscar também por nome completo
-      if (disciplinaUpper === 'LP') {
-        searchPattern = '%português%'
-      } else if (disciplinaUpper === 'MAT') {
-        searchPattern = '%matemática%'
-      } else if (disciplinaUpper === 'CH') {
-        searchPattern = '%humanas%'
-      } else if (disciplinaUpper === 'CN') {
-        searchPattern = '%natureza%'
+
+      // Criar lista de padrões de busca para cada disciplina
+      let searchPatterns: string[] = []
+
+      if (disciplinaUpper === 'LP' || disciplinaUpper === 'LÍNGUA PORTUGUESA' || disciplinaUpper === 'LINGUA PORTUGUESA') {
+        searchPatterns = ['LP', 'Língua Portuguesa', 'Lingua Portuguesa', 'LÍNGUA PORTUGUESA', 'LINGUA PORTUGUESA', 'português', 'Português', 'PORTUGUÊS']
+      } else if (disciplinaUpper === 'MAT' || disciplinaUpper === 'MATEMÁTICA' || disciplinaUpper === 'MATEMATICA') {
+        searchPatterns = ['MAT', 'Matemática', 'Matematica', 'MATEMÁTICA', 'MATEMATICA']
+      } else if (disciplinaUpper === 'CH' || disciplinaUpper === 'CIÊNCIAS HUMANAS' || disciplinaUpper === 'CIENCIAS HUMANAS') {
+        searchPatterns = ['CH', 'Ciências Humanas', 'Ciencias Humanas', 'CIÊNCIAS HUMANAS', 'CIENCIAS HUMANAS', 'humanas', 'Humanas', 'HUMANAS']
+      } else if (disciplinaUpper === 'CN' || disciplinaUpper === 'CIÊNCIAS DA NATUREZA' || disciplinaUpper === 'CIENCIAS DA NATUREZA') {
+        searchPatterns = ['CN', 'Ciências da Natureza', 'Ciencias da Natureza', 'CIÊNCIAS DA NATUREZA', 'CIENCIAS DA NATUREZA', 'natureza', 'Natureza', 'NATUREZA']
+      } else if (disciplinaUpper === 'PT' || disciplinaUpper === 'PRODUÇÃO TEXTUAL' || disciplinaUpper === 'PRODUCAO TEXTUAL') {
+        searchPatterns = ['PT', 'Produção Textual', 'Producao Textual', 'PRODUÇÃO TEXTUAL', 'PRODUCAO TEXTUAL', 'Redação', 'Redacao', 'REDAÇÃO', 'REDACAO']
+      } else {
+        // Para outras disciplinas, usar o valor como está
+        searchPatterns = [disciplina, disciplinaUpper, disciplina.toLowerCase()]
       }
-      
-      // Buscar tanto em area_conhecimento quanto em disciplina, e também pelo código exato
-      rpWhereConditions.push(`(
-        rp.disciplina ILIKE $${rpParamIndex} OR 
-        rp.area_conhecimento ILIKE $${rpParamIndex} OR 
-        rp.disciplina = $${rpParamIndex + 1} OR 
-        rp.area_conhecimento = $${rpParamIndex + 1}
-      )`)
-      rpParams.push(searchPattern)
-      rpParams.push(disciplinaUpper) // Também buscar pelo código exato (LP, MAT, etc)
-      rpParamIndex += 2
+
+      // Construir condição OR para todos os padrões
+      const conditions: string[] = []
+      searchPatterns.forEach((pattern) => {
+        conditions.push(`rp.disciplina = $${rpParamIndex}`)
+        conditions.push(`rp.area_conhecimento = $${rpParamIndex}`)
+        rpParams.push(pattern)
+        rpParamIndex++
+      })
+
+      rpWhereConditions.push(`(${conditions.join(' OR ')})`)
     }
 
     if (questaoCodigo) {

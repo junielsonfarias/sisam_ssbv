@@ -6,11 +6,14 @@ import path from 'path'
 
 export const dynamic = 'force-dynamic';
 
-// Caminhos dos arquivos locais
+// Verificar se está em producao (Vercel)
+const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
+
+// Caminhos dos arquivos locais (usado apenas em desenvolvimento)
 const CONFIG_PATH = path.join(process.cwd(), 'config', 'personalizacao.json')
 const UPLOADS_PATH = path.join(process.cwd(), 'public', 'uploads')
 
-// Valores padrão
+// Valores padrao
 const DEFAULTS = {
   login_titulo: 'SISAM',
   login_subtitulo: 'Sistema de Analise de Provas',
@@ -23,15 +26,21 @@ const DEFAULTS = {
   rodape_ativo: true,
 }
 
-// Função para garantir que o diretório existe
+// Funcao para garantir que o diretorio existe (apenas desenvolvimento)
 function ensureDirectoryExists(dirPath: string) {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true })
+  if (IS_PRODUCTION) return
+  try {
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true })
+    }
+  } catch (error) {
+    console.error('Erro ao criar diretorio:', error)
   }
 }
 
-// Função para ler configuração do arquivo local
+// Funcao para ler configuracao do arquivo local (apenas desenvolvimento)
 function readLocalConfig() {
+  if (IS_PRODUCTION) return null
   try {
     ensureDirectoryExists(path.dirname(CONFIG_PATH))
     if (fs.existsSync(CONFIG_PATH)) {
@@ -44,8 +53,9 @@ function readLocalConfig() {
   return null
 }
 
-// Função para salvar configuração no arquivo local
+// Funcao para salvar configuracao no arquivo local (apenas desenvolvimento)
 function saveLocalConfig(config: any) {
+  if (IS_PRODUCTION) return false
   try {
     ensureDirectoryExists(path.dirname(CONFIG_PATH))
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8')
@@ -56,8 +66,9 @@ function saveLocalConfig(config: any) {
   }
 }
 
-// Função para salvar imagem localmente
+// Funcao para salvar imagem localmente (apenas desenvolvimento)
 function saveImageLocally(base64Data: string): string | null {
+  if (IS_PRODUCTION) return null
   try {
     ensureDirectoryExists(UPLOADS_PATH)
 
@@ -77,16 +88,20 @@ function saveImageLocally(base64Data: string): string | null {
     const filepath = path.join(UPLOADS_PATH, filename)
 
     // Remover logos antigas
-    const files = fs.readdirSync(UPLOADS_PATH)
-    files.forEach(file => {
-      if (file.startsWith('logo_')) {
-        try {
-          fs.unlinkSync(path.join(UPLOADS_PATH, file))
-        } catch (e) {
-          console.error('Erro ao remover logo antiga:', e)
+    try {
+      const files = fs.readdirSync(UPLOADS_PATH)
+      files.forEach(file => {
+        if (file.startsWith('logo_')) {
+          try {
+            fs.unlinkSync(path.join(UPLOADS_PATH, file))
+          } catch (e) {
+            console.error('Erro ao remover logo antiga:', e)
+          }
         }
-      }
-    })
+      })
+    } catch (e) {
+      // Ignorar erro ao listar arquivos
+    }
 
     // Salvar novo arquivo
     fs.writeFileSync(filepath, buffer)
@@ -99,27 +114,28 @@ function saveImageLocally(base64Data: string): string | null {
   }
 }
 
-// GET - Buscar configurações de personalização
+// GET - Buscar configuracoes de personalizacao
 export async function GET(request: NextRequest) {
   try {
-    // Primeiro, tentar ler do arquivo local
-    const localConfig = readLocalConfig()
-
-    if (localConfig) {
-      return NextResponse.json({
-        login_titulo: localConfig.login_titulo || DEFAULTS.login_titulo,
-        login_subtitulo: localConfig.login_subtitulo || DEFAULTS.login_subtitulo,
-        login_imagem_url: localConfig.login_imagem_url || DEFAULTS.login_imagem_url,
-        login_cor_primaria: localConfig.login_cor_primaria || DEFAULTS.login_cor_primaria,
-        login_cor_secundaria: localConfig.login_cor_secundaria || DEFAULTS.login_cor_secundaria,
-        rodape_texto: localConfig.rodape_texto || DEFAULTS.rodape_texto,
-        rodape_link: localConfig.rodape_link || DEFAULTS.rodape_link,
-        rodape_link_texto: localConfig.rodape_link_texto || DEFAULTS.rodape_link_texto,
-        rodape_ativo: localConfig.rodape_ativo !== undefined ? localConfig.rodape_ativo : DEFAULTS.rodape_ativo,
-      })
+    // Em desenvolvimento, tentar ler do arquivo local primeiro
+    if (!IS_PRODUCTION) {
+      const localConfig = readLocalConfig()
+      if (localConfig) {
+        return NextResponse.json({
+          login_titulo: localConfig.login_titulo || DEFAULTS.login_titulo,
+          login_subtitulo: localConfig.login_subtitulo || DEFAULTS.login_subtitulo,
+          login_imagem_url: localConfig.login_imagem_url || DEFAULTS.login_imagem_url,
+          login_cor_primaria: localConfig.login_cor_primaria || DEFAULTS.login_cor_primaria,
+          login_cor_secundaria: localConfig.login_cor_secundaria || DEFAULTS.login_cor_secundaria,
+          rodape_texto: localConfig.rodape_texto || DEFAULTS.rodape_texto,
+          rodape_link: localConfig.rodape_link || DEFAULTS.rodape_link,
+          rodape_link_texto: localConfig.rodape_link_texto || DEFAULTS.rodape_link_texto,
+          rodape_ativo: localConfig.rodape_ativo !== undefined ? localConfig.rodape_ativo : DEFAULTS.rodape_ativo,
+        })
+      }
     }
 
-    // Fallback: tentar ler do banco de dados
+    // Buscar do banco de dados
     try {
       const result = await pool.query(
         'SELECT * FROM personalizacao WHERE tipo = $1',
@@ -128,25 +144,27 @@ export async function GET(request: NextRequest) {
 
       if (result.rows.length > 0) {
         const dbConfig = result.rows[0]
-        // Sincronizar com arquivo local
-        saveLocalConfig({
-          login_titulo: dbConfig.login_titulo,
-          login_subtitulo: dbConfig.login_subtitulo,
-          login_imagem_url: dbConfig.login_imagem_url,
-          login_cor_primaria: dbConfig.login_cor_primaria,
-          login_cor_secundaria: dbConfig.login_cor_secundaria,
-          rodape_texto: dbConfig.rodape_texto,
-          rodape_link: dbConfig.rodape_link,
-          rodape_link_texto: dbConfig.rodape_link_texto,
-          rodape_ativo: dbConfig.rodape_ativo,
-        })
+        // Em desenvolvimento, sincronizar com arquivo local
+        if (!IS_PRODUCTION) {
+          saveLocalConfig({
+            login_titulo: dbConfig.login_titulo,
+            login_subtitulo: dbConfig.login_subtitulo,
+            login_imagem_url: dbConfig.login_imagem_url,
+            login_cor_primaria: dbConfig.login_cor_primaria,
+            login_cor_secundaria: dbConfig.login_cor_secundaria,
+            rodape_texto: dbConfig.rodape_texto,
+            rodape_link: dbConfig.rodape_link,
+            rodape_link_texto: dbConfig.rodape_link_texto,
+            rodape_ativo: dbConfig.rodape_ativo,
+          })
+        }
         return NextResponse.json(dbConfig)
       }
     } catch (dbError: any) {
       console.error('Erro ao consultar personalizacao no banco:', dbError)
     }
 
-    // Retornar valores padrão
+    // Retornar valores padrao
     return NextResponse.json(DEFAULTS)
   } catch (error: any) {
     console.error('Erro ao buscar personalizacao:', error)
@@ -154,7 +172,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT - Atualizar configurações de personalização
+// PUT - Atualizar configuracoes de personalizacao
 export async function PUT(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -178,17 +196,17 @@ export async function PUT(request: NextRequest) {
       rodape_ativo,
     } = await request.json()
 
-    // Processar imagem: se for base64, salvar localmente
+    // Processar imagem
     let imagemFinal = login_imagem_url
-    if (login_imagem_url && login_imagem_url.startsWith('data:image/')) {
+
+    // Em desenvolvimento, tentar salvar imagem localmente
+    if (!IS_PRODUCTION && login_imagem_url && login_imagem_url.startsWith('data:image/')) {
       const savedPath = saveImageLocally(login_imagem_url)
       if (savedPath) {
         imagemFinal = savedPath
-      } else {
-        // Se falhar ao salvar localmente, manter o base64
-        console.warn('Falha ao salvar imagem localmente, mantendo base64')
       }
     }
+    // Em producao, manter base64 ou URL no banco
 
     // Preparar dados para salvar
     const configData = {
@@ -203,17 +221,12 @@ export async function PUT(request: NextRequest) {
       rodape_ativo: rodape_ativo !== undefined ? rodape_ativo : true,
     }
 
-    // Salvar no arquivo local (fonte primária)
-    const savedLocally = saveLocalConfig(configData)
-
-    if (!savedLocally) {
-      return NextResponse.json(
-        { mensagem: 'Erro ao salvar configuracao local' },
-        { status: 500 }
-      )
+    // Em desenvolvimento, salvar no arquivo local
+    if (!IS_PRODUCTION) {
+      saveLocalConfig(configData)
     }
 
-    // Sincronizar com banco de dados (backup)
+    // Salvar no banco de dados (obrigatorio em producao, backup em desenvolvimento)
     try {
       const existe = await pool.query(
         'SELECT id FROM personalizacao WHERE tipo = $1',
@@ -267,19 +280,25 @@ export async function PUT(request: NextRequest) {
           ]
         )
       }
-    } catch (dbError) {
-      console.error('Erro ao sincronizar com banco de dados:', dbError)
-      // Não falhar se o banco der erro, já salvamos localmente
+    } catch (dbError: any) {
+      console.error('Erro ao salvar no banco de dados:', dbError)
+      // Em producao, falhar se o banco der erro
+      if (IS_PRODUCTION) {
+        return NextResponse.json(
+          { mensagem: 'Erro ao salvar personalizacao: ' + dbError.message },
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json({
       ...configData,
       mensagem: 'Personalizacao salva com sucesso'
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao atualizar personalizacao:', error)
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor: ' + error.message },
       { status: 500 }
     )
   }
