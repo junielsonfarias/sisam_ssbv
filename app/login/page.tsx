@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { LogIn, Eye, EyeOff, WifiOff } from 'lucide-react'
 import Rodape from '@/components/rodape'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
-import { getOfflineUser, isOnline, saveUserOffline } from '@/lib/offline-db'
+import * as offlineStorage from '@/lib/offline-storage'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -22,14 +22,17 @@ export default function LoginPage() {
 
   // Verificar se existe usuário offline ao carregar
   useEffect(() => {
-    const verificarUsuarioOffline = async () => {
-      const online = isOnline()
+    const verificarUsuarioOffline = () => {
+      const online = offlineStorage.isOnline()
       setModoOffline(!online)
 
-      // Verificar se existe usuário offline
-      const offlineUser = await getOfflineUser()
+      // Verificar se existe usuário offline no localStorage
+      const offlineUser = offlineStorage.getUser()
+
+      console.log('[Login] Verificando usuário offline:', { online, hasUser: !!offlineUser })
 
       if (offlineUser) {
+        console.log('[Login] Usuário offline encontrado, redirecionando...')
         // Se estiver offline ou online, redirecionar para o dashboard correto
         const tipoUsuario = offlineUser.tipo_usuario
         if (tipoUsuario === 'administrador') {
@@ -77,7 +80,7 @@ export default function LoginPage() {
     setErro('')
 
     // Verificar se está offline
-    if (!isOnline()) {
+    if (!offlineStorage.isOnline()) {
       setErro('Você está offline. Conecte-se à internet para fazer login.')
       return
     }
@@ -111,8 +114,18 @@ export default function LoginPage() {
         return
       }
 
-      // IMPORTANTE: Salvar usuário para acesso offline
-      await saveUserOffline(data.usuario)
+      // IMPORTANTE: Salvar usuário para acesso offline no localStorage
+      offlineStorage.saveUser({
+        id: data.usuario.id?.toString() || data.usuario.usuario_id?.toString(),
+        nome: data.usuario.nome,
+        email: data.usuario.email,
+        tipo_usuario: data.usuario.tipo_usuario,
+        polo_id: data.usuario.polo_id,
+        escola_id: data.usuario.escola_id,
+        polo_nome: data.usuario.polo_nome,
+        escola_nome: data.usuario.escola_nome
+      })
+      console.log('[Login] Usuário salvo para uso offline')
 
       // Redirecionar baseado no tipo de usuário
       if (data.usuario.tipo_usuario === 'administrador') {

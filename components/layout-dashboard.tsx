@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
-import { saveUserOffline, getOfflineUser, clearOfflineUser, isOnline } from '@/lib/offline-db'
+import * as offlineStorage from '@/lib/offline-storage'
 
 interface LayoutDashboardProps {
   children: React.ReactNode
@@ -44,7 +44,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   useEffect(() => {
     const carregarUsuario = async () => {
       // Verificar se está online
-      const online = isOnline()
+      const online = offlineStorage.isOnline()
       setModoOffline(!online)
 
       if (online) {
@@ -54,11 +54,20 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           const data = await response.json()
           if (data.usuario) {
             setUsuario(data.usuario)
-            // Salvar usuário para acesso offline
-            await saveUserOffline(data.usuario)
+            // Salvar usuário para acesso offline no localStorage
+            offlineStorage.saveUser({
+              id: data.usuario.id?.toString() || data.usuario.usuario_id?.toString(),
+              nome: data.usuario.nome,
+              email: data.usuario.email,
+              tipo_usuario: data.usuario.tipo_usuario,
+              polo_id: data.usuario.polo_id,
+              escola_id: data.usuario.escola_id,
+              polo_nome: data.usuario.polo_nome,
+              escola_nome: data.usuario.escola_nome
+            })
           } else {
             // Sem sessão válida, tentar usuário offline
-            const offlineUser = await getOfflineUser()
+            const offlineUser = offlineStorage.getUser()
             if (offlineUser) {
               setUsuario(offlineUser)
               setModoOffline(true)
@@ -68,7 +77,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           }
         } catch (error) {
           // Erro de rede, tentar usuário offline
-          const offlineUser = await getOfflineUser()
+          const offlineUser = offlineStorage.getUser()
           if (offlineUser) {
             setUsuario(offlineUser)
             setModoOffline(true)
@@ -78,7 +87,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         }
       } else {
         // Está offline, usar usuário salvo
-        const offlineUser = await getOfflineUser()
+        const offlineUser = offlineStorage.getUser()
         if (offlineUser) {
           setUsuario(offlineUser)
         } else {
@@ -97,17 +106,30 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
+    // Impedir reload quando offline - aviso ao usuário
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!offlineStorage.isOnline()) {
+        e.preventDefault()
+        e.returnValue = 'Você está offline. Recarregar a página pode causar perda de sessão. Deseja continuar?'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [router])
 
   const handleLogout = async () => {
-    // Limpar dados offline
-    await clearOfflineUser()
+    // Limpar dados offline do localStorage
+    offlineStorage.clearUser()
+    offlineStorage.clearAllOfflineData()
     // Fazer logout no servidor (se online)
-    if (isOnline()) {
+    if (offlineStorage.isOnline()) {
       await fetch('/api/auth/logout', { method: 'POST' })
     }
     router.push('/login')

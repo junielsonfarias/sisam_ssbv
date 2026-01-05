@@ -238,13 +238,19 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       throw new Error('Erro ao buscar dados do servidor')
     }
 
-    // Parsear dados
-    const [polos, escolas, turmas, resultados] = await Promise.all([
+    // Parsear dados - APIs retornam { dados: [...], total: ..., sincronizado_em: ... }
+    const [polosData, escolasData, turmasData, resultadosData] = await Promise.all([
       polosRes.json(),
       escolasRes.json(),
       turmasRes.json(),
       resultadosRes.json()
     ])
+
+    // Extrair arrays de dados (APIs retornam objeto com propriedade 'dados')
+    const polos = Array.isArray(polosData) ? polosData : (polosData.dados || [])
+    const escolas = Array.isArray(escolasData) ? escolasData : (escolasData.dados || [])
+    const turmas = Array.isArray(turmasData) ? turmasData : (turmasData.dados || [])
+    const resultados = Array.isArray(resultadosData) ? resultadosData : (resultadosData.dados || [])
 
     console.log('[OfflineStorage] Dados recebidos:', {
       polos: polos.length,
@@ -252,6 +258,11 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       turmas: turmas.length,
       resultados: resultados.length
     })
+
+    // Verificar se há dados para salvar
+    if (resultados.length === 0) {
+      console.warn('[OfflineStorage] Nenhum resultado encontrado para sincronizar')
+    }
 
     // Salvar no localStorage
     const savedPolos = savePolos(polos)

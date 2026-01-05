@@ -4,7 +4,7 @@ import React from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TipoUsuario } from '@/lib/types'
-import { getOfflineUser, isOnline } from '@/lib/offline-db'
+import * as offlineStorage from '@/lib/offline-storage'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -30,17 +30,22 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
         return tiposPermitidosExpandidos.includes(tipoUsuario as TipoUsuario)
       }
 
-      // PRIMEIRO: Verificar se existe usuário offline salvo
-      const offlineUser = await getOfflineUser()
+      // PRIMEIRO: Verificar se existe usuário offline salvo no localStorage
+      const offlineUser = offlineStorage.getUser()
+      const online = offlineStorage.isOnline()
+
+      console.log('[ProtectedRoute] Verificando auth:', { online, hasOfflineUser: !!offlineUser })
 
       // Se estiver offline, usar apenas o usuário offline
-      if (!isOnline()) {
+      if (!online) {
+        console.log('[ProtectedRoute] Modo offline detectado')
         if (offlineUser && verificarTipoPermitido(offlineUser.tipo_usuario)) {
+          console.log('[ProtectedRoute] Usuário offline válido encontrado')
           setAutorizado(true)
           setCarregando(false)
           return
         } else {
-          // Sem usuário offline válido
+          console.log('[ProtectedRoute] Sem usuário offline válido, redirecionando para login')
           router.push('/login')
           setCarregando(false)
           return
@@ -61,18 +66,33 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
             return
           }
 
+          // Salvar/atualizar usuário no localStorage para uso offline
+          offlineStorage.saveUser({
+            id: data.usuario.id?.toString() || data.usuario.usuario_id?.toString(),
+            nome: data.usuario.nome,
+            email: data.usuario.email,
+            tipo_usuario: data.usuario.tipo_usuario,
+            polo_id: data.usuario.polo_id,
+            escola_id: data.usuario.escola_id,
+            polo_nome: data.usuario.polo_nome,
+            escola_nome: data.usuario.escola_nome
+          })
+
           setAutorizado(true)
         } else {
           // API não retornou usuário, tentar offline
           if (offlineUser && verificarTipoPermitido(offlineUser.tipo_usuario)) {
+            console.log('[ProtectedRoute] Usando usuário offline como fallback')
             setAutorizado(true)
           } else {
             router.push('/login')
           }
         }
       } catch (error) {
+        console.log('[ProtectedRoute] Erro de rede, tentando usuário offline:', error)
         // Erro de rede, usar usuário offline se disponível
         if (offlineUser && verificarTipoPermitido(offlineUser.tipo_usuario)) {
+          console.log('[ProtectedRoute] Usando usuário offline após erro de rede')
           setAutorizado(true)
         } else {
           router.push('/login')
