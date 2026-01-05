@@ -4,7 +4,8 @@ import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalAlunosTurma from '@/components/modal-alunos-turma'
 import { useEffect, useState, useMemo } from 'react'
-import { Filter, X, School, TrendingUp, BarChart3, Users, Target, BookOpen, Eye, Trophy } from 'lucide-react'
+import { Filter, X, School, TrendingUp, BarChart3, Users, Target, BookOpen, Eye, Trophy, WifiOff } from 'lucide-react'
+import * as offlineStorage from '@/lib/offline-storage'
 
 interface DadosComparativo {
   escola_id: string
@@ -54,8 +55,16 @@ export default function ComparativosPage() {
     escola_nome: string
     serie: string
   } | null>(null)
+  const [modoOffline, setModoOffline] = useState(false)
 
   useEffect(() => {
+    // Verificar se está offline
+    const online = offlineStorage.isOnline()
+    setModoOffline(!online)
+
+    // Não carregar dados se estiver offline
+    if (!online) return
+
     const carregarTipoUsuario = async () => {
       try {
         const response = await fetch('/api/auth/verificar')
@@ -296,6 +305,29 @@ export default function ComparativosPage() {
             </div>
           </div>
 
+          {/* Aviso de modo offline */}
+          {modoOffline && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+              <div className="flex items-center justify-center gap-4">
+                <div className="flex-shrink-0">
+                  <WifiOff className="w-12 h-12 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-amber-800 mb-1">
+                    Comparativo Indisponível Offline
+                  </h2>
+                  <p className="text-amber-700">
+                    Esta funcionalidade requer comparação de dados entre múltiplas escolas que não estão disponíveis no modo offline.
+                    Por favor, conecte-se à internet para acessar o comparativo completo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Conteúdo principal - apenas quando online */}
+          {!modoOffline && (
+          <>
           {/* Filtros */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6" style={{ overflow: 'visible' }}>
             <div className="flex items-center justify-between mb-4">
@@ -830,6 +862,8 @@ export default function ComparativosPage() {
                 setTurmaSelecionada(null)
               }}
             />
+          )}
+          </>
           )}
         </div>
       </LayoutDashboard>

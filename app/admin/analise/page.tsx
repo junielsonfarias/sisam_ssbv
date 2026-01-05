@@ -3,8 +3,9 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
-import { Filter, BarChart3, TrendingUp } from 'lucide-react'
+import { Filter, BarChart3, TrendingUp, WifiOff } from 'lucide-react'
 import { FiltrosAnalise } from '@/lib/types'
+import * as offlineStorage from '@/lib/offline-storage'
 
 export default function AnalisePage() {
   const [filtros, setFiltros] = useState<FiltrosAnalise>({})
@@ -12,9 +13,16 @@ export default function AnalisePage() {
   const [polos, setPolos] = useState<any[]>([])
   const [dados, setDados] = useState<any>(null)
   const [carregando, setCarregando] = useState(false)
+  const [modoOffline, setModoOffline] = useState(false)
 
   useEffect(() => {
-    carregarDadosIniciais()
+    // Verificar se está offline
+    const online = offlineStorage.isOnline()
+    setModoOffline(!online)
+
+    if (online) {
+      carregarDadosIniciais()
+    }
   }, [])
 
   const carregarDadosIniciais = async () => {
@@ -63,7 +71,29 @@ export default function AnalisePage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8">Análise de Dados</h1>
 
-          {/* Filtros */}
+          {/* Aviso de modo offline */}
+          {modoOffline && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
+              <div className="flex items-center justify-center gap-4">
+                <div className="flex-shrink-0">
+                  <WifiOff className="w-12 h-12 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-amber-800 mb-1">
+                    Análise de Dados Indisponível Offline
+                  </h2>
+                  <p className="text-amber-700">
+                    Esta funcionalidade requer análise detalhada de questões e respostas que não estão disponíveis no modo offline.
+                    Por favor, conecte-se à internet para acessar a análise completa.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Filtros - apenas quando online */}
+          {!modoOffline && (
+          <>
           <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6 mb-4 sm:mb-6" style={{ overflow: 'visible' }}>
             <div className="flex items-center mb-3 sm:mb-4">
               <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" />
@@ -212,6 +242,8 @@ export default function AnalisePage() {
                 </div>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
       </LayoutDashboard>

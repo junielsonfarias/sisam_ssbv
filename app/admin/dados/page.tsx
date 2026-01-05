@@ -467,17 +467,22 @@ export default function DadosPage() {
           return {
             id: r.id,
             aluno_id: r.aluno_id,
-            nome: r.aluno_nome,
+            aluno: r.aluno_nome,
             escola: r.escola_nome,
             serie: r.serie,
             turma: r.turma_codigo,
             presenca: r.presenca,
-            media_geral: toNum(r.media_aluno),
+            media_aluno: toNum(r.media_aluno),
             nota_lp: toNum(r.nota_lp),
             nota_mat: toNum(r.nota_mat),
             nota_ch: toNum(r.nota_ch),
             nota_cn: toNum(r.nota_cn),
             nota_producao: toNum(r.nota_producao),
+            // Campos de acertos para exibição
+            acertos_lp: toNum(r.total_acertos_lp),
+            acertos_mat: toNum(r.total_acertos_mat),
+            acertos_ch: toNum(r.total_acertos_ch),
+            acertos_cn: toNum(r.total_acertos_cn),
             nivel_aprendizagem: r.nivel_aprendizagem || 'Não classificado'
           }
         }),
