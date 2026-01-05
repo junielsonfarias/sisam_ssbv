@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
-    query += ' ORDER BY rp.aluno_id, rp.questao_codigo LIMIT 50000' // Limitar para nao sobrecarregar
+    query += ' ORDER BY rp.aluno_id, rp.questao_codigo LIMIT 10000' // Limitar para caber no localStorage (~2-3MB)
 
     const result = await pool.query(query, params)
 

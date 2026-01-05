@@ -115,7 +115,8 @@ export function isStorageAvailable(): boolean {
 }
 
 // Salvar dados no localStorage com compressão básica
-function saveToStorage(key: string, data: any): boolean {
+// isEssential: se true, tentará novamente após limpar dados não essenciais
+function saveToStorage(key: string, data: any, isEssential: boolean = false): boolean {
   if (!isStorageAvailable()) return false
   try {
     const jsonData = JSON.stringify(data)
@@ -124,10 +125,22 @@ function saveToStorage(key: string, data: any): boolean {
     return true
   } catch (error: any) {
     console.error(`[OfflineStorage] Erro ao salvar ${key}:`, error)
-    // Se exceder quota, tentar limpar dados antigos
+    // Se exceder quota, limpar dados não essenciais e tentar novamente
     if (error.name === 'QuotaExceededError') {
       console.warn('[OfflineStorage] Quota excedida, limpando dados antigos...')
       clearOldData()
+
+      // Tentar novamente apenas para dados essenciais
+      if (isEssential) {
+        try {
+          const jsonData = JSON.stringify(data)
+          localStorage.setItem(key, jsonData)
+          console.log(`[OfflineStorage] Salvou ${key} após limpar: ${(jsonData.length / 1024).toFixed(2)}KB`)
+          return true
+        } catch (retryError) {
+          console.error(`[OfflineStorage] Falha ao salvar ${key} mesmo após limpar:`, retryError)
+        }
+      }
     }
     return false
   }
@@ -147,13 +160,13 @@ function readFromStorage<T>(key: string): T | null {
 }
 
 // Limpar dados antigos para liberar espaço
+// IMPORTANTE: Nunca apagar resultados, polos, escolas ou turmas - são essenciais!
 function clearOldData(): void {
-  // Manter apenas dados essenciais
-  const keysToKeep = [STORAGE_KEYS.USER, STORAGE_KEYS.SYNC_DATE]
-  Object.values(STORAGE_KEYS).forEach(key => {
-    if (!keysToKeep.includes(key)) {
-      localStorage.removeItem(key)
-    }
+  // Manter dados essenciais - apenas remover questões (são grandes demais)
+  const keysToRemove = [STORAGE_KEYS.QUESTOES]
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key)
+    console.log('[OfflineStorage] Removido para liberar espaco:', key)
   })
 }
 
@@ -174,7 +187,7 @@ export function clearUser(): void {
 // ========== FUNÇÕES DE POLOS ==========
 
 export function savePolos(polos: OfflinePolo[]): boolean {
-  return saveToStorage(STORAGE_KEYS.POLOS, polos)
+  return saveToStorage(STORAGE_KEYS.POLOS, polos, true) // essencial
 }
 
 export function getPolos(): OfflinePolo[] {
@@ -184,7 +197,7 @@ export function getPolos(): OfflinePolo[] {
 // ========== FUNÇÕES DE ESCOLAS ==========
 
 export function saveEscolas(escolas: OfflineEscola[]): boolean {
-  return saveToStorage(STORAGE_KEYS.ESCOLAS, escolas)
+  return saveToStorage(STORAGE_KEYS.ESCOLAS, escolas, true) // essencial
 }
 
 export function getEscolas(): OfflineEscola[] {
@@ -194,7 +207,7 @@ export function getEscolas(): OfflineEscola[] {
 // ========== FUNÇÕES DE TURMAS ==========
 
 export function saveTurmas(turmas: OfflineTurma[]): boolean {
-  return saveToStorage(STORAGE_KEYS.TURMAS, turmas)
+  return saveToStorage(STORAGE_KEYS.TURMAS, turmas, true) // essencial
 }
 
 export function getTurmas(): OfflineTurma[] {
@@ -204,7 +217,7 @@ export function getTurmas(): OfflineTurma[] {
 // ========== FUNÇÕES DE RESULTADOS ==========
 
 export function saveResultados(resultados: OfflineResultado[]): boolean {
-  return saveToStorage(STORAGE_KEYS.RESULTADOS, resultados)
+  return saveToStorage(STORAGE_KEYS.RESULTADOS, resultados, true) // essencial - NUNCA pode ser perdido
 }
 
 export function getResultados(): OfflineResultado[] {
