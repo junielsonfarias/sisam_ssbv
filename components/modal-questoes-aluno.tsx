@@ -65,6 +65,83 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
     }
   }, [isOpen, alunoId, anoLetivo])
 
+  // Função auxiliar para carregar dados offline completos
+  const carregarDadosOffline = (): DadosAluno | null => {
+    // Buscar resultado consolidado do aluno
+    const resultado = offlineStorage.getResultadoByAlunoId(alunoId, anoLetivo)
+    if (!resultado) return null
+
+    // Buscar questões detalhadas do aluno
+    const questoesDoAluno = offlineStorage.getQuestoesByAlunoId(alunoId, anoLetivo)
+
+    console.log('[ModalQuestoes] Questões offline encontradas:', questoesDoAluno.length)
+
+    // Se tiver questões detalhadas, organizar por área
+    if (questoesDoAluno.length > 0) {
+      const dadosOrganizados = offlineStorage.organizarQuestoesPorArea(questoesDoAluno)
+
+      // Converter para o formato esperado pelo modal
+      const questoesFormatadas: Record<string, Questao[]> = {}
+      Object.keys(dadosOrganizados.questoes).forEach(area => {
+        questoesFormatadas[area] = dadosOrganizados.questoes[area].map(q => ({
+          codigo: q.questao_codigo,
+          acertou: q.acertou,
+          resposta_aluno: q.resposta_aluno || null,
+          descricao: q.questao_descricao || null,
+          gabarito: q.gabarito || null,
+          numero: parseInt(q.questao_codigo?.replace('Q', '') || '0')
+        }))
+      })
+
+      return {
+        aluno: {
+          id: String(resultado.aluno_id),
+          nome: resultado.aluno_nome,
+          codigo: null,
+          serie: resultado.serie,
+          ano_letivo: resultado.ano_letivo,
+          escola_nome: resultado.escola_nome,
+          turma_codigo: resultado.turma_codigo
+        },
+        questoes: questoesFormatadas as any,
+        estatisticas: dadosOrganizados.estatisticas
+      }
+    }
+
+    // Fallback: usar apenas dados do resultado consolidado (sem detalhes de questões)
+    const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+    return {
+      aluno: {
+        id: String(resultado.aluno_id),
+        nome: resultado.aluno_nome,
+        codigo: null,
+        serie: resultado.serie,
+        ano_letivo: resultado.ano_letivo,
+        escola_nome: resultado.escola_nome,
+        turma_codigo: resultado.turma_codigo
+      },
+      questoes: {
+        'Língua Portuguesa': [],
+        'Ciências Humanas': [],
+        'Matemática': [],
+        'Ciências da Natureza': []
+      },
+      estatisticas: {
+        total: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
+               toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
+        acertos: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
+                 toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
+        erros: 0,
+        por_area: {
+          'Língua Portuguesa': { total: 0, acertos: toNum(resultado.total_acertos_lp), erros: 0 },
+          'Ciências Humanas': { total: 0, acertos: toNum(resultado.total_acertos_ch), erros: 0 },
+          'Matemática': { total: 0, acertos: toNum(resultado.total_acertos_mat), erros: 0 },
+          'Ciências da Natureza': { total: 0, acertos: toNum(resultado.total_acertos_cn), erros: 0 }
+        }
+      }
+    }
+  }
+
   const carregarQuestoes = async () => {
     try {
       setCarregando(true)
@@ -77,47 +154,13 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
       if (!online) {
         // Modo offline - usar dados do localStorage
         setModoOffline(true)
-        const resultado = offlineStorage.getResultadoByAlunoId(alunoId, anoLetivo)
+        const dadosOffline = carregarDadosOffline()
 
-        if (!resultado) {
+        if (!dadosOffline) {
           setErro('Dados do aluno não disponíveis offline.')
           setDados(null)
           setCarregando(false)
           return
-        }
-
-        // Criar estrutura de dados simplificada com os dados offline disponíveis
-        const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
-
-        const dadosOffline: DadosAluno = {
-          aluno: {
-            id: String(resultado.aluno_id),
-            nome: resultado.aluno_nome,
-            codigo: null,
-            serie: resultado.serie,
-            ano_letivo: resultado.ano_letivo,
-            escola_nome: resultado.escola_nome,
-            turma_codigo: resultado.turma_codigo
-          },
-          questoes: {
-            'Língua Portuguesa': [],
-            'Ciências Humanas': [],
-            'Matemática': [],
-            'Ciências da Natureza': []
-          },
-          estatisticas: {
-            total: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
-                   toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
-            acertos: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
-                     toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
-            erros: 0,
-            por_area: {
-              'Língua Portuguesa': { total: 0, acertos: toNum(resultado.total_acertos_lp), erros: 0 },
-              'Ciências Humanas': { total: 0, acertos: toNum(resultado.total_acertos_ch), erros: 0 },
-              'Matemática': { total: 0, acertos: toNum(resultado.total_acertos_mat), erros: 0 },
-              'Ciências da Natureza': { total: 0, acertos: toNum(resultado.total_acertos_cn), erros: 0 }
-            }
-          }
         }
 
         setDados(dadosOffline)
@@ -153,41 +196,9 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
       console.error('Erro ao carregar questões:', error)
 
       // Se falhou, tentar dados offline
-      const resultado = offlineStorage.getResultadoByAlunoId(alunoId, anoLetivo)
-      if (resultado) {
+      const dadosOffline = carregarDadosOffline()
+      if (dadosOffline) {
         setModoOffline(true)
-        const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
-
-        const dadosOffline: DadosAluno = {
-          aluno: {
-            id: String(resultado.aluno_id),
-            nome: resultado.aluno_nome,
-            codigo: null,
-            serie: resultado.serie,
-            ano_letivo: resultado.ano_letivo,
-            escola_nome: resultado.escola_nome,
-            turma_codigo: resultado.turma_codigo
-          },
-          questoes: {
-            'Língua Portuguesa': [],
-            'Ciências Humanas': [],
-            'Matemática': [],
-            'Ciências da Natureza': []
-          },
-          estatisticas: {
-            total: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
-                   toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
-            acertos: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
-                     toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
-            erros: 0,
-            por_area: {
-              'Língua Portuguesa': { total: 0, acertos: toNum(resultado.total_acertos_lp), erros: 0 },
-              'Ciências Humanas': { total: 0, acertos: toNum(resultado.total_acertos_ch), erros: 0 },
-              'Matemática': { total: 0, acertos: toNum(resultado.total_acertos_mat), erros: 0 },
-              'Ciências da Natureza': { total: 0, acertos: toNum(resultado.total_acertos_cn), erros: 0 }
-            }
-          }
-        }
         setDados(dadosOffline)
       } else {
         setErro(error.message || 'Erro ao carregar questões do aluno')
@@ -252,11 +263,11 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
               <div className="space-y-6">
                 {/* Indicador de modo offline */}
                 {modoOffline && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
-                    <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3">
+                    <WifiOff className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-orange-800">Modo Offline</p>
-                      <p className="text-xs text-orange-600">Exibindo resumo de acertos. Detalhes das questões disponíveis apenas online.</p>
+                      <p className="text-sm font-medium text-blue-800">Modo Offline</p>
+                      <p className="text-xs text-blue-600">Exibindo dados sincronizados localmente.</p>
                     </div>
                   </div>
                 )}

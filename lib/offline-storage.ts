@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   TURMAS: 'sisam_offline_turmas',
   RESULTADOS: 'sisam_offline_resultados',
   ALUNOS: 'sisam_offline_alunos',
+  QUESTOES: 'sisam_offline_questoes',
   SYNC_DATE: 'sisam_offline_sync_date',
   SYNC_STATUS: 'sisam_offline_sync_status'
 }
@@ -74,6 +75,24 @@ export interface OfflineAluno {
   nome: string
   escola_id: string
   turma_id?: string
+}
+
+// Interface para questoes/respostas offline
+export interface OfflineQuestao {
+  id: number | string
+  aluno_id: number | string
+  aluno_nome: string
+  aluno_codigo?: string
+  questao_id?: number | string
+  questao_codigo: string
+  acertou: boolean
+  resposta_aluno?: string
+  area_conhecimento?: string
+  disciplina?: string
+  ano_letivo?: string
+  escola_id?: number | string
+  questao_descricao?: string
+  gabarito?: string
 }
 
 // Verificar se está online
@@ -192,6 +211,117 @@ export function getResultados(): OfflineResultado[] {
   return readFromStorage<OfflineResultado[]>(STORAGE_KEYS.RESULTADOS) || []
 }
 
+// ========== FUNÇÕES DE QUESTÕES ==========
+
+export function saveQuestoes(questoes: OfflineQuestao[]): boolean {
+  return saveToStorage(STORAGE_KEYS.QUESTOES, questoes)
+}
+
+export function getQuestoes(): OfflineQuestao[] {
+  return readFromStorage<OfflineQuestao[]>(STORAGE_KEYS.QUESTOES) || []
+}
+
+// Buscar questões de um aluno específico
+export function getQuestoesByAlunoId(alunoId: string | number, anoLetivo?: string): OfflineQuestao[] {
+  const questoes = getQuestoes()
+  const alunoIdStr = String(alunoId)
+
+  let questoesDoAluno = questoes.filter(q => String(q.aluno_id) === alunoIdStr)
+
+  // Se tiver ano letivo, filtrar por ele
+  if (anoLetivo) {
+    questoesDoAluno = questoesDoAluno.filter(q => q.ano_letivo === anoLetivo)
+  }
+
+  return questoesDoAluno
+}
+
+// Organizar questões por área de conhecimento
+export function organizarQuestoesPorArea(questoes: OfflineQuestao[]): {
+  questoes: Record<string, OfflineQuestao[]>
+  estatisticas: {
+    total: number
+    acertos: number
+    erros: number
+    por_area: Record<string, { total: number; acertos: number; erros: number }>
+  }
+} {
+  const questoesPorArea: Record<string, OfflineQuestao[]> = {
+    'Língua Portuguesa': [],
+    'Ciências Humanas': [],
+    'Matemática': [],
+    'Ciências da Natureza': [],
+  }
+
+  questoes.forEach((questao) => {
+    const area = questao.area_conhecimento || questao.disciplina || 'Outras'
+
+    // Mapear áreas
+    let areaNormalizada = 'Outras'
+    if (area.includes('Português') || area.includes('LP') || area.includes('Língua Portuguesa')) {
+      areaNormalizada = 'Língua Portuguesa'
+    } else if (area.includes('Humanas') || area.includes('CH') || area.includes('Ciências Humanas')) {
+      areaNormalizada = 'Ciências Humanas'
+    } else if (area.includes('Matemática') || area.includes('MAT') || area.includes('Matematica')) {
+      areaNormalizada = 'Matemática'
+    } else if (area.includes('Natureza') || area.includes('CN') || area.includes('Ciências da Natureza')) {
+      areaNormalizada = 'Ciências da Natureza'
+    }
+
+    // Determinar faixa de questões por área baseado no código
+    const questaoNum = parseInt(questao.questao_codigo?.replace('Q', '') || '0')
+    if (questaoNum >= 1 && questaoNum <= 20) {
+      areaNormalizada = 'Língua Portuguesa'
+    } else if (questaoNum >= 21 && questaoNum <= 30) {
+      areaNormalizada = 'Ciências Humanas'
+    } else if (questaoNum >= 31 && questaoNum <= 50) {
+      areaNormalizada = 'Matemática'
+    } else if (questaoNum >= 51 && questaoNum <= 60) {
+      areaNormalizada = 'Ciências da Natureza'
+    }
+
+    if (!questoesPorArea[areaNormalizada]) {
+      questoesPorArea[areaNormalizada] = []
+    }
+
+    questoesPorArea[areaNormalizada].push(questao)
+  })
+
+  // Ordenar questões por número dentro de cada área
+  Object.keys(questoesPorArea).forEach((area) => {
+    questoesPorArea[area].sort((a, b) => {
+      const numA = parseInt(a.questao_codigo?.replace('Q', '') || '0')
+      const numB = parseInt(b.questao_codigo?.replace('Q', '') || '0')
+      return numA - numB
+    })
+  })
+
+  // Calcular estatísticas
+  const totalQuestoes = questoes.length
+  const totalAcertos = questoes.filter((q) => q.acertou).length
+  const totalErros = totalQuestoes - totalAcertos
+
+  const estatisticasPorArea: Record<string, { total: number; acertos: number; erros: number }> = {}
+  Object.keys(questoesPorArea).forEach((area) => {
+    const questoesArea = questoesPorArea[area]
+    estatisticasPorArea[area] = {
+      total: questoesArea.length,
+      acertos: questoesArea.filter((q) => q.acertou).length,
+      erros: questoesArea.filter((q) => !q.acertou).length,
+    }
+  })
+
+  return {
+    questoes: questoesPorArea,
+    estatisticas: {
+      total: totalQuestoes,
+      acertos: totalAcertos,
+      erros: totalErros,
+      por_area: estatisticasPorArea
+    }
+  }
+}
+
 // ========== FUNÇÕES DE SINCRONIZAÇÃO ==========
 
 export function setSyncDate(): void {
@@ -240,15 +370,16 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
   console.log('[OfflineStorage] Iniciando sincronização...')
 
   try {
-    // Buscar todos os dados em paralelo
-    const [polosRes, escolasRes, turmasRes, resultadosRes] = await Promise.all([
+    // Buscar todos os dados em paralelo (incluindo questões)
+    const [polosRes, escolasRes, turmasRes, resultadosRes, questoesRes] = await Promise.all([
       fetch('/api/offline/polos'),
       fetch('/api/offline/escolas'),
       fetch('/api/offline/turmas'),
-      fetch('/api/offline/resultados')
+      fetch('/api/offline/resultados'),
+      fetch('/api/offline/questoes')
     ])
 
-    // Verificar erros
+    // Verificar erros (questões é opcional - pode não existir)
     if (!polosRes.ok || !escolasRes.ok || !turmasRes.ok || !resultadosRes.ok) {
       throw new Error('Erro ao buscar dados do servidor')
     }
@@ -261,17 +392,27 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       resultadosRes.json()
     ])
 
+    // Parsear questões separadamente (pode falhar se API não existir)
+    let questoesData: any = { dados: [] }
+    if (questoesRes.ok) {
+      questoesData = await questoesRes.json()
+    } else {
+      console.warn('[OfflineStorage] API de questões não disponível ou retornou erro')
+    }
+
     // Extrair arrays de dados (APIs retornam objeto com propriedade 'dados')
     const polos = Array.isArray(polosData) ? polosData : (polosData.dados || [])
     const escolas = Array.isArray(escolasData) ? escolasData : (escolasData.dados || [])
     const turmas = Array.isArray(turmasData) ? turmasData : (turmasData.dados || [])
     const resultados = Array.isArray(resultadosData) ? resultadosData : (resultadosData.dados || [])
+    const questoes = Array.isArray(questoesData) ? questoesData : (questoesData.dados || [])
 
     console.log('[OfflineStorage] Dados recebidos:', {
       polos: polos.length,
       escolas: escolas.length,
       turmas: turmas.length,
-      resultados: resultados.length
+      resultados: resultados.length,
+      questoes: questoes.length
     })
 
     // Verificar se há dados para salvar
@@ -284,6 +425,9 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
     const savedEscolas = saveEscolas(escolas)
     const savedTurmas = saveTurmas(turmas)
     const savedResultados = saveResultados(resultados)
+    const savedQuestoes = saveQuestoes(questoes)
+
+    console.log('[OfflineStorage] Questões salvas:', savedQuestoes ? questoes.length : 'FALHOU')
 
     if (savedPolos && savedEscolas && savedTurmas && savedResultados) {
       setSyncDate()
@@ -291,7 +435,7 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       console.log('[OfflineStorage] Sincronização concluída com sucesso!')
       return {
         success: true,
-        message: `Sincronizado: ${polos.length} polos, ${escolas.length} escolas, ${turmas.length} turmas, ${resultados.length} resultados`
+        message: `Sincronizado: ${polos.length} polos, ${escolas.length} escolas, ${turmas.length} turmas, ${resultados.length} resultados, ${questoes.length} questoes`
       }
     } else {
       setSyncStatus('error')
