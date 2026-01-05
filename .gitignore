@@ -54,3 +54,12 @@ public/uploads/*
 config/cache/*
 !config/cache/.gitkeep
 
+# PWA - arquivos gerados pelo next-pwa
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+
+# Windows
+nul
+

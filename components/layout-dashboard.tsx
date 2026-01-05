@@ -26,6 +26,7 @@ import {
   User
 } from 'lucide-react'
 import Rodape from './rodape'
+import { OfflineSyncManager } from './offline-sync-manager'
 
 interface LayoutDashboardProps {
   children: React.ReactNode
@@ -154,6 +155,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               <h1 className="ml-2 lg:ml-0 text-lg sm:text-xl md:text-2xl font-bold text-gray-800 truncate">SISAM</h1>
             </div>
             <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 min-w-0">
+              {/* Status de sincronização offline */}
+              <OfflineSyncManager userId={usuario?.id?.toString() || null} autoSync={true} showStatus={true} />
+
               <Link
                 href="/perfil"
                 className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
