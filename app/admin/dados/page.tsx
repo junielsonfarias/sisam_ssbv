@@ -333,8 +333,35 @@ export default function DadosPage() {
           maior_media: 10,
           taxa_presenca: estatisticas.total > 0 ? (estatisticas.presentes / estatisticas.total) * 100 : 0
         },
-        niveis: [],
-        mediasPorSerie: [],
+        niveis: (() => {
+          // Calcular níveis de aprendizagem
+          const niveisMap: Record<string, number> = {}
+          resultadosFiltrados.forEach(r => {
+            const nivel = r.nivel_aprendizagem || 'Não classificado'
+            niveisMap[nivel] = (niveisMap[nivel] || 0) + 1
+          })
+          return Object.entries(niveisMap).map(([nivel, quantidade]) => ({ nivel, quantidade }))
+        })(),
+        mediasPorSerie: (() => {
+          // Calcular médias por série
+          const seriesSet = new Set(resultadosFiltrados.map(r => r.serie).filter(Boolean))
+          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          const calcMedia = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
+          return Array.from(seriesSet).map(serie => {
+            const resultadosDaSerie = resultadosFiltrados.filter(r => r.serie === serie)
+            const presentes = resultadosDaSerie.filter(r => r.presenca?.toString().toUpperCase() === 'P')
+            return {
+              serie: serie as string,
+              total_alunos: resultadosDaSerie.length,
+              presentes: presentes.length,
+              media_geral: calcMedia(presentes.map(r => toNum(r.media_aluno)).filter(n => n > 0)),
+              media_lp: calcMedia(presentes.map(r => toNum(r.nota_lp)).filter(n => n > 0)),
+              media_mat: calcMedia(presentes.map(r => toNum(r.nota_mat)).filter(n => n > 0)),
+              media_ch: calcMedia(presentes.map(r => toNum(r.nota_ch)).filter(n => n > 0)),
+              media_cn: calcMedia(presentes.map(r => toNum(r.nota_cn)).filter(n => n > 0))
+            }
+          }).sort((a, b) => a.serie.localeCompare(b.serie))
+        })(),
         mediasPorPolo: polosOffline.map((p) => {
           const resultadosDoPolo = resultadosFiltrados.filter(r => {
             const escola = escolasOffline.find((e) => String(e.id) === String(r.escola_id))
@@ -375,14 +402,67 @@ export default function DadosPage() {
             faltantes: faltantes.length
           }
         }),
-        mediasPorTurma: [],
-        faixasNota: [],
+        mediasPorTurma: (() => {
+          // Calcular médias por turma
+          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          const calcMedia = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
+          return turmasOffline.map(t => {
+            const resultadosDaTurma = resultadosFiltrados.filter(r => String(r.turma_id) === String(t.id))
+            const presentes = resultadosDaTurma.filter(r => r.presenca?.toString().toUpperCase() === 'P')
+            const faltantes = resultadosDaTurma.filter(r => r.presenca?.toString().toUpperCase() === 'F')
+            const escola = escolasOffline.find(e => String(e.id) === String(t.escola_id))
+            return {
+              turma_id: t.id.toString(),
+              turma: t.codigo,
+              escola: escola?.nome || '',
+              serie: t.serie,
+              total_alunos: resultadosDaTurma.length,
+              media_geral: calcMedia(presentes.map(r => toNum(r.media_aluno)).filter(n => n > 0)),
+              media_lp: calcMedia(presentes.map(r => toNum(r.nota_lp)).filter(n => n > 0)),
+              media_mat: calcMedia(presentes.map(r => toNum(r.nota_mat)).filter(n => n > 0)),
+              presentes: presentes.length,
+              faltantes: faltantes.length
+            }
+          }).filter(t => t.total_alunos > 0)
+        })(),
+        faixasNota: (() => {
+          // Calcular faixas de nota
+          const faixas = [
+            { faixa: '0 a 2', min: 0, max: 2, quantidade: 0 },
+            { faixa: '2 a 4', min: 2, max: 4, quantidade: 0 },
+            { faixa: '4 a 6', min: 4, max: 6, quantidade: 0 },
+            { faixa: '6 a 8', min: 6, max: 8, quantidade: 0 },
+            { faixa: '8 a 10', min: 8, max: 10, quantidade: 0 }
+          ]
+          const presentes = resultadosFiltrados.filter(r => r.presenca?.toString().toUpperCase() === 'P')
+          presentes.forEach(r => {
+            const media = typeof r.media_aluno === 'string' ? parseFloat(r.media_aluno) : (r.media_aluno || 0)
+            if (media > 0) {
+              const faixa = faixas.find(f => media >= f.min && media < f.max + 0.01)
+              if (faixa) faixa.quantidade++
+            }
+          })
+          return faixas.map(f => ({ faixa: f.faixa, quantidade: f.quantidade }))
+        })(),
         presenca: [
           { status: 'Presentes', quantidade: estatisticas.presentes },
           { status: 'Faltantes', quantidade: estatisticas.faltosos }
         ],
-        topAlunos: [],
-        alunosDetalhados: resultadosFiltrados.slice(0, 50).map((r) => {
+        topAlunos: (() => {
+          // Top 10 alunos com maior média
+          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          const presentes = resultadosFiltrados.filter(r => r.presenca?.toString().toUpperCase() === 'P')
+          return presentes
+            .map(r => ({
+              nome: r.aluno_nome,
+              escola: r.escola_nome,
+              media_geral: toNum(r.media_aluno)
+            }))
+            .filter(a => a.media_geral > 0)
+            .sort((a, b) => b.media_geral - a.media_geral)
+            .slice(0, 10)
+        })(),
+        alunosDetalhados: resultadosFiltrados.map((r) => {
           const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
           return {
             id: r.id,
@@ -396,7 +476,9 @@ export default function DadosPage() {
             nota_lp: toNum(r.nota_lp),
             nota_mat: toNum(r.nota_mat),
             nota_ch: toNum(r.nota_ch),
-            nota_cn: toNum(r.nota_cn)
+            nota_cn: toNum(r.nota_cn),
+            nota_producao: toNum(r.nota_producao),
+            nivel_aprendizagem: r.nivel_aprendizagem || 'Não classificado'
           }
         }),
         filtros: {

@@ -60,13 +60,19 @@ export interface OfflineResultado {
   nota_ch: number | string
   nota_cn: number | string
   media_aluno: number | string
-  // Campos adicionais para questões
+  // Campos adicionais
   nota_producao?: number | string
   nivel_aprendizagem?: string
+  // Acertos por disciplina
   total_acertos_lp?: number | string
   total_acertos_mat?: number | string
   total_acertos_ch?: number | string
   total_acertos_cn?: number | string
+  // Total de questões por disciplina (para calcular erros)
+  total_questoes_lp?: number | string
+  total_questoes_mat?: number | string
+  total_questoes_ch?: number | string
+  total_questoes_cn?: number | string
 }
 
 // Interface para alunos offline
@@ -75,24 +81,6 @@ export interface OfflineAluno {
   nome: string
   escola_id: string
   turma_id?: string
-}
-
-// Interface para questoes/respostas offline
-export interface OfflineQuestao {
-  id: number | string
-  aluno_id: number | string
-  aluno_nome: string
-  aluno_codigo?: string
-  questao_id?: number | string
-  questao_codigo: string
-  acertou: boolean
-  resposta_aluno?: string
-  area_conhecimento?: string
-  disciplina?: string
-  ano_letivo?: string
-  escola_id?: number | string
-  questao_descricao?: string
-  gabarito?: string
 }
 
 // Verificar se está online
@@ -224,132 +212,6 @@ export function getResultados(): OfflineResultado[] {
   return readFromStorage<OfflineResultado[]>(STORAGE_KEYS.RESULTADOS) || []
 }
 
-// ========== FUNÇÕES DE QUESTÕES ==========
-
-export function saveQuestoes(questoes: OfflineQuestao[]): boolean {
-  return saveToStorage(STORAGE_KEYS.QUESTOES, questoes)
-}
-
-export function getQuestoes(): OfflineQuestao[] {
-  return readFromStorage<OfflineQuestao[]>(STORAGE_KEYS.QUESTOES) || []
-}
-
-// Buscar questões de um aluno específico
-export function getQuestoesByAlunoId(alunoId: string | number, anoLetivo?: string): OfflineQuestao[] {
-  const questoes = getQuestoes()
-  const alunoIdStr = String(alunoId)
-
-  console.log('[getQuestoesByAlunoId] Buscando questoes para aluno:', alunoIdStr)
-  console.log('[getQuestoesByAlunoId] Total de questoes no storage:', questoes.length)
-
-  // Primeiro, tentar encontrar o resultado do aluno para pegar o aluno_id real
-  const resultado = getResultadoByAlunoId(alunoId, anoLetivo)
-  const alunoIdReal = resultado ? String(resultado.aluno_id) : alunoIdStr
-
-  console.log('[getQuestoesByAlunoId] aluno_id real:', alunoIdReal)
-
-  let questoesDoAluno = questoes.filter(q => String(q.aluno_id) === alunoIdReal)
-
-  console.log('[getQuestoesByAlunoId] Questoes encontradas por aluno_id:', questoesDoAluno.length)
-
-  // Se tiver ano letivo, filtrar por ele
-  if (anoLetivo && questoesDoAluno.length > 0) {
-    const questoesFiltradas = questoesDoAluno.filter(q => q.ano_letivo === anoLetivo)
-    if (questoesFiltradas.length > 0) {
-      questoesDoAluno = questoesFiltradas
-    }
-  }
-
-  console.log('[getQuestoesByAlunoId] Questoes retornadas:', questoesDoAluno.length)
-  return questoesDoAluno
-}
-
-// Organizar questões por área de conhecimento
-export function organizarQuestoesPorArea(questoes: OfflineQuestao[]): {
-  questoes: Record<string, OfflineQuestao[]>
-  estatisticas: {
-    total: number
-    acertos: number
-    erros: number
-    por_area: Record<string, { total: number; acertos: number; erros: number }>
-  }
-} {
-  const questoesPorArea: Record<string, OfflineQuestao[]> = {
-    'Língua Portuguesa': [],
-    'Ciências Humanas': [],
-    'Matemática': [],
-    'Ciências da Natureza': [],
-  }
-
-  questoes.forEach((questao) => {
-    const area = questao.area_conhecimento || questao.disciplina || 'Outras'
-
-    // Mapear áreas
-    let areaNormalizada = 'Outras'
-    if (area.includes('Português') || area.includes('LP') || area.includes('Língua Portuguesa')) {
-      areaNormalizada = 'Língua Portuguesa'
-    } else if (area.includes('Humanas') || area.includes('CH') || area.includes('Ciências Humanas')) {
-      areaNormalizada = 'Ciências Humanas'
-    } else if (area.includes('Matemática') || area.includes('MAT') || area.includes('Matematica')) {
-      areaNormalizada = 'Matemática'
-    } else if (area.includes('Natureza') || area.includes('CN') || area.includes('Ciências da Natureza')) {
-      areaNormalizada = 'Ciências da Natureza'
-    }
-
-    // Determinar faixa de questões por área baseado no código
-    const questaoNum = parseInt(questao.questao_codigo?.replace('Q', '') || '0')
-    if (questaoNum >= 1 && questaoNum <= 20) {
-      areaNormalizada = 'Língua Portuguesa'
-    } else if (questaoNum >= 21 && questaoNum <= 30) {
-      areaNormalizada = 'Ciências Humanas'
-    } else if (questaoNum >= 31 && questaoNum <= 50) {
-      areaNormalizada = 'Matemática'
-    } else if (questaoNum >= 51 && questaoNum <= 60) {
-      areaNormalizada = 'Ciências da Natureza'
-    }
-
-    if (!questoesPorArea[areaNormalizada]) {
-      questoesPorArea[areaNormalizada] = []
-    }
-
-    questoesPorArea[areaNormalizada].push(questao)
-  })
-
-  // Ordenar questões por número dentro de cada área
-  Object.keys(questoesPorArea).forEach((area) => {
-    questoesPorArea[area].sort((a, b) => {
-      const numA = parseInt(a.questao_codigo?.replace('Q', '') || '0')
-      const numB = parseInt(b.questao_codigo?.replace('Q', '') || '0')
-      return numA - numB
-    })
-  })
-
-  // Calcular estatísticas
-  const totalQuestoes = questoes.length
-  const totalAcertos = questoes.filter((q) => q.acertou).length
-  const totalErros = totalQuestoes - totalAcertos
-
-  const estatisticasPorArea: Record<string, { total: number; acertos: number; erros: number }> = {}
-  Object.keys(questoesPorArea).forEach((area) => {
-    const questoesArea = questoesPorArea[area]
-    estatisticasPorArea[area] = {
-      total: questoesArea.length,
-      acertos: questoesArea.filter((q) => q.acertou).length,
-      erros: questoesArea.filter((q) => !q.acertou).length,
-    }
-  })
-
-  return {
-    questoes: questoesPorArea,
-    estatisticas: {
-      total: totalQuestoes,
-      acertos: totalAcertos,
-      erros: totalErros,
-      por_area: estatisticasPorArea
-    }
-  }
-}
-
 // ========== FUNÇÕES DE SINCRONIZAÇÃO ==========
 
 export function setSyncDate(): void {
@@ -398,16 +260,15 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
   console.log('[OfflineStorage] Iniciando sincronização...')
 
   try {
-    // Buscar todos os dados em paralelo (incluindo questões)
-    const [polosRes, escolasRes, turmasRes, resultadosRes, questoesRes] = await Promise.all([
+    // Buscar todos os dados em paralelo (sem questões individuais - usamos estatísticas nos resultados)
+    const [polosRes, escolasRes, turmasRes, resultadosRes] = await Promise.all([
       fetch('/api/offline/polos'),
       fetch('/api/offline/escolas'),
       fetch('/api/offline/turmas'),
-      fetch('/api/offline/resultados'),
-      fetch('/api/offline/questoes')
+      fetch('/api/offline/resultados')
     ])
 
-    // Verificar erros (questões é opcional - pode não existir)
+    // Verificar erros
     if (!polosRes.ok || !escolasRes.ok || !turmasRes.ok || !resultadosRes.ok) {
       throw new Error('Erro ao buscar dados do servidor')
     }
@@ -420,27 +281,17 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       resultadosRes.json()
     ])
 
-    // Parsear questões separadamente (pode falhar se API não existir)
-    let questoesData: any = { dados: [] }
-    if (questoesRes.ok) {
-      questoesData = await questoesRes.json()
-    } else {
-      console.warn('[OfflineStorage] API de questões não disponível ou retornou erro')
-    }
-
     // Extrair arrays de dados (APIs retornam objeto com propriedade 'dados')
     const polos = Array.isArray(polosData) ? polosData : (polosData.dados || [])
     const escolas = Array.isArray(escolasData) ? escolasData : (escolasData.dados || [])
     const turmas = Array.isArray(turmasData) ? turmasData : (turmasData.dados || [])
     const resultados = Array.isArray(resultadosData) ? resultadosData : (resultadosData.dados || [])
-    const questoes = Array.isArray(questoesData) ? questoesData : (questoesData.dados || [])
 
     console.log('[OfflineStorage] Dados recebidos:', {
       polos: polos.length,
       escolas: escolas.length,
       turmas: turmas.length,
-      resultados: resultados.length,
-      questoes: questoes.length
+      resultados: resultados.length
     })
 
     // Verificar se há dados para salvar
@@ -453,9 +304,6 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
     const savedEscolas = saveEscolas(escolas)
     const savedTurmas = saveTurmas(turmas)
     const savedResultados = saveResultados(resultados)
-    const savedQuestoes = saveQuestoes(questoes)
-
-    console.log('[OfflineStorage] Questões salvas:', savedQuestoes ? questoes.length : 'FALHOU')
 
     if (savedPolos && savedEscolas && savedTurmas && savedResultados) {
       setSyncDate()
@@ -463,7 +311,7 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       console.log('[OfflineStorage] Sincronização concluída com sucesso!')
       return {
         success: true,
-        message: `Sincronizado: ${polos.length} polos, ${escolas.length} escolas, ${turmas.length} turmas, ${resultados.length} resultados, ${questoes.length} questoes`
+        message: `Sincronizado: ${polos.length} polos, ${escolas.length} escolas, ${turmas.length} turmas, ${resultados.length} resultados`
       }
     } else {
       setSyncStatus('error')
@@ -642,6 +490,112 @@ export function getResultadoByAlunoId(alunoId: string | number, anoLetivo?: stri
 
   console.log('[getResultadoByAlunoId] Resultado encontrado:', resultado ? 'SIM' : 'NAO')
   return resultado || null
+}
+
+// ========== OBTER ESTATÍSTICAS DO ALUNO ==========
+
+export interface EstatisticasAluno {
+  aluno: {
+    id: string
+    nome: string
+    serie: string | null
+    ano_letivo: string | null
+    escola_nome: string
+    turma_codigo: string | null
+  }
+  estatisticas: {
+    total: number
+    acertos: number
+    erros: number
+    por_area: {
+      'Língua Portuguesa': { total: number; acertos: number; erros: number; media: number }
+      'Ciências Humanas': { total: number; acertos: number; erros: number; media: number }
+      'Matemática': { total: number; acertos: number; erros: number; media: number }
+      'Ciências da Natureza': { total: number; acertos: number; erros: number; media: number }
+    }
+    media_geral: number
+    nivel_aprendizagem: string | null
+    nota_producao: number | null
+  }
+}
+
+export function getEstatisticasAluno(alunoId: string | number, anoLetivo?: string): EstatisticasAluno | null {
+  const resultado = getResultadoByAlunoId(alunoId, anoLetivo)
+  if (!resultado) return null
+
+  const toNum = (v: any): number => {
+    if (v === null || v === undefined || v === '') return 0
+    const num = typeof v === 'string' ? parseFloat(v) : v
+    return isNaN(num) ? 0 : num
+  }
+
+  // Total de questões por disciplina (do banco ou padrão)
+  const totalLP = toNum(resultado.total_questoes_lp) || 20
+  const totalCH = toNum(resultado.total_questoes_ch) || 10
+  const totalMAT = toNum(resultado.total_questoes_mat) || 20
+  const totalCN = toNum(resultado.total_questoes_cn) || 10
+
+  // Acertos por disciplina
+  const acertosLP = toNum(resultado.total_acertos_lp)
+  const acertosCH = toNum(resultado.total_acertos_ch)
+  const acertosMAT = toNum(resultado.total_acertos_mat)
+  const acertosCN = toNum(resultado.total_acertos_cn)
+
+  // Erros por disciplina
+  const errosLP = totalLP - acertosLP
+  const errosCH = totalCH - acertosCH
+  const errosMAT = totalMAT - acertosMAT
+  const errosCN = totalCN - acertosCN
+
+  // Totais gerais
+  const totalQuestoes = totalLP + totalCH + totalMAT + totalCN
+  const totalAcertos = acertosLP + acertosCH + acertosMAT + acertosCN
+  const totalErros = totalQuestoes - totalAcertos
+
+  return {
+    aluno: {
+      id: String(resultado.aluno_id),
+      nome: resultado.aluno_nome,
+      serie: resultado.serie || null,
+      ano_letivo: resultado.ano_letivo || null,
+      escola_nome: resultado.escola_nome,
+      turma_codigo: resultado.turma_codigo || null
+    },
+    estatisticas: {
+      total: totalQuestoes,
+      acertos: totalAcertos,
+      erros: totalErros,
+      por_area: {
+        'Língua Portuguesa': {
+          total: totalLP,
+          acertos: acertosLP,
+          erros: errosLP,
+          media: toNum(resultado.nota_lp)
+        },
+        'Ciências Humanas': {
+          total: totalCH,
+          acertos: acertosCH,
+          erros: errosCH,
+          media: toNum(resultado.nota_ch)
+        },
+        'Matemática': {
+          total: totalMAT,
+          acertos: acertosMAT,
+          erros: errosMAT,
+          media: toNum(resultado.nota_mat)
+        },
+        'Ciências da Natureza': {
+          total: totalCN,
+          acertos: acertosCN,
+          erros: errosCN,
+          media: toNum(resultado.nota_cn)
+        }
+      },
+      media_geral: toNum(resultado.media_aluno),
+      nivel_aprendizagem: resultado.nivel_aprendizagem || null,
+      nota_producao: resultado.nota_producao ? toNum(resultado.nota_producao) : null
+    }
+  }
 }
 
 // ========== OBTER SÉRIES ÚNICAS ==========

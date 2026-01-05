@@ -39,11 +39,16 @@ export async function GET(request: NextRequest) {
         a.nome as aluno_nome,
         e.nome as escola_nome,
         e.polo_id,
-        t.codigo as turma_codigo
+        t.codigo as turma_codigo,
+        COALESCE(cs.qtd_questoes_lp, 20) as total_questoes_lp,
+        COALESCE(cs.qtd_questoes_ch, 10) as total_questoes_ch,
+        COALESCE(cs.qtd_questoes_mat, 20) as total_questoes_mat,
+        COALESCE(cs.qtd_questoes_cn, 10) as total_questoes_cn
       FROM resultados_consolidados rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
+      LEFT JOIN configuracao_series cs ON rc.serie = cs.serie
       WHERE (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
     `
 

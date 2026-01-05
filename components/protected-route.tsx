@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
 
 // Cache global de autorização para evitar re-verificações desnecessárias
 let authCache: { autorizado: boolean; timestamp: number; tiposPermitidos: string } | null = null
-const AUTH_CACHE_TTL = 60000 // 1 minuto de cache
+const AUTH_CACHE_TTL = 300000 // 5 minutos de cache para melhor navegação offline
 
 export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedRouteProps) {
   const router = useRouter()

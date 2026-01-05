@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, CheckCircle2, XCircle, BookOpen, TrendingUp, Award, AlertCircle, WifiOff } from 'lucide-react'
+import { X, CheckCircle2, XCircle, BookOpen, TrendingUp, Award, AlertCircle, WifiOff, BarChart3 } from 'lucide-react'
 import * as offlineStorage from '@/lib/offline-storage'
 
 interface Questao {
@@ -17,6 +17,7 @@ interface EstatisticasPorArea {
   total: number
   acertos: number
   erros: number
+  media?: number
 }
 
 interface DadosAluno {
@@ -29,7 +30,7 @@ interface DadosAluno {
     escola_nome: string
     turma_codigo: string | null
   }
-  questoes: {
+  questoes?: {
     'Língua Portuguesa': Questao[]
     'Ciências Humanas': Questao[]
     'Matemática': Questao[]
@@ -43,6 +44,9 @@ interface DadosAluno {
     por_area: {
       [key: string]: EstatisticasPorArea
     }
+    media_geral?: number
+    nivel_aprendizagem?: string | null
+    nota_producao?: number | null
   }
 }
 
@@ -65,79 +69,29 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
     }
   }, [isOpen, alunoId, anoLetivo])
 
-  // Função auxiliar para carregar dados offline completos
+  // Carregar dados offline usando estatísticas do resultado
   const carregarDadosOffline = (): DadosAluno | null => {
-    // Buscar resultado consolidado do aluno
-    const resultado = offlineStorage.getResultadoByAlunoId(alunoId, anoLetivo)
-    if (!resultado) return null
+    const estatisticas = offlineStorage.getEstatisticasAluno(alunoId, anoLetivo)
+    if (!estatisticas) return null
 
-    // Buscar questões detalhadas do aluno
-    const questoesDoAluno = offlineStorage.getQuestoesByAlunoId(alunoId, anoLetivo)
-
-    console.log('[ModalQuestoes] Questões offline encontradas:', questoesDoAluno.length)
-
-    // Se tiver questões detalhadas, organizar por área
-    if (questoesDoAluno.length > 0) {
-      const dadosOrganizados = offlineStorage.organizarQuestoesPorArea(questoesDoAluno)
-
-      // Converter para o formato esperado pelo modal
-      const questoesFormatadas: Record<string, Questao[]> = {}
-      Object.keys(dadosOrganizados.questoes).forEach(area => {
-        questoesFormatadas[area] = dadosOrganizados.questoes[area].map(q => ({
-          codigo: q.questao_codigo,
-          acertou: q.acertou,
-          resposta_aluno: q.resposta_aluno || null,
-          descricao: q.questao_descricao || null,
-          gabarito: q.gabarito || null,
-          numero: parseInt(q.questao_codigo?.replace('Q', '') || '0')
-        }))
-      })
-
-      return {
-        aluno: {
-          id: String(resultado.aluno_id),
-          nome: resultado.aluno_nome,
-          codigo: null,
-          serie: resultado.serie,
-          ano_letivo: resultado.ano_letivo,
-          escola_nome: resultado.escola_nome,
-          turma_codigo: resultado.turma_codigo
-        },
-        questoes: questoesFormatadas as any,
-        estatisticas: dadosOrganizados.estatisticas
-      }
-    }
-
-    // Fallback: usar apenas dados do resultado consolidado (sem detalhes de questões)
-    const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
     return {
       aluno: {
-        id: String(resultado.aluno_id),
-        nome: resultado.aluno_nome,
+        id: estatisticas.aluno.id,
+        nome: estatisticas.aluno.nome,
         codigo: null,
-        serie: resultado.serie,
-        ano_letivo: resultado.ano_letivo,
-        escola_nome: resultado.escola_nome,
-        turma_codigo: resultado.turma_codigo
-      },
-      questoes: {
-        'Língua Portuguesa': [],
-        'Ciências Humanas': [],
-        'Matemática': [],
-        'Ciências da Natureza': []
+        serie: estatisticas.aluno.serie,
+        ano_letivo: estatisticas.aluno.ano_letivo,
+        escola_nome: estatisticas.aluno.escola_nome,
+        turma_codigo: estatisticas.aluno.turma_codigo
       },
       estatisticas: {
-        total: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
-               toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
-        acertos: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
-                 toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
-        erros: 0,
-        por_area: {
-          'Língua Portuguesa': { total: 0, acertos: toNum(resultado.total_acertos_lp), erros: 0 },
-          'Ciências Humanas': { total: 0, acertos: toNum(resultado.total_acertos_ch), erros: 0 },
-          'Matemática': { total: 0, acertos: toNum(resultado.total_acertos_mat), erros: 0 },
-          'Ciências da Natureza': { total: 0, acertos: toNum(resultado.total_acertos_cn), erros: 0 }
-        }
+        total: estatisticas.estatisticas.total,
+        acertos: estatisticas.estatisticas.acertos,
+        erros: estatisticas.estatisticas.erros,
+        por_area: estatisticas.estatisticas.por_area,
+        media_geral: estatisticas.estatisticas.media_geral,
+        nivel_aprendizagem: estatisticas.estatisticas.nivel_aprendizagem,
+        nota_producao: estatisticas.estatisticas.nota_producao
       }
     }
   }
@@ -152,7 +106,7 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
       const online = offlineStorage.isOnline()
 
       if (!online) {
-        // Modo offline - usar dados do localStorage
+        // Modo offline - usar estatísticas do localStorage
         setModoOffline(true)
         const dadosOffline = carregarDadosOffline()
 
@@ -211,11 +165,14 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
   if (!isOpen) return null
 
   const areas = [
-    { nome: 'Língua Portuguesa', corClasses: 'from-indigo-500 to-indigo-600', icon: BookOpen },
-    { nome: 'Ciências Humanas', corClasses: 'from-green-500 to-green-600', icon: TrendingUp },
-    { nome: 'Matemática', corClasses: 'from-yellow-500 to-yellow-600', icon: Award },
-    { nome: 'Ciências da Natureza', corClasses: 'from-purple-500 to-purple-600', icon: AlertCircle },
+    { nome: 'Língua Portuguesa', corClasses: 'from-indigo-500 to-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200', textColor: 'text-indigo-600', icon: BookOpen },
+    { nome: 'Ciências Humanas', corClasses: 'from-green-500 to-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-600', icon: TrendingUp },
+    { nome: 'Matemática', corClasses: 'from-yellow-500 to-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', textColor: 'text-yellow-600', icon: Award },
+    { nome: 'Ciências da Natureza', corClasses: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-600', icon: AlertCircle },
   ]
+
+  // Verificar se tem questões detalhadas ou apenas estatísticas
+  const temQuestoesDetalhadas = dados?.questoes && Object.values(dados.questoes).some(arr => arr.length > 0)
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -227,11 +184,13 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
         ></div>
 
         {/* Modal */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl w-full mx-3 sm:mx-0">
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full mx-3 sm:mx-0">
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
             <div className="flex-1 min-w-0 pr-2">
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">Detalhes das Questões</h3>
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
+                {modoOffline ? 'Estatísticas do Aluno' : 'Detalhes das Questões'}
+              </h3>
               {dados && (
                 <p className="text-indigo-100 text-xs sm:text-sm mt-1 truncate">
                   {dados.aluno.nome} - {dados.aluno.escola_nome}
@@ -252,7 +211,7 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
             {carregando ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4">Carregando questões...</p>
+                <p className="text-gray-500 mt-4">Carregando...</p>
               </div>
             ) : erro ? (
               <div className="text-center py-12">
@@ -267,7 +226,7 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
                     <WifiOff className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-blue-800">Modo Offline</p>
-                      <p className="text-xs text-blue-600">Exibindo dados sincronizados localmente.</p>
+                      <p className="text-xs text-blue-600">Exibindo estatísticas resumidas do aluno.</p>
                     </div>
                   </div>
                 )}
@@ -284,8 +243,7 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
                     <p className="text-xs text-green-600 mt-1">
                       {dados.estatisticas.total > 0
                         ? ((dados.estatisticas.acertos / dados.estatisticas.total) * 100).toFixed(1)
-                        : 0}
-                      %
+                        : 0}%
                     </p>
                   </div>
                   <div className="bg-red-50 rounded-lg p-3 sm:p-4 border border-red-200">
@@ -294,107 +252,123 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
                     <p className="text-xs text-red-600 mt-1">
                       {dados.estatisticas.total > 0
                         ? ((dados.estatisticas.erros / dados.estatisticas.total) * 100).toFixed(1)
-                        : 0}
-                      %
+                        : 0}%
                     </p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-200">
-                    <p className="text-xs sm:text-sm text-blue-600 font-medium">Taxa de Acerto</p>
+                    <p className="text-xs sm:text-sm text-blue-600 font-medium">Média Geral</p>
                     <p className="text-xl sm:text-2xl font-bold text-blue-900 mt-1">
-                      {dados.estatisticas.total > 0
-                        ? ((dados.estatisticas.acertos / dados.estatisticas.total) * 100).toFixed(1)
-                        : 0}
-                      %
+                      {dados.estatisticas.media_geral?.toFixed(1) || '-'}
                     </p>
+                    {dados.estatisticas.nivel_aprendizagem && (
+                      <p className="text-xs text-blue-600 mt-1">{dados.estatisticas.nivel_aprendizagem}</p>
+                    )}
                   </div>
                 </div>
 
-                {/* Questões por Área */}
-                {areas.map((area) => {
-                  const questoes = dados.questoes[area.nome] || []
-                  const stats = dados.estatisticas.por_area[area.nome] || { total: 0, acertos: 0, erros: 0 }
-                  const Icon = area.icon
+                {/* Estatísticas por Área */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {areas.map((area) => {
+                    const stats = dados.estatisticas.por_area[area.nome] || { total: 0, acertos: 0, erros: 0, media: 0 }
+                    const questoes = dados.questoes?.[area.nome] || []
+                    const Icon = area.icon
+                    const taxaAcerto = stats.total > 0 ? ((stats.acertos / stats.total) * 100) : 0
 
-                  if (questoes.length === 0) return null
-
-                  return (
-                    <div key={area.nome} className="border border-gray-200 rounded-lg overflow-hidden">
-                      {/* Header da Área */}
-                      <div className={`bg-gradient-to-r ${area.corClasses} px-6 py-4 flex items-center justify-between`}>
-                        <div className="flex items-center space-x-3">
-                          <Icon className="w-6 h-6 text-white" />
-                          <h4 className="text-xl font-bold text-white">{area.nome}</h4>
+                    return (
+                      <div key={area.nome} className={`${area.bgColor} rounded-lg p-4 border ${area.borderColor}`}>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`p-2 rounded-lg bg-gradient-to-r ${area.corClasses}`}>
+                            <Icon className="w-5 h-5 text-white" />
+                          </div>
+                          <h4 className="font-semibold text-gray-800">{area.nome}</h4>
                         </div>
-                        <div className="flex items-center space-x-4 text-white text-sm">
-                          <span className="flex items-center">
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                            {stats.acertos} acertos
-                          </span>
-                          <span className="flex items-center">
-                            <XCircle className="w-4 h-4 mr-1" />
-                            {stats.erros} erros
-                          </span>
-                          <span className="font-semibold">
-                            {stats.total > 0 ? ((stats.acertos / stats.total) * 100).toFixed(1) : 0}%
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Grid de Questões */}
-                      <div className="p-4 bg-gray-50">
-                        <div className="grid grid-cols-5 md:grid-cols-10 lg:grid-cols-12 gap-2">
-                          {questoes.map((questao) => (
-                            <div
-                              key={questao.codigo}
-                              className={`relative p-3 rounded-lg border-2 transition-all ${
-                                questao.acertou
-                                  ? 'bg-green-50 border-green-300 hover:border-green-400'
-                                  : 'bg-red-50 border-red-300 hover:border-red-400'
-                              }`}
-                              title={`${questao.codigo}: ${questao.acertou ? 'Acertou' : 'Errou'}`}
-                            >
-                              <div className="flex flex-col items-center">
-                                <span className="text-xs font-mono font-semibold text-gray-600 mb-1">
-                                  {questao.codigo}
-                                </span>
-                                {questao.acertou ? (
-                                  <CheckCircle2 className="w-6 h-6 text-green-600" />
-                                ) : (
-                                  <XCircle className="w-6 h-6 text-red-600" />
-                                )}
-                              </div>
-                              {/* Badge de número */}
-                              <div className="absolute -top-1 -right-1 bg-gray-800 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                                {questao.numero}
-                              </div>
+                        <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                          <div>
+                            <p className="text-xs text-gray-500">Questões</p>
+                            <p className="text-lg font-bold text-gray-800">{stats.total}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-green-600">Acertos</p>
+                            <p className="text-lg font-bold text-green-700">{stats.acertos}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-red-600">Erros</p>
+                            <p className="text-lg font-bold text-red-700">{stats.erros}</p>
+                          </div>
+                        </div>
+
+                        {/* Barra de progresso */}
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                          <div
+                            className="bg-gradient-to-r from-green-500 to-green-600 h-2.5 rounded-full transition-all duration-300"
+                            style={{ width: `${taxaAcerto}%` }}
+                          ></div>
+                        </div>
+
+                        <div className="flex justify-between text-xs">
+                          <span className={area.textColor}>Taxa de Acerto: {taxaAcerto.toFixed(1)}%</span>
+                          {stats.media !== undefined && stats.media > 0 && (
+                            <span className="text-gray-600">Média: {stats.media.toFixed(1)}</span>
+                          )}
+                        </div>
+
+                        {/* Grid de questões detalhadas (apenas se disponível online) */}
+                        {questoes.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="grid grid-cols-10 gap-1">
+                              {questoes.map((questao) => (
+                                <div
+                                  key={questao.codigo}
+                                  className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
+                                    questao.acertou
+                                      ? 'bg-green-500 text-white'
+                                      : 'bg-red-500 text-white'
+                                  }`}
+                                  title={`${questao.codigo}: ${questao.acertou ? 'Acertou' : 'Errou'}`}
+                                >
+                                  {questao.numero}
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        )}
                       </div>
+                    )
+                  })}
+                </div>
+
+                {/* Nota de Produção (se disponível) */}
+                {dados.estatisticas.nota_producao !== undefined && dados.estatisticas.nota_producao !== null && (
+                  <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600">
+                          <BarChart3 className="w-5 h-5 text-white" />
+                        </div>
+                        <h4 className="font-semibold text-gray-800">Produção Textual</h4>
+                      </div>
+                      <p className="text-2xl font-bold text-orange-700">{dados.estatisticas.nota_producao.toFixed(1)}</p>
                     </div>
-                  )
-                })}
+                  </div>
+                )}
 
                 {/* Legenda */}
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Legenda:</p>
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="flex items-center">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 mr-2" />
-                      <span className="text-gray-700">Questão acertada</span>
-                    </div>
-                    <div className="flex items-center">
-                      <XCircle className="w-5 h-5 text-red-600 mr-2" />
-                      <span className="text-gray-700">Questão errada</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center text-xs font-bold mr-2">
-                        #
+                {temQuestoesDetalhadas && (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Legenda:</p>
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <div className="flex items-center">
+                        <div className="w-5 h-5 bg-green-500 rounded mr-2"></div>
+                        <span className="text-gray-700">Questão acertada</span>
                       </div>
-                      <span className="text-gray-700">Número da questão</span>
+                      <div className="flex items-center">
+                        <div className="w-5 h-5 bg-red-500 rounded mr-2"></div>
+                        <span className="text-gray-700">Questão errada</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : null}
           </div>
@@ -413,4 +387,3 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
     </div>
   )
 }
-

@@ -3,7 +3,24 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+  // Excluir APIs de autenticação do pre-cache
+  buildExcludes: [/middleware-manifest\.json$/],
+  // Importante: permitir navegação offline
+  navigationPreload: true,
   runtimeCaching: [
+    {
+      // Navegação de páginas - NetworkFirst para funcionar offline
+      urlPattern: ({ request }) => request.mode === 'navigate',
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'pages-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 24 * 60 * 60 // 24 horas
+        },
+        networkTimeoutSeconds: 5
+      }
+    },
     {
       // Cache de páginas HTML
       urlPattern: /^https?.*\.(html|htm)$/,
@@ -14,6 +31,31 @@ const withPWA = require('next-pwa')({
           maxEntries: 50,
           maxAgeSeconds: 24 * 60 * 60 // 24 horas
         }
+      }
+    },
+    {
+      // Next.js build chunks - essencial para navegação offline
+      urlPattern: /\/_next\/static\/.*/,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'next-static-cache',
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 30 * 24 * 60 * 60 // 30 dias
+        }
+      }
+    },
+    {
+      // Next.js data (RSC, JSON)
+      urlPattern: /\/_next\/data\/.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'next-data-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 24 * 60 * 60 // 24 horas
+        },
+        networkTimeoutSeconds: 5
       }
     },
     {
