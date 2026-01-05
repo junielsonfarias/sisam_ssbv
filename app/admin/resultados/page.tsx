@@ -6,7 +6,7 @@ import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Target, CheckCircle2, Eye, WifiOff } from 'lucide-react'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
-import { useOfflineData } from '@/hooks/useOfflineData'
+import * as offlineStorage from '@/lib/offline-storage'
 
 interface ResultadoConsolidado {
   id: string
@@ -80,9 +80,9 @@ export default function ResultadosPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [resultados, setResultados] = useState<ResultadoConsolidado[]>([])
 
-  // Hook para dados offline
-  const offlineData = useOfflineData()
+  // Estado para modo offline
   const [usandoDadosOffline, setUsandoDadosOffline] = useState(false)
+  const [modoOffline, setModoOffline] = useState(false)
 
   const [estatisticasGerais, setEstatisticasGerais] = useState<{
     totalAlunos: number
@@ -189,60 +189,44 @@ export default function ResultadosPage() {
   }, [filtros.escola_id, filtros.serie, filtros.ano_letivo])
 
   const carregarDadosIniciais = async () => {
-    // Importar isOnline diretamente para verificação precisa
-    const { isOnline: checkOnline } = await import('@/lib/offline-db')
-    const online = checkOnline()
+    // Verificar se está offline
+    const online = offlineStorage.isOnline()
+    setModoOffline(!online)
 
-    // Se offline, carregar dados do IndexedDB primeiro
+    // Se offline, carregar dados do localStorage
     if (!online) {
-      console.log('Modo offline detectado: carregando dados do IndexedDB')
+      console.log('[Resultados] Modo offline: carregando dados do localStorage')
       setUsandoDadosOffline(true)
 
-      // Carregar dados offline
-      await offlineData.loadOfflineData()
+      const polosOffline = offlineStorage.getPolos()
+      const escolasOffline = offlineStorage.getEscolas()
+      const turmasOffline = offlineStorage.getTurmas()
+      const seriesOffline = offlineStorage.getSeries()
+      const anosOffline = offlineStorage.getAnosLetivos()
 
-      // Aguardar um pouco para os dados serem carregados no estado
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // Usar dados do IndexedDB diretamente do banco
-      const { offlineDB, STORES } = await import('@/lib/offline-db')
-      const polosOffline = await offlineDB.getData(STORES.POLOS)
-      const escolasOffline = await offlineDB.getData(STORES.ESCOLAS)
-      const resultadosOffline = await offlineDB.getData(STORES.RESULTADOS)
-      const turmasOffline = await offlineDB.getData(STORES.TURMAS)
-
-      console.log('Dados offline carregados:', {
+      console.log('[Resultados] Dados offline carregados:', {
         polos: polosOffline.length,
         escolas: escolasOffline.length,
-        resultados: resultadosOffline.length,
-        turmas: turmasOffline.length
+        turmas: turmasOffline.length,
+        series: seriesOffline.length,
+        anos: anosOffline.length
       })
 
-      if (polosOffline.length > 0 || escolasOffline.length > 0) {
-        setPolos(polosOffline as any[])
-        setEscolas(escolasOffline as any[])
-        setTurmas(turmasOffline as any[])
+      setPolos(polosOffline as any[])
+      setEscolas(escolasOffline as any[])
+      setTurmas(turmasOffline as any[])
+      setSeries(seriesOffline)
+      setAnosLetivos(anosOffline)
 
-        // Extrair séries únicas dos resultados offline
-        const seriesUnicas = [...new Set(resultadosOffline.map((r: any) => r.serie).filter(Boolean))]
-        setSeries(seriesUnicas as string[])
-
-        // Extrair anos letivos únicos
-        const anosUnicos = [...new Set(resultadosOffline.map((r: any) => r.ano_letivo).filter(Boolean))]
-          .sort((a, b) => parseInt(b as string) - parseInt(a as string))
-        setAnosLetivos(anosUnicos as string[])
-
-        return
-      }
+      return
     }
 
     // Se online, tentar carregar da API
     try {
-      const [polosRes, escolasRes, seriesRes, anosRes] = await Promise.all([
+      const [polosRes, escolasRes, seriesRes] = await Promise.all([
         fetch('/api/admin/polos'),
         fetch('/api/admin/escolas'),
         fetch('/api/admin/configuracao-series'),
-        fetch('/api/admin/resultados-consolidados?limite=1'), // Para obter anos letivos disponíveis
       ])
 
       const polosData = await polosRes.json()
@@ -262,30 +246,24 @@ export default function ResultadosPage() {
       await carregarAnosLetivos()
       setUsandoDadosOffline(false)
     } catch (error) {
-      console.error('Erro ao carregar dados iniciais:', error)
+      console.error('[Resultados] Erro ao carregar dados iniciais:', error)
 
-      // Fallback para dados offline em caso de erro de rede
-      console.log('Tentando fallback para dados offline após erro de rede')
+      // Fallback para dados offline
+      console.log('[Resultados] Fallback para dados offline')
       setUsandoDadosOffline(true)
+      setModoOffline(true)
 
-      const { offlineDB, STORES } = await import('@/lib/offline-db')
-      const polosOffline = await offlineDB.getData(STORES.POLOS)
-      const escolasOffline = await offlineDB.getData(STORES.ESCOLAS)
-      const resultadosOffline = await offlineDB.getData(STORES.RESULTADOS)
-      const turmasOffline = await offlineDB.getData(STORES.TURMAS)
+      const polosOffline = offlineStorage.getPolos()
+      const escolasOffline = offlineStorage.getEscolas()
+      const turmasOffline = offlineStorage.getTurmas()
+      const seriesOffline = offlineStorage.getSeries()
+      const anosOffline = offlineStorage.getAnosLetivos()
 
-      if (polosOffline.length > 0 || escolasOffline.length > 0) {
-        setPolos(polosOffline as any[])
-        setEscolas(escolasOffline as any[])
-        setTurmas(turmasOffline as any[])
-
-        const seriesUnicas = [...new Set(resultadosOffline.map((r: any) => r.serie).filter(Boolean))]
-        setSeries(seriesUnicas as string[])
-
-        const anosUnicos = [...new Set(resultadosOffline.map((r: any) => r.ano_letivo).filter(Boolean))]
-          .sort((a, b) => parseInt(b as string) - parseInt(a as string))
-        setAnosLetivos(anosUnicos as string[])
-      }
+      setPolos(polosOffline as any[])
+      setEscolas(escolasOffline as any[])
+      setTurmas(turmasOffline as any[])
+      setSeries(seriesOffline)
+      setAnosLetivos(anosOffline)
     }
   }
 
@@ -322,23 +300,13 @@ export default function ResultadosPage() {
     }
 
     // Verificar se está offline
-    const { isOnline: checkOnline, offlineDB, STORES } = await import('@/lib/offline-db')
-    const online = checkOnline()
+    const online = offlineStorage.isOnline()
 
     if (!online || usandoDadosOffline) {
-      // Modo offline: filtrar turmas do IndexedDB
-      try {
-        const turmasOffline = await offlineDB.getData(STORES.TURMAS)
-        const turmasFiltradas = turmasOffline.filter((t: any) => {
-          const matchEscola = t.escola_id?.toString() === filtros.escola_id?.toString()
-          const matchSerie = t.serie === filtros.serie
-          return matchEscola && matchSerie
-        })
-        setTurmas(turmasFiltradas as any[])
-      } catch (error) {
-        console.error('Erro ao carregar turmas offline:', error)
-        setTurmas([])
-      }
+      // Modo offline: filtrar turmas do localStorage
+      const turmasFiltradas = offlineStorage.filterTurmas(filtros.escola_id, filtros.serie)
+      console.log('[Resultados] Turmas offline filtradas:', turmasFiltradas.length)
+      setTurmas(turmasFiltradas as any[])
       return
     }
 
@@ -360,19 +328,10 @@ export default function ResultadosPage() {
         setTurmas([])
       }
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error)
+      console.error('[Resultados] Erro ao carregar turmas:', error)
       // Fallback para dados offline
-      try {
-        const turmasOffline = await offlineDB.getData(STORES.TURMAS)
-        const turmasFiltradas = turmasOffline.filter((t: any) => {
-          const matchEscola = t.escola_id?.toString() === filtros.escola_id?.toString()
-          const matchSerie = t.serie === filtros.serie
-          return matchEscola && matchSerie
-        })
-        setTurmas(turmasFiltradas as any[])
-      } catch (e) {
-        setTurmas([])
-      }
+      const turmasFiltradas = offlineStorage.filterTurmas(filtros.escola_id, filtros.serie)
+      setTurmas(turmasFiltradas as any[])
     }
   }
 
@@ -395,46 +354,23 @@ export default function ResultadosPage() {
       }
 
       // Verificar se está offline
-      const { isOnline: checkOnline, offlineDB, STORES } = await import('@/lib/offline-db')
-      const online = checkOnline()
+      const online = offlineStorage.isOnline()
 
-      // MODO OFFLINE: Usar dados do IndexedDB diretamente
+      // MODO OFFLINE: Usar dados do localStorage diretamente
       if (!online || usandoDadosOffline) {
-        console.log('Carregando resultados do IndexedDB (modo offline)')
+        console.log('[Resultados] Carregando resultados do localStorage (modo offline)')
 
-        // Carregar dados diretamente do IndexedDB
-        const resultadosOffline = await offlineDB.getData(STORES.RESULTADOS)
-        const escolasOffline = await offlineDB.getData(STORES.ESCOLAS)
+        // Usar função de filtro do offlineStorage
+        const resultadosFiltrados = offlineStorage.filterResultados({
+          polo_id: filtros.polo_id,
+          escola_id: filtros.escola_id,
+          turma_id: filtros.turma_id,
+          serie: filtros.serie,
+          ano_letivo: filtros.ano_letivo,
+          presenca: filtros.presenca
+        })
 
-        // Filtrar resultados
-        let resultadosFiltrados = [...resultadosOffline] as any[]
-
-        if (filtros.polo_id && filtros.polo_id !== 'todos') {
-          const escolasDoPolo = escolasOffline.filter((e: any) => e.polo_id?.toString() === filtros.polo_id?.toString())
-          const escolasIds = escolasDoPolo.map((e: any) => e.id)
-          resultadosFiltrados = resultadosFiltrados.filter(r => escolasIds.includes(r.escola_id))
-        }
-
-        if (filtros.escola_id && filtros.escola_id !== 'todas') {
-          resultadosFiltrados = resultadosFiltrados.filter(r => r.escola_id?.toString() === filtros.escola_id?.toString())
-        }
-
-        if (filtros.turma_id && filtros.turma_id !== 'todas') {
-          resultadosFiltrados = resultadosFiltrados.filter(r => r.turma_id?.toString() === filtros.turma_id?.toString())
-        }
-
-        if (filtros.serie && filtros.serie !== 'todas') {
-          resultadosFiltrados = resultadosFiltrados.filter(r => r.serie === filtros.serie)
-        }
-
-        if (filtros.ano_letivo && filtros.ano_letivo !== 'todos') {
-          resultadosFiltrados = resultadosFiltrados.filter(r => r.ano_letivo === filtros.ano_letivo)
-        }
-
-        if (filtros.presenca && filtros.presenca !== 'Todas') {
-          const presencaUpper = filtros.presenca.toUpperCase()
-          resultadosFiltrados = resultadosFiltrados.filter(r => r.presenca?.toUpperCase() === presencaUpper)
-        }
+        console.log('[Resultados] Resultados offline filtrados:', resultadosFiltrados.length)
 
         // Paginação local
         const limite = 50
@@ -442,32 +378,19 @@ export default function ResultadosPage() {
         const fim = inicio + limite
         const resultadosPaginados = resultadosFiltrados.slice(inicio, fim)
 
-        // Calcular estatísticas
-        const presentes = resultadosFiltrados.filter(r => r.presenca?.toUpperCase() === 'P')
-        const faltosos = resultadosFiltrados.filter(r => r.presenca?.toUpperCase() === 'F')
-
-        const calcMedia = (arr: number[]): number => {
-          if (arr.length === 0) return 0
-          const sum = arr.reduce((a, b) => a + (b || 0), 0)
-          return Number((sum / arr.length).toFixed(2))
-        }
-
-        const notasLP = presentes.map(r => r.nota_lp).filter((n: any) => n != null)
-        const notasMat = presentes.map(r => r.nota_mat).filter((n: any) => n != null)
-        const notasCH = presentes.map(r => r.nota_ch).filter((n: any) => n != null)
-        const notasCN = presentes.map(r => r.nota_cn).filter((n: any) => n != null)
-        const mediasAlunos = presentes.map(r => r.media_aluno).filter((n: any) => n != null)
+        // Calcular estatísticas usando função do offlineStorage
+        const estatisticasOffline = offlineStorage.calcularEstatisticas(resultadosFiltrados)
 
         setResultados(resultadosPaginados as any)
         setEstatisticasGerais({
-          totalAlunos: resultadosFiltrados.length,
-          totalPresentes: presentes.length,
-          totalFaltas: faltosos.length,
-          mediaGeral: calcMedia(mediasAlunos),
-          mediaLP: calcMedia(notasLP),
-          mediaCH: calcMedia(notasCH),
-          mediaMAT: calcMedia(notasMat),
-          mediaCN: calcMedia(notasCN)
+          totalAlunos: estatisticasOffline.total,
+          totalPresentes: estatisticasOffline.presentes,
+          totalFaltas: estatisticasOffline.faltosos,
+          mediaGeral: estatisticasOffline.media_geral,
+          mediaLP: estatisticasOffline.media_lp,
+          mediaCH: estatisticasOffline.media_ch,
+          mediaMAT: estatisticasOffline.media_mat,
+          mediaCN: estatisticasOffline.media_cn
         })
         setPaginacao({
           pagina,
@@ -781,7 +704,7 @@ export default function ResultadosPage() {
       <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           {/* Indicador de modo offline */}
-          {(usandoDadosOffline || offlineData.isOfflineMode) && (
+          {(usandoDadosOffline || modoOffline) && (
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
               <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
               <div>
