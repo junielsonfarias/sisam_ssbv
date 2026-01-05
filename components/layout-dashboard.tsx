@@ -29,6 +29,7 @@ import {
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
 import * as offlineStorage from '@/lib/offline-storage'
+import { ThemeToggleSimple } from './theme-toggle'
 
 interface LayoutDashboardProps {
   children: React.ReactNode
@@ -258,9 +259,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
                 )}
                 <span className="text-xs sm:text-sm truncate max-w-[60px] sm:max-w-[100px] md:max-w-[150px]">{usuario?.nome}</span>
               </Link>
+              {/* Toggle de Tema */}
+              <ThemeToggleSimple className="flex-shrink-0" />
+
               <button
                 onClick={handleLogout}
-                className="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors flex-shrink-0"
+                className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors flex-shrink-0"
                 aria-label="Sair"
                 title="Sair"
               >

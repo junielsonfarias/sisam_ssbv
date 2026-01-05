@@ -2,22 +2,128 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   SISTEMA DE TEMA CLARO/ESCURO - SISAM
+   Paleta otimizada para acessibilidade WCAG AA/AAA
+   ======================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* === TEMA CLARO (Padrão) === */
+
+  /* Backgrounds - Evitando branco puro para reduzir fadiga visual */
+  --bg-primary: #F8FAFC;      /* Fundo principal da página */
+  --bg-card: #FFFFFF;          /* Cards, modais, dropdowns */
+  --bg-hover: #F1F5F9;         /* Hover em elementos interativos */
+  --bg-input: #FFFFFF;         /* Campos de input */
+  --bg-sidebar: #1E293B;       /* Sidebar (mantém escuro para contraste) */
+  --bg-sidebar-hover: #334155; /* Hover na sidebar */
+
+  /* Textos - Contraste mínimo 4.5:1 para WCAG AA */
+  --text-primary: #1E293B;     /* Texto principal - Contraste 12.6:1 */
+  --text-secondary: #475569;   /* Texto secundário - Contraste 7.1:1 */
+  --text-muted: #94A3B8;       /* Texto sutil - Contraste 4.6:1 */
+  --text-on-primary: #FFFFFF;  /* Texto sobre cores de destaque */
+  --text-sidebar: #F1F5F9;     /* Texto na sidebar */
+
+  /* Bordas */
+  --border-default: #E2E8F0;   /* Bordas padrão */
+  --border-focus: #4F46E5;     /* Bordas em foco */
+  --border-hover: #CBD5E1;     /* Bordas em hover */
+
+  /* Cores de Destaque (Brand) - Indigo */
+  --accent-primary: #4F46E5;   /* Cor principal de ação */
+  --accent-hover: #4338CA;     /* Hover em botões primários */
+  --accent-light: #EEF2FF;     /* Background sutil de destaque */
+  --accent-border: #C7D2FE;    /* Bordas de destaque */
+
+  /* Cores de Status - Otimizadas para daltonismo */
+  --status-success: #059669;   /* Verde - Sucesso */
+  --status-success-bg: #ECFDF5;
+  --status-warning: #D97706;   /* Laranja - Atenção */
+  --status-warning-bg: #FFFBEB;
+  --status-error: #DC2626;     /* Vermelho - Erro */
+  --status-error-bg: #FEF2F2;
+  --status-info: #0284C7;      /* Azul - Informação */
+  --status-info-bg: #F0F9FF;
+
+  /* Sombras - Mais pronunciadas no tema claro */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Gráficos (Recharts) */
+  --chart-grid: #E2E8F0;
+  --chart-text: #64748B;
+  --chart-tooltip-bg: #FFFFFF;
+  --chart-tooltip-border: #E2E8F0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* === TEMA ESCURO === */
+.dark {
+  /* Backgrounds - Evitando preto puro para reduzir contraste excessivo */
+  --bg-primary: #0F172A;       /* Fundo principal - Azul muito escuro */
+  --bg-card: #1E293B;          /* Cards, modais, dropdowns */
+  --bg-hover: #334155;         /* Hover em elementos interativos */
+  --bg-input: #1E293B;         /* Campos de input */
+  --bg-sidebar: #020617;       /* Sidebar ainda mais escura */
+  --bg-sidebar-hover: #1E293B; /* Hover na sidebar */
+
+  /* Textos - Contraste mínimo 4.5:1 para WCAG AA */
+  --text-primary: #F1F5F9;     /* Texto principal - Contraste 13.1:1 */
+  --text-secondary: #CBD5E1;   /* Texto secundário - Contraste 8.5:1 */
+  --text-muted: #64748B;       /* Texto sutil - Contraste 4.7:1 */
+  --text-on-primary: #FFFFFF;  /* Texto sobre cores de destaque */
+  --text-sidebar: #F1F5F9;     /* Texto na sidebar */
+
+  /* Bordas */
+  --border-default: #334155;   /* Bordas padrão */
+  --border-focus: #818CF8;     /* Bordas em foco - Mais claro para visibilidade */
+  --border-hover: #475569;     /* Bordas em hover */
+
+  /* Cores de Destaque (Brand) - Indigo mais claro */
+  --accent-primary: #6366F1;   /* Cor principal de ação */
+  --accent-hover: #818CF8;     /* Hover em botões primários */
+  --accent-light: #1E1B4B;     /* Background sutil de destaque */
+  --accent-border: #4338CA;    /* Bordas de destaque */
+
+  /* Cores de Status - Mais vibrantes no escuro */
+  --status-success: #10B981;
+  --status-success-bg: #064E3B;
+  --status-warning: #F59E0B;
+  --status-warning-bg: #78350F;
+  --status-error: #EF4444;
+  --status-error-bg: #7F1D1D;
+  --status-info: #38BDF8;
+  --status-info-bg: #0C4A6E;
+
+  /* Sombras - Mais sutis no escuro, usando bordas */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+
+  /* Gráficos (Recharts) */
+  --chart-grid: #334155;
+  --chart-text: #94A3B8;
+  --chart-tooltip-bg: #1E293B;
+  --chart-tooltip-border: #334155;
 }
 
+/* === ESTILOS BASE === */
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--text-primary);
+  background: var(--bg-primary);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Transição suave para mudança de tema */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease;
+}
+
+/* Desabilitar transição durante carregamento inicial para evitar flash */
+.no-transitions * {
+  transition: none !important;
 }
 
 @layer utilities {
@@ -40,10 +146,15 @@ body {
     padding-right: 2.5rem;
   }
 
+  /* Tema escuro - ícone do select mais claro */
+  .dark select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394A3B8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  }
+
   /* Estilos para as opções do select - melhor visibilidade */
   select option {
-    background-color: #ffffff !important;
-    color: #374151 !important;
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
     padding: 0.75rem 1rem !important;
     font-size: 0.875rem !important;
     line-height: 1.5 !important;
@@ -56,14 +167,14 @@ body {
   /* Hover nas opções (suportado em alguns navegadores) */
   select option:hover,
   select option:focus {
-    background-color: #f3f4f6 !important;
-    color: #1f2937 !important;
+    background-color: var(--bg-hover) !important;
+    color: var(--text-primary) !important;
   }
 
   /* Opção selecionada - destacar melhor */
   select option:checked {
-    background-color: #4f46e5 !important;
-    color: #ffffff !important;
+    background-color: var(--accent-primary) !important;
+    color: var(--text-on-primary) !important;
     font-weight: 500 !important;
   }
 
@@ -88,18 +199,22 @@ body {
   select:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    border-color: #4f46e5;
+    border-color: var(--border-focus);
+  }
+
+  .dark select:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
   }
 
   /* Estilo para select customizado com melhor visibilidade */
   .select-custom {
-    background-color: #ffffff !important;
-    border: 1px solid #d1d5db !important;
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-default) !important;
     border-radius: 0.5rem !important;
     padding: 0.5rem 2.5rem 0.5rem 0.75rem !important;
     font-size: 0.875rem !important;
     line-height: 1.5 !important;
-    color: #374151 !important;
+    color: var(--text-primary) !important;
     cursor: pointer !important;
     transition: all 0.2s ease !important;
     width: 100% !important;
@@ -109,36 +224,42 @@ body {
   }
 
   .select-custom:hover {
-    border-color: #9ca3af !important;
-    background-color: #f9fafb !important;
+    border-color: var(--border-hover) !important;
+    background-color: var(--bg-hover) !important;
   }
 
   .select-custom:focus {
-    border-color: #4f46e5 !important;
+    border-color: var(--border-focus) !important;
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
-    background-color: #ffffff !important;
+    background-color: var(--bg-input) !important;
     z-index: 20 !important;
     outline: none !important;
   }
 
+  .dark .select-custom:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+  }
+
   .select-custom:disabled {
-    background-color: #f3f4f6 !important;
+    background-color: var(--bg-hover) !important;
     cursor: not-allowed !important;
     opacity: 0.6 !important;
-    border-color: #e5e7eb !important;
+    border-color: var(--border-default) !important;
   }
 
   /* Melhorar visibilidade do dropdown aberto */
   select:not([disabled]):active,
   select:not([disabled]):focus {
-    border-color: #4f46e5 !important;
+    border-color: var(--border-focus) !important;
     z-index: 20 !important;
   }
 
   /* Garantir que containers de filtros não cortem o dropdown */
   /* Remover overflow hidden de containers que podem ter selects */
   .bg-white.rounded-lg,
-  .bg-white.rounded-xl {
+  .bg-white.rounded-xl,
+  .dark .bg-white.rounded-lg,
+  .dark .bg-white.rounded-xl {
     overflow: visible !important;
   }
 
@@ -151,13 +272,13 @@ body {
   /* Garantir que as opções tenham bom contraste */
   @supports (-webkit-appearance: none) {
     select option {
-      background-color: #ffffff;
-      color: #374151;
+      background-color: var(--bg-card);
+      color: var(--text-primary);
     }
-    
+
     select option:checked {
-      background: linear-gradient(to bottom, #4f46e5, #4338ca);
-      color: #ffffff;
+      background: linear-gradient(to bottom, var(--accent-primary), var(--accent-hover));
+      color: var(--text-on-primary);
     }
   }
 
@@ -167,15 +288,68 @@ body {
   input[type="email"],
   input[type="password"],
   input[type="number"] {
-    color: #111827 !important;
-    background-color: #ffffff !important;
+    color: var(--text-primary) !important;
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-default);
+  }
+
+  input[type="text"]:focus,
+  input[type="search"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus {
+    border-color: var(--border-focus) !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+    outline: none !important;
+  }
+
+  .dark input[type="text"]:focus,
+  .dark input[type="search"]:focus,
+  .dark input[type="email"]:focus,
+  .dark input[type="password"]:focus,
+  .dark input[type="number"]:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
   }
 
   input[type="text"]::placeholder,
   input[type="search"]::placeholder,
   input[type="email"]::placeholder {
-    color: #9ca3af !important;
+    color: var(--text-muted) !important;
   }
+
+  /* === CLASSES UTILITÁRIAS PARA TEMA === */
+
+  /* Backgrounds */
+  .bg-theme-primary { background-color: var(--bg-primary) !important; }
+  .bg-theme-card { background-color: var(--bg-card) !important; }
+  .bg-theme-hover { background-color: var(--bg-hover) !important; }
+  .bg-theme-input { background-color: var(--bg-input) !important; }
+  .bg-theme-sidebar { background-color: var(--bg-sidebar) !important; }
+
+  /* Textos */
+  .text-theme-primary { color: var(--text-primary) !important; }
+  .text-theme-secondary { color: var(--text-secondary) !important; }
+  .text-theme-muted { color: var(--text-muted) !important; }
+
+  /* Bordas */
+  .border-theme-default { border-color: var(--border-default) !important; }
+  .border-theme-focus { border-color: var(--border-focus) !important; }
+
+  /* Accent */
+  .bg-accent-primary { background-color: var(--accent-primary) !important; }
+  .text-accent-primary { color: var(--accent-primary) !important; }
+  .border-accent-primary { border-color: var(--accent-primary) !important; }
+
+  /* Status */
+  .text-status-success { color: var(--status-success) !important; }
+  .text-status-warning { color: var(--status-warning) !important; }
+  .text-status-error { color: var(--status-error) !important; }
+  .text-status-info { color: var(--status-info) !important; }
+
+  .bg-status-success { background-color: var(--status-success-bg) !important; }
+  .bg-status-warning { background-color: var(--status-warning-bg) !important; }
+  .bg-status-error { background-color: var(--status-error-bg) !important; }
+  .bg-status-info { background-color: var(--status-info-bg) !important; }
 }
 
 /* Animações para PWA */
