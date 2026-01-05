@@ -280,56 +280,101 @@ export default function DadosPage() {
     setCarregando(true)
     setErro(null)
 
-    // MODO OFFLINE: Usar dados do IndexedDB
-    if (offlineData.isOfflineMode && offlineData.hasOfflineData) {
+    // Verificar se está offline
+    const { isOnline: checkOnline, offlineDB, STORES } = await import('@/lib/offline-db')
+    const online = checkOnline()
+
+    // MODO OFFLINE: Usar dados do IndexedDB diretamente
+    if (!online) {
       console.log('Carregando dados do IndexedDB (modo offline)')
       setUsandoDadosOffline(true)
 
-      // Carregar dados se ainda não carregou
-      if (offlineData.resultados.length === 0) {
-        await offlineData.loadOfflineData()
-      }
+      // Carregar dados diretamente do IndexedDB
+      const polosOffline = await offlineDB.getData(STORES.POLOS)
+      const escolasOffline = await offlineDB.getData(STORES.ESCOLAS)
+      const resultadosOffline = await offlineDB.getData(STORES.RESULTADOS)
+      const turmasOffline = await offlineDB.getData(STORES.TURMAS)
 
-      // Filtrar resultados usando o hook
-      const resultadosFiltrados = offlineData.filterResultados({
-        polo_id: filtroPoloId,
-        escola_id: filtroEscolaId,
-        turma_id: filtroTurmaId,
-        serie: filtroSerie,
-        ano_letivo: filtroAnoLetivo,
-        presenca: filtroPresenca
+      console.log('Dados offline carregados:', {
+        polos: polosOffline.length,
+        escolas: escolasOffline.length,
+        resultados: resultadosOffline.length,
+        turmas: turmasOffline.length
       })
 
-      // Calcular estatísticas dos dados offline
-      const stats = offlineData.getEstatisticas(resultadosFiltrados)
+      // Filtrar resultados
+      let resultadosFiltrados = [...resultadosOffline] as any[]
+
+      if (filtroPoloId && filtroPoloId !== 'todos') {
+        const escolasDoPolo = escolasOffline.filter((e: any) => e.polo_id?.toString() === filtroPoloId)
+        const escolasIds = escolasDoPolo.map((e: any) => e.id)
+        resultadosFiltrados = resultadosFiltrados.filter(r => escolasIds.includes(r.escola_id))
+      }
+
+      if (filtroEscolaId && filtroEscolaId !== 'todas') {
+        resultadosFiltrados = resultadosFiltrados.filter(r => r.escola_id?.toString() === filtroEscolaId)
+      }
+
+      if (filtroTurmaId && filtroTurmaId !== 'todas') {
+        resultadosFiltrados = resultadosFiltrados.filter(r => r.turma_id?.toString() === filtroTurmaId)
+      }
+
+      if (filtroSerie && filtroSerie !== 'todas') {
+        resultadosFiltrados = resultadosFiltrados.filter(r => r.serie === filtroSerie)
+      }
+
+      if (filtroAnoLetivo && filtroAnoLetivo !== 'todos') {
+        resultadosFiltrados = resultadosFiltrados.filter(r => r.ano_letivo === filtroAnoLetivo)
+      }
+
+      if (filtroPresenca && filtroPresenca !== 'Todas') {
+        const presencaUpper = filtroPresenca.toUpperCase()
+        resultadosFiltrados = resultadosFiltrados.filter(r => r.presenca?.toUpperCase() === presencaUpper)
+      }
+
+      // Calcular estatísticas
+      const presentes = resultadosFiltrados.filter(r => r.presenca?.toUpperCase() === 'P')
+      const faltosos = resultadosFiltrados.filter(r => r.presenca?.toUpperCase() === 'F')
+
+      const calcMedia = (arr: number[]): number => {
+        if (arr.length === 0) return 0
+        const sum = arr.reduce((a, b) => a + (b || 0), 0)
+        return Number((sum / arr.length).toFixed(2))
+      }
+
+      const notasLP = presentes.map(r => r.nota_lp).filter((n: any) => n != null)
+      const notasMat = presentes.map(r => r.nota_mat).filter((n: any) => n != null)
+      const notasCH = presentes.map(r => r.nota_ch).filter((n: any) => n != null)
+      const notasCN = presentes.map(r => r.nota_cn).filter((n: any) => n != null)
+      const mediasAlunos = presentes.map(r => r.media_aluno).filter((n: any) => n != null)
 
       // Construir dados do dashboard a partir dos dados offline
       const dadosOffline: DashboardData = {
         metricas: {
-          total_alunos: stats.total,
-          total_escolas: offlineData.escolas.length,
-          total_turmas: offlineData.turmas.length,
-          total_polos: offlineData.polos.length,
-          total_presentes: stats.presentes,
-          total_faltantes: stats.faltosos,
-          media_geral: stats.media_geral,
-          media_lp: stats.media_lp,
-          media_mat: stats.media_mat,
-          media_ch: stats.media_ch,
-          media_cn: stats.media_cn,
+          total_alunos: resultadosFiltrados.length,
+          total_escolas: escolasOffline.length,
+          total_turmas: turmasOffline.length,
+          total_polos: polosOffline.length,
+          total_presentes: presentes.length,
+          total_faltantes: faltosos.length,
+          media_geral: calcMedia(mediasAlunos),
+          media_lp: calcMedia(notasLP),
+          media_mat: calcMedia(notasMat),
+          media_ch: calcMedia(notasCH),
+          media_cn: calcMedia(notasCN),
           media_producao: 0,
           menor_media: 0,
           maior_media: 10,
-          taxa_presenca: stats.total > 0 ? (stats.presentes / stats.total) * 100 : 0
+          taxa_presenca: resultadosFiltrados.length > 0 ? (presentes.length / resultadosFiltrados.length) * 100 : 0
         },
         niveis: [],
         mediasPorSerie: [],
-        mediasPorPolo: offlineData.polos.map(p => ({
+        mediasPorPolo: polosOffline.map((p: any) => ({
           polo_id: p.id.toString(),
           polo: p.nome,
           total_alunos: resultadosFiltrados.filter(r => {
-            const escola = offlineData.escolas.find(e => e.id === r.escola_id)
-            return escola?.polo_id === p.id
+            const escola = escolasOffline.find((e: any) => e.id === r.escola_id)
+            return (escola as any)?.polo_id === p.id
           }).length,
           media_geral: 0,
           media_lp: 0,
@@ -337,10 +382,10 @@ export default function DadosPage() {
           presentes: 0,
           faltantes: 0
         })),
-        mediasPorEscola: offlineData.escolas.map(e => ({
+        mediasPorEscola: escolasOffline.map((e: any) => ({
           escola_id: e.id.toString(),
           escola: e.nome,
-          polo: offlineData.polos.find(p => p.id === e.polo_id)?.nome || '',
+          polo: (polosOffline.find((p: any) => p.id === e.polo_id) as any)?.nome || '',
           total_alunos: resultadosFiltrados.filter(r => r.escola_id === e.id).length,
           media_geral: 0,
           media_lp: 0,
@@ -353,11 +398,11 @@ export default function DadosPage() {
         mediasPorTurma: [],
         faixasNota: [],
         presenca: [
-          { status: 'Presentes', quantidade: stats.presentes },
-          { status: 'Faltantes', quantidade: stats.faltosos }
+          { status: 'Presentes', quantidade: presentes.length },
+          { status: 'Faltantes', quantidade: faltosos.length }
         ],
         topAlunos: [],
-        alunosDetalhados: resultadosFiltrados.slice(0, 50).map(r => ({
+        alunosDetalhados: resultadosFiltrados.slice(0, 50).map((r: any) => ({
           id: r.id,
           nome: r.aluno_nome,
           escola: r.escola_nome,
@@ -371,11 +416,11 @@ export default function DadosPage() {
           nota_cn: r.nota_cn
         })),
         filtros: {
-          polos: offlineData.polos.map(p => ({ id: p.id.toString(), nome: p.nome })),
-          escolas: offlineData.escolas.map(e => ({ id: e.id.toString(), nome: e.nome, polo_id: e.polo_id?.toString() || '' })),
-          series: [...new Set(offlineData.resultados.map(r => r.serie).filter(Boolean))] as string[],
-          turmas: offlineData.turmas.map(t => ({ id: t.id.toString(), codigo: t.codigo, escola_id: t.escola_id?.toString() || '' })),
-          anosLetivos: [...new Set(offlineData.resultados.map(r => r.ano_letivo).filter(Boolean))] as string[],
+          polos: polosOffline.map((p: any) => ({ id: p.id.toString(), nome: p.nome })),
+          escolas: escolasOffline.map((e: any) => ({ id: e.id.toString(), nome: e.nome, polo_id: e.polo_id?.toString() || '' })),
+          series: [...new Set(resultadosOffline.map((r: any) => r.serie).filter(Boolean))] as string[],
+          turmas: turmasOffline.map((t: any) => ({ id: t.id.toString(), codigo: t.codigo, escola_id: t.escola_id?.toString() || '' })),
+          anosLetivos: [...new Set(resultadosOffline.map((r: any) => r.ano_letivo).filter(Boolean))] as string[],
           niveis: [],
           faixasMedia: []
         }
