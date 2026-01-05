@@ -4,6 +4,7 @@ import React from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TipoUsuario } from '@/lib/types'
+import { getOfflineUser, isOnline } from '@/lib/offline-db'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -17,18 +18,8 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
 
   useEffect(() => {
     const verificarAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/verificar')
-        const data = await response.json()
-
-        if (!response.ok || !data.usuario) {
-          router.push('/login')
-          return
-        }
-
-        // Normalizar tipo de usuário para comparação
-        const tipoUsuarioOriginal = data.usuario.tipo_usuario
-        // Verificar se o tipo está nos permitidos, considerando que 'administrador' e 'admin' são equivalentes
+      // Função para verificar se tipo de usuário é permitido
+      const verificarTipoPermitido = (tipoUsuario: string): boolean => {
         const tiposPermitidosExpandidos = [...tiposPermitidos]
         if (tiposPermitidos.includes('administrador')) {
           tiposPermitidosExpandidos.push('admin' as TipoUsuario)
@@ -36,15 +27,56 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
         if (tiposPermitidos.includes('admin')) {
           tiposPermitidosExpandidos.push('administrador' as TipoUsuario)
         }
-        
-        if (!tiposPermitidosExpandidos.includes(tipoUsuarioOriginal)) {
+        return tiposPermitidosExpandidos.includes(tipoUsuario as TipoUsuario)
+      }
+
+      // PRIMEIRO: Verificar se existe usuário offline salvo
+      const offlineUser = await getOfflineUser()
+
+      // Se estiver offline, usar apenas o usuário offline
+      if (!isOnline()) {
+        if (offlineUser && verificarTipoPermitido(offlineUser.tipo_usuario)) {
+          setAutorizado(true)
+          setCarregando(false)
+          return
+        } else {
+          // Sem usuário offline válido
           router.push('/login')
+          setCarregando(false)
           return
         }
+      }
 
-        setAutorizado(true)
+      // Se estiver online, tentar a API
+      try {
+        const response = await fetch('/api/auth/verificar')
+        const data = await response.json()
+
+        if (response.ok && data.usuario) {
+          // Normalizar tipo de usuário para comparação
+          const tipoUsuarioOriginal = data.usuario.tipo_usuario
+
+          if (!verificarTipoPermitido(tipoUsuarioOriginal)) {
+            router.push('/login')
+            return
+          }
+
+          setAutorizado(true)
+        } else {
+          // API não retornou usuário, tentar offline
+          if (offlineUser && verificarTipoPermitido(offlineUser.tipo_usuario)) {
+            setAutorizado(true)
+          } else {
+            router.push('/login')
+          }
+        }
       } catch (error) {
-        router.push('/login')
+        // Erro de rede, usar usuário offline se disponível
+        if (offlineUser && verificarTipoPermitido(offlineUser.tipo_usuario)) {
+          setAutorizado(true)
+        } else {
+          router.push('/login')
+        }
       } finally {
         setCarregando(false)
       }

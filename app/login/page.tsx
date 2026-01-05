@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogIn, Eye, EyeOff } from 'lucide-react'
+import { LogIn, Eye, EyeOff, WifiOff } from 'lucide-react'
 import Rodape from '@/components/rodape'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
+import { getOfflineUser, isOnline, saveUserOffline } from '@/lib/offline-db'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -13,13 +14,74 @@ export default function LoginPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [verificandoOffline, setVerificandoOffline] = useState(true)
+  const [modoOffline, setModoOffline] = useState(false)
 
   // Usar valores fixos do codigo (sem chamar API)
   const personalizacao = getPersonalizacaoLogin()
 
+  // Verificar se existe usuário offline ao carregar
+  useEffect(() => {
+    const verificarUsuarioOffline = async () => {
+      const online = isOnline()
+      setModoOffline(!online)
+
+      // Verificar se existe usuário offline
+      const offlineUser = await getOfflineUser()
+
+      if (offlineUser) {
+        // Se estiver offline ou online, redirecionar para o dashboard correto
+        const tipoUsuario = offlineUser.tipo_usuario
+        if (tipoUsuario === 'administrador') {
+          router.push('/admin/dashboard')
+        } else if (tipoUsuario === 'tecnico') {
+          router.push('/tecnico/dashboard')
+        } else if (tipoUsuario === 'polo') {
+          router.push('/polo/dashboard')
+        } else if (tipoUsuario === 'escola') {
+          router.push('/escola/dashboard')
+        } else {
+          router.push('/dashboard')
+        }
+        return
+      }
+
+      // Sem usuário offline
+      if (!online) {
+        setErro('Você está offline e não há sessão salva. Conecte-se à internet para fazer login.')
+      }
+
+      setVerificandoOffline(false)
+    }
+
+    verificarUsuarioOffline()
+
+    // Listener para mudanças de conexão
+    const handleOnline = () => setModoOffline(false)
+    const handleOffline = () => {
+      setModoOffline(true)
+      setErro('Você está offline. Conecte-se à internet para fazer login.')
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErro('')
+
+    // Verificar se está offline
+    if (!isOnline()) {
+      setErro('Você está offline. Conecte-se à internet para fazer login.')
+      return
+    }
+
     setCarregando(true)
 
     try {
@@ -49,6 +111,9 @@ export default function LoginPage() {
         return
       }
 
+      // IMPORTANTE: Salvar usuário para acesso offline
+      await saveUserOffline(data.usuario)
+
       // Redirecionar baseado no tipo de usuário
       if (data.usuario.tipo_usuario === 'administrador') {
         router.push('/admin/dashboard')
@@ -62,15 +127,35 @@ export default function LoginPage() {
         router.push('/dashboard')
       }
     } catch (error) {
-      setErro('Erro ao conectar com o servidor')
+      setErro('Erro ao conectar com o servidor. Verifique sua conexão.')
       setCarregando(false)
     }
+  }
+
+  // Mostrar loading enquanto verifica usuário offline
+  if (verificandoOffline) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando sessão...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100" style={{
       background: `linear-gradient(to bottom right, ${personalizacao.cor_secundaria}15, ${personalizacao.cor_primaria}25)`
     }}>
+      {/* Indicador de modo offline */}
+      {modoOffline && (
+        <div className="bg-orange-500 text-white py-2 px-4 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <WifiOff className="w-4 h-4" />
+          Você está offline
+        </div>
+      )}
+
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-md">
           <div className="flex items-center justify-center mb-6">
