@@ -354,6 +354,7 @@ export default function ResultadosPage() {
   const carregarResultados = async (pagina: number = paginaAtual) => {
     try {
       setCarregando(true)
+      console.log('[Resultados] carregarResultados chamado, pagina:', pagina)
 
       // Resetar estatísticas durante o carregamento para mostrar que está atualizando
       if (pagina === 1) {
@@ -371,54 +372,76 @@ export default function ResultadosPage() {
 
       // Verificar se está offline
       const online = offlineStorage.isOnline()
+      console.log('[Resultados] Status online:', online, 'usandoDadosOffline:', usandoDadosOffline)
 
       // MODO OFFLINE: Usar dados do localStorage diretamente
       if (!online || usandoDadosOffline) {
-        console.log('[Resultados] Carregando resultados do localStorage (modo offline)')
+        try {
+          console.log('[Resultados] Entrando em modo offline')
+          console.log('[Resultados] Filtros atuais:', JSON.stringify(filtros))
 
-        // Usar função de filtro do offlineStorage
-        const resultadosFiltrados = offlineStorage.filterResultados({
-          polo_id: filtros.polo_id,
-          escola_id: filtros.escola_id,
-          turma_id: filtros.turma_id,
-          serie: filtros.serie,
-          ano_letivo: filtros.ano_letivo,
-          presenca: filtros.presenca
-        })
+          // Verificar dados disponíveis
+          const todosResultados = offlineStorage.getResultados()
+          console.log('[Resultados] Total de resultados no localStorage:', todosResultados.length)
 
-        console.log('[Resultados] Resultados offline filtrados:', resultadosFiltrados.length)
+          if (todosResultados.length === 0) {
+            console.warn('[Resultados] AVISO: Nenhum dado offline disponível!')
+            setCarregando(false)
+            return
+          }
 
-        // Paginação local
-        const limite = 50
-        const inicio = (pagina - 1) * limite
-        const fim = inicio + limite
-        const resultadosPaginados = resultadosFiltrados.slice(inicio, fim)
+          // Usar função de filtro do offlineStorage
+          const resultadosFiltrados = offlineStorage.filterResultados({
+            polo_id: filtros.polo_id,
+            escola_id: filtros.escola_id,
+            turma_id: filtros.turma_id,
+            serie: filtros.serie,
+            ano_letivo: filtros.ano_letivo,
+            presenca: filtros.presenca
+          })
 
-        // Calcular estatísticas usando função do offlineStorage
-        const estatisticasOffline = offlineStorage.calcularEstatisticas(resultadosFiltrados)
+          console.log('[Resultados] Resultados após filtro:', resultadosFiltrados.length)
 
-        setResultados(resultadosPaginados as any)
-        setEstatisticasGerais({
-          totalAlunos: estatisticasOffline.total,
-          totalPresentes: estatisticasOffline.presentes,
-          totalFaltas: estatisticasOffline.faltosos,
-          mediaGeral: estatisticasOffline.media_geral,
-          mediaLP: estatisticasOffline.media_lp,
-          mediaCH: estatisticasOffline.media_ch,
-          mediaMAT: estatisticasOffline.media_mat,
-          mediaCN: estatisticasOffline.media_cn
-        })
-        setPaginacao({
-          pagina,
-          limite,
-          total: resultadosFiltrados.length,
-          totalPaginas: Math.ceil(resultadosFiltrados.length / limite),
-          temProxima: fim < resultadosFiltrados.length,
-          temAnterior: pagina > 1
-        })
-        setPaginaAtual(pagina)
-        setCarregando(false)
-        return
+          // Paginação local
+          const limite = 50
+          const inicio = (pagina - 1) * limite
+          const fim = inicio + limite
+          const resultadosPaginados = resultadosFiltrados.slice(inicio, fim)
+
+          // Calcular estatísticas usando função do offlineStorage
+          const estatisticasOffline = offlineStorage.calcularEstatisticas(resultadosFiltrados)
+
+          console.log('[Resultados] Estatísticas calculadas:', estatisticasOffline)
+          console.log('[Resultados] Resultados paginados:', resultadosPaginados.length)
+
+          setResultados(resultadosPaginados as any)
+          setEstatisticasGerais({
+            totalAlunos: estatisticasOffline.total,
+            totalPresentes: estatisticasOffline.presentes,
+            totalFaltas: estatisticasOffline.faltosos,
+            mediaGeral: estatisticasOffline.media_geral,
+            mediaLP: estatisticasOffline.media_lp,
+            mediaCH: estatisticasOffline.media_ch,
+            mediaMAT: estatisticasOffline.media_mat,
+            mediaCN: estatisticasOffline.media_cn
+          })
+          setPaginacao({
+            pagina,
+            limite,
+            total: resultadosFiltrados.length,
+            totalPaginas: Math.ceil(resultadosFiltrados.length / limite),
+            temProxima: fim < resultadosFiltrados.length,
+            temAnterior: pagina > 1
+          })
+          setPaginaAtual(pagina)
+          setCarregando(false)
+          console.log('[Resultados] Modo offline concluído com sucesso')
+          return
+        } catch (offlineError) {
+          console.error('[Resultados] ERRO no modo offline:', offlineError)
+          setCarregando(false)
+          return
+        }
       }
 
       // MODO ONLINE: Buscar da API
