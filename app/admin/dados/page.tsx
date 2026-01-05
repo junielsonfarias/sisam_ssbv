@@ -483,7 +483,7 @@ export default function DadosPage() {
   const escolasFiltradas = useMemo(() => {
     if (!dados?.filtros.escolas) return []
     if (!filtroPoloId) return [] // Não mostra escolas se nenhum polo selecionado
-    return dados.filtros.escolas.filter(e => e.polo_id === filtroPoloId)
+    return dados.filtros.escolas.filter(e => String(e.polo_id) === String(filtroPoloId))
   }, [dados?.filtros.escolas, filtroPoloId])
 
   // Turmas filtradas por escola E série
@@ -493,7 +493,7 @@ export default function DadosPage() {
     // Filtra por escola se selecionada
     let turmas = dados.filtros.turmas
     if (filtroEscolaId) {
-      turmas = turmas.filter(t => t.escola_id === filtroEscolaId)
+      turmas = turmas.filter(t => String(t.escola_id) === String(filtroEscolaId))
     }
     return turmas
   }, [dados?.filtros.turmas, filtroEscolaId, filtroSerie])

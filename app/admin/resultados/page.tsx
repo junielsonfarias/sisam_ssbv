@@ -830,7 +830,7 @@ export default function ResultadosPage() {
                 >
                   <option value="">Todas</option>
                   {escolas
-                    .filter((e) => !filtros.polo_id || e.polo_id === filtros.polo_id)
+                    .filter((e) => !filtros.polo_id || String(e.polo_id) === String(filtros.polo_id))
                     .map((escola) => (
                       <option key={escola.id} value={escola.id}>
                         {escola.nome}

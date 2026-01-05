@@ -302,41 +302,59 @@ export function filterResultados(filters: {
   let resultados = getResultados()
   const escolas = getEscolas()
 
-  // Filtrar por polo
+  console.log('[filterResultados] Iniciando filtro com:', filters)
+  console.log('[filterResultados] Total de resultados antes do filtro:', resultados.length)
+  console.log('[filterResultados] Total de escolas:', escolas.length)
+
+  // Filtrar por polo - comparar como string para suportar UUIDs
   if (filters.polo_id && filters.polo_id !== '' && filters.polo_id !== 'todos') {
-    const poloId = Number(filters.polo_id)
-    const escolasDoPolo = escolas.filter(e => e.polo_id === poloId).map(e => e.id)
-    resultados = resultados.filter(r => escolasDoPolo.includes(r.escola_id))
+    const poloIdStr = String(filters.polo_id)
+    // Encontrar escolas do polo (comparando como string)
+    const escolasDoPolo = escolas.filter(e => String(e.polo_id) === poloIdStr).map(e => e.id)
+    console.log('[filterResultados] Polo ID:', poloIdStr, 'Escolas do polo:', escolasDoPolo.length)
+    if (escolasDoPolo.length > 0) {
+      resultados = resultados.filter(r => escolasDoPolo.includes(r.escola_id))
+    } else {
+      // Se não encontrar escolas pelo polo_id, tentar filtrar diretamente pelo polo_id nos resultados
+      resultados = resultados.filter(r => String(r.polo_id) === poloIdStr)
+    }
+    console.log('[filterResultados] Resultados após filtro de polo:', resultados.length)
   }
 
-  // Filtrar por escola
+  // Filtrar por escola - comparar como string para suportar UUIDs
   if (filters.escola_id && filters.escola_id !== '' && filters.escola_id !== 'todas') {
-    const escolaId = Number(filters.escola_id)
-    resultados = resultados.filter(r => r.escola_id === escolaId)
+    const escolaIdStr = String(filters.escola_id)
+    resultados = resultados.filter(r => String(r.escola_id) === escolaIdStr)
+    console.log('[filterResultados] Resultados após filtro de escola:', resultados.length)
   }
 
-  // Filtrar por turma
+  // Filtrar por turma - comparar como string para suportar UUIDs
   if (filters.turma_id && filters.turma_id !== '' && filters.turma_id !== 'todas') {
-    const turmaId = Number(filters.turma_id)
-    resultados = resultados.filter(r => r.turma_id === turmaId)
+    const turmaIdStr = String(filters.turma_id)
+    resultados = resultados.filter(r => String(r.turma_id) === turmaIdStr)
+    console.log('[filterResultados] Resultados após filtro de turma:', resultados.length)
   }
 
   // Filtrar por série
   if (filters.serie && filters.serie !== '' && filters.serie !== 'todas') {
     resultados = resultados.filter(r => r.serie === filters.serie)
+    console.log('[filterResultados] Resultados após filtro de série:', resultados.length)
   }
 
   // Filtrar por ano letivo
   if (filters.ano_letivo && filters.ano_letivo !== '' && filters.ano_letivo !== 'todos') {
     resultados = resultados.filter(r => r.ano_letivo === filters.ano_letivo)
+    console.log('[filterResultados] Resultados após filtro de ano letivo:', resultados.length)
   }
 
   // Filtrar por presença
   if (filters.presenca && filters.presenca !== '' && filters.presenca !== 'Todas') {
     const presencaUpper = filters.presenca.toUpperCase()
     resultados = resultados.filter(r => r.presenca?.toUpperCase() === presencaUpper)
+    console.log('[filterResultados] Resultados após filtro de presença:', resultados.length)
   }
 
+  console.log('[filterResultados] Total de resultados após todos os filtros:', resultados.length)
   return resultados
 }
 
@@ -396,8 +414,8 @@ export function filterTurmas(escola_id?: string | number, serie?: string): Offli
   let turmas = getTurmas()
 
   if (escola_id && escola_id !== '' && escola_id !== 'todas') {
-    const escolaId = Number(escola_id)
-    turmas = turmas.filter(t => t.escola_id === escolaId)
+    const escolaIdStr = String(escola_id)
+    turmas = turmas.filter(t => String(t.escola_id) === escolaIdStr)
   }
 
   if (serie && serie !== '' && serie !== 'todas') {
