@@ -25,6 +25,7 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const [hasData, setHasData] = useState(false)
+  const [dataCount, setDataCount] = useState(0)
   const [initialSyncDone, setInitialSyncDone] = useState(false)
 
   // Verificar status online e dados offline
@@ -32,10 +33,24 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
     if (typeof window === 'undefined') return
 
     setOnline(navigator.onLine)
-    setHasData(hasOfflineData())
+    const hasOffline = hasOfflineData()
+    setHasData(hasOffline)
+    setDataCount(getResultados().length)
 
-    const handleOnline = () => setOnline(true)
-    const handleOffline = () => setOnline(false)
+    console.log('[OfflineSyncManager] Inicializado:', {
+      online: navigator.onLine,
+      hasData: hasOffline,
+      resultados: getResultados().length
+    })
+
+    const handleOnline = () => {
+      console.log('[OfflineSyncManager] Voltou online')
+      setOnline(true)
+    }
+    const handleOffline = () => {
+      console.log('[OfflineSyncManager] Ficou offline')
+      setOnline(false)
+    }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
@@ -46,19 +61,43 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
     }
   }, [])
 
+  // Atualizar contagem quando dados mudam
+  useEffect(() => {
+    const checkData = () => {
+      const count = getResultados().length
+      setDataCount(count)
+      setHasData(count > 0 || getPolos().length > 0)
+    }
+    checkData()
+    // Verificar periodicamente
+    const interval = setInterval(checkData, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
   // Sincronização automática após login
   useEffect(() => {
-    if (!userId || !autoSync || initialSyncDone || !online) return
+    if (!userId || !autoSync || !online) return
+
+    // Verificar se já tem dados sincronizados
+    const existingData = getResultados().length
+    if (existingData > 0 && initialSyncDone) {
+      console.log('[OfflineSyncManager] Dados já sincronizados:', existingData)
+      return
+    }
 
     const doInitialSync = async () => {
+      console.log('[OfflineSyncManager] Iniciando sincronização automática...')
       setSyncing(true)
       setSyncMessage('Sincronizando dados para uso offline...')
 
       const result = await syncOfflineData()
 
+      console.log('[OfflineSyncManager] Resultado da sincronização:', result)
+
       if (result.success) {
         setSyncMessage('Dados sincronizados!')
         setHasData(true)
+        setDataCount(getResultados().length)
       } else {
         setSyncMessage(`Erro: ${result.message}`)
       }
@@ -71,21 +110,25 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
     }
 
     // Pequeno delay para garantir que o componente está montado
-    const timer = setTimeout(doInitialSync, 2000)
+    const timer = setTimeout(doInitialSync, 1000)
     return () => clearTimeout(timer)
-  }, [userId, autoSync, online, initialSyncDone])
+  }, [userId, autoSync, online])
 
   const handleManualSync = useCallback(async () => {
     if (!online || syncing) return
 
+    console.log('[OfflineSyncManager] Sincronização manual iniciada')
     setSyncing(true)
     setSyncMessage('Sincronizando...')
 
     const result = await syncOfflineData()
 
+    console.log('[OfflineSyncManager] Resultado da sincronização manual:', result)
+
     if (result.success) {
       setSyncMessage('Sincronizado!')
       setHasData(true)
+      setDataCount(getResultados().length)
     } else {
       setSyncMessage(`Erro: ${result.message}`)
     }
@@ -148,8 +191,19 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
 
       {/* Indicador de dados offline disponíveis */}
       {hasData && (
-        <span className="flex items-center gap-1 text-gray-500" title="Dados offline disponíveis">
+        <span
+          className="flex items-center gap-1 text-gray-500"
+          title={`${dataCount} resultados disponíveis offline`}
+        >
           <Database className="w-4 h-4" />
+          <span className="hidden md:inline text-xs">{dataCount}</span>
+        </span>
+      )}
+
+      {/* Aviso quando offline sem dados */}
+      {!online && !hasData && (
+        <span className="text-xs text-red-500">
+          Sem dados offline
         </span>
       )}
     </div>

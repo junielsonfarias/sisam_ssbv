@@ -568,6 +568,32 @@ export default function DadosPage() {
 
   useEffect(() => {
     const carregarTipoUsuario = async () => {
+      // Se offline, usar usuário do localStorage
+      if (!offlineStorage.isOnline()) {
+        const offlineUser = offlineStorage.getUser()
+        if (offlineUser) {
+          const tipo = offlineUser.tipo_usuario === 'administrador' ? 'admin' : offlineUser.tipo_usuario
+          setTipoUsuario(tipo)
+          setUsuario(offlineUser)
+
+          // Definir filtros baseado no tipo de usuário offline
+          if (offlineUser.tipo_usuario === 'escola' && offlineUser.escola_id) {
+            setFiltroEscolaId(offlineUser.escola_id.toString())
+            setEscolaNome(offlineUser.escola_nome || '')
+            setPoloNome(offlineUser.polo_nome || '')
+            if (offlineUser.polo_id) {
+              setFiltroPoloId(offlineUser.polo_id.toString())
+            }
+          }
+
+          if (offlineUser.tipo_usuario === 'polo' && offlineUser.polo_id) {
+            setFiltroPoloId(offlineUser.polo_id.toString())
+            setPoloNome(offlineUser.polo_nome || '')
+          }
+        }
+        return
+      }
+
       try {
         const response = await fetch('/api/auth/verificar')
         const data = await response.json()
@@ -613,6 +639,13 @@ export default function DadosPage() {
         }
       } catch (error) {
         console.error('Erro ao carregar tipo de usuário:', error)
+        // Fallback para usuário offline
+        const offlineUser = offlineStorage.getUser()
+        if (offlineUser) {
+          const tipo = offlineUser.tipo_usuario === 'administrador' ? 'admin' : offlineUser.tipo_usuario
+          setTipoUsuario(tipo)
+          setUsuario(offlineUser)
+        }
       }
     }
     carregarTipoUsuario()

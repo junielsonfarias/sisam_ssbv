@@ -239,10 +239,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
                   <span className="hidden sm:inline">Offline</span>
                 </span>
               )}
-              {/* Status de sincronização offline */}
-              {!modoOffline && (
-                <OfflineSyncManager userId={usuario?.id?.toString() || null} autoSync={true} showStatus={true} />
-              )}
+              {/* Status de sincronização offline - sempre mostrar */}
+              <OfflineSyncManager
+                userId={usuario?.id?.toString() || usuario?.usuario_id?.toString() || null}
+                autoSync={true}
+                showStatus={true}
+              />
 
               <Link
                 href="/perfil"

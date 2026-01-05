@@ -152,6 +152,16 @@ export default function ResultadosPage() {
 
   useEffect(() => {
     const carregarTipoUsuario = async () => {
+      // Se offline, usar usuário do localStorage
+      if (!offlineStorage.isOnline()) {
+        const offlineUser = offlineStorage.getUser()
+        if (offlineUser) {
+          const tipo = offlineUser.tipo_usuario === 'administrador' ? 'admin' : offlineUser.tipo_usuario
+          setTipoUsuario(tipo)
+        }
+        return
+      }
+
       try {
         const response = await fetch('/api/auth/verificar')
         const data = await response.json()
@@ -161,6 +171,12 @@ export default function ResultadosPage() {
         }
       } catch (error) {
         console.error('Erro ao carregar tipo de usuário:', error)
+        // Fallback para usuário offline
+        const offlineUser = offlineStorage.getUser()
+        if (offlineUser) {
+          const tipo = offlineUser.tipo_usuario === 'administrador' ? 'admin' : offlineUser.tipo_usuario
+          setTipoUsuario(tipo)
+        }
       }
     }
     carregarTipoUsuario()
