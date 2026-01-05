@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, CheckCircle2, XCircle, BookOpen, TrendingUp, Award, AlertCircle } from 'lucide-react'
+import { X, CheckCircle2, XCircle, BookOpen, TrendingUp, Award, AlertCircle, WifiOff } from 'lucide-react'
+import * as offlineStorage from '@/lib/offline-storage'
 
 interface Questao {
   codigo: string
@@ -56,6 +57,7 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
   const [dados, setDados] = useState<DadosAluno | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [modoOffline, setModoOffline] = useState(false)
 
   useEffect(() => {
     if (isOpen && alunoId) {
@@ -67,7 +69,63 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
     try {
       setCarregando(true)
       setErro(null)
+      setModoOffline(false)
 
+      // Verificar se está offline
+      const online = offlineStorage.isOnline()
+
+      if (!online) {
+        // Modo offline - usar dados do localStorage
+        setModoOffline(true)
+        const resultado = offlineStorage.getResultadoByAlunoId(alunoId, anoLetivo)
+
+        if (!resultado) {
+          setErro('Dados do aluno não disponíveis offline.')
+          setDados(null)
+          setCarregando(false)
+          return
+        }
+
+        // Criar estrutura de dados simplificada com os dados offline disponíveis
+        const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+
+        const dadosOffline: DadosAluno = {
+          aluno: {
+            id: String(resultado.aluno_id),
+            nome: resultado.aluno_nome,
+            codigo: null,
+            serie: resultado.serie,
+            ano_letivo: resultado.ano_letivo,
+            escola_nome: resultado.escola_nome,
+            turma_codigo: resultado.turma_codigo
+          },
+          questoes: {
+            'Língua Portuguesa': [],
+            'Ciências Humanas': [],
+            'Matemática': [],
+            'Ciências da Natureza': []
+          },
+          estatisticas: {
+            total: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
+                   toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
+            acertos: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
+                     toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
+            erros: 0,
+            por_area: {
+              'Língua Portuguesa': { total: 0, acertos: toNum(resultado.total_acertos_lp), erros: 0 },
+              'Ciências Humanas': { total: 0, acertos: toNum(resultado.total_acertos_ch), erros: 0 },
+              'Matemática': { total: 0, acertos: toNum(resultado.total_acertos_mat), erros: 0 },
+              'Ciências da Natureza': { total: 0, acertos: toNum(resultado.total_acertos_cn), erros: 0 }
+            }
+          }
+        }
+
+        setDados(dadosOffline)
+        setCarregando(false)
+        return
+      }
+
+      // Modo online - buscar da API
       const params = new URLSearchParams()
       params.append('aluno_id', alunoId)
       if (anoLetivo) {
@@ -82,18 +140,58 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
       }
 
       const data = await response.json()
-      
+
       // Se não houver questões, mostrar mensagem específica
       if (!data.estatisticas || data.estatisticas.total === 0) {
         setErro('Nenhuma questão encontrada para este aluno. Verifique se os resultados foram importados corretamente.')
         setDados(null)
         return
       }
-      
+
       setDados(data)
     } catch (error: any) {
       console.error('Erro ao carregar questões:', error)
-      setErro(error.message || 'Erro ao carregar questões do aluno')
+
+      // Se falhou, tentar dados offline
+      const resultado = offlineStorage.getResultadoByAlunoId(alunoId, anoLetivo)
+      if (resultado) {
+        setModoOffline(true)
+        const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+
+        const dadosOffline: DadosAluno = {
+          aluno: {
+            id: String(resultado.aluno_id),
+            nome: resultado.aluno_nome,
+            codigo: null,
+            serie: resultado.serie,
+            ano_letivo: resultado.ano_letivo,
+            escola_nome: resultado.escola_nome,
+            turma_codigo: resultado.turma_codigo
+          },
+          questoes: {
+            'Língua Portuguesa': [],
+            'Ciências Humanas': [],
+            'Matemática': [],
+            'Ciências da Natureza': []
+          },
+          estatisticas: {
+            total: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
+                   toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
+            acertos: toNum(resultado.total_acertos_lp) + toNum(resultado.total_acertos_ch) +
+                     toNum(resultado.total_acertos_mat) + toNum(resultado.total_acertos_cn),
+            erros: 0,
+            por_area: {
+              'Língua Portuguesa': { total: 0, acertos: toNum(resultado.total_acertos_lp), erros: 0 },
+              'Ciências Humanas': { total: 0, acertos: toNum(resultado.total_acertos_ch), erros: 0 },
+              'Matemática': { total: 0, acertos: toNum(resultado.total_acertos_mat), erros: 0 },
+              'Ciências da Natureza': { total: 0, acertos: toNum(resultado.total_acertos_cn), erros: 0 }
+            }
+          }
+        }
+        setDados(dadosOffline)
+      } else {
+        setErro(error.message || 'Erro ao carregar questões do aluno')
+      }
     } finally {
       setCarregando(false)
     }
@@ -152,6 +250,17 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
               </div>
             ) : dados ? (
               <div className="space-y-6">
+                {/* Indicador de modo offline */}
+                {modoOffline && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
+                    <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-orange-800">Modo Offline</p>
+                      <p className="text-xs text-orange-600">Exibindo resumo de acertos. Detalhes das questões disponíveis apenas online.</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Estatísticas Gerais */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                   <div className="bg-indigo-50 rounded-lg p-3 sm:p-4 border border-indigo-200">

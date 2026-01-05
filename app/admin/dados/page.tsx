@@ -335,32 +335,46 @@ export default function DadosPage() {
         },
         niveis: [],
         mediasPorSerie: [],
-        mediasPorPolo: polosOffline.map((p) => ({
-          polo_id: p.id.toString(),
-          polo: p.nome,
-          total_alunos: resultadosFiltrados.filter(r => {
-            const escola = escolasOffline.find((e) => e.id === r.escola_id)
-            return escola?.polo_id === p.id
-          }).length,
-          media_geral: 0,
-          media_lp: 0,
-          media_mat: 0,
-          presentes: 0,
-          faltantes: 0
-        })),
-        mediasPorEscola: escolasOffline.map((e) => ({
-          escola_id: e.id.toString(),
-          escola: e.nome,
-          polo: polosOffline.find((p) => p.id === e.polo_id)?.nome || '',
-          total_alunos: resultadosFiltrados.filter(r => r.escola_id === e.id).length,
-          media_geral: 0,
-          media_lp: 0,
-          media_mat: 0,
-          media_ch: 0,
-          media_cn: 0,
-          presentes: 0,
-          faltantes: 0
-        })),
+        mediasPorPolo: polosOffline.map((p) => {
+          const resultadosDoPolo = resultadosFiltrados.filter(r => {
+            const escola = escolasOffline.find((e) => String(e.id) === String(r.escola_id))
+            return escola && String(escola.polo_id) === String(p.id)
+          })
+          const presentes = resultadosDoPolo.filter(r => r.presenca?.toString().toUpperCase() === 'P')
+          const faltantes = resultadosDoPolo.filter(r => r.presenca?.toString().toUpperCase() === 'F')
+          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          const calcMedia = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
+          return {
+            polo_id: p.id.toString(),
+            polo: p.nome,
+            total_alunos: resultadosDoPolo.length,
+            media_geral: calcMedia(presentes.map(r => toNum(r.media_aluno)).filter(n => n > 0)),
+            media_lp: calcMedia(presentes.map(r => toNum(r.nota_lp)).filter(n => n > 0)),
+            media_mat: calcMedia(presentes.map(r => toNum(r.nota_mat)).filter(n => n > 0)),
+            presentes: presentes.length,
+            faltantes: faltantes.length
+          }
+        }),
+        mediasPorEscola: escolasOffline.map((e) => {
+          const resultadosDaEscola = resultadosFiltrados.filter(r => String(r.escola_id) === String(e.id))
+          const presentes = resultadosDaEscola.filter(r => r.presenca?.toString().toUpperCase() === 'P')
+          const faltantes = resultadosDaEscola.filter(r => r.presenca?.toString().toUpperCase() === 'F')
+          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          const calcMedia = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
+          return {
+            escola_id: e.id.toString(),
+            escola: e.nome,
+            polo: polosOffline.find((p) => String(p.id) === String(e.polo_id))?.nome || '',
+            total_alunos: resultadosDaEscola.length,
+            media_geral: calcMedia(presentes.map(r => toNum(r.media_aluno)).filter(n => n > 0)),
+            media_lp: calcMedia(presentes.map(r => toNum(r.nota_lp)).filter(n => n > 0)),
+            media_mat: calcMedia(presentes.map(r => toNum(r.nota_mat)).filter(n => n > 0)),
+            media_ch: calcMedia(presentes.map(r => toNum(r.nota_ch)).filter(n => n > 0)),
+            media_cn: calcMedia(presentes.map(r => toNum(r.nota_cn)).filter(n => n > 0)),
+            presentes: presentes.length,
+            faltantes: faltantes.length
+          }
+        }),
         mediasPorTurma: [],
         faixasNota: [],
         presenca: [
@@ -368,19 +382,23 @@ export default function DadosPage() {
           { status: 'Faltantes', quantidade: estatisticas.faltosos }
         ],
         topAlunos: [],
-        alunosDetalhados: resultadosFiltrados.slice(0, 50).map((r) => ({
-          id: r.id,
-          nome: r.aluno_nome,
-          escola: r.escola_nome,
-          serie: r.serie,
-          turma: r.turma_codigo,
-          presenca: r.presenca,
-          media_geral: r.media_aluno,
-          nota_lp: r.nota_lp,
-          nota_mat: r.nota_mat,
-          nota_ch: r.nota_ch,
-          nota_cn: r.nota_cn
-        })),
+        alunosDetalhados: resultadosFiltrados.slice(0, 50).map((r) => {
+          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          return {
+            id: r.id,
+            aluno_id: r.aluno_id,
+            nome: r.aluno_nome,
+            escola: r.escola_nome,
+            serie: r.serie,
+            turma: r.turma_codigo,
+            presenca: r.presenca,
+            media_geral: toNum(r.media_aluno),
+            nota_lp: toNum(r.nota_lp),
+            nota_mat: toNum(r.nota_mat),
+            nota_ch: toNum(r.nota_ch),
+            nota_cn: toNum(r.nota_cn)
+          }
+        }),
         filtros: {
           polos: polosOffline.map((p) => ({ id: p.id.toString(), nome: p.nome })),
           escolas: escolasOffline.map((e) => ({ id: e.id.toString(), nome: e.nome, polo_id: e.polo_id?.toString() || '' })),

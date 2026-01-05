@@ -43,22 +43,37 @@ export interface OfflineTurma {
 }
 
 export interface OfflineResultado {
-  id: number
-  aluno_id: number
+  id: number | string
+  aluno_id: number | string
   aluno_nome: string
-  escola_id: number
+  escola_id: number | string
   escola_nome: string
-  turma_id: number
+  turma_id: number | string
   turma_codigo: string
-  polo_id: number
+  polo_id: number | string
   serie: string
   ano_letivo: string
   presenca: string
-  nota_lp: number
-  nota_mat: number
-  nota_ch: number
-  nota_cn: number
-  media_aluno: number
+  nota_lp: number | string
+  nota_mat: number | string
+  nota_ch: number | string
+  nota_cn: number | string
+  media_aluno: number | string
+  // Campos adicionais para questões
+  nota_producao?: number | string
+  nivel_aprendizagem?: string
+  total_acertos_lp?: number | string
+  total_acertos_mat?: number | string
+  total_acertos_ch?: number | string
+  total_acertos_cn?: number | string
+}
+
+// Interface para alunos offline
+export interface OfflineAluno {
+  id: string
+  nome: string
+  escola_id: string
+  turma_id?: string
 }
 
 // Verificar se está online
@@ -310,10 +325,10 @@ export function filterResultados(filters: {
   if (filters.polo_id && filters.polo_id !== '' && filters.polo_id !== 'todos') {
     const poloIdStr = String(filters.polo_id)
     // Encontrar escolas do polo (comparando como string)
-    const escolasDoPolo = escolas.filter(e => String(e.polo_id) === poloIdStr).map(e => e.id)
+    const escolasDoPolo = escolas.filter(e => String(e.polo_id) === poloIdStr).map(e => String(e.id))
     console.log('[filterResultados] Polo ID:', poloIdStr, 'Escolas do polo:', escolasDoPolo.length)
     if (escolasDoPolo.length > 0) {
-      resultados = resultados.filter(r => escolasDoPolo.includes(r.escola_id))
+      resultados = resultados.filter(r => escolasDoPolo.includes(String(r.escola_id)))
     } else {
       // Se não encontrar escolas pelo polo_id, tentar filtrar diretamente pelo polo_id nos resultados
       resultados = resultados.filter(r => String(r.polo_id) === poloIdStr)
@@ -360,6 +375,13 @@ export function filterResultados(filters: {
 
 // ========== CALCULAR ESTATÍSTICAS ==========
 
+// Função auxiliar para converter valor para número
+function toNumber(value: number | string | null | undefined): number {
+  if (value === null || value === undefined || value === '') return 0
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  return isNaN(num) ? 0 : num
+}
+
 export function calcularEstatisticas(resultados: OfflineResultado[]): {
   total: number
   presentes: number
@@ -373,11 +395,11 @@ export function calcularEstatisticas(resultados: OfflineResultado[]): {
   const presentes = resultados.filter(r => r.presenca?.toUpperCase() === 'P')
   const faltosos = resultados.filter(r => r.presenca?.toUpperCase() === 'F')
 
-  const calcMedia = (arr: number[]): number => {
-    const validos = arr.filter(n => n != null && !isNaN(n))
-    if (validos.length === 0) return 0
-    const sum = validos.reduce((a, b) => a + b, 0)
-    return Number((sum / validos.length).toFixed(2))
+  const calcMedia = (valores: (number | string | null | undefined)[]): number => {
+    const numeros = valores.map(v => toNumber(v)).filter(n => n > 0)
+    if (numeros.length === 0) return 0
+    const sum = numeros.reduce((a, b) => a + b, 0)
+    return Number((sum / numeros.length).toFixed(2))
   }
 
   return {
@@ -390,6 +412,24 @@ export function calcularEstatisticas(resultados: OfflineResultado[]): {
     media_cn: calcMedia(presentes.map(r => r.nota_cn)),
     media_geral: calcMedia(presentes.map(r => r.media_aluno))
   }
+}
+
+// ========== BUSCAR RESULTADO DE UM ALUNO ==========
+
+export function getResultadoByAlunoId(alunoId: string | number, anoLetivo?: string): OfflineResultado | null {
+  const resultados = getResultados()
+  const alunoIdStr = String(alunoId)
+
+  let resultado = resultados.find(r => String(r.aluno_id) === alunoIdStr)
+
+  // Se tiver ano letivo, filtrar por ele
+  if (anoLetivo && resultado) {
+    resultado = resultados.find(r =>
+      String(r.aluno_id) === alunoIdStr && r.ano_letivo === anoLetivo
+    )
+  }
+
+  return resultado || null
 }
 
 // ========== OBTER SÉRIES ÚNICAS ==========
