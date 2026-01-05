@@ -129,10 +129,11 @@ export function PWAInstallPrompt() {
   )
 }
 
-// Componente de status de conexão
+// Componente de status de conexão - versão discreta que não bloqueia navegação
 export function ConnectionStatus() {
   const [isOnline, setIsOnline] = useState(true)
-  const [showStatus, setShowStatus] = useState(false)
+  const [showBanner, setShowBanner] = useState(false)
+  const [bannerMessage, setBannerMessage] = useState('')
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -141,13 +142,16 @@ export function ConnectionStatus() {
 
     const handleOnline = () => {
       setIsOnline(true)
-      setShowStatus(true)
-      setTimeout(() => setShowStatus(false), 3000)
+      setBannerMessage('Conexão restaurada!')
+      setShowBanner(true)
+      setTimeout(() => setShowBanner(false), 3000)
     }
 
     const handleOffline = () => {
       setIsOnline(false)
-      setShowStatus(true)
+      setBannerMessage('Modo offline ativado')
+      setShowBanner(true)
+      setTimeout(() => setShowBanner(false), 3000)
     }
 
     window.addEventListener('online', handleOnline)
@@ -159,23 +163,20 @@ export function ConnectionStatus() {
     }
   }, [])
 
-  if (!showStatus && isOnline) {
-    return null
+  // Banner temporário que aparece e some
+  if (showBanner) {
+    return (
+      <div
+        className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium z-40 shadow-lg transition-all animate-slide-up ${
+          isOnline
+            ? 'bg-green-500 text-white'
+            : 'bg-orange-500 text-white'
+        }`}
+      >
+        {bannerMessage}
+      </div>
+    )
   }
 
-  return (
-    <div
-      className={`fixed top-0 left-0 right-0 py-2 px-4 text-center text-sm font-medium z-50 transition-all ${
-        isOnline
-          ? 'bg-green-500 text-white'
-          : 'bg-yellow-500 text-yellow-900'
-      }`}
-    >
-      {isOnline ? (
-        'Conexão restaurada! Sincronizando dados...'
-      ) : (
-        'Você está offline. Os dados salvos ainda estão disponíveis.'
-      )}
-    </div>
-  )
+  return null
 }

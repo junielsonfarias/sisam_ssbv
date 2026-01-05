@@ -3,7 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
@@ -12,9 +12,10 @@ import {
   Users, School, GraduationCap, MapPin, TrendingUp, TrendingDown,
   Filter, X, ChevronDown, ChevronUp, RefreshCw, Download,
   BookOpen, Calculator, Award, UserCheck, UserX, BarChart3,
-  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target
+  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff
 } from 'lucide-react'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
+import { useOfflineData } from '@/hooks/useOfflineData'
 
 interface DashboardData {
   metricas: {
@@ -218,6 +219,10 @@ const getNotaBgColor = (nota: number | string | null | undefined) => {
 }
 
 export default function DadosPage() {
+  // Hook para dados offline
+  const offlineData = useOfflineData()
+  const [usandoDadosOffline, setUsandoDadosOffline] = useState(false)
+
   // Componente auxiliar para tooltip customizado
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -235,7 +240,7 @@ export default function DadosPage() {
     }
     return null
   }
-  
+
   const [dados, setDados] = useState<DashboardData | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
@@ -274,6 +279,114 @@ export default function DadosPage() {
   const carregarDados = async (forcarAtualizacao: boolean = false) => {
     setCarregando(true)
     setErro(null)
+
+    // MODO OFFLINE: Usar dados do IndexedDB
+    if (offlineData.isOfflineMode && offlineData.hasOfflineData) {
+      console.log('Carregando dados do IndexedDB (modo offline)')
+      setUsandoDadosOffline(true)
+
+      // Carregar dados se ainda não carregou
+      if (offlineData.resultados.length === 0) {
+        await offlineData.loadOfflineData()
+      }
+
+      // Filtrar resultados usando o hook
+      const resultadosFiltrados = offlineData.filterResultados({
+        polo_id: filtroPoloId,
+        escola_id: filtroEscolaId,
+        turma_id: filtroTurmaId,
+        serie: filtroSerie,
+        ano_letivo: filtroAnoLetivo,
+        presenca: filtroPresenca
+      })
+
+      // Calcular estatísticas dos dados offline
+      const stats = offlineData.getEstatisticas(resultadosFiltrados)
+
+      // Construir dados do dashboard a partir dos dados offline
+      const dadosOffline: DashboardData = {
+        metricas: {
+          total_alunos: stats.total,
+          total_escolas: offlineData.escolas.length,
+          total_turmas: offlineData.turmas.length,
+          total_polos: offlineData.polos.length,
+          total_presentes: stats.presentes,
+          total_faltantes: stats.faltosos,
+          media_geral: stats.media_geral,
+          media_lp: stats.media_lp,
+          media_mat: stats.media_mat,
+          media_ch: stats.media_ch,
+          media_cn: stats.media_cn,
+          media_producao: 0,
+          menor_media: 0,
+          maior_media: 10,
+          taxa_presenca: stats.total > 0 ? (stats.presentes / stats.total) * 100 : 0
+        },
+        niveis: [],
+        mediasPorSerie: [],
+        mediasPorPolo: offlineData.polos.map(p => ({
+          polo_id: p.id.toString(),
+          polo: p.nome,
+          total_alunos: resultadosFiltrados.filter(r => {
+            const escola = offlineData.escolas.find(e => e.id === r.escola_id)
+            return escola?.polo_id === p.id
+          }).length,
+          media_geral: 0,
+          media_lp: 0,
+          media_mat: 0,
+          presentes: 0,
+          faltantes: 0
+        })),
+        mediasPorEscola: offlineData.escolas.map(e => ({
+          escola_id: e.id.toString(),
+          escola: e.nome,
+          polo: offlineData.polos.find(p => p.id === e.polo_id)?.nome || '',
+          total_alunos: resultadosFiltrados.filter(r => r.escola_id === e.id).length,
+          media_geral: 0,
+          media_lp: 0,
+          media_mat: 0,
+          media_ch: 0,
+          media_cn: 0,
+          presentes: 0,
+          faltantes: 0
+        })),
+        mediasPorTurma: [],
+        faixasNota: [],
+        presenca: [
+          { status: 'Presentes', quantidade: stats.presentes },
+          { status: 'Faltantes', quantidade: stats.faltosos }
+        ],
+        topAlunos: [],
+        alunosDetalhados: resultadosFiltrados.slice(0, 50).map(r => ({
+          id: r.id,
+          nome: r.aluno_nome,
+          escola: r.escola_nome,
+          serie: r.serie,
+          turma: r.turma_codigo,
+          presenca: r.presenca,
+          media_geral: r.media_aluno,
+          nota_lp: r.nota_lp,
+          nota_mat: r.nota_mat,
+          nota_ch: r.nota_ch,
+          nota_cn: r.nota_cn
+        })),
+        filtros: {
+          polos: offlineData.polos.map(p => ({ id: p.id.toString(), nome: p.nome })),
+          escolas: offlineData.escolas.map(e => ({ id: e.id.toString(), nome: e.nome, polo_id: e.polo_id?.toString() || '' })),
+          series: [...new Set(offlineData.resultados.map(r => r.serie).filter(Boolean))] as string[],
+          turmas: offlineData.turmas.map(t => ({ id: t.id.toString(), codigo: t.codigo, escola_id: t.escola_id?.toString() || '' })),
+          anosLetivos: [...new Set(offlineData.resultados.map(r => r.ano_letivo).filter(Boolean))] as string[],
+          niveis: [],
+          faixasMedia: []
+        }
+      }
+
+      setDados(dadosOffline)
+      setCarregando(false)
+      return
+    }
+
+    // MODO ONLINE: Buscar da API
     try {
       const params = new URLSearchParams()
       if (filtroPoloId) params.append('polo_id', filtroPoloId)
@@ -296,11 +409,22 @@ export default function DadosPage() {
 
       if (response.ok) {
         setDados(data)
+        setUsandoDadosOffline(false)
       } else {
         setErro(data.mensagem || 'Erro ao carregar dados')
       }
     } catch (error: any) {
       console.error('Erro ao carregar dados:', error)
+
+      // Fallback para dados offline em caso de erro de rede
+      if (offlineData.hasOfflineData) {
+        console.log('Fallback para dados offline após erro de rede')
+        setUsandoDadosOffline(true)
+        // Recarregar usando modo offline
+        await carregarDados(false)
+        return
+      }
+
       setErro('Erro de conexão')
     } finally {
       setCarregando(false)
@@ -486,6 +610,17 @@ export default function DadosPage() {
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="space-y-4 overflow-x-hidden max-w-full">
+          {/* Indicador de modo offline */}
+          {(usandoDadosOffline || offlineData.isOfflineMode) && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
+              <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-orange-800">Modo Offline</p>
+                <p className="text-xs text-orange-600">Exibindo dados sincronizados. Conecte-se para atualizar.</p>
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div className="min-w-0 flex-1">

@@ -286,3 +286,101 @@ export function isIndexedDBAvailable(): boolean {
   if (typeof window === 'undefined') return false;
   return 'indexedDB' in window;
 }
+
+// Interface do usuário para armazenamento offline
+export interface OfflineUser {
+  id: string;
+  nome: string;
+  email: string;
+  tipo_usuario: string;
+  polo_id?: number;
+  escola_id?: number;
+  polo_nome?: string;
+  escola_nome?: string;
+  foto_url?: string;
+  savedAt: string;
+}
+
+// Salvar usuário para acesso offline
+export async function saveUserOffline(user: any): Promise<void> {
+  if (!isIndexedDBAvailable()) return;
+
+  try {
+    const offlineUser: OfflineUser = {
+      id: user.id?.toString() || user.usuario_id?.toString(),
+      nome: user.nome,
+      email: user.email,
+      tipo_usuario: user.tipo_usuario,
+      polo_id: user.polo_id,
+      escola_id: user.escola_id,
+      polo_nome: user.polo_nome,
+      escola_nome: user.escola_nome,
+      foto_url: user.foto_url,
+      savedAt: new Date().toISOString()
+    };
+
+    await offlineDB.putItem(STORES.USER_DATA, offlineUser);
+
+    // Também salvar no localStorage como backup
+    localStorage.setItem('sisam-offline-user', JSON.stringify(offlineUser));
+  } catch (error) {
+    console.error('Erro ao salvar usuário offline:', error);
+  }
+}
+
+// Recuperar usuário offline
+export async function getOfflineUser(): Promise<OfflineUser | null> {
+  // Primeiro tentar localStorage (mais rápido)
+  try {
+    const stored = localStorage.getItem('sisam-offline-user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      // Verificar se não expirou (7 dias)
+      const savedAt = new Date(user.savedAt);
+      const now = new Date();
+      const daysDiff = (now.getTime() - savedAt.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (daysDiff <= 7) {
+        return user;
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao ler usuário do localStorage:', error);
+  }
+
+  // Fallback para IndexedDB
+  if (!isIndexedDBAvailable()) return null;
+
+  try {
+    const users = await offlineDB.getData<OfflineUser>(STORES.USER_DATA);
+    if (users.length > 0) {
+      const user = users[0];
+      const savedAt = new Date(user.savedAt);
+      const now = new Date();
+      const daysDiff = (now.getTime() - savedAt.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (daysDiff <= 7) {
+        return user;
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao ler usuário do IndexedDB:', error);
+  }
+
+  return null;
+}
+
+// Limpar usuário offline (logout)
+export async function clearOfflineUser(): Promise<void> {
+  try {
+    localStorage.removeItem('sisam-offline-user');
+    if (isIndexedDBAvailable()) {
+      const db = await offlineDB.getDB();
+      const transaction = db.transaction(STORES.USER_DATA, 'readwrite');
+      const store = transaction.objectStore(STORES.USER_DATA);
+      store.clear();
+    }
+  } catch (error) {
+    console.error('Erro ao limpar usuário offline:', error);
+  }
+}

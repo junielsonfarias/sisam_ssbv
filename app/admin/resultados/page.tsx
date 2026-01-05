@@ -3,9 +3,10 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { useEffect, useState, useMemo } from 'react'
-import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Target, CheckCircle2, Eye } from 'lucide-react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Target, CheckCircle2, Eye, WifiOff } from 'lucide-react'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
+import { useOfflineData } from '@/hooks/useOfflineData'
 
 interface ResultadoConsolidado {
   id: string
@@ -78,6 +79,11 @@ interface Filtros {
 export default function ResultadosPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [resultados, setResultados] = useState<ResultadoConsolidado[]>([])
+
+  // Hook para dados offline
+  const offlineData = useOfflineData()
+  const [usandoDadosOffline, setUsandoDadosOffline] = useState(false)
+
   const [estatisticasGerais, setEstatisticasGerais] = useState<{
     totalAlunos: number
     totalPresentes: number
@@ -183,6 +189,28 @@ export default function ResultadosPage() {
   }, [filtros.escola_id, filtros.serie, filtros.ano_letivo])
 
   const carregarDadosIniciais = async () => {
+    // Verificar se está offline e tem dados disponíveis
+    if (offlineData.isOfflineMode && offlineData.hasOfflineData) {
+      console.log('Modo offline: usando dados do IndexedDB')
+      setUsandoDadosOffline(true)
+      await offlineData.loadOfflineData()
+
+      // Usar dados do IndexedDB
+      setPolos(offlineData.polos)
+      setEscolas(offlineData.escolas)
+
+      // Extrair séries únicas dos resultados offline
+      const seriesUnicas = [...new Set(offlineData.resultados.map(r => r.serie).filter(Boolean))]
+      setSeries(seriesUnicas as string[])
+
+      // Extrair anos letivos únicos
+      const anosUnicos = [...new Set(offlineData.resultados.map(r => r.ano_letivo).filter(Boolean))]
+        .sort((a, b) => parseInt(b) - parseInt(a))
+      setAnosLetivos(anosUnicos as string[])
+
+      return
+    }
+
     try {
       const [polosRes, escolasRes, seriesRes, anosRes] = await Promise.all([
         fetch('/api/admin/polos'),
@@ -206,8 +234,23 @@ export default function ResultadosPage() {
 
       // Carregar anos letivos distintos do banco
       await carregarAnosLetivos()
+      setUsandoDadosOffline(false)
     } catch (error) {
       console.error('Erro ao carregar dados iniciais:', error)
+
+      // Fallback para dados offline em caso de erro de rede
+      if (offlineData.hasOfflineData) {
+        console.log('Fallback para dados offline após erro de rede')
+        setUsandoDadosOffline(true)
+        await offlineData.loadOfflineData()
+        setPolos(offlineData.polos)
+        setEscolas(offlineData.escolas)
+        const seriesUnicas = [...new Set(offlineData.resultados.map(r => r.serie).filter(Boolean))]
+        setSeries(seriesUnicas as string[])
+        const anosUnicos = [...new Set(offlineData.resultados.map(r => r.ano_letivo).filter(Boolean))]
+          .sort((a, b) => parseInt(b) - parseInt(a))
+        setAnosLetivos(anosUnicos as string[])
+      }
     }
   }
 
@@ -284,6 +327,59 @@ export default function ResultadosPage() {
         })
       }
 
+      // MODO OFFLINE: Usar dados do IndexedDB
+      if (usandoDadosOffline || offlineData.isOfflineMode) {
+        console.log('Carregando resultados do IndexedDB (modo offline)')
+
+        // Carregar dados se ainda não carregou
+        if (offlineData.resultados.length === 0) {
+          await offlineData.loadOfflineData()
+        }
+
+        // Filtrar resultados usando o hook
+        const resultadosFiltrados = offlineData.filterResultados({
+          polo_id: filtros.polo_id,
+          escola_id: filtros.escola_id,
+          turma_id: filtros.turma_id,
+          serie: filtros.serie,
+          ano_letivo: filtros.ano_letivo,
+          presenca: filtros.presenca
+        })
+
+        // Paginação local
+        const limite = 50
+        const inicio = (pagina - 1) * limite
+        const fim = inicio + limite
+        const resultadosPaginados = resultadosFiltrados.slice(inicio, fim)
+
+        // Calcular estatísticas
+        const stats = offlineData.getEstatisticas(resultadosFiltrados)
+
+        setResultados(resultadosPaginados as any)
+        setEstatisticasGerais({
+          totalAlunos: stats.total,
+          totalPresentes: stats.presentes,
+          totalFaltas: stats.faltosos,
+          mediaGeral: stats.media_geral,
+          mediaLP: stats.media_lp,
+          mediaCH: stats.media_ch,
+          mediaMAT: stats.media_mat,
+          mediaCN: stats.media_cn
+        })
+        setPaginacao({
+          pagina,
+          limite,
+          total: resultadosFiltrados.length,
+          totalPaginas: Math.ceil(resultadosFiltrados.length / limite),
+          temProxima: fim < resultadosFiltrados.length,
+          temAnterior: pagina > 1
+        })
+        setPaginaAtual(pagina)
+        setCarregando(false)
+        return
+      }
+
+      // MODO ONLINE: Buscar da API
       const params = new URLSearchParams()
       Object.entries(filtros).forEach(([key, value]) => {
         // Não enviar valores vazios, null, undefined ou "Todas"
@@ -581,6 +677,17 @@ export default function ResultadosPage() {
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+          {/* Indicador de modo offline */}
+          {(usandoDadosOffline || offlineData.isOfflineMode) && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
+              <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-orange-800">Modo Offline</p>
+                <p className="text-xs text-orange-600">Exibindo dados sincronizados. Conecte-se para atualizar.</p>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Resultados Consolidados</h1>

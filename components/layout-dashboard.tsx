@@ -23,10 +23,12 @@ import {
   History,
   FilePlus,
   UserPlus,
-  User
+  User,
+  WifiOff
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
+import { saveUserOffline, getOfflineUser, clearOfflineUser, isOnline } from '@/lib/offline-db'
 
 interface LayoutDashboardProps {
   children: React.ReactNode
@@ -37,24 +39,77 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const router = useRouter()
   const [usuario, setUsuario] = useState<any>(null)
   const [menuAberto, setMenuAberto] = useState(false)
+  const [modoOffline, setModoOffline] = useState(false)
 
   useEffect(() => {
     const carregarUsuario = async () => {
-      try {
-        const response = await fetch('/api/auth/verificar')
-        const data = await response.json()
-        if (data.usuario) {
-          setUsuario(data.usuario)
+      // Verificar se está online
+      const online = isOnline()
+      setModoOffline(!online)
+
+      if (online) {
+        // Tentar carregar do servidor
+        try {
+          const response = await fetch('/api/auth/verificar')
+          const data = await response.json()
+          if (data.usuario) {
+            setUsuario(data.usuario)
+            // Salvar usuário para acesso offline
+            await saveUserOffline(data.usuario)
+          } else {
+            // Sem sessão válida, tentar usuário offline
+            const offlineUser = await getOfflineUser()
+            if (offlineUser) {
+              setUsuario(offlineUser)
+              setModoOffline(true)
+            } else {
+              router.push('/login')
+            }
+          }
+        } catch (error) {
+          // Erro de rede, tentar usuário offline
+          const offlineUser = await getOfflineUser()
+          if (offlineUser) {
+            setUsuario(offlineUser)
+            setModoOffline(true)
+          } else {
+            router.push('/login')
+          }
         }
-      } catch (error) {
-        router.push('/login')
+      } else {
+        // Está offline, usar usuário salvo
+        const offlineUser = await getOfflineUser()
+        if (offlineUser) {
+          setUsuario(offlineUser)
+        } else {
+          // Sem usuário offline, redirecionar para login
+          router.push('/login')
+        }
       }
     }
+
     carregarUsuario()
+
+    // Listener para mudanças de conexão
+    const handleOnline = () => setModoOffline(false)
+    const handleOffline = () => setModoOffline(true)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
   }, [router])
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    // Limpar dados offline
+    await clearOfflineUser()
+    // Fazer logout no servidor (se online)
+    if (isOnline()) {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    }
     router.push('/login')
   }
 
@@ -155,8 +210,17 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               <h1 className="ml-2 lg:ml-0 text-lg sm:text-xl md:text-2xl font-bold text-gray-800 truncate">SISAM</h1>
             </div>
             <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 min-w-0">
+              {/* Indicador de modo offline */}
+              {modoOffline && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                  <WifiOff className="w-3 h-3" />
+                  <span className="hidden sm:inline">Offline</span>
+                </span>
+              )}
               {/* Status de sincronização offline */}
-              <OfflineSyncManager userId={usuario?.id?.toString() || null} autoSync={true} showStatus={true} />
+              {!modoOffline && (
+                <OfflineSyncManager userId={usuario?.id?.toString() || null} autoSync={true} showStatus={true} />
+              )}
 
               <Link
                 href="/perfil"
