@@ -22,7 +22,8 @@ import {
   Upload,
   History,
   FilePlus,
-  UserPlus
+  UserPlus,
+  User
 } from 'lucide-react'
 import Rodape from './rodape'
 
@@ -116,8 +117,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para POLO
     if (tipoUsuarioReal === 'polo') {
       items.push(
+        { icon: FileText, label: 'Resultados', href: '/polo/analise' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
-        { icon: School, label: 'Escolas', href: '/admin/escolas' },
         { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
       )
     }
@@ -152,8 +153,19 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               </button>
               <h1 className="ml-2 lg:ml-0 text-lg sm:text-xl md:text-2xl font-bold text-gray-800 truncate">SISAM</h1>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 min-w-0">
-              <span className="text-xs sm:text-sm text-gray-600 truncate max-w-[80px] sm:max-w-[120px] md:max-w-[200px]">{usuario?.nome}</span>
+            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 min-w-0">
+              <Link
+                href="/perfil"
+                className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                title="Meu Perfil"
+              >
+                {usuario?.foto_url ? (
+                  <img src={usuario.foto_url} alt="" className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover" />
+                ) : (
+                  <User className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+                <span className="text-xs sm:text-sm truncate max-w-[60px] sm:max-w-[100px] md:max-w-[150px]">{usuario?.nome}</span>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors flex-shrink-0"

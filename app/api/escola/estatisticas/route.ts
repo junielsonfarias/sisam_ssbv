@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    let nomeEscola = ''
+    let nomePolo = ''
     let totalResultados = 0
     let totalAcertos = 0
     let totalAlunos = 0
@@ -23,6 +25,21 @@ export async function GET(request: NextRequest) {
     let totalAlunosFaltantes = 0
     let mediaGeral = 0
     let taxaAprovacao = 0
+
+    // Buscar nome da escola e polo
+    try {
+      const escolaResult = await pool.query(
+        `SELECT e.nome as escola_nome, p.nome as polo_nome
+         FROM escolas e
+         LEFT JOIN polos p ON e.polo_id = p.id
+         WHERE e.id = $1`,
+        [usuario.escola_id]
+      )
+      nomeEscola = escolaResult.rows[0]?.escola_nome || ''
+      nomePolo = escolaResult.rows[0]?.polo_nome || ''
+    } catch (error: any) {
+      console.error('Erro ao buscar nome da escola:', error.message)
+    }
 
     try {
       const resultadosResult = await pool.query(
@@ -98,6 +115,8 @@ export async function GET(request: NextRequest) {
     const taxaAcertos = totalResultados > 0 ? (totalAcertos / totalResultados) * 100 : 0
 
     return NextResponse.json({
+      nomeEscola,
+      nomePolo,
       totalResultados,
       taxaAcertos,
       totalAlunos,

@@ -30,11 +30,13 @@ interface DadosComparativo {
 
 export default function ComparativosPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
+  const [usuario, setUsuario] = useState<any>(null)
   const [escolas, setEscolas] = useState<any[]>([])
   const [polos, setPolos] = useState<any[]>([])
   const [series, setSeries] = useState<string[]>([])
   const [turmas, setTurmas] = useState<any[]>([])
   const [escolasSelecionadas, setEscolasSelecionadas] = useState<string[]>([])
+  const [poloNome, setPoloNome] = useState<string>('')
   const [filtros, setFiltros] = useState({
     polo_id: '',
     ano_letivo: '', // Deixar vazio por padrão para buscar todos os anos
@@ -61,14 +63,26 @@ export default function ComparativosPage() {
         if (data.usuario) {
           const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
           setTipoUsuario(tipo)
+          setUsuario(data.usuario)
+
+          // Se for usuário polo, fixar o polo_id no filtro
+          if (data.usuario.tipo_usuario === 'polo' && data.usuario.polo_id) {
+            setFiltros(prev => ({ ...prev, polo_id: data.usuario.polo_id }))
+          }
         }
       } catch (error) {
         console.error('Erro ao carregar tipo de usuário:', error)
       }
     }
     carregarTipoUsuario()
-    carregarDadosIniciais()
   }, [])
+
+  // Carregar dados iniciais após definir o usuário
+  useEffect(() => {
+    if (usuario || tipoUsuario === 'admin') {
+      carregarDadosIniciais()
+    }
+  }, [usuario])
 
   useEffect(() => {
     carregarTurmas()
@@ -81,16 +95,40 @@ export default function ComparativosPage() {
 
   const carregarDadosIniciais = async () => {
     try {
-      const [escolasRes, polosRes] = await Promise.all([
-        fetch('/api/admin/escolas'),
-        fetch('/api/admin/polos'),
-      ])
-      
-      const escolasData = await escolasRes.json()
-      const polosData = await polosRes.json()
-      
-      setEscolas(escolasData)
-      setPolos(polosData)
+      // Para usuário polo, carregar apenas escolas do seu polo
+      if (usuario?.tipo_usuario === 'polo' && usuario?.polo_id) {
+        const [escolasRes, poloRes] = await Promise.all([
+          fetch('/api/polo/escolas'),
+          fetch(`/api/admin/polos?id=${usuario.polo_id}`),
+        ])
+
+        const escolasData = await escolasRes.json()
+        const poloData = await poloRes.json()
+
+        if (Array.isArray(escolasData)) {
+          setEscolas(escolasData)
+        }
+        if (Array.isArray(poloData) && poloData.length > 0) {
+          setPolos(poloData)
+          setPoloNome(poloData[0].nome)
+        }
+      } else {
+        // Admin/Tecnico: carregar todas as escolas e polos
+        const [escolasRes, polosRes] = await Promise.all([
+          fetch('/api/admin/escolas'),
+          fetch('/api/admin/polos'),
+        ])
+
+        const escolasData = await escolasRes.json()
+        const polosData = await polosRes.json()
+
+        if (Array.isArray(escolasData)) {
+          setEscolas(escolasData)
+        }
+        if (Array.isArray(polosData)) {
+          setPolos(polosData)
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar dados iniciais:', error)
     }
@@ -209,12 +247,13 @@ export default function ComparativosPage() {
 
   const limparFiltros = () => {
     setEscolasSelecionadas([])
-    setFiltros({
-      polo_id: '',
+    // Manter o polo_id se for usuário polo
+    setFiltros(prev => ({
+      polo_id: usuario?.tipo_usuario === 'polo' ? prev.polo_id : '',
       ano_letivo: '',
       serie: '',
       turma_id: '',
-    })
+    }))
   }
 
   const formatarNumero = (valor: number | string | null): string => {
@@ -233,9 +272,12 @@ export default function ComparativosPage() {
   }
 
   const escolasFiltradas = useMemo(() => {
+    // Para usuário polo, já recebemos apenas as escolas do polo
+    if (usuario?.tipo_usuario === 'polo') return escolas
+    // Para admin/tecnico, filtrar pelo polo selecionado
     if (!filtros.polo_id) return escolas
     return escolas.filter((e) => e.polo_id === filtros.polo_id)
-  }, [escolas, filtros.polo_id])
+  }, [escolas, filtros.polo_id, usuario])
 
   const totalEscolasComparadas = useMemo(() => {
     return new Set(
@@ -277,21 +319,30 @@ export default function ComparativosPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Polo
                 </label>
-                <select
-                  value={filtros.polo_id}
-                  onChange={(e) => {
-                    setFiltros((prev) => ({ ...prev, polo_id: e.target.value }))
-                    setEscolasSelecionadas([])
-                  }}
-                  className="select-custom w-full"
-                >
-                  <option value="">Todos os polos</option>
-                  {polos.map((polo) => (
-                    <option key={polo.id} value={polo.id}>
-                      {polo.nome}
-                    </option>
-                  ))}
-                </select>
+                {usuario?.tipo_usuario === 'polo' ? (
+                  <input
+                    type="text"
+                    value={poloNome || 'Carregando...'}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed text-sm"
+                  />
+                ) : (
+                  <select
+                    value={filtros.polo_id}
+                    onChange={(e) => {
+                      setFiltros((prev) => ({ ...prev, polo_id: e.target.value }))
+                      setEscolasSelecionadas([])
+                    }}
+                    className="select-custom w-full"
+                  >
+                    <option value="">Todos os polos</option>
+                    {polos.map((polo) => (
+                      <option key={polo.id} value={polo.id}>
+                        {polo.nome}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>

@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'SISAM - Sistema de Análise de Provas',
-  description: 'Sistema para análise e gestão de dados de provas',
+  title: 'SISAM - Sistema de Avaliação Municipal',
+  description: 'Sistema de Avaliação Municioal',
 }
 
 export default function RootLayout({

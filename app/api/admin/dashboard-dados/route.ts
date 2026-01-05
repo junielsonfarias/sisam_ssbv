@@ -214,8 +214,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // IMPORTANTE: O filtro de disciplina NÃO deve afetar a contagem de alunos/presentes/faltantes
+    // Ele só deve afetar as análises de acertos/erros
+    // Por isso, criamos um whereClause separado para métricas gerais (sem filtro de disciplina)
+
+    // Guardar as condições base (sem disciplina) para métricas gerais
+    const whereConditionsBase = [...whereConditions]
+    const paramsBase = [...params]
+    const paramIndexBase = paramIndex
+
     if (disciplina) {
-      // Filtrar por disciplina específica - apenas alunos que têm nota na disciplina
+      // Filtrar por disciplina específica - apenas para análises de notas/acertos
+      // NÃO adiciona ao whereConditions para não afetar contagem de alunos
       const disciplinaMap: Record<string, { campo: string; usarTabela: boolean }> = {
         'LP': { campo: 'nota_lp', usarTabela: false },
         'MAT': { campo: 'nota_mat', usarTabela: false },
@@ -230,6 +240,9 @@ export async function GET(request: NextRequest) {
         whereConditions.push(`${prefixo}.${infoDisciplina.campo} IS NOT NULL AND CAST(${prefixo}.${infoDisciplina.campo} AS DECIMAL) > 0`)
       }
     }
+
+    // whereClauseBase: para métricas gerais (total_alunos, presentes, faltantes) - SEM filtro de disciplina
+    const whereClauseBase = whereConditionsBase.length > 0 ? `WHERE ${whereConditionsBase.join(' AND ')}` : ''
 
     // Filtro de taxa de acerto mínima/máxima
     if (taxaAcertoMin || taxaAcertoMax) {
@@ -264,7 +277,9 @@ export async function GET(request: NextRequest) {
     // Adicionar JOIN com resultados_consolidados se filtro de nivel_aprendizagem ou nota_producao for usado
     // Sempre adicionar o JOIN porque sempre precisamos de nota_producao e nivel_aprendizagem nas queries
     const joinNivelAprendizagem = 'LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo'
-    
+
+    // CORREÇÃO: Usar whereClauseBase para métricas gerais (sem filtro de disciplina)
+    // Isso garante que total_alunos, presentes e faltantes não sejam afetados pelo filtro de disciplina
     const metricasQuery = `
       SELECT
         COUNT(DISTINCT rc.aluno_id) as total_alunos,
@@ -284,11 +299,12 @@ export async function GET(request: NextRequest) {
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       ${joinNivelAprendizagem}
-      ${whereClause}
+      ${whereClauseBase}
     `
 
     // ========== DISTRIBUIÇÃO POR NÍVEL DE APRENDIZAGEM ==========
     // Usar LEFT JOIN com resultados_consolidados para pegar nivel_aprendizagem
+    // CORREÇÃO: Usar whereClauseBase para não ser afetado pelo filtro de disciplina
     const niveisQuery = `
       SELECT
         COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado') as nivel,
@@ -296,7 +312,7 @@ export async function GET(request: NextRequest) {
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
-      ${whereClause}
+      ${whereClauseBase}
       GROUP BY COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado')
       ORDER BY
         CASE COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado')
@@ -309,6 +325,7 @@ export async function GET(request: NextRequest) {
     `
 
     // ========== MÉDIAS POR SÉRIE ==========
+    // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
     const mediasPorSerieQuery = `
       SELECT
         rc.serie,
@@ -322,13 +339,14 @@ export async function GET(request: NextRequest) {
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       ${joinNivelAprendizagem}
-      ${whereClause}
+      ${whereClauseBase}
       GROUP BY rc.serie
       HAVING rc.serie IS NOT NULL
       ORDER BY REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer NULLS LAST
     `
 
     // ========== MÉDIAS POR POLO ==========
+    // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
     const mediasPorPoloQuery = `
       SELECT
         p.id as polo_id,
@@ -343,12 +361,13 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       INNER JOIN polos p ON e.polo_id = p.id
       ${joinNivelAprendizagem}
-      ${whereClause}
+      ${whereClauseBase}
       GROUP BY p.id, p.nome
       ORDER BY media_geral DESC NULLS LAST
     `
 
     // ========== MÉDIAS POR ESCOLA ==========
+    // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
     const mediasPorEscolaQuery = `
       SELECT
         e.id as escola_id,
@@ -366,12 +385,13 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN polos p ON e.polo_id = p.id
       ${joinNivelAprendizagem}
-      ${whereClause}
+      ${whereClauseBase}
       GROUP BY e.id, e.nome, p.nome
       ORDER BY media_geral DESC NULLS LAST
     `
 
     // ========== MÉDIAS POR TURMA ==========
+    // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
     const mediasPorTurmaQuery = `
       SELECT
         t.id as turma_id,
@@ -388,7 +408,7 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       ${joinNivelAprendizagem}
-      ${whereClause}
+      ${whereClauseBase}
       GROUP BY t.id, t.codigo, e.nome, rc.serie
       HAVING t.id IS NOT NULL
       ORDER BY media_geral DESC NULLS LAST
@@ -396,7 +416,10 @@ export async function GET(request: NextRequest) {
 
     // ========== DISTRIBUIÇÃO POR FAIXA DE NOTA ==========
     const faixasNotaConditions = [...whereConditions]
-    faixasNotaConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p')`)
+    // CORREÇÃO: Só adicionar filtro de presença = 'P' se o usuário NÃO estiver filtrando por presença específica
+    if (!presenca) {
+      faixasNotaConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p')`)
+    }
     faixasNotaConditions.push(`(rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0)`)
     const faixasNotaWhere = faixasNotaConditions.length > 0 ? `WHERE ${faixasNotaConditions.join(' AND ')}` : ''
     
@@ -420,9 +443,10 @@ export async function GET(request: NextRequest) {
     `
 
     // ========== DISTRIBUIÇÃO POR PRESENÇA ==========
+    // CORREÇÃO: Usar whereClauseBase para não ser afetado pelo filtro de disciplina
     const presencaQuery = `
       SELECT
-        CASE 
+        CASE
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 'Presente'
           WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 'Faltante'
           ELSE 'Não informado'
@@ -431,9 +455,9 @@ export async function GET(request: NextRequest) {
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       ${joinNivelAprendizagem}
-      ${whereClause}
-      GROUP BY 
-        CASE 
+      ${whereClauseBase}
+      GROUP BY
+        CASE
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 'Presente'
           WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 'Faltante'
           ELSE 'Não informado'
@@ -443,10 +467,19 @@ export async function GET(request: NextRequest) {
 
     // ========== TOP 10 ALUNOS ==========
     const topAlunosConditions = [...whereConditions]
-    topAlunosConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p')`)
-    topAlunosConditions.push(`(rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0)`)
+    // CORREÇÃO: Só adicionar filtro de presença = 'P' se o usuário NÃO estiver filtrando por presença específica
+    if (!presenca) {
+      topAlunosConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p')`)
+    }
+    // CORREÇÃO: Só exigir média > 0 se não estiver filtrando por faltantes
+    if (presenca !== 'F') {
+      topAlunosConditions.push(`(rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0)`)
+    }
     const topAlunosWhere = topAlunosConditions.length > 0 ? `WHERE ${topAlunosConditions.join(' AND ')}` : ''
     
+    // CORREÇÃO: Ordenação dinâmica - por média para presentes, por nome para faltantes
+    const topAlunosOrderBy = presenca === 'F' ? 'ORDER BY a.nome ASC' : 'ORDER BY rc.media_aluno DESC'
+
     const topAlunosQuery = `
       SELECT
         a.nome as aluno,
@@ -458,6 +491,7 @@ export async function GET(request: NextRequest) {
         rc.nota_mat,
         rc.nota_ch,
         rc.nota_cn,
+        rc.presenca,
         COALESCE(rc_table.nivel_aprendizagem, NULL) as nivel_aprendizagem
       FROM resultados_consolidados_unificada rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
@@ -465,7 +499,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN turmas t ON rc.turma_id = t.id
       LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
       ${topAlunosWhere}
-      ORDER BY rc.media_aluno DESC
+      ${topAlunosOrderBy}
       LIMIT 10
     `
 
@@ -479,6 +513,9 @@ export async function GET(request: NextRequest) {
     `
 
     // ========== ALUNOS DETALHADOS (para tabela com paginação) ==========
+    // CORREÇÃO: Ordenação dinâmica - por média para presentes/todos, por nome para faltantes
+    const alunosDetalhadosOrderBy = presenca === 'F' ? 'ORDER BY a.nome ASC' : 'ORDER BY rc.media_aluno DESC NULLS LAST'
+
     const alunosDetalhadosQuery = `
       SELECT
         a.id,
@@ -507,7 +544,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN turmas t ON rc.turma_id = t.id
       LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
       ${whereClause}
-      ORDER BY rc.media_aluno DESC NULLS LAST
+      ${alunosDetalhadosOrderBy}
       LIMIT ${limiteAlunos} OFFSET ${offsetAlunos}
     `
 
@@ -903,6 +940,8 @@ export async function GET(request: NextRequest) {
     `
 
     // Executar queries em lotes para evitar MaxClientsInSessionMode
+    // CORREÇÃO: Queries que usam whereClauseBase devem usar paramsBase
+    // Isso garante que contagens de alunos/presentes/faltantes não sejam afetadas pelo filtro de disciplina
     // Lote 1: Métricas principais e dados básicos
     const [
       metricasResult,
@@ -911,10 +950,10 @@ export async function GET(request: NextRequest) {
       mediasPorPoloResult,
       faixasNotaResult
     ] = await Promise.all([
-      pool.query(metricasQuery, params),
-      pool.query(niveisQuery, params),
-      pool.query(mediasPorSerieQuery, params),
-      pool.query(mediasPorPoloQuery, params),
+      pool.query(metricasQuery, paramsBase),       // usa whereClauseBase
+      pool.query(niveisQuery, paramsBase),         // usa whereClauseBase
+      pool.query(mediasPorSerieQuery, paramsBase), // usa whereClauseBase
+      pool.query(mediasPorPoloQuery, paramsBase),  // usa whereClauseBase
       pool.query(faixasNotaQuery, params)
     ])
 
@@ -926,9 +965,9 @@ export async function GET(request: NextRequest) {
       topAlunosResult,
       totalAlunosResult
     ] = await Promise.all([
-      pool.query(mediasPorEscolaQuery, params),
-      pool.query(mediasPorTurmaQuery, params),
-      pool.query(presencaQuery, params),
+      pool.query(mediasPorEscolaQuery, paramsBase), // usa whereClauseBase
+      pool.query(mediasPorTurmaQuery, paramsBase),  // usa whereClauseBase
+      pool.query(presencaQuery, paramsBase),        // usa whereClauseBase
       pool.query(topAlunosQuery, params),
       pool.query(totalAlunosQuery, params)
     ])

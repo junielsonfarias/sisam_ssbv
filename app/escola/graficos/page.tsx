@@ -21,6 +21,7 @@ export default function GraficosEscolaPage() {
   const [turmas, setTurmas] = useState<any[]>([])
   const [escolaId, setEscolaId] = useState<string>('')
   const [escolaNome, setEscolaNome] = useState<string>('')
+  const [poloNome, setPoloNome] = useState<string>('')
   const [dados, setDados] = useState<any>(null)
   const [carregando, setCarregando] = useState(false)
   const [tipoVisualizacao, setTipoVisualizacao] = useState<string>('geral')
@@ -34,11 +35,12 @@ export default function GraficosEscolaPage() {
         if (data.usuario && data.usuario.escola_id) {
           setEscolaId(data.usuario.escola_id)
           
-          // Carregar nome da escola
+          // Carregar nome da escola e polo
           const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`)
           const escolaData = await escolaRes.json()
           if (Array.isArray(escolaData) && escolaData.length > 0) {
             setEscolaNome(escolaData[0].nome)
+            setPoloNome(escolaData[0].polo_nome || '')
           }
         }
       } catch (error) {
@@ -162,7 +164,10 @@ export default function GraficosEscolaPage() {
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Análise Gráfica</h1>
-            <p className="text-gray-600 mt-1 text-sm sm:text-base">Visualize comparativos e estatísticas através de gráficos</p>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              {escolaNome && `${escolaNome}`}
+              {poloNome && <span className="text-gray-500"> - Polo: {poloNome}</span>}
+            </p>
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">

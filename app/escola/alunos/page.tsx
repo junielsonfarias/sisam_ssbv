@@ -45,8 +45,10 @@ export default function AlunosEscolaPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('escola')
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [turmas, setTurmas] = useState<any[]>([])
+  const [seriesDisponiveis, setSeriesDisponiveis] = useState<string[]>([])
   const [escolaId, setEscolaId] = useState<string>('')
   const [escolaNome, setEscolaNome] = useState<string>('')
+  const [poloNome, setPoloNome] = useState<string>('')
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [buscaDebounced, setBuscaDebounced] = useState('')
@@ -65,11 +67,12 @@ export default function AlunosEscolaPage() {
         if (data.usuario && data.usuario.escola_id) {
           setEscolaId(data.usuario.escola_id)
           
-          // Carregar nome da escola
+          // Carregar nome da escola e polo
           const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`)
           const escolaData = await escolaRes.json()
           if (Array.isArray(escolaData) && escolaData.length > 0) {
             setEscolaNome(escolaData[0].nome)
+            setPoloNome(escolaData[0].polo_nome || '')
           }
         }
       } catch (error) {
@@ -80,6 +83,34 @@ export default function AlunosEscolaPage() {
     }
     carregarDadosIniciais()
   }, [])
+
+  // Carregar séries disponíveis quando escolaId mudar
+  useEffect(() => {
+    const carregarSeries = async () => {
+      if (!escolaId) return
+
+      try {
+        // Buscar todas as séries distintas da escola
+        const response = await fetch(`/api/admin/alunos?escola_id=${escolaId}&limite=200`)
+        const data = await response.json()
+
+        if (data.alunos && Array.isArray(data.alunos)) {
+          const series = data.alunos
+            .map((a: Aluno) => a.serie)
+            .filter((serie: string | null): serie is string => Boolean(serie))
+            .map((serie: string) => normalizarSerie(serie))
+            .filter((serie: string) => serie !== '')
+
+          const seriesUnicas = [...new Set(series)] as string[]
+          setSeriesDisponiveis(ordenarSeries(seriesUnicas))
+        }
+      } catch (error) {
+        console.error('Erro ao carregar séries:', error)
+      }
+    }
+
+    carregarSeries()
+  }, [escolaId])
 
   useEffect(() => {
     if (escolaId && filtroSerie) {
@@ -146,8 +177,11 @@ export default function AlunosEscolaPage() {
       if (buscaDebounced) params.append('busca', buscaDebounced)
 
       const data = await fetch(`/api/admin/alunos?${params}`).then(r => r.json())
-      
-      if (Array.isArray(data)) {
+
+      // A API retorna {alunos: [...], paginacao: {...}}
+      if (data.alunos && Array.isArray(data.alunos)) {
+        setAlunos(data.alunos)
+      } else if (Array.isArray(data)) {
         setAlunos(data)
       } else {
         setAlunos([])
@@ -183,18 +217,6 @@ export default function AlunosEscolaPage() {
     }
   }, [])
 
-  // Séries disponíveis baseadas nos dados reais dos alunos
-  const seriesDisponiveis: string[] = useMemo(() => {
-    const series = alunos
-      .map(a => a.serie)
-      .filter((serie): serie is string => Boolean(serie))
-      .map(serie => normalizarSerie(serie))
-      .filter(serie => serie !== '')
-    
-    const seriesUnicas = [...new Set(series)]
-    return ordenarSeries(seriesUnicas)
-  }, [alunos])
-
   const alunosFiltrados = useMemo(() => {
     return alunos.filter(aluno => {
       if (buscaDebounced && !aluno.nome.toLowerCase().includes(buscaDebounced.toLowerCase())) {
@@ -212,7 +234,8 @@ export default function AlunosEscolaPage() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gestão de Alunos</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">
-                {escolaNome && `Escola: ${escolaNome}`}
+                {escolaNome && `${escolaNome}`}
+                {poloNome && <span className="text-gray-500"> - Polo: {poloNome}</span>}
               </p>
             </div>
           </div>

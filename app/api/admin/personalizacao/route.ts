@@ -16,7 +16,7 @@ const UPLOADS_PATH = path.join(process.cwd(), 'public', 'uploads')
 // Valores padrao
 const DEFAULTS = {
   login_titulo: 'SISAM',
-  login_subtitulo: 'Sistema de Analise de Provas',
+  login_subtitulo: 'Sistema de Avaliação Municipal',
   login_imagem_url: null,
   login_cor_primaria: '#4f46e5',
   login_cor_secundaria: '#818cf8',

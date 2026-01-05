@@ -268,8 +268,10 @@ export default function DadosPage() {
   // Usuário e tipo de usuário
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [usuario, setUsuario] = useState<any>(null)
+  const [escolaNome, setEscolaNome] = useState<string>('')
+  const [poloNome, setPoloNome] = useState<string>('')
 
-  const carregarDados = async () => {
+  const carregarDados = async (forcarAtualizacao: boolean = false) => {
     setCarregando(true)
     setErro(null)
     try {
@@ -286,6 +288,8 @@ export default function DadosPage() {
       if (filtroTaxaAcertoMin) params.append('taxa_acerto_min', filtroTaxaAcertoMin)
       if (filtroTaxaAcertoMax) params.append('taxa_acerto_max', filtroTaxaAcertoMax)
       if (filtroQuestaoCodigo) params.append('questao_codigo', filtroQuestaoCodigo)
+      // Forçar atualização do cache quando clicado no botão Atualizar
+      if (forcarAtualizacao) params.append('atualizar_cache', 'true')
 
       const response = await fetch(`/api/admin/dashboard-dados?${params}`)
       const data = await response.json()
@@ -304,13 +308,20 @@ export default function DadosPage() {
   }
 
   useEffect(() => {
-    carregarDados()
+    // Sempre forçar atualização quando filtros mudam para garantir dados atualizados
+    carregarDados(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
 
   const limparFiltros = () => {
-    setFiltroPoloId('')
-    setFiltroEscolaId('')
+    // Para usuários polo ou escola, manter o polo_id fixo
+    if (usuario?.tipo_usuario !== 'polo' && usuario?.tipo_usuario !== 'escola') {
+      setFiltroPoloId('')
+    }
+    // Para usuários escola, manter também o escola_id fixo
+    if (usuario?.tipo_usuario !== 'escola') {
+      setFiltroEscolaId('')
+    }
     setFiltroSerie('')
     setFiltroTurmaId('')
     setFiltroAnoLetivo('')
@@ -332,18 +343,24 @@ export default function DadosPage() {
     return obterDisciplinasPorSerieSync(filtroSerie || dados?.alunosDetalhados[0]?.serie)
   }, [filtroSerie, dados?.alunosDetalhados])
 
-  // Escolas e turmas filtradas
+  // Escolas filtradas por polo
   const escolasFiltradas = useMemo(() => {
     if (!dados?.filtros.escolas) return []
-    if (!filtroPoloId) return dados.filtros.escolas
+    if (!filtroPoloId) return [] // Não mostra escolas se nenhum polo selecionado
     return dados.filtros.escolas.filter(e => e.polo_id === filtroPoloId)
   }, [dados?.filtros.escolas, filtroPoloId])
 
+  // Turmas filtradas por escola E série
   const turmasFiltradas = useMemo(() => {
     if (!dados?.filtros.turmas) return []
-    if (!filtroEscolaId) return dados.filtros.turmas
-    return dados.filtros.turmas.filter(t => t.escola_id === filtroEscolaId)
-  }, [dados?.filtros.turmas, filtroEscolaId])
+    if (!filtroSerie) return [] // Não mostra turmas se nenhuma série selecionada
+    // Filtra por escola se selecionada
+    let turmas = dados.filtros.turmas
+    if (filtroEscolaId) {
+      turmas = turmas.filter(t => t.escola_id === filtroEscolaId)
+    }
+    return turmas
+  }, [dados?.filtros.turmas, filtroEscolaId, filtroSerie])
 
   // Ordenação e paginação de escolas
   const escolasOrdenadas = useMemo(() => {
@@ -422,9 +439,40 @@ export default function DadosPage() {
           const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
           setTipoUsuario(tipo)
           setUsuario(data.usuario)
-          // Se for usuário escola, definir automaticamente o filtro de escola
+
+          // Se for usuário escola, definir automaticamente os filtros e carregar nomes
           if (data.usuario.tipo_usuario === 'escola' && data.usuario.escola_id) {
             setFiltroEscolaId(data.usuario.escola_id)
+            // Carregar nome da escola e polo
+            try {
+              const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`)
+              const escolaData = await escolaRes.json()
+              if (Array.isArray(escolaData) && escolaData.length > 0) {
+                setEscolaNome(escolaData[0].nome)
+                setPoloNome(escolaData[0].polo_nome || '')
+                // Definir polo_id para filtrar corretamente
+                if (escolaData[0].polo_id) {
+                  setFiltroPoloId(escolaData[0].polo_id)
+                }
+              }
+            } catch (err) {
+              console.error('Erro ao carregar dados da escola:', err)
+            }
+          }
+
+          // Se for usuário polo, definir automaticamente o filtro de polo e carregar nome
+          if (data.usuario.tipo_usuario === 'polo' && data.usuario.polo_id) {
+            setFiltroPoloId(data.usuario.polo_id)
+            // Carregar nome do polo
+            try {
+              const poloRes = await fetch(`/api/admin/polos?id=${data.usuario.polo_id}`)
+              const poloData = await poloRes.json()
+              if (Array.isArray(poloData) && poloData.length > 0) {
+                setPoloNome(poloData[0].nome)
+              }
+            } catch (err) {
+              console.error('Erro ao carregar dados do polo:', err)
+            }
           }
         }
       } catch (error) {
@@ -445,15 +493,27 @@ export default function DadosPage() {
                 <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600 flex-shrink-0" />
                 <span className="truncate">Painel de Dados</span>
               </h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">Visualize e analise os resultados</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">
+                {usuario?.tipo_usuario === 'escola' && escolaNome ? (
+                  <>
+                    {escolaNome}
+                    {poloNome && <span className="text-gray-500"> - Polo: {poloNome}</span>}
+                  </>
+                ) : usuario?.tipo_usuario === 'polo' && poloNome ? (
+                  <>Polo: {poloNome}</>
+                ) : (
+                  'Visualize e analise os resultados'
+                )}
+              </p>
             </div>
             <button
-              onClick={carregarDados}
+              onClick={() => carregarDados(true)}
               disabled={carregando}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm sm:text-base flex-shrink-0"
+              title="Pesquisar dados (força atualização do cache)"
             >
               <RefreshCw className={`w-4 h-4 ${carregando ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Atualizar</span>
+              <span className="hidden sm:inline">Pesquisar</span>
             </button>
           </div>
 
@@ -507,21 +567,30 @@ export default function DadosPage() {
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroPoloId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Polo
                 </label>
-                <select
-                  value={filtroPoloId}
-                  onChange={(e) => { setFiltroPoloId(e.target.value); setFiltroEscolaId(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                  disabled={usuario?.tipo_usuario === 'escola' || usuario?.tipo_usuario === 'polo'}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
-                    filtroPoloId 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <option value="">Todos os polos</option>
-                  {dados?.filtros.polos.map(polo => (
-                    <option key={polo.id} value={polo.id}>{polo.nome}</option>
-                  ))}
-                </select>
+                {/* Para usuários escola ou polo, mostrar input fixo com o nome do polo */}
+                {(usuario?.tipo_usuario === 'escola' || usuario?.tipo_usuario === 'polo') ? (
+                  <input
+                    type="text"
+                    value={poloNome || 'Carregando...'}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 border-2 border-gray-300 text-gray-700 cursor-not-allowed"
+                  />
+                ) : (
+                  <select
+                    value={filtroPoloId}
+                    onChange={(e) => { setFiltroPoloId(e.target.value); setFiltroEscolaId(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                      filtroPoloId
+                        ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
+                        : 'bg-white border-2 border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    <option value="">Todos os polos</option>
+                    {dados?.filtros.polos.map(polo => (
+                      <option key={polo.id} value={polo.id}>{polo.nome}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Escola */}
@@ -530,21 +599,32 @@ export default function DadosPage() {
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroEscolaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Escola
                 </label>
-                <select
-                  value={filtroEscolaId}
-                  onChange={(e) => { setFiltroEscolaId(e.target.value); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                  disabled={usuario?.tipo_usuario === 'escola'}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
-                    filtroEscolaId 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <option value="">Todas as escolas</option>
-                  {escolasFiltradas.map(escola => (
-                    <option key={escola.id} value={escola.id}>{escola.nome}</option>
-                  ))}
-                </select>
+                {/* Para usuários escola, mostrar input fixo com o nome da escola */}
+                {usuario?.tipo_usuario === 'escola' ? (
+                  <input
+                    type="text"
+                    value={escolaNome || 'Carregando...'}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 border-2 border-gray-300 text-gray-700 cursor-not-allowed"
+                  />
+                ) : (
+                  <select
+                    value={filtroEscolaId}
+                    onChange={(e) => { setFiltroEscolaId(e.target.value); setFiltroTurmaId(''); setPaginaAtual(1); }}
+                    disabled={!filtroPoloId}
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
+                      filtroEscolaId
+                        ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
+                        : 'bg-white border-2 border-gray-300 text-gray-700'
+                    }`}
+                    title={!filtroPoloId ? 'Selecione um polo primeiro' : ''}
+                  >
+                    <option value="">{!filtroPoloId ? 'Selecione um polo primeiro' : 'Todas as escolas'}</option>
+                    {escolasFiltradas.map(escola => (
+                      <option key={escola.id} value={escola.id}>{escola.nome}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Serie */}
@@ -555,10 +635,10 @@ export default function DadosPage() {
                 </label>
                 <select
                   value={filtroSerie}
-                  onChange={(e) => { setFiltroSerie(e.target.value); setPaginaAtual(1); }}
+                  onChange={(e) => { setFiltroSerie(e.target.value); setFiltroTurmaId(''); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroSerie 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                    filtroSerie
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
                       : 'bg-white border-2 border-gray-300 text-gray-700'
                   }`}
                 >
@@ -578,13 +658,15 @@ export default function DadosPage() {
                 <select
                   value={filtroTurmaId}
                   onChange={(e) => { setFiltroTurmaId(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroTurmaId 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                  disabled={!filtroSerie}
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
+                    filtroTurmaId
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
                       : 'bg-white border-2 border-gray-300 text-gray-700'
                   }`}
+                  title={!filtroSerie ? 'Selecione uma série primeiro' : ''}
                 >
-                  <option value="">Todas as turmas</option>
+                  <option value="">{!filtroSerie ? 'Selecione uma série primeiro' : 'Todas as turmas'}</option>
                   {turmasFiltradas.map(turma => (
                     <option key={turma.id} value={turma.id}>{turma.codigo}</option>
                   ))}
@@ -625,8 +707,8 @@ export default function DadosPage() {
                   value={filtroPresenca}
                   onChange={(e) => { setFiltroPresenca(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroPresenca 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
+                    filtroPresenca
+                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
                       : 'bg-white border-2 border-gray-300 text-gray-700'
                   }`}
                 >

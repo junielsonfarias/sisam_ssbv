@@ -15,11 +15,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    let nomePolo = ''
     let totalEscolas = 0
     let totalResultados = 0
     let totalAlunos = 0
+    let totalTurmas = 0
     let totalAlunosPresentes = 0
+    let totalAlunosFaltantes = 0
     let mediaGeral = 0
+
+    // Buscar nome do polo
+    try {
+      const poloResult = await pool.query(
+        'SELECT nome FROM polos WHERE id = $1',
+        [usuario.polo_id]
+      )
+      nomePolo = poloResult.rows[0]?.nome || ''
+    } catch (error: any) {
+      console.error('Erro ao buscar nome do polo:', error.message)
+    }
 
     try {
       const escolasResult = await pool.query(
@@ -29,6 +43,19 @@ export async function GET(request: NextRequest) {
       totalEscolas = parseInt(escolasResult.rows[0]?.total || '0', 10) || 0
     } catch (error: any) {
       console.error('Erro ao buscar total de escolas:', error.message)
+    }
+
+    // Buscar total de turmas
+    try {
+      const turmasResult = await pool.query(
+        `SELECT COUNT(*) as total FROM turmas t
+         INNER JOIN escolas e ON t.escola_id = e.id
+         WHERE e.polo_id = $1 AND t.ativo = true`,
+        [usuario.polo_id]
+      )
+      totalTurmas = parseInt(turmasResult.rows[0]?.total || '0', 10) || 0
+    } catch (error: any) {
+      console.error('Erro ao buscar total de turmas:', error.message)
     }
 
     try {
@@ -55,13 +82,16 @@ export async function GET(request: NextRequest) {
 
     try {
       const presencaResult = await pool.query(
-        `SELECT COUNT(*) as presentes
+        `SELECT
+          COUNT(CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN 1 END) as presentes,
+          COUNT(CASE WHEN rc.presenca = 'F' OR rc.presenca = 'f' THEN 1 END) as faltantes
          FROM resultados_consolidados_unificada rc
          INNER JOIN escolas e ON rc.escola_id = e.id
-         WHERE e.polo_id = $1 AND (rc.presenca = 'P' OR rc.presenca = 'p')`,
+         WHERE e.polo_id = $1`,
         [usuario.polo_id]
       )
       totalAlunosPresentes = parseInt(presencaResult.rows[0]?.presentes || '0', 10) || 0
+      totalAlunosFaltantes = parseInt(presencaResult.rows[0]?.faltantes || '0', 10) || 0
     } catch (error: any) {
       console.error('Erro ao buscar alunos presentes:', error.message)
     }
@@ -80,10 +110,13 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
+      nomePolo,
       totalEscolas,
       totalResultados,
       totalAlunos,
+      totalTurmas,
       totalAlunosPresentes,
+      totalAlunosFaltantes,
       mediaGeral,
     })
   } catch (error: any) {

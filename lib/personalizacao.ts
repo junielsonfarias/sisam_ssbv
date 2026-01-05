@@ -25,7 +25,7 @@ export interface Personalizacao {
 const CONFIG_FIXA = {
   login: {
     titulo: 'SISAM',
-    subtitulo: 'Sistema de Analise de Provas',
+    subtitulo: 'Sistema de Avaliação Municipal',
     imagem_url: '/logo.png', // Logo fixa em public/logo.png
     cor_primaria: '#4f46e5',
     cor_secundaria: '#818cf8'

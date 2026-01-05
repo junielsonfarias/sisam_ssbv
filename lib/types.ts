@@ -7,6 +7,7 @@ export interface Usuario {
   tipo_usuario: TipoUsuario;
   polo_id?: string | null;
   escola_id?: string | null;
+  foto_url?: string | null;
   ativo: boolean;
   criado_em: Date;
   atualizado_em: Date;

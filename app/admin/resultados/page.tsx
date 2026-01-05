@@ -104,6 +104,7 @@ export default function ResultadosPage() {
   const [escolas, setEscolas] = useState<any[]>([])
   const [turmas, setTurmas] = useState<any[]>([])
   const [series, setSeries] = useState<string[]>([])
+  const [anosLetivos, setAnosLetivos] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string } | null>(null)
   
@@ -183,18 +184,55 @@ export default function ResultadosPage() {
 
   const carregarDadosIniciais = async () => {
     try {
-      const [polosRes, escolasRes] = await Promise.all([
+      const [polosRes, escolasRes, seriesRes, anosRes] = await Promise.all([
         fetch('/api/admin/polos'),
         fetch('/api/admin/escolas'),
+        fetch('/api/admin/configuracao-series'),
+        fetch('/api/admin/resultados-consolidados?limite=1'), // Para obter anos letivos disponíveis
       ])
-      
+
       const polosData = await polosRes.json()
       const escolasData = await escolasRes.json()
-      
+      const seriesData = await seriesRes.json()
+
       setPolos(polosData)
       setEscolas(escolasData)
+
+      // Carregar séries configuradas
+      if (seriesData.series && Array.isArray(seriesData.series)) {
+        const seriesFormatadas = seriesData.series.map((s: any) => s.nome_serie || `${s.serie}º ano`)
+        setSeries(seriesFormatadas)
+      }
+
+      // Carregar anos letivos distintos do banco
+      await carregarAnosLetivos()
     } catch (error) {
       console.error('Erro ao carregar dados iniciais:', error)
+    }
+  }
+
+  const carregarAnosLetivos = async () => {
+    try {
+      // Buscar anos letivos distintos dos resultados consolidados
+      const response = await fetch('/api/admin/dashboard-dados?limite=1&atualizar_cache=true')
+      const data = await response.json()
+
+      if (data.filtros?.anosLetivos && Array.isArray(data.filtros.anosLetivos)) {
+        // Filtrar valores válidos e ordenar decrescente
+        const anosValidos = data.filtros.anosLetivos
+          .filter((ano: string) => ano && ano.trim() !== '' && !isNaN(parseInt(ano)))
+          .sort((a: string, b: string) => parseInt(b) - parseInt(a))
+        setAnosLetivos(anosValidos)
+      } else {
+        // Fallback: anos recentes
+        const anoAtual = new Date().getFullYear()
+        setAnosLetivos([anoAtual.toString(), (anoAtual - 1).toString()])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar anos letivos:', error)
+      // Fallback: anos recentes
+      const anoAtual = new Date().getFullYear()
+      setAnosLetivos([anoAtual.toString(), (anoAtual - 1).toString()])
     }
   }
 
@@ -231,7 +269,21 @@ export default function ResultadosPage() {
   const carregarResultados = async (pagina: number = paginaAtual) => {
     try {
       setCarregando(true)
-      
+
+      // Resetar estatísticas durante o carregamento para mostrar que está atualizando
+      if (pagina === 1) {
+        setEstatisticasGerais({
+          totalAlunos: 0,
+          totalPresentes: 0,
+          totalFaltas: 0,
+          mediaGeral: 0,
+          mediaLP: 0,
+          mediaCH: 0,
+          mediaMAT: 0,
+          mediaCN: 0
+        })
+      }
+
       const params = new URLSearchParams()
       Object.entries(filtros).forEach(([key, value]) => {
         // Não enviar valores vazios, null, undefined ou "Todas"
@@ -239,11 +291,16 @@ export default function ResultadosPage() {
           params.append(key, value.toString())
         }
       })
-      
+
       // Parâmetros de paginação
       params.append('pagina', pagina.toString())
       params.append('limite', '50')
-      
+
+      // Forçar atualização do cache para garantir dados atualizados
+      params.append('atualizar_cache', 'true')
+
+      console.log('Carregando resultados com filtros:', Object.fromEntries(params.entries()))
+
       const response = await fetch(`/api/admin/resultados-consolidados?${params.toString()}`)
       
       if (!response.ok) {
@@ -307,30 +364,43 @@ export default function ResultadosPage() {
         
         // Extrair estatísticas da API (calculadas sobre TODOS os alunos)
         if (data.estatisticas && typeof data.estatisticas === 'object') {
-          setEstatisticasGerais({
+          const novasEstatisticas = {
             totalAlunos: data.estatisticas.totalAlunos || 0,
             totalPresentes: data.estatisticas.totalPresentes || 0,
             totalFaltas: data.estatisticas.totalFaltas || 0,
-            mediaGeral: data.estatisticas.mediaGeral || 0,
-            mediaLP: data.estatisticas.mediaLP || 0,
-            mediaCH: data.estatisticas.mediaCH || 0,
-            mediaMAT: data.estatisticas.mediaMAT || 0,
-            mediaCN: data.estatisticas.mediaCN || 0
+            mediaGeral: parseFloat(data.estatisticas.mediaGeral) || 0,
+            mediaLP: parseFloat(data.estatisticas.mediaLP) || 0,
+            mediaCH: parseFloat(data.estatisticas.mediaCH) || 0,
+            mediaMAT: parseFloat(data.estatisticas.mediaMAT) || 0,
+            mediaCN: parseFloat(data.estatisticas.mediaCN) || 0
+          }
+          console.log('Estatísticas recebidas da API:', novasEstatisticas)
+          setEstatisticasGerais(novasEstatisticas)
+        } else {
+          console.log('Sem estatísticas na resposta, calculando localmente')
+          // Calcular estatísticas localmente se API não retornou
+          const presentes = resultadosData.filter((r: any) => r.presenca === 'P' || r.presenca === 'p').length
+          const faltas = resultadosData.filter((r: any) => r.presenca === 'F' || r.presenca === 'f').length
+          setEstatisticasGerais({
+            totalAlunos: paginacaoData.total || resultadosData.length,
+            totalPresentes: presentes,
+            totalFaltas: faltas,
+            mediaGeral: 0,
+            mediaLP: 0,
+            mediaCH: 0,
+            mediaMAT: 0,
+            mediaCN: 0
           })
         }
       }
-      
+
+      console.log('Resultados carregados:', resultadosData.length, 'registros')
       setResultados(resultadosData)
       setPaginacao(paginacaoData)
       setPaginaAtual(paginacaoData.pagina)
-      
-      // Extrair séries únicas dos resultados
-      const seriesUnicas = [...new Set(resultadosData.map((r: ResultadoConsolidado) => r.serie).filter(Boolean))] as string[]
-      setSeries(seriesUnicas.sort())
     } catch (error) {
       console.error('Erro ao carregar resultados:', error)
       setResultados([])
-      setSeries([])
       setPaginacao({
         pagina: 1,
         limite: 50,
@@ -352,23 +422,23 @@ export default function ResultadosPage() {
       } else {
         delete novo[campo]
       }
-      
+
       // Se mudou o polo, limpar escola e turma selecionadas
-      if (campo === 'polo_id' && !valor) {
+      if (campo === 'polo_id') {
         delete novo.escola_id
         delete novo.turma_id
       }
-      
+
       // Se mudou a escola, limpar turma selecionada
-      if (campo === 'escola_id' && !valor) {
+      if (campo === 'escola_id') {
         delete novo.turma_id
       }
-      
+
       // Se mudou a série, limpar turma selecionada
-      if (campo === 'serie' && !valor) {
+      if (campo === 'serie') {
         delete novo.turma_id
       }
-      
+
       return novo
     })
   }
@@ -536,7 +606,27 @@ export default function ResultadosPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 sm:gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-4 mb-4">
+              {/* 1. Ano Letivo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ano Letivo
+                </label>
+                <select
+                  value={filtros.ano_letivo || ''}
+                  onChange={(e) => handleFiltroChange('ano_letivo', e.target.value)}
+                  className="select-custom w-full"
+                >
+                  <option value="">Todos</option>
+                  {anosLetivos.map((ano) => (
+                    <option key={ano} value={ano}>
+                      {ano}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Polo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Polo
@@ -555,6 +645,7 @@ export default function ResultadosPage() {
                 </select>
               </div>
 
+              {/* 3. Escola */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Escola
@@ -562,7 +653,8 @@ export default function ResultadosPage() {
                 <select
                   value={filtros.escola_id || ''}
                   onChange={(e) => handleFiltroChange('escola_id', e.target.value)}
-                  className="select-custom w-full"
+                  disabled={!filtros.polo_id}
+                  className="select-custom w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">Todas</option>
                   {escolas
@@ -575,6 +667,26 @@ export default function ResultadosPage() {
                 </select>
               </div>
 
+              {/* 4. Série */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Série
+                </label>
+                <select
+                  value={filtros.serie || ''}
+                  onChange={(e) => handleFiltroChange('serie', e.target.value)}
+                  className="select-custom w-full"
+                >
+                  <option value="">Todas</option>
+                  {series.map((serie) => (
+                    <option key={serie} value={serie}>
+                      {serie}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 5. Turma */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Turma
@@ -594,37 +706,7 @@ export default function ResultadosPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ano Letivo
-                </label>
-                <input
-                  type="text"
-                  value={filtros.ano_letivo || ''}
-                  onChange={(e) => handleFiltroChange('ano_letivo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                  placeholder="Ex: 2026"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Série
-                </label>
-                <select
-                  value={filtros.serie || ''}
-                  onChange={(e) => handleFiltroChange('serie', e.target.value)}
-                  className="select-custom w-full"
-                >
-                  <option value="">Todas</option>
-                  {series.map((serie) => (
-                    <option key={serie} value={serie}>
-                      {serie}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+              {/* 6. Presença */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Presença
@@ -636,10 +718,11 @@ export default function ResultadosPage() {
                 >
                   <option value="">Todas</option>
                   <option value="P">Presente</option>
-                  <option value="F">Falta</option>
+                  <option value="F">Faltante</option>
                 </select>
               </div>
 
+              {/* 7. Busca */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Busca
@@ -655,12 +738,33 @@ export default function ResultadosPage() {
                   />
                 </div>
               </div>
+
+              {/* 8. Botão Pesquisar */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => carregarResultados(1)}
+                  disabled={carregando}
+                  className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {carregando ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Pesquisando...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      Pesquisar
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Cards de Estatísticas */}
-          {resultadosFiltrados.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {(estatisticas.total > 0 || carregando) && (
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${carregando ? 'opacity-50' : ''}`}>
               <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
                   <Users className="w-8 h-8 opacity-90" />
@@ -702,8 +806,8 @@ export default function ResultadosPage() {
           )}
 
           {/* Médias por Área */}
-          {resultadosFiltrados.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          {(estatisticas.total > 0 || carregando) && (
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
@@ -1204,13 +1308,13 @@ export default function ResultadosPage() {
             </div>
             </div>
 
-          {resultadosFiltrados.length > 0 && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+          {(resultadosFiltrados.length > 0 || estatisticas.total > 0) && (
+            <div className={`bg-indigo-50 border border-indigo-200 rounded-xl p-4 ${carregando ? 'opacity-50' : ''}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 text-sm">
                   <span className="text-indigo-700 font-medium">
                     <Users className="w-4 h-4 inline mr-1" />
-                    Mostrando <strong>{resultadosFiltrados.length}</strong> de <strong>{resultados.length}</strong> resultados
+                    Mostrando <strong>{resultadosFiltrados.length}</strong> de <strong>{paginacao.total || estatisticas.total}</strong> resultados
                   </span>
                   {temFiltrosAtivos && (
                     <span className="text-indigo-600">

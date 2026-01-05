@@ -4,7 +4,7 @@ import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo } from 'react'
-import { Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2, Eye } from 'lucide-react'
+import { Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2, Eye, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface ResultadoConsolidado {
   id: string
@@ -40,10 +40,50 @@ export default function ResultadosEscolaPage() {
   const [filtros, setFiltros] = useState<Filtros>({})
   const [escolaId, setEscolaId] = useState<string>('')
   const [escolaNome, setEscolaNome] = useState<string>('')
+  const [poloNome, setPoloNome] = useState<string>('')
   const [turmas, setTurmas] = useState<any[]>([])
   const [series, setSeries] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string } | null>(null)
+
+  // Estados de paginação
+  const [paginaAtual, setPaginaAtual] = useState(1)
+  const [paginacao, setPaginacao] = useState<{
+    pagina: number
+    limite: number
+    total: number
+    totalPaginas: number
+    temProxima: boolean
+    temAnterior: boolean
+  }>({
+    pagina: 1,
+    limite: 50,
+    total: 0,
+    totalPaginas: 0,
+    temProxima: false,
+    temAnterior: false
+  })
+
+  // Estados para estatísticas da API
+  const [estatisticasAPI, setEstatisticasAPI] = useState<{
+    totalAlunos: number
+    totalPresentes: number
+    totalFaltas: number
+    mediaGeral: number
+    mediaLP: number
+    mediaCH: number
+    mediaMAT: number
+    mediaCN: number
+  }>({
+    totalAlunos: 0,
+    totalPresentes: 0,
+    totalFaltas: 0,
+    mediaGeral: 0,
+    mediaLP: 0,
+    mediaCH: 0,
+    mediaMAT: 0,
+    mediaCN: 0
+  })
 
   useEffect(() => {
     const carregarDadosIniciais = async () => {
@@ -53,11 +93,12 @@ export default function ResultadosEscolaPage() {
         if (data.usuario && data.usuario.escola_id) {
           setEscolaId(data.usuario.escola_id)
           
-          // Carregar nome da escola
+          // Carregar nome da escola e polo
           const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`)
           const escolaData = await escolaRes.json()
           if (Array.isArray(escolaData) && escolaData.length > 0) {
             setEscolaNome(escolaData[0].nome)
+            setPoloNome(escolaData[0].polo_nome || '')
           }
         }
       } catch (error) {
@@ -68,7 +109,8 @@ export default function ResultadosEscolaPage() {
   }, [])
 
   useEffect(() => {
-    carregarResultados()
+    setPaginaAtual(1) // Resetar para primeira página ao mudar filtros
+    carregarResultados(1)
   }, [filtros, escolaId])
 
   useEffect(() => {
@@ -104,32 +146,74 @@ export default function ResultadosEscolaPage() {
     }
   }
 
-  const carregarResultados = async () => {
+  const carregarResultados = async (pagina: number = paginaAtual, forcarAtualizacao: boolean = false) => {
     if (!escolaId) return
 
     try {
       setCarregando(true)
-      
+
       const params = new URLSearchParams()
       params.append('escola_id', escolaId)
-      
+
       Object.entries(filtros).forEach(([key, value]) => {
         if (value) params.append(key, value)
       })
-      
+
+      // Parâmetros de paginação
+      params.append('pagina', pagina.toString())
+      params.append('limite', '50')
+
+      // Forçar atualização do cache quando clicado no botão Pesquisar
+      if (forcarAtualizacao) {
+        params.append('atualizar_cache', 'true')
+      }
+
       const response = await fetch(`/api/admin/resultados-consolidados?${params.toString()}`)
-      
+
       if (!response.ok) {
         throw new Error('Erro ao carregar resultados')
       }
-      
+
       const data = await response.json()
-      
-      // Garantir que os dados sejam um array
-      if (Array.isArray(data)) {
+
+      // A API retorna {resultados: [...], estatisticas: {...}, paginacao: {...}}
+      if (data.resultados && Array.isArray(data.resultados)) {
+        setResultados(data.resultados)
+
+        // Extrair séries únicas dos resultados (para o filtro)
+        if (pagina === 1) {
+          const seriesUnicas = [...new Set(data.resultados.map((r: ResultadoConsolidado) => r.serie).filter(Boolean))] as string[]
+          setSeries(seriesUnicas.sort())
+        }
+
+        // Atualizar estatísticas da API (API retorna em camelCase)
+        if (data.estatisticas) {
+          setEstatisticasAPI({
+            totalAlunos: data.estatisticas.totalAlunos || data.paginacao?.total || 0,
+            totalPresentes: data.estatisticas.totalPresentes || 0,
+            totalFaltas: data.estatisticas.totalFaltas || 0,
+            mediaGeral: parseFloat(data.estatisticas.mediaGeral) || 0,
+            mediaLP: parseFloat(data.estatisticas.mediaLP) || 0,
+            mediaCH: parseFloat(data.estatisticas.mediaCH) || 0,
+            mediaMAT: parseFloat(data.estatisticas.mediaMAT) || 0,
+            mediaCN: parseFloat(data.estatisticas.mediaCN) || 0
+          })
+        }
+
+        // Atualizar paginação
+        if (data.paginacao) {
+          setPaginacao({
+            pagina: data.paginacao.pagina || pagina,
+            limite: data.paginacao.limite || 50,
+            total: data.paginacao.total || 0,
+            totalPaginas: data.paginacao.totalPaginas || 1,
+            temProxima: data.paginacao.temProxima || false,
+            temAnterior: data.paginacao.temAnterior || false
+          })
+        }
+      } else if (Array.isArray(data)) {
+        // Fallback para resposta como array direto
         setResultados(data)
-        
-        // Extrair séries únicas dos resultados
         const seriesUnicas = [...new Set(data.map((r: ResultadoConsolidado) => r.serie).filter(Boolean))] as string[]
         setSeries(seriesUnicas.sort())
       } else {
@@ -142,6 +226,24 @@ export default function ResultadosEscolaPage() {
       setSeries([])
     } finally {
       setCarregando(false)
+    }
+  }
+
+  // Funções de navegação de página
+  const irParaPagina = (pagina: number) => {
+    setPaginaAtual(pagina)
+    carregarResultados(pagina)
+  }
+
+  const paginaAnterior = () => {
+    if (paginacao.temAnterior) {
+      irParaPagina(paginaAtual - 1)
+    }
+  }
+
+  const proximaPagina = () => {
+    if (paginacao.temProxima) {
+      irParaPagina(paginaAtual + 1)
     }
   }
 
@@ -314,14 +416,24 @@ export default function ResultadosEscolaPage() {
   return (
     <ProtectedRoute tiposPermitidos={['escola']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
-        <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Resultados Consolidados</h1>
+        <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 overflow-x-hidden max-w-full">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Resultados Consolidados</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">
-                {escolaNome && `Escola: ${escolaNome}`}
+                {escolaNome && `${escolaNome}`}
+                {poloNome && <span className="text-gray-500"> - Polo: {poloNome}</span>}
               </p>
             </div>
+            <button
+              onClick={() => carregarResultados(1, true)}
+              disabled={carregando}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm sm:text-base flex-shrink-0"
+              title="Pesquisar dados (força atualização)"
+            >
+              <RefreshCw className={`w-4 h-4 ${carregando ? 'animate-spin' : ''}`} />
+              <span>Pesquisar</span>
+            </button>
           </div>
 
           {/* Filtros */}
@@ -342,7 +454,19 @@ export default function ResultadosEscolaPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Polo
+                </label>
+                <input
+                  type="text"
+                  value={poloNome || '-'}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Escola
@@ -435,127 +559,127 @@ export default function ResultadosEscolaPage() {
           </div>
 
           {/* Cards de Estatísticas */}
-          {resultadosFiltrados.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+          {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (
+            <div className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${carregando ? 'opacity-50' : ''}`}>
+              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-4 sm:p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
-                  <Users className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.total}</span>
+                  <Users className="w-6 h-6 sm:w-8 sm:h-8 opacity-90" />
+                  <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.totalAlunos || paginacao.total}</span>
                 </div>
-                <p className="text-sm opacity-90">Total de Alunos</p>
+                <p className="text-xs sm:text-sm opacity-90">Total de Alunos</p>
               </div>
 
-              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-4 sm:p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
-                  <Target className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.mediaGeral.toFixed(1)}</span>
+                  <Target className="w-6 h-6 sm:w-8 sm:h-8 opacity-90" />
+                  <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.mediaGeral.toFixed(1)}</span>
                 </div>
-                <p className="text-sm opacity-90">Média Geral</p>
+                <p className="text-xs sm:text-sm opacity-90">Média Geral</p>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-4 sm:p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
-                  <CheckCircle2 className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.presentes}</span>
+                  <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 opacity-90" />
+                  <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.totalPresentes}</span>
                 </div>
-                <p className="text-sm opacity-90">Presentes</p>
-                <p className="text-xs opacity-75 mt-1">
-                  {estatisticas.total > 0 ? ((estatisticas.presentes / estatisticas.total) * 100).toFixed(1) : 0}%
+                <p className="text-xs sm:text-sm opacity-90">Presentes</p>
+                <p className="text-[10px] sm:text-xs opacity-75 mt-1">
+                  {estatisticasAPI.totalAlunos > 0 ? ((estatisticasAPI.totalPresentes / estatisticasAPI.totalAlunos) * 100).toFixed(1) : 0}%
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-4 sm:p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
-                  <X className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.faltas}</span>
+                  <X className="w-6 h-6 sm:w-8 sm:h-8 opacity-90" />
+                  <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.totalFaltas}</span>
                 </div>
-                <p className="text-sm opacity-90">Faltas</p>
-                <p className="text-xs opacity-75 mt-1">
-                  {estatisticas.total > 0 ? ((estatisticas.faltas / estatisticas.total) * 100).toFixed(1) : 0}%
+                <p className="text-xs sm:text-sm opacity-90">Faltas</p>
+                <p className="text-[10px] sm:text-xs opacity-75 mt-1">
+                  {estatisticasAPI.totalAlunos > 0 ? ((estatisticasAPI.totalFaltas / estatisticasAPI.totalAlunos) * 100).toFixed(1) : 0}%
                 </p>
               </div>
             </div>
           )}
 
           {/* Médias por Área */}
-          {resultadosFiltrados.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
+          {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (
+            <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Língua Portuguesa</p>
-                    <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaLP)}`}>
-                      {estatisticas.mediaLP.toFixed(1)}
+                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Língua Portuguesa</p>
+                    <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaLP)}`}>
+                      {estatisticasAPI.mediaLP.toFixed(1)}
                     </p>
                   </div>
-                  <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400 flex-shrink-0 ml-2" />
+                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-400 flex-shrink-0 ml-1" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                   <div
-                    className={`h-2 sm:h-3 rounded-full ${
-                      estatisticas.mediaLP >= 7 ? 'bg-green-500' : estatisticas.mediaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                    className={`h-1.5 sm:h-2 rounded-full ${
+                      estatisticasAPI.mediaLP >= 7 ? 'bg-green-500' : estatisticasAPI.mediaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
-                    style={{ width: `${Math.min((estatisticas.mediaLP / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    style={{ width: `${Math.min((estatisticasAPI.mediaLP / 10) * 100, 100)}%`, minWidth: '2px' }}
                   ></div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Ciências Humanas</p>
-                    <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCH)}`}>
-                      {estatisticas.mediaCH.toFixed(1)}
+                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Ciências Humanas</p>
+                    <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCH)}`}>
+                      {estatisticasAPI.mediaCH.toFixed(1)}
                     </p>
                   </div>
-                  <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 flex-shrink-0 ml-2" />
+                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0 ml-1" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                   <div
-                    className={`h-2 sm:h-3 rounded-full ${
-                      estatisticas.mediaCH >= 7 ? 'bg-green-500' : estatisticas.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                    className={`h-1.5 sm:h-2 rounded-full ${
+                      estatisticasAPI.mediaCH >= 7 ? 'bg-green-500' : estatisticasAPI.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
-                    style={{ width: `${Math.min((estatisticas.mediaCH / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    style={{ width: `${Math.min((estatisticasAPI.mediaCH / 10) * 100, 100)}%`, minWidth: '2px' }}
                   ></div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Matemática</p>
-                    <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaMAT)}`}>
-                      {estatisticas.mediaMAT.toFixed(1)}
+                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Matemática</p>
+                    <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaMAT)}`}>
+                      {estatisticasAPI.mediaMAT.toFixed(1)}
                     </p>
                   </div>
-                  <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400 flex-shrink-0 ml-2" />
+                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 flex-shrink-0 ml-1" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                   <div
-                    className={`h-2 sm:h-3 rounded-full ${
-                      estatisticas.mediaMAT >= 7 ? 'bg-green-500' : estatisticas.mediaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                    className={`h-1.5 sm:h-2 rounded-full ${
+                      estatisticasAPI.mediaMAT >= 7 ? 'bg-green-500' : estatisticasAPI.mediaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
-                    style={{ width: `${Math.min((estatisticas.mediaMAT / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    style={{ width: `${Math.min((estatisticasAPI.mediaMAT / 10) * 100, 100)}%`, minWidth: '2px' }}
                   ></div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Ciências da Natureza</p>
-                    <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCN)}`}>
-                      {estatisticas.mediaCN.toFixed(1)}
+                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Ciências da Natureza</p>
+                    <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCN)}`}>
+                      {estatisticasAPI.mediaCN.toFixed(1)}
                     </p>
                   </div>
-                  <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400 flex-shrink-0 ml-2" />
+                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0 ml-1" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                   <div
-                    className={`h-2 sm:h-3 rounded-full ${
-                      estatisticas.mediaCN >= 7 ? 'bg-green-500' : estatisticas.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                    className={`h-1.5 sm:h-2 rounded-full ${
+                      estatisticasAPI.mediaCN >= 7 ? 'bg-green-500' : estatisticasAPI.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
-                    style={{ width: `${Math.min((estatisticas.mediaCN / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    style={{ width: `${Math.min((estatisticasAPI.mediaCN / 10) * 100, 100)}%`, minWidth: '2px' }}
                   ></div>
                 </div>
               </div>
@@ -962,6 +1086,99 @@ export default function ResultadosEscolaPage() {
                     </table>
                   </div>
                 </div>
+
+                {/* Controles de Paginação */}
+                {paginacao.totalPaginas > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm mt-4 gap-3">
+                    <div className="text-sm text-gray-600">
+                      Mostrando <span className="font-semibold">{((paginaAtual - 1) * paginacao.limite) + 1}</span> a{' '}
+                      <span className="font-semibold">{Math.min(paginaAtual * paginacao.limite, paginacao.total)}</span> de{' '}
+                      <span className="font-semibold">{paginacao.total}</span> resultados
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={paginaAnterior}
+                        disabled={!paginacao.temAnterior || carregando}
+                        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          paginacao.temAnterior && !carregando
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span className="hidden sm:inline">Anterior</span>
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {/* Primeira página */}
+                        {paginaAtual > 2 && (
+                          <>
+                            <button
+                              onClick={() => irParaPagina(1)}
+                              className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                            >
+                              1
+                            </button>
+                            {paginaAtual > 3 && <span className="px-1 text-gray-400">...</span>}
+                          </>
+                        )}
+
+                        {/* Página anterior */}
+                        {paginaAtual > 1 && (
+                          <button
+                            onClick={() => irParaPagina(paginaAtual - 1)}
+                            className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                          >
+                            {paginaAtual - 1}
+                          </button>
+                        )}
+
+                        {/* Página atual */}
+                        <button
+                          className="px-3 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white"
+                        >
+                          {paginaAtual}
+                        </button>
+
+                        {/* Próxima página */}
+                        {paginaAtual < paginacao.totalPaginas && (
+                          <button
+                            onClick={() => irParaPagina(paginaAtual + 1)}
+                            className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                          >
+                            {paginaAtual + 1}
+                          </button>
+                        )}
+
+                        {/* Última página */}
+                        {paginaAtual < paginacao.totalPaginas - 1 && (
+                          <>
+                            {paginaAtual < paginacao.totalPaginas - 2 && <span className="px-1 text-gray-400">...</span>}
+                            <button
+                              onClick={() => irParaPagina(paginacao.totalPaginas)}
+                              className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                            >
+                              {paginacao.totalPaginas}
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={proximaPagina}
+                        disabled={!paginacao.temProxima || carregando}
+                        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          paginacao.temProxima && !carregando
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <span className="hidden sm:inline">Próxima</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
                 </>
               )}
             </div>

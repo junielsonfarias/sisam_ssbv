@@ -414,7 +414,7 @@ export default function AlunosPage() {
   )
 
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">

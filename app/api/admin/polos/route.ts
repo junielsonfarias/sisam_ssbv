@@ -9,16 +9,45 @@ export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
       return NextResponse.json(
         { mensagem: 'Não autorizado' },
         { status: 403 }
       )
     }
 
-    const result = await pool.query(
-      'SELECT * FROM polos ORDER BY nome'
-    )
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    // Se usuário é polo ou escola, só pode ver seu próprio polo
+    if (usuario.tipo_usuario === 'polo' || usuario.tipo_usuario === 'escola') {
+      const poloIdPermitido = usuario.polo_id
+      if (id && id !== poloIdPermitido) {
+        return NextResponse.json(
+          { mensagem: 'Não autorizado a acessar este polo' },
+          { status: 403 }
+        )
+      }
+      // Retornar apenas o polo do usuário
+      const result = await pool.query(
+        'SELECT * FROM polos WHERE id = $1',
+        [poloIdPermitido]
+      )
+      return NextResponse.json(result.rows)
+    }
+
+    // Admin e tecnico podem ver todos os polos
+    let query = 'SELECT * FROM polos'
+    const params: any[] = []
+
+    if (id) {
+      query += ' WHERE id = $1'
+      params.push(id)
+    }
+
+    query += ' ORDER BY nome'
+
+    const result = await pool.query(query, params)
 
     return NextResponse.json(result.rows)
   } catch (error) {
