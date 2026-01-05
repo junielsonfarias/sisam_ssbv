@@ -226,13 +226,28 @@ export function getQuestoesByAlunoId(alunoId: string | number, anoLetivo?: strin
   const questoes = getQuestoes()
   const alunoIdStr = String(alunoId)
 
-  let questoesDoAluno = questoes.filter(q => String(q.aluno_id) === alunoIdStr)
+  console.log('[getQuestoesByAlunoId] Buscando questoes para aluno:', alunoIdStr)
+  console.log('[getQuestoesByAlunoId] Total de questoes no storage:', questoes.length)
+
+  // Primeiro, tentar encontrar o resultado do aluno para pegar o aluno_id real
+  const resultado = getResultadoByAlunoId(alunoId, anoLetivo)
+  const alunoIdReal = resultado ? String(resultado.aluno_id) : alunoIdStr
+
+  console.log('[getQuestoesByAlunoId] aluno_id real:', alunoIdReal)
+
+  let questoesDoAluno = questoes.filter(q => String(q.aluno_id) === alunoIdReal)
+
+  console.log('[getQuestoesByAlunoId] Questoes encontradas por aluno_id:', questoesDoAluno.length)
 
   // Se tiver ano letivo, filtrar por ele
-  if (anoLetivo) {
-    questoesDoAluno = questoesDoAluno.filter(q => q.ano_letivo === anoLetivo)
+  if (anoLetivo && questoesDoAluno.length > 0) {
+    const questoesFiltradas = questoesDoAluno.filter(q => q.ano_letivo === anoLetivo)
+    if (questoesFiltradas.length > 0) {
+      questoesDoAluno = questoesFiltradas
+    }
   }
 
+  console.log('[getQuestoesByAlunoId] Questoes retornadas:', questoesDoAluno.length)
   return questoesDoAluno
 }
 
@@ -461,23 +476,45 @@ export function filterResultados(filters: {
   let resultados = getResultados()
   const escolas = getEscolas()
 
-  console.log('[filterResultados] Iniciando filtro com:', filters)
+  console.log('[filterResultados] Iniciando filtro com:', JSON.stringify(filters))
   console.log('[filterResultados] Total de resultados antes do filtro:', resultados.length)
   console.log('[filterResultados] Total de escolas:', escolas.length)
+
+  // Log de exemplo de dados para debug
+  if (resultados.length > 0) {
+    console.log('[filterResultados] Exemplo de resultado:', {
+      id: resultados[0].id,
+      aluno_id: resultados[0].aluno_id,
+      escola_id: resultados[0].escola_id,
+      polo_id: resultados[0].polo_id
+    })
+  }
+  if (escolas.length > 0) {
+    console.log('[filterResultados] Exemplo de escola:', {
+      id: escolas[0].id,
+      nome: escolas[0].nome,
+      polo_id: escolas[0].polo_id
+    })
+  }
 
   // Filtrar por polo - comparar como string para suportar UUIDs
   if (filters.polo_id && filters.polo_id !== '' && filters.polo_id !== 'todos') {
     const poloIdStr = String(filters.polo_id)
     // Encontrar escolas do polo (comparando como string)
     const escolasDoPolo = escolas.filter(e => String(e.polo_id) === poloIdStr).map(e => String(e.id))
-    console.log('[filterResultados] Polo ID:', poloIdStr, 'Escolas do polo:', escolasDoPolo.length)
+    console.log('[filterResultados] Polo ID:', poloIdStr, 'Escolas do polo:', escolasDoPolo)
+
     if (escolasDoPolo.length > 0) {
-      resultados = resultados.filter(r => escolasDoPolo.includes(String(r.escola_id)))
+      const resultadosFiltrados = resultados.filter(r => escolasDoPolo.includes(String(r.escola_id)))
+      console.log('[filterResultados] Resultados após filtro por escolas do polo:', resultadosFiltrados.length)
+      resultados = resultadosFiltrados
     } else {
       // Se não encontrar escolas pelo polo_id, tentar filtrar diretamente pelo polo_id nos resultados
-      resultados = resultados.filter(r => String(r.polo_id) === poloIdStr)
+      const resultadosDireto = resultados.filter(r => String(r.polo_id) === poloIdStr)
+      console.log('[filterResultados] Resultados após filtro direto por polo_id:', resultadosDireto.length)
+      resultados = resultadosDireto
     }
-    console.log('[filterResultados] Resultados após filtro de polo:', resultados.length)
+    console.log('[filterResultados] Resultados após filtro de polo FINAL:', resultados.length)
   }
 
   // Filtrar por escola - comparar como string para suportar UUIDs
@@ -564,15 +601,33 @@ export function getResultadoByAlunoId(alunoId: string | number, anoLetivo?: stri
   const resultados = getResultados()
   const alunoIdStr = String(alunoId)
 
+  console.log('[getResultadoByAlunoId] Buscando aluno:', alunoIdStr, 'ano:', anoLetivo)
+  console.log('[getResultadoByAlunoId] Total de resultados:', resultados.length)
+
+  // Tentar encontrar por aluno_id primeiro
   let resultado = resultados.find(r => String(r.aluno_id) === alunoIdStr)
 
-  // Se tiver ano letivo, filtrar por ele
-  if (anoLetivo && resultado) {
-    resultado = resultados.find(r =>
-      String(r.aluno_id) === alunoIdStr && r.ano_letivo === anoLetivo
-    )
+  // Se não encontrou por aluno_id, tentar por id do resultado
+  if (!resultado) {
+    resultado = resultados.find(r => String(r.id) === alunoIdStr)
+    if (resultado) {
+      console.log('[getResultadoByAlunoId] Encontrado por id do resultado')
+    }
+  } else {
+    console.log('[getResultadoByAlunoId] Encontrado por aluno_id')
   }
 
+  // Se tiver ano letivo e encontrou resultado, verificar se precisa filtrar
+  if (anoLetivo && resultado) {
+    const resultadoComAno = resultados.find(r =>
+      (String(r.aluno_id) === alunoIdStr || String(r.id) === alunoIdStr) && r.ano_letivo === anoLetivo
+    )
+    if (resultadoComAno) {
+      resultado = resultadoComAno
+    }
+  }
+
+  console.log('[getResultadoByAlunoId] Resultado encontrado:', resultado ? 'SIM' : 'NAO')
   return resultado || null
 }
 
