@@ -8,6 +8,14 @@ import { BarChart, Bar, LineChart, Line, PieChart as RechartsPie, Pie, Cell, XAx
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 
+// Cores específicas para cada disciplina
+const DISCIPLINA_COLORS: { [key: string]: string } = {
+  'Língua Portuguesa': '#4F46E5', // Azul Indigo
+  'Ciências Humanas': '#10B981',   // Verde Esmeralda
+  'Matemática': '#F59E0B',         // Laranja Âmbar
+  'Ciências da Natureza': '#EF4444' // Vermelho
+}
+
 interface FiltrosGraficos {
   ano_letivo?: string
   serie?: string
@@ -149,6 +157,17 @@ export default function GraficosEscolaPage() {
       name: l,
       value: dados[i] || 0
     }))
+  }
+
+  // Preparar dados de disciplinas ordenados por média (maior para menor) com cores
+  const prepararDadosDisciplinas = (labels: string[], dados: number[]) => {
+    const combined = labels.map((l, i) => ({
+      name: l,
+      value: dados[i] || 0,
+      fill: DISCIPLINA_COLORS[l] || COLORS[i % COLORS.length]
+    }))
+    // Ordenar por valor decrescente
+    return combined.sort((a, b) => b.value - a.value)
   }
 
   const prepararDadosPizza = (labels: string[], dados: number[]) => {
@@ -310,13 +329,17 @@ export default function GraficosEscolaPage() {
                     )}
                   </div>
                   <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={prepararDadosBarras(dados.disciplinas.labels, dados.disciplinas.dados, 'Média')}>
+                    <BarChart data={prepararDadosDisciplinas(dados.disciplinas.labels, dados.disciplinas.dados)}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" tick={{ fontSize: 14, fontWeight: 500 }} interval={0} angle={-15} textAnchor="end" height={100} />
                       <YAxis domain={[0, 10]} tick={{ fontSize: 14, fontWeight: 500 }} label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }} />
                       <Tooltip contentStyle={{ fontSize: 14, fontWeight: 500 }} labelStyle={{ fontSize: 14, fontWeight: 600 }} />
                       <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
-                      <Bar dataKey="value" name="Média" fill="#4F46E5" />
+                      <Bar dataKey="value" name="Média">
+                        {prepararDadosDisciplinas(dados.disciplinas.labels, dados.disciplinas.dados).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
                       <ReferenceLine y={7} stroke="#10B981" strokeDasharray="3 3" label={{ value: "Meta (7.0)", position: "right", fontSize: 14, fontWeight: 600 }} />
                     </BarChart>
                   </ResponsiveContainer>
