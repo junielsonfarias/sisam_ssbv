@@ -327,6 +327,7 @@ export async function GET(request: NextRequest) {
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY e.id, e.nome
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfig.campo} IS NOT NULL AND CAST(${notaConfig.campo} AS DECIMAL) > 0) THEN 1 END) > 0
         ORDER BY media DESC
       `
       const resEscolas = await pool.query(queryEscolas, params)
@@ -353,6 +354,7 @@ export async function GET(request: NextRequest) {
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY rc.serie
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigSeries.campo} IS NOT NULL AND CAST(${notaConfigSeries.campo} AS DECIMAL) > 0) THEN 1 END) > 0
         ORDER BY rc.serie
       `
       const resSeries = await pool.query(querySeries, params)
@@ -379,6 +381,7 @@ export async function GET(request: NextRequest) {
         INNER JOIN polos p ON e.polo_id = p.id
         ${whereClause}
         GROUP BY p.id, p.nome
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigPolos.campo} IS NOT NULL AND CAST(${notaConfigPolos.campo} AS DECIMAL) > 0) THEN 1 END) > 0
         ORDER BY media DESC
       `
       const resPolos = await pool.query(queryPolos, params)
@@ -470,7 +473,7 @@ export async function GET(request: NextRequest) {
     if (tipoGrafico === 'comparativo_escolas') {
       const queryComparativo = `
         WITH ranking_escolas AS (
-          SELECT 
+          SELECT
             e.nome as escola,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
@@ -478,12 +481,13 @@ export async function GET(request: NextRequest) {
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos,
-            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC) as rank_desc,
-            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) ASC) as rank_asc
+            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC NULLS LAST) as rank_desc,
+            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) ASC NULLS LAST) as rank_asc
           FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
           GROUP BY e.id, e.nome
+          HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) > 0
         )
         SELECT * FROM ranking_escolas
         ${deveRemoverLimites ? '' : 'WHERE rank_desc <= 5 OR rank_asc <= 5'}
@@ -899,7 +903,7 @@ export async function GET(request: NextRequest) {
     // 2. Heatmap de Desempenho (Escolas × Disciplinas)
     if (tipoGrafico === 'heatmap') {
       const queryHeatmap = `
-        SELECT 
+        SELECT
           e.id as escola_id,
           e.nome as escola_nome,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
@@ -911,6 +915,7 @@ export async function GET(request: NextRequest) {
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY e.id, e.nome
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) > 0
         ORDER BY e.nome
         ${deveRemoverLimites ? '' : 'LIMIT 50'}
       `
@@ -931,7 +936,7 @@ export async function GET(request: NextRequest) {
     // 3. Radar Chart (Perfil de Desempenho)
     if (tipoGrafico === 'radar') {
       const queryRadar = `
-        SELECT 
+        SELECT
           COALESCE(e.nome, 'Geral') as nome,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as lp,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as ch,
@@ -941,6 +946,7 @@ export async function GET(request: NextRequest) {
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY e.id, e.nome
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) > 0
         ORDER BY e.nome
         ${deveRemoverLimites ? '' : 'LIMIT 10'}
       `
@@ -1063,7 +1069,8 @@ export async function GET(request: NextRequest) {
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
           GROUP BY e.id, e.nome
-          ORDER BY media_geral DESC
+          HAVING COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN rc.aluno_id END) > 0
+          ORDER BY media_geral DESC NULLS LAST
           ${deveRemoverLimites ? '' : 'LIMIT 50'}
         `
         const resRanking = await pool.query(queryRanking, params)
@@ -1100,7 +1107,8 @@ export async function GET(request: NextRequest) {
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereRankingTurmas}
           GROUP BY t.id, t.codigo, t.nome, e.nome
-          ORDER BY media_geral DESC
+          HAVING COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN rc.aluno_id END) > 0
+          ORDER BY media_geral DESC NULLS LAST
           ${deveRemoverLimites ? '' : 'LIMIT 50'}
         `
         const resRanking = await pool.query(queryRanking, params)
@@ -1138,7 +1146,8 @@ export async function GET(request: NextRequest) {
         LEFT JOIN escolas e ON rc.escola_id = e.id
         ${whereAprovacao}
         GROUP BY e.id, e.nome
-        ORDER BY media_geral DESC
+        HAVING COUNT(*) > 0
+        ORDER BY media_geral DESC NULLS LAST
         ${deveRemoverLimites ? '' : 'LIMIT 30'}
       `
       const resAprovacao = await pool.query(queryAprovacao, params)
@@ -1180,6 +1189,7 @@ export async function GET(request: NextRequest) {
         LEFT JOIN escolas e ON rc.escola_id = e.id
         ${whereGaps}
         GROUP BY e.id, e.nome
+        HAVING COUNT(*) > 0
         ORDER BY gap DESC
         ${deveRemoverLimites ? '' : 'LIMIT 30'}
       `
