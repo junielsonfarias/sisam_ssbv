@@ -50,15 +50,23 @@ interface DadosAluno {
   }
 }
 
+interface NotasDisciplinas {
+  nota_lp?: number | string | null
+  nota_ch?: number | string | null
+  nota_mat?: number | string | null
+  nota_cn?: number | string | null
+}
+
 interface ModalQuestoesAlunoProps {
   alunoId: string
   anoLetivo?: string
   mediaAluno?: number | string | null  // Média do aluno passada diretamente do resultado consolidado
+  notasDisciplinas?: NotasDisciplinas  // Notas por disciplina do resultado consolidado
   isOpen: boolean
   onClose: () => void
 }
 
-export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, isOpen, onClose }: ModalQuestoesAlunoProps) {
+export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, isOpen, onClose }: ModalQuestoesAlunoProps) {
   const [dados, setDados] = useState<DadosAluno | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -166,10 +174,10 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, isO
   if (!isOpen) return null
 
   const areas = [
-    { nome: 'Língua Portuguesa', corClasses: 'from-indigo-500 to-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200', textColor: 'text-indigo-600', icon: BookOpen },
-    { nome: 'Ciências Humanas', corClasses: 'from-green-500 to-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-600', icon: TrendingUp },
-    { nome: 'Matemática', corClasses: 'from-yellow-500 to-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', textColor: 'text-yellow-600', icon: Award },
-    { nome: 'Ciências da Natureza', corClasses: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-600', icon: AlertCircle },
+    { nome: 'Língua Portuguesa', notaKey: 'nota_lp' as keyof NotasDisciplinas, corClasses: 'from-indigo-500 to-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200', textColor: 'text-indigo-600', icon: BookOpen },
+    { nome: 'Ciências Humanas', notaKey: 'nota_ch' as keyof NotasDisciplinas, corClasses: 'from-green-500 to-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-600', icon: TrendingUp },
+    { nome: 'Matemática', notaKey: 'nota_mat' as keyof NotasDisciplinas, corClasses: 'from-yellow-500 to-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', textColor: 'text-yellow-600', icon: Award },
+    { nome: 'Ciências da Natureza', notaKey: 'nota_cn' as keyof NotasDisciplinas, corClasses: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-600', icon: AlertCircle },
   ]
 
   // Verificar se tem questões detalhadas ou apenas estatísticas
@@ -277,14 +285,28 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, isO
                     const questoes = dados.questoes?.[area.nome] || []
                     const Icon = area.icon
                     const taxaAcerto = stats.total > 0 ? ((stats.acertos / stats.total) * 100) : 0
+                    // Nota da disciplina passada diretamente do resultado consolidado
+                    const notaDisciplina = notasDisciplinas?.[area.notaKey]
+                    const notaExibir = notaDisciplina !== undefined && notaDisciplina !== null
+                      ? Number(notaDisciplina)
+                      : (stats.media !== undefined && stats.media > 0 ? stats.media : null)
 
                     return (
                       <div key={area.nome} className={`${area.bgColor} dark:bg-opacity-30 rounded-lg p-4 border ${area.borderColor} dark:border-opacity-50`}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={`p-2 rounded-lg bg-gradient-to-r ${area.corClasses}`}>
-                            <Icon className="w-5 h-5 text-white" />
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg bg-gradient-to-r ${area.corClasses}`}>
+                              <Icon className="w-5 h-5 text-white" />
+                            </div>
+                            <h4 className="font-semibold text-gray-800 dark:text-white">{area.nome}</h4>
                           </div>
-                          <h4 className="font-semibold text-gray-800 dark:text-white">{area.nome}</h4>
+                          {/* Nota em destaque */}
+                          {notaExibir !== null && (
+                            <div className={`px-3 py-1 rounded-lg bg-gradient-to-r ${area.corClasses} text-white`}>
+                              <span className="text-xs font-medium">Nota: </span>
+                              <span className="text-lg font-bold">{notaExibir.toFixed(1)}</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 text-center mb-3">
@@ -312,9 +334,6 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, isO
 
                         <div className="flex justify-between text-xs">
                           <span className={area.textColor}>Taxa de Acerto: {taxaAcerto.toFixed(1)}%</span>
-                          {stats.media !== undefined && stats.media > 0 && (
-                            <span className="text-gray-600 dark:text-gray-400">Média: {stats.media.toFixed(1)}</span>
-                          )}
                         </div>
 
                         {/* Grid de questões detalhadas (apenas se disponível online) */}

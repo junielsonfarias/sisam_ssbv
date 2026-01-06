@@ -44,7 +44,17 @@ export default function PoloAnalisePage() {
   const [turmas, setTurmas] = useState<any[]>([])
   const [series, setSeries] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
-  const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string } | null>(null)
+  const [alunoSelecionado, setAlunoSelecionado] = useState<{
+    id: string;
+    anoLetivo?: string;
+    mediaAluno?: number | string | null;
+    notasDisciplinas?: {
+      nota_lp?: number | string | null;
+      nota_ch?: number | string | null;
+      nota_mat?: number | string | null;
+      nota_cn?: number | string | null;
+    };
+  } | null>(null)
 
   // Estados de paginação
   const [paginaAtual, setPaginaAtual] = useState(1)
@@ -339,7 +349,14 @@ export default function PoloAnalisePage() {
   const handleVisualizarQuestoes = (aluno: ResultadoConsolidado) => {
     setAlunoSelecionado({
       id: aluno.aluno_id || aluno.id,
-      anoLetivo: filtros.ano_letivo
+      anoLetivo: filtros.ano_letivo,
+      mediaAluno: aluno.media_aluno,
+      notasDisciplinas: {
+        nota_lp: aluno.nota_lp,
+        nota_ch: aluno.nota_ch,
+        nota_mat: aluno.nota_mat,
+        nota_cn: aluno.nota_cn,
+      },
     })
     setModalAberto(true)
   }
@@ -1127,6 +1144,8 @@ export default function PoloAnalisePage() {
             <ModalQuestoesAluno
               alunoId={alunoSelecionado.id}
               anoLetivo={alunoSelecionado.anoLetivo}
+              mediaAluno={alunoSelecionado.mediaAluno}
+              notasDisciplinas={alunoSelecionado.notasDisciplinas}
               isOpen={modalAberto}
               onClose={handleFecharModal}
             />

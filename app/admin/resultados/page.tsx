@@ -112,7 +112,17 @@ export default function ResultadosPage() {
   const [series, setSeries] = useState<string[]>([])
   const [anosLetivos, setAnosLetivos] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
-  const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string; mediaAluno?: number | string | null } | null>(null)
+  const [alunoSelecionado, setAlunoSelecionado] = useState<{
+    id: string;
+    anoLetivo?: string;
+    mediaAluno?: number | string | null;
+    notasDisciplinas?: {
+      nota_lp?: number | string | null;
+      nota_ch?: number | string | null;
+      nota_mat?: number | string | null;
+      nota_cn?: number | string | null;
+    };
+  } | null>(null)
   
   // Estados de paginação
   const [paginaAtual, setPaginaAtual] = useState(1)
@@ -1102,6 +1112,12 @@ export default function ResultadosPage() {
                                 id: resultado.aluno_id || resultado.id,
                                 anoLetivo: filtros.ano_letivo,
                                 mediaAluno: resultado.media_aluno,
+                                notasDisciplinas: {
+                                  nota_lp: resultado.nota_lp,
+                                  nota_ch: resultado.nota_ch,
+                                  nota_mat: resultado.nota_mat,
+                                  nota_cn: resultado.nota_cn,
+                                },
                               })
                               setModalAberto(true)
                             }}
@@ -1193,6 +1209,12 @@ export default function ResultadosPage() {
                                 id: resultado.aluno_id || resultado.id,
                                 anoLetivo: filtros.ano_letivo,
                                 mediaAluno: resultado.media_aluno,
+                                notasDisciplinas: {
+                                  nota_lp: resultado.nota_lp,
+                                  nota_ch: resultado.nota_ch,
+                                  nota_mat: resultado.nota_mat,
+                                  nota_cn: resultado.nota_cn,
+                                },
                               })
                               setModalAberto(true)
                             }}
@@ -1277,6 +1299,12 @@ export default function ResultadosPage() {
                                       id: resultado.aluno_id || resultado.id,
                                       anoLetivo: filtros.ano_letivo,
                                       mediaAluno: resultado.media_aluno,
+                                      notasDisciplinas: {
+                                        nota_lp: resultado.nota_lp,
+                                        nota_ch: resultado.nota_ch,
+                                        nota_mat: resultado.nota_mat,
+                                        nota_cn: resultado.nota_cn,
+                                      },
                                     })
                                     setModalAberto(true)
                                   }}
@@ -1392,6 +1420,12 @@ export default function ResultadosPage() {
                                     id: resultado.aluno_id || resultado.id,
                                     anoLetivo: filtros.ano_letivo,
                                     mediaAluno: resultado.media_aluno,
+                                    notasDisciplinas: {
+                                      nota_lp: resultado.nota_lp,
+                                      nota_ch: resultado.nota_ch,
+                                      nota_mat: resultado.nota_mat,
+                                      nota_cn: resultado.nota_cn,
+                                    },
                                   })
                                   setModalAberto(true)
                                 }}
@@ -1522,6 +1556,7 @@ export default function ResultadosPage() {
               alunoId={alunoSelecionado.id}
               anoLetivo={alunoSelecionado.anoLetivo}
               mediaAluno={alunoSelecionado.mediaAluno}
+              notasDisciplinas={alunoSelecionado.notasDisciplinas}
               isOpen={modalAberto}
               onClose={() => {
                 setModalAberto(false)
