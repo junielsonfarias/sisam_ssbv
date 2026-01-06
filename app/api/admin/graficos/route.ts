@@ -162,10 +162,16 @@ export async function GET(request: NextRequest) {
       paramSeriesIndex++
     }
     
-    const whereSeriesClause = whereSeriesConditions.length > 0 
-      ? `WHERE ${whereSeriesConditions.join(' AND ')} AND rc.serie IS NOT NULL AND rc.serie != ''`
-      : 'WHERE rc.serie IS NOT NULL AND rc.serie != \'\''
-    
+    // Filtrar apenas séries que têm alunos com resultados válidos (presença P/F e média > 0)
+    const baseSeriesCondition = `rc.serie IS NOT NULL AND rc.serie != ''
+      AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+      AND rc.media_aluno IS NOT NULL
+      AND CAST(rc.media_aluno AS DECIMAL) > 0`
+
+    const whereSeriesClause = whereSeriesConditions.length > 0
+      ? `WHERE ${whereSeriesConditions.join(' AND ')} AND ${baseSeriesCondition}`
+      : `WHERE ${baseSeriesCondition}`
+
     const querySeriesDisponiveis = `
       SELECT DISTINCT rc.serie
       FROM resultados_consolidados_unificada rc

@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const escolasIds = searchParams.get('escolas_ids')?.split(',').filter(Boolean) || []
     const anoLetivo = searchParams.get('ano_letivo')
 
+    // Buscar apenas turmas que têm alunos com resultados válidos (presença P/F e média > 0)
     let query = `
       SELECT DISTINCT
         t.id,
@@ -26,9 +27,14 @@ export async function GET(request: NextRequest) {
         t.nome,
         t.serie,
         t.escola_id,
-        e.nome as escola_nome
+        e.nome as escola_nome,
+        COUNT(DISTINCT rc.aluno_id) as total_alunos_com_resultado
       FROM turmas t
       INNER JOIN escolas e ON t.escola_id = e.id
+      INNER JOIN resultados_consolidados_unificada rc ON rc.turma_id = t.id
+        AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
       WHERE t.ativo = true
     `
 
@@ -66,6 +72,8 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    query += ' GROUP BY t.id, t.codigo, t.nome, t.serie, t.escola_id, e.nome'
+    query += ' HAVING COUNT(DISTINCT rc.aluno_id) > 0'
     query += ' ORDER BY t.serie, t.codigo, e.nome'
 
     const result = await pool.query(query, params)

@@ -56,6 +56,9 @@ export async function GET(request: NextRequest) {
       INNER JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE p.id IN ($1, $2)
+        AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
     `
 
     const params: any[] = [polosIds[0], polosIds[1]]
@@ -131,6 +134,9 @@ export async function GET(request: NextRequest) {
       INNER JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE p.id IN ($1, $2)
+        AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
     `
 
     const paramsAgregado: any[] = [polosIds[0], polosIds[1]]
@@ -215,6 +221,9 @@ export async function GET(request: NextRequest) {
       INNER JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE p.id IN ($1, $2)
+        AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
     `
 
     const paramsEscolas: any[] = [polosIds[0], polosIds[1]]

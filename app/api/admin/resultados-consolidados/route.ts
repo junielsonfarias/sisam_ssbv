@@ -109,10 +109,12 @@ export async function GET(request: NextRequest) {
     `
     
     // IMPORTANTE: Filtrar apenas alunos com presença 'P' ou 'F' (excluir '-' sem dados)
+    // E que tenham média > 0 (excluir alunos sem notas)
     // Mas apenas se não houver filtro específico de presença
     if (!presenca) {
       query += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
     }
+    query += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
 
     const params: any[] = []
     let paramIndex = 1
@@ -182,7 +184,8 @@ export async function GET(request: NextRequest) {
     if (!presenca) {
       countQuery += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
     }
-    
+    countQuery += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
+
     const countParams: any[] = []
     let countParamIndex = 1
     
@@ -290,7 +293,8 @@ export async function GET(request: NextRequest) {
     if (!presenca) {
       estatisticasQuery += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
     }
-    
+    estatisticasQuery += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
+
     const estatisticasParams: any[] = []
     let estatisticasParamIndex = 1
     
