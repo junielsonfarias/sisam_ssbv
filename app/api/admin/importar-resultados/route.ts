@@ -163,16 +163,25 @@ export async function POST(request: NextRequest) {
         const turmaCodigo = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
         const serie = (linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['serie'] || linha['Ano'] || '').toString().trim()
 
-        // Tratamento da presenca/falta
+        // Tratamento da presenca/falta (suporta P/F, FALTA, PRESENÇA)
         let presenca: string | null = null
 
+        const colunaPF = linha['P/F'] || linha['p/f']
         const colunaFalta = linha['FALTA'] || linha['Falta'] || linha['falta']
         const colunaPresenca = linha['PRESENÇA'] || linha['Presença'] || linha['presenca']
 
+        const temColunaPF = colunaPF !== undefined && colunaPF !== null && colunaPF !== ''
         const temColunaFalta = colunaFalta !== undefined && colunaFalta !== null && colunaFalta !== ''
         const temColunaPresenca = colunaPresenca !== undefined && colunaPresenca !== null && colunaPresenca !== ''
 
-        if (temColunaFalta) {
+        if (temColunaPF) {
+          const valorPF = colunaPF.toString().trim().toUpperCase()
+          if (valorPF === 'P' || valorPF === 'PRESENTE') {
+            presenca = 'P'
+          } else if (valorPF === 'F' || valorPF === 'FALTA' || valorPF === 'FALTOU') {
+            presenca = 'F'
+          }
+        } else if (temColunaFalta) {
           const valorFalta = colunaFalta.toString().trim().toUpperCase()
           if (valorFalta === 'F' || valorFalta === 'X' || valorFalta === 'FALTOU' || valorFalta === 'AUSENTE' || valorFalta === 'SIM' || valorFalta === '1' || valorFalta === 'S') {
             presenca = 'F'
@@ -189,6 +198,25 @@ export async function POST(request: NextRequest) {
             presenca = 'F'
           }
         }
+
+        // Ler itens de produção (Item1-Item8)
+        const itensProducao: (number | null)[] = []
+        for (let itemNum = 1; itemNum <= 8; itemNum++) {
+          const colunaItem = linha[`Item${itemNum}`] || linha[`ITEM${itemNum}`] || linha[`item${itemNum}`]
+          if (colunaItem !== undefined && colunaItem !== null && colunaItem !== '') {
+            const valorItem = colunaItem.toString().trim().toUpperCase()
+            itensProducao.push(valorItem === 'X' || valorItem === '1' ? 1 : 0)
+          } else {
+            itensProducao.push(null)
+          }
+        }
+
+        // Ler notas pré-calculadas da planilha
+        const notaLPPlanilha = parseFloat(linha['NOTA_LP'] || linha['Nota_LP'] || linha['nota_lp'] || '0') || null
+        const notaMATRaw = linha['NOTA_MAT'] || linha['Nota_MAT'] || linha['nota_mat']
+        const notaMATPlanilha = notaMATRaw ? parseFloat(notaMATRaw) : null
+        const notaProducaoPlanilha = parseFloat(linha['PRODUÇÃO'] || linha['Produção'] || linha['producao'] || linha['PRODUCAO'] || '0') || null
+        const nivelProducao = (linha['NÍVEL_PROD'] || linha['Nível_Prod'] || linha['nivel_prod'] || linha['NIVEL_PROD'] || '').toString().trim() || null
 
         if (!escolaNome || !alunoNome) {
           throw new Error('Linha sem escola ou aluno')
@@ -241,6 +269,10 @@ export async function POST(request: NextRequest) {
         const alunoFaltou = presencaFinal === 'F'
         const semDados = presencaFinal === '-'
 
+        // Contar acertos por disciplina
+        let acertosLP = 0, acertosCH = 0, acertosMAT = 0, acertosCN = 0
+        let questoesRespondidas = 0
+
         // Processar cada questao e adicionar ao batch
         for (const { inicio, fim, area, disciplina } of questoesMap) {
           for (let num = inicio; num <= fim; num++) {
@@ -251,8 +283,17 @@ export async function POST(request: NextRequest) {
               continue
             }
 
+            questoesRespondidas++
             const acertou = valorQuestao === '1' || valorQuestao === 1 || valorQuestao === 'X' || valorQuestao === 'x'
             const nota = acertou ? 1 : 0
+
+            // Contar acertos por disciplina
+            if (acertou && !alunoFaltou && !semDados) {
+              if (disciplina === 'Língua Portuguesa') acertosLP++
+              else if (disciplina === 'Ciências Humanas') acertosCH++
+              else if (disciplina === 'Matemática') acertosMAT++
+              else if (disciplina === 'Ciências da Natureza') acertosCN++
+            }
 
             const questaoCodigo = `Q${num}`
             const questaoId = cacheQuestoes.get(questaoCodigo) || null
@@ -282,6 +323,111 @@ export async function POST(request: NextRequest) {
               await executarBatch()
             }
           }
+        }
+
+        // Atualizar/criar registro em resultados_consolidados se tiver aluno_id
+        if (alunoId && !semDados) {
+          // Determinar total de questões esperadas baseado na série
+          let totalQuestoesEsperadas = 60 // padrão para anos finais
+          const serieNum = parseInt(serie.replace(/[^\d]/g, ''))
+          if (serieNum >= 1 && serieNum <= 5) {
+            // Anos iniciais: 2º e 3º ano = 28 questões
+            totalQuestoesEsperadas = 28
+          }
+
+          // Calcular notas baseadas nos acertos (se não vier da planilha)
+          // Para anos iniciais: LP = 20 questões, CH = 8 questões
+          // Para anos finais: LP = 20, CH = 10, MAT = 20, CN = 10
+          let notaLPCalc = 0, notaCHCalc = 0, notaMATCalc = 0, notaCNCalc = 0
+
+          if (serieNum >= 1 && serieNum <= 5) {
+            // Anos iniciais
+            notaLPCalc = acertosLP > 0 ? (acertosLP / 20) * 10 : 0
+            notaCHCalc = acertosCH > 0 ? (acertosCH / 8) * 10 : 0
+          } else {
+            // Anos finais
+            notaLPCalc = acertosLP > 0 ? (acertosLP / 20) * 10 : 0
+            notaCHCalc = acertosCH > 0 ? (acertosCH / 10) * 10 : 0
+            notaMATCalc = acertosMAT > 0 ? (acertosMAT / 20) * 10 : 0
+            notaCNCalc = acertosCN > 0 ? (acertosCN / 10) * 10 : 0
+          }
+
+          // Calcular média
+          let mediaAluno = 0
+          if (serieNum >= 1 && serieNum <= 5) {
+            // Anos iniciais: média de LP e CH
+            const mediaObjetiva = (notaLPCalc + notaCHCalc) / 2
+            // Se tiver nota de produção, usar 70% objetiva + 30% produção
+            if (notaProducaoPlanilha && notaProducaoPlanilha > 0) {
+              mediaAluno = (mediaObjetiva * 0.7) + (notaProducaoPlanilha * 0.3)
+            } else {
+              mediaAluno = mediaObjetiva
+            }
+          } else {
+            // Anos finais: média das 4 disciplinas
+            mediaAluno = (notaLPCalc + notaCHCalc + notaMATCalc + notaCNCalc) / 4
+          }
+
+          // Determinar tipo de avaliação
+          const tipoAvaliacao = serieNum >= 1 && serieNum <= 5 ? 'anos_iniciais' : 'anos_finais'
+
+          // Upsert em resultados_consolidados
+          await pool.query(`
+            INSERT INTO resultados_consolidados (
+              aluno_id, escola_id, turma_id, ano_letivo, serie, presenca,
+              total_acertos_lp, total_acertos_ch, total_acertos_mat, total_acertos_cn,
+              nota_lp, nota_ch, nota_mat, nota_cn, media_aluno,
+              nota_producao, nivel_aprendizagem,
+              item_producao_1, item_producao_2, item_producao_3, item_producao_4,
+              item_producao_5, item_producao_6, item_producao_7, item_producao_8,
+              total_questoes_respondidas, total_questoes_esperadas, tipo_avaliacao
+            ) VALUES (
+              $1, $2, $3, $4, $5, $6,
+              $7, $8, $9, $10,
+              $11, $12, $13, $14, $15,
+              $16, $17,
+              $18, $19, $20, $21, $22, $23, $24, $25,
+              $26, $27, $28
+            )
+            ON CONFLICT (aluno_id, ano_letivo)
+            DO UPDATE SET
+              escola_id = EXCLUDED.escola_id,
+              turma_id = EXCLUDED.turma_id,
+              serie = EXCLUDED.serie,
+              presenca = EXCLUDED.presenca,
+              total_acertos_lp = EXCLUDED.total_acertos_lp,
+              total_acertos_ch = EXCLUDED.total_acertos_ch,
+              total_acertos_mat = EXCLUDED.total_acertos_mat,
+              total_acertos_cn = EXCLUDED.total_acertos_cn,
+              nota_lp = EXCLUDED.nota_lp,
+              nota_ch = EXCLUDED.nota_ch,
+              nota_mat = EXCLUDED.nota_mat,
+              nota_cn = EXCLUDED.nota_cn,
+              media_aluno = EXCLUDED.media_aluno,
+              nota_producao = EXCLUDED.nota_producao,
+              nivel_aprendizagem = EXCLUDED.nivel_aprendizagem,
+              item_producao_1 = EXCLUDED.item_producao_1,
+              item_producao_2 = EXCLUDED.item_producao_2,
+              item_producao_3 = EXCLUDED.item_producao_3,
+              item_producao_4 = EXCLUDED.item_producao_4,
+              item_producao_5 = EXCLUDED.item_producao_5,
+              item_producao_6 = EXCLUDED.item_producao_6,
+              item_producao_7 = EXCLUDED.item_producao_7,
+              item_producao_8 = EXCLUDED.item_producao_8,
+              total_questoes_respondidas = EXCLUDED.total_questoes_respondidas,
+              total_questoes_esperadas = EXCLUDED.total_questoes_esperadas,
+              tipo_avaliacao = EXCLUDED.tipo_avaliacao,
+              atualizado_em = CURRENT_TIMESTAMP
+          `, [
+            alunoId, escolaId, turmaId, anoLetivo, serie, presencaFinal,
+            acertosLP, acertosCH, acertosMAT, acertosCN,
+            notaLPCalc.toFixed(2), notaCHCalc.toFixed(2), notaMATCalc.toFixed(2), notaCNCalc.toFixed(2),
+            mediaAluno.toFixed(2),
+            notaProducaoPlanilha || 0, nivelProducao,
+            itensProducao[0], itensProducao[1], itensProducao[2], itensProducao[3],
+            itensProducao[4], itensProducao[5], itensProducao[6], itensProducao[7],
+            questoesRespondidas, totalQuestoesEsperadas, tipoAvaliacao
+          ])
         }
 
         linhasProcessadas++
