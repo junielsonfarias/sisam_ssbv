@@ -791,7 +791,7 @@ export default function ResultadosPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-4 mb-4">
               {/* 1. Ano Letivo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Ano Letivo
                 </label>
                 <select
@@ -810,7 +810,7 @@ export default function ResultadosPage() {
 
               {/* 2. Polo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Polo
                 </label>
                 <select
@@ -829,7 +829,7 @@ export default function ResultadosPage() {
 
               {/* 3. Escola */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Escola
                 </label>
                 <select
@@ -851,7 +851,7 @@ export default function ResultadosPage() {
 
               {/* 4. Série */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Série
                 </label>
                 <select
@@ -870,7 +870,7 @@ export default function ResultadosPage() {
 
               {/* 5. Turma */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Turma
                 </label>
                 <select
@@ -890,7 +890,7 @@ export default function ResultadosPage() {
 
               {/* 6. Presença */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Presença
                 </label>
                 <select
@@ -906,7 +906,7 @@ export default function ResultadosPage() {
 
               {/* 7. Busca */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Busca
                 </label>
                 <div className="relative">
@@ -993,14 +993,14 @@ export default function ResultadosPage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Língua Portuguesa</p>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Língua Portuguesa</p>
                     <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaLP)}`}>
                       {estatisticas.mediaLP.toFixed(1)}
                     </p>
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400 flex-shrink-0 ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
                   <div
                     className={`h-2 sm:h-3 rounded-full ${
                       estatisticas.mediaLP >= 7 ? 'bg-green-500' : estatisticas.mediaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1013,14 +1013,14 @@ export default function ResultadosPage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Ciências Humanas</p>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
                     <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCH)}`}>
                       {estatisticas.mediaCH.toFixed(1)}
                     </p>
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 flex-shrink-0 ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
                   <div
                     className={`h-2 sm:h-3 rounded-full ${
                       estatisticas.mediaCH >= 7 ? 'bg-green-500' : estatisticas.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1033,14 +1033,14 @@ export default function ResultadosPage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Matemática</p>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Matemática</p>
                     <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaMAT)}`}>
                       {estatisticas.mediaMAT.toFixed(1)}
                     </p>
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400 flex-shrink-0 ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
                   <div
                     className={`h-2 sm:h-3 rounded-full ${
                       estatisticas.mediaMAT >= 7 ? 'bg-green-500' : estatisticas.mediaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1053,14 +1053,14 @@ export default function ResultadosPage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Ciências da Natureza</p>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
                     <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCN)}`}>
                       {estatisticas.mediaCN.toFixed(1)}
                     </p>
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400 flex-shrink-0 ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
                   <div
                     className={`h-2 sm:h-3 rounded-full ${
                       estatisticas.mediaCN >= 7 ? 'bg-green-500' : estatisticas.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1077,7 +1077,7 @@ export default function ResultadosPage() {
             {carregando ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4">Carregando resultados...</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando resultados...</p>
               </div>
             ) : (
               <>
@@ -1098,7 +1098,7 @@ export default function ResultadosPage() {
                     const notaCN = getNotaNumero(resultado.nota_cn)
 
                     return (
-                      <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
+                      <div key={resultado.id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
                         {/* Cabeçalho do Card */}
                         <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                           <div className="flex items-center gap-2 mr-2">
@@ -1133,12 +1133,12 @@ export default function ResultadosPage() {
                               <div className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-sm mb-1">
                                 {resultado.aluno_nome}
                               </div>
-                              <div className="text-xs text-gray-500 space-y-0.5">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                                 <div>{resultado.escola_nome}</div>
                                 {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
                                 <div className="flex items-center gap-2">
                                   <span>Série: {resultado.serie || '-'}</span>
-                                  <span className="text-gray-300">|</span>
+                                  <span className="text-gray-300 dark:text-gray-600">|</span>
                                   <span
                                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getPresencaColor(
                                       resultado.presenca || 'P'
@@ -1160,8 +1160,8 @@ export default function ResultadosPage() {
                             const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
                             
                             return (
-                              <div key={disciplina.codigo} className={`p-3 rounded-lg ${getNotaBgColor(nota)} border border-gray-200`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">{disciplina.nome}</div>
+                              <div key={disciplina.codigo} className={`p-3 rounded-lg ${getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
+                                <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{disciplina.nome}</div>
                                 {disciplina.tipo === 'nivel' ? (
                                   <div className={`text-sm font-bold ${nivelAprendizagem ? getNivelColor(nivelAprendizagem).replace('bg-', 'text-').split(' ')[0] : 'text-gray-500'}`}>
                                     {nivelAprendizagem || '-'}
@@ -1169,13 +1169,13 @@ export default function ResultadosPage() {
                                 ) : (
                                   <>
                                     {disciplina.total_questoes && acertos !== null && (
-                                      <div className="text-xs text-gray-600 mb-1">{acertos}/{disciplina.total_questoes}</div>
+                                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{disciplina.total_questoes}</div>
                                     )}
                                     <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
                                       {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
                                         <div
                                           className={`h-1.5 rounded-full ${
                                             nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1198,7 +1198,7 @@ export default function ResultadosPage() {
                             mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
                             'border-red-500'
                           }`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Média Geral</div>
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Média Geral</div>
                             <div className={`text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                               {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -1318,7 +1318,7 @@ export default function ResultadosPage() {
                                   </div>
                                   <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-[10px] sm:text-[11px] md:text-xs lg:text-sm truncate">{resultado.aluno_nome}</span>
                                 </button>
-                                <div className="lg:hidden text-[9px] sm:text-[10px] md:text-xs text-gray-500 space-y-0.5 ml-6 sm:ml-7 md:ml-8 lg:ml-10">
+                                <div className="lg:hidden text-[9px] sm:text-[10px] md:text-xs text-gray-500 dark:text-gray-400 space-y-0.5 ml-6 sm:ml-7 md:ml-8 lg:ml-10">
                                   {resultado.escola_nome && <div className="whitespace-normal break-words">Escola: {resultado.escola_nome}</div>}
                                   {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
                                   {resultado.serie && <div>Série: {resultado.serie}</div>}
@@ -1336,10 +1336,10 @@ export default function ResultadosPage() {
                               </div>
                             </td>
                             <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-2">
-                              <span className="text-gray-700 font-medium text-[10px] md:text-xs lg:text-sm block whitespace-normal break-words">{resultado.escola_nome}</span>
+                              <span className="text-gray-700 dark:text-gray-200 font-medium text-[10px] md:text-xs lg:text-sm block whitespace-normal break-words">{resultado.escola_nome}</span>
                             </td>
                             <td className="hidden md:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
-                              <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-mono text-[9px] md:text-[10px] lg:text-xs font-medium">
+                              <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 font-mono text-[9px] md:text-[10px] lg:text-xs font-medium">
                                 {resultado.turma_codigo || '-'}
                               </span>
                             </td>
@@ -1375,7 +1375,7 @@ export default function ResultadosPage() {
                                   ) : (
                                     <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                       {disciplina.total_questoes && acertos !== null && (
-                                        <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                        <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-0.5 font-medium">
                                           {acertos}/{disciplina.total_questoes}
                                         </div>
                                       )}
@@ -1383,7 +1383,7 @@ export default function ResultadosPage() {
                                         {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
                                       </div>
                                       {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                        <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                        <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                           <div
                                             className={`h-0.5 md:h-1 rounded-full ${
                                               nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'

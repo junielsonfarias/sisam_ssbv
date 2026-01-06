@@ -835,8 +835,8 @@ export default function DadosPage() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {/* Ano Letivo */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroAnoLetivo ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroAnoLetivo ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroAnoLetivo ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Ano Letivo
                 </label>
@@ -845,8 +845,8 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroAnoLetivo(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroAnoLetivo 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                 >
                   <option value="">Todos os anos</option>
@@ -857,8 +857,8 @@ export default function DadosPage() {
               </div>
 
               {/* Polo */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPoloId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPoloId ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroPoloId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Polo
                 </label>
@@ -868,7 +868,7 @@ export default function DadosPage() {
                     type="text"
                     value={poloNome || 'Carregando...'}
                     disabled
-                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 border-2 border-gray-300 dark:border-slate-600 text-gray-700 cursor-not-allowed"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 cursor-not-allowed"
                   />
                 ) : (
                   <select
@@ -876,8 +876,8 @@ export default function DadosPage() {
                     onChange={(e) => { setFiltroPoloId(e.target.value); setFiltroEscolaId(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
                     className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                       filtroPoloId
-                        ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                        : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                        ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
+                        : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                     }`}
                   >
                     <option value="">Todos os polos</option>
@@ -889,8 +889,8 @@ export default function DadosPage() {
               </div>
 
               {/* Escola */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroEscolaId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroEscolaId ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroEscolaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Escola
                 </label>
@@ -900,7 +900,7 @@ export default function DadosPage() {
                     type="text"
                     value={escolaNome || 'Carregando...'}
                     disabled
-                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 border-2 border-gray-300 dark:border-slate-600 text-gray-700 cursor-not-allowed"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 cursor-not-allowed"
                   />
                 ) : (
                   <select
@@ -909,8 +909,8 @@ export default function DadosPage() {
                     disabled={!filtroPoloId}
                     className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
                       filtroEscolaId
-                        ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                        : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                        ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
+                        : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                     }`}
                     title={!filtroPoloId ? 'Selecione um polo primeiro' : ''}
                   >
@@ -923,8 +923,8 @@ export default function DadosPage() {
               </div>
 
               {/* Serie */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroSerie ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroSerie ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroSerie ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Série
                 </label>
@@ -933,8 +933,8 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroSerie(e.target.value); setFiltroTurmaId(''); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroSerie
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                 >
                   <option value="">Todas as séries</option>
@@ -945,8 +945,8 @@ export default function DadosPage() {
               </div>
 
               {/* Turma */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTurmaId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTurmaId ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroTurmaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Turma
                 </label>
@@ -956,8 +956,8 @@ export default function DadosPage() {
                   disabled={!filtroSerie}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
                     filtroTurmaId
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                   title={!filtroSerie ? 'Selecione uma série primeiro' : ''}
                 >
@@ -969,8 +969,8 @@ export default function DadosPage() {
               </div>
 
               {/* Disciplina */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroDisciplina ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroDisciplina ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroDisciplina ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Disciplina
                 </label>
@@ -979,8 +979,8 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroDisciplina(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroDisciplina 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                 >
                   <option value="">Todas as disciplinas</option>
@@ -993,8 +993,8 @@ export default function DadosPage() {
               </div>
 
               {/* Presenca */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPresenca ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPresenca ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroPresenca ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Presença
                 </label>
@@ -1003,8 +1003,8 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroPresenca(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroPresenca
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                 >
                   <option value="">Todos</option>
@@ -1014,8 +1014,8 @@ export default function DadosPage() {
               </div>
 
               {/* Nivel */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroNivel ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroNivel ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroNivel ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Nível
                 </label>
@@ -1024,8 +1024,8 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroNivel(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroNivel 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                 >
                   <option value="">Todos os níveis</option>
@@ -1036,8 +1036,8 @@ export default function DadosPage() {
               </div>
 
               {/* Faixa de Media */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroFaixaMedia ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroFaixaMedia ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroFaixaMedia ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Faixa de Média
                 </label>
@@ -1046,8 +1046,8 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroFaixaMedia(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroFaixaMedia 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                 >
                   <option value="">Todas as faixas</option>
@@ -1058,8 +1058,8 @@ export default function DadosPage() {
               </div>
 
               {/* Taxa de Acerto Mínima */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMin ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMin ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroTaxaAcertoMin ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Taxa de Acerto Mín. (%)
                 </label>
@@ -1071,16 +1071,16 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroTaxaAcertoMin(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroTaxaAcertoMin 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                   placeholder="Ex: 50"
                 />
               </div>
 
               {/* Taxa de Acerto Máxima */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMax ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMax ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroTaxaAcertoMax ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Taxa de Acerto Máx. (%)
                 </label>
@@ -1092,16 +1092,16 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroTaxaAcertoMax(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroTaxaAcertoMax 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                   placeholder="Ex: 80"
                 />
               </div>
 
               {/* Questão Específica */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroQuestaoCodigo ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroQuestaoCodigo ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroQuestaoCodigo ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Questão Específica
                 </label>
@@ -1111,8 +1111,8 @@ export default function DadosPage() {
                   onChange={(e) => { setFiltroQuestaoCodigo(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroQuestaoCodigo 
-                      ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                   placeholder="Ex: Q1, Q25"
                 />
@@ -1391,7 +1391,7 @@ export default function DadosPage() {
                         // Notas serão obtidas dinamicamente pelas disciplinas
 
                         return (
-                          <div key={resultado.id || index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
+                          <div key={resultado.id || index} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
                             <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex-shrink-0">
@@ -1403,8 +1403,8 @@ export default function DadosPage() {
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-semibold text-gray-900 text-sm mb-1 truncate">{resultado.aluno}</div>
-                                  <div className="text-xs text-gray-500 space-y-0.5">
+                                  <div className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate">{resultado.aluno}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                                     {resultado.escola && <div className="whitespace-normal break-words">Escola: {resultado.escola}</div>}
                                     {resultado.turma && <div>Turma: {resultado.turma}</div>}
                                     {resultado.serie && <div>Série: {resultado.serie}</div>}
@@ -1430,18 +1430,18 @@ export default function DadosPage() {
                                 const acertos = disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
                                 const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
                                 const getNivelColor = (nivel: string | undefined | null): string => {
-                                  if (!nivel) return 'bg-gray-100 text-gray-700'
+                                  if (!nivel) return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                   const nivelLower = nivel.toLowerCase()
                                   if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300'
                                   if (nivelLower.includes('adequado')) return 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300'
                                   if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300'
                                   if (nivelLower.includes('insuficiente')) return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
-                                  return 'bg-gray-100 text-gray-700'
+                                  return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                 }
-                                
+
                                 return (
-                                  <div key={disciplina.codigo} className={`p-3 rounded-lg ${getNotaBgColor(nota)} border border-gray-200`}>
-                                    <div className="text-xs font-semibold text-gray-600 mb-1">{disciplina.nome}</div>
+                                  <div key={disciplina.codigo} className={`p-3 rounded-lg ${getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
+                                    <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{disciplina.nome}</div>
                                     {disciplina.tipo === 'nivel' ? (
                                       <div className={`text-sm font-bold ${nivelAprendizagem ? getNivelColor(nivelAprendizagem).replace('bg-', 'text-').split(' ')[0] : 'text-gray-500'}`}>
                                         {nivelAprendizagem || '-'}
@@ -1449,13 +1449,13 @@ export default function DadosPage() {
                                     ) : (
                                       <>
                                         {disciplina.total_questoes && acertos !== null && (
-                                          <div className="text-xs text-gray-600 mb-1">{acertos}/{disciplina.total_questoes}</div>
+                                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{disciplina.total_questoes}</div>
                                         )}
                                         <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
                                           {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
                                         </div>
                                         {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                          <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
                                             <div
                                               className={`h-1.5 rounded-full ${
                                                 nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1478,7 +1478,7 @@ export default function DadosPage() {
                                 mediaNum !== null && mediaNum >= 5 ? 'bg-yellow-50 border-yellow-500' : 
                                 'bg-red-50 border-red-500'
                               } border-2`}>
-                                <div className="text-xs font-semibold text-gray-600 mb-1">Média</div>
+                                <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Média</div>
                                 <div className={`text-2xl font-extrabold ${
                                   mediaNum !== null && mediaNum >= 7 ? 'text-green-600' : 
                                   mediaNum !== null && mediaNum >= 5 ? 'text-yellow-600' : 
@@ -1540,7 +1540,7 @@ export default function DadosPage() {
                         <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                           {alunosPaginados.length === 0 ? (
                             <tr>
-                              <td colSpan={6 + disciplinasExibir.length + 1} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                              <td colSpan={6 + disciplinasExibir.length + 1} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
                                 <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
                                 <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
                                 <p className="text-xs sm:text-sm mt-1">Importe os dados primeiro</p>
@@ -1552,7 +1552,7 @@ export default function DadosPage() {
                               // Notas serão obtidas dinamicamente pelas disciplinas
 
                               return (
-                                <tr key={resultado.id || index} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-gray-100">
+                                <tr key={resultado.id || index} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-gray-100 dark:border-slate-700">
                                   <td className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2">
                                     <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
                                       {index + 1 + (paginaAtual - 1) * itensPorPagina}
@@ -1568,7 +1568,7 @@ export default function DadosPage() {
                                         </div>
                                         <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-[10px] sm:text-[11px] md:text-xs lg:text-sm truncate">{resultado.aluno}</span>
                                       </div>
-                                      <div className="lg:hidden text-[9px] sm:text-[10px] md:text-xs text-gray-500 space-y-0.5 ml-6 sm:ml-7 md:ml-8 lg:ml-10">
+                                      <div className="lg:hidden text-[9px] sm:text-[10px] md:text-xs text-gray-500 dark:text-gray-400 space-y-0.5 ml-6 sm:ml-7 md:ml-8 lg:ml-10">
                                         {resultado.escola && <div className="whitespace-normal break-words">Escola: {resultado.escola}</div>}
                                         {resultado.turma && <div>Turma: {resultado.turma}</div>}
                                         {resultado.serie && <div>Série: {resultado.serie}</div>}
@@ -1586,10 +1586,10 @@ export default function DadosPage() {
                                     </div>
                                   </td>
                                   <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-2">
-                                    <span className="text-gray-700 font-medium text-[10px] md:text-xs lg:text-sm block whitespace-normal break-words">{resultado.escola}</span>
+                                    <span className="text-gray-700 dark:text-gray-200 font-medium text-[10px] md:text-xs lg:text-sm block whitespace-normal break-words">{resultado.escola}</span>
                                   </td>
                                   <td className="hidden md:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
-                                    <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-mono text-[9px] md:text-[10px] lg:text-xs font-medium">
+                                    <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 font-mono text-[9px] md:text-[10px] lg:text-xs font-medium">
                                       {resultado.turma || '-'}
                                     </span>
                                   </td>
@@ -1612,15 +1612,15 @@ export default function DadosPage() {
                                     const acertos = disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
                                     const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
                                     const getNivelColor = (nivel: string | undefined | null): string => {
-                                      if (!nivel) return 'bg-gray-100 text-gray-700'
+                                      if (!nivel) return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                       const nivelLower = nivel.toLowerCase()
                                       if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300'
                                       if (nivelLower.includes('adequado')) return 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300'
                                       if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300'
                                       if (nivelLower.includes('insuficiente')) return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
-                                      return 'bg-gray-100 text-gray-700'
+                                      return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                     }
-                                    
+
                                     return (
                                       <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                         {disciplina.tipo === 'nivel' ? (
@@ -1630,7 +1630,7 @@ export default function DadosPage() {
                                         ) : (
                                           <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                             {disciplina.total_questoes && acertos !== null && (
-                                              <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                              <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-0.5 font-medium">
                                                 {acertos}/{disciplina.total_questoes}
                                               </div>
                                             )}

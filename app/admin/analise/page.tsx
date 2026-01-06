@@ -69,7 +69,7 @@ export default function AnalisePage() {
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
       <LayoutDashboard tipoUsuario="admin">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8">Análise de Dados</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-6 sm:mb-8">Análise de Dados</h1>
 
           {/* Aviso de modo offline */}
           {modoOffline && (
@@ -102,7 +102,7 @@ export default function AnalisePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Polo
                 </label>
                 <select
@@ -120,7 +120,7 @@ export default function AnalisePage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Escola
                 </label>
                 <select
@@ -140,7 +140,7 @@ export default function AnalisePage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Ano Letivo
                 </label>
                 <input
@@ -153,7 +153,7 @@ export default function AnalisePage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Disciplina
                 </label>
                 <input
@@ -166,7 +166,7 @@ export default function AnalisePage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Taxa de Acertos Mínima (%)
                 </label>
                 <input
@@ -180,7 +180,7 @@ export default function AnalisePage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Taxa de Acertos Máxima (%)
                 </label>
                 <input

@@ -408,19 +408,19 @@ export default function PoloAnalisePage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Polo
                 </label>
                 <input
                   type="text"
                   value={poloNome || '-'}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Escola
                 </label>
                 <select
@@ -438,7 +438,7 @@ export default function PoloAnalisePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Ano Letivo
                 </label>
                 <input
@@ -451,7 +451,7 @@ export default function PoloAnalisePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Série
                 </label>
                 <select
@@ -469,7 +469,7 @@ export default function PoloAnalisePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Turma
                 </label>
                 <select
@@ -488,7 +488,7 @@ export default function PoloAnalisePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Presença
                 </label>
                 <select
@@ -565,14 +565,14 @@ export default function PoloAnalisePage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Língua Portuguesa</p>
+                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Língua Portuguesa</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaLP)}`}>
                       {estatisticasAPI.mediaLP.toFixed(1)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-400 flex-shrink-0 ml-1" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2">
                   <div
                     className={`h-1.5 sm:h-2 rounded-full ${
                       estatisticasAPI.mediaLP >= 7 ? 'bg-green-500' : estatisticasAPI.mediaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -585,14 +585,14 @@ export default function PoloAnalisePage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Ciências Humanas</p>
+                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCH)}`}>
                       {estatisticasAPI.mediaCH.toFixed(1)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0 ml-1" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2">
                   <div
                     className={`h-1.5 sm:h-2 rounded-full ${
                       estatisticasAPI.mediaCH >= 7 ? 'bg-green-500' : estatisticasAPI.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -605,14 +605,14 @@ export default function PoloAnalisePage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Matemática</p>
+                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Matemática</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaMAT)}`}>
                       {estatisticasAPI.mediaMAT.toFixed(1)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 flex-shrink-0 ml-1" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2">
                   <div
                     className={`h-1.5 sm:h-2 rounded-full ${
                       estatisticasAPI.mediaMAT >= 7 ? 'bg-green-500' : estatisticasAPI.mediaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -625,14 +625,14 @@ export default function PoloAnalisePage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Ciências da Natureza</p>
+                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCN)}`}>
                       {estatisticasAPI.mediaCN.toFixed(1)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0 ml-1" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2">
                   <div
                     className={`h-1.5 sm:h-2 rounded-full ${
                       estatisticasAPI.mediaCN >= 7 ? 'bg-green-500' : estatisticasAPI.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -712,13 +712,13 @@ export default function PoloAnalisePage() {
 
                         <div className="grid grid-cols-2 gap-3 mb-3">
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Língua Portuguesa</div>
-                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_lp}/20</div>
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Língua Portuguesa</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_lp}/20</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
                               {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                             </div>
                             {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`h-1.5 rounded-full ${
                                     notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -730,13 +730,13 @@ export default function PoloAnalisePage() {
                           </div>
 
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Ciências Humanas</div>
-                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_ch}/10</div>
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências Humanas</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_ch}/10</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
                               {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                             </div>
                             {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`h-1.5 rounded-full ${
                                     notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -748,13 +748,13 @@ export default function PoloAnalisePage() {
                           </div>
 
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Matemática</div>
-                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_mat}/20</div>
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Matemática</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_mat}/20</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
                               {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                             </div>
                             {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`h-1.5 rounded-full ${
                                     notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -766,13 +766,13 @@ export default function PoloAnalisePage() {
                           </div>
 
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Ciências da Natureza</div>
-                            <div className="text-xs text-gray-600 mb-1">{resultado.total_acertos_cn}/10</div>
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências da Natureza</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_cn}/10</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
                               {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                             </div>
                             {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
                                 <div
                                   className={`h-1.5 rounded-full ${
                                     notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -790,7 +790,7 @@ export default function PoloAnalisePage() {
                             mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' :
                             'border-red-500'
                           }`}>
-                            <div className="text-xs font-semibold text-gray-600 mb-1">Média Geral</div>
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Média Geral</div>
                             <div className={`text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                               {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -941,7 +941,7 @@ export default function PoloAnalisePage() {
                                       {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                         <div
                                           className={`h-0.5 md:h-1 rounded-full ${
                                             notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -961,7 +961,7 @@ export default function PoloAnalisePage() {
                                       {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                         <div
                                           className={`h-0.5 md:h-1 rounded-full ${
                                             notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -981,7 +981,7 @@ export default function PoloAnalisePage() {
                                       {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                         <div
                                           className={`h-0.5 md:h-1 rounded-full ${
                                             notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1001,7 +1001,7 @@ export default function PoloAnalisePage() {
                                       {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                         <div
                                           className={`h-0.5 md:h-1 rounded-full ${
                                             notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
