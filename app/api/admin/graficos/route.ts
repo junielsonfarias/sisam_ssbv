@@ -5,6 +5,22 @@ import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } fro
 
 export const dynamic = 'force-dynamic'
 
+// Helper para determinar campo de nota baseado na disciplina selecionada
+function getCampoNota(disciplina: string | null): { campo: string, label: string, totalQuestoes: number } {
+  switch (disciplina) {
+    case 'LP':
+      return { campo: 'rc.nota_lp', label: 'Língua Portuguesa', totalQuestoes: 20 }
+    case 'CH':
+      return { campo: 'rc.nota_ch', label: 'Ciências Humanas', totalQuestoes: 10 }
+    case 'MAT':
+      return { campo: 'rc.nota_mat', label: 'Matemática', totalQuestoes: 20 }
+    case 'CN':
+      return { campo: 'rc.nota_cn', label: 'Ciências da Natureza', totalQuestoes: 10 }
+    default:
+      return { campo: 'rc.media_aluno', label: 'Média Geral', totalQuestoes: 60 }
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -295,11 +311,12 @@ export async function GET(request: NextRequest) {
 
     // Gráfico por Escola
     if (tipoGrafico === 'geral' || tipoGrafico === 'escolas') {
+      const notaConfig = getCampoNota(disciplina)
       const queryEscolas = `
-        SELECT 
+        SELECT
           e.nome as escola,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
-          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfig.campo} IS NOT NULL AND CAST(${notaConfig.campo} AS DECIMAL) > 0) THEN CAST(${notaConfig.campo} AS DECIMAL) ELSE NULL END), 2) as media,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfig.campo} IS NOT NULL AND CAST(${notaConfig.campo} AS DECIMAL) > 0) THEN 1 END) as total_alunos
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
@@ -312,18 +329,20 @@ export async function GET(request: NextRequest) {
           labels: resEscolas.rows.map((r, index) => `${index + 1}º ${r.escola}`),
           dados: resEscolas.rows.map(r => parseFloat(r.media) || 0),
           totais: resEscolas.rows.map(r => parseInt(r.total_alunos) || 0),
-          rankings: resEscolas.rows.map((r, index) => index + 1)
+          rankings: resEscolas.rows.map((r, index) => index + 1),
+          disciplina: notaConfig.label
         }
       }
     }
 
     // Gráfico por Série
     if (tipoGrafico === 'geral' || tipoGrafico === 'series') {
+      const notaConfigSeries = getCampoNota(disciplina)
       const querySeries = `
-        SELECT 
+        SELECT
           rc.serie,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
-          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigSeries.campo} IS NOT NULL AND CAST(${notaConfigSeries.campo} AS DECIMAL) > 0) THEN CAST(${notaConfigSeries.campo} AS DECIMAL) ELSE NULL END), 2) as media,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigSeries.campo} IS NOT NULL AND CAST(${notaConfigSeries.campo} AS DECIMAL) > 0) THEN 1 END) as total_alunos
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
@@ -335,18 +354,20 @@ export async function GET(request: NextRequest) {
         resultado.series = {
           labels: resSeries.rows.map(r => r.serie),
           dados: resSeries.rows.map(r => parseFloat(r.media) || 0),
-          totais: resSeries.rows.map(r => parseInt(r.total_alunos) || 0)
+          totais: resSeries.rows.map(r => parseInt(r.total_alunos) || 0),
+          disciplina: notaConfigSeries.label
         }
       }
     }
 
     // Gráfico por Polo
     if (tipoGrafico === 'geral' || tipoGrafico === 'polos') {
+      const notaConfigPolos = getCampoNota(disciplina)
       const queryPolos = `
-        SELECT 
+        SELECT
           p.nome as polo,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media,
-          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigPolos.campo} IS NOT NULL AND CAST(${notaConfigPolos.campo} AS DECIMAL) > 0) THEN CAST(${notaConfigPolos.campo} AS DECIMAL) ELSE NULL END), 2) as media,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigPolos.campo} IS NOT NULL AND CAST(${notaConfigPolos.campo} AS DECIMAL) > 0) THEN 1 END) as total_alunos
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         INNER JOIN polos p ON e.polo_id = p.id
@@ -359,7 +380,8 @@ export async function GET(request: NextRequest) {
         resultado.polos = {
           labels: resPolos.rows.map(r => r.polo),
           dados: resPolos.rows.map(r => parseFloat(r.media) || 0),
-          totais: resPolos.rows.map(r => parseInt(r.total_alunos) || 0)
+          totais: resPolos.rows.map(r => parseInt(r.total_alunos) || 0),
+          disciplina: notaConfigPolos.label
         }
       }
     }
@@ -930,21 +952,22 @@ export async function GET(request: NextRequest) {
 
     // 4. Box Plot (Distribuição de Notas)
     if (tipoGrafico === 'boxplot') {
-      const whereBoxPlot = whereClause 
-        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
-        : 'WHERE (rc.presenca = \'P\' OR rc.presenca = \'p\') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0'
-      
+      const notaConfigBoxplot = getCampoNota(disciplina)
+      const whereBoxPlot = whereClause
+        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfigBoxplot.campo} IS NOT NULL AND CAST(${notaConfigBoxplot.campo} AS DECIMAL) > 0`
+        : `WHERE (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfigBoxplot.campo} IS NOT NULL AND CAST(${notaConfigBoxplot.campo} AS DECIMAL) > 0`
+
       const queryBoxPlot = `
-        SELECT 
+        SELECT
           COALESCE(e.nome, rc.serie, 'Geral') as categoria,
-          CAST(rc.media_aluno AS DECIMAL) as nota
+          CAST(${notaConfigBoxplot.campo} AS DECIMAL) as nota
         FROM resultados_consolidados_unificada rc
         LEFT JOIN escolas e ON rc.escola_id = e.id
         ${whereBoxPlot}
         ORDER BY categoria, nota
       `
       const resBoxPlot = await pool.query(queryBoxPlot, params)
-      
+
       // Agrupar por categoria e calcular quartis
       const categorias: { [key: string]: number[] } = {}
       resBoxPlot.rows.forEach((r: any) => {
@@ -956,7 +979,7 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      resultado.boxplot = Object.keys(categorias).length > 0 
+      const boxplotData = Object.keys(categorias).length > 0
         ? Object.entries(categorias)
           .filter(([_, notas]) => notas.length > 0) // Filtrar categorias vazias
           .map(([categoria, notas]) => {
@@ -970,17 +993,20 @@ export async function GET(request: NextRequest) {
 
             return {
               categoria,
-              min,
-              q1,
-              mediana,
-              q3,
-              max,
-              media,
+              min: Math.round(min * 100) / 100,
+              q1: Math.round(q1 * 100) / 100,
+              mediana: Math.round(mediana * 100) / 100,
+              q3: Math.round(q3 * 100) / 100,
+              max: Math.round(max * 100) / 100,
+              media: Math.round(media * 100) / 100,
               total: notas.length
             }
           })
           .slice(0, 20) // Limitar a 20 categorias
         : []
+
+      resultado.boxplot = boxplotData
+      resultado.boxplot_disciplina = notaConfigBoxplot.label
     }
 
     // 5. Correlação entre Disciplinas
@@ -1014,14 +1040,15 @@ export async function GET(request: NextRequest) {
     // 6. Ranking Interativo
     if (tipoGrafico === 'ranking') {
       const tipoRanking = searchParams.get('tipo_ranking') || 'escolas' // escolas, turmas, polos
-      
+      const notaConfigRanking = getCampoNota(disciplina)
+
       if (tipoRanking === 'escolas') {
         const queryRanking = `
-          SELECT 
+          SELECT
             e.id,
             e.nome,
-            COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN rc.aluno_id END) as total_alunos,
-            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+            COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN rc.aluno_id END) as total_alunos,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN CAST(${notaConfigRanking.campo} AS DECIMAL) ELSE NULL END), 2) as media_geral,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
@@ -1047,20 +1074,21 @@ export async function GET(request: NextRequest) {
               media_cn: parseFloat(r.media_cn) || 0
             }))
           : []
+        resultado.ranking_disciplina = notaConfigRanking.label
       } else if (tipoRanking === 'turmas') {
         // Adicionar filtro para garantir que há turma_id
-        const whereRankingTurmas = whereClause 
+        const whereRankingTurmas = whereClause
           ? `${whereClause} AND rc.turma_id IS NOT NULL`
           : 'WHERE rc.turma_id IS NOT NULL'
-        
+
         const queryRanking = `
-          SELECT 
+          SELECT
             t.id,
             t.codigo,
             t.nome,
             e.nome as escola_nome,
-            COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN rc.aluno_id END) as total_alunos,
-            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
+            COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN rc.aluno_id END) as total_alunos,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN CAST(${notaConfigRanking.campo} AS DECIMAL) ELSE NULL END), 2) as media_geral
           FROM resultados_consolidados_unificada rc
           INNER JOIN turmas t ON rc.turma_id = t.id
           INNER JOIN escolas e ON rc.escola_id = e.id
@@ -1078,6 +1106,7 @@ export async function GET(request: NextRequest) {
           total_alunos: parseInt(r.total_alunos) || 0,
           media_geral: parseFloat(r.media_geral) || 0
         }))
+        resultado.ranking_disciplina = notaConfigRanking.label
       } else {
         // Se tipo_ranking não for reconhecido, retornar array vazio
         resultado.ranking = []
@@ -1086,18 +1115,19 @@ export async function GET(request: NextRequest) {
 
     // 7. Taxa de Aprovação Estimada
     if (tipoGrafico === 'aprovacao') {
-      const whereAprovacao = whereClause 
-        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
-        : 'WHERE (rc.presenca = \'P\' OR rc.presenca = \'p\') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0'
-      
+      const notaConfigAprovacao = getCampoNota(disciplina)
+      const whereAprovacao = whereClause
+        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfigAprovacao.campo} IS NOT NULL AND CAST(${notaConfigAprovacao.campo} AS DECIMAL) > 0`
+        : `WHERE (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfigAprovacao.campo} IS NOT NULL AND CAST(${notaConfigAprovacao.campo} AS DECIMAL) > 0`
+
       const queryAprovacao = `
-        SELECT 
+        SELECT
           COALESCE(e.nome, 'Geral') as categoria,
           COUNT(*) as total_alunos,
-          SUM(CASE WHEN CAST(rc.media_aluno AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_6,
-          SUM(CASE WHEN CAST(rc.media_aluno AS DECIMAL) >= 7.0 THEN 1 ELSE 0 END) as aprovados_7,
-          SUM(CASE WHEN CAST(rc.media_aluno AS DECIMAL) >= 8.0 THEN 1 ELSE 0 END) as aprovados_8,
-          ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral
+          SUM(CASE WHEN CAST(${notaConfigAprovacao.campo} AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_6,
+          SUM(CASE WHEN CAST(${notaConfigAprovacao.campo} AS DECIMAL) >= 7.0 THEN 1 ELSE 0 END) as aprovados_7,
+          SUM(CASE WHEN CAST(${notaConfigAprovacao.campo} AS DECIMAL) >= 8.0 THEN 1 ELSE 0 END) as aprovados_8,
+          ROUND(AVG(CAST(${notaConfigAprovacao.campo} AS DECIMAL)), 2) as media_geral
         FROM resultados_consolidados_unificada rc
         LEFT JOIN escolas e ON rc.escola_id = e.id
         ${whereAprovacao}
@@ -1115,28 +1145,31 @@ export async function GET(request: NextRequest) {
               aprovados_6: parseInt(r.aprovados_6) || 0,
               aprovados_7: parseInt(r.aprovados_7) || 0,
               aprovados_8: parseInt(r.aprovados_8) || 0,
-              taxa_6: ((parseInt(r.aprovados_6) || 0) / totalAlunos) * 100,
-              taxa_7: ((parseInt(r.aprovados_7) || 0) / totalAlunos) * 100,
-              taxa_8: ((parseInt(r.aprovados_8) || 0) / totalAlunos) * 100,
+              taxa_6: Math.round(((parseInt(r.aprovados_6) || 0) / totalAlunos) * 10000) / 100,
+              taxa_7: Math.round(((parseInt(r.aprovados_7) || 0) / totalAlunos) * 10000) / 100,
+              taxa_8: Math.round(((parseInt(r.aprovados_8) || 0) / totalAlunos) * 10000) / 100,
               media_geral: parseFloat(r.media_geral) || 0
             }
           })
         : []
+      resultado.aprovacao_disciplina = notaConfigAprovacao.label
     }
 
     // 8. Análise de Gaps
     if (tipoGrafico === 'gaps') {
-      const whereGaps = whereClause 
-        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
-        : 'WHERE (rc.presenca = \'P\' OR rc.presenca = \'p\') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0'
-      
+      const notaConfigGaps = getCampoNota(disciplina)
+      const whereGaps = whereClause
+        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfigGaps.campo} IS NOT NULL AND CAST(${notaConfigGaps.campo} AS DECIMAL) > 0`
+        : `WHERE (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfigGaps.campo} IS NOT NULL AND CAST(${notaConfigGaps.campo} AS DECIMAL) > 0`
+
       const queryGaps = `
-        SELECT 
+        SELECT
           COALESCE(e.nome, 'Geral') as categoria,
-          ROUND(MAX(CAST(rc.media_aluno AS DECIMAL)), 2) as melhor_media,
-          ROUND(MIN(CAST(rc.media_aluno AS DECIMAL)), 2) as pior_media,
-          ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral,
-          ROUND(MAX(CAST(rc.media_aluno AS DECIMAL)) - MIN(CAST(rc.media_aluno AS DECIMAL)), 2) as gap
+          ROUND(MAX(CAST(${notaConfigGaps.campo} AS DECIMAL)), 2) as melhor_media,
+          ROUND(MIN(CAST(${notaConfigGaps.campo} AS DECIMAL)), 2) as pior_media,
+          ROUND(AVG(CAST(${notaConfigGaps.campo} AS DECIMAL)), 2) as media_geral,
+          ROUND(MAX(CAST(${notaConfigGaps.campo} AS DECIMAL)) - MIN(CAST(${notaConfigGaps.campo} AS DECIMAL)), 2) as gap,
+          COUNT(*) as total_alunos
         FROM resultados_consolidados_unificada rc
         LEFT JOIN escolas e ON rc.escola_id = e.id
         ${whereGaps}
@@ -1151,9 +1184,11 @@ export async function GET(request: NextRequest) {
             melhor_media: parseFloat(r.melhor_media) || 0,
             pior_media: parseFloat(r.pior_media) || 0,
             media_geral: parseFloat(r.media_geral) || 0,
-            gap: parseFloat(r.gap) || 0
+            gap: parseFloat(r.gap) || 0,
+            total_alunos: parseInt(r.total_alunos) || 0
           }))
         : []
+      resultado.gaps_disciplina = notaConfigGaps.label
     }
 
     // Salvar no cache (expira em 1 hora)

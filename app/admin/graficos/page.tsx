@@ -556,9 +556,18 @@ export default function GraficosPage() {
               {/* Top Escolas */}
               {dados.escolas && dados.escolas.labels.length > 0 && (
                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
-                  <div className="flex items-center mb-4">
-                    <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-green-600 dark:text-green-400" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Escola</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-green-600 dark:text-green-400" />
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+                        Desempenho por Escola {dados.escolas.disciplina && dados.escolas.disciplina !== 'Média Geral' ? `- ${dados.escolas.disciplina}` : ''}
+                      </h3>
+                    </div>
+                    {dados.escolas.totais && (
+                      <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        {dados.escolas.totais.reduce((a: number, b: number) => a + b, 0).toLocaleString()} alunos
+                      </span>
+                    )}
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(500, Math.min(800, dados.escolas.labels.length * 50))}>
                     <BarChart 
@@ -593,9 +602,18 @@ export default function GraficosPage() {
               {/* Desempenho por Série */}
               {dados.series && dados.series.labels.length > 0 && (
                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
-                  <div className="flex items-center mb-4">
-                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600 dark:text-purple-400" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Série</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600 dark:text-purple-400" />
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+                        Desempenho por Série {dados.series.disciplina && dados.series.disciplina !== 'Média Geral' ? `- ${dados.series.disciplina}` : ''}
+                      </h3>
+                    </div>
+                    {dados.series.totais && (
+                      <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        {dados.series.totais.reduce((a: number, b: number) => a + b, 0).toLocaleString()} alunos
+                      </span>
+                    )}
                   </div>
                   <ResponsiveContainer width="100%" height={350}>
                     <LineChart data={prepararDadosBarras(dados.series.labels, dados.series.dados, 'Média')}>
@@ -623,9 +641,18 @@ export default function GraficosPage() {
               {/* Desempenho por Polo */}
               {dados.polos && dados.polos.labels.length > 0 && (
                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
-                  <div className="flex items-center mb-4">
-                    <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-blue-600 dark:text-blue-400" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Polo</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+                        Desempenho por Polo {dados.polos.disciplina && dados.polos.disciplina !== 'Média Geral' ? `- ${dados.polos.disciplina}` : ''}
+                      </h3>
+                    </div>
+                    {dados.polos.totais && (
+                      <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        {dados.polos.totais.reduce((a: number, b: number) => a + b, 0).toLocaleString()} alunos
+                      </span>
+                    )}
                   </div>
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={prepararDadosBarras(dados.polos.labels, dados.polos.dados, 'Média')}>
