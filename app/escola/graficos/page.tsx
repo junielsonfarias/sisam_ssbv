@@ -166,7 +166,7 @@ export default function GraficosEscolaPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Análise Gráfica</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">
               {escolaNome && `${escolaNome}`}
-              {poloNome && <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500"> - Polo: {poloNome}</span>}
+              {poloNome && <span className="text-gray-500 dark:text-gray-400"> - Polo: {poloNome}</span>}
             </p>
           </div>
 
@@ -304,7 +304,7 @@ export default function GraficosEscolaPage() {
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Médias por Disciplina</h3>
                     {dados.disciplinas.totalAlunos && (
-                      <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                      <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                         {dados.disciplinas.totalAlunos} alunos
                       </span>
                     )}

@@ -235,7 +235,7 @@ export default function AlunosEscolaPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Gestão de Alunos</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">
                 {escolaNome && `${escolaNome}`}
-                {poloNome && <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500"> - Polo: {poloNome}</span>}
+                {poloNome && <span className="text-gray-500 dark:text-gray-400"> - Polo: {poloNome}</span>}
               </p>
             </div>
           </div>
@@ -335,7 +335,7 @@ export default function AlunosEscolaPage() {
           ) : alunosFiltrados.length === 0 ? (
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <School className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum aluno encontrado</p>
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400">Nenhum aluno encontrado</p>
               <p className="text-sm text-gray-400 mt-2">
                 {busca || filtroTurma || filtroSerie || filtroAno ? 'Tente ajustar os filtros' : 'Não há alunos cadastrados'}
               </p>

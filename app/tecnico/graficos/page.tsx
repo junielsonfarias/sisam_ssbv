@@ -442,7 +442,7 @@ export default function GraficosTecnicoPage() {
                   <div className="flex items-center mb-4">
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Médias por Disciplina</h3>
-                    <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {dados.disciplinas.totalAlunos} alunos
                     </span>
                   </div>
@@ -485,8 +485,8 @@ export default function GraficosTecnicoPage() {
                           <div key={index} className={`p-3 rounded-lg ${faixa.bg}`}>
                             <p className="text-xs font-semibold text-gray-700 mb-1">{label}</p>
                             <p className="text-lg font-bold text-gray-900 dark:text-white">{media.toFixed(2)}</p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Desvio: {desvio.toFixed(2)}</p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Aprovação: {taxaAprov.toFixed(1)}%</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Desvio: {desvio.toFixed(2)}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Aprovação: {taxaAprov.toFixed(1)}%</p>
                             <p className={`text-xs font-semibold mt-1 ${faixa.cor}`}>{faixa.nome}</p>
                           </div>
                         )
@@ -689,7 +689,7 @@ export default function GraficosTecnicoPage() {
                     </BarChart>
                   </ResponsiveContainer>
                   {dados.acertos_erros[0]?.total_alunos && (
-                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                       <p>Total de alunos analisados: {dados.acertos_erros.reduce((acc: number, item: any) => acc + (item.total_alunos || 0), 0)}</p>
                     </div>
                   )}
@@ -728,7 +728,7 @@ export default function GraficosTecnicoPage() {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     <p>Total de questões analisadas: {dados.questoes.length}</p>
                     <p className="text-xs mt-1">Cores: Vermelho (&lt;30%), Laranja (30-50%), Verde (50-70%), Azul (&gt;70%)</p>
                   </div>
@@ -947,7 +947,7 @@ export default function GraficosTecnicoPage() {
                       <Bar dataKey="taxa_8" name="≥ 8.0" fill="#8B5CF6" />
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     <p>Legenda: Verde (≥6.0), Azul (≥7.0), Roxo (≥8.0)</p>
                   </div>
                 </div>
@@ -979,7 +979,7 @@ export default function GraficosTecnicoPage() {
                       <Bar dataKey="gap" name="Gap (Diferença)" fill="#F59E0B" />
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     <p>Gap = Diferença entre melhor e pior média. Valores maiores indicam maior desigualdade.</p>
                   </div>
                 </div>

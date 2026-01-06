@@ -230,12 +230,12 @@ export default function ImportacoesPage() {
           {carregando ? (
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-8 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600 dark:text-gray-400 dark:text-gray-500">Carregando histórico...</p>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Carregando histórico...</p>
             </div>
           ) : importacoes.length === 0 ? (
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-8 text-center">
               <Database className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Nenhuma importação encontrada</p>
+              <p className="text-gray-600 dark:text-gray-400">Nenhuma importação encontrada</p>
             </div>
           ) : (
             <>
@@ -275,7 +275,7 @@ export default function ImportacoesPage() {
                                   {imp.nome_arquivo}
                                 </div>
                                 {imp.ano_letivo && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
                                     Ano: {imp.ano_letivo}
                                   </div>
                                 )}
@@ -307,35 +307,35 @@ export default function ImportacoesPage() {
                             <div className="text-xs space-y-1">
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Polos:</span>{' '}
+                                  <span className="text-gray-500 dark:text-gray-400">Polos:</span>{' '}
                                   <span className="font-medium">{imp.polos_criados + imp.polos_existentes}</span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Escolas:</span>{' '}
+                                  <span className="text-gray-500 dark:text-gray-400">Escolas:</span>{' '}
                                   <span className="font-medium">{imp.escolas_criadas + imp.escolas_existentes}</span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Turmas:</span>{' '}
+                                  <span className="text-gray-500 dark:text-gray-400">Turmas:</span>{' '}
                                   <span className="font-medium">{imp.turmas_criadas + imp.turmas_existentes}</span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Alunos:</span>{' '}
+                                  <span className="text-gray-500 dark:text-gray-400">Alunos:</span>{' '}
                                   <span className="font-medium">{imp.alunos_criados + imp.alunos_existentes}</span>
                                 </div>
                               </div>
                               <div className="pt-1 border-t border-gray-200 dark:border-slate-700">
-                                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Resultados:</span>{' '}
+                                <span className="text-gray-500 dark:text-gray-400">Resultados:</span>{' '}
                                 <span className="text-green-600 font-medium">{imp.resultados_novos}</span> novos
                                 {imp.resultados_duplicados > 0 && (
                                   <>
                                     {' / '}
-                                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">{imp.resultados_duplicados}</span> duplicados
+                                    <span className="text-gray-500 dark:text-gray-400">{imp.resultados_duplicados}</span> duplicados
                                   </>
                                 )}
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                             <div className="flex items-center">
                               <Calendar className="w-4 h-4 mr-1" />
                               <div>
@@ -348,7 +348,7 @@ export default function ImportacoesPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                             <div>{imp.usuario_nome}</div>
                             <div className="text-xs">{imp.usuario_email}</div>
                           </td>

@@ -149,7 +149,7 @@ export default function ModulosTecnicoPage() {
             {carregando ? (
               <div className="text-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Carregando módulos...</p>
+                <p className="text-gray-500 dark:text-gray-400">Carregando módulos...</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -191,7 +191,7 @@ export default function ModulosTecnicoPage() {
                         <GripVertical className="w-5 h-5 text-gray-400" />
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900 dark:text-white">{modulo.modulo_label}</h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Chave: {modulo.modulo_key}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Chave: {modulo.modulo_key}</p>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -213,7 +213,7 @@ export default function ModulosTecnicoPage() {
                 {modulos.length === 0 && (
                   <div className="text-center py-12">
                     <Settings className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum módulo encontrado</p>
+                    <p className="text-gray-500 dark:text-gray-400">Nenhum módulo encontrado</p>
                   </div>
                 )}
               </div>

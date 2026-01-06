@@ -1086,7 +1086,7 @@ export default function ResultadosPage() {
                   {resultadosFiltrados.length === 0 ? (
                     <div className="text-center py-12">
                       <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                      <p className="text-base font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum resultado encontrado</p>
+                      <p className="text-base font-medium text-gray-500 dark:text-gray-400">Nenhum resultado encontrado</p>
                       <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Importe os dados primeiro</p>
                     </div>
                   ) : (
@@ -1407,7 +1407,7 @@ export default function ResultadosPage() {
                                   {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                 </div>
                                 {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                                  <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400">
                                     Média
                                   </div>
                                 )}
@@ -1469,7 +1469,7 @@ export default function ResultadosPage() {
                           <div className="flex items-center gap-1">
                             {/* Mostrar até 5 números de página */}
                             {Array.from({ length: Math.min(5, paginacao.totalPaginas) }, (_, i) => {
-                              let paginaNum
+                              let paginaNum: number
                               if (paginacao.totalPaginas <= 5) {
                                 paginaNum = i + 1
                               } else if (paginacao.pagina <= 3) {

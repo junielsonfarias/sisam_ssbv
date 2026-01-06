@@ -420,7 +420,7 @@ export default function AlunosPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
             <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Gestão de Alunos</h1>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 dark:text-gray-500">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 Total de alunos cadastrados: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{alunos.length}</span>
               </p>
             </div>
@@ -684,7 +684,7 @@ export default function AlunosPage() {
                     <div className="flex items-center gap-1">
                       {/* Mostrar até 5 números de página */}
                       {Array.from({ length: Math.min(5, paginacao.totalPaginas) }, (_, i) => {
-                        let paginaNum
+                        let paginaNum: number
                         if (paginacao.totalPaginas <= 5) {
                           paginaNum = i + 1
                         } else if (paginacao.pagina <= 3) {

@@ -161,7 +161,7 @@ export default function ImportarPage() {
                 {resultado.todas_colunas && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <p className="font-semibold text-gray-800 mb-2">Todas as Colunas do Arquivo:</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       {resultado.todas_colunas.join(', ')}
                     </p>
                   </div>

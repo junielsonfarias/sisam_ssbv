@@ -212,7 +212,7 @@ export default function UsuariosPage() {
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {usuariosFiltrados.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                        <td colSpan={5} className="py-12 text-center text-gray-500 dark:text-gray-400">
                           <Users className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                           <p className="text-lg font-medium">Nenhum usuário encontrado</p>
                           <p className="text-sm">Tente ajustar os filtros de busca</p>

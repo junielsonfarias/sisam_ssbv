@@ -598,7 +598,7 @@ export default function ImportarCompletoPage() {
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total: {resultado.resultado.polos.total}</p>
                         <p className="text-green-600 dark:text-green-400">Criados: {resultado.resultado.polos.criados}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.polos.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Existentes: {resultado.resultado.polos.existentes}</p>
                       </div>
                     </div>
 
@@ -610,7 +610,7 @@ export default function ImportarCompletoPage() {
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total: {resultado.resultado.escolas.total}</p>
                         <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resultado.escolas.criados}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.escolas.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Existentes: {resultado.resultado.escolas.existentes}</p>
                       </div>
                     </div>
 
@@ -621,7 +621,7 @@ export default function ImportarCompletoPage() {
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resultado.turmas.criados}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.turmas.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Existentes: {resultado.resultado.turmas.existentes}</p>
                       </div>
                     </div>
 
@@ -632,7 +632,7 @@ export default function ImportarCompletoPage() {
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p className="text-green-600 dark:text-green-400">Criados: {resultado.resultado.alunos.criados}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.alunos.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Existentes: {resultado.resultado.alunos.existentes}</p>
                       </div>
                     </div>
 
@@ -643,7 +643,7 @@ export default function ImportarCompletoPage() {
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resultado.questoes.criadas}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.questoes.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Existentes: {resultado.resultado.questoes.existentes}</p>
                       </div>
                     </div>
 
@@ -656,7 +656,7 @@ export default function ImportarCompletoPage() {
                         <p>Alunos processados: {resultado.resultado.resultados.processados}</p>
                         <p className="text-green-600 dark:text-green-400">Questões novas: {resultado.resultado.resultados.novos || 0}</p>
                         {resultado.resultado.resultados.duplicados > 0 && (
-                          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Duplicados ignorados: {resultado.resultado.resultados.duplicados}</p>
+                          <p className="text-gray-500 dark:text-gray-400">Duplicados ignorados: {resultado.resultado.resultados.duplicados}</p>
                         )}
                         <p className="text-green-600 dark:text-green-400">✓ Notas e médias importadas</p>
                         {resultado.resultado.resultados.erros > 0 && (

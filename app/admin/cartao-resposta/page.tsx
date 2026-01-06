@@ -152,7 +152,7 @@ export default function CartaoRespostaPage() {
                       <p className="mb-1 sm:mb-2 text-xs sm:text-sm text-gray-500 text-center px-2">
                         <span className="font-semibold">Clique para selecionar</span> ou arraste a imagem
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">PNG, JPG ou PDF</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG ou PDF</p>
                     </div>
                     <input
                       type="file"
@@ -180,15 +180,15 @@ export default function CartaoRespostaPage() {
               <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">Resultado do Processamento</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
                 <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Total de Questões</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total de Questões</p>
                   <p className="text-xl sm:text-2xl font-bold text-blue-600">{resultado.total_questoes}</p>
                 </div>
                 <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Respostas Detectadas</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Respostas Detectadas</p>
                   <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{resultado.respostas_detectadas}</p>
                 </div>
                 <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Taxa de Sucesso</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Taxa de Sucesso</p>
                   <p className="text-xl sm:text-2xl font-bold text-yellow-600">
                     {resultado.total_questoes > 0
                       ? Math.round((resultado.respostas_detectadas / resultado.total_questoes) * 100)
@@ -213,7 +213,7 @@ export default function CartaoRespostaPage() {
                       <div key={questao} className="bg-gray-50 p-1.5 sm:p-2 rounded text-center border border-gray-200 dark:border-slate-700">
                         <span className="font-mono text-xs text-gray-600 block">{questao}</span>
                         <span className="block font-bold text-indigo-600 text-sm sm:text-base md:text-lg">{alternativa}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {resultado.confianca?.[questao]?.toFixed(0) || 0}%
                         </span>
                       </div>

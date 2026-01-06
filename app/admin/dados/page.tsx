@@ -792,7 +792,7 @@ export default function DadosPage() {
                 {usuario?.tipo_usuario === 'escola' && escolaNome ? (
                   <>
                     {escolaNome}
-                    {poloNome && <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500"> - Polo: {poloNome}</span>}
+                    {poloNome && <span className="text-gray-500 dark:text-gray-400"> - Polo: {poloNome}</span>}
                   </>
                 ) : usuario?.tipo_usuario === 'polo' && poloNome ? (
                   <>Polo: {poloNome}</>
@@ -819,7 +819,7 @@ export default function DadosPage() {
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">Filtros de Pesquisa</h2>
               {temFiltrosAtivos && (
                 <span className="ml-auto flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     {qtdFiltros} {qtdFiltros === 1 ? 'filtro ativo' : 'filtros ativos'}
                   </span>
                   <button
@@ -836,7 +836,7 @@ export default function DadosPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {/* Ano Letivo */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroAnoLetivo ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroAnoLetivo ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Ano Letivo
                 </label>
@@ -858,7 +858,7 @@ export default function DadosPage() {
 
               {/* Polo */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPoloId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroPoloId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Polo
                 </label>
@@ -890,7 +890,7 @@ export default function DadosPage() {
 
               {/* Escola */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroEscolaId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroEscolaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Escola
                 </label>
@@ -924,7 +924,7 @@ export default function DadosPage() {
 
               {/* Serie */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroSerie ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroSerie ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Série
                 </label>
@@ -946,7 +946,7 @@ export default function DadosPage() {
 
               {/* Turma */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTurmaId ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroTurmaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Turma
                 </label>
@@ -970,7 +970,7 @@ export default function DadosPage() {
 
               {/* Disciplina */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroDisciplina ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroDisciplina ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Disciplina
                 </label>
@@ -994,7 +994,7 @@ export default function DadosPage() {
 
               {/* Presenca */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPresenca ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroPresenca ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Presença
                 </label>
@@ -1015,7 +1015,7 @@ export default function DadosPage() {
 
               {/* Nivel */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroNivel ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroNivel ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Nível
                 </label>
@@ -1037,7 +1037,7 @@ export default function DadosPage() {
 
               {/* Faixa de Media */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroFaixaMedia ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroFaixaMedia ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Faixa de Média
                 </label>
@@ -1059,7 +1059,7 @@ export default function DadosPage() {
 
               {/* Taxa de Acerto Mínima */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMin ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroTaxaAcertoMin ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Taxa de Acerto Mín. (%)
                 </label>
@@ -1080,7 +1080,7 @@ export default function DadosPage() {
 
               {/* Taxa de Acerto Máxima */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMax ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroTaxaAcertoMax ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Taxa de Acerto Máx. (%)
                 </label>
@@ -1101,7 +1101,7 @@ export default function DadosPage() {
 
               {/* Questão Específica */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroQuestaoCodigo ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm' : 'bg-transparent'}`}>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroQuestaoCodigo ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
                   Questão Específica
                 </label>
@@ -1382,7 +1382,7 @@ export default function DadosPage() {
                     {alunosPaginados.length === 0 ? (
                       <div className="text-center py-12">
                         <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                        <p className="text-base font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum resultado encontrado</p>
+                        <p className="text-base font-medium text-gray-500 dark:text-gray-400">Nenhum resultado encontrado</p>
                         <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Importe os dados primeiro</p>
                       </div>
                     ) : (
@@ -1662,7 +1662,7 @@ export default function DadosPage() {
                                         {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                       </div>
                                       {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                        <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                                        <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400">
                                           Média
                                         </div>
                                       )}
@@ -1760,7 +1760,7 @@ export default function DadosPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500">Taxa de Acerto</h3>
+                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Taxa de Acerto</h3>
                           <Target className="w-5 h-5 text-green-600" />
                         </div>
                         <p className="text-3xl font-bold text-green-600 dark:text-green-400">
@@ -1772,7 +1772,7 @@ export default function DadosPage() {
                       </div>
                       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500">Taxa de Erro</h3>
+                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Taxa de Erro</h3>
                           <AlertTriangle className="w-5 h-5 text-red-600" />
                         </div>
                         <p className="text-3xl font-bold text-red-600 dark:text-red-400">
@@ -1784,7 +1784,7 @@ export default function DadosPage() {
                       </div>
                       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500">Total de Respostas</h3>
+                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Total de Respostas</h3>
                           <BarChart3 className="w-5 h-5 text-indigo-600" />
                         </div>
                         <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
@@ -1996,7 +1996,7 @@ export default function DadosPage() {
           ) : (
             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-xl">
               <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum dado encontrado</p>
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400">Nenhum dado encontrado</p>
               <p className="text-sm text-gray-400 dark:text-gray-500">Verifique se existem dados importados</p>
             </div>
           )}

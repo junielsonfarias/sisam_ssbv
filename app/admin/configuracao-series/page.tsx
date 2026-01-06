@@ -231,7 +231,7 @@ export default function ConfiguracaoSeriesPage() {
           ) : series.length === 0 ? (
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-12 text-center">
               <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhuma série configurada</p>
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400">Nenhuma série configurada</p>
               <p className="text-sm text-gray-400 mt-2">Clique em "Nova Série" para começar</p>
             </div>
           ) : (
@@ -263,7 +263,7 @@ export default function ConfiguracaoSeriesPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{config.total_questoes_objetivas}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">questões objetivas</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">questões objetivas</p>
                         </div>
                       </div>
                     </div>
@@ -307,7 +307,7 @@ export default function ConfiguracaoSeriesPage() {
                           </div>
                           <div className={`p-3 rounded-lg border ${dados.avalia_ch ? 'bg-green-50 border-green-200' : 'bg-gray-100 border-gray-200'}`}>
                             <div className="flex items-center justify-between mb-1">
-                              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Ciências Humanas</label>
+                              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Ciências Humanas</label>
                               {estaEditando && (
                                 <input
                                   type="checkbox"
@@ -334,7 +334,7 @@ export default function ConfiguracaoSeriesPage() {
                           </div>
                           <div className={`p-3 rounded-lg border ${dados.avalia_cn ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-100 border-gray-200'}`}>
                             <div className="flex items-center justify-between mb-1">
-                              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Ciências da Natureza</label>
+                              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Ciências da Natureza</label>
                               {estaEditando && (
                                 <input
                                   type="checkbox"
@@ -395,7 +395,7 @@ export default function ConfiguracaoSeriesPage() {
                         </div>
                         {dados.tem_producao_textual && (
                           <div className="mt-3 flex items-center gap-3">
-                            <label className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Quantidade de itens:</label>
+                            <label className="text-sm text-gray-600 dark:text-gray-400">Quantidade de itens:</label>
                             {estaEditando ? (
                               <input
                                 type="number"
@@ -435,7 +435,7 @@ export default function ConfiguracaoSeriesPage() {
                           )}
                         </div>
                         {dados.usa_nivel_aprendizagem && (
-                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                             Classifica alunos em: Insuficiente, Básico, Adequado, Avançado
                           </p>
                         )}
@@ -495,7 +495,7 @@ export default function ConfiguracaoSeriesPage() {
                   <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white">Nova Configuração de Série</h3>
-                      <button onClick={() => setMostrarNovaSerieModal(false)} className="text-gray-400 hover:text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      <button onClick={() => setMostrarNovaSerieModal(false)} className="text-gray-400 hover:text-gray-500 dark:text-gray-400">
                         <X className="w-6 h-6" />
                       </button>
                     </div>
@@ -558,7 +558,7 @@ export default function ConfiguracaoSeriesPage() {
                               onChange={(e) => setNovaSerieData({ ...novaSerieData, avalia_ch: e.target.checked })}
                               className="w-4 h-4 text-indigo-600 rounded"
                             />
-                            <label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Ciências Humanas</label>
+                            <label className="text-xs text-gray-600 dark:text-gray-400">Ciências Humanas</label>
                           </div>
                           <input
                             type="number"
@@ -577,7 +577,7 @@ export default function ConfiguracaoSeriesPage() {
                               onChange={(e) => setNovaSerieData({ ...novaSerieData, avalia_cn: e.target.checked })}
                               className="w-4 h-4 text-indigo-600 rounded"
                             />
-                            <label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Ciências da Natureza</label>
+                            <label className="text-xs text-gray-600 dark:text-gray-400">Ciências da Natureza</label>
                           </div>
                           <input
                             type="number"

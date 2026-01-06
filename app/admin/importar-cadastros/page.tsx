@@ -152,7 +152,7 @@ export default function ImportarCadastrosPage() {
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total encontrados: {resultado.resumo.polos.total}</p>
                         <p className="text-green-600 dark:text-green-400">Criados: {resultado.resumo.polos.criados}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.polos.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Já existiam: {resultado.resumo.polos.existentes}</p>
                       </div>
                     </div>
 
@@ -164,7 +164,7 @@ export default function ImportarCadastrosPage() {
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total encontradas: {resultado.resumo.escolas.total}</p>
                         <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resumo.escolas.criados}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.escolas.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Já existiam: {resultado.resumo.escolas.existentes}</p>
                       </div>
                     </div>
 
@@ -176,7 +176,7 @@ export default function ImportarCadastrosPage() {
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total encontradas: {resultado.resumo.turmas.total}</p>
                         <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resumo.turmas.criados}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.turmas.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Já existiam: {resultado.resumo.turmas.existentes}</p>
                       </div>
                     </div>
 
@@ -188,7 +188,7 @@ export default function ImportarCadastrosPage() {
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total encontrados: {resultado.resumo.alunos.total}</p>
                         <p className="text-green-600 dark:text-green-400">Criados: {resultado.resumo.alunos.criados}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.alunos.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Já existiam: {resultado.resumo.alunos.existentes}</p>
                       </div>
                     </div>
 
@@ -199,7 +199,7 @@ export default function ImportarCadastrosPage() {
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resumo.questoes.criadas}</p>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.questoes.existentes}</p>
+                        <p className="text-gray-500 dark:text-gray-400">Já existiam: {resultado.resumo.questoes.existentes}</p>
                       </div>
                     </div>
                   </div>

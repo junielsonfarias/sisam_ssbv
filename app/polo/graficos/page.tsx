@@ -267,7 +267,7 @@ export default function GraficosPoloPage() {
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Médias por Disciplina</h3>
                     {dados.disciplinas.totalAlunos && (
-                      <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                      <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                         {dados.disciplinas.totalAlunos} alunos
                       </span>
                     )}

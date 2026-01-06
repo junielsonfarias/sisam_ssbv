@@ -658,7 +658,7 @@ export default function PoloAnalisePage() {
                   {resultadosFiltrados.length === 0 ? (
                     <div className="text-center py-12">
                       <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                      <p className="text-base font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum resultado encontrado</p>
+                      <p className="text-base font-medium text-gray-500 dark:text-gray-400">Nenhum resultado encontrado</p>
                       <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Não há resultados para exibir</p>
                     </div>
                   ) : (
@@ -1022,7 +1022,7 @@ export default function PoloAnalisePage() {
                                       {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                                      <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400">
                                         Média
                                       </div>
                                     )}
@@ -1051,7 +1051,7 @@ export default function PoloAnalisePage() {
                 {/* Controles de Paginação */}
                 {paginacao.totalPaginas > 1 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm mt-4 gap-3">
-                    <div className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       Mostrando <span className="font-semibold">{((paginaAtual - 1) * paginacao.limite) + 1}</span> a{' '}
                       <span className="font-semibold">{Math.min(paginaAtual * paginacao.limite, paginacao.total)}</span> de{' '}
                       <span className="font-semibold">{paginacao.total}</span> resultados

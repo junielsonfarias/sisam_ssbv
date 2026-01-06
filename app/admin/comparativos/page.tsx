@@ -437,7 +437,7 @@ export default function ComparativosPage() {
               </label>
               <div className="max-h-64 overflow-y-auto border-2 border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-white shadow-inner">
                 {escolasFiltradas.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <School className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">Nenhuma escola disponível</p>
                   </div>
@@ -690,7 +690,7 @@ export default function ComparativosPage() {
                                             <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
                                               <span className="font-bold">{melhorTurma.turma_codigo || 'Sem turma'}:</span> {melhorTurma.aluno_nome}
                                             </p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Média: {formatarNumero(melhorTurma.media_geral)}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">Média: {formatarNumero(melhorTurma.media_geral)}</p>
                                           </div>
                                         ))}
                                       </div>
@@ -698,7 +698,7 @@ export default function ComparativosPage() {
                                   )}
                                 </div>
                               ) : (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum dado de melhor desempenho disponível</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum dado de melhor desempenho disponível</p>
                               )}
                             </div>
                           )
@@ -834,7 +834,7 @@ export default function ComparativosPage() {
           ) : (
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
                 {escolasSelecionadas.length === 0 && !filtros.polo_id
                   ? 'Selecione escolas para comparar'
                   : 'Nenhum dado encontrado'}
