@@ -249,7 +249,7 @@ export default function GraficosTecnicoPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Tipo de Visualização
                 </label>
                 <select
@@ -278,21 +278,21 @@ export default function GraficosTecnicoPage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Ano Letivo
                 </label>
                 <input
                   type="text"
                   value={filtros.ano_letivo || ''}
                   onChange={(e) => handleFiltroChange('ano_letivo', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400"
                   placeholder="Ex: 2025"
                 />
               </div>
 
               {(tipoUsuario === 'admin' || tipoUsuario === 'administrador' || tipoUsuario === 'tecnico') && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Polo
                   </label>
                   <select
@@ -312,7 +312,7 @@ export default function GraficosTecnicoPage() {
 
               {(tipoUsuario === 'admin' || tipoUsuario === 'administrador' || tipoUsuario === 'tecnico' || tipoUsuario === 'polo') && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Escola
                   </label>
                   <select
@@ -333,7 +333,7 @@ export default function GraficosTecnicoPage() {
               )}
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Série
                 </label>
                 <select
@@ -351,7 +351,7 @@ export default function GraficosTecnicoPage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Disciplina
                 </label>
                 <select
@@ -369,7 +369,7 @@ export default function GraficosTecnicoPage() {
 
               {filtros.escola_id && filtros.escola_id !== '' && filtros.escola_id !== 'undefined' && filtros.escola_id.toLowerCase() !== 'todas' && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Turma
                   </label>
                   <select

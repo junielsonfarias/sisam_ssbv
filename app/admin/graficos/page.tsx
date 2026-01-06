@@ -659,7 +659,9 @@ export default function GraficosPage() {
                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-orange-600 dark:text-orange-400" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Distribuição de Notas</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+                      Distribuição de Notas {dados.distribuicao.disciplina && dados.distribuicao.disciplina !== 'Geral' ? `- ${dados.distribuicao.disciplina}` : ''}
+                    </h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={prepararDadosBarras(dados.distribuicao.labels, dados.distribuicao.dados, 'Alunos')}>

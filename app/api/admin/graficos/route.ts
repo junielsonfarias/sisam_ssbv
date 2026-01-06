@@ -366,20 +366,45 @@ export async function GET(request: NextRequest) {
 
     // Distribuição de Notas
     if (tipoGrafico === 'geral' || tipoGrafico === 'distribuicao') {
+      // Determinar qual campo de nota usar baseado no filtro de disciplina
+      let campoNota = 'rc.media_aluno'
+      let labelDisciplina = 'Geral'
+
+      if (disciplina === 'LP') {
+        campoNota = 'rc.nota_lp'
+        labelDisciplina = 'Língua Portuguesa'
+      } else if (disciplina === 'CH') {
+        campoNota = 'rc.nota_ch'
+        labelDisciplina = 'Ciências Humanas'
+      } else if (disciplina === 'MAT') {
+        campoNota = 'rc.nota_mat'
+        labelDisciplina = 'Matemática'
+      } else if (disciplina === 'CN') {
+        campoNota = 'rc.nota_cn'
+        labelDisciplina = 'Ciências da Natureza'
+      }
+
+      // Adicionar condição para filtrar apenas notas válidas da disciplina selecionada
+      const whereDistribuicao = disciplina
+        ? (whereClause
+            ? `${whereClause} AND ${campoNota} IS NOT NULL AND CAST(${campoNota} AS DECIMAL) > 0`
+            : `WHERE ${campoNota} IS NOT NULL AND CAST(${campoNota} AS DECIMAL) > 0`)
+        : whereClause
+
       const queryDistribuicao = `
-        SELECT 
-          CASE 
-            WHEN CAST(rc.media_aluno AS DECIMAL) >= 9 THEN '9.0 - 10.0'
-            WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 THEN '8.0 - 8.9'
-            WHEN CAST(rc.media_aluno AS DECIMAL) >= 7 THEN '7.0 - 7.9'
-            WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 THEN '6.0 - 6.9'
-            WHEN CAST(rc.media_aluno AS DECIMAL) >= 5 THEN '5.0 - 5.9'
+        SELECT
+          CASE
+            WHEN CAST(${campoNota} AS DECIMAL) >= 9 THEN '9.0 - 10.0'
+            WHEN CAST(${campoNota} AS DECIMAL) >= 8 THEN '8.0 - 8.9'
+            WHEN CAST(${campoNota} AS DECIMAL) >= 7 THEN '7.0 - 7.9'
+            WHEN CAST(${campoNota} AS DECIMAL) >= 6 THEN '6.0 - 6.9'
+            WHEN CAST(${campoNota} AS DECIMAL) >= 5 THEN '5.0 - 5.9'
             ELSE '0.0 - 4.9'
           END as faixa,
           COUNT(*) as quantidade
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
-        ${whereClause}
+        ${whereDistribuicao}
         GROUP BY faixa
         ORDER BY faixa DESC
       `
@@ -387,7 +412,8 @@ export async function GET(request: NextRequest) {
       if (resDistribuicao.rows.length > 0) {
         resultado.distribuicao = {
           labels: resDistribuicao.rows.map(r => r.faixa),
-          dados: resDistribuicao.rows.map(r => parseInt(r.quantidade) || 0)
+          dados: resDistribuicao.rows.map(r => parseInt(r.quantidade) || 0),
+          disciplina: labelDisciplina
         }
       }
     }
