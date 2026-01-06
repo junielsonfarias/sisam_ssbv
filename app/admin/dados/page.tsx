@@ -167,7 +167,7 @@ const getPresencaColor = (presenca: string) => {
     return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
   }
   if (presenca === '-') {
-    return 'bg-gray-100 text-gray-600'
+    return 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400'
   }
   return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
 }
@@ -204,18 +204,18 @@ const getNotaNumero = (nota: number | string | null | undefined): number | null 
 
 const getNotaColor = (nota: number | string | null | undefined) => {
   const num = getNotaNumero(nota)
-  if (num === null) return 'text-gray-500'
-  if (num >= 7) return 'text-green-600 font-semibold'
-  if (num >= 5) return 'text-yellow-600 font-semibold'
-  return 'text-red-600 font-semibold'
+  if (num === null) return 'text-gray-500 dark:text-gray-400'
+  if (num >= 7) return 'text-green-600 dark:text-green-400 font-semibold'
+  if (num >= 5) return 'text-yellow-600 dark:text-yellow-400 font-semibold'
+  return 'text-red-600 dark:text-red-400 font-semibold'
 }
 
 const getNotaBgColor = (nota: number | string | null | undefined) => {
   const num = getNotaNumero(nota)
-  if (num === null) return 'bg-gray-50'
-  if (num >= 7) return 'bg-green-50 border-green-200'
-  if (num >= 5) return 'bg-yellow-50 border-yellow-200'
-  return 'bg-red-50 border-red-200'
+  if (num === null) return 'bg-gray-50 dark:bg-slate-700'
+  if (num >= 7) return 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800'
+  if (num >= 5) return 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800'
+  return 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'
 }
 
 export default function DadosPage() {
@@ -227,8 +227,8 @@ export default function DadosPage() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 text-sm">
-          <p className="font-semibold text-gray-900 mb-1">{label}</p>
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 text-sm">
+          <p className="font-semibold text-gray-900 dark:text-white mb-1">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="flex justify-between gap-4">
               <span>{entry.name}:</span>
@@ -784,11 +784,11 @@ export default function DadosPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
                 <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600 flex-shrink-0" />
                 <span className="truncate">Painel de Dados</span>
               </h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
                 {usuario?.tipo_usuario === 'escola' && escolaNome ? (
                   <>
                     {escolaNome}
@@ -813,7 +813,7 @@ export default function DadosPage() {
           </div>
 
           {/* Barra de Filtros */}
-          <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border-2 border-gray-200 p-3 sm:p-4 md:p-6">
+          <div className="bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-lg border-2 border-gray-200 dark:border-slate-700 p-3 sm:p-4 md:p-6">
             <div className="flex items-center gap-3 mb-4">
               <Filter className="w-5 h-5 text-indigo-600" />
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">Filtros de Pesquisa</h2>
@@ -1124,11 +1124,11 @@ export default function DadosPage() {
           {/* Segmentacao Visual - Chips de Series */}
           {dados?.filtros.series && dados.filtros.series.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase self-center mr-2">Serie:</span>
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase self-center mr-2">Serie:</span>
               <button
                 onClick={() => { setFiltroSerie(''); setPaginaAtual(1); }}
                 className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  !filtroSerie ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  !filtroSerie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                 }`}
               >
                 Todas
@@ -1138,7 +1138,7 @@ export default function DadosPage() {
                   key={serie}
                   onClick={() => { setFiltroSerie(serie); setPaginaAtual(1); }}
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    filtroSerie === serie ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    filtroSerie === serie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                   }`}
                 >
                   {serie}
@@ -1148,7 +1148,7 @@ export default function DadosPage() {
           )}
 
           {erro && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-4 rounded-lg">
               {erro}
             </div>
           )}
@@ -1156,8 +1156,8 @@ export default function DadosPage() {
           {carregando ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4 text-lg">Carregando dados...</p>
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 mx-auto"></div>
+                <p className="text-gray-500 dark:text-gray-400 mt-4 text-lg">Carregando dados...</p>
               </div>
             </div>
           ) : dados ? (
@@ -1205,8 +1205,8 @@ export default function DadosPage() {
                     onClick={() => { setAbaAtiva(aba.id as any); setPaginaAtual(1); }}
                     className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                       abaAtiva === aba.id
-                        ? 'border-indigo-600 text-indigo-600 bg-indigo-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                        ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <aba.icon className="w-4 h-4" />
@@ -1220,8 +1220,8 @@ export default function DadosPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Grafico de Barras - Medias por Serie */}
                   {dados.mediasPorSerie.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Media por Serie</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Media por Serie</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={dados.mediasPorSerie}>
@@ -1242,8 +1242,8 @@ export default function DadosPage() {
 
                   {/* Grafico de Pizza - Niveis */}
                   {dados.niveis.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribuicao por Nivel</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Distribuicao por Nivel</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
@@ -1286,8 +1286,8 @@ export default function DadosPage() {
 
                   {/* Distribuicao por Faixa de Nota */}
                   {dados.faixasNota.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribuicao por Faixa de Nota</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Distribuicao por Faixa de Nota</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={dados.faixasNota}>
@@ -1308,8 +1308,8 @@ export default function DadosPage() {
 
                   {/* Ranking de Polos */}
                   {dados.mediasPorPolo.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Ranking de Polos</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ranking de Polos</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={dados.mediasPorPolo.slice(0, 8)} layout="vertical">
@@ -1758,7 +1758,7 @@ export default function DadosPage() {
                   {/* Taxa de Acerto Geral */}
                   {dados.analiseAcertosErros.taxaAcertoGeral && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Taxa de Acerto</h3>
                           <Target className="w-5 h-5 text-green-600" />
@@ -1770,7 +1770,7 @@ export default function DadosPage() {
                           {dados.analiseAcertosErros.taxaAcertoGeral.total_acertos.toLocaleString('pt-BR')} de {dados.analiseAcertosErros.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')} respostas
                         </p>
                       </div>
-                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Taxa de Erro</h3>
                           <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -1782,7 +1782,7 @@ export default function DadosPage() {
                           {dados.analiseAcertosErros.taxaAcertoGeral.total_erros.toLocaleString('pt-BR')} erros
                         </p>
                       </div>
-                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Total de Respostas</h3>
                           <BarChart3 className="w-5 h-5 text-indigo-600" />
@@ -1797,8 +1797,8 @@ export default function DadosPage() {
 
                   {/* Taxa de Acerto por Disciplina */}
                   {dados.analiseAcertosErros.taxaAcertoPorDisciplina && dados.analiseAcertosErros.taxaAcertoPorDisciplina.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Taxa de Acerto por Disciplina</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Taxa de Acerto por Disciplina</h3>
                       <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={dados.analiseAcertosErros.taxaAcertoPorDisciplina}>
@@ -1817,8 +1817,8 @@ export default function DadosPage() {
 
                   {/* Questões com Mais Erros */}
                   {dados.analiseAcertosErros.questoesComMaisErros && dados.analiseAcertosErros.questoesComMaisErros.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Questões com Mais Erros</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
                           dados={dados.analiseAcertosErros.questoesComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
@@ -1846,8 +1846,8 @@ export default function DadosPage() {
 
                   {/* Escolas com Mais Erros */}
                   {dados.analiseAcertosErros.escolasComMaisErros && dados.analiseAcertosErros.escolasComMaisErros.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Escolas com Mais Erros</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Escolas com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
                           dados={dados.analiseAcertosErros.escolasComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
@@ -1875,8 +1875,8 @@ export default function DadosPage() {
 
                   {/* Turmas com Mais Erros */}
                   {dados.analiseAcertosErros.turmasComMaisErros && dados.analiseAcertosErros.turmasComMaisErros.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Turmas com Mais Erros</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Turmas com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
                           dados={dados.analiseAcertosErros.turmasComMaisErros.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
@@ -1905,8 +1905,8 @@ export default function DadosPage() {
 
                   {/* Questões com Mais Acertos */}
                   {dados.analiseAcertosErros.questoesComMaisAcertos && dados.analiseAcertosErros.questoesComMaisAcertos.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Questões com Mais Acertos</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Acertos</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
                         dados={dados.analiseAcertosErros.questoesComMaisAcertos.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
@@ -1934,8 +1934,8 @@ export default function DadosPage() {
 
                   {/* Escolas com Mais Acertos */}
                   {dados.analiseAcertosErros.escolasComMaisAcertos && dados.analiseAcertosErros.escolasComMaisAcertos.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Escolas com Mais Acertos</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Escolas com Mais Acertos</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
                         dados={dados.analiseAcertosErros.escolasComMaisAcertos.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
@@ -1963,8 +1963,8 @@ export default function DadosPage() {
 
                   {/* Turmas com Mais Acertos */}
                   {dados.analiseAcertosErros.turmasComMaisAcertos && dados.analiseAcertosErros.turmasComMaisAcertos.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Turmas com Mais Acertos</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Turmas com Mais Acertos</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
                         dados={dados.analiseAcertosErros.turmasComMaisAcertos.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
@@ -2053,7 +2053,7 @@ function MetricCard({ titulo, valor, subtitulo, icon: Icon, cor, isDecimal }: an
           <Icon className={`w-5 h-5 ${corAtual.text}`} />
         </div>
         {subtitulo && (
-          <span className={`text-xs font-semibold ${corAtual.text} bg-white px-2 py-1 rounded-md`}>
+          <span className={`text-xs font-semibold ${corAtual.text} bg-white dark:bg-slate-700 px-2 py-1 rounded-md`}>
             {subtitulo}
           </span>
         )}
@@ -2061,18 +2061,18 @@ function MetricCard({ titulo, valor, subtitulo, icon: Icon, cor, isDecimal }: an
       <p className={`text-2xl font-bold ${corAtual.text} mb-1`}>
         {formatarValor()}
       </p>
-      <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">{titulo}</p>
+      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">{titulo}</p>
     </div>
   )
 }
 
 function DisciplinaCard({ titulo, media, cor, sigla }: any) {
   const cores: Record<string, { bg: string; bar: string; text: string; border: string }> = {
-    blue: { bg: 'bg-blue-50', bar: 'bg-blue-500', text: 'text-blue-700', border: 'border-blue-200' },
-    purple: { bg: 'bg-purple-50', bar: 'bg-purple-500', text: 'text-purple-700', border: 'border-purple-200' },
-    green: { bg: 'bg-green-50', bar: 'bg-green-500', text: 'text-green-700', border: 'border-green-200' },
-    amber: { bg: 'bg-amber-50', bar: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200' },
-    rose: { bg: 'bg-rose-50', bar: 'bg-rose-500', text: 'text-rose-700', border: 'border-rose-200' },
+    blue: { bg: 'bg-blue-50 dark:bg-blue-900/30', bar: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800' },
+    purple: { bg: 'bg-purple-50 dark:bg-purple-900/30', bar: 'bg-purple-500', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
+    green: { bg: 'bg-green-50 dark:bg-green-900/30', bar: 'bg-green-500', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-800' },
+    amber: { bg: 'bg-amber-50 dark:bg-amber-900/30', bar: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
+    rose: { bg: 'bg-rose-50 dark:bg-rose-900/30', bar: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
   }
   const c = cores[cor] || cores.blue
   const porcentagem = Math.min((media / 10) * 100, 100)
@@ -2080,7 +2080,7 @@ function DisciplinaCard({ titulo, media, cor, sigla }: any) {
   return (
     <div className={`${c.bg} rounded-xl p-4 border-2 ${c.border} hover:shadow-md transition-shadow`}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">{sigla}</span>
+        <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{sigla}</span>
         <span className={`text-xl font-bold ${c.text}`}>
           {media > 0 ? media.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
         </span>
@@ -2091,9 +2091,9 @@ function DisciplinaCard({ titulo, media, cor, sigla }: any) {
           style={{ width: `${porcentagem}%` }}
         ></div>
       </div>
-      <p className="text-xs font-medium text-gray-600 truncate">{titulo}</p>
+      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">{titulo}</p>
       {media > 0 && (
-        <p className="text-xs text-gray-500 mt-1">{porcentagem.toFixed(1)}% da nota máxima</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{porcentagem.toFixed(1)}% da nota máxima</p>
       )}
     </div>
   )
@@ -2138,14 +2138,14 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
           'Básico': 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300',
           'Adequado': 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300',
           'Avançado': 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300',
-          'Não classificado': 'bg-gray-100 text-gray-600 border-gray-300 dark:border-slate-600',
+          'Não classificado': 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-slate-600',
         }
         return valor ? (
-          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold border-2 ${nivelCores[valor] || 'bg-gray-100 text-gray-600 border-gray-300 dark:border-slate-600'}`}>
+          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold border-2 ${nivelCores[valor] || 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-slate-600'}`}>
             {valor}
           </span>
         ) : (
-          <span className="text-gray-400 italic text-xs">Não classificado</span>
+          <span className="text-gray-400 dark:text-gray-500 italic text-xs">Não classificado</span>
         )
       default:
         return <span className="text-sm text-gray-700 dark:text-gray-300">{valor}</span>
@@ -2156,13 +2156,13 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border-2 border-gray-200 overflow-hidden w-full max-w-full">
       <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <table className="w-full min-w-[600px]">
-          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300 dark:border-slate-600">
+          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600">
             <tr>
               {colunas.map((col: any) => (
                 <th
                   key={col.key}
                   onClick={() => onOrdenar(col.key)}
-                  className={`px-2 sm:px-4 py-2 sm:py-4 text-${col.align || 'left'} text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap transition-colors`}
+                  className={`px-2 sm:px-4 py-2 sm:py-4 text-${col.align || 'left'} text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 select-none whitespace-nowrap transition-colors`}
                 >
                   <div className={`flex items-center gap-1 sm:gap-2 ${col.align === 'center' ? 'justify-center' : col.align === 'right' ? 'justify-end' : ''}`}>
                     {col.label}
@@ -2181,9 +2181,9 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
               <tr>
                 <td colSpan={colunas.length} className="px-4 py-8 sm:py-12 text-center">
                   <div className="flex flex-col items-center justify-center">
-                    <Table className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mb-2" />
-                    <p className="text-gray-500 font-medium text-sm sm:text-base">Nenhum registro encontrado</p>
-                    <p className="text-xs sm:text-sm text-gray-400 mt-1">Tente ajustar os filtros</p>
+                    <Table className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 dark:text-gray-600 mb-2" />
+                    <p className="text-gray-500 dark:text-gray-400 font-medium text-sm sm:text-base">Nenhum registro encontrado</p>
+                    <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 mt-1">Tente ajustar os filtros</p>
                   </div>
                 </td>
               </tr>

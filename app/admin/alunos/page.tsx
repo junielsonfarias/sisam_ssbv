@@ -419,7 +419,7 @@ export default function AlunosPage() {
         <div className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
             <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Gestão de Alunos</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-2">Gestão de Alunos</h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 Total de alunos cadastrados: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{alunos.length}</span>
               </p>
@@ -442,7 +442,7 @@ export default function AlunosPage() {
                   placeholder="Buscar aluno..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700"
                 />
               </div>
 
@@ -538,35 +538,35 @@ export default function AlunosPage() {
             {carregando ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4">Carregando alunos...</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando alunos...</p>
               </div>
             ) : (
               <div className="w-full overflow-x-auto">
                 <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">
                       <thead className="bg-gray-50 dark:bg-slate-700">
                         <tr>
-                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
+                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Código
                           </th>
-                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
+                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Nome
                           </th>
-                          <th className="hidden lg:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
+                          <th className="hidden lg:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Polo
                           </th>
-                          <th className="hidden md:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
+                          <th className="hidden md:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Escola
                           </th>
-                          <th className="hidden xl:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
+                          <th className="hidden xl:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Turma
                           </th>
-                          <th className="hidden lg:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
+                          <th className="hidden lg:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Série
                           </th>
-                          <th className="hidden xl:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
+                          <th className="hidden xl:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Ano Letivo
                           </th>
-                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider">
+                          <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Ações
                           </th>
                         </tr>
@@ -574,9 +574,9 @@ export default function AlunosPage() {
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {alunos.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                        <td colSpan={3} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
                           <p className="text-base sm:text-lg font-medium">Nenhum aluno encontrado</p>
-                          <p className="text-xs sm:text-sm mt-1">Tente ajustar os filtros de busca</p>
+                          <p className="text-xs sm:text-sm mt-1 text-gray-400 dark:text-gray-500">Tente ajustar os filtros de busca</p>
                         </td>
                       </tr>
                     ) : (
@@ -594,7 +594,7 @@ export default function AlunosPage() {
                               >
                                 {aluno.nome}
                               </button>
-                              <div className="lg:hidden text-xs text-gray-500 space-y-0.5">
+                              <div className="lg:hidden text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                                 {aluno.polo_nome && <div>Polo: {aluno.polo_nome}</div>}
                                 {aluno.escola_nome && <div>Escola: {aluno.escola_nome}</div>}
                                 {aluno.turma_codigo && <div>Turma: {aluno.turma_codigo}</div>}
@@ -604,13 +604,13 @@ export default function AlunosPage() {
                             </div>
                           </td>
                           <td className="hidden lg:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
-                            <span className="text-gray-700 text-xs md:text-sm">{aluno.polo_nome || '-'}</span>
+                            <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm">{aluno.polo_nome || '-'}</span>
                           </td>
                           <td className="hidden md:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
-                            <span className="text-gray-700 text-xs md:text-sm">{aluno.escola_nome || '-'}</span>
+                            <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm">{aluno.escola_nome || '-'}</span>
                           </td>
                           <td className="hidden xl:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
-                            <span className="text-gray-700 text-xs md:text-sm">{aluno.turma_codigo || '-'}</span>
+                            <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm">{aluno.turma_codigo || '-'}</span>
                           </td>
                           <td className="hidden lg:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             {aluno.serie ? (
@@ -622,7 +622,7 @@ export default function AlunosPage() {
                             )}
                           </td>
                           <td className="hidden xl:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
-                            <span className="text-gray-700 text-xs md:text-sm">{aluno.ano_letivo || '-'}</span>
+                            <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm">{aluno.ano_letivo || '-'}</span>
                           </td>
                           <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-end gap-1.5">
@@ -662,7 +662,7 @@ export default function AlunosPage() {
 
             {/* Controles de Paginação */}
             {!carregando && paginacao.totalPaginas > 1 && (
-              <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+              <div className="bg-white dark:bg-slate-800 px-4 py-3 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
                 <div className="flex-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
                   <div className="text-sm text-gray-700 dark:text-gray-300">
                     <span className="font-medium">Página {paginacao.pagina}</span> de {paginacao.totalPaginas}
@@ -676,7 +676,7 @@ export default function AlunosPage() {
                       className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                         paginacao.temAnterior
                           ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-200 dark:bg-slate-700 text-gray-400 cursor-not-allowed'
                       }`}
                     >
                       Anterior
@@ -704,7 +704,7 @@ export default function AlunosPage() {
                             className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                               paginacao.pagina === paginaNum
                                 ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                             }`}
                           >
                             {paginaNum}
@@ -718,7 +718,7 @@ export default function AlunosPage() {
                       className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                         paginacao.temProxima
                           ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-200 dark:bg-slate-700 text-gray-400 cursor-not-allowed'
                       }`}
                     >
                       Próxima

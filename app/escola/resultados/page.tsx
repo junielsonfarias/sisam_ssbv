@@ -454,7 +454,7 @@ export default function ResultadosEscolaPage() {
           </div>
 
           {/* Filtros */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <Filter className="w-5 h-5 mr-2 text-indigo-600" />
@@ -621,7 +621,7 @@ export default function ResultadosEscolaPage() {
           {/* Médias por Área */}
           {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (
             <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Língua Portuguesa</p>
@@ -641,7 +641,7 @@ export default function ResultadosEscolaPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
@@ -661,7 +661,7 @@ export default function ResultadosEscolaPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Matemática</p>
@@ -681,7 +681,7 @@ export default function ResultadosEscolaPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
@@ -703,7 +703,7 @@ export default function ResultadosEscolaPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto -mx-3 sm:mx-0">
             {carregando ? (
               <div className="text-center py-12">
@@ -729,7 +729,7 @@ export default function ResultadosEscolaPage() {
                     const notaCN = getNotaNumero(resultado.nota_cn)
 
                     return (
-                      <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
+                      <div key={resultado.id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
                         {/* Cabeçalho do Card */}
                         <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                           <div className="flex items-center gap-2 mr-2">
@@ -1106,7 +1106,7 @@ export default function ResultadosEscolaPage() {
 
                 {/* Controles de Paginação */}
                 {paginacao.totalPaginas > 1 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm mt-4 gap-3">
+                  <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm mt-4 gap-3">
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       Mostrando <span className="font-semibold">{((paginaAtual - 1) * paginacao.limite) + 1}</span> a{' '}
                       <span className="font-semibold">{Math.min(paginaAtual * paginacao.limite, paginacao.total)}</span> de{' '}

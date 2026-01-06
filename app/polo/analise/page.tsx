@@ -373,7 +373,7 @@ export default function PoloAnalisePage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Resultados Consolidados</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
                 Polo: {poloNome || 'Carregando...'}
               </p>
             </div>
@@ -389,7 +389,7 @@ export default function PoloAnalisePage() {
           </div>
 
           {/* Filtros */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <Filter className="w-5 h-5 mr-2 text-indigo-600" />
@@ -562,7 +562,7 @@ export default function PoloAnalisePage() {
           {/* Médias por Área */}
           {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (
             <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Língua Portuguesa</p>
@@ -582,7 +582,7 @@ export default function PoloAnalisePage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
@@ -602,7 +602,7 @@ export default function PoloAnalisePage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Matemática</p>
@@ -622,7 +622,7 @@ export default function PoloAnalisePage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
@@ -644,12 +644,12 @@ export default function PoloAnalisePage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto -mx-3 sm:mx-0">
             {carregando ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4">Carregando resultados...</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando resultados...</p>
               </div>
             ) : (
               <>
@@ -670,7 +670,7 @@ export default function PoloAnalisePage() {
                     const notaCN = getNotaNumero(resultado.nota_cn)
 
                     return (
-                      <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
+                      <div key={resultado.id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
                         <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                           <div className="flex items-center gap-2 mr-2">
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-sm flex-shrink-0">
@@ -691,7 +691,7 @@ export default function PoloAnalisePage() {
                               <div className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-sm mb-1">
                                 {resultado.aluno_nome}
                               </div>
-                              <div className="text-xs text-gray-500 space-y-0.5">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                                 {resultado.escola_nome && <div>Escola: {resultado.escola_nome}</div>}
                                 {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
                                 <div className="flex items-center gap-2">
