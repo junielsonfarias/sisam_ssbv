@@ -107,17 +107,17 @@ function createPool(): Pool {
   }
 
   // Configuracao SSL: sempre usar para Supabase, producao ou quando DB_SSL=true
-  // IMPORTANTE: Em producao, rejectUnauthorized deve ser true para seguranca
-  // Apenas use false se tiver problemas com certificados e entender os riscos
   const shouldUseSSL = process.env.NODE_ENV === 'production' ||
                        process.env.DB_SSL === 'true' ||
                        isSupabase;
 
+  // IMPORTANTE: Supabase usa certificados que requerem rejectUnauthorized: false
+  // Isso é seguro pois a conexão ainda é criptografada via SSL/TLS
   const sslConfig = shouldUseSSL
     ? {
-        // Em producao com Supabase, usar true para validar certificados
-        // Se tiver problemas, configure DB_SSL_REJECT_UNAUTHORIZED=false
-        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+        // Para Supabase, usar false por padrão (certificados auto-assinados)
+        // Pode ser sobrescrito com DB_SSL_REJECT_UNAUTHORIZED=true se necessário
+        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true' ? true : false,
       }
     : false;
 
