@@ -71,7 +71,7 @@ export default function ImportarResultadosPage() {
         <div className="p-3 sm:p-4 md:p-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 md:mb-8">Importar Resultados das Provas</h1>
 
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
             <div className="mb-4 sm:mb-6">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">
                 Carregar Arquivo Excel com Resultados
@@ -90,13 +90,13 @@ export default function ImportarResultadosPage() {
                   type="text"
                   value={anoLetivo}
                   onChange={(e) => setAnoLetivo(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Ex: 2024"
                 />
                 <p className="text-xs text-gray-500 mt-1">Ano letivo ao qual se referem os dados</p>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-4 sm:p-6 md:p-8 text-center">
                 <FileSpreadsheet className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
                 <input
                   id="arquivo"
@@ -113,7 +113,7 @@ export default function ImportarResultadosPage() {
                   Selecionar Arquivo
                 </label>
                 {arquivo && (
-                  <p className="mt-4 text-gray-700">
+                  <p className="mt-4 text-gray-700 dark:text-gray-300">
                     Arquivo selecionado: <strong>{arquivo.name}</strong>
                   </p>
                 )}

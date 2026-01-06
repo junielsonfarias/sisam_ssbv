@@ -164,12 +164,12 @@ const COLORS = {
 // Funções helper para formatação
 const getPresencaColor = (presenca: string) => {
   if (presenca === 'P' || presenca === 'p') {
-    return 'bg-green-100 text-green-800'
+    return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
   }
   if (presenca === '-') {
     return 'bg-gray-100 text-gray-600'
   }
-  return 'bg-red-100 text-red-800'
+  return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
 }
 
 const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
@@ -782,7 +782,7 @@ export default function DadosPage() {
                 {usuario?.tipo_usuario === 'escola' && escolaNome ? (
                   <>
                     {escolaNome}
-                    {poloNome && <span className="text-gray-500"> - Polo: {poloNome}</span>}
+                    {poloNome && <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500"> - Polo: {poloNome}</span>}
                   </>
                 ) : usuario?.tipo_usuario === 'polo' && poloNome ? (
                   <>Polo: {poloNome}</>
@@ -806,10 +806,10 @@ export default function DadosPage() {
           <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border-2 border-gray-200 p-3 sm:p-4 md:p-6">
             <div className="flex items-center gap-3 mb-4">
               <Filter className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-lg font-bold text-gray-800">Filtros de Pesquisa</h2>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white">Filtros de Pesquisa</h2>
               {temFiltrosAtivos && (
                 <span className="ml-auto flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-600">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">
                     {qtdFiltros} {qtdFiltros === 1 ? 'filtro ativo' : 'filtros ativos'}
                   </span>
                   <button
@@ -836,7 +836,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroAnoLetivo 
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                 >
                   <option value="">Todos os anos</option>
@@ -858,7 +858,7 @@ export default function DadosPage() {
                     type="text"
                     value={poloNome || 'Carregando...'}
                     disabled
-                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 border-2 border-gray-300 text-gray-700 cursor-not-allowed"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 border-2 border-gray-300 dark:border-slate-600 text-gray-700 cursor-not-allowed"
                   />
                 ) : (
                   <select
@@ -867,7 +867,7 @@ export default function DadosPage() {
                     className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                       filtroPoloId
                         ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                        : 'bg-white border-2 border-gray-300 text-gray-700'
+                        : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                     }`}
                   >
                     <option value="">Todos os polos</option>
@@ -890,7 +890,7 @@ export default function DadosPage() {
                     type="text"
                     value={escolaNome || 'Carregando...'}
                     disabled
-                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 border-2 border-gray-300 text-gray-700 cursor-not-allowed"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 border-2 border-gray-300 dark:border-slate-600 text-gray-700 cursor-not-allowed"
                   />
                 ) : (
                   <select
@@ -900,7 +900,7 @@ export default function DadosPage() {
                     className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
                       filtroEscolaId
                         ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                        : 'bg-white border-2 border-gray-300 text-gray-700'
+                        : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                     }`}
                     title={!filtroPoloId ? 'Selecione um polo primeiro' : ''}
                   >
@@ -924,7 +924,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroSerie
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                 >
                   <option value="">Todas as séries</option>
@@ -947,7 +947,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
                     filtroTurmaId
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                   title={!filtroSerie ? 'Selecione uma série primeiro' : ''}
                 >
@@ -970,7 +970,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroDisciplina 
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                 >
                   <option value="">Todas as disciplinas</option>
@@ -994,7 +994,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroPresenca
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm'
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                 >
                   <option value="">Todos</option>
@@ -1015,7 +1015,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroNivel 
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                 >
                   <option value="">Todos os níveis</option>
@@ -1037,7 +1037,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroFaixaMedia 
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                 >
                   <option value="">Todas as faixas</option>
@@ -1062,7 +1062,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroTaxaAcertoMin 
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                   placeholder="Ex: 50"
                 />
@@ -1083,7 +1083,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroTaxaAcertoMax 
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                   placeholder="Ex: 80"
                 />
@@ -1102,7 +1102,7 @@ export default function DadosPage() {
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
                     filtroQuestaoCodigo 
                       ? 'bg-white border-2 border-indigo-500 text-gray-900 shadow-sm' 
-                      : 'bg-white border-2 border-gray-300 text-gray-700'
+                      : 'bg-white border-2 border-gray-300 dark:border-slate-600 text-gray-700'
                   }`}
                   placeholder="Ex: Q1, Q25"
                 />
@@ -1182,7 +1182,7 @@ export default function DadosPage() {
               </div>
 
               {/* Abas de Navegacao */}
-              <div className="flex gap-1 border-b border-gray-200">
+              <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700">
                 {[
                   { id: 'visao_geral', label: 'Visao Geral', icon: PieChartIcon },
                   { id: 'escolas', label: 'Escolas', icon: School },
@@ -1196,7 +1196,7 @@ export default function DadosPage() {
                     className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                       abaAtiva === aba.id
                         ? 'border-indigo-600 text-indigo-600 bg-indigo-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <aba.icon className="w-4 h-4" />
@@ -1210,7 +1210,7 @@ export default function DadosPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Grafico de Barras - Medias por Serie */}
                   {dados.mediasPorSerie.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Media por Serie</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1232,7 +1232,7 @@ export default function DadosPage() {
 
                   {/* Grafico de Pizza - Niveis */}
                   {dados.niveis.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribuicao por Nivel</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1276,7 +1276,7 @@ export default function DadosPage() {
 
                   {/* Distribuicao por Faixa de Nota */}
                   {dados.faixasNota.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribuicao por Faixa de Nota</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1298,7 +1298,7 @@ export default function DadosPage() {
 
                   {/* Ranking de Polos */}
                   {dados.mediasPorPolo.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Ranking de Polos</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1372,8 +1372,8 @@ export default function DadosPage() {
                     {alunosPaginados.length === 0 ? (
                       <div className="text-center py-12">
                         <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                        <p className="text-base font-medium text-gray-500">Nenhum resultado encontrado</p>
-                        <p className="text-sm mt-1 text-gray-400">Importe os dados primeiro</p>
+                        <p className="text-base font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum resultado encontrado</p>
+                        <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Importe os dados primeiro</p>
                       </div>
                     ) : (
                       alunosPaginados.map((resultado: any, index: number) => {
@@ -1381,10 +1381,10 @@ export default function DadosPage() {
                         // Notas serão obtidas dinamicamente pelas disciplinas
 
                         return (
-                          <div key={resultado.id || index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200">
+                          <div key={resultado.id || index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
+                            <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex-shrink-0">
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex-shrink-0">
                                   {index + 1 + (paginaAtual - 1) * itensPorPagina}
                                 </span>
                                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
@@ -1422,10 +1422,10 @@ export default function DadosPage() {
                                 const getNivelColor = (nivel: string | undefined | null): string => {
                                   if (!nivel) return 'bg-gray-100 text-gray-700'
                                   const nivelLower = nivel.toLowerCase()
-                                  if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 text-green-800 border-green-300'
-                                  if (nivelLower.includes('adequado')) return 'bg-blue-100 text-blue-800 border-blue-300'
-                                  if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                                  if (nivelLower.includes('insuficiente')) return 'bg-red-100 text-red-800 border-red-300'
+                                  if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300'
+                                  if (nivelLower.includes('adequado')) return 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300'
+                                  if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300'
+                                  if (nivelLower.includes('insuficiente')) return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
                                   return 'bg-gray-100 text-gray-700'
                                 }
                                 
@@ -1462,7 +1462,7 @@ export default function DadosPage() {
                             </div>
                             
                             {/* Média e Nível */}
-                            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
                               <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-xl ${
                                 mediaNum !== null && mediaNum >= 7 ? 'bg-green-50 border-green-500' : 
                                 mediaNum !== null && mediaNum >= 5 ? 'bg-yellow-50 border-yellow-500' : 
@@ -1480,7 +1480,7 @@ export default function DadosPage() {
                               {resultado.nivel_aprendizagem && (
                                 <div className="text-center">
                                   <div className="text-xs font-semibold text-gray-600 mb-1">Nível</div>
-                                  <div className="text-sm font-bold text-indigo-600">{resultado.nivel_aprendizagem}</div>
+                                  <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{resultado.nivel_aprendizagem}</div>
                                 </div>
                               )}
                             </div>
@@ -1493,7 +1493,7 @@ export default function DadosPage() {
                   {/* Visualização Tablet/Desktop - Tabela */}
                   <div className="hidden sm:block w-full">
                     <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
-                      <table className="w-full divide-y divide-gray-200 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
+                      <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
                         <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
                           <tr>
                             <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12">
@@ -1527,7 +1527,7 @@ export default function DadosPage() {
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                           {alunosPaginados.length === 0 ? (
                             <tr>
                               <td colSpan={6 + disciplinasExibir.length + 1} className="py-8 sm:py-12 text-center text-gray-500 px-4">
@@ -1542,9 +1542,9 @@ export default function DadosPage() {
                               // Notas serão obtidas dinamicamente pelas disciplinas
 
                               return (
-                                <tr key={resultado.id || index} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
+                                <tr key={resultado.id || index} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-gray-100">
                                   <td className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2">
-                                    <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
+                                    <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
                                       {index + 1 + (paginaAtual - 1) * itensPorPagina}
                                     </span>
                                   </td>
@@ -1584,7 +1584,7 @@ export default function DadosPage() {
                                     </span>
                                   </td>
                                   <td className="hidden xl:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
-                                    <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] md:text-[10px] lg:text-xs font-medium">
+                                    <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-[9px] md:text-[10px] lg:text-xs font-medium">
                                       {resultado.serie || '-'}
                                     </span>
                                   </td>
@@ -1604,10 +1604,10 @@ export default function DadosPage() {
                                     const getNivelColor = (nivel: string | undefined | null): string => {
                                       if (!nivel) return 'bg-gray-100 text-gray-700'
                                       const nivelLower = nivel.toLowerCase()
-                                      if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 text-green-800 border-green-300'
-                                      if (nivelLower.includes('adequado')) return 'bg-blue-100 text-blue-800 border-blue-300'
-                                      if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                                      if (nivelLower.includes('insuficiente')) return 'bg-red-100 text-red-800 border-red-300'
+                                      if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300'
+                                      if (nivelLower.includes('adequado')) return 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300'
+                                      if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300'
+                                      if (nivelLower.includes('insuficiente')) return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
                                       return 'bg-gray-100 text-gray-700'
                                     }
                                     
@@ -1652,7 +1652,7 @@ export default function DadosPage() {
                                         {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                       </div>
                                       {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                        <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600">
+                                        <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">
                                           Média
                                         </div>
                                       )}
@@ -1686,16 +1686,16 @@ export default function DadosPage() {
                     {/* Paginação */}
                     {totalPaginas > 1 && (
                       <div className="px-6 py-4 border-t-2 border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-gray-100">
-                        <p className="text-sm font-medium text-gray-700">
-                          Mostrando <span className="font-bold text-indigo-600">{((paginaAtual - 1) * itensPorPagina) + 1}</span> até{' '}
-                          <span className="font-bold text-indigo-600">{Math.min(paginaAtual * itensPorPagina, alunosOrdenados.length)}</span> de{' '}
-                          <span className="font-bold text-gray-900">{alunosOrdenados.length.toLocaleString('pt-BR')}</span> registros
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Mostrando <span className="font-bold text-indigo-600 dark:text-indigo-400">{((paginaAtual - 1) * itensPorPagina) + 1}</span> até{' '}
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400">{Math.min(paginaAtual * itensPorPagina, alunosOrdenados.length)}</span> de{' '}
+                          <span className="font-bold text-gray-900 dark:text-white">{alunosOrdenados.length.toLocaleString('pt-BR')}</span> registros
                         </p>
                         <div className="flex items-center gap-2">
                           <button 
                             onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))} 
                             disabled={paginaAtual === 1} 
-                            className="px-4 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="px-4 py-2 text-sm font-medium border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                             Anterior
                           </button>
@@ -1714,7 +1714,7 @@ export default function DadosPage() {
                                   className={`px-3 py-2 text-sm font-semibold border-2 rounded-lg transition-colors ${
                                     paginaAtual === p 
                                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
-                                      : 'border-gray-300 hover:bg-gray-100 text-gray-700'
+                                      : 'border-gray-300 dark:border-slate-600 hover:bg-gray-100 text-gray-700'
                                   }`}
                                 >
                                   {p}
@@ -1725,7 +1725,7 @@ export default function DadosPage() {
                           <button 
                             onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))} 
                             disabled={paginaAtual === totalPaginas} 
-                            className="px-4 py-2 text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="px-4 py-2 text-sm font-medium border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                             Próximo
                           </button>
@@ -1741,36 +1741,36 @@ export default function DadosPage() {
                   {/* Taxa de Acerto Geral */}
                   {dados.analiseAcertosErros.taxaAcertoGeral && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600">Taxa de Acerto</h3>
+                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500">Taxa de Acerto</h3>
                           <Target className="w-5 h-5 text-green-600" />
                         </div>
-                        <p className="text-3xl font-bold text-green-600">
+                        <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                           {dados.analiseAcertosErros.taxaAcertoGeral.taxa_acerto_geral.toFixed(2)}%
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           {dados.analiseAcertosErros.taxaAcertoGeral.total_acertos.toLocaleString('pt-BR')} de {dados.analiseAcertosErros.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')} respostas
                         </p>
                       </div>
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600">Taxa de Erro</h3>
+                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500">Taxa de Erro</h3>
                           <AlertTriangle className="w-5 h-5 text-red-600" />
                         </div>
-                        <p className="text-3xl font-bold text-red-600">
+                        <p className="text-3xl font-bold text-red-600 dark:text-red-400">
                           {dados.analiseAcertosErros.taxaAcertoGeral.taxa_erro_geral.toFixed(2)}%
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           {dados.analiseAcertosErros.taxaAcertoGeral.total_erros.toLocaleString('pt-BR')} erros
                         </p>
                       </div>
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600">Total de Respostas</h3>
+                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500">Total de Respostas</h3>
                           <BarChart3 className="w-5 h-5 text-indigo-600" />
                         </div>
-                        <p className="text-3xl font-bold text-indigo-600">
+                        <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
                           {dados.analiseAcertosErros.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">Respostas analisadas</p>
@@ -1780,7 +1780,7 @@ export default function DadosPage() {
 
                   {/* Taxa de Acerto por Disciplina */}
                   {dados.analiseAcertosErros.taxaAcertoPorDisciplina && dados.analiseAcertosErros.taxaAcertoPorDisciplina.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Taxa de Acerto por Disciplina</h3>
                       <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1800,7 +1800,7 @@ export default function DadosPage() {
 
                   {/* Questões com Mais Erros */}
                   {dados.analiseAcertosErros.questoesComMaisErros && dados.analiseAcertosErros.questoesComMaisErros.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Questões com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
@@ -1829,7 +1829,7 @@ export default function DadosPage() {
 
                   {/* Escolas com Mais Erros */}
                   {dados.analiseAcertosErros.escolasComMaisErros && dados.analiseAcertosErros.escolasComMaisErros.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Escolas com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
@@ -1858,7 +1858,7 @@ export default function DadosPage() {
 
                   {/* Turmas com Mais Erros */}
                   {dados.analiseAcertosErros.turmasComMaisErros && dados.analiseAcertosErros.turmasComMaisErros.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Turmas com Mais Erros</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
@@ -1888,7 +1888,7 @@ export default function DadosPage() {
 
                   {/* Questões com Mais Acertos */}
                   {dados.analiseAcertosErros.questoesComMaisAcertos && dados.analiseAcertosErros.questoesComMaisAcertos.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Questões com Mais Acertos</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
@@ -1917,7 +1917,7 @@ export default function DadosPage() {
 
                   {/* Escolas com Mais Acertos */}
                   {dados.analiseAcertosErros.escolasComMaisAcertos && dados.analiseAcertosErros.escolasComMaisAcertos.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Escolas com Mais Acertos</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
@@ -1946,7 +1946,7 @@ export default function DadosPage() {
 
                   {/* Turmas com Mais Acertos */}
                   {dados.analiseAcertosErros.turmasComMaisAcertos && dados.analiseAcertosErros.turmasComMaisAcertos.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-hidden">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Turmas com Mais Acertos</h3>
                       <div className="overflow-x-auto">
                         <TabelaPaginada
@@ -1977,10 +1977,10 @@ export default function DadosPage() {
               )}
             </>
           ) : (
-            <div className="text-center py-20 bg-white rounded-xl">
+            <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-xl">
               <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-500">Nenhum dado encontrado</p>
-              <p className="text-sm text-gray-400">Verifique se existem dados importados</p>
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum dado encontrado</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">Verifique se existem dados importados</p>
             </div>
           )}
         </div>
@@ -2010,7 +2010,7 @@ function MetricCard({ titulo, valor, subtitulo, icon: Icon, cor, isDecimal }: an
     green: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', iconBg: 'bg-green-100' },
     red: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', iconBg: 'bg-red-100' },
     purple: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', iconBg: 'bg-purple-100' },
-    amber: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', iconBg: 'bg-amber-100' },
+    amber: { bg: 'bg-amber-50', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200', iconBg: 'bg-amber-100' },
     rose: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', iconBg: 'bg-rose-100' },
     emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', iconBg: 'bg-emerald-100' },
   }
@@ -2028,7 +2028,7 @@ function MetricCard({ titulo, valor, subtitulo, icon: Icon, cor, isDecimal }: an
   }
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border-2 ${corAtual.border} p-4 hover:shadow-md transition-shadow`}>
+    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 ${corAtual.border} p-4 hover:shadow-md transition-shadow`}>
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 rounded-lg ${corAtual.iconBg}`}>
           <Icon className={`w-5 h-5 ${corAtual.text}`} />
@@ -2052,7 +2052,7 @@ function DisciplinaCard({ titulo, media, cor, sigla }: any) {
     blue: { bg: 'bg-blue-50', bar: 'bg-blue-500', text: 'text-blue-700', border: 'border-blue-200' },
     purple: { bg: 'bg-purple-50', bar: 'bg-purple-500', text: 'text-purple-700', border: 'border-purple-200' },
     green: { bg: 'bg-green-50', bar: 'bg-green-500', text: 'text-green-700', border: 'border-green-200' },
-    amber: { bg: 'bg-amber-50', bar: 'bg-amber-500', text: 'text-amber-700', border: 'border-amber-200' },
+    amber: { bg: 'bg-amber-50', bar: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200' },
     rose: { bg: 'bg-rose-50', bar: 'bg-rose-500', text: 'text-rose-700', border: 'border-rose-200' },
   }
   const c = cores[cor] || cores.blue
@@ -2066,7 +2066,7 @@ function DisciplinaCard({ titulo, media, cor, sigla }: any) {
           {media > 0 ? media.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
         </span>
       </div>
-      <div className="w-full bg-white rounded-full h-2.5 mb-2 shadow-inner">
+      <div className="w-full bg-white dark:bg-slate-800 rounded-full h-2.5 mb-2 shadow-inner">
         <div 
           className={`h-2.5 rounded-full ${c.bar} transition-all duration-500 shadow-sm`} 
           style={{ width: `${porcentagem}%` }}
@@ -2088,9 +2088,9 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
     switch (formato) {
       case 'nota':
         const nota = parseFloat(valor)
-        const corNota = nota >= 7 ? 'bg-green-100 text-green-800 border-green-200' :
-                       nota >= 5 ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                       'bg-red-100 text-red-800 border-red-200'
+        const corNota = nota >= 7 ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-200' :
+                       nota >= 5 ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-200' :
+                       'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-200'
         return (
           <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-sm font-bold border-2 ${corNota} min-w-[60px]`}>
             {nota.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -2099,45 +2099,45 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
       case 'decimal':
         const decimal = parseFloat(valor)
         return (
-          <span className="text-sm font-semibold text-gray-700">
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
             {decimal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         )
       case 'presenca':
         return valor === 'P' ? (
-          <span className="inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-800 border-2 border-green-300">
+          <span className="inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-2 border-green-300">
             ✓ Presente
           </span>
         ) : (
-          <span className="inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-800 border-2 border-red-300">
+          <span className="inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-2 border-red-300">
             ✗ Faltante
           </span>
         )
       case 'nivel':
         const nivelCores: Record<string, string> = {
-          'Insuficiente': 'bg-red-100 text-red-800 border-red-300',
-          'Básico': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-          'Adequado': 'bg-blue-100 text-blue-800 border-blue-300',
-          'Avançado': 'bg-green-100 text-green-800 border-green-300',
-          'Não classificado': 'bg-gray-100 text-gray-600 border-gray-300',
+          'Insuficiente': 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300',
+          'Básico': 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300',
+          'Adequado': 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300',
+          'Avançado': 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300',
+          'Não classificado': 'bg-gray-100 text-gray-600 border-gray-300 dark:border-slate-600',
         }
         return valor ? (
-          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold border-2 ${nivelCores[valor] || 'bg-gray-100 text-gray-600 border-gray-300'}`}>
+          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold border-2 ${nivelCores[valor] || 'bg-gray-100 text-gray-600 border-gray-300 dark:border-slate-600'}`}>
             {valor}
           </span>
         ) : (
           <span className="text-gray-400 italic text-xs">Não classificado</span>
         )
       default:
-        return <span className="text-sm text-gray-700">{valor}</span>
+        return <span className="text-sm text-gray-700 dark:text-gray-300">{valor}</span>
     }
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden w-full max-w-full">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border-2 border-gray-200 overflow-hidden w-full max-w-full">
       <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <table className="w-full min-w-[600px]">
-          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
+          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300 dark:border-slate-600">
             <tr>
               {colunas.map((col: any) => (
                 <th
@@ -2157,7 +2157,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
             {dados.length === 0 ? (
               <tr>
                 <td colSpan={colunas.length} className="px-4 py-8 sm:py-12 text-center">
@@ -2172,7 +2172,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
               dados.map((row: any, i: number) => (
                 <tr
                   key={i}
-                  className="hover:bg-indigo-50/30 transition-colors border-b border-gray-100"
+                  className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30/30 transition-colors border-b border-gray-100"
                 >
                   {colunas.map((col: any) => {
                     const valor = row[col.key]
@@ -2204,14 +2204,14 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
       {totalPaginas > 1 && (
         <div className="px-3 sm:px-6 py-3 sm:py-4 border-t-2 border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-gradient-to-r from-gray-50 to-gray-100">
           <p className="text-xs sm:text-sm font-medium text-gray-700 text-center sm:text-left">
-            <span className="font-bold text-indigo-600">{((paginaAtual - 1) * itensPorPagina) + 1}</span>-<span className="font-bold text-indigo-600">{Math.min(paginaAtual * itensPorPagina, totalRegistros)}</span> de{' '}
-            <span className="font-bold text-gray-900">{totalRegistros.toLocaleString('pt-BR')}</span>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">{((paginaAtual - 1) * itensPorPagina) + 1}</span>-<span className="font-bold text-indigo-600 dark:text-indigo-400">{Math.min(paginaAtual * itensPorPagina, totalRegistros)}</span> de{' '}
+            <span className="font-bold text-gray-900 dark:text-white">{totalRegistros.toLocaleString('pt-BR')}</span>
           </p>
           <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => onPaginar(Math.max(1, paginaAtual - 1))}
               disabled={paginaAtual === 1}
-              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Ant.
             </button>
@@ -2230,7 +2230,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                     className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg transition-colors ${
                       paginaAtual === p
                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                        : 'border-gray-300 hover:bg-gray-100 text-gray-700'
+                        : 'border-gray-300 dark:border-slate-600 hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     {p}
@@ -2241,7 +2241,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
             <button
               onClick={() => onPaginar(Math.min(totalPaginas, paginaAtual + 1))}
               disabled={paginaAtual === totalPaginas}
-              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-2 border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Prox.
             </button>

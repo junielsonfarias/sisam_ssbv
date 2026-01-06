@@ -370,7 +370,7 @@ export default function ImportarCompletoPage() {
         <div className="p-3 sm:p-4 md:p-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 md:mb-8">Importação Completa</h1>
 
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
             <div className="mb-4 sm:mb-6">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">
                 Importação Completa de Dados
@@ -398,13 +398,13 @@ export default function ImportarCompletoPage() {
                   type="text"
                   value={anoLetivo}
                   onChange={(e) => setAnoLetivo(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Ex: 2024"
                 />
                 <p className="text-xs text-gray-500 mt-1">Ano letivo ao qual se referem os dados</p>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-4 sm:p-6 md:p-8 text-center">
                 <FileSpreadsheet className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
                 <input
                   id="arquivo"
@@ -421,7 +421,7 @@ export default function ImportarCompletoPage() {
                   Selecionar Arquivo Excel
                 </label>
                 {arquivo && (
-                  <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-700">
+                  <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                     Arquivo selecionado: <strong className="break-all">{arquivo.name}</strong>
                   </p>
                 )}
@@ -593,72 +593,72 @@ export default function ImportarCompletoPage() {
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <Database className="w-5 h-5 text-blue-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Polos</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Polos</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total: {resultado.resultado.polos.total}</p>
-                        <p className="text-green-600">Criados: {resultado.resultado.polos.criados}</p>
-                        <p className="text-gray-500">Existentes: {resultado.resultado.polos.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criados: {resultado.resultado.polos.criados}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.polos.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <Database className="w-5 h-5 text-green-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Escolas</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Escolas</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total: {resultado.resultado.escolas.total}</p>
-                        <p className="text-green-600">Criadas: {resultado.resultado.escolas.criados}</p>
-                        <p className="text-gray-500">Existentes: {resultado.resultado.escolas.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resultado.escolas.criados}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.escolas.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <Database className="w-5 h-5 text-purple-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Turmas</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Turmas</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
-                        <p className="text-green-600">Criadas: {resultado.resultado.turmas.criados}</p>
-                        <p className="text-gray-500">Existentes: {resultado.resultado.turmas.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resultado.turmas.criados}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.turmas.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <Database className="w-5 h-5 text-indigo-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Alunos</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Alunos</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
-                        <p className="text-green-600">Criados: {resultado.resultado.alunos.criados}</p>
-                        <p className="text-gray-500">Existentes: {resultado.resultado.alunos.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criados: {resultado.resultado.alunos.criados}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.alunos.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <Database className="w-5 h-5 text-yellow-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Questões</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Questões</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
-                        <p className="text-green-600">Criadas: {resultado.resultado.questoes.criadas}</p>
-                        <p className="text-gray-500">Existentes: {resultado.resultado.questoes.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resultado.questoes.criadas}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Existentes: {resultado.resultado.questoes.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <TrendingUp className="w-5 h-5 text-indigo-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Resultados</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Resultados</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Alunos processados: {resultado.resultado.resultados.processados}</p>
-                        <p className="text-green-600">Questões novas: {resultado.resultado.resultados.novos || 0}</p>
+                        <p className="text-green-600 dark:text-green-400">Questões novas: {resultado.resultado.resultados.novos || 0}</p>
                         {resultado.resultado.resultados.duplicados > 0 && (
-                          <p className="text-gray-500">Duplicados ignorados: {resultado.resultado.resultados.duplicados}</p>
+                          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Duplicados ignorados: {resultado.resultado.resultados.duplicados}</p>
                         )}
-                        <p className="text-green-600">✓ Notas e médias importadas</p>
+                        <p className="text-green-600 dark:text-green-400">✓ Notas e médias importadas</p>
                         {resultado.resultado.resultados.erros > 0 && (
                           <p className="text-orange-600">Erros: {resultado.resultado.resultados.erros}</p>
                         )}

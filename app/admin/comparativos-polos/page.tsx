@@ -245,17 +245,17 @@ export default function ComparativosPolosPage() {
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Comparativo entre Polos</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Comparativo entre Polos</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">Compare o desempenho entre 2 polos, séries, escolas e turmas</p>
             </div>
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6" style={{ overflow: 'visible' }}>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6" style={{ overflow: 'visible' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <Filter className="w-5 h-5 mr-2 text-indigo-600" />
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Filtros de Comparação</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">Filtros de Comparação</h2>
               </div>
               {(polosSelecionados.length > 0 || filtros.serie || filtros.escola_id) && (
                 <button
@@ -277,7 +277,7 @@ export default function ComparativosPolosPage() {
                   type="text"
                   value={filtros.ano_letivo}
                   onChange={(e) => setFiltros((prev) => ({ ...prev, ano_letivo: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="Ex: 2026 (deixe vazio para todos)"
                 />
               </div>
@@ -352,7 +352,7 @@ export default function ComparativosPolosPage() {
               </label>
               <div className="max-h-64 overflow-y-auto border-2 border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-white shadow-inner">
                 {polos.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">
                     <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">Nenhum polo disponível</p>
                   </div>
@@ -371,7 +371,7 @@ export default function ComparativosPolosPage() {
                               ? 'bg-indigo-50 border-indigo-500 shadow-md'
                               : desabilitado
                               ? 'bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed'
-                              : 'bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 hover:shadow-sm'
+                              : 'bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30/50 hover:shadow-sm'
                             }
                           `}
                         >
@@ -380,7 +380,7 @@ export default function ComparativosPolosPage() {
                             checked={selecionado}
                             onChange={() => !desabilitado && togglePolo(polo.id)}
                             disabled={desabilitado}
-                            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 cursor-pointer disabled:cursor-not-allowed"
+                            className="w-5 h-5 rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 cursor-pointer disabled:cursor-not-allowed"
                           />
                           <span className={`text-sm font-medium flex-1 ${selecionado ? 'text-indigo-900' : desabilitado ? 'text-gray-400' : 'text-gray-700'}`}>
                             {polo.nome}
@@ -388,13 +388,13 @@ export default function ComparativosPolosPage() {
                           {selecionado && (
                             <div className="flex items-center space-x-1">
                               <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
-                              <span className="text-xs font-semibold text-indigo-600">
+                              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
                                 {polosSelecionados.indexOf(polo.id) + 1}º
                               </span>
                             </div>
                           )}
                           {desabilitado && (
-                            <span className="text-xs text-gray-400">(máx. 2)</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">(máx. 2)</span>
                           )}
                         </label>
                       )
@@ -419,14 +419,14 @@ export default function ComparativosPolosPage() {
                   <div className="flex items-center space-x-4">
                     <MapPin className="w-6 h-6 text-indigo-600" />
                     <div>
-                      <p className="text-sm text-indigo-600">Polos comparados</p>
+                      <p className="text-sm text-indigo-600 dark:text-indigo-400">Polos comparados</p>
                       <p className="text-xl sm:text-2xl font-bold text-indigo-900">{nomesPolos.join(' vs ')}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <BookOpen className="w-6 h-6 text-indigo-600" />
                     <div>
-                      <p className="text-sm text-indigo-600">Séries analisadas</p>
+                      <p className="text-sm text-indigo-600 dark:text-indigo-400">Séries analisadas</p>
                       <p className="text-xl sm:text-2xl font-bold text-indigo-900">{Object.keys(dadosAgregados).length}</p>
                     </div>
                   </div>
@@ -441,7 +441,7 @@ export default function ComparativosPolosPage() {
                   <div key={serie} className="space-y-4">
                     {/* Seção: Dados Agregados por Polo/Série */}
                     {dadosSerie.length > 0 && (
-                      <div className="bg-white rounded-xl shadow-sm border-2 border-indigo-200 overflow-hidden">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-indigo-200 overflow-hidden">
                         <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 px-4 sm:px-6 py-4 border-b border-indigo-200">
                           <h3 className="text-lg sm:text-xl font-bold text-indigo-900 flex items-center">
                             <MapPin className="w-5 h-5 mr-2" />
@@ -468,13 +468,13 @@ export default function ComparativosPolosPage() {
                                 <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Média Geral</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                               {[...dadosSerie].sort((a, b) => {
                                 const mediaA = typeof a.media_geral === 'string' ? parseFloat(a.media_geral) : (a.media_geral || 0)
                                 const mediaB = typeof b.media_geral === 'string' ? parseFloat(b.media_geral) : (b.media_geral || 0)
                                 return mediaB - mediaA
                               }).map((item, index) => (
-                                <tr key={`agregado-${item.polo_id}-${item.serie}-${index}`} className="hover:bg-indigo-50 bg-indigo-50/30">
+                                <tr key={`agregado-${item.polo_id}-${item.serie}-${index}`} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 bg-indigo-50/30">
                                   <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
                                     <div className="flex items-center">
                                       <MapPin className="w-4 h-4 mr-2 text-indigo-600" />
@@ -482,12 +482,12 @@ export default function ComparativosPolosPage() {
                                     </div>
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800 font-semibold text-xs">
+                                    <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200 font-semibold text-xs">
                                       {item.total_escolas || 0} escola(s)
                                     </span>
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs">
+                                    <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 font-semibold text-xs">
                                       {item.total_turmas || 0} turma(s)
                                     </span>
                                   </td>
@@ -501,7 +501,7 @@ export default function ComparativosPolosPage() {
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
-                                      <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_lp)}/20</span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatarNumero(item.media_acertos_lp)}/20</span>
                                       <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
                                         {formatarNumero(item.media_lp)}
                                       </span>
@@ -509,7 +509,7 @@ export default function ComparativosPolosPage() {
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
-                                      <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_ch)}/10</span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatarNumero(item.media_acertos_ch)}/10</span>
                                       <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
                                         {formatarNumero(item.media_ch)}
                                       </span>
@@ -517,7 +517,7 @@ export default function ComparativosPolosPage() {
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
-                                      <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_mat)}/20</span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatarNumero(item.media_acertos_mat)}/20</span>
                                       <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
                                         {formatarNumero(item.media_mat)}
                                       </span>
@@ -525,7 +525,7 @@ export default function ComparativosPolosPage() {
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
-                                      <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_cn)}/10</span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatarNumero(item.media_acertos_cn)}/10</span>
                                       <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
                                         {formatarNumero(item.media_cn)}
                                       </span>
@@ -548,7 +548,7 @@ export default function ComparativosPolosPage() {
 
                     {/* Seção: Dados por Escola dentro de cada Polo */}
                     {Object.entries(dadosEscolasPorPolo).length > 0 && !filtros.escola_id && (
-                      <div className="bg-white rounded-xl shadow-sm border-2 border-blue-200 overflow-hidden">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-blue-200 overflow-hidden">
                         <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 sm:px-6 py-4 border-b border-blue-200">
                           <h3 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center">
                             <School className="w-5 h-5 mr-2" />
@@ -584,7 +584,7 @@ export default function ComparativosPolosPage() {
                                       <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Média Geral</th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-gray-200">
+                                  <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                                     {[...escolasData].sort((a, b) => {
                                       const mediaA = typeof a.media_geral === 'string' ? parseFloat(a.media_geral) : (a.media_geral || 0)
                                       const mediaB = typeof b.media_geral === 'string' ? parseFloat(b.media_geral) : (b.media_geral || 0)
@@ -598,7 +598,7 @@ export default function ComparativosPolosPage() {
                                           </div>
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs">
+                                          <span className="inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 font-semibold text-xs">
                                             {item.total_turmas || 0} turma(s)
                                           </span>
                                         </td>
@@ -612,7 +612,7 @@ export default function ComparativosPolosPage() {
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                           <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_lp)}/20</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatarNumero(item.media_acertos_lp)}/20</span>
                                             <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
                                               {formatarNumero(item.media_lp)}
                                             </span>
@@ -620,7 +620,7 @@ export default function ComparativosPolosPage() {
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                           <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_ch)}/10</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatarNumero(item.media_acertos_ch)}/10</span>
                                             <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
                                               {formatarNumero(item.media_ch)}
                                             </span>
@@ -628,7 +628,7 @@ export default function ComparativosPolosPage() {
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                           <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_mat)}/20</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatarNumero(item.media_acertos_mat)}/20</span>
                                             <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
                                               {formatarNumero(item.media_mat)}
                                             </span>
@@ -636,7 +636,7 @@ export default function ComparativosPolosPage() {
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                           <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500">{formatarNumero(item.media_acertos_cn)}/10</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatarNumero(item.media_acertos_cn)}/10</span>
                                             <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
                                               {formatarNumero(item.media_cn)}
                                             </span>
@@ -664,9 +664,9 @@ export default function ComparativosPolosPage() {
               })}
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-500">
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
                 {polosSelecionados.length !== 2
                   ? 'Selecione exatamente 2 polos para comparar'
                   : 'Nenhum dado encontrado'}

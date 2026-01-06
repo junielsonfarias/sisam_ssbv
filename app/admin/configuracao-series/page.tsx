@@ -169,9 +169,9 @@ export default function ConfiguracaoSeriesPage() {
 
   const getTipoAvaliacaoColor = (config: ConfiguracaoSerie) => {
     if (config.tem_producao_textual) {
-      return 'bg-green-100 text-green-800 border-green-200'
+      return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-200'
     }
-    return 'bg-blue-100 text-blue-800 border-blue-200'
+    return 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200'
   }
 
   // Limpar mensagem após 5 segundos
@@ -229,9 +229,9 @@ export default function ConfiguracaoSeriesPage() {
               <p className="text-gray-500 mt-4">Carregando configurações...</p>
             </div>
           ) : series.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-md p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-12 text-center">
               <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-500">Nenhuma série configurada</p>
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhuma série configurada</p>
               <p className="text-sm text-gray-400 mt-2">Clique em "Nova Série" para começar</p>
             </div>
           ) : (
@@ -243,7 +243,7 @@ export default function ConfiguracaoSeriesPage() {
                 return (
                   <div
                     key={config.id}
-                    className={`bg-white rounded-xl shadow-md border-2 transition-all ${
+                    className={`bg-white dark:bg-slate-800 rounded-xl shadow-md border-2 transition-all ${
                       estaEditando ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'
                     }`}
                   >
@@ -255,15 +255,15 @@ export default function ConfiguracaoSeriesPage() {
                             {config.serie}º
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-gray-900">{config.nome_serie}</h3>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{config.nome_serie}</h3>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getTipoAvaliacaoColor(config)}`}>
                               {getTipoAvaliacaoLabel(config)}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-indigo-600">{config.total_questoes_objetivas}</p>
-                          <p className="text-xs text-gray-500">questões objetivas</p>
+                          <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{config.total_questoes_objetivas}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">questões objetivas</p>
                         </div>
                       </div>
                     </div>
@@ -307,7 +307,7 @@ export default function ConfiguracaoSeriesPage() {
                           </div>
                           <div className={`p-3 rounded-lg border ${dados.avalia_ch ? 'bg-green-50 border-green-200' : 'bg-gray-100 border-gray-200'}`}>
                             <div className="flex items-center justify-between mb-1">
-                              <label className="block text-xs font-medium text-gray-600">Ciências Humanas</label>
+                              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Ciências Humanas</label>
                               {estaEditando && (
                                 <input
                                   type="checkbox"
@@ -334,7 +334,7 @@ export default function ConfiguracaoSeriesPage() {
                           </div>
                           <div className={`p-3 rounded-lg border ${dados.avalia_cn ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-100 border-gray-200'}`}>
                             <div className="flex items-center justify-between mb-1">
-                              <label className="block text-xs font-medium text-gray-600">Ciências da Natureza</label>
+                              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Ciências da Natureza</label>
                               {estaEditando && (
                                 <input
                                   type="checkbox"
@@ -362,7 +362,7 @@ export default function ConfiguracaoSeriesPage() {
                         </div>
                         {estaEditando && (
                           <p className="text-sm text-gray-500 mt-2 text-right">
-                            Total: <span className="font-bold text-indigo-600">{calcularTotalQuestoes(formData)} questões</span>
+                            Total: <span className="font-bold text-indigo-600 dark:text-indigo-400">{calcularTotalQuestoes(formData)} questões</span>
                           </p>
                         )}
                       </div>
@@ -372,7 +372,7 @@ export default function ConfiguracaoSeriesPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <FileText className={`w-5 h-5 ${dados.tem_producao_textual ? 'text-orange-600' : 'text-gray-400'}`} />
-                            <span className="font-medium text-gray-700">Produção Textual</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Produção Textual</span>
                           </div>
                           {estaEditando ? (
                             <input
@@ -387,7 +387,7 @@ export default function ConfiguracaoSeriesPage() {
                             />
                           ) : (
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              config.tem_producao_textual ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'
+                              config.tem_producao_textual ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300' : 'bg-gray-100 text-gray-500'
                             }`}>
                               {config.tem_producao_textual ? 'Habilitado' : 'Desabilitado'}
                             </span>
@@ -395,7 +395,7 @@ export default function ConfiguracaoSeriesPage() {
                         </div>
                         {dados.tem_producao_textual && (
                           <div className="mt-3 flex items-center gap-3">
-                            <label className="text-sm text-gray-600">Quantidade de itens:</label>
+                            <label className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Quantidade de itens:</label>
                             {estaEditando ? (
                               <input
                                 type="number"
@@ -417,7 +417,7 @@ export default function ConfiguracaoSeriesPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Calculator className={`w-5 h-5 ${dados.usa_nivel_aprendizagem ? 'text-indigo-600' : 'text-gray-400'}`} />
-                            <span className="font-medium text-gray-700">Nível de Aprendizagem</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Nível de Aprendizagem</span>
                           </div>
                           {estaEditando ? (
                             <input
@@ -428,26 +428,26 @@ export default function ConfiguracaoSeriesPage() {
                             />
                           ) : (
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              config.usa_nivel_aprendizagem ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                              config.usa_nivel_aprendizagem ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 text-gray-500'
                             }`}>
                               {config.usa_nivel_aprendizagem ? 'Habilitado' : 'Desabilitado'}
                             </span>
                           )}
                         </div>
                         {dados.usa_nivel_aprendizagem && (
-                          <p className="mt-2 text-xs text-gray-500">
+                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                             Classifica alunos em: Insuficiente, Básico, Adequado, Avançado
                           </p>
                         )}
                       </div>
 
                       {/* Botões de Ação */}
-                      <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+                      <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-slate-700">
                         {estaEditando ? (
                           <>
                             <button
                               onClick={handleCancelarEdicao}
-                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                              className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                             >
                               Cancelar
                             </button>
@@ -472,7 +472,7 @@ export default function ConfiguracaoSeriesPage() {
                         ) : (
                           <button
                             onClick={() => handleEditar(config)}
-                            className="flex items-center gap-2 px-4 py-2 border border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 border border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                           >
                             <Settings className="w-4 h-4" />
                             Editar
@@ -491,11 +491,11 @@ export default function ConfiguracaoSeriesPage() {
             <div className="fixed inset-0 z-50 overflow-y-auto">
               <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20">
                 <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setMostrarNovaSerieModal(false)}></div>
-                <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full relative z-10 max-h-[90vh] overflow-y-auto">
-                  <div className="px-6 py-4 border-b border-gray-200">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full relative z-10 max-h-[90vh] overflow-y-auto">
+                  <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-xl font-bold text-gray-900">Nova Configuração de Série</h3>
-                      <button onClick={() => setMostrarNovaSerieModal(false)} className="text-gray-400 hover:text-gray-500">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">Nova Configuração de Série</h3>
+                      <button onClick={() => setMostrarNovaSerieModal(false)} className="text-gray-400 hover:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                         <X className="w-6 h-6" />
                       </button>
                     </div>
@@ -511,7 +511,7 @@ export default function ConfiguracaoSeriesPage() {
                           value={novaSerieData.serie}
                           onChange={(e) => setNovaSerieData({ ...novaSerieData, serie: e.target.value.replace(/\D/g, '') })}
                           placeholder="Ex: 6"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                       <div>
@@ -521,7 +521,7 @@ export default function ConfiguracaoSeriesPage() {
                           value={novaSerieData.nome_serie}
                           onChange={(e) => setNovaSerieData({ ...novaSerieData, nome_serie: e.target.value })}
                           placeholder="Ex: 6º Ano"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                     </div>
@@ -537,7 +537,7 @@ export default function ConfiguracaoSeriesPage() {
                             min="0"
                             value={novaSerieData.qtd_questoes_lp}
                             onChange={(e) => setNovaSerieData({ ...novaSerieData, qtd_questoes_lp: parseInt(e.target.value) || 0 })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
                         <div>
@@ -547,7 +547,7 @@ export default function ConfiguracaoSeriesPage() {
                             min="0"
                             value={novaSerieData.qtd_questoes_mat}
                             onChange={(e) => setNovaSerieData({ ...novaSerieData, qtd_questoes_mat: parseInt(e.target.value) || 0 })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
                         <div>
@@ -558,7 +558,7 @@ export default function ConfiguracaoSeriesPage() {
                               onChange={(e) => setNovaSerieData({ ...novaSerieData, avalia_ch: e.target.checked })}
                               className="w-4 h-4 text-indigo-600 rounded"
                             />
-                            <label className="text-xs text-gray-600">Ciências Humanas</label>
+                            <label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Ciências Humanas</label>
                           </div>
                           <input
                             type="number"
@@ -566,7 +566,7 @@ export default function ConfiguracaoSeriesPage() {
                             disabled={!novaSerieData.avalia_ch}
                             value={novaSerieData.qtd_questoes_ch}
                             onChange={(e) => setNovaSerieData({ ...novaSerieData, qtd_questoes_ch: parseInt(e.target.value) || 0 })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
                           />
                         </div>
                         <div>
@@ -577,7 +577,7 @@ export default function ConfiguracaoSeriesPage() {
                               onChange={(e) => setNovaSerieData({ ...novaSerieData, avalia_cn: e.target.checked })}
                               className="w-4 h-4 text-indigo-600 rounded"
                             />
-                            <label className="text-xs text-gray-600">Ciências da Natureza</label>
+                            <label className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Ciências da Natureza</label>
                           </div>
                           <input
                             type="number"
@@ -585,7 +585,7 @@ export default function ConfiguracaoSeriesPage() {
                             disabled={!novaSerieData.avalia_cn}
                             value={novaSerieData.qtd_questoes_cn}
                             onChange={(e) => setNovaSerieData({ ...novaSerieData, qtd_questoes_cn: parseInt(e.target.value) || 0 })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
                           />
                         </div>
                       </div>
@@ -598,7 +598,7 @@ export default function ConfiguracaoSeriesPage() {
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <FileText className="w-5 h-5 text-gray-600" />
-                        <span className="font-medium text-gray-700">Produção Textual</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Produção Textual</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <input
@@ -628,7 +628,7 @@ export default function ConfiguracaoSeriesPage() {
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <Calculator className="w-5 h-5 text-gray-600" />
-                        <span className="font-medium text-gray-700">Usa Nível de Aprendizagem</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Usa Nível de Aprendizagem</span>
                       </div>
                       <input
                         type="checkbox"
@@ -642,7 +642,7 @@ export default function ConfiguracaoSeriesPage() {
                   <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
                     <button
                       onClick={() => setMostrarNovaSerieModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                      className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700"
                     >
                       Cancelar
                     </button>

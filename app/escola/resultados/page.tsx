@@ -288,12 +288,12 @@ export default function ResultadosEscolaPage() {
 
   const getPresencaColor = (presenca: string) => {
     if (presenca === 'P' || presenca === 'p') {
-      return 'bg-green-100 text-green-800'
+      return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
     }
     if (presenca === '-') {
       return 'bg-gray-100 text-gray-600'
     }
-    return 'bg-red-100 text-red-800'
+    return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
   }
 
   const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
@@ -419,10 +419,10 @@ export default function ResultadosEscolaPage() {
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 overflow-x-hidden max-w-full">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Resultados Consolidados</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Resultados Consolidados</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">
                 {escolaNome && `${escolaNome}`}
-                {poloNome && <span className="text-gray-500"> - Polo: {poloNome}</span>}
+                {poloNome && <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500"> - Polo: {poloNome}</span>}
               </p>
             </div>
             <button
@@ -437,11 +437,11 @@ export default function ResultadosEscolaPage() {
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <Filter className="w-5 h-5 mr-2 text-indigo-600" />
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Filtros</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">Filtros</h2>
               </div>
               {temFiltrosAtivos && (
                 <button
@@ -463,7 +463,7 @@ export default function ResultadosEscolaPage() {
                   type="text"
                   value={poloNome || '-'}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
@@ -475,7 +475,7 @@ export default function ResultadosEscolaPage() {
                   type="text"
                   value={escolaNome || ''}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
@@ -487,7 +487,7 @@ export default function ResultadosEscolaPage() {
                   type="text"
                   value={filtros.ano_letivo || ''}
                   onChange={(e) => handleFiltroChange('ano_letivo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Ex: 2026"
                 />
               </div>
@@ -553,7 +553,7 @@ export default function ResultadosEscolaPage() {
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar por nome do aluno..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -604,7 +604,7 @@ export default function ResultadosEscolaPage() {
           {/* Médias por Área */}
           {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (
             <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Língua Portuguesa</p>
@@ -624,7 +624,7 @@ export default function ResultadosEscolaPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Ciências Humanas</p>
@@ -644,7 +644,7 @@ export default function ResultadosEscolaPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Matemática</p>
@@ -664,7 +664,7 @@ export default function ResultadosEscolaPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate">Ciências da Natureza</p>
@@ -686,7 +686,7 @@ export default function ResultadosEscolaPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto -mx-3 sm:mx-0">
             {carregando ? (
               <div className="text-center py-12">
@@ -700,8 +700,8 @@ export default function ResultadosEscolaPage() {
                   {resultadosFiltrados.length === 0 ? (
                     <div className="text-center py-12">
                       <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                      <p className="text-base font-medium text-gray-500">Nenhum resultado encontrado</p>
-                      <p className="text-sm mt-1 text-gray-400">Não há resultados para exibir</p>
+                      <p className="text-base font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum resultado encontrado</p>
+                      <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Não há resultados para exibir</p>
                     </div>
                   ) : (
                     resultadosFiltrados.map((resultado, index) => {
@@ -712,9 +712,9 @@ export default function ResultadosEscolaPage() {
                     const notaCN = getNotaNumero(resultado.nota_cn)
 
                     return (
-                      <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
                         {/* Cabeçalho do Card */}
-                        <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200">
+                        <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                           <div className="flex items-center gap-2 mr-2">
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-sm flex-shrink-0">
                               {index + 1}
@@ -832,7 +832,7 @@ export default function ResultadosEscolaPage() {
                         </div>
 
                         {/* Média e Ações */}
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
                           <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                             mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
                             mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
@@ -860,7 +860,7 @@ export default function ResultadosEscolaPage() {
                 {/* Visualização Tablet/Desktop - Tabela */}
                 <div className="hidden sm:block w-full">
                   <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
-                    <table className="w-full divide-y divide-gray-200 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
+                    <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
                       <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
                         <tr>
                           <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12">
@@ -898,7 +898,7 @@ export default function ResultadosEscolaPage() {
                           </th>
                         </tr>
                       </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {resultadosFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={11} className="py-8 sm:py-12 text-center text-gray-500 px-4">
@@ -916,9 +916,9 @@ export default function ResultadosEscolaPage() {
                         const notaCN = getNotaNumero(resultado.nota_cn)
 
                         return (
-                          <tr key={resultado.id} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
+                          <tr key={resultado.id} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-gray-100">
                             <td className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2">
-                              <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
+                              <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
                                 {index + 1}
                               </span>
                             </td>
@@ -958,7 +958,7 @@ export default function ResultadosEscolaPage() {
                               </span>
                             </td>
                             <td className="hidden xl:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
-                              <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] md:text-[10px] lg:text-xs font-medium">
+                              <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-[9px] md:text-[10px] lg:text-xs font-medium">
                                 {resultado.serie || '-'}
                               </span>
                             </td>
@@ -1061,7 +1061,7 @@ export default function ResultadosEscolaPage() {
                                   {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                 </div>
                                 {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600">
+                                  <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">
                                     Média
                                   </div>
                                 )}
@@ -1090,7 +1090,7 @@ export default function ResultadosEscolaPage() {
                 {/* Controles de Paginação */}
                 {paginacao.totalPaginas > 1 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm mt-4 gap-3">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                       Mostrando <span className="font-semibold">{((paginaAtual - 1) * paginacao.limite) + 1}</span> a{' '}
                       <span className="font-semibold">{Math.min(paginaAtual * paginacao.limite, paginacao.total)}</span> de{' '}
                       <span className="font-semibold">{paginacao.total}</span> resultados
@@ -1119,7 +1119,7 @@ export default function ResultadosEscolaPage() {
                             >
                               1
                             </button>
-                            {paginaAtual > 3 && <span className="px-1 text-gray-400">...</span>}
+                            {paginaAtual > 3 && <span className="px-1 text-gray-400 dark:text-gray-500">...</span>}
                           </>
                         )}
 
@@ -1153,7 +1153,7 @@ export default function ResultadosEscolaPage() {
                         {/* Última página */}
                         {paginaAtual < paginacao.totalPaginas - 1 && (
                           <>
-                            {paginaAtual < paginacao.totalPaginas - 2 && <span className="px-1 text-gray-400">...</span>}
+                            {paginaAtual < paginacao.totalPaginas - 2 && <span className="px-1 text-gray-400 dark:text-gray-500">...</span>}
                             <button
                               onClick={() => irParaPagina(paginacao.totalPaginas)}
                               className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"

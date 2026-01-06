@@ -69,13 +69,13 @@ export default function TecnicoImportarPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-800 mb-8">Importar Dados</h1>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
                 Carregar Arquivo Excel
               </h2>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-8 text-center">
                 <FileSpreadsheet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <input
                   id="arquivo"
@@ -92,7 +92,7 @@ export default function TecnicoImportarPage() {
                   Selecionar Arquivo
                 </label>
                 {arquivo && (
-                  <p className="mt-4 text-gray-700">
+                  <p className="mt-4 text-gray-700 dark:text-gray-300">
                     Arquivo selecionado: <strong>{arquivo.name}</strong>
                   </p>
                 )}

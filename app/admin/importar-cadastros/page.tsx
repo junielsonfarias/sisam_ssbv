@@ -71,7 +71,7 @@ export default function ImportarCadastrosPage() {
         <div className="p-3 sm:p-4 md:p-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 md:mb-8">Importar Cadastros</h1>
 
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
             <div className="mb-4 sm:mb-6">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">
                 Carregar Arquivo Excel com Cadastros
@@ -96,13 +96,13 @@ export default function ImportarCadastrosPage() {
                   type="text"
                   value={anoLetivo}
                   onChange={(e) => setAnoLetivo(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Ex: 2024"
                 />
                 <p className="text-xs text-gray-500 mt-1">Ano letivo ao qual se referem os dados</p>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-8 text-center">
                 <FileSpreadsheet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <input
                   id="arquivo"
@@ -119,7 +119,7 @@ export default function ImportarCadastrosPage() {
                   Selecionar Arquivo
                 </label>
                 {arquivo && (
-                  <p className="mt-4 text-gray-700">
+                  <p className="mt-4 text-gray-700 dark:text-gray-300">
                     Arquivo selecionado: <strong>{arquivo.name}</strong>
                   </p>
                 )}
@@ -147,59 +147,59 @@ export default function ImportarCadastrosPage() {
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <MapPin className="w-5 h-5 text-blue-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Polos</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Polos</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total encontrados: {resultado.resumo.polos.total}</p>
-                        <p className="text-green-600">Criados: {resultado.resumo.polos.criados}</p>
-                        <p className="text-gray-500">Já existiam: {resultado.resumo.polos.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criados: {resultado.resumo.polos.criados}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.polos.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <School className="w-5 h-5 text-green-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Escolas</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Escolas</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total encontradas: {resultado.resumo.escolas.total}</p>
-                        <p className="text-green-600">Criadas: {resultado.resumo.escolas.criados}</p>
-                        <p className="text-gray-500">Já existiam: {resultado.resumo.escolas.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resumo.escolas.criados}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.escolas.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <Users className="w-5 h-5 text-purple-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Turmas</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Turmas</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total encontradas: {resultado.resumo.turmas.total}</p>
-                        <p className="text-green-600">Criadas: {resultado.resumo.turmas.criados}</p>
-                        <p className="text-gray-500">Já existiam: {resultado.resumo.turmas.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resumo.turmas.criados}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.turmas.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <Users className="w-5 h-5 text-indigo-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Alunos</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Alunos</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p>Total encontrados: {resultado.resumo.alunos.total}</p>
-                        <p className="text-green-600">Criados: {resultado.resumo.alunos.criados}</p>
-                        <p className="text-gray-500">Já existiam: {resultado.resumo.alunos.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criados: {resultado.resumo.alunos.criados}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.alunos.existentes}</p>
                       </div>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <FileSpreadsheet className="w-5 h-5 text-indigo-600 mr-2" />
-                        <h3 className="font-semibold text-gray-800">Questões</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">Questões</h3>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
-                        <p className="text-green-600">Criadas: {resultado.resumo.questoes.criadas}</p>
-                        <p className="text-gray-500">Já existiam: {resultado.resumo.questoes.existentes}</p>
+                        <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resumo.questoes.criadas}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Já existiam: {resultado.resumo.questoes.existentes}</p>
                       </div>
                     </div>
                   </div>

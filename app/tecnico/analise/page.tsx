@@ -63,10 +63,10 @@ export default function TecnicoAnalisePage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8">Análise de Dados</h1>
 
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6 mb-4 sm:mb-6" style={{ overflow: 'visible' }}>
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-3 sm:p-4 md:p-6 mb-4 sm:mb-6" style={{ overflow: 'visible' }}>
             <div className="flex items-center mb-3 sm:mb-4">
               <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" />
-              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">Filtros</h2>
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-white">Filtros</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
@@ -116,7 +116,7 @@ export default function TecnicoAnalisePage() {
                   type="text"
                   value={filtros.ano_letivo || ''}
                   onChange={(e) => handleFiltroChange('ano_letivo', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                   placeholder="Ex: 2024"
                 />
               </div>
@@ -129,7 +129,7 @@ export default function TecnicoAnalisePage() {
                   type="text"
                   value={filtros.disciplina || ''}
                   onChange={(e) => handleFiltroChange('disciplina', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                   placeholder="Ex: Matemática"
                 />
               </div>
@@ -144,7 +144,7 @@ export default function TecnicoAnalisePage() {
                   max="100"
                   value={filtros.taxa_acertos_min || ''}
                   onChange={(e) => handleFiltroChange('taxa_acertos_min', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                 />
               </div>
 
@@ -158,7 +158,7 @@ export default function TecnicoAnalisePage() {
                   max="100"
                   value={filtros.taxa_acertos_max || ''}
                   onChange={(e) => handleFiltroChange('taxa_acertos_max', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                 />
               </div>
             </div>
@@ -174,7 +174,7 @@ export default function TecnicoAnalisePage() {
 
           {dados && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-600 text-xs sm:text-sm">Taxa de Acertos</p>
@@ -186,7 +186,7 @@ export default function TecnicoAnalisePage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-600 text-xs sm:text-sm">Total de Questões</p>
@@ -198,7 +198,7 @@ export default function TecnicoAnalisePage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-600 text-xs sm:text-sm">Total de Alunos</p>

@@ -232,16 +232,16 @@ export default function AlunosEscolaPage() {
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gestão de Alunos</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Gestão de Alunos</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">
                 {escolaNome && `${escolaNome}`}
-                {poloNome && <span className="text-gray-500"> - Polo: {poloNome}</span>}
+                {poloNome && <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500"> - Polo: {poloNome}</span>}
               </p>
             </div>
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -254,7 +254,7 @@ export default function AlunosEscolaPage() {
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
                     placeholder="Nome do aluno..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -267,7 +267,7 @@ export default function AlunosEscolaPage() {
                   type="text"
                   value={escolaNome || ''}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
@@ -319,7 +319,7 @@ export default function AlunosEscolaPage() {
                   type="text"
                   value={filtroAno}
                   onChange={(e) => setFiltroAno(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Ex: 2026 (todos se vazio)"
                 />
               </div>
@@ -333,15 +333,15 @@ export default function AlunosEscolaPage() {
               <p className="text-gray-500 mt-4">Carregando alunos...</p>
             </div>
           ) : alunosFiltrados.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <School className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-500">Nenhum aluno encontrado</p>
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum aluno encontrado</p>
               <p className="text-sm text-gray-400 mt-2">
                 {busca || filtroTurma || filtroSerie || filtroAno ? 'Tente ajustar os filtros' : 'Não há alunos cadastrados'}
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[800px]">
                   <thead className="bg-indigo-50">
@@ -355,27 +355,27 @@ export default function AlunosEscolaPage() {
                       <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {alunosFiltrados.map((aluno) => (
-                      <tr key={aluno.id} className="hover:bg-gray-50">
+                      <tr key={aluno.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-700">
                         <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-700">{aluno.codigo || '-'}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{aluno.codigo || '-'}</span>
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{aluno.nome}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{aluno.nome}</div>
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
-                          <span className="text-sm text-gray-700">{aluno.turma_codigo || aluno.turma_nome || '-'}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{aluno.turma_codigo || aluno.turma_nome || '-'}</span>
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
-                          <span className="text-sm text-gray-700">{aluno.serie || '-'}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{aluno.serie || '-'}</span>
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
-                          <span className="text-sm text-gray-700">{aluno.ano_letivo || '-'}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{aluno.ano_letivo || '-'}</span>
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            aluno.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            aluno.ativo ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
                           }`}>
                             {aluno.ativo ? 'Ativo' : 'Inativo'}
                           </span>
@@ -384,7 +384,7 @@ export default function AlunosEscolaPage() {
                           <button
                             onClick={() => handleVisualizarHistorico(aluno)}
                             disabled={carregandoHistorico}
-                            className="text-indigo-600 hover:text-indigo-800 p-1 rounded hover:bg-indigo-50 disabled:opacity-50"
+                            className="text-indigo-600 hover:text-indigo-800 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-50"
                             title="Ver histórico"
                           >
                             <Eye className="w-5 h-5" />

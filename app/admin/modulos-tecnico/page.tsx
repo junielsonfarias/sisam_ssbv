@@ -121,7 +121,7 @@ export default function ModulosTecnicoPage() {
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gerenciar Módulos para Técnico</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Gerenciar Módulos para Técnico</h1>
               <p className="text-gray-600 mt-1 text-sm sm:text-base">Configure quais módulos estarão disponíveis para usuários técnicos</p>
             </div>
           </div>
@@ -145,18 +145,18 @@ export default function ModulosTecnicoPage() {
           )}
 
           {/* Lista de Módulos */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             {carregando ? (
               <div className="text-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-4" />
-                <p className="text-gray-500">Carregando módulos...</p>
+                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Carregando módulos...</p>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center">
                     <Settings className="w-5 h-5 mr-2 text-indigo-600" />
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Módulos Disponíveis</h2>
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">Módulos Disponíveis</h2>
                   </div>
                   <button
                     onClick={salvarModulos}
@@ -190,8 +190,8 @@ export default function ModulosTecnicoPage() {
                       <div className="flex items-center space-x-4 flex-1">
                         <GripVertical className="w-5 h-5 text-gray-400" />
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">{modulo.modulo_label}</h3>
-                          <p className="text-sm text-gray-500">Chave: {modulo.modulo_key}</p>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">{modulo.modulo_label}</h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Chave: {modulo.modulo_key}</p>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -201,8 +201,8 @@ export default function ModulosTecnicoPage() {
                           onChange={() => toggleModulo(modulo.modulo_key)}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        <span className="ml-3 text-sm font-medium text-gray-700">
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:border-slate-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
                           {modulo.habilitado ? 'Habilitado' : 'Desabilitado'}
                         </span>
                       </label>
@@ -213,7 +213,7 @@ export default function ModulosTecnicoPage() {
                 {modulos.length === 0 && (
                   <div className="text-center py-12">
                     <Settings className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum módulo encontrado</p>
+                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum módulo encontrado</p>
                   </div>
                 )}
               </div>

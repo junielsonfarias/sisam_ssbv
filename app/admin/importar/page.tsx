@@ -70,7 +70,7 @@ export default function ImportarPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-800 mb-8">Importar Dados</h1>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
                 Carregar Arquivo Excel
@@ -80,7 +80,7 @@ export default function ImportarPage() {
                 O arquivo deve seguir a estrutura padrão do sistema.
               </p>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-8 text-center">
                 <FileSpreadsheet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <input
                   id="arquivo"
@@ -97,7 +97,7 @@ export default function ImportarPage() {
                   Selecionar Arquivo
                 </label>
                 {arquivo && (
-                  <p className="mt-4 text-gray-700">
+                  <p className="mt-4 text-gray-700 dark:text-gray-300">
                     Arquivo selecionado: <strong>{arquivo.name}</strong>
                   </p>
                 )}
@@ -161,7 +161,7 @@ export default function ImportarPage() {
                 {resultado.todas_colunas && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <p className="font-semibold text-gray-800 mb-2">Todas as Colunas do Arquivo:</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                       {resultado.todas_colunas.join(', ')}
                     </p>
                   </div>

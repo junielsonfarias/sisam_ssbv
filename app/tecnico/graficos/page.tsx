@@ -236,15 +236,15 @@ export default function GraficosTecnicoPage() {
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Análise Gráfica</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Análise Gráfica</h1>
             <p className="text-gray-600 mt-1 text-sm sm:text-base">Visualize comparativos e estatísticas através de gráficos</p>
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-3 sm:p-4 md:p-6">
             <div className="flex items-center mb-3 sm:mb-4">
               <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" />
-              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">Filtros</h2>
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-white">Filtros</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4">
@@ -285,7 +285,7 @@ export default function GraficosTecnicoPage() {
                   type="text"
                   value={filtros.ano_letivo || ''}
                   onChange={(e) => handleFiltroChange('ano_letivo', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                   placeholder="Ex: 2025"
                 />
               </div>
@@ -438,11 +438,11 @@ export default function GraficosTecnicoPage() {
             <div className="space-y-4 sm:space-y-6">
               {/* Médias por Disciplina */}
               {dados.disciplinas && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Médias por Disciplina</h3>
-                    <span className="ml-auto text-xs sm:text-sm text-gray-600">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Médias por Disciplina</h3>
+                    <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                       {dados.disciplinas.totalAlunos} alunos
                     </span>
                   </div>
@@ -484,9 +484,9 @@ export default function GraficosTecnicoPage() {
                         return (
                           <div key={index} className={`p-3 rounded-lg ${faixa.bg}`}>
                             <p className="text-xs font-semibold text-gray-700 mb-1">{label}</p>
-                            <p className="text-lg font-bold text-gray-900">{media.toFixed(2)}</p>
-                            <p className="text-xs text-gray-600">Desvio: {desvio.toFixed(2)}</p>
-                            <p className="text-xs text-gray-600">Aprovação: {taxaAprov.toFixed(1)}%</p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">{media.toFixed(2)}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Desvio: {desvio.toFixed(2)}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Aprovação: {taxaAprov.toFixed(1)}%</p>
                             <p className={`text-xs font-semibold mt-1 ${faixa.cor}`}>{faixa.nome}</p>
                           </div>
                         )
@@ -498,10 +498,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Top Escolas */}
               {dados.escolas && dados.escolas.labels.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-green-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Escola</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Escola</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(500, Math.min(800, dados.escolas.labels.length * 50))}>
                     <BarChart 
@@ -535,10 +535,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Desempenho por Série */}
               {dados.series && dados.series.labels.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Série</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Série</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={prepararDadosBarras(dados.series.labels, dados.series.dados, 'Média')}>
@@ -555,10 +555,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Desempenho por Polo */}
               {dados.polos && dados.polos.labels.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-blue-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Polo</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Polo</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={prepararDadosBarras(dados.polos.labels, dados.polos.dados, 'Média')}>
@@ -582,10 +582,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Distribuição de Notas */}
               {dados.distribuicao && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-orange-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Distribuição de Notas</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Distribuição de Notas</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={prepararDadosBarras(dados.distribuicao.labels, dados.distribuicao.dados, 'Alunos')}>
@@ -602,10 +602,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Taxa de Presença */}
               {dados.presenca && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <PieChart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-pink-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Taxa de Presença</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Taxa de Presença</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <RechartsPie>
@@ -632,10 +632,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Comparativo Detalhado de Escolas */}
               {dados.comparativo_escolas && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-red-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Comparativo Detalhado (Top 5 e Bottom 5)</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Comparativo Detalhado (Top 5 e Bottom 5)</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={400}>
                     <BarChart data={prepararDadosComparativo()}>
@@ -663,10 +663,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Acertos e Erros */}
               {dados.acertos_erros && dados.acertos_erros.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
                       Acertos e Erros {filtros.disciplina ? `- ${filtros.disciplina === 'LP' ? 'Língua Portuguesa' : filtros.disciplina === 'CH' ? 'Ciências Humanas' : filtros.disciplina === 'MAT' ? 'Matemática' : 'Ciências da Natureza'}` : '(Geral)'}
                     </h3>
                   </div>
@@ -689,7 +689,7 @@ export default function GraficosTecnicoPage() {
                     </BarChart>
                   </ResponsiveContainer>
                   {dados.acertos_erros[0]?.total_alunos && (
-                    <div className="mt-4 text-sm text-gray-600">
+                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                       <p>Total de alunos analisados: {dados.acertos_erros.reduce((acc: number, item: any) => acc + (item.total_alunos || 0), 0)}</p>
                     </div>
                   )}
@@ -698,10 +698,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Taxa de Acerto por Questão */}
               {dados.questoes && dados.questoes.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
                       Taxa de Acerto por Questão (Top 20 Mais Difíceis)
                     </h3>
                   </div>
@@ -728,7 +728,7 @@ export default function GraficosTecnicoPage() {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                     <p>Total de questões analisadas: {dados.questoes.length}</p>
                     <p className="text-xs mt-1">Cores: Vermelho (&lt;30%), Laranja (30-50%), Verde (50-70%), Azul (&gt;70%)</p>
                   </div>
@@ -737,15 +737,15 @@ export default function GraficosTecnicoPage() {
 
               {/* Heatmap de Desempenho */}
               {dados.heatmap && dados.heatmap.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Heatmap de Desempenho (Escolas × Disciplinas)</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Heatmap de Desempenho (Escolas × Disciplinas)</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
                       <thead>
-                        <tr className="bg-gray-100 border-b-2 border-gray-300">
+                        <tr className="bg-gray-100 border-b-2 border-gray-300 dark:border-slate-600">
                           <th className="px-3 md:px-4 py-2.5 md:py-3 text-left font-bold text-gray-900 text-sm md:text-base uppercase">Escola</th>
                           <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">LP</th>
                           <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">CH</th>
@@ -763,8 +763,8 @@ export default function GraficosTecnicoPage() {
                             return 'bg-red-300'
                           }
                           return (
-                            <tr key={index} className="border-b hover:bg-gray-50">
-                              <td className="px-3 md:px-4 py-2.5 md:py-3 font-medium text-sm md:text-base text-gray-900">{item.escola}</td>
+                            <tr key={index} className="border-b hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-700">
+                              <td className="px-3 md:px-4 py-2.5 md:py-3 font-medium text-sm md:text-base text-gray-900 dark:text-white">{item.escola}</td>
                               <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.LP)} text-white font-bold text-sm md:text-base`}>{item.LP.toFixed(2)}</td>
                               <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.CH)} text-white font-bold text-sm md:text-base`}>{item.CH.toFixed(2)}</td>
                               <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.MAT)} text-white font-bold text-sm md:text-base`}>{item.MAT.toFixed(2)}</td>
@@ -781,10 +781,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Radar Chart */}
               {dados.radar && dados.radar.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Perfil de Desempenho (Radar Chart)</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Perfil de Desempenho (Radar Chart)</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={400}>
                     <RadarChart data={dados.radar.slice(0, 5)}>
@@ -804,10 +804,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Box Plot (simulado com barras) */}
               {dados.boxplot && dados.boxplot.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Distribuição Detalhada de Notas (Box Plot)</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Distribuição Detalhada de Notas (Box Plot)</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={400}>
                     <BarChart data={dados.boxplot}>
@@ -839,10 +839,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Correlação entre Disciplinas */}
               {dados.correlacao && dados.correlacao.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Correlação entre Disciplinas</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Correlação entre Disciplinas</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ResponsiveContainer width="100%" height={300}>
@@ -870,28 +870,28 @@ export default function GraficosTecnicoPage() {
 
               {/* Ranking Interativo */}
               {dados.ranking && dados.ranking.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Ranking de Desempenho</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Ranking de Desempenho</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                       <thead>
-                        <tr className="bg-gray-50">
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">Posição</th>
-                          <th className="px-4 py-2 text-left font-semibold text-gray-700">Nome</th>
-                          {dados.ranking[0]?.escola && <th className="px-4 py-2 text-left font-semibold text-gray-700">Escola</th>}
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">Alunos</th>
+                        <tr className="bg-gray-50 dark:bg-slate-700">
+                          <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">Posição</th>
+                          <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Nome</th>
+                          {dados.ranking[0]?.escola && <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Escola</th>}
+                          <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">Alunos</th>
                           {dados.ranking[0]?.media_lp !== undefined && (
                             <>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700">LP</th>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700">CH</th>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700">MAT</th>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700">CN</th>
+                              <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">LP</th>
+                              <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">CH</th>
+                              <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">MAT</th>
+                              <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">CN</th>
                             </>
                           )}
-                          <th className="px-4 py-2 text-center font-semibold text-gray-700">Média Geral</th>
+                          <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">Média Geral</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -911,7 +911,7 @@ export default function GraficosTecnicoPage() {
                                 <td className="px-4 py-2 text-center">{item.media_cn.toFixed(2)}</td>
                               </>
                             )}
-                            <td className="px-4 py-2 text-center font-bold text-indigo-600">{item.media_geral.toFixed(2)}</td>
+                            <td className="px-4 py-2 text-center font-bold text-indigo-600 dark:text-indigo-400">{item.media_geral.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -922,10 +922,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Taxa de Aprovação */}
               {dados.aprovacao && dados.aprovacao.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Taxa de Aprovação Estimada</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Taxa de Aprovação Estimada</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={400}>
                     <BarChart data={dados.aprovacao}>
@@ -947,7 +947,7 @@ export default function GraficosTecnicoPage() {
                       <Bar dataKey="taxa_8" name="≥ 8.0" fill="#8B5CF6" />
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                     <p>Legenda: Verde (≥6.0), Azul (≥7.0), Roxo (≥8.0)</p>
                   </div>
                 </div>
@@ -955,10 +955,10 @@ export default function GraficosTecnicoPage() {
 
               {/* Análise de Gaps */}
               {dados.gaps && dados.gaps.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Análise de Gaps (Desigualdade de Desempenho)</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Análise de Gaps (Desigualdade de Desempenho)</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={400}>
                     <BarChart data={dados.gaps}>
@@ -979,14 +979,14 @@ export default function GraficosTecnicoPage() {
                       <Bar dataKey="gap" name="Gap (Diferença)" fill="#F59E0B" />
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                     <p>Gap = Diferença entre melhor e pior média. Valores maiores indicam maior desigualdade.</p>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-md">
+            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50">
               <BarChart3 className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-base sm:text-lg font-medium">Selecione os filtros e clique em "Gerar Gráficos"</p>
               <p className="text-gray-400 text-xs sm:text-sm mt-2">Escolha o tipo de visualização desejado para começar</p>

@@ -51,10 +51,10 @@ const isAnosIniciais = (serie: string | undefined | null): boolean => {
 const getNivelColor = (nivel: string | undefined | null): string => {
   if (!nivel) return 'bg-gray-100 text-gray-700'
   const nivelLower = nivel.toLowerCase()
-  if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 text-green-800 border-green-300'
-  if (nivelLower.includes('adequado')) return 'bg-blue-100 text-blue-800 border-blue-300'
-  if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 text-yellow-800 border-yellow-300'
-  if (nivelLower.includes('insuficiente')) return 'bg-red-100 text-red-800 border-red-300'
+  if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300'
+  if (nivelLower.includes('adequado')) return 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300'
+  if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300'
+  if (nivelLower.includes('insuficiente')) return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
   return 'bg-gray-100 text-gray-700'
 }
 
@@ -625,12 +625,12 @@ export default function ResultadosPage() {
 
   const getPresencaColor = (presenca: string) => {
     if (presenca === 'P' || presenca === 'p') {
-      return 'bg-green-100 text-green-800'
+      return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
     }
     if (presenca === '-') {
       return 'bg-gray-100 text-gray-600'
     }
-    return 'bg-red-100 text-red-800'
+    return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
   }
 
   const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
@@ -755,17 +755,17 @@ export default function ResultadosPage() {
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Resultados Consolidados</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Resultados Consolidados</h1>
               <p className="text-gray-600 mt-1 text-sm sm:text-base">Visualize notas e médias dos alunos</p>
             </div>
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6" style={{ overflow: 'visible' }}>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6" style={{ overflow: 'visible' }}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
               <div className="flex items-center">
                 <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" />
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Filtros</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">Filtros</h2>
               </div>
               {temFiltrosAtivos && (
                 <button
@@ -906,7 +906,7 @@ export default function ResultadosPage() {
                     placeholder="Aluno, escola ou turma..."
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900 bg-white"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900 bg-white"
                   />
                 </div>
               </div>
@@ -980,7 +980,7 @@ export default function ResultadosPage() {
           {/* Médias por Área */}
           {(estatisticas.total > 0 || carregando) && (
             <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Língua Portuguesa</p>
@@ -1000,7 +1000,7 @@ export default function ResultadosPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Ciências Humanas</p>
@@ -1020,7 +1020,7 @@ export default function ResultadosPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Matemática</p>
@@ -1040,7 +1040,7 @@ export default function ResultadosPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Ciências da Natureza</p>
@@ -1062,7 +1062,7 @@ export default function ResultadosPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto -mx-3 sm:mx-0">
             {carregando ? (
               <div className="text-center py-12">
@@ -1076,8 +1076,8 @@ export default function ResultadosPage() {
                   {resultadosFiltrados.length === 0 ? (
                     <div className="text-center py-12">
                       <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                      <p className="text-base font-medium text-gray-500">Nenhum resultado encontrado</p>
-                      <p className="text-sm mt-1 text-gray-400">Importe os dados primeiro</p>
+                      <p className="text-base font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Nenhum resultado encontrado</p>
+                      <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Importe os dados primeiro</p>
                     </div>
                   ) : (
                     resultadosFiltrados.map((resultado, index) => {
@@ -1088,9 +1088,9 @@ export default function ResultadosPage() {
                     const notaCN = getNotaNumero(resultado.nota_cn)
 
                     return (
-                      <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <div key={resultado.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:shadow-slate-900/50">
                         {/* Cabeçalho do Card */}
-                        <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200">
+                        <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                           <div className="flex items-center gap-2 mr-2">
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-sm flex-shrink-0">
                               {index + 1}
@@ -1175,7 +1175,7 @@ export default function ResultadosPage() {
                         </div>
 
                         {/* Média e Ações */}
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
                           <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                             mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
                             mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
@@ -1209,7 +1209,7 @@ export default function ResultadosPage() {
                 {/* Visualização Tablet/Desktop - Tabela */}
                 <div className="hidden sm:block w-full">
                   <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
-                    <table className="w-full divide-y divide-gray-200 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
+                    <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
                       <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
                         <tr>
                           <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12">
@@ -1243,7 +1243,7 @@ export default function ResultadosPage() {
                           </th>
                         </tr>
                       </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {resultadosFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={6 + disciplinasExibir.length + 1} className="py-8 sm:py-12 text-center text-gray-500 px-4">
@@ -1261,9 +1261,9 @@ export default function ResultadosPage() {
                         const notaCN = getNotaNumero(resultado.nota_cn)
 
                         return (
-                          <tr key={resultado.id} className="hover:bg-indigo-50 transition-colors border-b border-gray-100">
+                          <tr key={resultado.id} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-gray-100">
                             <td className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2">
-                              <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
+                              <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
                                 {index + 1}
                               </span>
                             </td>
@@ -1313,7 +1313,7 @@ export default function ResultadosPage() {
                               </span>
                             </td>
                             <td className="hidden xl:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
-                              <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[9px] md:text-[10px] lg:text-xs font-medium">
+                              <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-[9px] md:text-[10px] lg:text-xs font-medium">
                                 {resultado.serie || '-'}
                               </span>
                             </td>
@@ -1376,7 +1376,7 @@ export default function ResultadosPage() {
                                   {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                 </div>
                                 {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                  <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600">
+                                  <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">
                                     Média
                                   </div>
                                 )}
@@ -1411,7 +1411,7 @@ export default function ResultadosPage() {
                   {!carregando && paginacao.totalPaginas > 1 && (
                     <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between">
                       <div className="flex-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
-                        <div className="text-sm text-gray-700">
+                        <div className="text-sm text-gray-700 dark:text-gray-300">
                           <span className="font-medium">Página {paginacao.pagina}</span> de {paginacao.totalPaginas}
                           {' • '}
                           <span className="font-medium">{paginacao.total}</span> alunos no total
@@ -1489,12 +1489,12 @@ export default function ResultadosPage() {
                     Mostrando <strong>{resultadosFiltrados.length}</strong> de <strong>{paginacao.total || estatisticas.total}</strong> resultados
                   </span>
                   {temFiltrosAtivos && (
-                    <span className="text-indigo-600">
+                    <span className="text-indigo-600 dark:text-indigo-400">
                       (Filtros aplicados)
                     </span>
                   )}
                 </div>
-                <div className="flex items-center space-x-2 text-xs text-indigo-600">
+                <div className="flex items-center space-x-2 text-xs text-indigo-600 dark:text-indigo-400">
                   <span className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
                     Bom desempenho (≥7.0)

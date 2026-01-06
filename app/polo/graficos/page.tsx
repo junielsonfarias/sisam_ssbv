@@ -127,16 +127,16 @@ export default function GraficosPoloPage() {
       <LayoutDashboard tipoUsuario="polo">
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Análise Gráfica</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Análise Gráfica</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">
               {poloNome && <span>Polo: {poloNome}</span>}
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-3 sm:p-4 md:p-6">
             <div className="flex items-center mb-3 sm:mb-4">
               <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" />
-              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">Filtros</h2>
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-white">Filtros</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4">
@@ -166,7 +166,7 @@ export default function GraficosPoloPage() {
                   type="text"
                   value={filtros.ano_letivo || ''}
                   onChange={(e) => handleFiltroChange('ano_letivo', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
                   placeholder="Ex: 2025"
                 />
               </div>
@@ -179,7 +179,7 @@ export default function GraficosPoloPage() {
                   type="text"
                   value={poloNome || 'Carregando...'}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
@@ -262,12 +262,12 @@ export default function GraficosPoloPage() {
             <div className="space-y-4 sm:space-y-6">
               {/* Médias por Disciplina */}
               {dados.disciplinas && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Médias por Disciplina</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Médias por Disciplina</h3>
                     {dados.disciplinas.totalAlunos && (
-                      <span className="ml-auto text-xs sm:text-sm text-gray-600">
+                      <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                         {dados.disciplinas.totalAlunos} alunos
                       </span>
                     )}
@@ -288,10 +288,10 @@ export default function GraficosPoloPage() {
 
               {/* Desempenho por Escola */}
               {dados.escolas && dados.escolas.labels && dados.escolas.labels.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-green-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Escola</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Escola</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(350, dados.escolas.labels.length * 40)}>
                     <BarChart data={prepararDadosBarras(dados.escolas.labels, dados.escolas.dados, 'Média')} layout="vertical">
@@ -309,10 +309,10 @@ export default function GraficosPoloPage() {
 
               {/* Desempenho por Série */}
               {dados.series && dados.series.labels && dados.series.labels.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Série</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Série</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={350}>
                     <LineChart data={prepararDadosBarras(dados.series.labels, dados.series.dados, 'Média')}>
@@ -329,10 +329,10 @@ export default function GraficosPoloPage() {
 
               {/* Distribuição de Notas */}
               {dados.distribuicao && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-orange-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Distribuição de Notas</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Distribuição de Notas</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={prepararDadosBarras(dados.distribuicao.labels, dados.distribuicao.dados, 'Alunos')}>
@@ -349,10 +349,10 @@ export default function GraficosPoloPage() {
 
               {/* Taxa de Presença */}
               {dados.presenca && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
                   <div className="flex items-center mb-4">
                     <PieChart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-pink-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Taxa de Presença</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Taxa de Presença</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <RechartsPie>
@@ -378,7 +378,7 @@ export default function GraficosPoloPage() {
               )}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-md">
+            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50">
               <BarChart3 className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-base sm:text-lg font-medium">Selecione os filtros e clique em "Gerar Gráficos"</p>
             </div>

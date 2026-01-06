@@ -120,10 +120,10 @@ export default function ImportacoesPage() {
 
   const getStatusBadge = (status: string) => {
     const classes = {
-      processando: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      concluido: 'bg-green-100 text-green-800 border-green-200',
-      erro: 'bg-red-100 text-red-800 border-red-200',
-      pausado: 'bg-blue-100 text-blue-800 border-blue-200',
+      processando: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-200',
+      concluido: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-200',
+      erro: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-200',
+      pausado: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200',
       cancelado: 'bg-gray-100 text-gray-800 border-gray-200',
     }
 
@@ -155,10 +155,10 @@ export default function ImportacoesPage() {
           </h1>
 
           {/* Filtros */}
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
             <div className="flex items-center mb-4">
               <Filter className="w-5 h-5 text-gray-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-800">Filtros</h2>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Filtros</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -173,7 +173,7 @@ export default function ImportacoesPage() {
                     setFiltros({ ...filtros, ano_letivo: e.target.value })
                     setPaginacao({ ...paginacao, pagina: 1 })
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Ex: 2024"
                 />
               </div>
@@ -188,7 +188,7 @@ export default function ImportacoesPage() {
                     setFiltros({ ...filtros, status: e.target.value })
                     setPaginacao({ ...paginacao, pagina: 1 })
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Todos</option>
                   <option value="processando">Processando</option>
@@ -228,21 +228,21 @@ export default function ImportacoesPage() {
           )}
 
           {carregando ? (
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-8 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Carregando histórico...</p>
+              <p className="mt-4 text-gray-600 dark:text-gray-400 dark:text-gray-500">Carregando histórico...</p>
             </div>
           ) : importacoes.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-8 text-center">
               <Database className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Nenhuma importação encontrada</p>
+              <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Nenhuma importação encontrada</p>
             </div>
           ) : (
             <>
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                    <thead className="bg-gray-50 dark:bg-slate-700">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Arquivo / Ano
@@ -264,9 +264,9 @@ export default function ImportacoesPage() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-gray-200 dark:divide-slate-700">
                       {importacoes.map((imp) => (
-                        <tr key={imp.id} className="hover:bg-gray-50">
+                        <tr key={imp.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-700">
                           <td className="px-4 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <FileText className="w-5 h-5 text-gray-400 mr-2" />
@@ -275,7 +275,7 @@ export default function ImportacoesPage() {
                                   {imp.nome_arquivo}
                                 </div>
                                 {imp.ano_letivo && (
-                                  <div className="text-xs text-gray-500">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                                     Ano: {imp.ano_letivo}
                                   </div>
                                 )}
@@ -286,7 +286,7 @@ export default function ImportacoesPage() {
                             {getStatusBadge(imp.status)}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-gray-900 dark:text-white">
                               {imp.linhas_processadas} / {imp.total_linhas}
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
@@ -307,35 +307,35 @@ export default function ImportacoesPage() {
                             <div className="text-xs space-y-1">
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <span className="text-gray-500">Polos:</span>{' '}
+                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Polos:</span>{' '}
                                   <span className="font-medium">{imp.polos_criados + imp.polos_existentes}</span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">Escolas:</span>{' '}
+                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Escolas:</span>{' '}
                                   <span className="font-medium">{imp.escolas_criadas + imp.escolas_existentes}</span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">Turmas:</span>{' '}
+                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Turmas:</span>{' '}
                                   <span className="font-medium">{imp.turmas_criadas + imp.turmas_existentes}</span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">Alunos:</span>{' '}
+                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Alunos:</span>{' '}
                                   <span className="font-medium">{imp.alunos_criados + imp.alunos_existentes}</span>
                                 </div>
                               </div>
-                              <div className="pt-1 border-t border-gray-200">
-                                <span className="text-gray-500">Resultados:</span>{' '}
+                              <div className="pt-1 border-t border-gray-200 dark:border-slate-700">
+                                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Resultados:</span>{' '}
                                 <span className="text-green-600 font-medium">{imp.resultados_novos}</span> novos
                                 {imp.resultados_duplicados > 0 && (
                                   <>
                                     {' / '}
-                                    <span className="text-gray-500">{imp.resultados_duplicados}</span> duplicados
+                                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">{imp.resultados_duplicados}</span> duplicados
                                   </>
                                 )}
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                             <div className="flex items-center">
                               <Calendar className="w-4 h-4 mr-1" />
                               <div>
@@ -348,7 +348,7 @@ export default function ImportacoesPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                             <div>{imp.usuario_nome}</div>
                             <div className="text-xs">{imp.usuario_email}</div>
                           </td>
@@ -362,7 +362,7 @@ export default function ImportacoesPage() {
               {/* Paginação */}
               {paginacao.total_paginas > 1 && (
                 <div className="mt-4 flex items-center justify-between">
-                  <div className="text-sm text-gray-700">
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
                     Mostrando {((paginacao.pagina - 1) * paginacao.limite) + 1} a{' '}
                     {Math.min(paginacao.pagina * paginacao.limite, paginacao.total)} de {paginacao.total} importações
                   </div>
@@ -370,14 +370,14 @@ export default function ImportacoesPage() {
                     <button
                       onClick={() => setPaginacao({ ...paginacao, pagina: paginacao.pagina - 1 })}
                       disabled={paginacao.pagina === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Anterior
                     </button>
                     <button
                       onClick={() => setPaginacao({ ...paginacao, pagina: paginacao.pagina + 1 })}
                       disabled={paginacao.pagina >= paginacao.total_paginas}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Próxima
                     </button>
