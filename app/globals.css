@@ -352,6 +352,79 @@ body {
   .bg-status-info { background-color: var(--status-info-bg) !important; }
 }
 
+/* === ESTILOS PARA GRÁFICOS (Recharts) === */
+
+/* Container de gráficos */
+.recharts-wrapper {
+  font-family: inherit;
+}
+
+/* Grid do gráfico */
+.recharts-cartesian-grid line {
+  stroke: var(--chart-grid);
+}
+
+/* Eixos */
+.recharts-cartesian-axis-tick text,
+.recharts-cartesian-axis-tick-value {
+  fill: var(--chart-text);
+}
+
+.recharts-cartesian-axis-line {
+  stroke: var(--chart-grid);
+}
+
+/* Labels dos eixos */
+.recharts-label {
+  fill: var(--text-secondary);
+}
+
+/* Legendas */
+.recharts-legend-item-text {
+  color: var(--text-primary) !important;
+}
+
+/* Tooltip customizado via CSS */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--chart-tooltip-bg) !important;
+  border: 1px solid var(--chart-tooltip-border) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.recharts-tooltip-label {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+.recharts-tooltip-item {
+  color: var(--text-secondary) !important;
+}
+
+/* Polar (Radar charts) */
+.recharts-polar-grid-angle line,
+.recharts-polar-grid-concentric circle,
+.recharts-polar-grid-concentric polygon {
+  stroke: var(--chart-grid);
+}
+
+.recharts-polar-angle-axis-tick-value {
+  fill: var(--chart-text);
+}
+
+.recharts-polar-radius-axis-tick-value {
+  fill: var(--chart-text);
+}
+
+/* Reference lines */
+.recharts-reference-line line {
+  stroke: var(--status-success);
+}
+
+.recharts-reference-line text {
+  fill: var(--text-primary);
+}
+
 /* Animações para PWA */
 @keyframes slide-up {
   from {

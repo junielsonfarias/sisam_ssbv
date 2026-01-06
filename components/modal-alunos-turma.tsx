@@ -86,17 +86,17 @@ export default function ModalAlunosTurma({
 
   const getNotaColor = (nota: number | string | null) => {
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
-    if (num === null || isNaN(num)) return 'text-gray-500'
-    if (num >= 7) return 'text-green-600 font-semibold'
-    if (num >= 5) return 'text-yellow-600 font-semibold'
-    return 'text-red-600 font-semibold'
+    if (num === null || isNaN(num)) return 'text-gray-500 dark:text-gray-400'
+    if (num >= 7) return 'text-green-600 dark:text-green-400 font-semibold'
+    if (num >= 5) return 'text-yellow-600 dark:text-yellow-400 font-semibold'
+    return 'text-red-600 dark:text-red-400 font-semibold'
   }
 
   const getPresencaColor = (presenca: string) => {
     if (presenca === 'P' || presenca === 'p') {
-      return 'bg-green-100 text-green-800'
+      return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
     }
-    return 'bg-red-100 text-red-800'
+    return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
   }
 
   if (!isOpen) return null
@@ -113,14 +113,14 @@ export default function ModalAlunosTurma({
       <div className="flex items-center justify-center min-h-screen px-3 sm:px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {/* Overlay */}
         <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          className="fixed inset-0 transition-opacity bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-80"
           onClick={onClose}
         ></div>
 
         {/* Modal */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-7xl w-full mx-3 sm:mx-0">
+        <div className="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl dark:shadow-slate-900/50 transform transition-all sm:my-8 sm:align-middle sm:max-w-7xl w-full mx-3 sm:mx-0">
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
             <div className="flex-1 min-w-0 pr-2">
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Alunos da Turma</h3>
               <p className="text-indigo-100 text-xs sm:text-sm mt-1 truncate">
@@ -137,67 +137,67 @@ export default function ModalAlunosTurma({
           </div>
 
           {/* Content */}
-          <div className="bg-white px-3 sm:px-4 md:px-6 py-3 sm:py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 px-3 sm:px-4 md:px-6 py-3 sm:py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
             {carregando ? (
               <div className="text-center py-8 sm:py-12">
-                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4 text-sm sm:text-base">Carregando alunos...</p>
+                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
+                <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-base">Carregando alunos...</p>
               </div>
             ) : erro ? (
               <div className="text-center py-8 sm:py-12">
-                <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500 mx-auto mb-3 sm:mb-4" />
-                <p className="text-red-600 font-medium text-sm sm:text-base">{erro}</p>
+                <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500 dark:text-red-400 mx-auto mb-3 sm:mb-4" />
+                <p className="text-red-600 dark:text-red-400 font-medium text-sm sm:text-base">{erro}</p>
               </div>
             ) : alunos.length === 0 ? (
               <div className="text-center py-8 sm:py-12">
-                <Users className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
-                <p className="text-gray-500 font-medium text-sm sm:text-base">Nenhum aluno encontrado nesta turma</p>
+                <Users className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm sm:text-base">Nenhum aluno encontrado nesta turma</p>
               </div>
             ) : (
               <div className="space-y-3 sm:space-y-4">
                 {/* Estatísticas da Turma */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
-                  <div className="bg-indigo-50 rounded-lg p-3 sm:p-4 border border-indigo-200">
-                    <p className="text-xs sm:text-sm text-indigo-600 font-medium">Total de Alunos</p>
-                    <p className="text-xl sm:text-2xl font-bold text-indigo-900 mt-1">{alunos.length}</p>
+                  <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-3 sm:p-4 border border-indigo-200 dark:border-indigo-800">
+                    <p className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 font-medium">Total de Alunos</p>
+                    <p className="text-xl sm:text-2xl font-bold text-indigo-900 dark:text-indigo-100 mt-1">{alunos.length}</p>
                   </div>
-                  <div className="bg-green-50 rounded-lg p-3 sm:p-4 border border-green-200">
-                    <p className="text-xs sm:text-sm text-green-600 font-medium">Presentes</p>
-                    <p className="text-xl sm:text-2xl font-bold text-green-900 mt-1">{alunosPresentes}</p>
-                    <p className="text-xs text-green-600 mt-1">{taxaPresenca.toFixed(1)}%</p>
+                  <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 sm:p-4 border border-green-200 dark:border-green-800">
+                    <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">Presentes</p>
+                    <p className="text-xl sm:text-2xl font-bold text-green-900 dark:text-green-100 mt-1">{alunosPresentes}</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">{taxaPresenca.toFixed(1)}%</p>
                   </div>
-                  <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-200">
-                    <p className="text-xs sm:text-sm text-blue-600 font-medium">Média Geral</p>
-                    <p className="text-xl sm:text-2xl font-bold text-blue-900 mt-1">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 sm:p-4 border border-blue-200 dark:border-blue-800">
+                    <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">Média Geral</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
                       {mediaGeral.toFixed(1)}
                     </p>
                   </div>
-                  <div className="bg-purple-50 rounded-lg p-3 sm:p-4 border border-purple-200">
-                    <p className="text-xs sm:text-sm text-purple-600 font-medium">Faltas</p>
-                    <p className="text-xl sm:text-2xl font-bold text-purple-900 mt-1">
+                  <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3 sm:p-4 border border-purple-200 dark:border-purple-800">
+                    <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 font-medium">Faltas</p>
+                    <p className="text-xl sm:text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
                       {alunos.length - alunosPresentes}
                     </p>
-                    <p className="text-xs text-purple-600 mt-1">
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
                       {((alunos.length - alunosPresentes) / alunos.length * 100).toFixed(1)}%
                     </p>
                   </div>
                 </div>
 
                 {/* Tabela de Alunos */}
-                <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg">
                   <table className="w-full min-w-[700px]">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-slate-700">
                       <tr>
-                        <th className="text-left py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[150px]">Aluno</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px]">Presença</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">LP</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">CH</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">MAT</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">CN</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px]">Média Geral</th>
+                        <th className="text-left py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[150px]">Aluno</th>
+                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px]">Presença</th>
+                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">LP</th>
+                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">CH</th>
+                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">MAT</th>
+                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">CN</th>
+                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px]">Média Geral</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                       {alunos
                         .sort((a, b) => {
                           const mediaA = typeof a.media_aluno === 'string' ? parseFloat(a.media_aluno) : a.media_aluno || 0
@@ -205,15 +205,15 @@ export default function ModalAlunosTurma({
                           return mediaB - mediaA
                         })
                         .map((aluno) => (
-                          <tr key={aluno.aluno_id} className="hover:bg-gray-50">
+                          <tr key={aluno.aluno_id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                             <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4">
                               <div className="flex items-center">
-                                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-2 sm:mr-3">
-                                  <span className="text-indigo-600 font-semibold text-xs sm:text-sm">
+                                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center mr-2 sm:mr-3">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-semibold text-xs sm:text-sm">
                                     {aluno.aluno_nome.charAt(0).toUpperCase()}
                                   </span>
                                 </div>
-                                <span className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{aluno.aluno_nome}</span>
+                                <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm truncate">{aluno.aluno_nome}</span>
                               </div>
                             </td>
                             <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
@@ -227,7 +227,7 @@ export default function ModalAlunosTurma({
                             </td>
                             <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs text-gray-500">{aluno.total_acertos_lp}/20</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.total_acertos_lp}/20</span>
                                 <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_lp)}`}>
                                   {formatarNumero(aluno.nota_lp)}
                                 </span>
@@ -235,7 +235,7 @@ export default function ModalAlunosTurma({
                             </td>
                             <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs text-gray-500">{aluno.total_acertos_ch}/10</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.total_acertos_ch}/10</span>
                                 <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_ch)}`}>
                                   {formatarNumero(aluno.nota_ch)}
                                 </span>
@@ -243,7 +243,7 @@ export default function ModalAlunosTurma({
                             </td>
                             <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs text-gray-500">{aluno.total_acertos_mat}/20</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.total_acertos_mat}/20</span>
                                 <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_mat)}`}>
                                   {formatarNumero(aluno.nota_mat)}
                                 </span>
@@ -251,7 +251,7 @@ export default function ModalAlunosTurma({
                             </td>
                             <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs text-gray-500">{aluno.total_acertos_cn}/10</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.total_acertos_cn}/10</span>
                                 <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_cn)}`}>
                                   {formatarNumero(aluno.nota_cn)}
                                 </span>
@@ -259,9 +259,9 @@ export default function ModalAlunosTurma({
                             </td>
                             <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
                               <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${
-                                getNotaColor(aluno.media_aluno).includes('green') ? 'bg-green-50' : 
-                                getNotaColor(aluno.media_aluno).includes('yellow') ? 'bg-yellow-50' : 
-                                'bg-red-50'
+                                getNotaColor(aluno.media_aluno).includes('green') ? 'bg-green-50 dark:bg-green-900/30' :
+                                getNotaColor(aluno.media_aluno).includes('yellow') ? 'bg-yellow-50 dark:bg-yellow-900/30' :
+                                'bg-red-50 dark:bg-red-900/30'
                               }`}>
                                 <span className={`text-sm sm:text-base md:text-lg font-extrabold ${getNotaColor(aluno.media_aluno)}`}>
                                   {formatarNumero(aluno.media_aluno)}
@@ -278,7 +278,7 @@ export default function ModalAlunosTurma({
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex justify-end">
+          <div className="bg-gray-50 dark:bg-slate-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex justify-end">
             <button
               onClick={onClose}
               className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm sm:text-base"

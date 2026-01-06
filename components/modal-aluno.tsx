@@ -38,37 +38,37 @@ export default function ModalAluno({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-3 sm:px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full mx-3 sm:mx-0">
-          <div className="bg-white px-4 sm:px-6 py-4">
+        <div className="fixed inset-0 transition-opacity bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-80" onClick={onClose}></div>
+        <div className="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl dark:shadow-slate-900/50 transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full mx-3 sm:mx-0">
+          <div className="bg-white dark:bg-slate-800 px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {alunoEditando ? 'Editar Aluno' : 'Novo Aluno'}
               </h3>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-500 p-1">
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 p-1">
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
             <div className="space-y-3 sm:space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Código</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Código</label>
                 <input
                   type="text"
                   value={formData.codigo}
                   onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400"
                   placeholder="Código do aluno (opcional)"
                 />
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Nome *</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Nome *</label>
                 <input
                   type="text"
                   value={formData.nome}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400"
                   placeholder="Nome completo do aluno"
                   required
                 />
@@ -76,7 +76,7 @@ export default function ModalAluno({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Polo *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Polo *</label>
                   <select
                     value={formData.polo_id}
                     onChange={(e) => {
@@ -96,7 +96,7 @@ export default function ModalAluno({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Escola *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Escola *</label>
                   <select
                     value={formData.escola_id}
                     onChange={(e) => {
@@ -119,7 +119,7 @@ export default function ModalAluno({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Turma</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Turma</label>
                   <select
                     value={formData.turma_id}
                     onChange={(e) => setFormData({ ...formData, turma_id: e.target.value })}
@@ -136,7 +136,7 @@ export default function ModalAluno({
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Série</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Série</label>
                   <select
                     value={formData.serie}
                     onChange={(e) => setFormData({ ...formData, serie: e.target.value })}
@@ -153,12 +153,12 @@ export default function ModalAluno({
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Ano Letivo</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Ano Letivo</label>
                 <input
                   type="text"
                   value={formData.ano_letivo}
                   onChange={(e) => setFormData({ ...formData, ano_letivo: e.target.value })}
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400"
                   placeholder="Ex: 2025"
                 />
               </div>
@@ -166,14 +166,14 @@ export default function ModalAluno({
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4">
                 <button
                   onClick={onClose}
-                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm sm:text-base"
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 text-sm sm:text-base transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={onSalvar}
                   disabled={salvando}
-                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base transition-colors"
                 >
                   {salvando ? 'Salvando...' : 'Salvar'}
                 </button>

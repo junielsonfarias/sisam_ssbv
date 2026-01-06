@@ -217,25 +217,25 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const menuItems = getMenuItems()
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col overflow-x-hidden transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b flex-shrink-0">
+      <header className="bg-white dark:bg-slate-800 shadow-sm dark:shadow-slate-700/50 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 transition-colors duration-300">
         <div className="px-2 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center min-w-0">
               <button
                 onClick={() => setMenuAberto(!menuAberto)}
-                className="lg:hidden p-1.5 sm:p-2 rounded-md text-gray-600 hover:bg-gray-100 flex-shrink-0"
+                className="lg:hidden p-1.5 sm:p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex-shrink-0 transition-colors"
                 aria-label="Menu"
               >
                 {menuAberto ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
               </button>
-              <h1 className="ml-2 lg:ml-0 text-lg sm:text-xl md:text-2xl font-bold text-gray-800 truncate">SISAM</h1>
+              <h1 className="ml-2 lg:ml-0 text-lg sm:text-xl md:text-2xl font-bold text-gray-800 dark:text-white truncate">SISAM</h1>
             </div>
             <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 min-w-0">
               {/* Indicador de modo offline */}
               {modoOffline && (
-                <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium">
                   <WifiOff className="w-3 h-3" />
                   <span className="hidden sm:inline">Offline</span>
                 </span>
@@ -249,7 +249,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
               <Link
                 href="/perfil"
-                className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
                 title="Meu Perfil"
               >
                 {usuario?.foto_url ? (
@@ -280,7 +280,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         <aside
           className={`
             fixed lg:static inset-y-0 left-0 z-50
-            w-52 sm:w-56 md:w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+            w-52 sm:w-56 md:w-64 bg-white dark:bg-slate-800 shadow-lg dark:shadow-slate-900/50 border-r border-gray-200 dark:border-slate-700 transform transition-all duration-300 ease-in-out
             ${menuAberto ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             flex-shrink-0 overflow-y-auto
           `}
@@ -293,7 +293,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="flex items-center px-2 sm:px-3 py-2 sm:py-2.5 text-sm text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                      className="flex items-center px-2 sm:px-3 py-2 sm:py-2.5 text-sm text-gray-700 dark:text-gray-200 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                       onClick={() => setMenuAberto(false)}
                     >
                       <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0" />
@@ -309,13 +309,13 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         {/* Overlay para mobile e tablet */}
         {menuAberto && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 z-40 lg:hidden"
             onClick={() => setMenuAberto(false)}
           />
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden overflow-y-auto">
+        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
           <div className="max-w-full">
             {children}
           </div>

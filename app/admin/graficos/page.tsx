@@ -275,20 +275,20 @@ export default function GraficosPage() {
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Análise Gráfica</h1>
-            <p className="text-gray-600 mt-1 text-sm sm:text-base">Visualize comparativos e estatísticas através de gráficos</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Análise Gráfica</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">Visualize comparativos e estatísticas através de gráficos</p>
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-3 sm:p-4 md:p-6 border border-gray-200 dark:border-slate-700">
             <div className="flex items-center mb-3 sm:mb-4">
-              <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600" />
-              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">Filtros</h2>
+              <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600 dark:text-indigo-400" />
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-white">Filtros</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Tipo de Visualização
                 </label>
                 <select
@@ -317,21 +317,21 @@ export default function GraficosPage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Ano Letivo
                 </label>
                 <input
                   type="text"
                   value={filtros.ano_letivo || ''}
                   onChange={(e) => handleFiltroChange('ano_letivo', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400"
                   placeholder="Ex: 2025"
                 />
               </div>
 
               {(tipoUsuario === 'admin' || tipoUsuario === 'administrador' || tipoUsuario === 'tecnico') && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Polo
                   </label>
                   <select
@@ -351,7 +351,7 @@ export default function GraficosPage() {
 
               {(tipoUsuario === 'admin' || tipoUsuario === 'administrador' || tipoUsuario === 'tecnico' || tipoUsuario === 'polo') && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Escola
                   </label>
                   <select
@@ -372,7 +372,7 @@ export default function GraficosPage() {
               )}
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Série
                 </label>
                 <select
@@ -390,7 +390,7 @@ export default function GraficosPage() {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Disciplina
                 </label>
                 <select
@@ -408,7 +408,7 @@ export default function GraficosPage() {
 
               {filtros.escola_id && filtros.escola_id !== '' && filtros.escola_id !== 'undefined' && filtros.escola_id.toLowerCase() !== 'todas' && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Turma
                   </label>
                   <select
@@ -429,7 +429,7 @@ export default function GraficosPage() {
                     )}
                   </select>
                   {turmas.length === 0 && filtros.escola_id && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Nenhuma turma encontrada para esta escola{filtros.ano_letivo ? ` no ano ${filtros.ano_letivo}` : ''}{filtros.serie ? ` e série ${filtros.serie}` : ''}
                     </p>
                   )}
@@ -461,7 +461,7 @@ export default function GraficosPage() {
 
           {/* Mensagem de Erro */}
           {erro && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center">
               <XCircle className="w-5 h-5 mr-2" />
               {erro}
             </div>
@@ -470,18 +470,18 @@ export default function GraficosPage() {
           {/* Gráficos */}
           {carregando ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="text-gray-500 mt-4 text-sm sm:text-base">Gerando gráficos...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
+              <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-base">Gerando gráficos...</p>
             </div>
           ) : dados ? (
             <div className="space-y-4 sm:space-y-6">
               {/* Médias por Disciplina */}
               {dados.disciplinas && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Médias por Disciplina</h3>
-                    <span className="ml-auto text-xs sm:text-sm text-gray-600">
+                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Médias por Disciplina</h3>
+                    <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {dados.disciplinas.totalAlunos} alunos
                     </span>
                   </div>
@@ -544,10 +544,10 @@ export default function GraficosPage() {
 
               {/* Top Escolas */}
               {dados.escolas && dados.escolas.labels.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-green-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Escola</h3>
+                    <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-green-600 dark:text-green-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Escola</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(500, Math.min(800, dados.escolas.labels.length * 50))}>
                     <BarChart 
@@ -581,10 +581,10 @@ export default function GraficosPage() {
 
               {/* Desempenho por Série */}
               {dados.series && dados.series.labels.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Série</h3>
+                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600 dark:text-purple-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Série</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={350}>
                     <LineChart data={prepararDadosBarras(dados.series.labels, dados.series.dados, 'Média')}>
@@ -611,10 +611,10 @@ export default function GraficosPage() {
 
               {/* Desempenho por Polo */}
               {dados.polos && dados.polos.labels.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-blue-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Desempenho por Polo</h3>
+                    <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-blue-600 dark:text-blue-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Polo</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={prepararDadosBarras(dados.polos.labels, dados.polos.dados, 'Média')}>
@@ -645,10 +645,10 @@ export default function GraficosPage() {
 
               {/* Distribuição de Notas */}
               {dados.distribuicao && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-orange-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Distribuição de Notas</h3>
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-orange-600 dark:text-orange-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Distribuição de Notas</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={prepararDadosBarras(dados.distribuicao.labels, dados.distribuicao.dados, 'Alunos')}>
@@ -665,10 +665,10 @@ export default function GraficosPage() {
 
               {/* Taxa de Presença */}
               {dados.presenca && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <PieChart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-pink-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Taxa de Presença</h3>
+                    <PieChart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-pink-600 dark:text-pink-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Taxa de Presença</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <RechartsPie>
@@ -695,10 +695,10 @@ export default function GraficosPage() {
 
               {/* Comparativo Detalhado de Escolas */}
               {dados.comparativo_escolas && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-red-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                    <School className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-red-600 dark:text-red-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
                       Comparativo Detalhado{dados.comparativo_escolas.escolas.length <= 10 ? ' (Top 5 e Bottom 5)' : ''}
                     </h3>
                   </div>
@@ -735,10 +735,10 @@ export default function GraficosPage() {
 
               {/* Acertos e Erros */}
               {dados.acertos_erros && dados.acertos_erros.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
                       Acertos e Erros {filtros.disciplina ? `- ${filtros.disciplina === 'LP' ? 'Língua Portuguesa' : filtros.disciplina === 'CH' ? 'Ciências Humanas' : filtros.disciplina === 'MAT' ? 'Matemática' : 'Ciências da Natureza'}` : '(Geral)'}
                     </h3>
                   </div>
@@ -767,7 +767,7 @@ export default function GraficosPage() {
                     </BarChart>
                   </ResponsiveContainer>
                   {dados.acertos_erros[0]?.total_alunos && (
-                    <div className="mt-4 text-sm text-gray-600">
+                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                       <p>Total de alunos analisados: {dados.acertos_erros.reduce((acc: number, item: any) => acc + (item.total_alunos || 0), 0)}</p>
                     </div>
                   )}
@@ -776,10 +776,10 @@ export default function GraficosPage() {
 
               {/* Taxa de Acerto por Questão */}
               {dados.questoes && dados.questoes.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
                       Taxa de Acerto por Questão (Top 20 Mais Difíceis)
                     </h3>
                   </div>
@@ -806,7 +806,7 @@ export default function GraficosPage() {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     <p>Total de questões analisadas: {dados.questoes.length}</p>
                     <p className="text-xs mt-1">Cores: Vermelho (&lt;30%), Laranja (30-50%), Verde (50-70%), Azul (&gt;70%)</p>
                   </div>
@@ -815,34 +815,34 @@ export default function GraficosPage() {
 
               {/* Heatmap de Desempenho */}
               {dados.heatmap && dados.heatmap.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Heatmap de Desempenho (Escolas × Disciplinas)</h3>
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Heatmap de Desempenho (Escolas × Disciplinas)</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
                       <thead>
-                        <tr className="bg-gray-100 border-b-2 border-gray-300">
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-left font-bold text-gray-900 text-sm md:text-base uppercase">Escola</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">LP</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">CH</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">MAT</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-sm md:text-base uppercase">CN</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 text-base md:text-lg uppercase">Geral</th>
+                        <tr className="bg-gray-100 dark:bg-slate-700 border-b-2 border-gray-300 dark:border-slate-600">
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-left font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">Escola</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">LP</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">CH</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">MAT</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">CN</th>
+                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-base md:text-lg uppercase">Geral</th>
                         </tr>
                       </thead>
                       <tbody>
                         {dados.heatmap.map((item: any, index: number) => {
                           const getColor = (value: number) => {
                             if (value >= 8) return 'bg-green-500'
-                            if (value >= 6) return 'bg-green-300'
-                            if (value >= 4) return 'bg-yellow-300'
-                            return 'bg-red-300'
+                            if (value >= 6) return 'bg-green-300 dark:bg-green-600'
+                            if (value >= 4) return 'bg-yellow-300 dark:bg-yellow-600'
+                            return 'bg-red-300 dark:bg-red-600'
                           }
                           return (
-                            <tr key={index} className="border-b hover:bg-gray-50">
-                              <td className="px-3 md:px-4 py-2.5 md:py-3 font-medium text-sm md:text-base text-gray-900">{item.escola}</td>
+                            <tr key={index} className="border-b dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700">
+                              <td className="px-3 md:px-4 py-2.5 md:py-3 font-medium text-sm md:text-base text-gray-900 dark:text-white">{item.escola}</td>
                               <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.LP)} text-white font-bold text-sm md:text-base`}>{item.LP.toFixed(2)}</td>
                               <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.CH)} text-white font-bold text-sm md:text-base`}>{item.CH.toFixed(2)}</td>
                               <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.MAT)} text-white font-bold text-sm md:text-base`}>{item.MAT.toFixed(2)}</td>
@@ -859,10 +859,10 @@ export default function GraficosPage() {
 
               {/* Radar Chart */}
               {dados.radar && dados.radar.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Perfil de Desempenho (Radar Chart)</h3>
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Perfil de Desempenho (Radar Chart)</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(400, dados.radar.length * 80)}>
                     <RadarChart data={dados.radar}>
@@ -885,10 +885,10 @@ export default function GraficosPage() {
 
               {/* Box Plot (simulado com barras) */}
               {dados.boxplot && dados.boxplot.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Distribuição Detalhada de Notas (Box Plot)</h3>
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Distribuição Detalhada de Notas (Box Plot)</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(400, dados.boxplot.length * 50)}>
                     <BarChart data={dados.boxplot}>
@@ -932,10 +932,10 @@ export default function GraficosPage() {
 
               {/* Correlação entre Disciplinas */}
               {dados.correlacao && dados.correlacao.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Correlação entre Disciplinas</h3>
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Correlação entre Disciplinas</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* LP x MAT */}
@@ -1023,54 +1023,54 @@ export default function GraficosPage() {
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Cada ponto representa um aluno. Pontos próximos à diagonal indicam desempenho similar entre as disciplinas.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Cada ponto representa um aluno. Pontos próximos à diagonal indicam desempenho similar entre as disciplinas.</p>
                 </div>
               )}
 
               {/* Ranking Interativo */}
               {dados.ranking && dados.ranking.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Ranking de Desempenho</h3>
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Ranking de Desempenho</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
                       <thead>
-                        <tr className="bg-gray-100 border-b-2 border-gray-300">
-                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">Posição</th>
-                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-gray-900 text-sm sm:text-base">Nome</th>
-                          {dados.ranking[0]?.escola && <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-gray-900 text-sm sm:text-base">Escola</th>}
-                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">Alunos</th>
+                        <tr className="bg-gray-100 dark:bg-slate-700 border-b-2 border-gray-300 dark:border-slate-600">
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">Posição</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-gray-900 dark:text-white text-sm sm:text-base">Nome</th>
+                          {dados.ranking[0]?.escola && <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-gray-900 dark:text-white text-sm sm:text-base">Escola</th>}
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">Alunos</th>
                           {dados.ranking[0]?.media_lp !== undefined && (
                             <>
-                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">LP</th>
-                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">CH</th>
-                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">MAT</th>
-                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-sm sm:text-base">CN</th>
+                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">LP</th>
+                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">CH</th>
+                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">MAT</th>
+                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">CN</th>
                             </>
                           )}
-                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 text-base sm:text-lg">Média Geral</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-base sm:text-lg">Média Geral</th>
                         </tr>
                       </thead>
                       <tbody>
                         {dados.ranking.map((item: any, index: number) => (
-                          <tr key={index} className={`border-b hover:bg-gray-50 ${index < 3 ? 'bg-yellow-50' : ''}`}>
-                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-base sm:text-lg">
+                          <tr key={index} className={`border-b dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 ${index < 3 ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}`}>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-base sm:text-lg dark:text-white">
                               {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : item.posicao}
                             </td>
-                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-sm sm:text-base text-gray-900">{item.nome}</td>
-                            {item.escola && <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-gray-700">{item.escola}</td>}
-                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.total_alunos}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-sm sm:text-base text-gray-900 dark:text-white">{item.nome}</td>
+                            {item.escola && <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.escola}</td>}
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.total_alunos}</td>
                             {item.media_lp !== undefined && (
                               <>
-                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.media_lp.toFixed(2)}</td>
-                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.media_ch.toFixed(2)}</td>
-                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.media_mat.toFixed(2)}</td>
-                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700">{item.media_cn.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_lp.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_ch.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_mat.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_cn.toFixed(2)}</td>
                               </>
                             )}
-                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-base sm:text-lg text-indigo-600">{item.media_geral.toFixed(2)}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-base sm:text-lg text-indigo-600 dark:text-indigo-400">{item.media_geral.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1081,10 +1081,10 @@ export default function GraficosPage() {
 
               {/* Taxa de Aprovação */}
               {dados.aprovacao && dados.aprovacao.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Taxa de Aprovação Estimada</h3>
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Taxa de Aprovação Estimada</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(400, dados.aprovacao.length * 50)}>
                     <BarChart data={dados.aprovacao}>
@@ -1112,7 +1112,7 @@ export default function GraficosPage() {
                       <Bar dataKey="taxa_8" name="≥ 8.0" fill="#8B5CF6" />
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     <p>Legenda: Verde (≥6.0), Azul (≥7.0), Roxo (≥8.0)</p>
                   </div>
                 </div>
@@ -1120,10 +1120,10 @@ export default function GraficosPage() {
 
               {/* Análise de Gaps */}
               {dados.gaps && dados.gaps.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">Análise de Gaps (Desigualdade de Desempenho)</h3>
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Análise de Gaps (Desigualdade de Desempenho)</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(400, dados.gaps.length * 50)}>
                     <BarChart data={dados.gaps}>
@@ -1151,17 +1151,17 @@ export default function GraficosPage() {
                       <Bar dataKey="gap" name="Gap (Diferença)" fill="#F59E0B" />
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 text-sm text-gray-600">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     <p>Gap = Diferença entre melhor e pior média. Valores maiores indicam maior desigualdade.</p>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-md">
-              <BarChart3 className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-base sm:text-lg font-medium">Selecione os filtros e clique em "Gerar Gráficos"</p>
-              <p className="text-gray-400 text-xs sm:text-sm mt-2">Escolha o tipo de visualização desejado para começar</p>
+            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 border border-gray-200 dark:border-slate-700">
+              <BarChart3 className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium">Selecione os filtros e clique em "Gerar Gráficos"</p>
+              <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm mt-2">Escolha o tipo de visualização desejado para começar</p>
             </div>
           )}
         </div>

@@ -6,6 +6,8 @@ import { LogIn, Eye, EyeOff, WifiOff } from 'lucide-react'
 import Rodape from '@/components/rodape'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
 import * as offlineStorage from '@/lib/offline-storage'
+import { ThemeToggleSimple } from '@/components/theme-toggle'
+import { useTheme } from '@/lib/theme-provider'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -148,35 +150,38 @@ export default function LoginPage() {
   // Mostrar loading enquanto verifica usuário offline
   if (verificandoOffline) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verificando sessão...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Verificando sessão...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100" style={{
-      background: `linear-gradient(to bottom right, ${personalizacao.cor_secundaria}15, ${personalizacao.cor_primaria}25)`
-    }}>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
+      {/* Toggle de Tema no canto superior direito */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggleSimple />
+      </div>
+
       {/* Indicador de modo offline */}
       {modoOffline && (
-        <div className="bg-orange-500 text-white py-2 px-4 text-center text-sm font-medium flex items-center justify-center gap-2">
+        <div className="bg-orange-500 dark:bg-orange-600 text-white py-2 px-4 text-center text-sm font-medium flex items-center justify-center gap-2">
           <WifiOff className="w-4 h-4" />
           Você está offline
         </div>
       )}
 
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-md">
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-lg shadow-xl dark:shadow-slate-900/50 w-full max-w-md border border-gray-200 dark:border-slate-700 transition-colors duration-300">
           <div className="flex items-center justify-center mb-6">
             {personalizacao.imagem_url ? (
               <img
                 src={personalizacao.imagem_url}
                 alt="Logo"
-                className="max-h-20 max-w-full object-contain"
+                className="max-h-20 max-w-full object-contain dark:brightness-110"
               />
             ) : (
               <div className="p-3 rounded-full" style={{ backgroundColor: personalizacao.cor_primaria }}>
@@ -184,17 +189,17 @@ export default function LoginPage() {
               </div>
             )}
           </div>
-          
-          <h1 className="text-2xl font-bold text-center text-gray-800 mb-2" style={{ color: personalizacao.cor_primaria }}>
+
+          <h1 className="text-2xl font-bold text-center mb-2 dark:text-white" style={{ color: personalizacao.cor_primaria }}>
             {personalizacao.titulo}
           </h1>
-          <p className="text-center text-gray-600 mb-8">
+          <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
             {personalizacao.subtitulo}
           </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Email
             </label>
             <input
@@ -203,13 +208,13 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent outline-none bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 transition-colors"
               placeholder="seu@email.com"
             />
           </div>
 
           <div>
-            <label htmlFor="senha" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="senha" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Senha
             </label>
             <div className="relative">
@@ -219,13 +224,13 @@ export default function LoginPage() {
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 required
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent outline-none bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 transition-colors"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setMostrarSenha(!mostrarSenha)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none transition-colors"
                 aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
               >
                 {mostrarSenha ? (
@@ -238,7 +243,7 @@ export default function LoginPage() {
           </div>
 
           {erro && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">
               {erro}
             </div>
           )}
@@ -246,7 +251,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={carregando}
-            className="w-full text-white py-2 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full text-white py-2 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             style={{
               backgroundColor: personalizacao.cor_primaria,
             } as React.CSSProperties}
@@ -267,7 +272,7 @@ export default function LoginPage() {
         </form>
         </div>
       </div>
-      
+
       {/* Rodapé */}
       <Rodape />
     </div>
