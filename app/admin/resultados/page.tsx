@@ -74,6 +74,7 @@ interface Filtros {
   ano_letivo?: string
   serie?: string
   presenca?: string
+  tipo_ensino?: string
 }
 
 export default function ResultadosPage() {
@@ -93,6 +94,11 @@ export default function ResultadosPage() {
     mediaCH: number
     mediaMAT: number
     mediaCN: number
+    mediaProducao: number
+    mediaAnosIniciais: number
+    totalAnosIniciais: number
+    mediaAnosFinais: number
+    totalAnosFinais: number
   }>({
     totalAlunos: 0,
     totalPresentes: 0,
@@ -101,7 +107,12 @@ export default function ResultadosPage() {
     mediaLP: 0,
     mediaCH: 0,
     mediaMAT: 0,
-    mediaCN: 0
+    mediaCN: 0,
+    mediaProducao: 0,
+    mediaAnosIniciais: 0,
+    totalAnosIniciais: 0,
+    mediaAnosFinais: 0,
+    totalAnosFinais: 0
   })
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
@@ -376,7 +387,12 @@ export default function ResultadosPage() {
           mediaLP: 0,
           mediaCH: 0,
           mediaMAT: 0,
-          mediaCN: 0
+          mediaCN: 0,
+          mediaProducao: 0,
+          mediaAnosIniciais: 0,
+          totalAnosIniciais: 0,
+          mediaAnosFinais: 0,
+          totalAnosFinais: 0
         })
       }
 
@@ -433,7 +449,12 @@ export default function ResultadosPage() {
             mediaLP: estatisticasOffline.media_lp,
             mediaCH: estatisticasOffline.media_ch,
             mediaMAT: estatisticasOffline.media_mat,
-            mediaCN: estatisticasOffline.media_cn
+            mediaCN: estatisticasOffline.media_cn,
+            mediaProducao: estatisticasOffline.media_producao || 0,
+            mediaAnosIniciais: 0,
+            totalAnosIniciais: 0,
+            mediaAnosFinais: 0,
+            totalAnosFinais: 0
           })
           setPaginacao({
             pagina,
@@ -513,7 +534,12 @@ export default function ResultadosPage() {
           mediaLP: 0,
           mediaCH: 0,
           mediaMAT: 0,
-          mediaCN: 0
+          mediaCN: 0,
+          mediaProducao: 0,
+          mediaAnosIniciais: 0,
+          totalAnosIniciais: 0,
+          mediaAnosFinais: 0,
+          totalAnosFinais: 0
         })
       } else if (data && typeof data === 'object') {
         if (Array.isArray(data.resultados)) {
@@ -543,7 +569,12 @@ export default function ResultadosPage() {
             mediaLP: parseFloat(data.estatisticas.mediaLP) || 0,
             mediaCH: parseFloat(data.estatisticas.mediaCH) || 0,
             mediaMAT: parseFloat(data.estatisticas.mediaMAT) || 0,
-            mediaCN: parseFloat(data.estatisticas.mediaCN) || 0
+            mediaCN: parseFloat(data.estatisticas.mediaCN) || 0,
+            mediaProducao: parseFloat(data.estatisticas.mediaProducao) || 0,
+            mediaAnosIniciais: parseFloat(data.estatisticas.mediaAnosIniciais) || 0,
+            totalAnosIniciais: data.estatisticas.totalAnosIniciais || 0,
+            mediaAnosFinais: parseFloat(data.estatisticas.mediaAnosFinais) || 0,
+            totalAnosFinais: data.estatisticas.totalAnosFinais || 0
           }
           console.log('Estatísticas recebidas da API:', novasEstatisticas)
           setEstatisticasGerais(novasEstatisticas)
@@ -560,7 +591,12 @@ export default function ResultadosPage() {
             mediaLP: 0,
             mediaCH: 0,
             mediaMAT: 0,
-            mediaCN: 0
+            mediaCN: 0,
+            mediaProducao: 0,
+            mediaAnosIniciais: 0,
+            totalAnosIniciais: 0,
+            mediaAnosFinais: 0,
+            totalAnosFinais: 0
           })
         }
       }
@@ -888,7 +924,23 @@ export default function ResultadosPage() {
                 </select>
               </div>
 
-              {/* 6. Presença */}
+              {/* 6. Tipo de Ensino */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  Tipo de Ensino
+                </label>
+                <select
+                  value={filtros.tipo_ensino || ''}
+                  onChange={(e) => handleFiltroChange('tipo_ensino', e.target.value)}
+                  className="select-custom w-full"
+                >
+                  <option value="">Todos</option>
+                  <option value="anos_iniciais">Anos Iniciais (1º-5º)</option>
+                  <option value="anos_finais">Anos Finais (6º-9º)</option>
+                </select>
+              </div>
+
+              {/* 7. Presença */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Presença
@@ -904,7 +956,7 @@ export default function ResultadosPage() {
                 </select>
               </div>
 
-              {/* 7. Busca */}
+              {/* 8. Busca */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Busca
@@ -987,9 +1039,97 @@ export default function ResultadosPage() {
             </div>
           )}
 
-          {/* Médias por Área */}
+          {/* Cards Anos Iniciais e Anos Finais */}
+          {(estatisticas.total > 0 || carregando) && (estatisticasGerais.totalAnosIniciais > 0 || estatisticasGerais.totalAnosFinais > 0) && (
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${carregando ? 'opacity-50' : ''}`}>
+              {/* Card Anos Iniciais */}
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-900/40 p-4 sm:p-6 rounded-xl shadow-md dark:shadow-slate-900/50 border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-500 rounded-lg">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold">Anos Iniciais</p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">1º ao 5º Ano</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-3xl sm:text-4xl font-bold text-emerald-700 dark:text-emerald-400">
+                      {estatisticasGerais.mediaAnosIniciais > 0 ? estatisticasGerais.mediaAnosIniciais.toFixed(1) : '-'}
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                      Média de desempenho
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                      {estatisticasGerais.totalAnosIniciais.toLocaleString('pt-BR')}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">alunos avaliados</p>
+                  </div>
+                </div>
+                {estatisticasGerais.mediaAnosIniciais > 0 && (
+                  <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-700">
+                    <div className="w-full bg-emerald-200 dark:bg-emerald-800 rounded-full h-2">
+                      <div
+                        className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(estatisticasGerais.mediaAnosIniciais * 10, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Card Anos Finais */}
+              <div className="bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-900/30 dark:to-violet-900/40 p-4 sm:p-6 rounded-xl shadow-md dark:shadow-slate-900/50 border border-violet-200 dark:border-violet-800">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-violet-500 rounded-lg">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold">Anos Finais</p>
+                      <p className="text-xs text-violet-600 dark:text-violet-400">6º ao 9º Ano</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-3xl sm:text-4xl font-bold text-violet-700 dark:text-violet-400">
+                      {estatisticasGerais.mediaAnosFinais > 0 ? estatisticasGerais.mediaAnosFinais.toFixed(1) : '-'}
+                    </p>
+                    <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">
+                      Média de desempenho
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-violet-600 dark:text-violet-400">
+                      {estatisticasGerais.totalAnosFinais.toLocaleString('pt-BR')}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">alunos avaliados</p>
+                  </div>
+                </div>
+                {estatisticasGerais.mediaAnosFinais > 0 && (
+                  <div className="mt-3 pt-3 border-t border-violet-200 dark:border-violet-700">
+                    <div className="w-full bg-violet-200 dark:bg-violet-800 rounded-full h-2">
+                      <div
+                        className="bg-violet-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(estatisticasGerais.mediaAnosFinais * 10, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Médias por Área - Filtradas por tipo de ensino */}
           {(estatisticas.total > 0 || carregando) && (
             <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
+              {/* Card Língua Portuguesa - Sempre visível */}
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
@@ -1010,26 +1150,30 @@ export default function ResultadosPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
-                    <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCH)}`}>
-                      {estatisticas.mediaCH.toFixed(1)}
-                    </p>
+              {/* Card Ciências Humanas - Apenas Anos Finais ou sem filtro de tipo de ensino */}
+              {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
+                      <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCH)}`}>
+                        {estatisticas.mediaCH.toFixed(1)}
+                      </p>
+                    </div>
+                    <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 flex-shrink-0 ml-2" />
                   </div>
-                  <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 flex-shrink-0 ml-2" />
+                  <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
+                    <div
+                      className={`h-2 sm:h-3 rounded-full ${
+                        estatisticas.mediaCH >= 7 ? 'bg-green-500' : estatisticas.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min((estatisticas.mediaCH / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
-                  <div
-                    className={`h-2 sm:h-3 rounded-full ${
-                      estatisticas.mediaCH >= 7 ? 'bg-green-500' : estatisticas.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}
-                    style={{ width: `${Math.min((estatisticas.mediaCH / 10) * 100, 100)}%`, minWidth: '2px' }}
-                  ></div>
-                </div>
-              </div>
+              )}
 
+              {/* Card Matemática - Sempre visível */}
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
@@ -1050,25 +1194,51 @@ export default function ResultadosPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
-                    <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCN)}`}>
-                      {estatisticas.mediaCN.toFixed(1)}
-                    </p>
+              {/* Card Ciências da Natureza - Apenas Anos Finais ou sem filtro de tipo de ensino */}
+              {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
+                      <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCN)}`}>
+                        {estatisticas.mediaCN.toFixed(1)}
+                      </p>
+                    </div>
+                    <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400 flex-shrink-0 ml-2" />
                   </div>
-                  <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400 flex-shrink-0 ml-2" />
+                  <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
+                    <div
+                      className={`h-2 sm:h-3 rounded-full ${
+                        estatisticas.mediaCN >= 7 ? 'bg-green-500' : estatisticas.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min((estatisticas.mediaCN / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
-                  <div
-                    className={`h-2 sm:h-3 rounded-full ${
-                      estatisticas.mediaCN >= 7 ? 'bg-green-500' : estatisticas.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}
-                    style={{ width: `${Math.min((estatisticas.mediaCN / 10) * 100, 100)}%`, minWidth: '2px' }}
-                  ></div>
+              )}
+
+              {/* Card Produção Textual - Apenas Anos Iniciais ou quando há média de produção */}
+              {(filtros.tipo_ensino === 'anos_iniciais' || (filtrandoAnosIniciais && estatisticasGerais.mediaProducao > 0) || (!filtros.tipo_ensino && estatisticasGerais.mediaProducao > 0)) && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Produção Textual</p>
+                      <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticasGerais.mediaProducao)}`}>
+                        {estatisticasGerais.mediaProducao.toFixed(1)}
+                      </p>
+                    </div>
+                    <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400 flex-shrink-0 ml-2" />
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
+                    <div
+                      className={`h-2 sm:h-3 rounded-full ${
+                        estatisticasGerais.mediaProducao >= 7 ? 'bg-green-500' : estatisticasGerais.mediaProducao >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min((estatisticasGerais.mediaProducao / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

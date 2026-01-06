@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const anoLetivo = searchParams.get('ano_letivo')
     const serie = searchParams.get('serie')
     const turmaId = searchParams.get('turma_id')
+    const tipoEnsino = searchParams.get('tipo_ensino')
 
     // Verificar cache
     const cacheOptions = {
@@ -36,7 +37,8 @@ export async function GET(request: NextRequest) {
         poloId,
         anoLetivo,
         serie,
-        turmaId
+        turmaId,
+        tipoEnsino
       },
       tipoUsuario: usuario.tipo_usuario,
       usuarioId: usuario.id,
@@ -145,10 +147,17 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    // Filtro de tipo de ensino (anos_iniciais ou anos_finais)
+    if (tipoEnsino === 'anos_iniciais') {
+      query += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`
+    } else if (tipoEnsino === 'anos_finais') {
+      query += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`
+    }
+
     query += `
-      GROUP BY 
+      GROUP BY
         e.id, e.nome, p.id, p.nome, rc.serie, t.id, t.codigo
-      ORDER BY 
+      ORDER BY
         p.nome, e.nome, rc.serie, t.codigo
     `
 
@@ -240,10 +249,17 @@ export async function GET(request: NextRequest) {
 
     // NÃO incluir filtro de turma_id na query agregada (queremos todas as turmas agregadas)
 
+    // Filtro de tipo de ensino (anos_iniciais ou anos_finais)
+    if (tipoEnsino === 'anos_iniciais') {
+      queryAgregado += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`
+    } else if (tipoEnsino === 'anos_finais') {
+      queryAgregado += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`
+    }
+
     queryAgregado += `
-      GROUP BY 
+      GROUP BY
         e.id, e.nome, p.id, p.nome, rc.serie
-      ORDER BY 
+      ORDER BY
         p.nome, e.nome, rc.serie
     `
 

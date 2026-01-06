@@ -38,6 +38,23 @@ export async function GET(request: NextRequest) {
 
     const aluno = alunoResult.rows[0]
 
+    // Buscar configuração de disciplinas para a série do aluno
+    let disciplinaConfig: { disciplina: string; sigla: string; questao_inicio: number; questao_fim: number }[] = []
+    if (aluno.serie) {
+      // Extrair apenas o número da série
+      const numeroSerie = aluno.serie.toString().match(/(\d+)/)?.[1] || aluno.serie
+      const configResult = await pool.query(
+        `SELECT csd.disciplina, csd.sigla, csd.questao_inicio, csd.questao_fim
+         FROM configuracao_series_disciplinas csd
+         JOIN configuracao_series cs ON csd.serie_id = cs.id
+         WHERE cs.serie = $1 AND csd.ativo = true
+         ORDER BY csd.ordem`,
+        [numeroSerie]
+      )
+      disciplinaConfig = configResult.rows
+      console.log(`[API] Configuração de disciplinas para série ${numeroSerie}:`, disciplinaConfig.length, 'disciplinas')
+    }
+
     // Buscar todas as questões do aluno
     // Tentar múltiplas estratégias: aluno_id, código, nome (case-insensitive)
     let whereConditions: string[] = []
@@ -137,40 +154,52 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Organizar questões por área
-    const questoesPorArea: Record<string, any[]> = {
-      'Língua Portuguesa': [],
-      'Ciências Humanas': [],
-      'Matemática': [],
-      'Ciências da Natureza': [],
+    // Organizar questões por área - inicializar com disciplinas configuradas
+    const questoesPorArea: Record<string, any[]> = {}
+
+    // Se tem configuração de disciplinas, usar ela para inicializar as áreas
+    if (disciplinaConfig.length > 0) {
+      disciplinaConfig.forEach(config => {
+        questoesPorArea[config.disciplina] = []
+      })
+    } else {
+      // Fallback: usar as 4 áreas padrão
+      questoesPorArea['Língua Portuguesa'] = []
+      questoesPorArea['Ciências Humanas'] = []
+      questoesPorArea['Matemática'] = []
+      questoesPorArea['Ciências da Natureza'] = []
+    }
+
+    // Função para encontrar a disciplina baseada no número da questão
+    const encontrarDisciplina = (questaoNum: number): string => {
+      // Se tem configuração, usar ela
+      if (disciplinaConfig.length > 0) {
+        for (const config of disciplinaConfig) {
+          if (questaoNum >= config.questao_inicio && questaoNum <= config.questao_fim) {
+            return config.disciplina
+          }
+        }
+      }
+
+      // Fallback para mapeamento padrão (anos finais)
+      if (questaoNum >= 1 && questaoNum <= 20) {
+        return 'Língua Portuguesa'
+      } else if (questaoNum >= 21 && questaoNum <= 30) {
+        return 'Ciências Humanas'
+      } else if (questaoNum >= 31 && questaoNum <= 50) {
+        return 'Matemática'
+      } else if (questaoNum >= 51 && questaoNum <= 60) {
+        return 'Ciências da Natureza'
+      }
+
+      return 'Outras'
     }
 
     questoesResult.rows.forEach((questao) => {
-      const area = questao.area_conhecimento || questao.disciplina || 'Outras'
-      
-      // Mapear áreas
-      let areaNormalizada = 'Outras'
-      if (area.includes('Português') || area.includes('LP') || area.includes('Língua Portuguesa')) {
-        areaNormalizada = 'Língua Portuguesa'
-      } else if (area.includes('Humanas') || area.includes('CH') || area.includes('Ciências Humanas')) {
-        areaNormalizada = 'Ciências Humanas'
-      } else if (area.includes('Matemática') || area.includes('MAT') || area.includes('Matematica')) {
-        areaNormalizada = 'Matemática'
-      } else if (area.includes('Natureza') || area.includes('CN') || area.includes('Ciências da Natureza')) {
-        areaNormalizada = 'Ciências da Natureza'
-      }
-
-      // Determinar faixa de questões por área baseado no código
       const questaoNum = parseInt(questao.questao_codigo?.replace('Q', '') || '0')
-      if (questaoNum >= 1 && questaoNum <= 20) {
-        areaNormalizada = 'Língua Portuguesa'
-      } else if (questaoNum >= 21 && questaoNum <= 30) {
-        areaNormalizada = 'Ciências Humanas'
-      } else if (questaoNum >= 31 && questaoNum <= 50) {
-        areaNormalizada = 'Matemática'
-      } else if (questaoNum >= 51 && questaoNum <= 60) {
-        areaNormalizada = 'Ciências da Natureza'
-      }
+
+      // Usar a configuração da série para determinar a disciplina
+      const areaNormalizada = encontrarDisciplina(questaoNum)
 
       if (!questoesPorArea[areaNormalizada]) {
         questoesPorArea[areaNormalizada] = []
@@ -214,6 +243,7 @@ export async function GET(request: NextRequest) {
     let notaCH: number | null = null
     let notaMAT: number | null = null
     let notaCN: number | null = null
+    let itensProducao: { item: number; nota: number | null }[] = []
 
     try {
       // Primeiro tenta buscar da tabela resultados_consolidados (mais confiável)
@@ -225,7 +255,15 @@ export async function GET(request: NextRequest) {
           nota_lp,
           nota_ch,
           nota_mat,
-          nota_cn
+          nota_cn,
+          item_producao_1,
+          item_producao_2,
+          item_producao_3,
+          item_producao_4,
+          item_producao_5,
+          item_producao_6,
+          item_producao_7,
+          item_producao_8
         FROM resultados_consolidados
         WHERE aluno_id = $1::integer
         ${anoLetivo ? 'AND ano_letivo = $2' : ''}
@@ -244,7 +282,17 @@ export async function GET(request: NextRequest) {
         notaMAT = consolidado.nota_mat !== null ? Number(consolidado.nota_mat) : null
         notaCN = consolidado.nota_cn !== null ? Number(consolidado.nota_cn) : null
 
-        console.log(`[API] Dados consolidados encontrados para aluno ${alunoId}: media=${mediaGeral}`)
+        // Processar itens de produção textual
+        for (let i = 1; i <= 8; i++) {
+          const itemKey = `item_producao_${i}`
+          const valor = consolidado[itemKey]
+          itensProducao.push({
+            item: i,
+            nota: valor !== null && valor !== undefined ? Number(valor) : null
+          })
+        }
+
+        console.log(`[API] Dados consolidados encontrados para aluno ${alunoId}: media=${mediaGeral}, producao=${notaProducao}`)
       } else {
         // Fallback: tenta buscar da view unificada
         const consolidadoView = await pool.query(
@@ -255,7 +303,15 @@ export async function GET(request: NextRequest) {
             nota_lp,
             nota_ch,
             nota_mat,
-            nota_cn
+            nota_cn,
+            item_producao_1,
+            item_producao_2,
+            item_producao_3,
+            item_producao_4,
+            item_producao_5,
+            item_producao_6,
+            item_producao_7,
+            item_producao_8
           FROM resultados_consolidados_unificada
           WHERE aluno_id = $1::integer
           ${anoLetivo ? 'AND ano_letivo = $2' : ''}
@@ -273,7 +329,17 @@ export async function GET(request: NextRequest) {
           notaMAT = consolidado.nota_mat !== null ? Number(consolidado.nota_mat) : null
           notaCN = consolidado.nota_cn !== null ? Number(consolidado.nota_cn) : null
 
-          console.log(`[API] Dados da view unificada para aluno ${alunoId}: media=${mediaGeral}`)
+          // Processar itens de produção textual
+          for (let i = 1; i <= 8; i++) {
+            const itemKey = `item_producao_${i}`
+            const valor = consolidado[itemKey]
+            itensProducao.push({
+              item: i,
+              nota: valor !== null && valor !== undefined ? Number(valor) : null
+            })
+          }
+
+          console.log(`[API] Dados da view unificada para aluno ${alunoId}: media=${mediaGeral}, producao=${notaProducao}`)
         }
       }
 
@@ -309,6 +375,7 @@ export async function GET(request: NextRequest) {
         por_area: estatisticasPorArea,
         media_geral: mediaGeral,
         nota_producao: notaProducao,
+        itens_producao: itensProducao,
         nivel_aprendizagem: nivelAprendizagem,
         notas_disciplinas: {
           lingua_portuguesa: notaLP,

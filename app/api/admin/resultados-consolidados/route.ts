@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     // Filtrar valores vazios, "Todas", "todas" - considerar como sem filtro
     const presenca = presencaParam && presencaParam.trim() !== '' && presencaParam.toLowerCase() !== 'todas' ? presencaParam : null
     const turmaId = searchParams.get('turma_id')
+    const tipoEnsino = searchParams.get('tipo_ensino') // anos_iniciais ou anos_finais
     
     // Parâmetros de paginação
     const pagina = Math.max(1, parseInt(searchParams.get('pagina') || '1'))
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
         serie,
         presenca,
         turmaId,
+        tipoEnsino,
         pagina,
         limite
       },
@@ -100,21 +102,32 @@ export async function GET(request: NextRequest) {
         a.nome as aluno_nome,
         e.nome as escola_nome,
         e.polo_id,
-        t.codigo as turma_codigo
+        t.codigo as turma_codigo,
+        cs.tipo_ensino
       FROM resultados_consolidados rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
+      LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
       WHERE 1=1
     `
-    
-    // IMPORTANTE: Filtrar apenas alunos com presença 'P' ou 'F' (excluir '-' sem dados)
-    // E que tenham média > 0 (excluir alunos sem notas)
-    // Mas apenas se não houver filtro específico de presença
+
+    // IMPORTANTE: Filtrar alunos baseado na presença
+    // Valores de presença possíveis: P, p, F, f, FALTA, falta, FALTOU, AUSENTE, -
     if (!presenca) {
-      query += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
+      // Sem filtro de presença: mostrar TODOS (presentes com média > 0 OU faltantes)
+      query += ` AND (
+        ((UPPER(rc.presenca) = 'P') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0)
+        OR (UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE'))
+      )`
+    } else if (presenca.toUpperCase() === 'P') {
+      // Filtro por presentes: exigir média > 0
+      query += ` AND UPPER(rc.presenca) = 'P'`
+      query += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
+    } else if (presenca.toUpperCase() === 'F' || presenca.toLowerCase() === 'falta') {
+      // Filtro por faltantes: NÃO exigir média > 0
+      query += ` AND UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE')`
     }
-    query += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
 
     const params: any[] = []
     let paramIndex = 1
@@ -168,6 +181,12 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    if (tipoEnsino) {
+      query += ` AND cs.tipo_ensino = $${paramIndex}`
+      params.push(tipoEnsino)
+      paramIndex++
+    }
+
     query += ' ORDER BY rc.media_aluno DESC NULLS LAST, a.nome'
     
     // Query para contar total (sem ORDER BY, LIMIT, OFFSET)
@@ -177,18 +196,26 @@ export async function GET(request: NextRequest) {
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
+      LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
       WHERE 1=1
     `
-    
-    // Aplicar filtro de presença padrão se não houver filtro específico
+
+    // Aplicar filtro de presença (mesma lógica da query principal)
     if (!presenca) {
-      countQuery += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
+      countQuery += ` AND (
+        ((UPPER(rc.presenca) = 'P') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0)
+        OR (UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE'))
+      )`
+    } else if (presenca.toUpperCase() === 'P') {
+      countQuery += ` AND UPPER(rc.presenca) = 'P'`
+      countQuery += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
+    } else if (presenca.toUpperCase() === 'F' || presenca.toLowerCase() === 'falta') {
+      countQuery += ` AND UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE')`
     }
-    countQuery += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
 
     const countParams: any[] = []
     let countParamIndex = 1
-    
+
     // Aplicar mesmas restrições de acesso
     if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
       countQuery += ` AND e.polo_id = $${countParamIndex}`
@@ -236,7 +263,13 @@ export async function GET(request: NextRequest) {
       countParams.push(turmaId)
       countParamIndex++
     }
-    
+
+    if (tipoEnsino) {
+      countQuery += ` AND cs.tipo_ensino = $${countParamIndex}`
+      countParams.push(tipoEnsino)
+      countParamIndex++
+    }
+
     // Adicionar LIMIT e OFFSET à query principal
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
     params.push(limite, offset)
@@ -245,59 +278,107 @@ export async function GET(request: NextRequest) {
     let estatisticasQuery = `
       SELECT
         COUNT(*) as total_alunos,
-        COUNT(CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN 1 END) as total_presentes,
-        COUNT(CASE WHEN rc.presenca = 'F' OR rc.presenca = 'f' THEN 1 END) as total_faltas,
-        AVG(CASE 
-          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') 
-          AND rc.media_aluno IS NOT NULL 
-          AND CAST(rc.media_aluno AS DECIMAL) > 0 
-          THEN CAST(rc.media_aluno AS DECIMAL) 
-          ELSE NULL 
+        COUNT(CASE WHEN UPPER(rc.presenca) = 'P' THEN 1 END) as total_presentes,
+        COUNT(CASE WHEN UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE') THEN 1 END) as total_faltas,
+        AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.media_aluno IS NOT NULL
+          AND CAST(rc.media_aluno AS DECIMAL) > 0
+          THEN CAST(rc.media_aluno AS DECIMAL)
+          ELSE NULL
         END) as media_geral,
-        AVG(CASE 
-          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') 
-          AND rc.nota_lp IS NOT NULL 
-          AND CAST(rc.nota_lp AS DECIMAL) > 0 
-          THEN CAST(rc.nota_lp AS DECIMAL) 
-          ELSE NULL 
+        AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.nota_lp IS NOT NULL
+          AND CAST(rc.nota_lp AS DECIMAL) > 0
+          THEN CAST(rc.nota_lp AS DECIMAL)
+          ELSE NULL
         END) as media_lp,
-        AVG(CASE 
-          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') 
-          AND rc.nota_ch IS NOT NULL 
-          AND CAST(rc.nota_ch AS DECIMAL) > 0 
-          THEN CAST(rc.nota_ch AS DECIMAL) 
-          ELSE NULL 
+        AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.nota_ch IS NOT NULL
+          AND CAST(rc.nota_ch AS DECIMAL) > 0
+          THEN CAST(rc.nota_ch AS DECIMAL)
+          ELSE NULL
         END) as media_ch,
-        AVG(CASE 
-          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') 
-          AND rc.nota_mat IS NOT NULL 
-          AND CAST(rc.nota_mat AS DECIMAL) > 0 
-          THEN CAST(rc.nota_mat AS DECIMAL) 
-          ELSE NULL 
+        AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.nota_mat IS NOT NULL
+          AND CAST(rc.nota_mat AS DECIMAL) > 0
+          THEN CAST(rc.nota_mat AS DECIMAL)
+          ELSE NULL
         END) as media_mat,
-        AVG(CASE 
-          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') 
-          AND rc.nota_cn IS NOT NULL 
-          AND CAST(rc.nota_cn AS DECIMAL) > 0 
-          THEN CAST(rc.nota_cn AS DECIMAL) 
-          ELSE NULL 
-        END) as media_cn
+        AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.nota_cn IS NOT NULL
+          AND CAST(rc.nota_cn AS DECIMAL) > 0
+          THEN CAST(rc.nota_cn AS DECIMAL)
+          ELSE NULL
+        END) as media_cn,
+        AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.nota_producao IS NOT NULL
+          AND CAST(rc.nota_producao AS DECIMAL) > 0
+          THEN CAST(rc.nota_producao AS DECIMAL)
+          ELSE NULL
+        END) as media_producao,
+        -- Estatísticas por tipo de ensino
+        AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.media_aluno IS NOT NULL
+          AND CAST(rc.media_aluno AS DECIMAL) > 0
+          AND cs.tipo_ensino = 'anos_iniciais'
+          THEN CAST(rc.media_aluno AS DECIMAL)
+          ELSE NULL
+        END) as media_anos_iniciais,
+        COUNT(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.media_aluno IS NOT NULL
+          AND CAST(rc.media_aluno AS DECIMAL) > 0
+          AND cs.tipo_ensino = 'anos_iniciais'
+          THEN 1
+          ELSE NULL
+        END) as total_anos_iniciais,
+        AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.media_aluno IS NOT NULL
+          AND CAST(rc.media_aluno AS DECIMAL) > 0
+          AND cs.tipo_ensino = 'anos_finais'
+          THEN CAST(rc.media_aluno AS DECIMAL)
+          ELSE NULL
+        END) as media_anos_finais,
+        COUNT(CASE
+          WHEN UPPER(rc.presenca) = 'P'
+          AND rc.media_aluno IS NOT NULL
+          AND CAST(rc.media_aluno AS DECIMAL) > 0
+          AND cs.tipo_ensino = 'anos_finais'
+          THEN 1
+          ELSE NULL
+        END) as total_anos_finais
       FROM resultados_consolidados rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
+      LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
       WHERE 1=1
     `
-    
-    // Aplicar filtro de presença padrão se não houver filtro específico
+
+    // Aplicar filtro de presença (mesma lógica da query principal)
     if (!presenca) {
-      estatisticasQuery += ` AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`
+      estatisticasQuery += ` AND (
+        ((UPPER(rc.presenca) = 'P') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0)
+        OR (UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE'))
+      )`
+    } else if (presenca.toUpperCase() === 'P') {
+      estatisticasQuery += ` AND UPPER(rc.presenca) = 'P'`
+      estatisticasQuery += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
+    } else if (presenca.toUpperCase() === 'F' || presenca.toLowerCase() === 'falta') {
+      estatisticasQuery += ` AND UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE')`
     }
-    estatisticasQuery += ` AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0`
 
     const estatisticasParams: any[] = []
     let estatisticasParamIndex = 1
-    
+
     // Aplicar mesmas restrições de acesso
     if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
       estatisticasQuery += ` AND e.polo_id = $${estatisticasParamIndex}`
@@ -346,6 +427,12 @@ export async function GET(request: NextRequest) {
       estatisticasParamIndex++
     }
 
+    if (tipoEnsino) {
+      estatisticasQuery += ` AND cs.tipo_ensino = $${estatisticasParamIndex}`
+      estatisticasParams.push(tipoEnsino)
+      estatisticasParamIndex++
+    }
+
     // Adicionar logs para debug
     console.log('Query principal:', query.substring(0, 200))
     console.log('Query count:', countQuery.substring(0, 200))
@@ -376,7 +463,12 @@ export async function GET(request: NextRequest) {
       mediaLP: parseFloat(stats.media_lp || '0') || 0,
       mediaCH: parseFloat(stats.media_ch || '0') || 0,
       mediaMAT: parseFloat(stats.media_mat || '0') || 0,
-      mediaCN: parseFloat(stats.media_cn || '0') || 0
+      mediaCN: parseFloat(stats.media_cn || '0') || 0,
+      mediaProducao: parseFloat(stats.media_producao || '0') || 0,
+      mediaAnosIniciais: parseFloat(stats.media_anos_iniciais || '0') || 0,
+      totalAnosIniciais: parseInt(stats.total_anos_iniciais || '0'),
+      mediaAnosFinais: parseFloat(stats.media_anos_finais || '0') || 0,
+      totalAnosFinais: parseInt(stats.total_anos_finais || '0')
     }
 
     const resultado = {

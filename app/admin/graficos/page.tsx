@@ -34,6 +34,7 @@ interface FiltrosGraficos {
   serie?: string
   disciplina?: string
   turma_id?: string
+  tipo_ensino?: string
 }
 
 export default function GraficosPage() {
@@ -400,6 +401,21 @@ export default function GraficosPage() {
                   </select>
                 </div>
               )}
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  Etapa de Ensino
+                </label>
+                <select
+                  value={filtros.tipo_ensino || ''}
+                  onChange={(e) => handleFiltroChange('tipo_ensino', e.target.value)}
+                  className="select-custom w-full text-sm sm:text-base"
+                >
+                  <option value="">Todas</option>
+                  <option value="anos_iniciais">Anos Iniciais (2º, 3º, 5º)</option>
+                  <option value="anos_finais">Anos Finais (6º, 7º, 8º, 9º)</option>
+                </select>
+              </div>
 
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">

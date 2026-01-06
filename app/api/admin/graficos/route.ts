@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     const serie = searchParams.get('serie')
     const disciplina = searchParams.get('disciplina')
     const turmaId = searchParams.get('turma_id')
+    const tipoEnsino = searchParams.get('tipo_ensino')
 
     // Verificar cache
     const cacheOptions = {
@@ -57,7 +58,8 @@ export async function GET(request: NextRequest) {
         escolaId,
         serie,
         disciplina,
-        turmaId
+        turmaId,
+        tipoEnsino
       },
       tipoUsuario: usuario.tipo_usuario,
       usuarioId: usuario.id,
@@ -132,6 +134,15 @@ export async function GET(request: NextRequest) {
       whereConditions.push(`rc.turma_id = $${paramIndex}`)
       params.push(turmaId)
       paramIndex++
+    }
+
+    // Filtro de tipo de ensino (anos_iniciais ou anos_finais)
+    if (tipoEnsino === 'anos_iniciais') {
+      // Anos iniciais: 2º, 3º e 5º ano
+      whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`)
+    } else if (tipoEnsino === 'anos_finais') {
+      // Anos finais: 6º, 7º, 8º e 9º ano
+      whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`)
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''

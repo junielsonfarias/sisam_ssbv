@@ -20,6 +20,11 @@ interface EstatisticasPorArea {
   media?: number
 }
 
+interface ItemProducao {
+  item: number
+  nota: number | null
+}
+
 interface DadosAluno {
   aluno: {
     id: string
@@ -47,6 +52,7 @@ interface DadosAluno {
     media_geral?: number
     nivel_aprendizagem?: string | null
     nota_producao?: number | null
+    itens_producao?: ItemProducao[]
   }
 }
 
@@ -173,12 +179,35 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
 
   if (!isOpen) return null
 
-  const areas = [
-    { nome: 'Língua Portuguesa', notaKey: 'nota_lp' as keyof NotasDisciplinas, corClasses: 'from-indigo-500 to-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200', textColor: 'text-indigo-600', icon: BookOpen },
-    { nome: 'Ciências Humanas', notaKey: 'nota_ch' as keyof NotasDisciplinas, corClasses: 'from-green-500 to-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-600', icon: TrendingUp },
-    { nome: 'Matemática', notaKey: 'nota_mat' as keyof NotasDisciplinas, corClasses: 'from-yellow-500 to-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', textColor: 'text-yellow-600', icon: Award },
-    { nome: 'Ciências da Natureza', notaKey: 'nota_cn' as keyof NotasDisciplinas, corClasses: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-600', icon: AlertCircle },
-  ]
+  // Mapeamento de disciplinas para configurações visuais
+  const configDisciplinas: Record<string, { notaKey: keyof NotasDisciplinas; corClasses: string; bgColor: string; borderColor: string; textColor: string; icon: any }> = {
+    'Língua Portuguesa': { notaKey: 'nota_lp', corClasses: 'from-indigo-500 to-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200', textColor: 'text-indigo-600', icon: BookOpen },
+    'Ciências Humanas': { notaKey: 'nota_ch', corClasses: 'from-green-500 to-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-600', icon: TrendingUp },
+    'Matemática': { notaKey: 'nota_mat', corClasses: 'from-yellow-500 to-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', textColor: 'text-yellow-600', icon: Award },
+    'Ciências da Natureza': { notaKey: 'nota_cn', corClasses: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-600', icon: AlertCircle },
+  }
+
+  // Gerar áreas dinamicamente baseadas nas disciplinas que existem nos dados
+  const areas = dados?.questoes
+    ? Object.keys(dados.questoes)
+        .filter(nome => nome !== 'Outras') // Ignorar categoria "Outras"
+        .map(nome => {
+          const config = configDisciplinas[nome] || {
+            notaKey: 'nota_lp' as keyof NotasDisciplinas, // fallback
+            corClasses: 'from-gray-500 to-gray-600',
+            bgColor: 'bg-gray-50',
+            borderColor: 'border-gray-200',
+            textColor: 'text-gray-600',
+            icon: BookOpen
+          }
+          return { nome, ...config }
+        })
+    : [
+        { nome: 'Língua Portuguesa', ...configDisciplinas['Língua Portuguesa'] },
+        { nome: 'Ciências Humanas', ...configDisciplinas['Ciências Humanas'] },
+        { nome: 'Matemática', ...configDisciplinas['Matemática'] },
+        { nome: 'Ciências da Natureza', ...configDisciplinas['Ciências da Natureza'] },
+      ]
 
   // Verificar se tem questões detalhadas ou apenas estatísticas
   const temQuestoesDetalhadas = dados?.questoes && Object.values(dados.questoes).some(arr => arr.length > 0)
@@ -364,15 +393,54 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                 {/* Nota de Produção (se disponível) */}
                 {dados.estatisticas.nota_producao !== undefined && dados.estatisticas.nota_producao !== null && (
                   <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600">
                           <BarChart3 className="w-5 h-5 text-white" />
                         </div>
                         <h4 className="font-semibold text-gray-800 dark:text-white">Produção Textual</h4>
                       </div>
-                      <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">{dados.estatisticas.nota_producao.toFixed(1)}</p>
+                      <div className="px-3 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                        <span className="text-xs font-medium">Média: </span>
+                        <span className="text-lg font-bold">{dados.estatisticas.nota_producao.toFixed(1)}</span>
+                      </div>
                     </div>
+
+                    {/* Itens individuais de Produção Textual */}
+                    {dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null) && (
+                      <div className="mt-3 pt-3 border-t border-orange-200 dark:border-orange-700">
+                        <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-2">Pontuação por Item:</p>
+                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                          {dados.estatisticas.itens_producao.map((itemProd) => (
+                            <div
+                              key={itemProd.item}
+                              className={`p-2 rounded-lg text-center ${
+                                itemProd.nota !== null
+                                  ? itemProd.nota >= 1.5
+                                    ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700'
+                                    : itemProd.nota >= 1
+                                    ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700'
+                                    : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
+                                  : 'bg-gray-100 dark:bg-gray-700/30 border border-gray-300 dark:border-gray-600'
+                              }`}
+                            >
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Item {itemProd.item}</p>
+                              <p className={`text-sm font-bold ${
+                                itemProd.nota !== null
+                                  ? itemProd.nota >= 1.5
+                                    ? 'text-green-700 dark:text-green-400'
+                                    : itemProd.nota >= 1
+                                    ? 'text-yellow-700 dark:text-yellow-400'
+                                    : 'text-red-700 dark:text-red-400'
+                                  : 'text-gray-500 dark:text-gray-400'
+                              }`}>
+                                {itemProd.nota !== null ? itemProd.nota.toFixed(1) : '-'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

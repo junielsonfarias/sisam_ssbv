@@ -432,6 +432,7 @@ export function calcularEstatisticas(resultados: OfflineResultado[]): {
   media_mat: number
   media_ch: number
   media_cn: number
+  media_producao: number
   media_geral: number
 } {
   const presentes = resultados.filter(r => r.presenca?.toUpperCase() === 'P')
@@ -452,6 +453,7 @@ export function calcularEstatisticas(resultados: OfflineResultado[]): {
     media_mat: calcMedia(presentes.map(r => r.nota_mat)),
     media_ch: calcMedia(presentes.map(r => r.nota_ch)),
     media_cn: calcMedia(presentes.map(r => r.nota_cn)),
+    media_producao: calcMedia(presentes.map(r => (r as any).nota_producao)),
     media_geral: calcMedia(presentes.map(r => r.media_aluno))
   }
 }
