@@ -218,8 +218,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col overflow-x-hidden transition-colors duration-300">
-      {/* Header */}
-      <header className="bg-white dark:bg-slate-800 shadow-sm dark:shadow-slate-700/50 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 transition-colors duration-300">
+      {/* Header - Fixo no topo */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 shadow-sm dark:shadow-slate-700/50 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 transition-colors duration-300">
         <div className="px-2 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center min-w-0">
@@ -275,14 +275,18 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         </div>
       </header>
 
+      {/* Espaçador para compensar o header fixo */}
+      <div className="h-14 sm:h-16 flex-shrink-0" />
+
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
+        {/* Sidebar - Fixo na lateral */}
         <aside
           className={`
-            fixed lg:static inset-y-0 left-0 z-50
+            fixed inset-y-0 left-0 z-40
             w-52 sm:w-56 md:w-64 bg-white dark:bg-slate-800 shadow-lg dark:shadow-slate-900/50 border-r border-gray-200 dark:border-slate-700 transform transition-all duration-300 ease-in-out
             ${menuAberto ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             flex-shrink-0 overflow-y-auto
+            pt-14 sm:pt-16
           `}
         >
           <nav className="mt-4 sm:mt-6 px-2 sm:px-3 pb-4">
@@ -314,16 +318,18 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           />
         )}
 
-        {/* Main Content */}
-        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
+        {/* Main Content - Com margem para compensar sidebar fixo em telas grandes */}
+        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-slate-900 transition-colors duration-300 lg:ml-64">
           <div className="max-w-full">
             {children}
           </div>
         </main>
       </div>
 
-      {/* Rodape */}
-      <Rodape />
+      {/* Rodape - Com margem para compensar sidebar fixo em telas grandes */}
+      <div className="lg:ml-64">
+        <Rodape />
+      </div>
     </div>
   )
 }
