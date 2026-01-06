@@ -206,6 +206,84 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Buscar média geral, nota de produção e nível de aprendizagem
+    let mediaGeral = null
+    let notaProducao = null
+    let nivelAprendizagem = null
+    let notaLP = null
+    let notaCH = null
+    let notaMAT = null
+    let notaCN = null
+
+    try {
+      // Primeiro tenta buscar da view unificada
+      const consolidadoResult = await pool.query(
+        `SELECT
+          media_aluno,
+          nota_producao,
+          nivel_aprendizagem,
+          nota_lp,
+          nota_ch,
+          nota_mat,
+          nota_cn
+        FROM resultados_consolidados_unificada
+        WHERE aluno_id = $1
+        ${anoLetivo ? 'AND ano_letivo = $2' : ''}
+        LIMIT 1`,
+        anoLetivo ? [alunoId, anoLetivo] : [alunoId]
+      )
+
+      if (consolidadoResult.rows.length > 0) {
+        const consolidado = consolidadoResult.rows[0]
+        mediaGeral = consolidado.media_aluno ? parseFloat(consolidado.media_aluno) : null
+        notaProducao = consolidado.nota_producao ? parseFloat(consolidado.nota_producao) : null
+        nivelAprendizagem = consolidado.nivel_aprendizagem
+        notaLP = consolidado.nota_lp ? parseFloat(consolidado.nota_lp) : null
+        notaCH = consolidado.nota_ch ? parseFloat(consolidado.nota_ch) : null
+        notaMAT = consolidado.nota_mat ? parseFloat(consolidado.nota_mat) : null
+        notaCN = consolidado.nota_cn ? parseFloat(consolidado.nota_cn) : null
+      } else {
+        // Fallback: tenta buscar da tabela resultados_consolidados diretamente
+        const consolidadoFallback = await pool.query(
+          `SELECT
+            media_aluno,
+            nota_producao,
+            nivel_aprendizagem,
+            nota_lp,
+            nota_ch,
+            nota_mat,
+            nota_cn
+          FROM resultados_consolidados
+          WHERE aluno_id = $1
+          ${anoLetivo ? 'AND ano_letivo = $2' : ''}
+          LIMIT 1`,
+          anoLetivo ? [alunoId, anoLetivo] : [alunoId]
+        )
+
+        if (consolidadoFallback.rows.length > 0) {
+          const consolidado = consolidadoFallback.rows[0]
+          mediaGeral = consolidado.media_aluno ? parseFloat(consolidado.media_aluno) : null
+          notaProducao = consolidado.nota_producao ? parseFloat(consolidado.nota_producao) : null
+          nivelAprendizagem = consolidado.nivel_aprendizagem
+          notaLP = consolidado.nota_lp ? parseFloat(consolidado.nota_lp) : null
+          notaCH = consolidado.nota_ch ? parseFloat(consolidado.nota_ch) : null
+          notaMAT = consolidado.nota_mat ? parseFloat(consolidado.nota_mat) : null
+          notaCN = consolidado.nota_cn ? parseFloat(consolidado.nota_cn) : null
+        }
+      }
+
+      // Se ainda não encontrou média, calcula a partir dos acertos
+      if (mediaGeral === null && totalQuestoes > 0) {
+        mediaGeral = (totalAcertos / totalQuestoes) * 10
+      }
+    } catch (e) {
+      console.error('Erro ao buscar dados consolidados:', e)
+      // Se der erro na view, calcula a média simples
+      if (totalQuestoes > 0) {
+        mediaGeral = (totalAcertos / totalQuestoes) * 10
+      }
+    }
+
     return NextResponse.json({
       aluno: {
         id: aluno.id,
@@ -222,6 +300,15 @@ export async function GET(request: NextRequest) {
         acertos: totalAcertos,
         erros: totalErros,
         por_area: estatisticasPorArea,
+        media_geral: mediaGeral,
+        nota_producao: notaProducao,
+        nivel_aprendizagem: nivelAprendizagem,
+        notas_disciplinas: {
+          lingua_portuguesa: notaLP,
+          ciencias_humanas: notaCH,
+          matematica: notaMAT,
+          ciencias_natureza: notaCN,
+        },
       },
     })
   } catch (error: any) {
