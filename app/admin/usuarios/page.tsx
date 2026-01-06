@@ -189,22 +189,22 @@ export default function UsuariosPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
+                <table className="w-full min-w-[400px]">
                   <thead className="bg-gray-50 dark:bg-slate-700">
                     <tr>
-                      <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[150px]">
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap">
                         Nome
                       </th>
-                      <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[200px]">
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">
                         Email
                       </th>
-                      <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap">
                         Tipo
                       </th>
-                      <th className="text-left py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
                         Status
                       </th>
-                      <th className="text-right py-3 px-3 md:py-4 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
+                      <th className="text-right py-2 px-2 md:py-3 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap">
                         Ações
                       </th>
                     </tr>
@@ -221,25 +221,28 @@ export default function UsuariosPage() {
                     ) : (
                       usuariosFiltrados.map((usuario) => (
                         <tr key={usuario.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-2 sm:mr-3">
-                                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-indigo-600 dark:text-indigo-400" />
                               </div>
-                              <span className="font-medium text-gray-900 text-xs sm:text-sm md:text-base">{usuario.nome}</span>
+                              <div className="min-w-0">
+                                <span className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm md:text-base block truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">{usuario.nome}</span>
+                                <span className="text-gray-500 dark:text-gray-400 text-[10px] sm:hidden block truncate">{usuario.email}</span>
+                              </div>
                             </div>
                           </td>
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
-                            <span className="text-gray-600 text-xs sm:text-sm md:text-base">{usuario.email}</span>
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap hidden sm:table-cell">
+                            <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm md:text-base truncate block max-w-[150px] md:max-w-none">{usuario.email}</span>
                           </td>
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getTipoColor(usuario.tipo_usuario)}`}>
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${getTipoColor(usuario.tipo_usuario)}`}>
                               {getTipoLabel(usuario.tipo_usuario)}
                             </span>
                           </td>
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap hidden md:table-cell">
                             <span
-                              className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
+                              className={`inline-flex items-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
                                 usuario.ativo
                                   ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
                                   : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
@@ -248,7 +251,7 @@ export default function UsuariosPage() {
                               {usuario.ativo ? 'Ativo' : 'Inativo'}
                             </span>
                           </td>
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 text-right whitespace-nowrap">
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => handleAbrirModal(usuario)}

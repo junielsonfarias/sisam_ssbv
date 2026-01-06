@@ -339,11 +339,11 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, not
                         {/* Grid de questões detalhadas (apenas se disponível online) */}
                         {questoes.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-600">
-                            <div className="grid grid-cols-10 gap-1">
+                            <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1">
                               {questoes.map((questao) => (
                                 <div
                                   key={questao.codigo}
-                                  className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
+                                  className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-[10px] sm:text-xs font-bold ${
                                     questao.acertou
                                       ? 'bg-green-500 text-white'
                                       : 'bg-red-500 text-white'

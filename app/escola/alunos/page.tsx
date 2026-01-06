@@ -341,53 +341,53 @@ export default function AlunosEscolaPage() {
               </p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                  <thead className="bg-indigo-50">
+                <table className="w-full min-w-[350px]">
+                  <thead className="bg-indigo-50 dark:bg-indigo-900/30">
                     <tr>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Código</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Nome</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm">Turma</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm">Série</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm">Ano Letivo</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm">Status</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm">Ações</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm hidden sm:table-cell">Código</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm">Nome</th>
+                      <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm">Turma</th>
+                      <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm hidden md:table-cell">Série</th>
+                      <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm hidden lg:table-cell">Ano</th>
+                      <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm hidden lg:table-cell">Status</th>
+                      <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {alunosFiltrados.map((aluno) => (
-                      <tr key={aluno.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 dark:bg-slate-700">
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{aluno.codigo || '-'}</span>
+                      <tr key={aluno.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                        <td className="py-2 px-2 md:py-3 md:px-4 whitespace-nowrap hidden sm:table-cell">
+                          <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300 font-mono">{aluno.codigo || '-'}</span>
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{aluno.nome}</div>
+                        <td className="py-2 px-2 md:py-3 md:px-4 whitespace-nowrap">
+                          <div className="text-xs md:text-sm font-medium text-gray-900 dark:text-white truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">{aluno.nome}</div>
                         </td>
-                        <td className="py-3 px-4 text-center whitespace-nowrap">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{aluno.turma_codigo || aluno.turma_nome || '-'}</span>
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap">
+                          <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300">{aluno.turma_codigo || aluno.turma_nome || '-'}</span>
                         </td>
-                        <td className="py-3 px-4 text-center whitespace-nowrap">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{aluno.serie || '-'}</span>
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap hidden md:table-cell">
+                          <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300">{aluno.serie || '-'}</span>
                         </td>
-                        <td className="py-3 px-4 text-center whitespace-nowrap">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{aluno.ano_letivo || '-'}</span>
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap hidden lg:table-cell">
+                          <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300">{aluno.ano_letivo || '-'}</span>
                         </td>
-                        <td className="py-3 px-4 text-center whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap hidden lg:table-cell">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             aluno.ativo ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
                           }`}>
                             {aluno.ativo ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap">
                           <button
                             onClick={() => handleVisualizarHistorico(aluno)}
                             disabled={carregandoHistorico}
-                            className="text-indigo-600 hover:text-indigo-800 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-50"
+                            className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-50"
                             title="Ver histórico"
                           >
-                            <Eye className="w-5 h-5" />
+                            <Eye className="w-4 h-4 md:w-5 md:h-5" />
                           </button>
                         </td>
                       </tr>

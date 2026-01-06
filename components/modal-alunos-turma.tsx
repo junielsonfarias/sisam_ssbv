@@ -187,16 +187,16 @@ export default function ModalAlunosTurma({
 
                 {/* Tabela de Alunos */}
                 <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg">
-                  <table className="w-full min-w-[700px]">
+                  <table className="w-full min-w-[400px]">
                     <thead className="bg-gray-50 dark:bg-slate-700">
                       <tr>
-                        <th className="text-left py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[150px]">Aluno</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px]">Presença</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">LP</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">CH</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">MAT</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px]">CN</th>
-                        <th className="text-center py-2 sm:py-3 px-2 sm:px-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px]">Média Geral</th>
+                        <th className="text-left py-2 px-2 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap">Aluno</th>
+                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap hidden sm:table-cell">Presença</th>
+                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap">LP</th>
+                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap hidden sm:table-cell">CH</th>
+                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap">MAT</th>
+                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap hidden sm:table-cell">CN</th>
+                        <th className="text-center py-2 px-2 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap">Média</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
@@ -208,58 +208,63 @@ export default function ModalAlunosTurma({
                         })
                         .map((aluno) => (
                           <tr key={aluno.aluno_id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                            <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4">
+                            <td className="py-2 px-2 md:px-4">
                               <div className="flex items-center">
-                                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center mr-2 sm:mr-3">
-                                  <span className="text-indigo-600 dark:text-indigo-400 font-semibold text-xs sm:text-sm">
+                                <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center mr-2">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-semibold text-[10px] sm:text-xs">
                                     {aluno.aluno_nome.charAt(0).toUpperCase()}
                                   </span>
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm truncate">{aluno.aluno_nome}</span>
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm block truncate max-w-[80px] sm:max-w-[120px] md:max-w-none">{aluno.aluno_nome}</span>
+                                  <span className={`text-[10px] sm:hidden ${aluno.presenca === 'P' || aluno.presenca === 'p' ? 'text-green-600' : 'text-red-600'}`}>
+                                    {aluno.presenca === 'P' || aluno.presenca === 'p' ? '✓ P' : '✗ F'}
+                                  </span>
+                                </div>
                               </div>
                             </td>
-                            <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
+                            <td className="py-2 px-1 md:px-4 text-center hidden sm:table-cell">
                               <span
-                                className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold shadow-sm ${getPresencaColor(
+                                className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold ${getPresencaColor(
                                   aluno.presenca || 'P'
                                 )}`}
                               >
-                                {aluno.presenca === 'P' || aluno.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
+                                {aluno.presenca === 'P' || aluno.presenca === 'p' ? '✓ P' : '✗ F'}
                               </span>
                             </td>
-                            <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
+                            <td className="py-2 px-1 md:px-4 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.total_acertos_lp}/20</span>
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block">{aluno.total_acertos_lp}/20</span>
                                 <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_lp)}`}>
                                   {formatarNumero(aluno.nota_lp)}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
+                            <td className="py-2 px-1 md:px-4 text-center hidden sm:table-cell">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.total_acertos_ch}/10</span>
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block">{aluno.total_acertos_ch}/10</span>
                                 <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_ch)}`}>
                                   {formatarNumero(aluno.nota_ch)}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
+                            <td className="py-2 px-1 md:px-4 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.total_acertos_mat}/20</span>
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block">{aluno.total_acertos_mat}/20</span>
                                 <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_mat)}`}>
                                   {formatarNumero(aluno.nota_mat)}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
+                            <td className="py-2 px-1 md:px-4 text-center hidden sm:table-cell">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.total_acertos_cn}/10</span>
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block">{aluno.total_acertos_cn}/10</span>
                                 <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_cn)}`}>
                                   {formatarNumero(aluno.nota_cn)}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-2 sm:py-3 px-2 sm:px-3 md:px-4 text-center">
+                            <td className="py-2 px-2 md:px-4 text-center">
                               <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${
                                 getNotaColor(aluno.media_aluno).includes('green') ? 'bg-green-50 dark:bg-green-900/30' :
                                 getNotaColor(aluno.media_aluno).includes('yellow') ? 'bg-yellow-50 dark:bg-yellow-900/30' :

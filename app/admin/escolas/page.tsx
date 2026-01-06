@@ -231,22 +231,22 @@ export default function EscolasPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
+                <table className="w-full min-w-[350px]">
                   <thead className="bg-gray-50 dark:bg-slate-700">
                     <tr>
-                      <th className="text-left py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[200px]">
+                      <th className="text-left py-2 md:py-3 px-2 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap">
                         Nome
                       </th>
-                      <th className="text-left py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
+                      <th className="text-left py-2 md:py-3 px-2 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">
                         Código
                       </th>
-                      <th className="text-left py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[150px]">
+                      <th className="text-left py-2 md:py-3 px-2 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
                         Polo
                       </th>
-                      <th className="text-left py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[100px]">
+                      <th className="text-left py-2 md:py-3 px-2 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
                         Status
                       </th>
-                      <th className="text-right py-3 md:py-4 px-3 md:px-4 lg:px-6 font-semibold text-gray-700 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap min-w-[120px]">
+                      <th className="text-right py-2 md:py-3 px-2 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap">
                         Ações
                       </th>
                     </tr>
@@ -254,8 +254,8 @@ export default function EscolasPage() {
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {escolasFiltradas.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                          <School className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                        <td colSpan={5} className="py-12 text-center text-gray-500 dark:text-gray-400">
+                          <School className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
                           <p className="text-lg font-medium">Nenhuma escola encontrada</p>
                           <p className="text-sm">Tente ajustar os filtros de busca</p>
                         </td>
@@ -263,25 +263,28 @@ export default function EscolasPage() {
                     ) : (
                       escolasFiltradas.map((escola) => (
                         <tr key={escola.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-lg flex items-center justify-center mr-2 md:mr-3">
-                                <School className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center mr-2 flex-shrink-0">
+                                <School className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
                               </div>
-                              <span className="font-medium text-gray-900 text-xs md:text-sm lg:text-base">{escola.nome}</span>
+                              <div className="min-w-0">
+                                <span className="font-medium text-gray-900 dark:text-white text-xs md:text-sm lg:text-base block truncate max-w-[120px] sm:max-w-[180px] md:max-w-none">{escola.nome}</span>
+                                <span className="text-gray-500 dark:text-gray-400 text-[10px] md:hidden block">{escola.polo_nome || '-'}</span>
+                              </div>
                             </div>
                           </td>
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
-                            <span className="text-gray-600 font-mono text-xs md:text-sm bg-gray-100 px-2 py-1 rounded">
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap hidden sm:table-cell">
+                            <span className="text-gray-600 dark:text-gray-300 font-mono text-xs md:text-sm bg-gray-100 dark:bg-slate-600 px-1.5 md:px-2 py-0.5 md:py-1 rounded">
                               {escola.codigo || '-'}
                             </span>
                           </td>
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
-                            <span className="text-gray-600 text-xs md:text-sm">{escola.polo_nome || '-'}</span>
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap hidden md:table-cell">
+                            <span className="text-gray-600 dark:text-gray-300 text-xs md:text-sm">{escola.polo_nome || '-'}</span>
                           </td>
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 whitespace-nowrap">
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap hidden lg:table-cell">
                             <span
-                              className={`inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium ${
+                              className={`inline-flex items-center px-2 py-0.5 md:py-1 rounded-full text-xs font-medium ${
                                 escola.ativo
                                   ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
                                   : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
@@ -290,7 +293,7 @@ export default function EscolasPage() {
                               {escola.ativo ? 'Ativo' : 'Inativo'}
                             </span>
                           </td>
-                          <td className="py-3 md:py-4 px-3 md:px-4 lg:px-6 text-right whitespace-nowrap">
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => handleAbrirModal(escola)}

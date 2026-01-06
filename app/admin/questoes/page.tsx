@@ -453,72 +453,72 @@ export default function QuestoesPage() {
           ) : (
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
+                <table className="w-full min-w-[400px]">
                   <thead className="bg-gray-50 dark:bg-slate-700">
                     <tr>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-200 text-sm">Código</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-200 text-sm">Descrição</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-200 text-sm">Disciplina</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-200 text-sm">Série</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-200 text-sm">Tipo</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-200 text-sm">Gabarito</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-200 text-sm">Ações</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm">Código</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm hidden md:table-cell">Descrição</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm">Disciplina</th>
+                      <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm hidden sm:table-cell">Série</th>
+                      <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm hidden lg:table-cell">Tipo</th>
+                      <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm">Gab.</th>
+                      <th className="text-right py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {questoesFiltradas.map((questao) => (
                       <tr key={questao.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <td className="py-3 px-4">
-                          <span className="font-mono font-semibold text-gray-900 dark:text-white">
+                        <td className="py-2 px-2 md:py-3 md:px-4">
+                          <span className="font-mono font-semibold text-gray-900 dark:text-white text-xs md:text-sm">
                             {questao.codigo || '-'}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
-                          <span className="text-gray-700 dark:text-gray-300 text-sm">
+                        <td className="py-2 px-2 md:py-3 md:px-4 hidden md:table-cell">
+                          <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm">
                             {questao.descricao
-                              ? questao.descricao.length > 50
-                                ? `${questao.descricao.substring(0, 50)}...`
+                              ? questao.descricao.length > 40
+                                ? `${questao.descricao.substring(0, 40)}...`
                                 : questao.descricao
                               : '-'}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2 px-2 md:py-3 md:px-4">
                           {questao.disciplina ? (
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDisciplinaColor(questao.disciplina)}`}>
+                            <span className={`inline-flex items-center px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${getDisciplinaColor(questao.disciplina)}`}>
                               {questao.disciplina}
                             </span>
                           ) : (
                             <span className="text-gray-400 dark:text-gray-500">-</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-center hidden sm:table-cell">
                           {questao.serie_aplicavel ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200">
+                            <span className="inline-flex items-center px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200">
                               {questao.serie_aplicavel}
                             </span>
                           ) : (
                             <span className="text-gray-400 dark:text-gray-500">-</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-center hidden lg:table-cell">
+                          <span className={`inline-flex items-center px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${
                             questao.tipo_questao === 'objetiva'
                               ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
                               : 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200'
                           }`}>
-                            {questao.tipo_questao === 'objetiva' ? 'Objetiva' : 'Discursiva'}
+                            {questao.tipo_questao === 'objetiva' ? 'Obj' : 'Disc'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-center">
                           {questao.gabarito ? (
-                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-800 font-bold">
+                            <span className="inline-flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200 font-bold text-xs md:text-sm">
                               {questao.gabarito}
                             </span>
                           ) : (
                             <span className="text-gray-400 dark:text-gray-500">-</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-right">
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => handleAbrirModal(questao)}
