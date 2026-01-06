@@ -281,12 +281,12 @@ export default function PerfilPage() {
 
   const getTipoUsuarioColor = (tipo: string) => {
     const colors: Record<string, string> = {
-      administrador: 'bg-purple-100 text-purple-800 border-purple-200',
-      tecnico: 'bg-blue-100 text-blue-800 border-blue-200',
-      polo: 'bg-green-100 text-green-800 border-green-200',
-      escola: 'bg-orange-100 text-orange-800 border-orange-200'
+      administrador: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-800',
+      tecnico: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800',
+      polo: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800',
+      escola: 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800'
     }
-    return colors[tipo] || 'bg-gray-100 text-gray-800 border-gray-200'
+    return colors[tipo] || 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-slate-600'
   }
 
   // Determinar o tipo de usuário para o layout
@@ -298,8 +298,8 @@ export default function PerfilPage() {
         <LayoutDashboard tipoUsuario={tipoLayout}>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-              <p className="text-gray-600">Carregando perfil...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+              <p className="text-gray-600 dark:text-gray-400">Carregando perfil...</p>
             </div>
           </div>
         </LayoutDashboard>
@@ -311,12 +311,12 @@ export default function PerfilPage() {
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
       <LayoutDashboard tipoUsuario={tipoLayout}>
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Meu Perfil</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-6">Meu Perfil</h1>
 
           {/* Mensagem de feedback */}
           {mensagem && (
             <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
-              mensagem.tipo === 'sucesso' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              mensagem.tipo === 'sucesso' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
             }`}>
               {mensagem.tipo === 'sucesso' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
               {mensagem.texto}
@@ -325,11 +325,11 @@ export default function PerfilPage() {
 
           <div className="grid gap-6">
             {/* Card de Foto e Informações Básicas */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 border border-gray-200 dark:border-slate-700 p-6">
               <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                 {/* Foto de Perfil */}
                 <div className="relative">
-                  <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center border-4 border-indigo-100">
+                  <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center border-4 border-indigo-100 dark:border-indigo-900/50">
                     {perfil?.foto_url ? (
                       <img
                         src={perfil.foto_url}
@@ -337,7 +337,7 @@ export default function PerfilPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User className="w-16 h-16 text-gray-400" />
+                      <User className="w-16 h-16 text-gray-400 dark:text-gray-500" />
                     )}
                   </div>
 
