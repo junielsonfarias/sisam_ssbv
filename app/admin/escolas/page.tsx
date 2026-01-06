@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, School, X } from 'lucide-react'
+import { useToast } from '@/components/toast'
 
 interface Escola {
   id: string
@@ -15,6 +16,7 @@ interface Escola {
 }
 
 export default function EscolasPage() {
+  const toast = useToast()
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [escolas, setEscolas] = useState<Escola[]>([])
   const [polos, setPolos] = useState<any[]>([])
@@ -95,12 +97,13 @@ export default function EscolasPage() {
           telefone: '',
           email: '',
         })
+        toast.success(escolaEditando ? 'Escola atualizada com sucesso!' : 'Escola cadastrada com sucesso!')
       } else {
-        alert(data.mensagem || 'Erro ao salvar escola')
+        toast.error(data.mensagem || 'Erro ao salvar escola')
       }
     } catch (error) {
       console.error('Erro ao salvar escola:', error)
-      alert('Erro ao salvar escola')
+      toast.error('Erro ao salvar escola')
     } finally {
       setSalvando(false)
     }
@@ -135,27 +138,29 @@ export default function EscolasPage() {
     // Verificar se a escola tem alunos vinculados
     try {
       const verificarVinculos = await fetch(`/api/admin/escolas/verificar-vinculos?id=${id}`)
-      
+
       if (!verificarVinculos.ok) {
-        alert('Erro ao verificar vínculos da escola')
+        toast.error('Erro ao verificar vínculos da escola')
         return
       }
 
       const vinculos = await verificarVinculos.json()
-      
+
       if (vinculos.totalAlunos > 0 || vinculos.totalTurmas > 0 || vinculos.totalResultados > 0 || vinculos.totalConsolidados > 0 || vinculos.totalUsuarios > 0) {
-        let mensagem = `A escola "${nome}" não pode ser excluída porque possui vínculos:\n\n`
-        if (vinculos.totalAlunos > 0) mensagem += `• ${vinculos.totalAlunos} aluno(s)\n`
-        if (vinculos.totalTurmas > 0) mensagem += `• ${vinculos.totalTurmas} turma(s)\n`
-        if (vinculos.totalResultados > 0) mensagem += `• ${vinculos.totalResultados} resultado(s) de provas\n`
-        if (vinculos.totalConsolidados > 0) mensagem += `• ${vinculos.totalConsolidados} resultado(s) consolidado(s)\n`
-        if (vinculos.totalUsuarios > 0) mensagem += `• ${vinculos.totalUsuarios} usuário(s)\n`
-        alert(mensagem)
+        let mensagem = `Escola "${nome}" possui vínculos: `
+        const partes = []
+        if (vinculos.totalAlunos > 0) partes.push(`${vinculos.totalAlunos} aluno(s)`)
+        if (vinculos.totalTurmas > 0) partes.push(`${vinculos.totalTurmas} turma(s)`)
+        if (vinculos.totalResultados > 0) partes.push(`${vinculos.totalResultados} resultado(s)`)
+        if (vinculos.totalConsolidados > 0) partes.push(`${vinculos.totalConsolidados} consolidado(s)`)
+        if (vinculos.totalUsuarios > 0) partes.push(`${vinculos.totalUsuarios} usuário(s)`)
+        mensagem += partes.join(', ')
+        toast.warning(mensagem)
         return
       }
     } catch (error) {
       console.error('Erro ao verificar vínculos:', error)
-      alert('Erro ao verificar vínculos da escola')
+      toast.error('Erro ao verificar vínculos da escola')
       return
     }
 
@@ -172,23 +177,25 @@ export default function EscolasPage() {
 
       if (response.ok) {
         await carregarDados()
-        alert('Escola excluída com sucesso!')
+        toast.success('Escola excluída com sucesso!')
       } else {
         if (data.vinculos) {
-          let mensagem = `Não foi possível excluir a escola "${nome}" porque possui vínculos:\n\n`
-          if (data.vinculos.totalAlunos > 0) mensagem += `• ${data.vinculos.totalAlunos} aluno(s)\n`
-          if (data.vinculos.totalTurmas > 0) mensagem += `• ${data.vinculos.totalTurmas} turma(s)\n`
-          if (data.vinculos.totalResultados > 0) mensagem += `• ${data.vinculos.totalResultados} resultado(s) de provas\n`
-          if (data.vinculos.totalConsolidados > 0) mensagem += `• ${data.vinculos.totalConsolidados} resultado(s) consolidado(s)\n`
-          if (data.vinculos.totalUsuarios > 0) mensagem += `• ${data.vinculos.totalUsuarios} usuário(s)\n`
-          alert(mensagem)
+          let mensagem = `Escola possui vínculos: `
+          const partes = []
+          if (data.vinculos.totalAlunos > 0) partes.push(`${data.vinculos.totalAlunos} aluno(s)`)
+          if (data.vinculos.totalTurmas > 0) partes.push(`${data.vinculos.totalTurmas} turma(s)`)
+          if (data.vinculos.totalResultados > 0) partes.push(`${data.vinculos.totalResultados} resultado(s)`)
+          if (data.vinculos.totalConsolidados > 0) partes.push(`${data.vinculos.totalConsolidados} consolidado(s)`)
+          if (data.vinculos.totalUsuarios > 0) partes.push(`${data.vinculos.totalUsuarios} usuário(s)`)
+          mensagem += partes.join(', ')
+          toast.warning(mensagem)
         } else {
-          alert(data.mensagem || 'Erro ao excluir escola')
+          toast.error(data.mensagem || 'Erro ao excluir escola')
         }
       }
     } catch (error) {
       console.error('Erro ao excluir escola:', error)
-      alert('Erro ao excluir escola')
+      toast.error('Erro ao excluir escola')
     }
   }
 

@@ -1,36 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool, { resetPool } from '@/database/connection'
-import { hashPassword } from '@/lib/auth'
+import { hashPassword, getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * ENDPOINT DE INICIALIZACAO PROTEGIDO
+ *
+ * Este endpoint so pode ser usado:
+ * 1. Em desenvolvimento (para testes)
+ * 2. Por administradores autenticados
+ * 3. Quando nao existe nenhum admin no sistema (primeira execucao)
+ *
+ * Credenciais NUNCA sao retornadas na resposta.
+ */
 export async function POST(request: NextRequest) {
   try {
-    // Verificar se é ambiente de produção
-    if (process.env.NODE_ENV !== 'production') {
-      return NextResponse.json({
-        mensagem: 'Esta rota só está disponível em produção'
-      }, { status: 403 })
+    // Em producao, verificar se usuario esta autenticado como admin
+    // EXCETO se for primeira inicializacao (nenhum admin existe)
+    const usuario = await getUsuarioFromRequest(request)
+
+    // Verificar se ja existe algum admin no sistema
+    let adminExiste = false
+    try {
+      const checkAdmin = await pool.query(
+        "SELECT id FROM usuarios WHERE tipo_usuario = 'administrador' LIMIT 1"
+      )
+      adminExiste = checkAdmin.rows.length > 0
+    } catch (dbError) {
+      // Se der erro de conexao, assumir que nao existe admin ainda
+      adminExiste = false
     }
 
-    // Verificar variáveis de ambiente
+    // Se ja existe admin, exigir autenticacao
+    if (adminExiste) {
+      if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
+        return NextResponse.json({
+          erro: true,
+          mensagem: 'Acesso negado. Apenas administradores podem usar este endpoint.',
+          codigo: 'UNAUTHORIZED'
+        }, { status: 401 })
+      }
+    }
+
+    // Verificar variaveis de ambiente
     if (!process.env.DB_HOST || !process.env.DB_NAME || !process.env.DB_USER || !process.env.DB_PASSWORD) {
       return NextResponse.json({
         erro: true,
-        mensagem: 'Variáveis de ambiente do banco não configuradas',
-        variaveis_faltando: {
-          DB_HOST: !process.env.DB_HOST,
-          DB_NAME: !process.env.DB_NAME,
-          DB_USER: !process.env.DB_USER,
-          DB_PASSWORD: !process.env.DB_PASSWORD,
-        }
+        mensagem: 'Variaveis de ambiente do banco nao configuradas',
+        codigo: 'DB_CONFIG_ERROR'
       }, { status: 500 })
     }
 
     // Verificar se tabela existe
     const tableCheck = await pool.query(`
       SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
         AND table_name = 'usuarios'
       );
     `)
@@ -38,154 +65,114 @@ export async function POST(request: NextRequest) {
     if (!tableCheck.rows[0].exists) {
       return NextResponse.json({
         erro: true,
-        mensagem: 'Tabela usuarios não encontrada. Execute o schema SQL primeiro.'
+        mensagem: 'Tabela usuarios nao encontrada. Execute o schema SQL primeiro.',
+        codigo: 'TABLE_NOT_FOUND'
       }, { status: 500 })
     }
 
-    // Verificar se já existe admin
-    const checkAdmin = await pool.query(
-      "SELECT id, nome, email FROM usuarios WHERE email = 'admin@sisam.com' OR tipo_usuario = 'administrador' LIMIT 1"
+    // Verificar se ja existe admin
+    const checkAdminFinal = await pool.query(
+      "SELECT id, nome, email FROM usuarios WHERE tipo_usuario = 'administrador' LIMIT 1"
     )
 
-    if (checkAdmin.rows.length > 0) {
+    if (checkAdminFinal.rows.length > 0) {
       return NextResponse.json({
         sucesso: true,
-        mensagem: 'Usuário administrador já existe',
+        mensagem: 'Usuario administrador ja existe',
         usuario: {
-          email: checkAdmin.rows[0].email,
-          nome: checkAdmin.rows[0].nome
+          nome: checkAdminFinal.rows[0].nome
         }
       })
     }
 
-    // Criar usuário admin
-    const senhaHash = await hashPassword('admin123')
-    
+    // Gerar senha segura aleatoria (o admin precisara resetar via banco ou outro meio)
+    const senhaTemporaria = crypto.randomBytes(16).toString('hex')
+    const senhaHash = await hashPassword(senhaTemporaria)
+
     const result = await pool.query(
-      `INSERT INTO usuarios (nome, email, senha, tipo_usuario) 
+      `INSERT INTO usuarios (nome, email, senha, tipo_usuario)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (email) DO UPDATE SET senha = EXCLUDED.senha, tipo_usuario = EXCLUDED.tipo_usuario
+       ON CONFLICT (email) DO NOTHING
        RETURNING id, nome, email`,
       ['Administrador', 'admin@sisam.com', senhaHash, 'administrador']
     )
 
+    if (result.rows.length === 0) {
+      return NextResponse.json({
+        sucesso: true,
+        mensagem: 'Usuario administrador ja existe ou conflito de email'
+      })
+    }
+
+    // NAO retornar a senha - o admin deve resetar via banco de dados ou email
     return NextResponse.json({
       sucesso: true,
-      mensagem: 'Usuário administrador criado com sucesso!',
-      usuario: {
-        email: result.rows[0].email,
-        nome: result.rows[0].nome
-      },
-      credenciais: {
-        email: 'admin@sisam.com',
-        senha: 'admin123'
-      },
-      aviso: 'ALTERE A SENHA APÓS O PRIMEIRO ACESSO!'
+      mensagem: 'Usuario administrador criado. Acesse o banco de dados para definir a senha ou use o processo de recuperacao.',
+      aviso: 'Por seguranca, a senha temporaria NAO e exibida. Resete via banco de dados.'
     })
   } catch (error: any) {
-    console.error('Erro na inicialização:', error)
+    console.error('Erro na inicializacao:', error)
     return NextResponse.json({
       erro: true,
       mensagem: 'Erro ao inicializar sistema',
-      detalhes: error.message,
-      code: error.code
+      codigo: 'INIT_ERROR'
     }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    // Ler valores reais das variáveis (para debug)
-    // IMPORTANTE: Na Vercel, variáveis podem estar definidas mas vazias
-    // Remover quebras de linha que podem vir das variáveis de ambiente
-    const dbHost = process.env.DB_HOST?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
-    const dbName = process.env.DB_NAME?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
-    const dbUser = process.env.DB_USER?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
-    const dbPort = process.env.DB_PORT?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
-    const dbPassword = process.env.DB_PASSWORD?.trim().replace(/\r\n/g, '').replace(/\n/g, '') || ''
+    // Verificar autenticacao - apenas administradores podem ver status
+    const usuario = await getUsuarioFromRequest(request)
 
-    // Verificar status da inicialização
+    // Permitir acesso nao autenticado APENAS para verificar se sistema esta inicializado
+    // (se existe algum admin)
+    let adminExiste = false
+    let conexaoOk = false
+
+    try {
+      const checkAdmin = await pool.query(
+        "SELECT id FROM usuarios WHERE tipo_usuario = 'administrador' LIMIT 1"
+      )
+      adminExiste = checkAdmin.rows.length > 0
+      conexaoOk = true
+    } catch (dbError: any) {
+      // Erro de conexao
+      conexaoOk = false
+    }
+
+    // Se nao esta autenticado, retornar apenas info basica
+    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
+      return NextResponse.json({
+        sistema_inicializado: adminExiste,
+        conexao_banco: conexaoOk,
+        mensagem: adminExiste
+          ? 'Sistema ja inicializado. Faca login como administrador para mais detalhes.'
+          : 'Sistema nao inicializado. Use POST para criar o primeiro administrador.'
+      })
+    }
+
+    // Usuario autenticado como admin - retornar mais detalhes (mas sem expor sensiveis)
     const status: any = {
       ambiente: process.env.NODE_ENV,
       variaveis_configuradas: {
-        DB_HOST: !!dbHost && dbHost.length > 0,
-        DB_NAME: !!dbName && dbName.length > 0,
-        DB_USER: !!dbUser && dbUser.length > 0,
-        DB_PASSWORD: !!dbPassword && dbPassword.length > 0,
-        DB_PORT: !!dbPort && dbPort.length > 0,
+        DB_HOST: !!process.env.DB_HOST,
+        DB_NAME: !!process.env.DB_NAME,
+        DB_USER: !!process.env.DB_USER,
+        DB_PASSWORD: !!process.env.DB_PASSWORD,
+        DB_PORT: !!process.env.DB_PORT,
+        JWT_SECRET: !!process.env.JWT_SECRET,
       },
-      valores_reais: {
-        DB_HOST: dbHost || 'não configurado ou vazio',
-        DB_NAME: dbName || 'não configurado ou vazio',
-        DB_USER: dbUser || 'não configurado ou vazio',
-        DB_PORT: dbPort || 'não configurado ou vazio',
-        DB_PASSWORD: dbPassword ? '***' : 'não configurado ou vazio',
-      },
-      host: dbHost || 'não configurado',
-      database: dbName || 'não configurado',
-      aviso: dbHost === 'localhost' || dbHost === '' 
-        ? '⚠️ DB_HOST está como localhost ou vazio! Configure o host correto na Vercel.'
-        : null,
-    }
-
-    // Resetar pool para garantir que use as variáveis corretas
-    resetPool();
-    
-    // Tentar verificar se admin existe
-    try {
-      const checkAdmin = await pool.query(
-        "SELECT id, nome, email FROM usuarios WHERE email = 'admin@sisam.com' OR tipo_usuario = 'administrador' LIMIT 1"
-      )
-      
-      status.admin_existe = checkAdmin.rows.length > 0
-      if (checkAdmin.rows.length > 0) {
-        status.admin = {
-          email: checkAdmin.rows[0].email,
-          nome: checkAdmin.rows[0].nome
-        }
-      }
-    } catch (dbError: any) {
-      status.erro_conexao = dbError.message
-      status.code_erro = dbError.code
-      
-      // Mensagens de ajuda específicas para Supabase
-      if (dbError.code === 'ENOTFOUND') {
-        status.ajuda = {
-          problema: 'Hostname não encontrado (DNS)',
-          solucoes: [
-            'Verifique se o DB_HOST está correto no Supabase',
-            'Use o hostname do Connection Pooler (porta 6543) para aplicações',
-            'Use o hostname da Direct Connection (porta 5432) apenas para migrations',
-            'No Supabase: Settings → Database → Connection Pooling',
-            'Certifique-se de que o projeto está ativo e não pausado'
-          ]
-        }
-      } else if (dbError.code === 'ECONNREFUSED') {
-        status.ajuda = {
-          problema: 'Conexão recusada',
-          solucoes: [
-            'Verifique se a porta está correta (5432 ou 6543)',
-            'Verifique se o firewall permite conexões',
-            'No Supabase, use Connection Pooler (porta 6543) para aplicações'
-          ]
-        }
-      } else if (dbError.code === '28P01') {
-        status.ajuda = {
-          problema: 'Autenticação falhou',
-          solucoes: [
-            'Verifique se DB_USER e DB_PASSWORD estão corretos',
-            'Use as credenciais do Supabase (geralmente postgres)',
-            'Verifique se a senha não tem caracteres especiais que precisam ser escapados'
-          ]
-        }
-      }
+      conexao_banco: conexaoOk,
+      admin_existe: adminExiste,
     }
 
     return NextResponse.json(status)
   } catch (error: any) {
     return NextResponse.json({
       erro: true,
-      mensagem: error.message
+      mensagem: 'Erro ao verificar status',
+      codigo: 'STATUS_ERROR'
     }, { status: 500 })
   }
 }

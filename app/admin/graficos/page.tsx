@@ -2,9 +2,20 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense, lazy, memo, useMemo, useCallback } from 'react'
 import { Filter, BarChart3, TrendingUp, PieChart, Users, BookOpen, School, XCircle } from 'lucide-react'
-import { BarChart, Bar, LineChart, Line, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter, ReferenceLine } from 'recharts'
+import dynamic from 'next/dynamic'
+
+// Lazy load dos componentes Recharts para reduzir bundle inicial
+const BarChart = dynamic(() => import('recharts').then(mod => ({ default: mod.BarChart })), { ssr: false })
+const LineChart = dynamic(() => import('recharts').then(mod => ({ default: mod.LineChart })), { ssr: false })
+const RechartsPie = dynamic(() => import('recharts').then(mod => ({ default: mod.PieChart })), { ssr: false })
+const RadarChart = dynamic(() => import('recharts').then(mod => ({ default: mod.RadarChart })), { ssr: false })
+const ScatterChart = dynamic(() => import('recharts').then(mod => ({ default: mod.ScatterChart })), { ssr: false })
+const ResponsiveContainer = dynamic(() => import('recharts').then(mod => ({ default: mod.ResponsiveContainer })), { ssr: false })
+
+// Componentes auxiliares importados diretamente (pequenos)
+import { Bar, Line, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ReferenceLine } from 'recharts'
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 

@@ -5,6 +5,7 @@ import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, X, Calendar, FileText, BookOpen, Settings, ChevronDown, ChevronUp, AlertCircle, Check } from 'lucide-react'
 import Link from 'next/link'
+import { useToast } from '@/components/toast'
 
 interface Questao {
   id: string
@@ -38,6 +39,7 @@ interface ConfiguracaoSerie {
 }
 
 export default function QuestoesPage() {
+  const toast = useToast()
   const [questoes, setQuestoes] = useState<Questao[]>([])
   const [configSeries, setConfigSeries] = useState<ConfiguracaoSerie[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -196,12 +198,13 @@ export default function QuestoesPage() {
         setMostrarModal(false)
         setQuestaoEditando(null)
         resetForm()
+        toast.success(questaoEditando ? 'Questão atualizada com sucesso!' : 'Questão cadastrada com sucesso!')
       } else {
-        alert(data.mensagem || 'Erro ao salvar questão')
+        toast.error(data.mensagem || 'Erro ao salvar questão')
       }
     } catch (error) {
       console.error('Erro ao salvar questão:', error)
-      alert('Erro ao salvar questão')
+      toast.error('Erro ao salvar questão')
     } finally {
       setSalvando(false)
     }
@@ -247,13 +250,14 @@ export default function QuestoesPage() {
       const response = await fetch(`/api/admin/questoes?id=${id}`, { method: 'DELETE' })
       if (response.ok) {
         await carregarDados()
+        toast.success('Questão excluída com sucesso!')
       } else {
         const data = await response.json()
-        alert(data.mensagem || 'Erro ao excluir questão')
+        toast.error(data.mensagem || 'Erro ao excluir questão')
       }
     } catch (error) {
       console.error('Erro ao excluir:', error)
-      alert('Erro ao excluir questão')
+      toast.error('Erro ao excluir questão')
     }
   }
 

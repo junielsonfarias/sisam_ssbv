@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo, useCallback } from 'react'
 import { X, CheckCircle2, XCircle, BookOpen, TrendingUp, Award, AlertCircle, WifiOff, BarChart3 } from 'lucide-react'
 import * as offlineStorage from '@/lib/offline-storage'
 
@@ -66,7 +66,7 @@ interface ModalQuestoesAlunoProps {
   onClose: () => void
 }
 
-export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, isOpen, onClose }: ModalQuestoesAlunoProps) {
+function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, isOpen, onClose }: ModalQuestoesAlunoProps) {
   const [dados, setDados] = useState<DadosAluno | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -410,3 +410,6 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, not
     </div>
   )
 }
+
+// Memoizar para evitar re-renders desnecessarios quando o parent atualiza
+export default memo(ModalQuestoesAluno)

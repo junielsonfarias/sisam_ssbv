@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import { useState, useEffect } from 'react'
 import { Database, Calendar, FileText, CheckCircle, XCircle, Clock, AlertCircle, Filter, Search, StopCircle } from 'lucide-react'
+import { useToast } from '@/components/toast'
 
 interface Importacao {
   id: string
@@ -32,6 +33,7 @@ interface Importacao {
 }
 
 export default function ImportacoesPage() {
+  const toast = useToast()
   const [importacoes, setImportacoes] = useState<Importacao[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -105,14 +107,14 @@ export default function ImportacoesPage() {
       const data = await response.json()
 
       if (response.ok) {
-        alert(`✅ ${data.mensagem}`)
+        toast.success(data.mensagem || 'Importações canceladas com sucesso!')
         // Recarregar a lista
         carregarImportacoes()
       } else {
-        setErro(data.mensagem || 'Erro ao cancelar importações')
+        toast.error(data.mensagem || 'Erro ao cancelar importações')
       }
     } catch (error) {
-      setErro('Erro ao conectar com o servidor')
+      toast.error('Erro ao conectar com o servidor')
     } finally {
       setCancelando(false)
     }

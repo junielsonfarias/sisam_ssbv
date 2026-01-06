@@ -4,7 +4,10 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(git add:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

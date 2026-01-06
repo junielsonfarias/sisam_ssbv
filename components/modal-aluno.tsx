@@ -1,5 +1,6 @@
 'use client'
 
+import { memo, useCallback } from 'react'
 import { X } from 'lucide-react'
 
 interface ModalAlunoProps {
@@ -18,7 +19,7 @@ interface ModalAlunoProps {
   onEscolaChange: (escolaId: string) => void
 }
 
-export default function ModalAluno({
+function ModalAlunoComponent({
   mostrar,
   alunoEditando,
   formData,
@@ -186,3 +187,5 @@ export default function ModalAluno({
   )
 }
 
+// Memoizar para evitar re-renders desnecessarios quando o parent atualiza
+export default memo(ModalAlunoComponent)

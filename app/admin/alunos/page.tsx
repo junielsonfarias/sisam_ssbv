@@ -6,6 +6,7 @@ import ModalAluno from '@/components/modal-aluno'
 import ModalHistoricoAluno from '@/components/modal-historico-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Plus, Edit, Trash2, Search, Eye } from 'lucide-react'
+import { useToast } from '@/components/toast'
 
 interface Aluno {
   id: string
@@ -63,6 +64,7 @@ interface Paginacao {
 }
 
 export default function AlunosPage() {
+  const toast = useToast()
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [polos, setPolos] = useState<any[]>([])
@@ -95,25 +97,41 @@ export default function AlunosPage() {
   })
   const [paginaAtual, setPaginaAtual] = useState(1)
 
+  // Carregamento inicial otimizado - requisicoes em paralelo
   useEffect(() => {
-    const carregarTipoUsuario = async () => {
+    const carregarDadosIniciais = async () => {
       try {
-        const response = await fetch('/api/auth/verificar')
-        const data = await response.json()
-        if (data.usuario) {
-          const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-          setTipoUsuario(tipo)
+        // Executar requisicoes em paralelo para reduzir tempo de carregamento
+        const [authRes, polosRes] = await Promise.all([
+          fetch('/api/auth/verificar').catch(() => null),
+          fetch('/api/admin/polos').catch(() => null)
+        ])
+
+        // Processar resposta de autenticacao
+        if (authRes?.ok) {
+          const authData = await authRes.json()
+          if (authData.usuario) {
+            const tipo = authData.usuario.tipo_usuario === 'administrador' ? 'admin' : authData.usuario.tipo_usuario
+            setTipoUsuario(tipo)
+          }
+        }
+
+        // Processar resposta de polos
+        if (polosRes?.ok) {
+          const polosData = await polosRes.json()
+          setPolos(Array.isArray(polosData) ? polosData : [])
+        } else {
+          setPolos([])
         }
       } catch (error) {
-        console.error('Erro ao carregar tipo de usuário:', error)
+        console.error('Erro ao carregar dados iniciais:', error)
+        setPolos([])
+      } finally {
+        setCarregando(false)
       }
     }
-    carregarTipoUsuario()
-    fetch('/api/admin/polos')
-      .then(r => r.json())
-      .then(setPolos)
-      .catch(() => setPolos([]))
-      .finally(() => setCarregando(false))
+
+    carregarDadosIniciais()
   }, [])
 
   useEffect(() => {
@@ -155,7 +173,8 @@ export default function AlunosPage() {
     }
   }, [buscaDebounced, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, escolas])
 
-  const carregarAlunos = async (pagina: number = paginaAtual) => {
+  // Funcao memoizada para carregar alunos - evita re-criacao a cada render
+  const carregarAlunos = useCallback(async (pagina: number = paginaAtual) => {
     try {
       setCarregando(true)
       const params = new URLSearchParams()
@@ -252,29 +271,28 @@ export default function AlunosPage() {
     } finally {
       setCarregando(false)
     }
-  }
+  }, [paginaAtual, filtroEscola, filtroTurma, filtroSerie, filtroAno, buscaDebounced, filtroPolo, escolas])
 
-  // Funções de navegação de página
-  const irParaPagina = (pagina: number) => {
+  // Funcoes de navegacao de pagina - memoizadas para evitar re-renders
+  const irParaPagina = useCallback((pagina: number) => {
     setPaginaAtual(pagina)
     carregarAlunos(pagina)
-  }
+  }, [carregarAlunos])
 
-  const paginaAnterior = () => {
+  const paginaAnterior = useCallback(() => {
     if (paginacao.temAnterior) {
       irParaPagina(paginaAtual - 1)
     }
-  }
+  }, [paginacao.temAnterior, paginaAtual, irParaPagina])
 
-  const proximaPagina = () => {
+  const proximaPagina = useCallback(() => {
     if (paginacao.temProxima) {
       irParaPagina(paginaAtual + 1)
     }
-  }
+  }, [paginacao.temProxima, paginaAtual, irParaPagina])
 
-  useEffect(() => {
-    carregarAlunos()
-  }, [buscaDebounced, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, escolas])
+  // REMOVIDO: useEffect duplicado que causava dupla execucao de carregarAlunos
+  // O carregamento de alunos ja e feito no useEffect da linha 152-156
 
   const handleAbrirModal = async (aluno?: Aluno) => {
     if (aluno) {
@@ -325,7 +343,7 @@ export default function AlunosPage() {
 
   const handleSalvar = async () => {
     if (!formData.nome || !formData.escola_id) {
-      alert('Nome e escola são obrigatórios')
+      toast.warning('Nome e escola são obrigatórios')
       return
     }
 
@@ -344,12 +362,13 @@ export default function AlunosPage() {
         setMostrarModal(false)
         setAlunoEditando(null)
         setFormData(formDataInicial)
+        toast.success(alunoEditando ? 'Aluno atualizado com sucesso!' : 'Aluno cadastrado com sucesso!')
       } else {
-        alert(data.mensagem || 'Erro ao salvar aluno')
+        toast.error(data.mensagem || 'Erro ao salvar aluno')
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)
-      alert('Erro ao salvar aluno')
+      toast.error('Erro ao salvar aluno')
     } finally {
       setSalvando(false)
     }
@@ -367,12 +386,12 @@ export default function AlunosPage() {
       if (response.ok) {
         setHistoricoAluno(data)
       } else {
-        alert(data.mensagem || 'Erro ao carregar histórico')
+        toast.error(data.mensagem || 'Erro ao carregar histórico')
         setMostrarModalHistorico(false)
       }
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
-      alert('Erro ao carregar histórico')
+      toast.error('Erro ao carregar histórico')
       setMostrarModalHistorico(false)
     } finally {
       setCarregandoHistorico(false)
@@ -387,12 +406,13 @@ export default function AlunosPage() {
       const data = await response.json()
       if (response.ok) {
         await carregarAlunos()
+        toast.success('Aluno excluído com sucesso!')
       } else {
-        alert(data.mensagem || 'Erro ao excluir')
+        toast.error(data.mensagem || 'Erro ao excluir')
       }
     } catch (error) {
       console.error('Erro ao excluir:', error)
-      alert('Erro ao excluir aluno')
+      toast.error('Erro ao excluir aluno')
     }
   }
 

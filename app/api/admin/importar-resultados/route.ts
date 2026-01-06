@@ -4,6 +4,10 @@ import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic';
+
+// Tamanho do batch para inserts
+const BATCH_SIZE = 500
+
 export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -39,7 +43,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Mapear questões para áreas
+    // Mapear questoes para areas
     const questoesMap = [
       { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
       { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas' },
@@ -47,7 +51,7 @@ export async function POST(request: NextRequest) {
       { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza' },
     ]
 
-    // Criar registro de importação
+    // Criar registro de importacao
     const importacaoResult = await pool.query(
       `INSERT INTO importacoes (usuario_id, nome_arquivo, total_linhas, status)
        VALUES ($1, $2, $3, 'processando')
@@ -61,36 +65,114 @@ export async function POST(request: NextRequest) {
     let linhasComErro = 0
     const erros: string[] = []
 
-    // Cache para evitar consultas repetidas
-    const cacheEscolas = new Map<string, string>() // nome -> id
-    const cacheAlunos = new Map<string, string>() // nome+escola -> id
-    const cacheTurmas = new Map<string, string>() // codigo+escola -> id
+    // =====================================================
+    // PRE-CARREGAR DADOS EM CACHE (evita N+1 queries)
+    // =====================================================
+
+    // Cache de questoes - carregar TODAS de uma vez
+    const cacheQuestoes = new Map<string, string>()
+    const questoesResult = await pool.query('SELECT id, codigo FROM questoes')
+    for (const q of questoesResult.rows) {
+      cacheQuestoes.set(q.codigo, q.id)
+    }
+
+    // Cache para escolas, alunos e turmas
+    const cacheEscolas = new Map<string, string>()
+    const cacheAlunos = new Map<string, string>()
+    const cacheTurmas = new Map<string, string>()
+
+    // Pre-carregar escolas ativas
+    const escolasResult = await pool.query(
+      'SELECT id, UPPER(TRIM(nome)) as nome_norm FROM escolas WHERE ativo = true'
+    )
+    for (const e of escolasResult.rows) {
+      cacheEscolas.set(e.nome_norm, e.id)
+    }
+
+    // Pre-carregar alunos do ano letivo
+    const alunosResult = await pool.query(
+      `SELECT id, UPPER(TRIM(nome)) as nome_norm, escola_id
+       FROM alunos WHERE ano_letivo = $1`,
+      [anoLetivo]
+    )
+    for (const a of alunosResult.rows) {
+      const key = `${a.nome_norm}_${a.escola_id}`
+      cacheAlunos.set(key, a.id)
+    }
+
+    // Pre-carregar turmas do ano letivo
+    const turmasResult = await pool.query(
+      'SELECT id, codigo, escola_id FROM turmas WHERE ano_letivo = $1',
+      [anoLetivo]
+    )
+    for (const t of turmasResult.rows) {
+      const key = `${t.codigo}_${t.escola_id}`
+      cacheTurmas.set(key, t.id)
+    }
+
+    // =====================================================
+    // PROCESSAR DADOS E PREPARAR BATCHES
+    // =====================================================
+
+    // Buffer para batch insert
+    let batchValues: any[][] = []
+    let totalQuestoesImportadas = 0
+
+    // Funcao para executar batch insert
+    const executarBatch = async () => {
+      if (batchValues.length === 0) return
+
+      // Construir query de batch insert
+      const placeholders: string[] = []
+      const params: any[] = []
+      let paramIndex = 1
+
+      for (const values of batchValues) {
+        const rowPlaceholders = values.map(() => `$${paramIndex++}`).join(', ')
+        placeholders.push(`(${rowPlaceholders})`)
+        params.push(...values)
+      }
+
+      const query = `
+        INSERT INTO resultados_provas
+        (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo,
+         resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca)
+        VALUES ${placeholders.join(', ')}
+        ON CONFLICT (aluno_id, questao_codigo, ano_letivo)
+        DO UPDATE SET
+          resposta_aluno = EXCLUDED.resposta_aluno,
+          acertou = EXCLUDED.acertou,
+          nota = EXCLUDED.nota,
+          presenca = EXCLUDED.presenca,
+          atualizado_em = CURRENT_TIMESTAMP
+      `
+
+      await pool.query(query, params)
+      totalQuestoesImportadas += batchValues.length
+      batchValues = []
+    }
 
     // Processar cada linha (cada linha = um aluno)
     for (let i = 0; i < dados.length; i++) {
       try {
         const linha = dados[i] as any
 
-        // Extrair dados básicos
+        // Extrair dados basicos
         const escolaNome = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
         const alunoNome = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
         const turmaCodigo = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
         const serie = (linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['serie'] || linha['Ano'] || '').toString().trim()
-        
-        // Tratamento da presença/falta (mesma lógica do importar-completo)
-        // Se não houver coluna de frequência, usar "-" (não deve ser contado nas médias)
-        let presenca: string | null = null // null indica que não há dados de frequência
-        
-        // Verificar se existe coluna FALTA (indica falta)
+
+        // Tratamento da presenca/falta
+        let presenca: string | null = null
+
         const colunaFalta = linha['FALTA'] || linha['Falta'] || linha['falta']
         const colunaPresenca = linha['PRESENÇA'] || linha['Presença'] || linha['presenca']
-        
-        // Verificar se existe alguma coluna de frequência com valor
+
         const temColunaFalta = colunaFalta !== undefined && colunaFalta !== null && colunaFalta !== ''
         const temColunaPresenca = colunaPresenca !== undefined && colunaPresenca !== null && colunaPresenca !== ''
-        
+
         if (temColunaFalta) {
-          // Se existe coluna FALTA e tem valor, verificar o valor
           const valorFalta = colunaFalta.toString().trim().toUpperCase()
           if (valorFalta === 'F' || valorFalta === 'X' || valorFalta === 'FALTOU' || valorFalta === 'AUSENTE' || valorFalta === 'SIM' || valorFalta === '1' || valorFalta === 'S') {
             presenca = 'F'
@@ -100,7 +182,6 @@ export async function POST(request: NextRequest) {
             presenca = 'F'
           }
         } else if (temColunaPresenca) {
-          // Se existe coluna PRESENÇA, verificar o valor
           const valorPresenca = colunaPresenca.toString().trim().toUpperCase()
           if (valorPresenca === 'P' || valorPresenca === 'PRESENTE' || valorPresenca === 'SIM' || valorPresenca === '1' || valorPresenca === 'S') {
             presenca = 'P'
@@ -108,69 +189,32 @@ export async function POST(request: NextRequest) {
             presenca = 'F'
           }
         }
-        // Se não houver coluna de frequência (nem FALTA nem PRESENÇA), presenca permanece null (será tratado como "-")
 
         if (!escolaNome || !alunoNome) {
           throw new Error('Linha sem escola ou aluno')
         }
 
-        // Buscar escola (com cache)
-        let escolaId = cacheEscolas.get(escolaNome)
+        // Buscar escola do cache
+        const escolaNomeNorm = escolaNome.toUpperCase().trim()
+        const escolaId = cacheEscolas.get(escolaNomeNorm)
+
         if (!escolaId) {
-          const escolaResult = await pool.query(
-            'SELECT id FROM escolas WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1)) AND ativo = true LIMIT 1',
-            [escolaNome]
-          )
-
-          if (escolaResult.rows.length === 0) {
-            throw new Error(`Escola não encontrada: "${escolaNome}"`)
-          }
-
-          escolaId = escolaResult.rows[0].id
-          if (escolaId) {
-            cacheEscolas.set(escolaNome, escolaId)
-          }
+          throw new Error(`Escola não encontrada: "${escolaNome}"`)
         }
 
-        // Buscar turma (com cache)
+        // Buscar turma do cache
         let turmaId: string | null = null
         if (turmaCodigo) {
-          const cacheKey = `${turmaCodigo}_${escolaId}`
-          turmaId = cacheTurmas.get(cacheKey) || null
-
-          if (!turmaId) {
-            const turmaResult = await pool.query(
-              'SELECT id FROM turmas WHERE codigo = $1 AND escola_id = $2 AND ano_letivo = $3 LIMIT 1',
-              [turmaCodigo, escolaId, anoLetivo]
-            )
-            if (turmaResult.rows.length > 0) {
-              turmaId = turmaResult.rows[0].id
-              if (turmaId) {
-                cacheTurmas.set(cacheKey, turmaId)
-              }
-            }
-          }
+          const turmaKey = `${turmaCodigo}_${escolaId}`
+          turmaId = cacheTurmas.get(turmaKey) || null
         }
 
-        // Buscar aluno (com cache)
-        const alunoCacheKey = `${alunoNome}_${escolaId}`
-        let alunoId = cacheAlunos.get(alunoCacheKey)
+        // Buscar aluno do cache
+        const alunoNomeNorm = alunoNome.toUpperCase().trim()
+        const alunoCacheKey = `${alunoNomeNorm}_${escolaId}`
+        const alunoId = cacheAlunos.get(alunoCacheKey) || null
 
-        if (!alunoId) {
-          const alunoResult = await pool.query(
-            'SELECT id FROM alunos WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1)) AND escola_id = $2 AND ano_letivo = $3 LIMIT 1',
-            [alunoNome, escolaId, anoLetivo]
-          )
-
-          if (alunoResult.rows.length > 0) {
-            alunoId = alunoResult.rows[0].id
-            if (alunoId) {
-              cacheAlunos.set(alunoCacheKey, alunoId)
-            }
-          }
-        }
-
-        // Verificar se há dados de resultados (questões respondidas)
+        // Verificar se ha dados de resultados
         let temResultados = false
         for (const { inicio, fim } of questoesMap) {
           for (let num = inicio; num <= fim; num++) {
@@ -183,79 +227,60 @@ export async function POST(request: NextRequest) {
           }
           if (temResultados) break
         }
-        
-        // Determinar presença final
-        // Se não houver dados de frequência E não houver resultados, usar "-" (não deve ser contado)
+
+        // Determinar presenca final
         let presencaFinal: string
         if (presenca === null && !temResultados) {
-          // Não há frequência nem resultados - usar "-"
           presencaFinal = '-'
         } else if (presenca === null) {
-          // Não há frequência, mas há resultados - assumir presente para não perder os dados
           presencaFinal = 'P'
         } else {
-          // Há dados de frequência - usar o valor
           presencaFinal = presenca
         }
-        
+
         const alunoFaltou = presencaFinal === 'F'
         const semDados = presencaFinal === '-'
-        
-        // Processar cada questão (Q1 a Q60)
+
+        // Processar cada questao e adicionar ao batch
         for (const { inicio, fim, area, disciplina } of questoesMap) {
           for (let num = inicio; num <= fim; num++) {
             const colunaQuestao = `Q${num}`
             const valorQuestao = linha[colunaQuestao]
 
             if (valorQuestao === undefined || valorQuestao === null || valorQuestao === '') {
-              continue // Pular se não houver valor
+              continue
             }
 
-            // Converter para boolean (1 = acertou, 0 = errou)
             const acertou = valorQuestao === '1' || valorQuestao === 1 || valorQuestao === 'X' || valorQuestao === 'x'
             const nota = acertou ? 1 : 0
 
-            // Buscar questão
             const questaoCodigo = `Q${num}`
-            const questaoResult = await pool.query(
-              'SELECT id FROM questoes WHERE codigo = $1 LIMIT 1',
-              [questaoCodigo]
-            )
+            const questaoId = cacheQuestoes.get(questaoCodigo) || null
 
-            const questaoId = questaoResult.rows.length > 0 ? questaoResult.rows[0].id : null
+            // Adicionar ao batch
+            batchValues.push([
+              escolaId,
+              alunoId || null,
+              alunoId ? null : `ALU${(i + 1).toString().padStart(4, '0')}`,
+              alunoNome,
+              turmaId,
+              questaoId,
+              questaoCodigo,
+              (alunoFaltou || semDados) ? null : (acertou ? '1' : '0'),
+              (alunoFaltou || semDados) ? false : acertou,
+              (alunoFaltou || semDados) ? 0 : nota,
+              anoLetivo,
+              serie || null,
+              turmaCodigo || null,
+              disciplina,
+              area,
+              presencaFinal,
+            ])
 
-            // Inserir resultado
-            await pool.query(
-              `INSERT INTO resultados_provas 
-               (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo, 
-                resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-               ON CONFLICT (aluno_id, questao_codigo, ano_letivo) 
-               DO UPDATE SET
-                 resposta_aluno = EXCLUDED.resposta_aluno,
-                 acertou = EXCLUDED.acertou,
-                 nota = EXCLUDED.nota,
-                 presenca = EXCLUDED.presenca,
-                 atualizado_em = CURRENT_TIMESTAMP`,
-              [
-                escolaId,
-                alunoId || null,
-                alunoId ? null : `ALU${(i + 1).toString().padStart(4, '0')}`,
-                alunoNome,
-                turmaId,
-                questaoId,
-                questaoCodigo,
-                (alunoFaltou || semDados) ? null : (acertou ? '1' : '0'),
-                (alunoFaltou || semDados) ? false : acertou,
-                (alunoFaltou || semDados) ? 0 : nota,
-                anoLetivo,
-                serie || null,
-                turmaCodigo || null,
-                disciplina,
-                area,
-                presencaFinal,
-              ]
-            )
+            // Executar batch quando atingir o tamanho maximo
+            if (batchValues.length >= BATCH_SIZE) {
+              await executarBatch()
+            }
           }
         }
 
@@ -271,10 +296,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Atualizar importação
+    // Executar batch restante
+    await executarBatch()
+
+    // Atualizar importacao
     await pool.query(
-      `UPDATE importacoes 
-       SET linhas_processadas = $1, linhas_com_erro = $2, 
+      `UPDATE importacoes
+       SET linhas_processadas = $1, linhas_com_erro = $2,
            status = $3, concluido_em = CURRENT_TIMESTAMP,
            erros = $4
        WHERE id = $5`,
@@ -293,7 +321,7 @@ export async function POST(request: NextRequest) {
       total_linhas: dados.length,
       linhas_processadas: linhasProcessadas,
       linhas_com_erro: linhasComErro,
-      total_questoes_importadas: linhasProcessadas * 60, // Cada aluno tem 60 questões
+      total_questoes_importadas: totalQuestoesImportadas,
       erros: erros.slice(0, 20),
     })
   } catch (error: any) {

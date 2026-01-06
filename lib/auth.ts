@@ -4,7 +4,19 @@ import bcrypt from 'bcryptjs';
 import pool from '@/database/connection';
 import { Usuario, TipoUsuario } from './types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-aqui-altere-em-producao';
+// IMPORTANTE: JWT_SECRET DEVE ser configurado via variavel de ambiente
+// Em producao, NUNCA use o valor padrao - gere uma chave segura com pelo menos 32 caracteres
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// Validar JWT_SECRET na inicializacao
+if (!JWT_SECRET) {
+  console.error('ERRO CRITICO: JWT_SECRET nao esta configurado!');
+  console.error('Configure a variavel de ambiente JWT_SECRET com uma chave segura de pelo menos 32 caracteres.');
+}
+
+if (JWT_SECRET && JWT_SECRET.length < 32) {
+  console.warn('AVISO: JWT_SECRET deve ter pelo menos 32 caracteres para seguranca adequada.');
+}
 
 export interface TokenPayload {
   userId: string;
@@ -24,14 +36,18 @@ export async function comparePassword(senha: string, hash: string): Promise<bool
 
 export function generateToken(payload: TokenPayload): string {
   try {
-    if (!JWT_SECRET || JWT_SECRET === 'sua-chave-secreta-aqui-altere-em-producao') {
-      console.warn('⚠️ JWT_SECRET está usando valor padrão. Configure JWT_SECRET no .env para produção!')
+    if (!JWT_SECRET) {
+      throw new Error('JWT_SECRET nao esta configurado. Configure a variavel de ambiente JWT_SECRET.')
     }
-    
+
+    if (JWT_SECRET.length < 32) {
+      console.warn('AVISO: JWT_SECRET deve ter pelo menos 32 caracteres para seguranca adequada.')
+    }
+
     if (!payload.userId || !payload.email || !payload.tipoUsuario) {
-      throw new Error('Payload do token incompleto. userId, email e tipoUsuario são obrigatórios.')
+      throw new Error('Payload do token incompleto. userId, email e tipoUsuario sao obrigatorios.')
     }
-    
+
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
   } catch (error: any) {
     console.error('Erro ao gerar token JWT:', error)
@@ -41,6 +57,10 @@ export function generateToken(payload: TokenPayload): string {
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
+    if (!JWT_SECRET) {
+      console.error('JWT_SECRET nao esta configurado')
+      return null;
+    }
     return jwt.verify(token, JWT_SECRET) as TokenPayload;
   } catch {
     return null;

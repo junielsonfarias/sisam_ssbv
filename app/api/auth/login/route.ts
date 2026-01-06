@@ -1,31 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { comparePassword, generateToken } from '@/lib/auth'
+import { checkRateLimit, resetRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
+    // Obter IP do cliente para rate limiting
+    const clientIP = getClientIP(request)
+
     let body
     try {
       body = await request.json()
     } catch (jsonError: any) {
       console.error('Erro ao parsear JSON:', jsonError)
       return NextResponse.json(
-        { mensagem: 'Erro ao processar dados da requisição' },
+        { mensagem: 'Erro ao processar dados da requisicao' },
         { status: 400 }
       )
     }
-    
+
     const { email, senha } = body
-    
+
     if (!email || !senha) {
       return NextResponse.json(
-        { mensagem: 'Email e senha são obrigatórios' },
+        { mensagem: 'Email e senha sao obrigatorios' },
         { status: 400 }
       )
     }
-    
-    console.log('Tentativa de login para:', email)
+
+    // Verificar rate limit ANTES de processar login
+    // Usar combinacao de IP + email para evitar ataques distribuidos
+    const rateLimitKey = createRateLimitKey(clientIP, email)
+    const rateLimitResult = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000) // 5 tentativas em 15 min
+
+    if (!rateLimitResult.allowed) {
+      console.warn(`Rate limit excedido para ${rateLimitKey}`)
+      return NextResponse.json(
+        {
+          mensagem: rateLimitResult.message || 'Muitas tentativas de login. Tente novamente mais tarde.',
+          erro: 'RATE_LIMIT_EXCEEDED',
+          tentativas_restantes: 0,
+          bloqueado_ate: rateLimitResult.blockedUntil
+        },
+        { status: 429 }
+      )
+    }
+
+    // Log com IP mascarado para privacidade
+    const maskedIP = clientIP.split('.').slice(0, 2).join('.') + '.*.*'
+    console.log(`Tentativa de login para: ${email} (IP: ${maskedIP})`)
 
     // Verificar se JWT_SECRET está configurado
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 20) {
@@ -185,13 +209,10 @@ export async function POST(request: NextRequest) {
       escolaId: usuario.escola_id ? String(usuario.escola_id) : null,
     }
 
-    console.log('Gerando token com payload:', {
-      userId: tokenPayload.userId,
-      email: tokenPayload.email,
-      tipoUsuario: tokenPayload.tipoUsuario,
-      poloId: tokenPayload.poloId,
-      escolaId: tokenPayload.escolaId,
-    })
+    // Login bem sucedido - resetar rate limit para este usuario
+    resetRateLimit(rateLimitKey)
+
+    console.log('Login bem sucedido para:', tokenPayload.email)
 
     let token
     try {

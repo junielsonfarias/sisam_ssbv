@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { PWAInstallPrompt, ConnectionStatus } from '@/components/pwa-install-prompt'
 import { ThemeProvider } from '@/lib/theme-provider'
+import { ToastProvider } from '@/components/toast'
 
 export const metadata: Metadata = {
   title: 'SISAM - Sistema de Avaliacao Municipal',
@@ -74,9 +75,11 @@ export default function RootLayout({
       </head>
       <body className="bg-theme-primary text-theme-primary">
         <ThemeProvider defaultTheme="light">
-          <ConnectionStatus />
-          {children}
-          <PWAInstallPrompt />
+          <ToastProvider>
+            <ConnectionStatus />
+            {children}
+            <PWAInstallPrompt />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

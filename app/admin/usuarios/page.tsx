@@ -5,6 +5,7 @@ import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, Users, X } from 'lucide-react'
 import { TipoUsuario } from '@/lib/types'
+import { useToast } from '@/components/toast'
 
 interface Usuario {
   id: string
@@ -15,6 +16,7 @@ interface Usuario {
 }
 
 export default function UsuariosPage() {
+  const toast = useToast()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [polos, setPolos] = useState<any[]>([])
   const [escolas, setEscolas] = useState<any[]>([])
@@ -114,12 +116,13 @@ export default function UsuariosPage() {
           polo_id: '',
           escola_id: '',
         })
+        toast.success(usuarioEditando ? 'Usuário atualizado com sucesso!' : 'Usuário cadastrado com sucesso!')
       } else {
-        alert(data.mensagem || 'Erro ao salvar usuário')
+        toast.error(data.mensagem || 'Erro ao salvar usuário')
       }
     } catch (error) {
       console.error('Erro ao salvar usuário:', error)
-      alert('Erro ao salvar usuário')
+      toast.error('Erro ao salvar usuário')
     } finally {
       setSalvando(false)
     }

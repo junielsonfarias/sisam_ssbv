@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, MapPin, X } from 'lucide-react'
+import { useToast } from '@/components/toast'
 
 interface Polo {
   id: string
@@ -14,6 +15,7 @@ interface Polo {
 }
 
 export default function PolosPage() {
+  const toast = useToast()
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [polos, setPolos] = useState<Polo[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -81,12 +83,13 @@ export default function PolosPage() {
           codigo: '',
           descricao: '',
         })
+        toast.success(poloEditando ? 'Polo atualizado com sucesso!' : 'Polo cadastrado com sucesso!')
       } else {
-        alert(data.mensagem || 'Erro ao salvar polo')
+        toast.error(data.mensagem || 'Erro ao salvar polo')
       }
     } catch (error) {
       console.error('Erro ao salvar polo:', error)
-      alert('Erro ao salvar polo')
+      toast.error('Erro ao salvar polo')
     } finally {
       setSalvando(false)
     }

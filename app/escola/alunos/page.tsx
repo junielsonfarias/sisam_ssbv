@@ -3,8 +3,9 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalHistoricoAluno from '@/components/modal-historico-aluno'
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { Search, Eye, School } from 'lucide-react'
+import { useToast } from '@/components/toast'
 
 interface Aluno {
   id: string
@@ -42,6 +43,7 @@ const ordenarSeries = (series: string[]): string[] => {
 }
 
 export default function AlunosEscolaPage() {
+  const toast = useToast()
   const [tipoUsuario, setTipoUsuario] = useState<string>('escola')
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [turmas, setTurmas] = useState<any[]>([])
@@ -59,29 +61,43 @@ export default function AlunosEscolaPage() {
   const [historicoAluno, setHistoricoAluno] = useState<any>(null)
   const [carregandoHistorico, setCarregandoHistorico] = useState(false)
 
+  // Ref para AbortController - evita memory leaks em fetch
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   useEffect(() => {
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
     const carregarDadosIniciais = async () => {
       try {
-        const response = await fetch('/api/auth/verificar')
+        const response = await fetch('/api/auth/verificar', { signal: abortController.signal })
         const data = await response.json()
         if (data.usuario && data.usuario.escola_id) {
           setEscolaId(data.usuario.escola_id)
-          
+
           // Carregar nome da escola e polo
-          const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`)
+          const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`, { signal: abortController.signal })
           const escolaData = await escolaRes.json()
           if (Array.isArray(escolaData) && escolaData.length > 0) {
             setEscolaNome(escolaData[0].nome)
             setPoloNome(escolaData[0].polo_nome || '')
           }
         }
-      } catch (error) {
-        console.error('Erro ao carregar dados iniciais:', error)
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Erro ao carregar dados iniciais:', error)
+        }
       } finally {
-        setCarregando(false)
+        if (!abortController.signal.aborted) {
+          setCarregando(false)
+        }
       }
     }
     carregarDadosIniciais()
+
+    return () => {
+      abortController.abort()
+    }
   }, [])
 
   // Carregar séries disponíveis quando escolaId mudar
@@ -205,17 +221,17 @@ export default function AlunosEscolaPage() {
       if (response.ok) {
         setHistoricoAluno(data)
       } else {
-        alert(data.mensagem || 'Erro ao carregar histórico')
+        toast.error(data.mensagem || 'Erro ao carregar histórico')
         setMostrarModalHistorico(false)
       }
     } catch (error) {
       console.error('Erro ao carregar histórico:', error)
-      alert('Erro ao carregar histórico')
+      toast.error('Erro ao carregar histórico')
       setMostrarModalHistorico(false)
     } finally {
       setCarregandoHistorico(false)
     }
-  }, [])
+  }, [toast])
 
   const alunosFiltrados = useMemo(() => {
     return alunos.filter(aluno => {

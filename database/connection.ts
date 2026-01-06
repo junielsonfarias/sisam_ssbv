@@ -15,7 +15,7 @@ let queryQueue: Array<{
   queryFn: () => Promise<any>;
 }> = [];
 let activeQueries = 0;
-const MAX_CONCURRENT_QUERIES = 8; // Máximo de queries paralelas
+const MAX_CONCURRENT_QUERIES = 15; // Maximo de queries paralelas (ajustado para 50 usuarios)
 
 // Estado de saúde da conexão
 let lastHealthCheck: number = 0;
@@ -42,17 +42,25 @@ function detectSupabaseMode(host: string, port: number): {
   // Porta 5432 = Session Mode (limitado)
   const isTransactionMode = port === 6543;
 
-  // Recomendações de pool baseadas no modo
+  // Recomendacoes de pool baseadas no modo
+  // Para 50 usuarios simultaneos, precisamos de conexoes suficientes
   let recommendedMax = 10;
   if (isSupabase) {
     if (isTransactionMode) {
-      // Transaction Mode: pode ter mais conexões
-      // Para 50 usuários, usar 15-20 conexões no pool
-      recommendedMax = 15;
+      // Transaction Mode: pode ter MUITAS conexoes
+      // Para 50 usuarios simultaneos, usar 25-30 conexoes no pool
+      recommendedMax = 25;
     } else {
-      // Session Mode: muito limitado
-      // Manter baixo para evitar MaxClientsInSessionMode
-      recommendedMax = 3;
+      // Session Mode: MUITO limitado - apenas 15-20 conexoes no total do Supabase
+      // Com 50 usuarios, PRECISA usar Transaction Mode (porta 6543)
+      // Manter em 8 para evitar erro MaxClientsInSessionMode
+      recommendedMax = 8;
+      console.error('');
+      console.error('╔══════════════════════════════════════════════════════════════╗');
+      console.error('║  AVISO CRITICO: Session Mode nao suporta 50 usuarios!        ║');
+      console.error('║  Altere DB_PORT para 6543 para usar Transaction Mode         ║');
+      console.error('╚══════════════════════════════════════════════════════════════╝');
+      console.error('');
     }
   }
 
@@ -98,12 +106,18 @@ function createPool(): Pool {
     console.warn('   - Use o endpoint pooler.supabase.com');
   }
 
-  // Configuração SSL: sempre usar para Supabase, produção ou quando DB_SSL=true
-  const sslConfig = process.env.NODE_ENV === 'production' ||
-                    process.env.DB_SSL === 'true' ||
-                    isSupabase
+  // Configuracao SSL: sempre usar para Supabase, producao ou quando DB_SSL=true
+  // IMPORTANTE: Em producao, rejectUnauthorized deve ser true para seguranca
+  // Apenas use false se tiver problemas com certificados e entender os riscos
+  const shouldUseSSL = process.env.NODE_ENV === 'production' ||
+                       process.env.DB_SSL === 'true' ||
+                       isSupabase;
+
+  const sslConfig = shouldUseSSL
     ? {
-        rejectUnauthorized: false, // Aceita certificados auto-assinados
+        // Em producao com Supabase, usar true para validar certificados
+        // Se tiver problemas, configure DB_SSL_REJECT_UNAUTHORIZED=false
+        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
       }
     : false;
 
