@@ -68,7 +68,9 @@ export default function ModalAlunosTurma({
       }
 
       const data = await response.json()
-      setAlunos(Array.isArray(data) ? data : [])
+      // A API retorna {resultados, estatisticas, paginacao}, então acessamos data.resultados
+      const resultados = data.resultados || data
+      setAlunos(Array.isArray(resultados) ? resultados : [])
     } catch (error: any) {
       console.error('Erro ao carregar alunos:', error)
       setErro(error.message || 'Erro ao carregar alunos da turma')

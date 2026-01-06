@@ -1674,7 +1674,7 @@ export default function DadosPage() {
                                         setAlunoSelecionado({
                                           id: resultado.id || resultado.aluno_id || '',
                                           anoLetivo: filtroAnoLetivo || undefined,
-                                          mediaAluno: resultado.media_geral,
+                                          mediaAluno: resultado.media_aluno,
                                           notasDisciplinas: {
                                             nota_lp: resultado.nota_lp,
                                             nota_ch: resultado.nota_ch,
