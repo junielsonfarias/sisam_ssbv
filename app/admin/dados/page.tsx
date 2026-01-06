@@ -1504,35 +1504,35 @@ export default function DadosPage() {
                   <div className="hidden sm:block w-full">
                     <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
                       <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
-                        <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
+                        <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/50 dark:to-indigo-800/50">
                           <tr>
-                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12">
+                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-8 md:w-10 lg:w-12">
                               #
                             </th>
-                            <th className="text-left py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 min-w-[120px] md:min-w-[140px] lg:min-w-[160px]">
+                            <th className="text-left py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 min-w-[120px] md:min-w-[140px] lg:min-w-[160px]">
                               Aluno
                             </th>
-                            <th className="hidden lg:table-cell text-left py-1 px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 min-w-[150px]">
+                            <th className="hidden lg:table-cell text-left py-1 px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 min-w-[150px]">
                               Escola
                             </th>
-                            <th className="hidden md:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20">
+                            <th className="hidden md:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16 md:w-20">
                               Turma
                             </th>
-                            <th className="hidden xl:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
+                            <th className="hidden xl:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-20">
                               Série
                             </th>
-                            <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
+                            <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-20">
                               Presença
                             </th>
                             {disciplinasExibir.map((disciplina) => (
-                              <th key={disciplina.codigo} className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                              <th key={disciplina.codigo} className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-14 md:w-16 lg:w-18">
                                 {disciplina.codigo}
                               </th>
                             ))}
-                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-14 md:w-16 lg:w-18">
                               Média
                             </th>
-                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20 lg:w-24">
+                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16 md:w-20 lg:w-24">
                               Ações
                             </th>
                           </tr>
@@ -1638,7 +1638,7 @@ export default function DadosPage() {
                                               {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
                                             </div>
                                             {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                              <div className="w-full bg-gray-200 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
                                                 <div
                                                   className={`h-0.5 md:h-1 rounded-full ${
                                                     nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
@@ -1766,7 +1766,7 @@ export default function DadosPage() {
                         <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                           {dados.analiseAcertosErros.taxaAcertoGeral.taxa_acerto_geral.toFixed(2)}%
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {dados.analiseAcertosErros.taxaAcertoGeral.total_acertos.toLocaleString('pt-BR')} de {dados.analiseAcertosErros.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')} respostas
                         </p>
                       </div>
@@ -1778,7 +1778,7 @@ export default function DadosPage() {
                         <p className="text-3xl font-bold text-red-600 dark:text-red-400">
                           {dados.analiseAcertosErros.taxaAcertoGeral.taxa_erro_geral.toFixed(2)}%
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {dados.analiseAcertosErros.taxaAcertoGeral.total_erros.toLocaleString('pt-BR')} erros
                         </p>
                       </div>
@@ -1790,7 +1790,7 @@ export default function DadosPage() {
                         <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
                           {dados.analiseAcertosErros.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">Respostas analisadas</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Respostas analisadas</p>
                       </div>
                     </div>
                   )}
@@ -2153,7 +2153,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border-2 border-gray-200 overflow-hidden w-full max-w-full">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border-2 border-gray-200 dark:border-slate-700 overflow-hidden w-full max-w-full">
       <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <table className="w-full min-w-[600px]">
           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600">
@@ -2191,7 +2191,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
               dados.map((row: any, i: number) => (
                 <tr
                   key={i}
-                  className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30/30 transition-colors border-b border-gray-100"
+                  className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-gray-100 dark:border-slate-700"
                 >
                   {colunas.map((col: any) => {
                     const valor = row[col.key]
@@ -2204,10 +2204,10 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                         className={`px-2 sm:px-4 py-2 sm:py-3 ${alignClass} whitespace-nowrap align-middle`}
                       >
                         {col.format ? formatarValor(valor, col.format) : (
-                          <span className={`text-xs sm:text-sm ${isNumero ? 'font-semibold text-gray-800' : 'font-medium text-gray-700'}`}>
+                          <span className={`text-xs sm:text-sm ${isNumero ? 'font-semibold text-gray-800 dark:text-gray-100' : 'font-medium text-gray-700 dark:text-gray-200'}`}>
                             {valor !== null && valor !== undefined
                               ? (isNumero ? valor.toLocaleString('pt-BR') : valor)
-                              : <span className="text-gray-400 italic">-</span>
+                              : <span className="text-gray-400 dark:text-gray-500 italic">-</span>
                             }
                           </span>
                         )}
@@ -2221,8 +2221,8 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
         </table>
       </div>
       {totalPaginas > 1 && (
-        <div className="px-3 sm:px-6 py-3 sm:py-4 border-t-2 border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-gradient-to-r from-gray-50 to-gray-100">
-          <p className="text-xs sm:text-sm font-medium text-gray-700 text-center sm:text-left">
+        <div className="px-3 sm:px-6 py-3 sm:py-4 border-t-2 border-gray-200 dark:border-slate-600 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800">
+          <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 text-center sm:text-left">
             <span className="font-bold text-indigo-600 dark:text-indigo-400">{((paginaAtual - 1) * itensPorPagina) + 1}</span>-<span className="font-bold text-indigo-600 dark:text-indigo-400">{Math.min(paginaAtual * itensPorPagina, totalRegistros)}</span> de{' '}
             <span className="font-bold text-gray-900 dark:text-white">{totalRegistros.toLocaleString('pt-BR')}</span>
           </p>
@@ -2230,7 +2230,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
             <button
               onClick={() => onPaginar(Math.max(1, paginaAtual - 1))}
               disabled={paginaAtual === 1}
-              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Ant.
             </button>
@@ -2249,7 +2249,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                     className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg transition-colors ${
                       paginaAtual === p
                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                        : 'border-gray-300 dark:border-slate-600 hover:bg-gray-100 text-gray-700'
+                        : 'border-gray-300 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
                     }`}
                   >
                     {p}
@@ -2260,7 +2260,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
             <button
               onClick={() => onPaginar(Math.min(totalPaginas, paginaAtual + 1))}
               disabled={paginaAtual === totalPaginas}
-              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Prox.
             </button>
