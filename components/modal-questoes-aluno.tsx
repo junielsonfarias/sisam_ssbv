@@ -53,11 +53,12 @@ interface DadosAluno {
 interface ModalQuestoesAlunoProps {
   alunoId: string
   anoLetivo?: string
+  mediaAluno?: number | string | null  // Média do aluno passada diretamente do resultado consolidado
   isOpen: boolean
   onClose: () => void
 }
 
-export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose }: ModalQuestoesAlunoProps) {
+export default function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, isOpen, onClose }: ModalQuestoesAlunoProps) {
   const [dados, setDados] = useState<DadosAluno | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -258,7 +259,10 @@ export default function ModalQuestoesAluno({ alunoId, anoLetivo, isOpen, onClose
                   <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 sm:p-4 border border-blue-200 dark:border-blue-800">
                     <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">Média Geral</p>
                     <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                      {dados.estatisticas.media_geral?.toFixed(1) || '-'}
+                      {/* Prioriza a média passada diretamente do resultado consolidado */}
+                      {mediaAluno !== undefined && mediaAluno !== null
+                        ? Number(mediaAluno).toFixed(1)
+                        : (dados.estatisticas.media_geral?.toFixed(1) || '-')}
                     </p>
                     {dados.estatisticas.nivel_aprendizagem && (
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{dados.estatisticas.nivel_aprendizagem}</p>

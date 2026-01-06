@@ -112,7 +112,7 @@ export default function ResultadosPage() {
   const [series, setSeries] = useState<string[]>([])
   const [anosLetivos, setAnosLetivos] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
-  const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string } | null>(null)
+  const [alunoSelecionado, setAlunoSelecionado] = useState<{ id: string; anoLetivo?: string; mediaAluno?: number | string | null } | null>(null)
   
   // Estados de paginação
   const [paginaAtual, setPaginaAtual] = useState(1)
@@ -1101,6 +1101,7 @@ export default function ResultadosPage() {
                               setAlunoSelecionado({
                                 id: resultado.aluno_id || resultado.id,
                                 anoLetivo: filtros.ano_letivo,
+                                mediaAluno: resultado.media_aluno,
                               })
                               setModalAberto(true)
                             }}
@@ -1191,6 +1192,7 @@ export default function ResultadosPage() {
                               setAlunoSelecionado({
                                 id: resultado.aluno_id || resultado.id,
                                 anoLetivo: filtros.ano_letivo,
+                                mediaAluno: resultado.media_aluno,
                               })
                               setModalAberto(true)
                             }}
@@ -1274,6 +1276,7 @@ export default function ResultadosPage() {
                                     setAlunoSelecionado({
                                       id: resultado.aluno_id || resultado.id,
                                       anoLetivo: filtros.ano_letivo,
+                                      mediaAluno: resultado.media_aluno,
                                     })
                                     setModalAberto(true)
                                   }}
@@ -1388,6 +1391,7 @@ export default function ResultadosPage() {
                                   setAlunoSelecionado({
                                     id: resultado.aluno_id || resultado.id,
                                     anoLetivo: filtros.ano_letivo,
+                                    mediaAluno: resultado.media_aluno,
                                   })
                                   setModalAberto(true)
                                 }}
@@ -1517,6 +1521,7 @@ export default function ResultadosPage() {
             <ModalQuestoesAluno
               alunoId={alunoSelecionado.id}
               anoLetivo={alunoSelecionado.anoLetivo}
+              mediaAluno={alunoSelecionado.mediaAluno}
               isOpen={modalAberto}
               onClose={() => {
                 setModalAberto(false)
