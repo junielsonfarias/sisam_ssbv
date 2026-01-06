@@ -207,16 +207,16 @@ export async function GET(request: NextRequest) {
     })
 
     // Buscar média geral, nota de produção e nível de aprendizagem
-    let mediaGeral = null
-    let notaProducao = null
-    let nivelAprendizagem = null
-    let notaLP = null
-    let notaCH = null
-    let notaMAT = null
-    let notaCN = null
+    let mediaGeral: number | null = null
+    let notaProducao: number | null = null
+    let nivelAprendizagem: string | null = null
+    let notaLP: number | null = null
+    let notaCH: number | null = null
+    let notaMAT: number | null = null
+    let notaCN: number | null = null
 
     try {
-      // Primeiro tenta buscar da view unificada
+      // Primeiro tenta buscar da tabela resultados_consolidados (mais confiável)
       const consolidadoResult = await pool.query(
         `SELECT
           media_aluno,
@@ -226,25 +226,28 @@ export async function GET(request: NextRequest) {
           nota_ch,
           nota_mat,
           nota_cn
-        FROM resultados_consolidados_unificada
-        WHERE aluno_id = $1
+        FROM resultados_consolidados
+        WHERE aluno_id = $1::integer
         ${anoLetivo ? 'AND ano_letivo = $2' : ''}
+        ORDER BY atualizado_em DESC NULLS LAST
         LIMIT 1`,
         anoLetivo ? [alunoId, anoLetivo] : [alunoId]
       )
 
       if (consolidadoResult.rows.length > 0) {
         const consolidado = consolidadoResult.rows[0]
-        mediaGeral = consolidado.media_aluno ? parseFloat(consolidado.media_aluno) : null
-        notaProducao = consolidado.nota_producao ? parseFloat(consolidado.nota_producao) : null
+        mediaGeral = consolidado.media_aluno !== null ? Number(consolidado.media_aluno) : null
+        notaProducao = consolidado.nota_producao !== null ? Number(consolidado.nota_producao) : null
         nivelAprendizagem = consolidado.nivel_aprendizagem
-        notaLP = consolidado.nota_lp ? parseFloat(consolidado.nota_lp) : null
-        notaCH = consolidado.nota_ch ? parseFloat(consolidado.nota_ch) : null
-        notaMAT = consolidado.nota_mat ? parseFloat(consolidado.nota_mat) : null
-        notaCN = consolidado.nota_cn ? parseFloat(consolidado.nota_cn) : null
+        notaLP = consolidado.nota_lp !== null ? Number(consolidado.nota_lp) : null
+        notaCH = consolidado.nota_ch !== null ? Number(consolidado.nota_ch) : null
+        notaMAT = consolidado.nota_mat !== null ? Number(consolidado.nota_mat) : null
+        notaCN = consolidado.nota_cn !== null ? Number(consolidado.nota_cn) : null
+
+        console.log(`[API] Dados consolidados encontrados para aluno ${alunoId}: media=${mediaGeral}`)
       } else {
-        // Fallback: tenta buscar da tabela resultados_consolidados diretamente
-        const consolidadoFallback = await pool.query(
+        // Fallback: tenta buscar da view unificada
+        const consolidadoView = await pool.query(
           `SELECT
             media_aluno,
             nota_producao,
@@ -253,34 +256,38 @@ export async function GET(request: NextRequest) {
             nota_ch,
             nota_mat,
             nota_cn
-          FROM resultados_consolidados
-          WHERE aluno_id = $1
+          FROM resultados_consolidados_unificada
+          WHERE aluno_id = $1::integer
           ${anoLetivo ? 'AND ano_letivo = $2' : ''}
           LIMIT 1`,
           anoLetivo ? [alunoId, anoLetivo] : [alunoId]
         )
 
-        if (consolidadoFallback.rows.length > 0) {
-          const consolidado = consolidadoFallback.rows[0]
-          mediaGeral = consolidado.media_aluno ? parseFloat(consolidado.media_aluno) : null
-          notaProducao = consolidado.nota_producao ? parseFloat(consolidado.nota_producao) : null
+        if (consolidadoView.rows.length > 0) {
+          const consolidado = consolidadoView.rows[0]
+          mediaGeral = consolidado.media_aluno !== null ? Number(consolidado.media_aluno) : null
+          notaProducao = consolidado.nota_producao !== null ? Number(consolidado.nota_producao) : null
           nivelAprendizagem = consolidado.nivel_aprendizagem
-          notaLP = consolidado.nota_lp ? parseFloat(consolidado.nota_lp) : null
-          notaCH = consolidado.nota_ch ? parseFloat(consolidado.nota_ch) : null
-          notaMAT = consolidado.nota_mat ? parseFloat(consolidado.nota_mat) : null
-          notaCN = consolidado.nota_cn ? parseFloat(consolidado.nota_cn) : null
+          notaLP = consolidado.nota_lp !== null ? Number(consolidado.nota_lp) : null
+          notaCH = consolidado.nota_ch !== null ? Number(consolidado.nota_ch) : null
+          notaMAT = consolidado.nota_mat !== null ? Number(consolidado.nota_mat) : null
+          notaCN = consolidado.nota_cn !== null ? Number(consolidado.nota_cn) : null
+
+          console.log(`[API] Dados da view unificada para aluno ${alunoId}: media=${mediaGeral}`)
         }
       }
 
-      // Se ainda não encontrou média, calcula a partir dos acertos
+      // Se ainda não encontrou média, calcula a partir dos acertos (com mesma precisão)
       if (mediaGeral === null && totalQuestoes > 0) {
-        mediaGeral = (totalAcertos / totalQuestoes) * 10
+        // Usar mesma fórmula de arredondamento do banco: ROUND(..., 2)
+        mediaGeral = Math.round(((totalAcertos / totalQuestoes) * 10) * 100) / 100
+        console.log(`[API] Média calculada para aluno ${alunoId}: ${mediaGeral} (${totalAcertos}/${totalQuestoes})`)
       }
     } catch (e) {
       console.error('Erro ao buscar dados consolidados:', e)
-      // Se der erro na view, calcula a média simples
+      // Se der erro na view, calcula a média simples com mesma precisão
       if (totalQuestoes > 0) {
-        mediaGeral = (totalAcertos / totalQuestoes) * 10
+        mediaGeral = Math.round(((totalAcertos / totalQuestoes) * 10) * 100) / 100
       }
     }
 

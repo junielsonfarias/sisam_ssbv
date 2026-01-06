@@ -73,7 +73,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body className="bg-theme-primary text-theme-primary">
-        <ThemeProvider defaultTheme="system">
+        <ThemeProvider defaultTheme="light">
           <ConnectionStatus />
           {children}
           <PWAInstallPrompt />
