@@ -73,6 +73,11 @@ export interface OfflineResultado {
   total_questoes_mat?: number | string
   total_questoes_ch?: number | string
   total_questoes_cn?: number | string
+  // Campos de configuração de questões por série (vindos da API)
+  qtd_questoes_lp?: number | null
+  qtd_questoes_mat?: number | null
+  qtd_questoes_ch?: number | null
+  qtd_questoes_cn?: number | null
 }
 
 // Interface para alunos offline
