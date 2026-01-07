@@ -491,12 +491,16 @@ export async function POST(request: NextRequest) {
             }
           } else {
             // Fallback para cálculo padrão se não houver configuração
-            if (serieNum >= 1 && serieNum <= 5) {
-              // Anos iniciais: LP = 20 questões, MAT = 8 questões
-              notaLPCalc = acertosLP > 0 ? (acertosLP / 20) * 10 : 0
-              notaMATCalc = acertosMAT > 0 ? (acertosMAT / 8) * 10 : 0
+            if (serieNum === 2 || serieNum === 3) {
+              // 2º e 3º ano: LP = 14 questões, MAT = 14 questões
+              notaLPCalc = acertosLP > 0 ? (acertosLP / 14) * 10 : 0
+              notaMATCalc = acertosMAT > 0 ? (acertosMAT / 14) * 10 : 0
+            } else if (serieNum === 5) {
+              // 5º ano: LP = 14 questões, MAT = 20 questões
+              notaLPCalc = acertosLP > 0 ? (acertosLP / 14) * 10 : 0
+              notaMATCalc = acertosMAT > 0 ? (acertosMAT / 20) * 10 : 0
             } else {
-              // Anos finais
+              // Anos finais (6º ao 9º): LP = 20, CH = 10, MAT = 20, CN = 10
               notaLPCalc = acertosLP > 0 ? (acertosLP / 20) * 10 : 0
               notaCHCalc = acertosCH > 0 ? (acertosCH / 10) * 10 : 0
               notaMATCalc = acertosMAT > 0 ? (acertosMAT / 20) * 10 : 0
