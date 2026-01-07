@@ -746,9 +746,9 @@ export default function DadosPage() {
       return obterDisciplinasPorSerieSync('6º Ano')
     }
 
-    // Sem filtro: usar série do primeiro aluno ou padrão anos finais
-    return obterDisciplinasPorSerieSync(dados?.alunosDetalhados[0]?.serie)
-  }, [filtroSerie, filtroTipoEnsino, dados?.alunosDetalhados])
+    // Sem filtro específico: mostrar todas as disciplinas (incluindo PROD)
+    return obterDisciplinasPorSerieSync(null)
+  }, [filtroSerie, filtroTipoEnsino])
 
   // Função para obter o total de questões correto para uma disciplina baseado na série do aluno
   const getTotalQuestoesPorSerie = useCallback((serie: string | null | undefined, codigoDisciplina: string): number | undefined => {
@@ -932,7 +932,7 @@ export default function DadosPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
-        <div className="space-y-4 overflow-x-hidden max-w-full">
+        <div className="space-y-4 overflow-x-clip max-w-full">
           {/* Indicador de modo offline */}
           {(usandoDadosOffline || modoOffline) && (
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
