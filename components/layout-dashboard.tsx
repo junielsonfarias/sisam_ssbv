@@ -217,7 +217,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const menuItems = getMenuItems()
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col overflow-x-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col overflow-x-clip transition-colors duration-300">
       {/* Header - Fixo no topo */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 shadow-sm dark:shadow-slate-700/50 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 transition-colors duration-300">
         <div className="px-2 sm:px-4 md:px-6 lg:px-8">
@@ -319,7 +319,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         )}
 
         {/* Main Content - Com margem para compensar sidebar fixo em telas grandes */}
-        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-slate-900 transition-colors duration-300 lg:ml-64">
+        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-x-clip overflow-y-auto bg-gray-50 dark:bg-slate-900 transition-colors duration-300 lg:ml-64">
           <div className="max-w-full">
             {children}
           </div>
