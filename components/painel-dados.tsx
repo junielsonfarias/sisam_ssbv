@@ -418,36 +418,39 @@ export default function PainelDados({
   ]
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-4">
-      {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">{getTitulo()}</h1>
-        {estatisticas.nomePolo && tipoUsuario === 'escola' && (
-          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Polo: {estatisticas.nomePolo}</p>
-        )}
-      </div>
+    <div className="flex flex-col h-[calc(100vh-64px)]">
+      {/* Header Fixo */}
+      <div className="flex-shrink-0 p-3 sm:p-4 md:p-6 pb-0">
+        <div className="mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">{getTitulo()}</h1>
+          {estatisticas.nomePolo && tipoUsuario === 'escola' && (
+            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Polo: {estatisticas.nomePolo}</p>
+          )}
+        </div>
 
-      {/* Abas Fixas */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 sticky top-0 z-30">
-        <div className="flex overflow-x-auto">
-          {abas.map((aba) => (
-            <button
-              key={aba.id}
-              onClick={() => setAbaAtiva(aba.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                abaAtiva === aba.id
-                  ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              {aba.icon}
-              {aba.label}
-            </button>
-          ))}
+        {/* Abas Fixas */}
+        <div className="bg-white dark:bg-slate-800 rounded-t-xl shadow-sm border border-gray-200 dark:border-slate-700">
+          <div className="flex overflow-x-auto">
+            {abas.map((aba) => (
+              <button
+                key={aba.id}
+                onClick={() => setAbaAtiva(aba.id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  abaAtiva === aba.id
+                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-700'
+                }`}
+              >
+                {aba.icon}
+                {aba.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Conteudo das Abas */}
+      {/* Conteudo das Abas - Scrollable */}
+      <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 pt-4 space-y-4">
       {abaAtiva === 'geral' && (
         <AbaGeral estatisticas={estatisticas} tipoUsuario={tipoUsuario} carregando={carregando} />
       )}
@@ -495,6 +498,7 @@ export default function PainelDados({
       {abaAtiva === 'analises' && (
         <AbaAnalises estatisticas={estatisticas} carregando={carregando} />
       )}
+      </div>
 
       {/* Modal de Questoes */}
       {alunoSelecionado && (
@@ -874,9 +878,9 @@ function AbaAlunos({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col flex-1 space-y-4 min-h-0">
       {/* Filtros */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
+      <div className="flex-shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center">
             <Filter className="w-4 h-4 mr-2 text-indigo-600" />
@@ -985,8 +989,8 @@ function AbaAlunos({
       </div>
 
       {/* Tabela de Alunos */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-        <div className="overflow-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden flex-1">
+        <div className="flex-1 overflow-auto">
           {carregando ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
