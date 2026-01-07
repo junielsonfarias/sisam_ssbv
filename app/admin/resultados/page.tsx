@@ -738,9 +738,13 @@ export default function ResultadosPage() {
   }, [filtros.serie, resultadosFiltrados])
 
   // Obter disciplinas que devem ser exibidas baseadas na série selecionada (para cabeçalhos)
+  // Se não houver série específica selecionada, mostra todas as disciplinas (incluindo PROD)
   const disciplinasExibir = useMemo(() => {
-    return obterDisciplinasPorSerieSync(filtros.serie || resultadosFiltrados[0]?.serie)
-  }, [filtros.serie, resultadosFiltrados])
+    if (!filtros.serie) {
+      return obterDisciplinasPorSerieSync(null)
+    }
+    return obterDisciplinasPorSerieSync(filtros.serie)
+  }, [filtros.serie])
 
   // Função para obter o total de questões correto para uma disciplina baseado na série do aluno
   const getTotalQuestoesPorSerie = useCallback((serie: string | null | undefined, codigoDisciplina: string): number | undefined => {
@@ -1621,76 +1625,77 @@ export default function ResultadosPage() {
                   </table>
                 </div>
 
-                {/* Controles de Paginação */}
-                  {!carregando && paginacao.totalPaginas > 1 && (
-                    <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-                      <div className="flex-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
-                        <div className="text-sm text-gray-700 dark:text-gray-300">
-                          <span className="font-medium">Página {paginacao.pagina}</span> de {paginacao.totalPaginas}
-                          {' • '}
-                          <span className="font-medium">{paginacao.total}</span> alunos no total
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={paginaAnterior}
-                            disabled={!paginacao.temAnterior}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                              paginacao.temAnterior
-                                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            }`}
-                          >
-                            Anterior
-                          </button>
-                          <div className="flex items-center gap-1">
-                            {/* Mostrar até 5 números de página */}
-                            {Array.from({ length: Math.min(5, paginacao.totalPaginas) }, (_, i) => {
-                              let paginaNum: number
-                              if (paginacao.totalPaginas <= 5) {
-                                paginaNum = i + 1
-                              } else if (paginacao.pagina <= 3) {
-                                paginaNum = i + 1
-                              } else if (paginacao.pagina >= paginacao.totalPaginas - 2) {
-                                paginaNum = paginacao.totalPaginas - 4 + i
-                              } else {
-                                paginaNum = paginacao.pagina - 2 + i
-                              }
-
-                              if (paginaNum > paginacao.totalPaginas) return null
-
-                              return (
-                                <button
-                                  key={paginaNum}
-                                  onClick={() => irParaPagina(paginaNum)}
-                                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                                    paginacao.pagina === paginaNum
-                                      ? 'bg-indigo-600 text-white'
-                                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                  }`}
-                                >
-                                  {paginaNum}
-                                </button>
-                              )
-                            })}
-                          </div>
-                          <button
-                            onClick={proximaPagina}
-                            disabled={!paginacao.temProxima}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                              paginacao.temProxima
-                                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            }`}
-                          >
-                            Próxima
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
               </>
             )}
             </div>
+
+            {/* Rodapé de paginação - fixo */}
+            {!carregando && paginacao.totalPaginas > 1 && (
+              <div className="flex-shrink-0 bg-white dark:bg-slate-800 px-4 py-3 border-t border-gray-200 dark:border-slate-700 rounded-b-xl flex items-center justify-between">
+                <div className="flex-1 flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-medium">Página {paginacao.pagina}</span> de {paginacao.totalPaginas}
+                    {' • '}
+                    <span className="font-medium">{paginacao.total}</span> alunos no total
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={paginaAnterior}
+                      disabled={!paginacao.temAnterior}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        paginacao.temAnterior
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Anterior
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {/* Mostrar até 5 números de página */}
+                      {Array.from({ length: Math.min(5, paginacao.totalPaginas) }, (_, i) => {
+                        let paginaNum: number
+                        if (paginacao.totalPaginas <= 5) {
+                          paginaNum = i + 1
+                        } else if (paginacao.pagina <= 3) {
+                          paginaNum = i + 1
+                        } else if (paginacao.pagina >= paginacao.totalPaginas - 2) {
+                          paginaNum = paginacao.totalPaginas - 4 + i
+                        } else {
+                          paginaNum = paginacao.pagina - 2 + i
+                        }
+
+                        if (paginaNum > paginacao.totalPaginas) return null
+
+                        return (
+                          <button
+                            key={paginaNum}
+                            onClick={() => irParaPagina(paginaNum)}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                              paginacao.pagina === paginaNum
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {paginaNum}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button
+                      onClick={proximaPagina}
+                      disabled={!paginacao.temProxima}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        paginacao.temProxima
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Próxima
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {(resultadosFiltrados.length > 0 || estatisticas.total > 0) && (
