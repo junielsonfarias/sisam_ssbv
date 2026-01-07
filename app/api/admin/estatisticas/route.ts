@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
 
     try {
       const mediaResult = await pool.query(`
-        SELECT 
+        SELECT
           ROUND(AVG(CASE WHEN (presenca = 'P' OR presenca = 'p') AND (media_aluno IS NOT NULL AND CAST(media_aluno AS DECIMAL) > 0) THEN CAST(media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
           COUNT(CASE WHEN (presenca = 'P' OR presenca = 'p') AND (media_aluno IS NOT NULL AND CAST(media_aluno AS DECIMAL) >= 6.0) THEN 1 END) as aprovados,
           COUNT(CASE WHEN (presenca = 'P' OR presenca = 'p') AND (media_aluno IS NOT NULL AND CAST(media_aluno AS DECIMAL) > 0) THEN 1 END) as total_presentes
@@ -136,6 +136,37 @@ export async function GET(request: NextRequest) {
       taxaAprovacao = totalPresentes > 0 ? (aprovados / totalPresentes) * 100 : 0
     } catch (error: any) {
       console.error('Erro ao buscar média e aprovação:', error.message)
+    }
+
+    // Médias por tipo de ensino (anos iniciais e finais)
+    let mediaAnosIniciais = 0
+    let mediaAnosFinais = 0
+    let totalAnosIniciais = 0
+    let totalAnosFinais = 0
+
+    try {
+      const mediaTipoResult = await pool.query(`
+        SELECT
+          cs.tipo_ensino,
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno > 0 THEN rc.media_aluno ELSE NULL END), 2) as media,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno > 0 THEN 1 END) as total
+        FROM resultados_consolidados rc
+        JOIN configuracao_series cs ON rc.serie = cs.serie
+        WHERE rc.presenca IN ('P', 'p')
+        GROUP BY cs.tipo_ensino
+      `)
+
+      for (const row of mediaTipoResult.rows) {
+        if (row.tipo_ensino === 'anos_iniciais') {
+          mediaAnosIniciais = parseFloat(row.media || '0') || 0
+          totalAnosIniciais = parseInt(row.total || '0', 10) || 0
+        } else if (row.tipo_ensino === 'anos_finais') {
+          mediaAnosFinais = parseFloat(row.media || '0') || 0
+          totalAnosFinais = parseInt(row.total || '0', 10) || 0
+        }
+      }
+    } catch (error: any) {
+      console.error('Erro ao buscar médias por tipo de ensino:', error.message)
     }
 
     const dadosResposta = {
@@ -150,6 +181,10 @@ export async function GET(request: NextRequest) {
       totalAlunosFaltantes,
       mediaGeral,
       taxaAprovacao,
+      mediaAnosIniciais,
+      mediaAnosFinais,
+      totalAnosIniciais,
+      totalAnosFinais,
     }
 
     // Salvar no cache (expira em 1 hora)

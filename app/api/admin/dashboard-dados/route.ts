@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     const serie = searchParams.get('serie')
     const turmaId = searchParams.get('turma_id')
     const presenca = searchParams.get('presenca')
+    const tipoEnsino = searchParams.get('tipo_ensino')
     const nivelAprendizagem = searchParams.get('nivel')
     const faixaMedia = searchParams.get('faixa_media')
     const disciplina = searchParams.get('disciplina')
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
         serie,
         turmaId,
         presenca,
+        tipoEnsino,
         nivelAprendizagem,
         faixaMedia,
         disciplina,
@@ -86,7 +88,7 @@ export async function GET(request: NextRequest) {
       usuario.tipo_usuario,
       usuario.polo_id || poloId,
       usuario.escola_id || escolaId,
-      { poloId, escolaId, anoLetivo, serie, turmaId, presenca, nivelAprendizagem, faixaMedia, disciplina }
+      { poloId, escolaId, anoLetivo, serie, turmaId, presenca, tipoEnsino, nivelAprendizagem, faixaMedia, disciplina }
     )
 
     // VERIFICAR CACHE EM MEMÓRIA PRIMEIRO (mais rápido)
@@ -175,6 +177,15 @@ export async function GET(request: NextRequest) {
       whereConditions.push(`rc.serie = $${paramIndex}`)
       params.push(serie)
       paramIndex++
+    }
+
+    // Filtro por tipo de ensino (anos_iniciais ou anos_finais)
+    if (tipoEnsino) {
+      if (tipoEnsino === 'anos_iniciais') {
+        whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`)
+      } else if (tipoEnsino === 'anos_finais') {
+        whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`)
+      }
     }
 
     if (turmaId) {

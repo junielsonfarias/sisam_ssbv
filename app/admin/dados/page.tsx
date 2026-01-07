@@ -259,6 +259,7 @@ export default function DadosPage() {
   const [filtroTaxaAcertoMin, setFiltroTaxaAcertoMin] = useState('')
   const [filtroTaxaAcertoMax, setFiltroTaxaAcertoMax] = useState('')
   const [filtroQuestaoCodigo, setFiltroQuestaoCodigo] = useState('')
+  const [filtroTipoEnsino, setFiltroTipoEnsino] = useState('')
 
   // Visualização
   const [abaAtiva, setAbaAtiva] = useState<'visao_geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'>('visao_geral')
@@ -612,6 +613,7 @@ export default function DadosPage() {
       if (filtroTurmaId) params.append('turma_id', filtroTurmaId)
       if (filtroAnoLetivo) params.append('ano_letivo', filtroAnoLetivo)
       if (filtroPresenca) params.append('presenca', filtroPresenca)
+      if (filtroTipoEnsino) params.append('tipo_ensino', filtroTipoEnsino)
       if (filtroNivel) params.append('nivel', filtroNivel)
       if (filtroFaixaMedia) params.append('faixa_media', filtroFaixaMedia)
       if (filtroDisciplina) params.append('disciplina', filtroDisciplina)
@@ -680,7 +682,7 @@ export default function DadosPage() {
       abortController.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
+  }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino])
 
   const limparFiltros = () => {
     // Para usuários polo ou escola, manter o polo_id fixo
@@ -701,16 +703,52 @@ export default function DadosPage() {
     setFiltroTaxaAcertoMin('')
     setFiltroTaxaAcertoMax('')
     setFiltroQuestaoCodigo('')
+    setFiltroTipoEnsino('')
     setPaginaAtual(1)
   }
 
-  const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroSerie || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo
-  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo].filter(Boolean).length
+  const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroSerie || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo || filtroTipoEnsino
+  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino].filter(Boolean).length
 
-  // Obter disciplinas que devem ser exibidas baseadas na série selecionada
+  // Função para verificar se uma disciplina é aplicável à série do aluno
+  const isDisciplinaAplicavel = useCallback((serie: string | null | undefined, disciplinaCodigo: string): boolean => {
+    if (!serie) return true // Se não tem série, mostrar todas
+
+    const numeroSerie = serie.match(/(\d+)/)?.[1]
+    const isAnosIniciais = ['2', '3', '5'].includes(numeroSerie || '')
+
+    // Anos iniciais não tem CH e CN
+    if (isAnosIniciais && (disciplinaCodigo === 'CH' || disciplinaCodigo === 'CN')) {
+      return false
+    }
+
+    // Anos finais não tem PROD e NIVEL
+    if (!isAnosIniciais && (disciplinaCodigo === 'PROD' || disciplinaCodigo === 'NIVEL')) {
+      return false
+    }
+
+    return true
+  }, [])
+
+  // Obter disciplinas que devem ser exibidas baseadas no filtro de série ou tipo de ensino
   const disciplinasExibir = useMemo(() => {
-    return obterDisciplinasPorSerieSync(filtroSerie || dados?.alunosDetalhados[0]?.serie)
-  }, [filtroSerie, dados?.alunosDetalhados])
+    // Se tem filtro de série específica, usar disciplinas dessa série
+    if (filtroSerie) {
+      return obterDisciplinasPorSerieSync(filtroSerie)
+    }
+
+    // Se tem filtro de tipo de ensino, usar disciplinas desse tipo
+    if (filtroTipoEnsino === 'anos_iniciais') {
+      // Anos iniciais: LP, MAT, PROD, NIVEL (usar série 2 como referência)
+      return obterDisciplinasPorSerieSync('2º Ano')
+    } else if (filtroTipoEnsino === 'anos_finais') {
+      // Anos finais: LP, CH, MAT, CN (usar série 6 como referência)
+      return obterDisciplinasPorSerieSync('6º Ano')
+    }
+
+    // Sem filtro: usar série do primeiro aluno ou padrão anos finais
+    return obterDisciplinasPorSerieSync(dados?.alunosDetalhados[0]?.serie)
+  }, [filtroSerie, filtroTipoEnsino, dados?.alunosDetalhados])
 
   // Escolas filtradas por polo
   const escolasFiltradas = useMemo(() => {
@@ -1040,6 +1078,27 @@ export default function DadosPage() {
                 )}
               </div>
 
+              {/* Tipo de Ensino */}
+              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTipoEnsino ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
+                  <span className={`w-1.5 h-1.5 rounded-full ${filtroTipoEnsino ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
+                  Etapa de Ensino
+                </label>
+                <select
+                  value={filtroTipoEnsino}
+                  onChange={(e) => { setFiltroTipoEnsino(e.target.value); setFiltroSerie(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
+                    filtroTipoEnsino
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
+                  }`}
+                >
+                  <option value="">Todas as etapas</option>
+                  <option value="anos_iniciais">Anos Iniciais (2º, 3º, 5º)</option>
+                  <option value="anos_finais">Anos Finais (6º, 7º, 8º, 9º)</option>
+                </select>
+              </div>
+
               {/* Serie */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroSerie ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
                 <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
@@ -1056,9 +1115,20 @@ export default function DadosPage() {
                   }`}
                 >
                   <option value="">Todas as séries</option>
-                  {dados?.filtros.series.map(serie => (
-                    <option key={serie} value={serie}>{serie}</option>
-                  ))}
+                  {dados?.filtros.series
+                    .filter(serie => {
+                      if (!filtroTipoEnsino) return true
+                      const numeroSerie = serie.match(/(\d+)/)?.[1]
+                      if (filtroTipoEnsino === 'anos_iniciais') {
+                        return ['2', '3', '5'].includes(numeroSerie || '')
+                      } else if (filtroTipoEnsino === 'anos_finais') {
+                        return ['6', '7', '8', '9'].includes(numeroSerie || '')
+                      }
+                      return true
+                    })
+                    .map(serie => (
+                      <option key={serie} value={serie}>{serie}</option>
+                    ))}
                 </select>
               </div>
 
@@ -1547,6 +1617,11 @@ export default function DadosPage() {
                             {/* Notas em Grid - Dinâmico baseado na série */}
                             <div className="grid grid-cols-2 gap-3 mb-3">
                               {disciplinasExibir.map((disciplina) => {
+                                // Verificar se a disciplina é aplicável à série do aluno
+                                const disciplinaAplicavel = isDisciplinaAplicavel(resultado.serie, disciplina.codigo)
+                                // Se a disciplina não é aplicável, não mostrar o card
+                                if (!disciplinaAplicavel) return null
+
                                 const nota = getNotaNumero((resultado as any)[disciplina.campo_nota])
                                 const acertos = disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
                                 const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
@@ -1729,8 +1804,10 @@ export default function DadosPage() {
                                     </span>
                                   </td>
                                   {disciplinasExibir.map((disciplina) => {
-                                    const nota = getNotaNumero((resultado as any)[disciplina.campo_nota])
-                                    const acertos = disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
+                                    // Verificar se a disciplina é aplicável à série do aluno
+                                    const disciplinaAplicavel = isDisciplinaAplicavel(resultado.serie, disciplina.codigo)
+                                    const nota = disciplinaAplicavel ? getNotaNumero((resultado as any)[disciplina.campo_nota]) : null
+                                    const acertos = disciplinaAplicavel && disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
                                     const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
                                     const getNivelColor = (nivel: string | undefined | null): string => {
                                       if (!nivel) return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
@@ -1740,6 +1817,15 @@ export default function DadosPage() {
                                       if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300'
                                       if (nivelLower.includes('insuficiente')) return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
                                       return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
+                                    }
+
+                                    // Se a disciplina não é aplicável à série do aluno, mostrar célula vazia
+                                    if (!disciplinaAplicavel) {
+                                      return (
+                                        <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                          <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+                                        </td>
+                                      )
                                     }
 
                                     return (

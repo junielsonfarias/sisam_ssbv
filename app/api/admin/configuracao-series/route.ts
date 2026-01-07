@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     let query = `
       SELECT
-        id, serie, nome_serie,
+        id, serie, nome_serie, tipo_ensino,
         qtd_questoes_lp, qtd_questoes_mat, qtd_questoes_ch, qtd_questoes_cn,
         total_questoes_objetivas,
         tem_producao_textual, qtd_itens_producao,
@@ -88,8 +88,10 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const {
+      id,
       serie,
       nome_serie,
+      tipo_ensino,
       qtd_questoes_lp,
       qtd_questoes_mat,
       qtd_questoes_ch,
@@ -103,33 +105,39 @@ export async function PUT(request: NextRequest) {
       usa_nivel_aprendizagem
     } = body
 
-    if (!serie) {
+    if (!serie && !id) {
       return NextResponse.json(
-        { mensagem: 'Série é obrigatória' },
+        { mensagem: 'Série ou ID é obrigatório' },
         { status: 400 }
       )
     }
 
+    // Suporta atualização por ID ou por serie
+    const whereClause = id ? 'id = $1' : 'serie = $1'
+    const identifier = id || serie
+
     const result = await pool.query(
       `UPDATE configuracao_series SET
         nome_serie = COALESCE($2, nome_serie),
-        qtd_questoes_lp = COALESCE($3, qtd_questoes_lp),
-        qtd_questoes_mat = COALESCE($4, qtd_questoes_mat),
-        qtd_questoes_ch = COALESCE($5, qtd_questoes_ch),
-        qtd_questoes_cn = COALESCE($6, qtd_questoes_cn),
-        tem_producao_textual = COALESCE($7, tem_producao_textual),
-        qtd_itens_producao = COALESCE($8, qtd_itens_producao),
-        avalia_lp = COALESCE($9, avalia_lp),
-        avalia_mat = COALESCE($10, avalia_mat),
-        avalia_ch = COALESCE($11, avalia_ch),
-        avalia_cn = COALESCE($12, avalia_cn),
-        usa_nivel_aprendizagem = COALESCE($13, usa_nivel_aprendizagem),
+        tipo_ensino = COALESCE($3, tipo_ensino),
+        qtd_questoes_lp = COALESCE($4, qtd_questoes_lp),
+        qtd_questoes_mat = COALESCE($5, qtd_questoes_mat),
+        qtd_questoes_ch = COALESCE($6, qtd_questoes_ch),
+        qtd_questoes_cn = COALESCE($7, qtd_questoes_cn),
+        tem_producao_textual = COALESCE($8, tem_producao_textual),
+        qtd_itens_producao = COALESCE($9, qtd_itens_producao),
+        avalia_lp = COALESCE($10, avalia_lp),
+        avalia_mat = COALESCE($11, avalia_mat),
+        avalia_ch = COALESCE($12, avalia_ch),
+        avalia_cn = COALESCE($13, avalia_cn),
+        usa_nivel_aprendizagem = COALESCE($14, usa_nivel_aprendizagem),
         atualizado_em = CURRENT_TIMESTAMP
-      WHERE serie = $1
+      WHERE ${whereClause}
       RETURNING *`,
       [
-        serie,
+        identifier,
         nome_serie,
+        tipo_ensino,
         qtd_questoes_lp,
         qtd_questoes_mat,
         qtd_questoes_ch,
@@ -168,6 +176,106 @@ export async function PUT(request: NextRequest) {
 }
 
 /**
+ * DELETE /api/admin/configuracao-series
+ * Exclui uma configuração de série (apenas admin)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+
+    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
+      return NextResponse.json(
+        { mensagem: 'Não autorizado' },
+        { status: 403 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    const serie = searchParams.get('serie')
+
+    if (!id && !serie) {
+      return NextResponse.json(
+        { mensagem: 'ID ou série é obrigatório' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar se há alunos vinculados à série
+    const whereClause = id ? 'cs.id = $1' : 'cs.serie = $1'
+    const identifier = id || serie
+
+    const alunosResult = await pool.query(
+      `SELECT COUNT(*) as total FROM alunos a
+       JOIN turmas t ON a.turma_id = t.id
+       JOIN configuracao_series cs ON t.serie = cs.serie
+       WHERE ${whereClause} AND a.ativo = true`,
+      [identifier]
+    )
+
+    const totalAlunos = parseInt(alunosResult.rows[0]?.total || '0', 10)
+
+    if (totalAlunos > 0) {
+      return NextResponse.json(
+        { mensagem: `Não é possível excluir: existem ${totalAlunos} aluno(s) vinculado(s) a esta série` },
+        { status: 400 }
+      )
+    }
+
+    // Verificar se há resultados vinculados
+    const serieResult = await pool.query(
+      `SELECT serie FROM configuracao_series WHERE ${id ? 'id = $1' : 'serie = $1'}`,
+      [identifier]
+    )
+
+    if (serieResult.rows.length > 0) {
+      const serieNumero = serieResult.rows[0].serie
+      const resultadosResult = await pool.query(
+        `SELECT COUNT(*) as total FROM resultados_consolidados WHERE serie = $1`,
+        [serieNumero]
+      )
+
+      const totalResultados = parseInt(resultadosResult.rows[0]?.total || '0', 10)
+
+      if (totalResultados > 0) {
+        return NextResponse.json(
+          { mensagem: `Não é possível excluir: existem ${totalResultados} resultado(s) de prova vinculado(s) a esta série` },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Excluir a série (as disciplinas serão excluídas em cascata)
+    const deleteWhere = id ? 'id = $1' : 'serie = $1'
+    const result = await pool.query(
+      `DELETE FROM configuracao_series WHERE ${deleteWhere} RETURNING *`,
+      [identifier]
+    )
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { mensagem: 'Série não encontrada' },
+        { status: 404 }
+      )
+    }
+
+    // Limpar cache após exclusão
+    limparCacheConfigSeries()
+
+    return NextResponse.json({
+      mensagem: 'Série excluída com sucesso',
+      serie: result.rows[0]
+    })
+  } catch (error: any) {
+    console.error('Erro ao excluir configuração de série:', error)
+    return NextResponse.json(
+      { mensagem: error.message || 'Erro interno do servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * POST /api/admin/configuracao-series
  * Cria uma nova configuração de série (apenas admin)
  */
@@ -186,6 +294,7 @@ export async function POST(request: NextRequest) {
     const {
       serie,
       nome_serie,
+      tipo_ensino = 'anos_iniciais',
       qtd_questoes_lp = 0,
       qtd_questoes_mat = 0,
       qtd_questoes_ch = 0,
@@ -221,16 +330,17 @@ export async function POST(request: NextRequest) {
 
     const result = await pool.query(
       `INSERT INTO configuracao_series (
-        serie, nome_serie,
+        serie, nome_serie, tipo_ensino,
         qtd_questoes_lp, qtd_questoes_mat, qtd_questoes_ch, qtd_questoes_cn,
         tem_producao_textual, qtd_itens_producao,
         avalia_lp, avalia_mat, avalia_ch, avalia_cn,
         usa_nivel_aprendizagem, ativo
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true)
       RETURNING *`,
       [
         serie,
         nome_serie,
+        tipo_ensino,
         qtd_questoes_lp,
         qtd_questoes_mat,
         qtd_questoes_ch,
@@ -250,6 +360,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       mensagem: 'Série criada com sucesso',
+      id: result.rows[0].id,
       serie: result.rows[0]
     }, { status: 201 })
   } catch (error: any) {

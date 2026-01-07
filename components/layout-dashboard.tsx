@@ -310,10 +310,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           </nav>
         </aside>
 
-        {/* Overlay para mobile e tablet */}
+        {/* Overlay para mobile e tablet - z-30 para ficar abaixo do sidebar (z-40) */}
         {menuAberto && (
           <div
-            className="fixed inset-0 bg-black/50 dark:bg-black/70 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 z-30 lg:hidden"
             onClick={() => setMenuAberto(false)}
           />
         )}
