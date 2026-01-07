@@ -1334,31 +1334,31 @@ export default function ResultadosPage() {
                         </div>
 
                         {/* Notas em Grid - Dinâmico baseado na série */}
-                        <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="grid grid-cols-2 gap-2 mb-3" style={{ gridTemplateColumns: disciplinasExibir.length > 4 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)' }}>
                           {disciplinasExibir.map((disciplina) => {
                             const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                             const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
                             const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
-                            
+
                             return (
-                              <div key={disciplina.codigo} className={`p-3 rounded-lg ${getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
-                                <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{disciplina.nome}</div>
+                              <div key={disciplina.codigo} className={`p-2 rounded-lg ${getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
+                                <div className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{disciplina.codigo}</div>
                                 {disciplina.tipo === 'nivel' ? (
-                                  <div className={`text-sm font-bold ${nivelAprendizagem ? getNivelColor(nivelAprendizagem).replace('bg-', 'text-').split(' ')[0] : 'text-gray-500'}`}>
+                                  <div className={`text-xs font-bold ${nivelAprendizagem ? getNivelColor(nivelAprendizagem).replace('bg-', 'text-').split(' ')[0] : 'text-gray-500'}`}>
                                     {nivelAprendizagem || '-'}
                                   </div>
                                 ) : (
                                   <>
                                     {getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo) && acertos !== null && (
-                                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)}</div>
+                                      <div className="text-[10px] text-gray-600 dark:text-gray-400">{acertos}/{getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)}</div>
                                     )}
-                                    <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
+                                    <div className={`text-base font-bold ${getNotaColor(nota)}`}>
                                       {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1 mt-0.5">
                                         <div
-                                          className={`h-1.5 rounded-full ${
+                                          className={`h-1 rounded-full ${
                                             nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                                           }`}
                                           style={{ width: `${Math.min((nota / 10) * 100, 100)}%` }}
@@ -1373,14 +1373,14 @@ export default function ResultadosPage() {
                         </div>
 
                         {/* Média e Ações */}
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
-                          <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
-                            mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
-                            mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-slate-700">
+                          <div className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg ${getNotaBgColor(resultado.media_aluno)} border-2 ${
+                            mediaNum !== null && mediaNum >= 7 ? 'border-green-500' :
+                            mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' :
                             'border-red-500'
                           }`}>
-                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Média Geral</div>
-                            <div className={`text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
+                            <div className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Média</div>
+                            <div className={`text-xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                               {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                             </div>
                           </div>
@@ -1399,11 +1399,11 @@ export default function ResultadosPage() {
                               })
                               setModalAberto(true)
                             }}
-                            className="flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm"
+                            className="flex items-center justify-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium shadow-sm"
                             title="Ver questões do aluno"
                           >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Questões
+                            <Eye className="w-4 h-4 mr-1" />
+                            Questões
                           </button>
                         </div>
                       </div>

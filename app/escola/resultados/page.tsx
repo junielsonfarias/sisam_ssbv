@@ -23,8 +23,12 @@ interface ResultadoConsolidado {
   nota_ch: number | string | null
   nota_mat: number | string | null
   nota_cn: number | string | null
-  nota_producao?: number | string | null
   media_aluno: number | string | null
+  // Novos campos para produção textual e nível de aprendizagem
+  nota_producao?: number | string | null
+  nivel_aprendizagem?: string | null
+  nivel_aprendizagem_id?: string | null
+  tipo_avaliacao?: string | null
 }
 
 interface Filtros {
@@ -904,112 +908,66 @@ export default function ResultadosEscolaPage() {
                           </button>
                         </div>
 
-                        {/* Notas em Grid */}
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                          {/* LP */}
-                          {disciplinaExisteNaSerie(resultado.serie, 'LP') && (
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Língua Portuguesa</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_lp}/{obterTotalQuestoes(resultado.serie, 'LP')}</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
-                              {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaLP >= 7 ? 'bg-green-500' : notaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaLP / 10) * 100, 100)}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
-                          )}
+                        {/* Notas em Grid - Dinâmico baseado na série */}
+                        <div className="grid grid-cols-2 gap-2 mb-3" style={{ gridTemplateColumns: disciplinasExibir.length > 4 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)' }}>
+                          {disciplinasExibir.map((disciplina) => {
+                            const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
+                            const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
+                            const existeNaSerie = disciplinaExisteNaSerie(resultado.serie, disciplina.codigo)
 
-                          {/* CH - apenas para anos finais */}
-                          {disciplinaExisteNaSerie(resultado.serie, 'CH') && (
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências Humanas</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_ch}/{obterTotalQuestoes(resultado.serie, 'CH')}</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
-                              {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
-                          )}
+                            if (!existeNaSerie) return null
 
-                          {/* MAT */}
-                          {disciplinaExisteNaSerie(resultado.serie, 'MAT') && (
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Matemática</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_mat}/{obterTotalQuestoes(resultado.serie, 'MAT')}</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
-                              {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaMAT >= 7 ? 'bg-green-500' : notaMAT >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaMAT / 10) * 100, 100)}%` }}
-                                ></div>
+                            return (
+                              <div key={disciplina.codigo} className={`p-2 rounded-lg ${getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
+                                <div className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{disciplina.codigo}</div>
+                                {disciplina.tipo === 'nivel' ? (
+                                  <div className={`text-xs font-bold ${resultado.nivel_aprendizagem ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                    {resultado.nivel_aprendizagem || '-'}
+                                  </div>
+                                ) : (
+                                  <>
+                                    {obterTotalQuestoes(resultado.serie, disciplina.codigo) && acertos !== null && (
+                                      <div className="text-[10px] text-gray-600 dark:text-gray-400">{acertos}/{obterTotalQuestoes(resultado.serie, disciplina.codigo)}</div>
+                                    )}
+                                    <div className={`text-base font-bold ${getNotaColor(nota)}`}>
+                                      {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                    </div>
+                                    {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1 mt-0.5">
+                                        <div
+                                          className={`h-1 rounded-full ${
+                                            nota >= 7 ? 'bg-green-500' : nota >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                          }`}
+                                          style={{ width: `${Math.min((nota / 10) * 100, 100)}%` }}
+                                        ></div>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          )}
-
-                          {/* CN - apenas para anos finais */}
-                          {disciplinaExisteNaSerie(resultado.serie, 'CN') && (
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências da Natureza</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_cn}/{obterTotalQuestoes(resultado.serie, 'CN')}</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
-                              {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
-                          )}
+                            )
+                          })}
                         </div>
 
                         {/* Média e Ações */}
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
-                          <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
-                            mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
-                            mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-slate-700">
+                          <div className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg ${getNotaBgColor(resultado.media_aluno)} border-2 ${
+                            mediaNum !== null && mediaNum >= 7 ? 'border-green-500' :
+                            mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' :
                             'border-red-500'
                           }`}>
-                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Média Geral</div>
-                            <div className={`text-2xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
+                            <div className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">Média</div>
+                            <div className={`text-xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                               {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                             </div>
                           </div>
                           <button
                             onClick={() => handleVisualizarQuestoes(resultado)}
-                            className="flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm"
+                            className="flex items-center justify-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium shadow-sm"
                             title="Ver questões do aluno"
                           >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Questões
+                            <Eye className="w-4 h-4 mr-1" />
+                            Questões
                           </button>
                         </div>
                       </div>
