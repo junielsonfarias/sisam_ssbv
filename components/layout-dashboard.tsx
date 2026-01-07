@@ -278,7 +278,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       {/* Espaçador para compensar o header fixo */}
       <div className="h-14 sm:h-16 flex-shrink-0" />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1">
         {/* Sidebar - Fixo na lateral */}
         <aside
           className={`
@@ -319,10 +319,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         )}
 
         {/* Main Content - Com margem para compensar sidebar fixo em telas grandes */}
-        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-x-clip overflow-y-auto bg-gray-50 dark:bg-slate-900 transition-colors duration-300 lg:ml-64">
-          <div className="max-w-full">
-            {children}
-          </div>
+        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-y-auto bg-gray-50 dark:bg-slate-900 transition-colors duration-300 lg:ml-64">
+          {children}
         </main>
       </div>
 

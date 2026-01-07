@@ -88,26 +88,104 @@ export async function carregarConfigSeries(): Promise<Map<string, ConfiguracaoSe
 
 /**
  * Obtém a configuração de uma série específica
+ * Se não encontrar no banco, usa os valores padrão hardcoded
  */
 export async function obterConfigSerie(serie: string | null | undefined): Promise<ConfiguracaoSerie | null> {
   const numeroSerie = extrairNumeroSerie(serie)
   if (!numeroSerie) return null
 
   const configs = await carregarConfigSeries()
-  return configs.get(numeroSerie) || null
+  const configBanco = configs.get(numeroSerie)
+
+  // Se encontrou no banco, retorna
+  if (configBanco) {
+    return configBanco
+  }
+
+  // Se não encontrou, usa o fallback padrão
+  const configsPadrao = getConfigPadrao()
+  return configsPadrao.get(numeroSerie) || null
 }
 
 /**
- * Retorna configuração padrão (8º/9º ano) para fallback
+ * Retorna configuração padrão para todas as séries (fallback)
  */
 function getConfigPadrao(): Map<string, ConfiguracaoSerie> {
   const map = new Map<string, ConfiguracaoSerie>()
+  const agora = new Date()
 
-  const configPadrao: Omit<ConfiguracaoSerie, 'id' | 'serie' | 'nome_serie' | 'total_questoes_objetivas'> = {
-    qtd_questoes_lp: 15,
-    qtd_questoes_mat: 15,
-    qtd_questoes_ch: 15,
-    qtd_questoes_cn: 15,
+  // Configuração para 2º e 3º Ano (Anos Iniciais)
+  // LP: 14 questões (Q1-Q14), MAT: 14 questões (Q15-Q28)
+  const configAnosIniciais23: ConfiguracaoSerie = {
+    id: '',
+    serie: '',
+    nome_serie: '',
+    qtd_questoes_lp: 14,
+    qtd_questoes_mat: 14,
+    qtd_questoes_ch: 0,
+    qtd_questoes_cn: 0,
+    total_questoes_objetivas: 28,
+    tem_producao_textual: true,
+    qtd_itens_producao: 8,
+    avalia_lp: true,
+    avalia_mat: true,
+    avalia_ch: false,
+    avalia_cn: false,
+    peso_lp: 1,
+    peso_mat: 1,
+    peso_ch: 0,
+    peso_cn: 0,
+    peso_producao: 1,
+    usa_nivel_aprendizagem: true,
+    ativo: true,
+    criado_em: agora,
+    atualizado_em: agora,
+  }
+
+  map.set('2', { ...configAnosIniciais23, id: '2', serie: '2', nome_serie: '2º Ano' })
+  map.set('3', { ...configAnosIniciais23, id: '3', serie: '3', nome_serie: '3º Ano' })
+
+  // Configuração para 5º Ano (Anos Iniciais)
+  // LP: 14 questões (Q1-Q14), MAT: 20 questões (Q15-Q34)
+  const config5Ano: ConfiguracaoSerie = {
+    id: '5',
+    serie: '5',
+    nome_serie: '5º Ano',
+    qtd_questoes_lp: 14,
+    qtd_questoes_mat: 20,
+    qtd_questoes_ch: 0,
+    qtd_questoes_cn: 0,
+    total_questoes_objetivas: 34,
+    tem_producao_textual: true,
+    qtd_itens_producao: 8,
+    avalia_lp: true,
+    avalia_mat: true,
+    avalia_ch: false,
+    avalia_cn: false,
+    peso_lp: 1,
+    peso_mat: 1,
+    peso_ch: 0,
+    peso_cn: 0,
+    peso_producao: 1,
+    usa_nivel_aprendizagem: true,
+    ativo: true,
+    criado_em: agora,
+    atualizado_em: agora,
+  }
+
+  map.set('5', config5Ano)
+
+  // Configuração para 8º e 9º Ano (Anos Finais)
+  // LP: 20, CH: 10, MAT: 20, CN: 10
+  const configAnosFinais: ConfiguracaoSerie = {
+    id: '',
+    serie: '',
+    nome_serie: '',
+    qtd_questoes_lp: 20,
+    qtd_questoes_mat: 20,
+    qtd_questoes_ch: 10,
+    qtd_questoes_cn: 10,
+    total_questoes_objetivas: 60,
     tem_producao_textual: false,
     qtd_itens_producao: 0,
     avalia_lp: true,
@@ -118,15 +196,15 @@ function getConfigPadrao(): Map<string, ConfiguracaoSerie> {
     peso_mat: 1,
     peso_ch: 1,
     peso_cn: 1,
-    peso_producao: 1,
+    peso_producao: 0,
     usa_nivel_aprendizagem: false,
     ativo: true,
-    criado_em: new Date(),
-    atualizado_em: new Date(),
+    criado_em: agora,
+    atualizado_em: agora,
   }
 
-  map.set('8', { ...configPadrao, id: '', serie: '8', nome_serie: '8º Ano', total_questoes_objetivas: 60 })
-  map.set('9', { ...configPadrao, id: '', serie: '9', nome_serie: '9º Ano', total_questoes_objetivas: 60 })
+  map.set('8', { ...configAnosFinais, id: '8', serie: '8', nome_serie: '8º Ano' })
+  map.set('9', { ...configAnosFinais, id: '9', serie: '9', nome_serie: '9º Ano' })
 
   return map
 }

@@ -45,6 +45,34 @@ const DISCIPLINAS_DISPONIVEIS = [
   { nome: 'Ciências da Natureza', sigla: 'CN', cor: 'yellow' },
 ]
 
+// Configuração padrão de disciplinas por série (hardcoded)
+const DISCIPLINAS_PADRAO_POR_SERIE: Record<string, Disciplina[]> = {
+  '2': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 14, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 2, questao_inicio: 15, questao_fim: 28, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 }
+  ],
+  '3': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 14, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 2, questao_inicio: 15, questao_fim: 28, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 }
+  ],
+  '5': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 14, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 2, questao_inicio: 15, questao_fim: 34, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 }
+  ],
+  '8': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 20, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
+    { disciplina: 'Ciências Humanas', sigla: 'CH', ordem: 2, questao_inicio: 21, questao_fim: 30, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 3, questao_inicio: 31, questao_fim: 50, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
+    { disciplina: 'Ciências da Natureza', sigla: 'CN', ordem: 4, questao_inicio: 51, questao_fim: 60, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 }
+  ],
+  '9': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 20, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
+    { disciplina: 'Ciências Humanas', sigla: 'CH', ordem: 2, questao_inicio: 21, questao_fim: 30, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 3, questao_inicio: 31, questao_fim: 50, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
+    { disciplina: 'Ciências da Natureza', sigla: 'CN', ordem: 4, questao_inicio: 51, questao_fim: 60, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 }
+  ]
+}
+
 export default function ConfiguracaoSeriesPage() {
   const [series, setSeries] = useState<ConfiguracaoSerie[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -80,12 +108,20 @@ export default function ConfiguracaoSeriesPage() {
       const disciplinasData = await disciplinasRes.json()
 
       if (seriesData.series) {
-        // Merge disciplinas into series
+        // Merge disciplinas into series (com fallback para valores padrão)
         const seriesComDisciplinas = seriesData.series.map((s: ConfiguracaoSerie) => {
           const discData = disciplinasData.find((d: any) => d.serie_id === s.id)
+          const disciplinasBanco = discData?.disciplinas || []
+
+          // Se não tem disciplinas no banco ou tem valores incorretos, usar padrão
+          let disciplinasFinais = disciplinasBanco
+          if (disciplinasBanco.length === 0 && DISCIPLINAS_PADRAO_POR_SERIE[s.serie]) {
+            disciplinasFinais = DISCIPLINAS_PADRAO_POR_SERIE[s.serie]
+          }
+
           return {
             ...s,
-            disciplinas: discData?.disciplinas || []
+            disciplinas: disciplinasFinais
           }
         })
         setSeries(seriesComDisciplinas)
@@ -103,11 +139,25 @@ export default function ConfiguracaoSeriesPage() {
     try {
       const response = await fetch(`/api/admin/configuracao-series/disciplinas?serie_id=${config.id}`)
       const disciplinas = await response.json()
-      setDisciplinasEditando(disciplinas.length > 0 ? disciplinas : [])
+
+      // Se tem disciplinas no banco, usar elas; senão, usar o padrão
+      if (disciplinas.length > 0) {
+        setDisciplinasEditando(disciplinas)
+      } else if (DISCIPLINAS_PADRAO_POR_SERIE[config.serie]) {
+        // Usar configuração padrão para a série
+        setDisciplinasEditando([...DISCIPLINAS_PADRAO_POR_SERIE[config.serie]])
+      } else {
+        setDisciplinasEditando([])
+      }
       setEditandoSerie(config.id)
     } catch (error) {
       console.error('Erro ao buscar disciplinas:', error)
-      setDisciplinasEditando([])
+      // Em caso de erro, usar configuração padrão
+      if (DISCIPLINAS_PADRAO_POR_SERIE[config.serie]) {
+        setDisciplinasEditando([...DISCIPLINAS_PADRAO_POR_SERIE[config.serie]])
+      } else {
+        setDisciplinasEditando([])
+      }
       setEditandoSerie(config.id)
     }
   }

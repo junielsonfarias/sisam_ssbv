@@ -38,21 +38,57 @@ export async function GET(request: NextRequest) {
 
     const aluno = alunoResult.rows[0]
 
+    // Configuração hardcoded para séries (prioridade sobre banco de dados)
+    const configuracoesHardcoded: Record<string, { disciplina: string; sigla: string; questao_inicio: number; questao_fim: number }[]> = {
+      '2': [
+        { disciplina: 'Língua Portuguesa', sigla: 'LP', questao_inicio: 1, questao_fim: 14 },
+        { disciplina: 'Matemática', sigla: 'MAT', questao_inicio: 15, questao_fim: 28 }
+      ],
+      '3': [
+        { disciplina: 'Língua Portuguesa', sigla: 'LP', questao_inicio: 1, questao_fim: 14 },
+        { disciplina: 'Matemática', sigla: 'MAT', questao_inicio: 15, questao_fim: 28 }
+      ],
+      '5': [
+        { disciplina: 'Língua Portuguesa', sigla: 'LP', questao_inicio: 1, questao_fim: 14 },
+        { disciplina: 'Matemática', sigla: 'MAT', questao_inicio: 15, questao_fim: 34 }
+      ],
+      '8': [
+        { disciplina: 'Língua Portuguesa', sigla: 'LP', questao_inicio: 1, questao_fim: 20 },
+        { disciplina: 'Ciências Humanas', sigla: 'CH', questao_inicio: 21, questao_fim: 30 },
+        { disciplina: 'Matemática', sigla: 'MAT', questao_inicio: 31, questao_fim: 50 },
+        { disciplina: 'Ciências da Natureza', sigla: 'CN', questao_inicio: 51, questao_fim: 60 }
+      ],
+      '9': [
+        { disciplina: 'Língua Portuguesa', sigla: 'LP', questao_inicio: 1, questao_fim: 20 },
+        { disciplina: 'Ciências Humanas', sigla: 'CH', questao_inicio: 21, questao_fim: 30 },
+        { disciplina: 'Matemática', sigla: 'MAT', questao_inicio: 31, questao_fim: 50 },
+        { disciplina: 'Ciências da Natureza', sigla: 'CN', questao_inicio: 51, questao_fim: 60 }
+      ]
+    }
+
     // Buscar configuração de disciplinas para a série do aluno
     let disciplinaConfig: { disciplina: string; sigla: string; questao_inicio: number; questao_fim: number }[] = []
     if (aluno.serie) {
       // Extrair apenas o número da série
       const numeroSerie = aluno.serie.toString().match(/(\d+)/)?.[1] || aluno.serie
-      const configResult = await pool.query(
-        `SELECT csd.disciplina, csd.sigla, csd.questao_inicio, csd.questao_fim
-         FROM configuracao_series_disciplinas csd
-         JOIN configuracao_series cs ON csd.serie_id = cs.id
-         WHERE cs.serie = $1 AND csd.ativo = true
-         ORDER BY csd.ordem`,
-        [numeroSerie]
-      )
-      disciplinaConfig = configResult.rows
-      console.log(`[API] Configuração de disciplinas para série ${numeroSerie}:`, disciplinaConfig.length, 'disciplinas')
+
+      // PRIORIDADE: Usar configuração hardcoded para garantir valores corretos
+      if (configuracoesHardcoded[numeroSerie]) {
+        disciplinaConfig = configuracoesHardcoded[numeroSerie]
+        console.log(`[API] Usando configuração HARDCODED para série ${numeroSerie}:`, disciplinaConfig.length, 'disciplinas')
+      } else {
+        // Fallback: buscar do banco apenas se não tiver configuração hardcoded
+        const configResult = await pool.query(
+          `SELECT csd.disciplina, csd.sigla, csd.questao_inicio, csd.questao_fim
+           FROM configuracao_series_disciplinas csd
+           JOIN configuracao_series cs ON csd.serie_id = cs.id
+           WHERE cs.serie = $1 AND csd.ativo = true
+           ORDER BY csd.ordem`,
+          [numeroSerie]
+        )
+        disciplinaConfig = configResult.rows
+        console.log(`[API] Configuração do BANCO para série ${numeroSerie}:`, disciplinaConfig.length, 'disciplinas')
+      }
     }
 
     // Buscar todas as questões do aluno
@@ -163,16 +199,25 @@ export async function GET(request: NextRequest) {
         questoesPorArea[config.disciplina] = []
       })
     } else {
-      // Fallback: usar as 4 áreas padrão
-      questoesPorArea['Língua Portuguesa'] = []
-      questoesPorArea['Ciências Humanas'] = []
-      questoesPorArea['Matemática'] = []
-      questoesPorArea['Ciências da Natureza'] = []
+      // Fallback baseado na série
+      const numeroSerie = aluno.serie?.toString().match(/(\d+)/)?.[1]
+
+      // Anos Iniciais (2º, 3º, 5º): apenas LP e MAT
+      if (numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5') {
+        questoesPorArea['Língua Portuguesa'] = []
+        questoesPorArea['Matemática'] = []
+      } else {
+        // Anos Finais (8º, 9º): 4 áreas
+        questoesPorArea['Língua Portuguesa'] = []
+        questoesPorArea['Ciências Humanas'] = []
+        questoesPorArea['Matemática'] = []
+        questoesPorArea['Ciências da Natureza'] = []
+      }
     }
 
     // Função para encontrar a disciplina baseada no número da questão
     const encontrarDisciplina = (questaoNum: number): string => {
-      // Se tem configuração, usar ela
+      // Se tem configuração do banco, usar ela
       if (disciplinaConfig.length > 0) {
         for (const config of disciplinaConfig) {
           if (questaoNum >= config.questao_inicio && questaoNum <= config.questao_fim) {
@@ -181,7 +226,33 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Fallback para mapeamento padrão (anos finais)
+      // Extrair número da série para determinar o fallback correto
+      const numeroSerie = aluno.serie?.toString().match(/(\d+)/)?.[1]
+
+      // Fallback para 2º e 3º Ano (Anos Iniciais)
+      // LP: Q1-Q14 (14 questões), MAT: Q15-Q28 (14 questões)
+      if (numeroSerie === '2' || numeroSerie === '3') {
+        if (questaoNum >= 1 && questaoNum <= 14) {
+          return 'Língua Portuguesa'
+        } else if (questaoNum >= 15 && questaoNum <= 28) {
+          return 'Matemática'
+        }
+        return 'Outras'
+      }
+
+      // Fallback para 5º Ano (Anos Iniciais)
+      // LP: Q1-Q14 (14 questões), MAT: Q15-Q34 (20 questões)
+      if (numeroSerie === '5') {
+        if (questaoNum >= 1 && questaoNum <= 14) {
+          return 'Língua Portuguesa'
+        } else if (questaoNum >= 15 && questaoNum <= 34) {
+          return 'Matemática'
+        }
+        return 'Outras'
+      }
+
+      // Fallback para mapeamento padrão (Anos Finais: 8º e 9º)
+      // LP: Q1-Q20, CH: Q21-Q30, MAT: Q31-Q50, CN: Q51-Q60
       if (questaoNum >= 1 && questaoNum <= 20) {
         return 'Língua Portuguesa'
       } else if (questaoNum >= 21 && questaoNum <= 30) {

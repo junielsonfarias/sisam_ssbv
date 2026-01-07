@@ -55,10 +55,10 @@ export function obterDisciplinasPorSerieSync(serie: string | null | undefined): 
   
   // Séries dos anos iniciais: 2º, 3º e 5º ano
   if (numeroSerie === '2' || numeroSerie === '3') {
-    // 2º e 3º ano: LP (20 questões Q1-Q20), MAT (8 questões Q21-Q28), PROD (8 itens), Nível
+    // 2º e 3º ano: LP (14 questões Q1-Q14), MAT (14 questões Q15-Q28), PROD (8 itens), Nível
     return [
-      { codigo: 'LP', nome: 'Língua Portuguesa', campo_nota: 'nota_lp', campo_acertos: 'total_acertos_lp', total_questoes: 20, tipo: 'objetiva' },
-      { codigo: 'MAT', nome: 'Matemática', campo_nota: 'nota_mat', campo_acertos: 'total_acertos_mat', total_questoes: 8, tipo: 'objetiva' },
+      { codigo: 'LP', nome: 'Língua Portuguesa', campo_nota: 'nota_lp', campo_acertos: 'total_acertos_lp', total_questoes: 14, tipo: 'objetiva' },
+      { codigo: 'MAT', nome: 'Matemática', campo_nota: 'nota_mat', campo_acertos: 'total_acertos_mat', total_questoes: 14, tipo: 'objetiva' },
       { codigo: 'PROD', nome: 'Produção Textual', campo_nota: 'nota_producao', campo_acertos: '', tipo: 'textual' },
       { codigo: 'NIVEL', nome: 'Nível de Aprendizagem', campo_nota: 'nivel_aprendizagem', campo_acertos: '', tipo: 'nivel' },
     ]
