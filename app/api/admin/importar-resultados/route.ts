@@ -60,11 +60,11 @@ export async function POST(request: NextRequest) {
       ORDER BY csd.serie_id, csd.ordem
     `)
 
-    // Função para normalizar série (remover º, espaços, etc.)
+    // Função para normalizar série (extrair apenas o número)
     const normalizarSerie = (serie: string): string => {
       if (!serie) return ''
-      // Remover º, °, espaços, e converter para número
-      return serie.toString().replace(/[º°\s]/g, '').trim()
+      // Extrair apenas dígitos da série (ex: "5º Ano" -> "5", "2º" -> "2")
+      return serie.toString().replace(/[^\d]/g, '').trim()
     }
 
     // Criar mapa de configuração por série (usando série normalizada como chave)
@@ -323,10 +323,50 @@ export async function POST(request: NextRequest) {
           turmaId = cacheTurmas.get(turmaKey) || null
         }
 
-        // Buscar aluno do cache
+        // Buscar aluno do cache ou criar se não existir
         const alunoNomeNorm = alunoNome.toUpperCase().trim()
         const alunoCacheKey = `${alunoNomeNorm}_${escolaId}`
-        const alunoId = cacheAlunos.get(alunoCacheKey) || null
+        let alunoId = cacheAlunos.get(alunoCacheKey) || null
+
+        // Se o aluno não existe, criar automaticamente
+        if (!alunoId) {
+          try {
+            // Usa ON CONFLICT com índice único em UPPER(TRIM(nome)), escola_id, ano_letivo
+            const novoAlunoResult = await pool.query(
+              `INSERT INTO alunos (nome, escola_id, turma_id, serie, ano_letivo, ativo)
+               VALUES ($1, $2, $3, $4, $5, true)
+               ON CONFLICT (UPPER(TRIM(nome)), escola_id, ano_letivo)
+               DO UPDATE SET turma_id = COALESCE(EXCLUDED.turma_id, alunos.turma_id),
+                             serie = COALESCE(EXCLUDED.serie, alunos.serie),
+                             atualizado_em = CURRENT_TIMESTAMP
+               RETURNING id`,
+              [alunoNome, escolaId, turmaId, serie, anoLetivo]
+            )
+            alunoId = novoAlunoResult.rows[0].id
+            // Adicionar ao cache para evitar criar novamente
+            if (alunoId) cacheAlunos.set(alunoCacheKey, alunoId)
+            console.log(`[Importação] Aluno criado/atualizado: "${alunoNome}" (ID: ${alunoId})`)
+          } catch (createError: any) {
+            console.error(`[Importação] Erro ao criar aluno "${alunoNome}":`, createError.message)
+            // Tentar buscar o aluno existente como fallback
+            try {
+              const existenteResult = await pool.query(
+                `SELECT id FROM alunos
+                 WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1))
+                   AND escola_id = $2
+                   AND ano_letivo = $3`,
+                [alunoNome, escolaId, anoLetivo]
+              )
+              if (existenteResult.rows.length > 0) {
+                alunoId = existenteResult.rows[0].id
+                if (alunoId) cacheAlunos.set(alunoCacheKey, alunoId)
+                console.log(`[Importação] Aluno existente encontrado: "${alunoNome}" (ID: ${alunoId})`)
+              }
+            } catch (fallbackError) {
+              // Ignorar erro do fallback
+            }
+          }
+        }
 
         // Obter mapeamento de questões baseado na série
         const questoesMapDinamico = obterQuestoesMap(serie)
