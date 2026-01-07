@@ -3,7 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
@@ -263,6 +263,9 @@ export default function DadosPage() {
 
   // Visualização
   const [abaAtiva, setAbaAtiva] = useState<'visao_geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'>('visao_geral')
+  const [abasFixas, setAbasFixas] = useState(false)
+  const abasRef = useRef<HTMLDivElement>(null)
+  const abasContainerRef = useRef<HTMLDivElement>(null)
   const [ordenacao, setOrdenacao] = useState<{ coluna: string; direcao: 'asc' | 'desc' }>({ coluna: 'media_geral', direcao: 'desc' })
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina] = useState(15)
@@ -683,6 +686,26 @@ export default function DadosPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino])
+
+  // Efeito para detectar scroll e fixar abas
+  useEffect(() => {
+    const handleScroll = () => {
+      if (abasContainerRef.current) {
+        const rect = abasContainerRef.current.getBoundingClientRect()
+        // Fixa as abas quando o topo do container atinge o topo da viewport (considerando header de 64px)
+        setAbasFixas(rect.top <= 64)
+      }
+    }
+
+    // Buscar o elemento main que é o container de scroll
+    const mainElement = document.querySelector('main')
+    if (mainElement) {
+      mainElement.addEventListener('scroll', handleScroll)
+      // Verificar estado inicial
+      handleScroll()
+      return () => mainElement.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
 
   const limparFiltros = () => {
     // Para usuários polo ou escola, manter o polo_id fixo
@@ -1386,31 +1409,41 @@ export default function DadosPage() {
                 )}
               </div>
 
-              {/* Abas de Navegacao - Sticky e Scrollável em mobile */}
-              <div className="sticky top-0 z-20 bg-gray-50 dark:bg-slate-900 py-2 -mx-2 px-2 sm:mx-0 sm:px-0">
-                <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
-                  <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700 min-w-max sm:min-w-0">
-                  {[
-                    { id: 'visao_geral', label: 'Visão Geral', icon: PieChartIcon },
-                    { id: 'escolas', label: 'Escolas', icon: School },
-                    { id: 'turmas', label: 'Turmas', icon: Layers },
-                    { id: 'alunos', label: 'Alunos', icon: Users },
-                    { id: 'analises', label: 'Análises', icon: Target },
-                  ].map(aba => (
-                    <button
-                      key={aba.id}
-                      onClick={() => { setAbaAtiva(aba.id as any); setPaginaAtual(1); }}
-                      className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                        abaAtiva === aba.id
-                          ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      <aba.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline sm:inline">{aba.label}</span>
-                      <span className="xs:hidden sm:hidden">{aba.label.split(' ')[0]}</span>
-                    </button>
-                  ))}
+              {/* Abas de Navegacao - Com fixação via JavaScript */}
+              <div ref={abasContainerRef} className="relative">
+                {/* Placeholder para manter altura quando abas estão fixas */}
+                {abasFixas && <div style={{ height: abasRef.current?.offsetHeight || 52 }} />}
+
+                {/* Abas - Fixas ou normais */}
+                <div
+                  ref={abasRef}
+                  className={`${abasFixas ? 'fixed left-0 right-0 z-50 px-2 sm:px-4 md:px-6 lg:px-8 lg:pl-72' : ''} bg-gray-50 dark:bg-slate-900 py-2`}
+                  style={abasFixas ? { top: '56px' } : {}}
+                >
+                  <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
+                    <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700 min-w-max sm:min-w-0">
+                    {[
+                      { id: 'visao_geral', label: 'Visão Geral', icon: PieChartIcon },
+                      { id: 'escolas', label: 'Escolas', icon: School },
+                      { id: 'turmas', label: 'Turmas', icon: Layers },
+                      { id: 'alunos', label: 'Alunos', icon: Users },
+                      { id: 'analises', label: 'Análises', icon: Target },
+                    ].map(aba => (
+                      <button
+                        key={aba.id}
+                        onClick={() => { setAbaAtiva(aba.id as any); setPaginaAtual(1); }}
+                        className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                          abaAtiva === aba.id
+                            ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
+                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        <aba.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline sm:inline">{aba.label}</span>
+                        <span className="xs:hidden sm:hidden">{aba.label.split(' ')[0]}</span>
+                      </button>
+                    ))}
+                    </div>
                   </div>
                 </div>
               </div>
