@@ -104,7 +104,11 @@ export async function GET(request: NextRequest) {
         e.polo_id,
         p.nome as polo_nome,
         t.codigo as turma_codigo,
-        cs.tipo_ensino
+        cs.tipo_ensino,
+        cs.qtd_questoes_lp,
+        cs.qtd_questoes_mat,
+        cs.qtd_questoes_ch,
+        cs.qtd_questoes_cn
       FROM resultados_consolidados rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id

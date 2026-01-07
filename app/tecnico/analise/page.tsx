@@ -28,6 +28,11 @@ interface ResultadoConsolidado {
   nota_cn: number | string | null
   nota_producao?: number | string | null
   media_aluno: number | string | null
+  // Campos de configuração de questões por série (do banco)
+  qtd_questoes_lp?: number | null
+  qtd_questoes_mat?: number | null
+  qtd_questoes_ch?: number | null
+  qtd_questoes_cn?: number | null
 }
 
 interface Filtros {
@@ -368,8 +373,23 @@ export default function TecnicoAnalisePage() {
     return 'bg-red-50 border-red-200'
   }
 
-  const getTotalQuestoesPorSerie = useCallback((serie: string | null | undefined, codigoDisciplina: string): number | undefined => {
-    const disciplinasSerie = obterDisciplinasPorSerieSync(serie)
+  const getTotalQuestoesPorSerie = useCallback((resultado: ResultadoConsolidado, codigoDisciplina: string): number | undefined => {
+    // Primeiro, tentar usar os valores do banco (vindos da API)
+    if (codigoDisciplina === 'LP' && resultado.qtd_questoes_lp) {
+      return Number(resultado.qtd_questoes_lp)
+    }
+    if (codigoDisciplina === 'MAT' && resultado.qtd_questoes_mat) {
+      return Number(resultado.qtd_questoes_mat)
+    }
+    if (codigoDisciplina === 'CH' && resultado.qtd_questoes_ch) {
+      return Number(resultado.qtd_questoes_ch)
+    }
+    if (codigoDisciplina === 'CN' && resultado.qtd_questoes_cn) {
+      return Number(resultado.qtd_questoes_cn)
+    }
+
+    // Fallback para valores hardcoded (quando não há dados do banco)
+    const disciplinasSerie = obterDisciplinasPorSerieSync(resultado.serie)
     const disciplina = disciplinasSerie.find(d => d.codigo === codigoDisciplina)
     return disciplina?.total_questoes
   }, [])
@@ -779,7 +799,7 @@ export default function TecnicoAnalisePage() {
                           {/* 1. Lingua Portuguesa - Sempre visivel */}
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
                             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Lingua Portuguesa</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_lp}/{getTotalQuestoesPorSerie(resultado.serie, 'LP') || '-'}</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_lp}/{getTotalQuestoesPorSerie(resultado, 'LP') || '-'}</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
                               {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -798,7 +818,7 @@ export default function TecnicoAnalisePage() {
                           {/* 2. Matematica - Sempre visivel */}
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
                             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Matematica</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_mat}/{getTotalQuestoesPorSerie(resultado.serie, 'MAT') || '-'}</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_mat}/{getTotalQuestoesPorSerie(resultado, 'MAT') || '-'}</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
                               {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -825,7 +845,7 @@ export default function TecnicoAnalisePage() {
                                 </>
                               ) : (
                                 <>
-                                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_ch}/{getTotalQuestoesPorSerie(resultado.serie, 'CH') || '-'}</div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_ch}/{getTotalQuestoesPorSerie(resultado, 'CH') || '-'}</div>
                                   <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
                                     {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                                   </div>
@@ -855,7 +875,7 @@ export default function TecnicoAnalisePage() {
                                 </>
                               ) : (
                                 <>
-                                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_cn}/{getTotalQuestoesPorSerie(resultado.serie, 'CN') || '-'}</div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_cn}/{getTotalQuestoesPorSerie(resultado, 'CN') || '-'}</div>
                                   <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
                                     {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                                   </div>
@@ -1066,7 +1086,7 @@ export default function TecnicoAnalisePage() {
                                 <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                   <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                     <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                      {resultado.total_acertos_lp}/{getTotalQuestoesPorSerie(resultado.serie, 'LP') || '-'}
+                                      {resultado.total_acertos_lp}/{getTotalQuestoesPorSerie(resultado, 'LP') || '-'}
                                     </div>
                                     <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
                                       {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
@@ -1087,7 +1107,7 @@ export default function TecnicoAnalisePage() {
                                 <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                   <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                     <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                      {resultado.total_acertos_mat}/{getTotalQuestoesPorSerie(resultado.serie, 'MAT') || '-'}
+                                      {resultado.total_acertos_mat}/{getTotalQuestoesPorSerie(resultado, 'MAT') || '-'}
                                     </div>
                                     <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
                                       {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
@@ -1116,7 +1136,7 @@ export default function TecnicoAnalisePage() {
                                       ) : (
                                         <>
                                           <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                            {resultado.total_acertos_ch}/{getTotalQuestoesPorSerie(resultado.serie, 'CH') || '-'}
+                                            {resultado.total_acertos_ch}/{getTotalQuestoesPorSerie(resultado, 'CH') || '-'}
                                           </div>
                                           <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
                                             {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
@@ -1148,7 +1168,7 @@ export default function TecnicoAnalisePage() {
                                       ) : (
                                         <>
                                           <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                            {resultado.total_acertos_cn}/{getTotalQuestoesPorSerie(resultado.serie, 'CN') || '-'}
+                                            {resultado.total_acertos_cn}/{getTotalQuestoesPorSerie(resultado, 'CN') || '-'}
                                           </div>
                                           <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
                                             {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}

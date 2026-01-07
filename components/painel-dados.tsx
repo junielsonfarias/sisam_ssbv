@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import {
   BarChart3, School, Users, GraduationCap, BookOpen, TrendingUp,
   CheckCircle, XCircle, Search, Filter, X, Eye, ChevronLeft, ChevronRight,
@@ -31,6 +31,11 @@ interface ResultadoConsolidado {
   nivel_aprendizagem?: string | null
   nivel_aprendizagem_id?: string | null
   tipo_avaliacao?: string | null
+  // Campos de configuração de questões por série (do banco)
+  qtd_questoes_lp?: number | null
+  qtd_questoes_mat?: number | null
+  qtd_questoes_ch?: number | null
+  qtd_questoes_cn?: number | null
 }
 
 interface Escola {
@@ -200,6 +205,9 @@ export default function PainelDados({
       nota_cn?: number | string | null;
     };
   } | null>(null)
+
+  // Ref para abas (usada no sticky)
+  const abasContainerRef = useRef<HTMLDivElement>(null)
 
   // Listas para filtros
   const [listaEscolas, setListaEscolas] = useState<any[]>([])
@@ -373,8 +381,24 @@ export default function PainelDados({
     return obterDisciplinasPorSerieSync(filtrosAlunos.serie)
   }, [filtrosAlunos.serie])
 
-  const getTotalQuestoesPorSerie = useCallback((serie: string | null | undefined, codigoDisciplina: string): number | undefined => {
-    const disciplinasSerie = obterDisciplinasPorSerieSync(serie)
+  // Função para obter total de questões: prioriza valores do banco, depois fallback para hardcoded
+  const getTotalQuestoesPorSerie = useCallback((resultado: ResultadoConsolidado, codigoDisciplina: string): number | undefined => {
+    // Primeiro, tentar usar os valores do banco (vindos da API)
+    if (codigoDisciplina === 'LP' && resultado.qtd_questoes_lp) {
+      return Number(resultado.qtd_questoes_lp)
+    }
+    if (codigoDisciplina === 'MAT' && resultado.qtd_questoes_mat) {
+      return Number(resultado.qtd_questoes_mat)
+    }
+    if (codigoDisciplina === 'CH' && resultado.qtd_questoes_ch) {
+      return Number(resultado.qtd_questoes_ch)
+    }
+    if (codigoDisciplina === 'CN' && resultado.qtd_questoes_cn) {
+      return Number(resultado.qtd_questoes_cn)
+    }
+
+    // Fallback para valores hardcoded (quando não há dados do banco)
+    const disciplinasSerie = obterDisciplinasPorSerieSync(resultado.serie)
     const disciplina = disciplinasSerie.find(d => d.codigo === codigoDisciplina)
     return disciplina?.total_questoes
   }, [])
@@ -418,18 +442,18 @@ export default function PainelDados({
   ]
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
-      {/* Header Fixo */}
-      <div className="flex-shrink-0 p-3 sm:p-4 md:p-6 pb-0">
-        <div className="mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">{getTitulo()}</h1>
-          {estatisticas.nomePolo && tipoUsuario === 'escola' && (
-            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Polo: {estatisticas.nomePolo}</p>
-          )}
-        </div>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="mb-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">{getTitulo()}</h1>
+        {estatisticas.nomePolo && tipoUsuario === 'escola' && (
+          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Polo: {estatisticas.nomePolo}</p>
+        )}
+      </div>
 
-        {/* Abas Fixas */}
-        <div className="bg-white dark:bg-slate-800 rounded-t-xl shadow-sm border border-gray-200 dark:border-slate-700">
+      {/* Abas - Sticky */}
+      <div ref={abasContainerRef} className="sticky top-0 z-40 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-2 pb-1 bg-gray-50 dark:bg-slate-900">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
           <div className="flex overflow-x-auto">
             {abas.map((aba) => (
               <button
@@ -449,8 +473,9 @@ export default function PainelDados({
         </div>
       </div>
 
-      {/* Conteudo das Abas - Scrollable */}
-      <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 pt-4 space-y-4">
+
+      {/* Conteudo das Abas */}
+      <div className="space-y-4">
       {abaAtiva === 'geral' && (
         <AbaGeral estatisticas={estatisticas} tipoUsuario={tipoUsuario} carregando={carregando} />
       )}
@@ -697,17 +722,19 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Est
 function AbaEscolas({ escolas, busca, setBusca, carregando }: { escolas: Escola[]; busca: string; setBusca: (v: string) => void; carregando: boolean }) {
   return (
     <div className="space-y-4">
-      {/* Busca */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="Buscar escola..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-          />
+      {/* Busca - Sticky */}
+      <div className="sticky top-[52px] z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-2 bg-gray-50 dark:bg-slate-900">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Buscar escola..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+            />
+          </div>
         </div>
       </div>
 
@@ -724,9 +751,9 @@ function AbaEscolas({ escolas, busca, setBusca, carregando }: { escolas: Escola[
             <p className="text-gray-500">Nenhuma escola encontrada</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0">
+              <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
                 <tr>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">#</th>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Escola</th>
@@ -766,17 +793,19 @@ function AbaEscolas({ escolas, busca, setBusca, carregando }: { escolas: Escola[
 function AbaTurmas({ turmas, busca, setBusca, carregando }: { turmas: Turma[]; busca: string; setBusca: (v: string) => void; carregando: boolean }) {
   return (
     <div className="space-y-4">
-      {/* Busca */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="Buscar turma..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-          />
+      {/* Busca - Sticky */}
+      <div className="sticky top-[52px] z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-2 bg-gray-50 dark:bg-slate-900">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Buscar turma..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+            />
+          </div>
         </div>
       </div>
 
@@ -793,9 +822,9 @@ function AbaTurmas({ turmas, busca, setBusca, carregando }: { turmas: Turma[]; b
             <p className="text-gray-500">Nenhuma turma encontrada</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0">
+              <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
                 <tr>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">#</th>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Turma</th>
@@ -864,7 +893,7 @@ function AbaAlunos({
   carregarAlunos: (p: number) => void
   carregando: boolean
   disciplinasExibir: any[]
-  getTotalQuestoesPorSerie: (serie: string | null | undefined, codigo: string) => number | undefined
+  getTotalQuestoesPorSerie: (resultado: ResultadoConsolidado, codigo: string) => number | undefined
   setAlunoSelecionado: (v: any) => void
   setModalAberto: (v: boolean) => void
   tipoUsuario: string
@@ -878,13 +907,42 @@ function AbaAlunos({
   }
 
   return (
-    <div className="flex flex-col flex-1 space-y-4 min-h-0">
-      {/* Filtros */}
-      <div className="flex-shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
+    <div className="flex flex-col flex-1 space-y-2 min-h-0">
+      {/* Filtro Rápido de Série - Sticky abaixo das abas */}
+      <div className="sticky top-[52px] z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-1 bg-gray-50 dark:bg-slate-900">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 px-3 py-2">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">Série:</span>
+            {['Todas', '3º Ano', '5º Ano', '8º Ano', '9º Ano'].map((serie) => (
+              <button
+                key={serie}
+                onClick={() => {
+                  if (serie === 'Todas') {
+                    setFiltros({ ...filtros, serie: '' })
+                  } else {
+                    setFiltros({ ...filtros, serie })
+                  }
+                  setTimeout(() => carregarAlunos(1), 100)
+                }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+                  (serie === 'Todas' && !filtros.serie) || filtros.serie === serie
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {serie}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros Avançados - Não sticky */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center">
             <Filter className="w-4 h-4 mr-2 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Filtros</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Filtros Avançados</h2>
           </div>
           {temFiltrosAtivos && (
             <button onClick={limparFiltros} className="flex items-center text-sm text-indigo-600 hover:text-indigo-700">
@@ -989,8 +1047,8 @@ function AbaAlunos({
       </div>
 
       {/* Tabela de Alunos */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden flex-1">
-        <div className="flex-1 overflow-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-450px)] min-h-[300px]">
           {carregando ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
@@ -1057,7 +1115,7 @@ function AbaAlunos({
                     {disciplinasExibir.map((disciplina) => {
                       const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                       const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
-                      const totalQuestoes = getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)
+                      const totalQuestoes = getTotalQuestoesPorSerie(resultado, disciplina.codigo)
 
                       return (
                         <td key={disciplina.codigo} className="text-center py-2 px-1">

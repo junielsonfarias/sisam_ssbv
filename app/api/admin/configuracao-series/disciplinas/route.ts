@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { limparCacheConfigSeries } from '@/lib/config-series'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,11 +94,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { serie_id, disciplinas } = body
 
+    console.log('[API Disciplinas] Recebido:', { serie_id, disciplinas: JSON.stringify(disciplinas) })
+
     if (!serie_id || !disciplinas || !Array.isArray(disciplinas)) {
       return NextResponse.json(
         { mensagem: 'Dados inválidos. Informe serie_id e array de disciplinas.' },
         { status: 400 }
       )
+    }
+
+    // Validar campos obrigatórios de cada disciplina
+    for (let i = 0; i < disciplinas.length; i++) {
+      const d = disciplinas[i]
+      if (!d.disciplina || !d.sigla || d.questao_inicio === undefined || d.questao_fim === undefined) {
+        return NextResponse.json(
+          { mensagem: `Disciplina ${i + 1} está incompleta. Preencha todos os campos.` },
+          { status: 400 }
+        )
+      }
+      // Garantir que ordem existe
+      if (d.ordem === undefined) {
+        disciplinas[i].ordem = i + 1
+      }
     }
 
     // Validar se as questões não se sobrepõem
@@ -122,46 +140,51 @@ export async function POST(request: NextRequest) {
     try {
       await client.query('BEGIN')
 
-      // Desativar disciplinas existentes (soft delete)
+      // Deletar disciplinas existentes (hard delete) para evitar conflito de constraints
       await client.query(`
-        UPDATE configuracao_series_disciplinas
-        SET ativo = false, atualizado_em = CURRENT_TIMESTAMP
+        DELETE FROM configuracao_series_disciplinas
         WHERE serie_id = $1
       `, [serie_id])
 
-      // Inserir/atualizar novas disciplinas
-      for (const disc of disciplinas) {
+      // Inserir novas disciplinas
+      for (let i = 0; i < disciplinas.length; i++) {
+        const disc = disciplinas[i]
         const qtdQuestoes = disc.questao_fim - disc.questao_inicio + 1
-        const valorQuestao = disc.valor_questao || (10 / qtdQuestoes).toFixed(2)
+        const valorQuestao = disc.valor_questao || parseFloat((10 / qtdQuestoes).toFixed(2))
 
-        await client.query(`
-          INSERT INTO configuracao_series_disciplinas (
-            serie_id, disciplina, sigla, ordem,
-            questao_inicio, questao_fim, qtd_questoes,
-            valor_questao, nota_maxima, ativo
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
-          ON CONFLICT (serie_id, sigla)
-          DO UPDATE SET
-            disciplina = EXCLUDED.disciplina,
-            ordem = EXCLUDED.ordem,
-            questao_inicio = EXCLUDED.questao_inicio,
-            questao_fim = EXCLUDED.questao_fim,
-            qtd_questoes = EXCLUDED.qtd_questoes,
-            valor_questao = EXCLUDED.valor_questao,
-            nota_maxima = EXCLUDED.nota_maxima,
-            ativo = true,
-            atualizado_em = CURRENT_TIMESTAMP
-        `, [
+        console.log(`[API] Inserindo disciplina ${i + 1}:`, {
           serie_id,
-          disc.disciplina,
-          disc.sigla,
-          disc.ordem,
-          disc.questao_inicio,
-          disc.questao_fim,
+          disciplina: disc.disciplina,
+          sigla: disc.sigla,
+          ordem: disc.ordem || (i + 1),
+          questao_inicio: disc.questao_inicio,
+          questao_fim: disc.questao_fim,
           qtdQuestoes,
-          valorQuestao,
-          disc.nota_maxima || 10
-        ])
+          valorQuestao
+        })
+
+        try {
+          await client.query(`
+            INSERT INTO configuracao_series_disciplinas (
+              serie_id, disciplina, sigla, ordem,
+              questao_inicio, questao_fim, qtd_questoes,
+              valor_questao, nota_maxima, ativo
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+          `, [
+            serie_id,
+            disc.disciplina,
+            disc.sigla,
+            disc.ordem || (i + 1),
+            disc.questao_inicio,
+            disc.questao_fim,
+            qtdQuestoes,
+            valorQuestao,
+            disc.nota_maxima || 10
+          ])
+        } catch (insertError: any) {
+          console.error(`[API] Erro ao inserir disciplina ${disc.sigla}:`, insertError.message)
+          throw new Error(`Erro ao inserir ${disc.disciplina}: ${insertError.message}`)
+        }
       }
 
       // Atualizar campos legados em configuracao_series para compatibilidade
@@ -183,7 +206,6 @@ export async function POST(request: NextRequest) {
           qtd_questoes_mat = $7,
           qtd_questoes_ch = $8,
           qtd_questoes_cn = $9,
-          total_questoes = $10,
           atualizado_em = CURRENT_TIMESTAMP
         WHERE id = $1
       `, [
@@ -195,11 +217,13 @@ export async function POST(request: NextRequest) {
         lpDisc ? lpDisc.questao_fim - lpDisc.questao_inicio + 1 : 0,
         matDisc ? matDisc.questao_fim - matDisc.questao_inicio + 1 : 0,
         chDisc ? chDisc.questao_fim - chDisc.questao_inicio + 1 : 0,
-        cnDisc ? cnDisc.questao_fim - cnDisc.questao_inicio + 1 : 0,
-        totalQuestoes
+        cnDisc ? cnDisc.questao_fim - cnDisc.questao_inicio + 1 : 0
       ])
 
       await client.query('COMMIT')
+
+      // Limpar cache após atualização das disciplinas
+      limparCacheConfigSeries()
 
       return NextResponse.json({
         mensagem: 'Disciplinas atualizadas com sucesso',
@@ -216,8 +240,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Erro ao salvar disciplinas:', error)
+    console.error('Stack:', error.stack)
+    console.error('Detalhes:', JSON.stringify(error, null, 2))
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      {
+        mensagem: error.message || 'Erro interno do servidor',
+        detalhes: error.detail || null,
+        codigo: error.code || null
+      },
       { status: 500 }
     )
   }
@@ -250,6 +280,9 @@ export async function DELETE(request: NextRequest) {
       SET ativo = false, atualizado_em = CURRENT_TIMESTAMP
       WHERE id = $1
     `, [disciplinaId])
+
+    // Limpar cache após remover disciplina
+    limparCacheConfigSeries()
 
     return NextResponse.json({
       mensagem: 'Disciplina removida com sucesso'

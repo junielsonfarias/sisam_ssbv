@@ -29,6 +29,11 @@ interface ResultadoConsolidado {
   nivel_aprendizagem?: string | null
   nivel_aprendizagem_id?: string | null
   tipo_avaliacao?: string | null
+  // Campos de configuração de questões por série (do banco)
+  qtd_questoes_lp?: number | null
+  qtd_questoes_mat?: number | null
+  qtd_questoes_ch?: number | null
+  qtd_questoes_cn?: number | null
 }
 
 interface Filtros {
@@ -371,9 +376,24 @@ export default function ResultadosEscolaPage() {
     return 'bg-red-50 border-red-200'
   }
 
-  // Função para obter o número de questões por disciplina baseado na série
-  const obterTotalQuestoes = useCallback((serie: string, codigoDisciplina: string): number => {
-    const disciplinas = obterDisciplinasPorSerieSync(serie)
+  // Função para obter o número de questões por disciplina: prioriza valores do banco
+  const obterTotalQuestoes = useCallback((resultado: ResultadoConsolidado, codigoDisciplina: string): number => {
+    // Primeiro, tentar usar os valores do banco (vindos da API)
+    if (codigoDisciplina === 'LP' && resultado.qtd_questoes_lp) {
+      return Number(resultado.qtd_questoes_lp)
+    }
+    if (codigoDisciplina === 'MAT' && resultado.qtd_questoes_mat) {
+      return Number(resultado.qtd_questoes_mat)
+    }
+    if (codigoDisciplina === 'CH' && resultado.qtd_questoes_ch) {
+      return Number(resultado.qtd_questoes_ch)
+    }
+    if (codigoDisciplina === 'CN' && resultado.qtd_questoes_cn) {
+      return Number(resultado.qtd_questoes_cn)
+    }
+
+    // Fallback para valores hardcoded (quando não há dados do banco)
+    const disciplinas = obterDisciplinasPorSerieSync(resultado.serie)
     const disciplina = disciplinas.find(d => d.codigo === codigoDisciplina)
     return disciplina?.total_questoes || 0
   }, [])
@@ -384,10 +404,15 @@ export default function ResultadosEscolaPage() {
     return disciplinas.some(d => d.codigo === codigoDisciplina)
   }, [])
 
-  // Obter disciplinas que devem ser exibidas (mostra todas incluindo PROD)
+  // Obter disciplinas que devem ser exibidas baseado no filtro de série
   const disciplinasExibir = useMemo(() => {
-    return obterDisciplinasPorSerieSync(null) // Retorna todas as disciplinas
-  }, [])
+    // Se há filtro de série, mostrar apenas as disciplinas daquela série
+    if (filtros.serie) {
+      return obterDisciplinasPorSerieSync(filtros.serie)
+    }
+    // Sem filtro, retorna todas as disciplinas
+    return obterDisciplinasPorSerieSync(null)
+  }, [filtros.serie])
 
   // Calcular estatísticas - EXCLUIR alunos faltantes
   const estatisticas = useMemo(() => {
@@ -926,8 +951,8 @@ export default function ResultadosEscolaPage() {
                                   </div>
                                 ) : (
                                   <>
-                                    {obterTotalQuestoes(resultado.serie, disciplina.codigo) && acertos !== null && (
-                                      <div className="text-[10px] text-gray-600 dark:text-gray-400">{acertos}/{obterTotalQuestoes(resultado.serie, disciplina.codigo)}</div>
+                                    {obterTotalQuestoes(resultado, disciplina.codigo) && acertos !== null && (
+                                      <div className="text-[10px] text-gray-600 dark:text-gray-400">{acertos}/{obterTotalQuestoes(resultado, disciplina.codigo)}</div>
                                     )}
                                     <div className={`text-base font-bold ${getNotaColor(nota)}`}>
                                       {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
@@ -1092,7 +1117,7 @@ export default function ResultadosEscolaPage() {
                                     <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                       {disciplina.tipo === 'objetiva' && acertos !== null && (
                                         <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                          {acertos}/{obterTotalQuestoes(resultado.serie, disciplina.codigo)}
+                                          {acertos}/{obterTotalQuestoes(resultado, disciplina.codigo)}
                                         </div>
                                       )}
                                       <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota)}`}>

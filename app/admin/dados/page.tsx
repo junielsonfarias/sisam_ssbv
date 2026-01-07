@@ -3,7 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
@@ -263,9 +263,6 @@ export default function DadosPage() {
 
   // Visualização
   const [abaAtiva, setAbaAtiva] = useState<'visao_geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'>('visao_geral')
-  const [abasFixas, setAbasFixas] = useState(false)
-  const abasRef = useRef<HTMLDivElement>(null)
-  const abasContainerRef = useRef<HTMLDivElement>(null)
   const [ordenacao, setOrdenacao] = useState<{ coluna: string; direcao: 'asc' | 'desc' }>({ coluna: 'media_geral', direcao: 'desc' })
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina] = useState(15)
@@ -687,47 +684,6 @@ export default function DadosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino])
 
-  // Efeito para detectar scroll e fixar abas
-  useEffect(() => {
-    if (!abasContainerRef.current) {
-      console.log('[Abas Debug] abasContainerRef não encontrado')
-      return
-    }
-
-    const mainElement = document.querySelector('main')
-    if (!mainElement) {
-      console.log('[Abas Debug] main element não encontrado')
-      return
-    }
-
-    console.log('[Abas Debug] Inicializando listeners de scroll')
-
-    const handleScroll = () => {
-      if (abasContainerRef.current) {
-        const abasRect = abasContainerRef.current.getBoundingClientRect()
-
-        // Fixar quando as abas atingem o topo da viewport (abaixo do header de 64px)
-        // abasTop <= 64 significa que as abas chegaram ou passaram do header
-        const shouldFix = abasRect.top <= 64
-
-        setAbasFixas(shouldFix)
-      }
-    }
-
-    // Adicionar listener de scroll no main
-    mainElement.addEventListener('scroll', handleScroll)
-    // Também adicionar no window para cobrir casos onde o scroll está no body
-    window.addEventListener('scroll', handleScroll)
-
-    // Verificar estado inicial
-    handleScroll()
-
-    return () => {
-      mainElement.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('scroll', handleScroll)
-    }
-  }, [dados, abasFixas]) // Re-executar quando dados carregam para garantir que o elemento existe
-
   const limparFiltros = () => {
     // Para usuários polo ou escola, manter o polo_id fixo
     if (usuario?.tipo_usuario !== 'polo' && usuario?.tipo_usuario !== 'escola') {
@@ -795,8 +751,23 @@ export default function DadosPage() {
   }, [filtroSerie, filtroTipoEnsino])
 
   // Função para obter o total de questões correto para uma disciplina baseado na série do aluno
-  const getTotalQuestoesPorSerie = useCallback((serie: string | null | undefined, codigoDisciplina: string): number | undefined => {
-    const disciplinasSerie = obterDisciplinasPorSerieSync(serie)
+  const getTotalQuestoesPorSerie = useCallback((resultado: { serie?: string | null; qtd_questoes_lp?: number | null; qtd_questoes_mat?: number | null; qtd_questoes_ch?: number | null; qtd_questoes_cn?: number | null }, codigoDisciplina: string): number | undefined => {
+    // Primeiro, tentar usar os valores do banco (vindos da API)
+    if (codigoDisciplina === 'LP' && resultado.qtd_questoes_lp) {
+      return Number(resultado.qtd_questoes_lp)
+    }
+    if (codigoDisciplina === 'MAT' && resultado.qtd_questoes_mat) {
+      return Number(resultado.qtd_questoes_mat)
+    }
+    if (codigoDisciplina === 'CH' && resultado.qtd_questoes_ch) {
+      return Number(resultado.qtd_questoes_ch)
+    }
+    if (codigoDisciplina === 'CN' && resultado.qtd_questoes_cn) {
+      return Number(resultado.qtd_questoes_cn)
+    }
+
+    // Fallback para valores hardcoded (quando não há dados do banco)
+    const disciplinasSerie = obterDisciplinasPorSerieSync(resultado.serie)
     const disciplina = disciplinasSerie.find(d => d.codigo === codigoDisciplina)
     return disciplina?.total_questoes
   }, [])
@@ -976,7 +947,7 @@ export default function DadosPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
       <LayoutDashboard tipoUsuario={tipoUsuario}>
-        <div className="space-y-4 overflow-x-clip max-w-full">
+        <div className="max-w-full">
           {/* Indicador de modo offline */}
           {(usandoDadosOffline || modoOffline) && (
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
@@ -989,7 +960,7 @@ export default function DadosPage() {
           )}
 
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mt-4">
             <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
                 <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600 flex-shrink-0" />
@@ -1020,7 +991,7 @@ export default function DadosPage() {
           </div>
 
           {/* Barra de Filtros */}
-          <div className="bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-lg border-2 border-gray-200 dark:border-slate-700 p-3 sm:p-4 md:p-6">
+          <div className="bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-lg border-2 border-gray-200 dark:border-slate-700 p-3 sm:p-4 md:p-6 mt-4">
             <div className="flex items-center gap-3 mb-4">
               <Filter className="w-5 h-5 text-indigo-600" />
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">Filtros de Pesquisa</h2>
@@ -1360,32 +1331,6 @@ export default function DadosPage() {
             </div>
           </div>
 
-          {/* Segmentacao Visual - Chips de Series */}
-          {dados?.filtros.series && dados.filtros.series.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase self-center mr-2">Serie:</span>
-              <button
-                onClick={() => { setFiltroSerie(''); setPaginaAtual(1); }}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  !filtroSerie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                }`}
-              >
-                Todas
-              </button>
-              {dados.filtros.series.map(serie => (
-                <button
-                  key={serie}
-                  onClick={() => { setFiltroSerie(serie); setPaginaAtual(1); }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    filtroSerie === serie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                  }`}
-                >
-                  {serie}
-                </button>
-              ))}
-            </div>
-          )}
-
           {erro && (
             <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-4 rounded-lg">
               {erro}
@@ -1430,48 +1375,65 @@ export default function DadosPage() {
                 )}
               </div>
 
-              {/* Abas de Navegacao - Com fixação via JavaScript */}
-              <div ref={abasContainerRef} className="relative">
-                {/* Placeholder para manter altura quando abas estão fixas */}
-                {abasFixas && <div style={{ height: abasRef.current?.offsetHeight || 60 }} />}
-
-                {/* Abas - Fixas ou normais */}
-                <div
-                  ref={abasRef}
-                  className={`${abasFixas ? 'fixed left-0 right-0 z-40 px-2 sm:px-4 md:px-6 lg:px-8 lg:ml-64' : ''} bg-gray-50 dark:bg-slate-900 py-2`}
-                  style={abasFixas ? { top: '56px' } : {}}
-                >
-                  <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
-                    <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700 min-w-max sm:min-w-0">
-                    {[
-                      { id: 'visao_geral', label: 'Visão Geral', icon: PieChartIcon },
-                      { id: 'escolas', label: 'Escolas', icon: School },
-                      { id: 'turmas', label: 'Turmas', icon: Layers },
-                      { id: 'alunos', label: 'Alunos', icon: Users },
-                      { id: 'analises', label: 'Análises', icon: Target },
-                    ].map(aba => (
-                      <button
-                        key={aba.id}
-                        onClick={() => { setAbaAtiva(aba.id as any); setPaginaAtual(1); }}
-                        className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                          abaAtiva === aba.id
-                            ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
-                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        <aba.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline sm:inline">{aba.label}</span>
-                        <span className="xs:hidden sm:hidden">{aba.label.split(' ')[0]}</span>
-                      </button>
-                    ))}
-                    </div>
+              {/* Container Sticky para Abas + Serie */}
+              <div className="sticky top-0 z-40 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-4 pb-2 bg-gray-50 dark:bg-slate-900 space-y-2" style={{ marginTop: '1rem' }}>
+                {/* Abas de Navegacao */}
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
+                  <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
+                  {[
+                    { id: 'visao_geral', label: 'Visão Geral', icon: PieChartIcon },
+                    { id: 'escolas', label: 'Escolas', icon: School },
+                    { id: 'turmas', label: 'Turmas', icon: Layers },
+                    { id: 'alunos', label: 'Alunos', icon: Users },
+                    { id: 'analises', label: 'Análises', icon: Target },
+                  ].map(aba => (
+                    <button
+                      key={aba.id}
+                      onClick={() => { setAbaAtiva(aba.id as any); setPaginaAtual(1); }}
+                      className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                        abaAtiva === aba.id
+                          ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <aba.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden xs:inline sm:inline">{aba.label}</span>
+                      <span className="xs:hidden sm:hidden">{aba.label.split(' ')[0]}</span>
+                    </button>
+                  ))}
                   </div>
                 </div>
+
+                {/* Chips de Series */}
+                {dados?.filtros.series && dados.filtros.series.length > 0 && (
+                  <div className="flex flex-wrap gap-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-2">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase self-center mr-2">Serie:</span>
+                    <button
+                      onClick={() => { setFiltroSerie(''); setPaginaAtual(1); }}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                        !filtroSerie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      Todas
+                    </button>
+                    {dados.filtros.series.map(serie => (
+                      <button
+                        key={serie}
+                        onClick={() => { setFiltroSerie(serie); setPaginaAtual(1); }}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                          filtroSerie === serie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                        }`}
+                      >
+                        {serie}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Conteudo das Abas */}
               {abaAtiva === 'visao_geral' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
                   {/* Grafico de Barras - Medias por Serie */}
                   {dados.mediasPorSerie.length > 0 && (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
@@ -1581,6 +1543,7 @@ export default function DadosPage() {
               )}
 
               {abaAtiva === 'escolas' && (
+                <div className="mt-4">
                 <TabelaPaginada
                   dados={escolasPaginadas}
                   colunas={[
@@ -1603,9 +1566,11 @@ export default function DadosPage() {
                   totalRegistros={escolasOrdenadas.length}
                   itensPorPagina={itensPorPagina}
                 />
+                </div>
               )}
 
               {abaAtiva === 'turmas' && dados.mediasPorTurma && (
+                <div className="mt-4">
                 <TabelaPaginada
                   dados={dados.mediasPorTurma.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
                   colunas={[
@@ -1627,10 +1592,11 @@ export default function DadosPage() {
                   totalRegistros={dados.mediasPorTurma.length}
                   itensPorPagina={itensPorPagina}
                 />
+                </div>
               )}
 
               {abaAtiva === 'alunos' && (
-                <div className="space-y-4 overflow-x-hidden">
+                <div className="space-y-4 mt-4">
                   {/* Visualização Mobile - Cards */}
                   <div className="block sm:hidden space-y-4 p-4">
                     {alunosPaginados.length === 0 ? (
@@ -1707,8 +1673,8 @@ export default function DadosPage() {
                                       </div>
                                     ) : (
                                       <>
-                                        {getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo) && acertos !== null && (
-                                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)}</div>
+                                        {getTotalQuestoesPorSerie(resultado, disciplina.codigo) && acertos !== null && (
+                                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{getTotalQuestoesPorSerie(resultado, disciplina.codigo)}</div>
                                         )}
                                         <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
                                           {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
@@ -1761,9 +1727,8 @@ export default function DadosPage() {
                   
                   {/* Visualização Tablet/Desktop - Tabela */}
                   <div className="hidden sm:block w-full">
-                    <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
-                      <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
-                        <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/50 dark:to-indigo-800/50">
+                    <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
+                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/50 dark:to-indigo-800/50 sticky top-[124px] z-20">
                           <tr>
                             <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-8 md:w-10 lg:w-12">
                               #
@@ -1899,9 +1864,9 @@ export default function DadosPage() {
                                           </span>
                                         ) : (
                                           <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                            {getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo) && acertos !== null && (
+                                            {getTotalQuestoesPorSerie(resultado, disciplina.codigo) && acertos !== null && (
                                               <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-0.5 font-medium">
-                                                {acertos}/{getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)}
+                                                {acertos}/{getTotalQuestoesPorSerie(resultado, disciplina.codigo)}
                                               </div>
                                             )}
                                             <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota)}`}>
@@ -1967,9 +1932,8 @@ export default function DadosPage() {
                             })
                           )}
                         </tbody>
-                      </table>
-                    </div>
-                    
+                    </table>
+
                     {/* Paginação */}
                     {totalPaginas > 1 && (
                       <div className="px-6 py-4 border-t-2 border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-gray-100">
@@ -2024,7 +1988,7 @@ export default function DadosPage() {
               )}
 
               {abaAtiva === 'analises' && dados.analiseAcertosErros && (
-                <div className="space-y-6 overflow-x-hidden">
+                <div className="space-y-6 mt-4">
                   {/* Taxa de Acerto Geral */}
                   {dados.analiseAcertosErros.taxaAcertoGeral && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2109,7 +2073,7 @@ export default function DadosPage() {
                           onPaginar={setPaginaQuestoesErros}
                           totalRegistros={dados.analiseAcertosErros.questoesComMaisErros.length}
                           itensPorPagina={itensPorPagina}
-                        />
+                                                  />
                       </div>
                     </div>
                   )}
@@ -2138,7 +2102,7 @@ export default function DadosPage() {
                           onPaginar={setPaginaEscolasErros}
                           totalRegistros={dados.analiseAcertosErros.escolasComMaisErros.length}
                           itensPorPagina={itensPorPagina}
-                        />
+                                                  />
                       </div>
                     </div>
                   )}
@@ -2168,7 +2132,7 @@ export default function DadosPage() {
                           onPaginar={setPaginaTurmasErros}
                           totalRegistros={dados.analiseAcertosErros.turmasComMaisErros.length}
                           itensPorPagina={itensPorPagina}
-                        />
+                                                  />
                       </div>
                     </div>
                   )}
@@ -2197,7 +2161,7 @@ export default function DadosPage() {
                           onPaginar={setPaginaQuestoesAcertos}
                           totalRegistros={dados.analiseAcertosErros.questoesComMaisAcertos.length}
                           itensPorPagina={itensPorPagina}
-                        />
+                                                  />
                       </div>
                     </div>
                   )}
@@ -2226,7 +2190,7 @@ export default function DadosPage() {
                           onPaginar={setPaginaEscolasAcertos}
                           totalRegistros={dados.analiseAcertosErros.escolasComMaisAcertos.length}
                           itensPorPagina={itensPorPagina}
-                        />
+                                                  />
                       </div>
                     </div>
                   )}
@@ -2256,7 +2220,7 @@ export default function DadosPage() {
                           onPaginar={setPaginaTurmasAcertos}
                           totalRegistros={dados.analiseAcertosErros.turmasComMaisAcertos.length}
                           itensPorPagina={itensPorPagina}
-                        />
+                                                  />
                       </div>
                     </div>
                   )}
@@ -2423,7 +2387,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border-2 border-gray-200 dark:border-slate-700 overflow-hidden w-full max-w-full">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border-2 border-gray-200 dark:border-slate-700 w-full max-w-full">
       {/* Visualização Mobile - Cards */}
       <div className="block md:hidden">
         {dados.length === 0 ? (
@@ -2472,9 +2436,9 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
       </div>
 
       {/* Visualização Desktop - Tabela */}
-      <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="hidden md:block">
         <table className="w-full">
-          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600">
+          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600 sticky top-[124px] z-20">
             <tr>
               {colunas.map((col: any) => (
                 <th

@@ -38,6 +38,11 @@ interface ResultadoConsolidado {
   item_producao_6?: number | string | null
   item_producao_7?: number | string | null
   item_producao_8?: number | string | null
+  // Campos de configuração de questões por série (do banco)
+  qtd_questoes_lp?: number | null
+  qtd_questoes_mat?: number | null
+  qtd_questoes_ch?: number | null
+  qtd_questoes_cn?: number | null
 }
 
 // Função para verificar se a série é dos anos iniciais (2º, 3º ou 5º ano)
@@ -746,9 +751,24 @@ export default function ResultadosPage() {
     return obterDisciplinasPorSerieSync(filtros.serie)
   }, [filtros.serie])
 
-  // Função para obter o total de questões correto para uma disciplina baseado na série do aluno
-  const getTotalQuestoesPorSerie = useCallback((serie: string | null | undefined, codigoDisciplina: string): number | undefined => {
-    const disciplinasSerie = obterDisciplinasPorSerieSync(serie)
+  // Função para obter o total de questões: prioriza valores do banco, depois fallback para hardcoded
+  const getTotalQuestoesPorSerie = useCallback((resultado: ResultadoConsolidado, codigoDisciplina: string): number | undefined => {
+    // Primeiro, tentar usar os valores do banco (vindos da API)
+    if (codigoDisciplina === 'LP' && resultado.qtd_questoes_lp) {
+      return Number(resultado.qtd_questoes_lp)
+    }
+    if (codigoDisciplina === 'MAT' && resultado.qtd_questoes_mat) {
+      return Number(resultado.qtd_questoes_mat)
+    }
+    if (codigoDisciplina === 'CH' && resultado.qtd_questoes_ch) {
+      return Number(resultado.qtd_questoes_ch)
+    }
+    if (codigoDisciplina === 'CN' && resultado.qtd_questoes_cn) {
+      return Number(resultado.qtd_questoes_cn)
+    }
+
+    // Fallback para valores hardcoded (quando não há dados do banco)
+    const disciplinasSerie = obterDisciplinasPorSerieSync(resultado.serie)
     const disciplina = disciplinasSerie.find(d => d.codigo === codigoDisciplina)
     return disciplina?.total_questoes
   }, [])
@@ -1349,8 +1369,8 @@ export default function ResultadosPage() {
                                   </div>
                                 ) : (
                                   <>
-                                    {getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo) && acertos !== null && (
-                                      <div className="text-[10px] text-gray-600 dark:text-gray-400">{acertos}/{getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)}</div>
+                                    {getTotalQuestoesPorSerie(resultado, disciplina.codigo) && acertos !== null && (
+                                      <div className="text-[10px] text-gray-600 dark:text-gray-400">{acertos}/{getTotalQuestoesPorSerie(resultado, disciplina.codigo)}</div>
                                     )}
                                     <div className={`text-base font-bold ${getNotaColor(nota)}`}>
                                       {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
@@ -1554,9 +1574,9 @@ export default function ResultadosPage() {
                                     </span>
                                   ) : (
                                     <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                      {getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo) && acertos !== null && (
+                                      {getTotalQuestoesPorSerie(resultado, disciplina.codigo) && acertos !== null && (
                                         <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-0.5 font-medium">
-                                          {acertos}/{getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)}
+                                          {acertos}/{getTotalQuestoesPorSerie(resultado, disciplina.codigo)}
                                         </div>
                                       )}
                                       <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota)}`}>
