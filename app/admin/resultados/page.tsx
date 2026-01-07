@@ -737,10 +737,17 @@ export default function ResultadosPage() {
     return false
   }, [filtros.serie, resultadosFiltrados])
 
-  // Obter disciplinas que devem ser exibidas baseadas na série selecionada
+  // Obter disciplinas que devem ser exibidas baseadas na série selecionada (para cabeçalhos)
   const disciplinasExibir = useMemo(() => {
     return obterDisciplinasPorSerieSync(filtros.serie || resultadosFiltrados[0]?.serie)
   }, [filtros.serie, resultadosFiltrados])
+
+  // Função para obter o total de questões correto para uma disciplina baseado na série do aluno
+  const getTotalQuestoesPorSerie = useCallback((serie: string | null | undefined, codigoDisciplina: string): number | undefined => {
+    const disciplinasSerie = obterDisciplinasPorSerieSync(serie)
+    const disciplina = disciplinasSerie.find(d => d.codigo === codigoDisciplina)
+    return disciplina?.total_questoes
+  }, [])
 
   // Calcular estatísticas - EXCLUIR alunos faltantes
   // Usar estatísticas da API (gerais, sem paginação) e calcular apenas dados locais (produção textual, nível)
@@ -1338,8 +1345,8 @@ export default function ResultadosPage() {
                                   </div>
                                 ) : (
                                   <>
-                                    {disciplina.total_questoes && acertos !== null && (
-                                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{disciplina.total_questoes}</div>
+                                    {getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo) && acertos !== null && (
+                                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)}</div>
                                     )}
                                     <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
                                       {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
@@ -1544,9 +1551,9 @@ export default function ResultadosPage() {
                                     </span>
                                   ) : (
                                     <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                      {disciplina.total_questoes && acertos !== null && (
+                                      {getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo) && acertos !== null && (
                                         <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-0.5 font-medium">
-                                          {acertos}/{disciplina.total_questoes}
+                                          {acertos}/{getTotalQuestoesPorSerie(resultado.serie, disciplina.codigo)}
                                         </div>
                                       )}
                                       <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota)}`}>

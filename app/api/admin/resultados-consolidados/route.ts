@@ -102,11 +102,13 @@ export async function GET(request: NextRequest) {
         a.nome as aluno_nome,
         e.nome as escola_nome,
         e.polo_id,
+        p.nome as polo_nome,
         t.codigo as turma_codigo,
         cs.tipo_ensino
       FROM resultados_consolidados rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
+      LEFT JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
       WHERE 1=1

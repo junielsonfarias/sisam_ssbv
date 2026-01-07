@@ -3,14 +3,17 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2, Eye, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 
 interface ResultadoConsolidado {
   id: string
   aluno_id?: string
   aluno_nome: string
   escola_nome: string
+  escola_id?: string
+  polo_id?: string
   turma_codigo: string
   serie: string
   presenca: string
@@ -22,6 +25,7 @@ interface ResultadoConsolidado {
   nota_ch: number | string | null
   nota_mat: number | string | null
   nota_cn: number | string | null
+  nota_producao?: number | string | null
   media_aluno: number | string | null
 }
 
@@ -31,6 +35,14 @@ interface Filtros {
   ano_letivo?: string
   serie?: string
   presenca?: string
+  tipo_ensino?: string
+}
+
+// Função para verificar se a série é dos anos iniciais (2º, 3º ou 5º ano)
+const isAnosIniciais = (serie: string | undefined | null): boolean => {
+  if (!serie) return false
+  const numero = serie.match(/(\d+)/)?.[1]
+  return numero === '2' || numero === '3' || numero === '5'
 }
 
 export default function PoloAnalisePage() {
@@ -275,6 +287,24 @@ export default function PoloAnalisePage() {
         delete novo.turma_id
       }
 
+      // Auto-atualizar tipo_ensino quando uma série é selecionada
+      if (campo === 'serie' && valor) {
+        if (isAnosIniciais(valor)) {
+          novo.tipo_ensino = 'anos_iniciais'
+        } else {
+          // Se não é anos iniciais e tem número, é anos finais
+          const numero = valor.match(/(\d+)/)?.[1]
+          if (numero && parseInt(numero) >= 6 && parseInt(numero) <= 9) {
+            novo.tipo_ensino = 'anos_finais'
+          }
+        }
+      }
+
+      // Se limpar a série, também limpar o tipo_ensino
+      if (campo === 'serie' && !valor) {
+        delete novo.tipo_ensino
+      }
+
       return novo
     })
   }
@@ -345,6 +375,13 @@ export default function PoloAnalisePage() {
     if (num >= 5) return 'bg-yellow-50 border-yellow-200'
     return 'bg-red-50 border-red-200'
   }
+
+  // Função para obter o total de questões correto para uma disciplina baseado na série do aluno
+  const getTotalQuestoesPorSerie = useCallback((serie: string | null | undefined, codigoDisciplina: string): number | undefined => {
+    const disciplinasSerie = obterDisciplinasPorSerieSync(serie)
+    const disciplina = disciplinasSerie.find(d => d.codigo === codigoDisciplina)
+    return disciplina?.total_questoes
+  }, [])
 
   const handleVisualizarQuestoes = (aluno: ResultadoConsolidado) => {
     setAlunoSelecionado({
@@ -489,6 +526,21 @@ export default function PoloAnalisePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  Tipo de Ensino
+                </label>
+                <select
+                  value={filtros.tipo_ensino || ''}
+                  onChange={(e) => handleFiltroChange('tipo_ensino', e.target.value)}
+                  className="select-custom w-full"
+                >
+                  <option value="">Todos</option>
+                  <option value="anos_iniciais">Anos Iniciais (1º-5º)</option>
+                  <option value="anos_finais">Anos Finais (6º-9º)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Presença
                 </label>
                 <select
@@ -559,9 +611,10 @@ export default function PoloAnalisePage() {
             </div>
           )}
 
-          {/* Médias por Área */}
+          {/* Médias por Área - Filtrado por tipo de ensino */}
           {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (
             <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
+              {/* Card Língua Portuguesa - Sempre visível */}
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
@@ -582,26 +635,30 @@ export default function PoloAnalisePage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
-                    <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCH)}`}>
-                      {estatisticasAPI.mediaCH.toFixed(1)}
-                    </p>
+              {/* Card Ciências Humanas - Apenas Anos Finais ou Todos */}
+              {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
+                      <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCH)}`}>
+                        {estatisticasAPI.mediaCH.toFixed(1)}
+                      </p>
+                    </div>
+                    <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0 ml-1" />
                   </div>
-                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0 ml-1" />
+                  <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2">
+                    <div
+                      className={`h-1.5 sm:h-2 rounded-full ${
+                        estatisticasAPI.mediaCH >= 7 ? 'bg-green-500' : estatisticasAPI.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min((estatisticasAPI.mediaCH / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2">
-                  <div
-                    className={`h-1.5 sm:h-2 rounded-full ${
-                      estatisticasAPI.mediaCH >= 7 ? 'bg-green-500' : estatisticasAPI.mediaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}
-                    style={{ width: `${Math.min((estatisticasAPI.mediaCH / 10) * 100, 100)}%`, minWidth: '2px' }}
-                  ></div>
-                </div>
-              </div>
+              )}
 
+              {/* Card Matemática - Sempre visível */}
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
@@ -622,30 +679,33 @@ export default function PoloAnalisePage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
-                    <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCN)}`}>
-                      {estatisticasAPI.mediaCN.toFixed(1)}
-                    </p>
+              {/* Card Ciências da Natureza - Apenas Anos Finais ou Todos */}
+              {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
+                      <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCN)}`}>
+                        {estatisticasAPI.mediaCN.toFixed(1)}
+                      </p>
+                    </div>
+                    <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0 ml-1" />
                   </div>
-                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0 ml-1" />
+                  <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2">
+                    <div
+                      className={`h-1.5 sm:h-2 rounded-full ${
+                        estatisticasAPI.mediaCN >= 7 ? 'bg-green-500' : estatisticasAPI.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min((estatisticasAPI.mediaCN / 10) * 100, 100)}%`, minWidth: '2px' }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2">
-                  <div
-                    className={`h-1.5 sm:h-2 rounded-full ${
-                      estatisticasAPI.mediaCN >= 7 ? 'bg-green-500' : estatisticasAPI.mediaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}
-                    style={{ width: `${Math.min((estatisticasAPI.mediaCN / 10) * 100, 100)}%`, minWidth: '2px' }}
-                  ></div>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+            <div className="flex-1 overflow-x-auto overflow-y-auto -mx-3 sm:mx-0">
             {carregando ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
@@ -710,10 +770,13 @@ export default function PoloAnalisePage() {
                           </button>
                         </div>
 
+                        {/* Grid de disciplinas - dinâmico baseado no filtro de tipo de ensino */}
+                        {/* Ordem: LP, MAT, CH, CN, PROD */}
                         <div className="grid grid-cols-2 gap-3 mb-3">
+                          {/* 1. Língua Portuguesa - Sempre visível */}
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
                             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Língua Portuguesa</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_lp}/20</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_lp}/{getTotalQuestoesPorSerie(resultado.serie, 'LP') || '-'}</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
                               {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -729,27 +792,10 @@ export default function PoloAnalisePage() {
                             )}
                           </div>
 
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências Humanas</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_ch}/10</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
-                              {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
-                            </div>
-                            {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
-
+                          {/* 2. Matemática - Sempre visível */}
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
                             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Matemática</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_mat}/20</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_mat}/{getTotalQuestoesPorSerie(resultado.serie, 'MAT') || '-'}</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
                               {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -765,23 +811,85 @@ export default function PoloAnalisePage() {
                             )}
                           </div>
 
-                          <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
-                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências da Natureza</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_cn}/10</div>
-                            <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
-                              {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
+                          {/* 3. Ciências Humanas - Apenas Anos Finais ou Todos */}
+                          {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                            <div className={`p-3 rounded-lg ${isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
+                              <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências Humanas</div>
+                              {isAnosIniciais(resultado.serie) ? (
+                                <>
+                                  <div className="text-xs text-gray-400 mb-1">N/A</div>
+                                  <div className="text-lg font-bold text-gray-400 mb-1">-</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_ch}/{getTotalQuestoesPorSerie(resultado.serie, 'CH') || '-'}</div>
+                                  <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
+                                    {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
+                                  </div>
+                                  {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                    <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
+                                      <div
+                                        className={`h-1.5 rounded-full ${
+                                          notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                        }`}
+                                        style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
+                                      ></div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
                             </div>
-                            {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                              <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
-                                <div
-                                  className={`h-1.5 rounded-full ${
-                                    notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
+                          )}
+
+                          {/* 4. Ciências da Natureza - Apenas Anos Finais ou Todos */}
+                          {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                            <div className={`p-3 rounded-lg ${isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
+                              <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências da Natureza</div>
+                              {isAnosIniciais(resultado.serie) ? (
+                                <>
+                                  <div className="text-xs text-gray-400 mb-1">N/A</div>
+                                  <div className="text-lg font-bold text-gray-400 mb-1">-</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_cn}/{getTotalQuestoesPorSerie(resultado.serie, 'CN') || '-'}</div>
+                                  <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
+                                    {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
+                                  </div>
+                                  {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                    <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
+                                      <div
+                                        className={`h-1.5 rounded-full ${
+                                          notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                        }`}
+                                        style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
+                                      ></div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 5. Produção Textual - Apenas Anos Iniciais ou Todos */}
+                          {(filtros.tipo_ensino !== 'anos_finais') && (
+                            <div className={`p-3 rounded-lg ${!isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_producao)} border border-gray-200`}>
+                              <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Produção Textual</div>
+                              {!isAnosIniciais(resultado.serie) ? (
+                                <>
+                                  <div className="text-xs text-gray-400 mb-1">N/A</div>
+                                  <div className="text-lg font-bold text-gray-400 mb-1">-</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">-</div>
+                                  <div className={`text-lg font-bold ${getNotaColor(resultado.nota_producao)} mb-1`}>
+                                    {formatarNota(resultado.nota_producao, resultado.presenca, resultado.media_aluno)}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
@@ -809,46 +917,56 @@ export default function PoloAnalisePage() {
                   }))}
                 </div>
 
-                {/* Visualização Tablet/Desktop - Tabela */}
+                {/* Visualização Tablet/Desktop - Tabela com header fixo */}
                 <div className="hidden sm:block w-full">
-                  <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
+                  <div className="w-full overflow-x-auto overflow-y-auto max-h-[600px] -mx-2 sm:mx-0 relative">
                     <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-0 md:min-w-[700px] lg:min-w-[800px]">
-                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
+                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 sticky top-0 z-20" style={{ position: 'sticky', top: 0 }}>
                         <tr>
-                          <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12">
+                          <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             #
                           </th>
-                          <th className="text-left py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 min-w-[120px] md:min-w-[140px] lg:min-w-[160px]">
+                          <th className="text-left py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 min-w-[120px] md:min-w-[140px] lg:min-w-[160px] bg-gradient-to-r from-indigo-50 to-indigo-100">
                             Aluno
                           </th>
-                          <th className="hidden md:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-28 md:w-32">
+                          <th className="hidden md:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-28 md:w-32 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             Escola
                           </th>
-                          <th className="hidden lg:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20">
+                          <th className="hidden lg:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             Turma
                           </th>
-                          <th className="hidden xl:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
+                          <th className="hidden xl:table-cell text-left py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             Série
                           </th>
-                          <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20">
+                          <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-20 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             Presença
                           </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                          {/* Ordem das disciplinas: LP, MAT, CH, CN, PROD */}
+                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             LP
                           </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                            CH
-                          </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             MAT
                           </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
-                            CN
-                          </th>
-                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18">
+                          {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18 bg-gradient-to-r from-indigo-50 to-indigo-100">
+                              CH
+                            </th>
+                          )}
+                          {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18 bg-gradient-to-r from-indigo-50 to-indigo-100">
+                              CN
+                            </th>
+                          )}
+                          {(filtros.tipo_ensino !== 'anos_finais') && (
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18 bg-gradient-to-r from-indigo-50 to-indigo-100">
+                              PROD
+                            </th>
+                          )}
+                          <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-14 md:w-16 lg:w-18 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             Média
                           </th>
-                          <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20 lg:w-24">
+                          <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-16 md:w-20 lg:w-24 bg-gradient-to-r from-indigo-50 to-indigo-100">
                             Ações
                           </th>
                         </tr>
@@ -856,7 +974,7 @@ export default function PoloAnalisePage() {
                       <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                         {resultadosFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan={12} className="py-8 sm:py-12 text-center text-gray-500 px-4">
+                            <td colSpan={!filtros.tipo_ensino ? 13 : (filtros.tipo_ensino === 'anos_iniciais' ? 11 : 12)} className="py-8 sm:py-12 text-center text-gray-500 px-4">
                               <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
                               <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
                               <p className="text-xs sm:text-sm mt-1">Não há resultados para exibir</p>
@@ -932,10 +1050,12 @@ export default function PoloAnalisePage() {
                                     {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
                                   </span>
                                 </td>
+                                {/* Ordem das células: LP, MAT, CH, CN, PROD, Média */}
+                                {/* 1. LP */}
                                 <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                   <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                     <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                      {resultado.total_acertos_lp}/20
+                                      {resultado.total_acertos_lp}/{getTotalQuestoesPorSerie(resultado.serie, 'LP') || '-'}
                                     </div>
                                     <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
                                       {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
@@ -952,30 +1072,11 @@ export default function PoloAnalisePage() {
                                     )}
                                   </div>
                                 </td>
-                                <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                  <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_ch)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                    <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                      {resultado.total_acertos_ch}/10
-                                    </div>
-                                    <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
-                                      {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
-                                    </div>
-                                    {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                        <div
-                                          className={`h-0.5 md:h-1 rounded-full ${
-                                            notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                          }`}
-                                          style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
-                                        ></div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
+                                {/* 2. MAT */}
                                 <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                   <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                     <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                      {resultado.total_acertos_mat}/20
+                                      {resultado.total_acertos_mat}/{getTotalQuestoesPorSerie(resultado.serie, 'MAT') || '-'}
                                     </div>
                                     <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
                                       {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
@@ -992,26 +1093,91 @@ export default function PoloAnalisePage() {
                                     )}
                                   </div>
                                 </td>
-                                <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                  <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_cn)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                    <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                      {resultado.total_acertos_cn}/10
+                                {/* 3. CH - Apenas Anos Finais ou Todos */}
+                                {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_ch)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      {isAnosIniciais(resultado.serie) ? (
+                                        <>
+                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
+                                          <div className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold text-gray-400">-</div>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                            {resultado.total_acertos_ch}/{getTotalQuestoesPorSerie(resultado.serie, 'CH') || '-'}
+                                          </div>
+                                          <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
+                                            {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
+                                          </div>
+                                          {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                              <div
+                                                className={`h-0.5 md:h-1 rounded-full ${
+                                                  notaCH >= 7 ? 'bg-green-500' : notaCH >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                                }`}
+                                                style={{ width: `${Math.min((notaCH / 10) * 100, 100)}%` }}
+                                              ></div>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
                                     </div>
-                                    <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
-                                      {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
+                                  </td>
+                                )}
+                                {/* 4. CN - Apenas Anos Finais ou Todos */}
+                                {(filtros.tipo_ensino !== 'anos_iniciais') && (
+                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_cn)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      {isAnosIniciais(resultado.serie) ? (
+                                        <>
+                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
+                                          <div className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold text-gray-400">-</div>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                            {resultado.total_acertos_cn}/{getTotalQuestoesPorSerie(resultado.serie, 'CN') || '-'}
+                                          </div>
+                                          <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
+                                            {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
+                                          </div>
+                                          {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
+                                            <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
+                                              <div
+                                                className={`h-0.5 md:h-1 rounded-full ${
+                                                  notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
+                                                }`}
+                                                style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
+                                              ></div>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
                                     </div>
-                                    {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
-                                        <div
-                                          className={`h-0.5 md:h-1 rounded-full ${
-                                            notaCN >= 7 ? 'bg-green-500' : notaCN >= 5 ? 'bg-yellow-500' : 'bg-red-500'
-                                          }`}
-                                          style={{ width: `${Math.min((notaCN / 10) * 100, 100)}%` }}
-                                        ></div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
+                                  </td>
+                                )}
+                                {/* 5. PROD - Apenas Anos Iniciais ou Todos */}
+                                {(filtros.tipo_ensino !== 'anos_finais') && (
+                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${!isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_producao)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                      {!isAnosIniciais(resultado.serie) ? (
+                                        <>
+                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
+                                          <div className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold text-gray-400">-</div>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">-</div>
+                                          <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_producao)}`}>
+                                            {formatarNota(resultado.nota_producao, resultado.presenca, resultado.media_aluno)}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
+                                {/* 6. Média */}
                                 <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                   <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                                     mediaNum !== null && mediaNum >= 7 ? 'border-green-500' :
@@ -1048,96 +1214,97 @@ export default function PoloAnalisePage() {
                   </div>
                 </div>
 
-                {/* Controles de Paginação */}
-                {paginacao.totalPaginas > 1 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm mt-4 gap-3">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Mostrando <span className="font-semibold">{((paginaAtual - 1) * paginacao.limite) + 1}</span> a{' '}
-                      <span className="font-semibold">{Math.min(paginaAtual * paginacao.limite, paginacao.total)}</span> de{' '}
-                      <span className="font-semibold">{paginacao.total}</span> resultados
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={paginaAnterior}
-                        disabled={!paginacao.temAnterior || carregando}
-                        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          paginacao.temAnterior && !carregando
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        }`}
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span className="hidden sm:inline">Anterior</span>
-                      </button>
-
-                      <div className="flex items-center gap-1">
-                        {paginaAtual > 2 && (
-                          <>
-                            <button
-                              onClick={() => irParaPagina(1)}
-                              className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                            >
-                              1
-                            </button>
-                            {paginaAtual > 3 && <span className="px-1 text-gray-400 dark:text-gray-500">...</span>}
-                          </>
-                        )}
-
-                        {paginaAtual > 1 && (
-                          <button
-                            onClick={() => irParaPagina(paginaAtual - 1)}
-                            className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                          >
-                            {paginaAtual - 1}
-                          </button>
-                        )}
-
-                        <button
-                          className="px-3 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white"
-                        >
-                          {paginaAtual}
-                        </button>
-
-                        {paginaAtual < paginacao.totalPaginas && (
-                          <button
-                            onClick={() => irParaPagina(paginaAtual + 1)}
-                            className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                          >
-                            {paginaAtual + 1}
-                          </button>
-                        )}
-
-                        {paginaAtual < paginacao.totalPaginas - 1 && (
-                          <>
-                            {paginaAtual < paginacao.totalPaginas - 2 && <span className="px-1 text-gray-400 dark:text-gray-500">...</span>}
-                            <button
-                              onClick={() => irParaPagina(paginacao.totalPaginas)}
-                              className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                            >
-                              {paginacao.totalPaginas}
-                            </button>
-                          </>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={proximaPagina}
-                        disabled={!paginacao.temProxima || carregando}
-                        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          paginacao.temProxima && !carregando
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        }`}
-                      >
-                        <span className="hidden sm:inline">Próxima</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </>
             )}
             </div>
+
+            {/* Rodape de paginacao - fixo */}
+            {paginacao.totalPaginas > 1 && (
+              <div className="flex-shrink-0 flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 rounded-b-xl gap-3">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Mostrando <span className="font-semibold">{((paginaAtual - 1) * paginacao.limite) + 1}</span> a{' '}
+                  <span className="font-semibold">{Math.min(paginaAtual * paginacao.limite, paginacao.total)}</span> de{' '}
+                  <span className="font-semibold">{paginacao.total}</span> resultados
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={paginaAnterior}
+                    disabled={!paginacao.temAnterior || carregando}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      paginacao.temAnterior && !carregando
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Anterior</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {paginaAtual > 2 && (
+                      <>
+                        <button
+                          onClick={() => irParaPagina(1)}
+                          className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                        >
+                          1
+                        </button>
+                        {paginaAtual > 3 && <span className="px-1 text-gray-400 dark:text-gray-500">...</span>}
+                      </>
+                    )}
+
+                    {paginaAtual > 1 && (
+                      <button
+                        onClick={() => irParaPagina(paginaAtual - 1)}
+                        className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                      >
+                        {paginaAtual - 1}
+                      </button>
+                    )}
+
+                    <button
+                      className="px-3 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white"
+                    >
+                      {paginaAtual}
+                    </button>
+
+                    {paginaAtual < paginacao.totalPaginas && (
+                      <button
+                        onClick={() => irParaPagina(paginaAtual + 1)}
+                        className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                      >
+                        {paginaAtual + 1}
+                      </button>
+                    )}
+
+                    {paginaAtual < paginacao.totalPaginas - 1 && (
+                      <>
+                        {paginaAtual < paginacao.totalPaginas - 2 && <span className="px-1 text-gray-400 dark:text-gray-500">...</span>}
+                        <button
+                          onClick={() => irParaPagina(paginacao.totalPaginas)}
+                          className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                        >
+                          {paginacao.totalPaginas}
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={proximaPagina}
+                    disabled={!paginacao.temProxima || carregando}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      paginacao.temProxima && !carregando
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">Proxima</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {modalAberto && alunoSelecionado && (
