@@ -43,13 +43,99 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Mapear questoes para areas
-    const questoesMap = [
-      { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
-      { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas' },
-      { inicio: 31, fim: 50, area: 'Matemática', disciplina: 'Matemática' },
-      { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza' },
-    ]
+    // Carregar configurações de séries e disciplinas do banco de dados
+    const configSeriesResult = await pool.query(`
+      SELECT cs.id, cs.serie, cs.tipo_ensino, cs.qtd_itens_producao,
+             cs.avalia_lp, cs.avalia_mat, cs.avalia_ch, cs.avalia_cn,
+             cs.qtd_questoes_lp, cs.qtd_questoes_mat, cs.qtd_questoes_ch, cs.qtd_questoes_cn
+      FROM configuracao_series cs
+    `)
+
+    // Carregar disciplinas configuradas por série
+    const disciplinasResult = await pool.query(`
+      SELECT csd.serie_id, csd.disciplina, csd.sigla, csd.ordem,
+             csd.questao_inicio, csd.questao_fim, csd.qtd_questoes, csd.valor_questao
+      FROM configuracao_series_disciplinas csd
+      WHERE csd.ativo = true
+      ORDER BY csd.serie_id, csd.ordem
+    `)
+
+    // Função para normalizar série (remover º, espaços, etc.)
+    const normalizarSerie = (serie: string): string => {
+      if (!serie) return ''
+      // Remover º, °, espaços, e converter para número
+      return serie.toString().replace(/[º°\s]/g, '').trim()
+    }
+
+    // Criar mapa de configuração por série (usando série normalizada como chave)
+    const configSeriesMap = new Map<string, any>()
+    for (const config of configSeriesResult.rows) {
+      const serieNormalizada = normalizarSerie(config.serie)
+      const disciplinasDaSerie = disciplinasResult.rows.filter(d => d.serie_id === config.id)
+
+      // Log para debug
+      console.log(`[Config] Série ${config.serie} (normalizada: ${serieNormalizada}) - ${disciplinasDaSerie.length} disciplinas`)
+      disciplinasDaSerie.forEach(d => {
+        console.log(`  - ${d.sigla}: Q${d.questao_inicio}-Q${d.questao_fim}`)
+      })
+
+      configSeriesMap.set(serieNormalizada, {
+        ...config,
+        disciplinas: disciplinasDaSerie
+      })
+    }
+
+    // Função para obter mapeamento de questões baseado na série
+    // Usa a nova tabela configuracao_series_disciplinas que define a ordem exata
+    const obterQuestoesMap = (serie: string) => {
+      const serieNormalizada = normalizarSerie(serie)
+      const config = configSeriesMap.get(serieNormalizada)
+
+      console.log(`[Importação] Buscando config para série "${serie}" (normalizada: "${serieNormalizada}")`)
+
+      // Se não encontrou, tentar extrair apenas números
+      let configFinal = config
+      if (!configFinal) {
+        const serieNum = serie.replace(/[^\d]/g, '')
+        console.log(`[Importação] Tentando fallback com número: "${serieNum}"`)
+        configFinal = configSeriesMap.get(serieNum)
+      }
+
+      // Se ainda não encontrou, retorna configuração padrão para anos finais
+      if (!configFinal || !configFinal.disciplinas || configFinal.disciplinas.length === 0) {
+        console.warn(`[Importação] AVISO: Sem config para série "${serie}", usando padrão anos finais`)
+        return [
+          { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa', sigla: 'LP', valor_questao: 0.5 },
+          { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas', sigla: 'CH', valor_questao: 1.0 },
+          { inicio: 31, fim: 50, area: 'Matemática', disciplina: 'Matemática', sigla: 'MAT', valor_questao: 0.5 },
+          { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza', sigla: 'CN', valor_questao: 1.0 },
+        ]
+      }
+
+      console.log(`[Importação] Usando config: ${configFinal.disciplinas.map((d: any) => `${d.sigla}:Q${d.questao_inicio}-Q${d.questao_fim}`).join(', ')}`)
+
+      // Usar a configuração de disciplinas da série (já ordenada por ordem)
+      return configFinal.disciplinas.map((d: any) => ({
+        inicio: d.questao_inicio,
+        fim: d.questao_fim,
+        area: d.disciplina,
+        disciplina: d.disciplina,
+        sigla: d.sigla,
+        valor_questao: parseFloat(d.valor_questao) || 0.5,
+        qtd_questoes: d.qtd_questoes
+      }))
+    }
+
+    // Função para obter configuração da série
+    const obterConfigSerie = (serie: string) => {
+      const serieNormalizada = normalizarSerie(serie)
+      let config = configSeriesMap.get(serieNormalizada)
+      if (!config) {
+        const serieNum = serie.replace(/[^\d]/g, '')
+        config = configSeriesMap.get(serieNum)
+      }
+      return config
+    }
 
     // Criar registro de importacao
     const importacaoResult = await pool.query(
@@ -242,9 +328,12 @@ export async function POST(request: NextRequest) {
         const alunoCacheKey = `${alunoNomeNorm}_${escolaId}`
         const alunoId = cacheAlunos.get(alunoCacheKey) || null
 
+        // Obter mapeamento de questões baseado na série
+        const questoesMapDinamico = obterQuestoesMap(serie)
+
         // Verificar se ha dados de resultados
         let temResultados = false
-        for (const { inicio, fim } of questoesMap) {
+        for (const { inicio, fim } of questoesMapDinamico) {
           for (let num = inicio; num <= fim; num++) {
             const colunaQuestao = `Q${num}`
             const valorQuestao = linha[colunaQuestao]
@@ -274,7 +363,7 @@ export async function POST(request: NextRequest) {
         let questoesRespondidas = 0
 
         // Processar cada questao e adicionar ao batch
-        for (const { inicio, fim, area, disciplina } of questoesMap) {
+        for (const { inicio, fim, area, disciplina } of questoesMapDinamico) {
           for (let num = inicio; num <= fim; num++) {
             const colunaQuestao = `Q${num}`
             const valorQuestao = linha[colunaQuestao]
@@ -327,45 +416,89 @@ export async function POST(request: NextRequest) {
 
         // Atualizar/criar registro em resultados_consolidados se tiver aluno_id
         if (alunoId && !semDados) {
-          // Determinar total de questões esperadas baseado na série
-          let totalQuestoesEsperadas = 60 // padrão para anos finais
+          // Obter configuração da série para cálculos corretos (usando função normalizada)
+          const configSerie = obterConfigSerie(serie)
           const serieNum = parseInt(serie.replace(/[^\d]/g, ''))
-          if (serieNum >= 1 && serieNum <= 5) {
-            // Anos iniciais: 2º e 3º ano = 28 questões
-            totalQuestoesEsperadas = 28
+
+          // Calcular total de questões esperadas baseado na configuração
+          let totalQuestoesEsperadas = 0
+          if (configSerie) {
+            if (configSerie.avalia_lp) totalQuestoesEsperadas += configSerie.qtd_questoes_lp || 0
+            if (configSerie.avalia_mat) totalQuestoesEsperadas += configSerie.qtd_questoes_mat || 0
+            if (configSerie.avalia_ch) totalQuestoesEsperadas += configSerie.qtd_questoes_ch || 0
+            if (configSerie.avalia_cn) totalQuestoesEsperadas += configSerie.qtd_questoes_cn || 0
+          } else {
+            // Fallback se não houver configuração
+            totalQuestoesEsperadas = serieNum >= 1 && serieNum <= 5 ? 28 : 60
           }
 
-          // Calcular notas baseadas nos acertos (se não vier da planilha)
-          // Para anos iniciais: LP = 20 questões, CH = 8 questões
-          // Para anos finais: LP = 20, CH = 10, MAT = 20, CN = 10
+          // Calcular notas baseadas nos acertos usando a configuração da série
           let notaLPCalc = 0, notaCHCalc = 0, notaMATCalc = 0, notaCNCalc = 0
 
-          if (serieNum >= 1 && serieNum <= 5) {
-            // Anos iniciais
-            notaLPCalc = acertosLP > 0 ? (acertosLP / 20) * 10 : 0
-            notaCHCalc = acertosCH > 0 ? (acertosCH / 8) * 10 : 0
-          } else {
-            // Anos finais
-            notaLPCalc = acertosLP > 0 ? (acertosLP / 20) * 10 : 0
-            notaCHCalc = acertosCH > 0 ? (acertosCH / 10) * 10 : 0
-            notaMATCalc = acertosMAT > 0 ? (acertosMAT / 20) * 10 : 0
-            notaCNCalc = acertosCN > 0 ? (acertosCN / 10) * 10 : 0
-          }
-
-          // Calcular média
-          let mediaAluno = 0
-          if (serieNum >= 1 && serieNum <= 5) {
-            // Anos iniciais: média de LP e CH
-            const mediaObjetiva = (notaLPCalc + notaCHCalc) / 2
-            // Se tiver nota de produção, usar 70% objetiva + 30% produção
-            if (notaProducaoPlanilha && notaProducaoPlanilha > 0) {
-              mediaAluno = (mediaObjetiva * 0.7) + (notaProducaoPlanilha * 0.3)
-            } else {
-              mediaAluno = mediaObjetiva
+          if (configSerie) {
+            // Usar quantidade de questões da configuração para calcular notas
+            if (configSerie.avalia_lp && configSerie.qtd_questoes_lp > 0) {
+              notaLPCalc = acertosLP > 0 ? (acertosLP / configSerie.qtd_questoes_lp) * 10 : 0
+            }
+            if (configSerie.avalia_mat && configSerie.qtd_questoes_mat > 0) {
+              notaMATCalc = acertosMAT > 0 ? (acertosMAT / configSerie.qtd_questoes_mat) * 10 : 0
+            }
+            if (configSerie.avalia_ch && configSerie.qtd_questoes_ch > 0) {
+              notaCHCalc = acertosCH > 0 ? (acertosCH / configSerie.qtd_questoes_ch) * 10 : 0
+            }
+            if (configSerie.avalia_cn && configSerie.qtd_questoes_cn > 0) {
+              notaCNCalc = acertosCN > 0 ? (acertosCN / configSerie.qtd_questoes_cn) * 10 : 0
             }
           } else {
-            // Anos finais: média das 4 disciplinas
-            mediaAluno = (notaLPCalc + notaCHCalc + notaMATCalc + notaCNCalc) / 4
+            // Fallback para cálculo padrão se não houver configuração
+            if (serieNum >= 1 && serieNum <= 5) {
+              // Anos iniciais: LP = 20 questões, MAT = 8 questões
+              notaLPCalc = acertosLP > 0 ? (acertosLP / 20) * 10 : 0
+              notaMATCalc = acertosMAT > 0 ? (acertosMAT / 8) * 10 : 0
+            } else {
+              // Anos finais
+              notaLPCalc = acertosLP > 0 ? (acertosLP / 20) * 10 : 0
+              notaCHCalc = acertosCH > 0 ? (acertosCH / 10) * 10 : 0
+              notaMATCalc = acertosMAT > 0 ? (acertosMAT / 20) * 10 : 0
+              notaCNCalc = acertosCN > 0 ? (acertosCN / 10) * 10 : 0
+            }
+          }
+
+          // Calcular média baseada nas disciplinas avaliadas
+          let mediaAluno = 0
+          let disciplinasAvaliadas = 0
+          let somaNotas = 0
+
+          if (configSerie) {
+            // Usar configuração para determinar quais disciplinas entram na média
+            if (configSerie.avalia_lp) { somaNotas += notaLPCalc; disciplinasAvaliadas++ }
+            if (configSerie.avalia_mat) { somaNotas += notaMATCalc; disciplinasAvaliadas++ }
+            if (configSerie.avalia_ch) { somaNotas += notaCHCalc; disciplinasAvaliadas++ }
+            if (configSerie.avalia_cn) { somaNotas += notaCNCalc; disciplinasAvaliadas++ }
+
+            if (disciplinasAvaliadas > 0) {
+              const mediaObjetiva = somaNotas / disciplinasAvaliadas
+              // Se tiver nota de produção e itens de produção, usar 70% objetiva + 30% produção
+              if ((configSerie.qtd_itens_producao || 0) > 0 && notaProducaoPlanilha && notaProducaoPlanilha > 0) {
+                mediaAluno = (mediaObjetiva * 0.7) + (notaProducaoPlanilha * 0.3)
+              } else {
+                mediaAluno = mediaObjetiva
+              }
+            }
+          } else {
+            // Fallback
+            if (serieNum >= 1 && serieNum <= 5) {
+              // Anos iniciais: média de LP e MAT
+              const mediaObjetiva = (notaLPCalc + notaMATCalc) / 2
+              if (notaProducaoPlanilha && notaProducaoPlanilha > 0) {
+                mediaAluno = (mediaObjetiva * 0.7) + (notaProducaoPlanilha * 0.3)
+              } else {
+                mediaAluno = mediaObjetiva
+              }
+            } else {
+              // Anos finais: média das 4 disciplinas
+              mediaAluno = (notaLPCalc + notaCHCalc + notaMATCalc + notaCNCalc) / 4
+            }
           }
 
           // Determinar tipo de avaliação

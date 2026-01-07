@@ -3,8 +3,9 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2, Eye, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 
 interface ResultadoConsolidado {
   id: string
@@ -30,6 +31,7 @@ interface Filtros {
   ano_letivo?: string
   serie?: string
   presenca?: string
+  tipo_ensino?: string
 }
 
 export default function ResultadosEscolaPage() {
@@ -84,6 +86,10 @@ export default function ResultadosEscolaPage() {
     mediaCH: number
     mediaMAT: number
     mediaCN: number
+    mediaAnosIniciais: number
+    totalAnosIniciais: number
+    mediaAnosFinais: number
+    totalAnosFinais: number
   }>({
     totalAlunos: 0,
     totalPresentes: 0,
@@ -92,7 +98,11 @@ export default function ResultadosEscolaPage() {
     mediaLP: 0,
     mediaCH: 0,
     mediaMAT: 0,
-    mediaCN: 0
+    mediaCN: 0,
+    mediaAnosIniciais: 0,
+    totalAnosIniciais: 0,
+    mediaAnosFinais: 0,
+    totalAnosFinais: 0
   })
 
   useEffect(() => {
@@ -206,7 +216,11 @@ export default function ResultadosEscolaPage() {
             mediaLP: parseFloat(data.estatisticas.mediaLP) || 0,
             mediaCH: parseFloat(data.estatisticas.mediaCH) || 0,
             mediaMAT: parseFloat(data.estatisticas.mediaMAT) || 0,
-            mediaCN: parseFloat(data.estatisticas.mediaCN) || 0
+            mediaCN: parseFloat(data.estatisticas.mediaCN) || 0,
+            mediaAnosIniciais: parseFloat(data.estatisticas.mediaAnosIniciais) || 0,
+            totalAnosIniciais: data.estatisticas.totalAnosIniciais || 0,
+            mediaAnosFinais: parseFloat(data.estatisticas.mediaAnosFinais) || 0,
+            totalAnosFinais: data.estatisticas.totalAnosFinais || 0
           })
         }
 
@@ -351,6 +365,19 @@ export default function ResultadosEscolaPage() {
     if (num >= 5) return 'bg-yellow-50 border-yellow-200'
     return 'bg-red-50 border-red-200'
   }
+
+  // Função para obter o número de questões por disciplina baseado na série
+  const obterTotalQuestoes = useCallback((serie: string, codigoDisciplina: string): number => {
+    const disciplinas = obterDisciplinasPorSerieSync(serie)
+    const disciplina = disciplinas.find(d => d.codigo === codigoDisciplina)
+    return disciplina?.total_questoes || 0
+  }, [])
+
+  // Função para verificar se a disciplina existe para a série
+  const disciplinaExisteNaSerie = useCallback((serie: string, codigoDisciplina: string): boolean => {
+    const disciplinas = obterDisciplinasPorSerieSync(serie)
+    return disciplinas.some(d => d.codigo === codigoDisciplina)
+  }, [])
 
   // Calcular estatísticas - EXCLUIR alunos faltantes
   const estatisticas = useMemo(() => {
@@ -548,6 +575,21 @@ export default function ResultadosEscolaPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  Tipo de Ensino
+                </label>
+                <select
+                  value={filtros.tipo_ensino || ''}
+                  onChange={(e) => handleFiltroChange('tipo_ensino', e.target.value)}
+                  className="select-custom w-full"
+                >
+                  <option value="">Todos</option>
+                  <option value="anos_iniciais">Anos Iniciais (1º-5º)</option>
+                  <option value="anos_finais">Anos Finais (6º-9º)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Presença
                 </label>
                 <select
@@ -614,6 +656,93 @@ export default function ResultadosEscolaPage() {
                 <p className="text-[10px] sm:text-xs opacity-75 mt-1">
                   {estatisticasAPI.totalAlunos > 0 ? ((estatisticasAPI.totalFaltas / estatisticasAPI.totalAlunos) * 100).toFixed(1) : 0}%
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Cards Anos Iniciais e Anos Finais */}
+          {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (estatisticasAPI.totalAnosIniciais > 0 || estatisticasAPI.totalAnosFinais > 0) && (
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${carregando ? 'opacity-50' : ''}`}>
+              {/* Card Anos Iniciais */}
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-900/40 p-4 sm:p-6 rounded-xl shadow-md dark:shadow-slate-900/50 border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-500 rounded-lg">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold">Anos Iniciais</p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">1º ao 5º Ano</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-3xl sm:text-4xl font-bold text-emerald-700 dark:text-emerald-400">
+                      {estatisticasAPI.mediaAnosIniciais > 0 ? estatisticasAPI.mediaAnosIniciais.toFixed(1) : '-'}
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                      Média de desempenho
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                      {estatisticasAPI.totalAnosIniciais.toLocaleString('pt-BR')}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">alunos avaliados</p>
+                  </div>
+                </div>
+                {estatisticasAPI.mediaAnosIniciais > 0 && (
+                  <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-700">
+                    <div className="w-full bg-emerald-200 dark:bg-emerald-800 rounded-full h-2">
+                      <div
+                        className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(estatisticasAPI.mediaAnosIniciais * 10, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Card Anos Finais */}
+              <div className="bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-900/30 dark:to-violet-900/40 p-4 sm:p-6 rounded-xl shadow-md dark:shadow-slate-900/50 border border-violet-200 dark:border-violet-800">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-violet-500 rounded-lg">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold">Anos Finais</p>
+                      <p className="text-xs text-violet-600 dark:text-violet-400">6º ao 9º Ano</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-3xl sm:text-4xl font-bold text-violet-700 dark:text-violet-400">
+                      {estatisticasAPI.mediaAnosFinais > 0 ? estatisticasAPI.mediaAnosFinais.toFixed(1) : '-'}
+                    </p>
+                    <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">
+                      Média de desempenho
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-violet-600 dark:text-violet-400">
+                      {estatisticasAPI.totalAnosFinais.toLocaleString('pt-BR')}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">alunos avaliados</p>
+                  </div>
+                </div>
+                {estatisticasAPI.mediaAnosFinais > 0 && (
+                  <div className="mt-3 pt-3 border-t border-violet-200 dark:border-violet-700">
+                    <div className="w-full bg-violet-200 dark:bg-violet-800 rounded-full h-2">
+                      <div
+                        className="bg-violet-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(estatisticasAPI.mediaAnosFinais * 10, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -772,9 +901,10 @@ export default function ResultadosEscolaPage() {
                         {/* Notas em Grid */}
                         <div className="grid grid-cols-2 gap-3 mb-3">
                           {/* LP */}
+                          {disciplinaExisteNaSerie(resultado.serie, 'LP') && (
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border border-gray-200`}>
                             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Língua Portuguesa</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_lp}/20</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_lp}/{obterTotalQuestoes(resultado.serie, 'LP')}</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_lp)} mb-1`}>
                               {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -789,11 +919,13 @@ export default function ResultadosEscolaPage() {
                               </div>
                             )}
                           </div>
+                          )}
 
-                          {/* CH */}
+                          {/* CH - apenas para anos finais */}
+                          {disciplinaExisteNaSerie(resultado.serie, 'CH') && (
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border border-gray-200`}>
                             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências Humanas</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_ch}/10</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_ch}/{obterTotalQuestoes(resultado.serie, 'CH')}</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_ch)} mb-1`}>
                               {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -808,11 +940,13 @@ export default function ResultadosEscolaPage() {
                               </div>
                             )}
                           </div>
+                          )}
 
                           {/* MAT */}
+                          {disciplinaExisteNaSerie(resultado.serie, 'MAT') && (
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border border-gray-200`}>
                             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Matemática</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_mat}/20</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_mat}/{obterTotalQuestoes(resultado.serie, 'MAT')}</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_mat)} mb-1`}>
                               {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -827,11 +961,13 @@ export default function ResultadosEscolaPage() {
                               </div>
                             )}
                           </div>
+                          )}
 
-                          {/* CN */}
+                          {/* CN - apenas para anos finais */}
+                          {disciplinaExisteNaSerie(resultado.serie, 'CN') && (
                           <div className={`p-3 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border border-gray-200`}>
                             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ciências da Natureza</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_cn}/10</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1">{resultado.total_acertos_cn}/{obterTotalQuestoes(resultado.serie, 'CN')}</div>
                             <div className={`text-lg font-bold ${getNotaColor(resultado.nota_cn)} mb-1`}>
                               {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                             </div>
@@ -846,6 +982,7 @@ export default function ResultadosEscolaPage() {
                               </div>
                             )}
                           </div>
+                          )}
                         </div>
 
                         {/* Média e Ações */}
@@ -989,9 +1126,10 @@ export default function ResultadosEscolaPage() {
                               </span>
                             </td>
                             <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              {disciplinaExisteNaSerie(resultado.serie, 'LP') ? (
                               <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                 <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                  {resultado.total_acertos_lp}/20
+                                  {resultado.total_acertos_lp}/{obterTotalQuestoes(resultado.serie, 'LP')}
                                 </div>
                                 <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
                                   {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
@@ -1007,11 +1145,13 @@ export default function ResultadosEscolaPage() {
                                   </div>
                                 )}
                               </div>
+                              ) : <span className="text-gray-400">-</span>}
                             </td>
                             <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              {disciplinaExisteNaSerie(resultado.serie, 'CH') ? (
                               <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_ch)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                 <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                  {resultado.total_acertos_ch}/10
+                                  {resultado.total_acertos_ch}/{obterTotalQuestoes(resultado.serie, 'CH')}
                                 </div>
                                 <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
                                   {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
@@ -1027,11 +1167,13 @@ export default function ResultadosEscolaPage() {
                                   </div>
                                 )}
                               </div>
+                              ) : <span className="text-gray-400">-</span>}
                             </td>
                             <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              {disciplinaExisteNaSerie(resultado.serie, 'MAT') ? (
                               <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                 <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                  {resultado.total_acertos_mat}/20
+                                  {resultado.total_acertos_mat}/{obterTotalQuestoes(resultado.serie, 'MAT')}
                                 </div>
                                 <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
                                   {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
@@ -1047,11 +1189,13 @@ export default function ResultadosEscolaPage() {
                                   </div>
                                 )}
                               </div>
+                              ) : <span className="text-gray-400">-</span>}
                             </td>
                             <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                              {disciplinaExisteNaSerie(resultado.serie, 'CN') ? (
                               <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_cn)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                 <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
-                                  {resultado.total_acertos_cn}/10
+                                  {resultado.total_acertos_cn}/{obterTotalQuestoes(resultado.serie, 'CN')}
                                 </div>
                                 <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
                                   {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
@@ -1067,6 +1211,7 @@ export default function ResultadosEscolaPage() {
                                   </div>
                                 )}
                               </div>
+                              ) : <span className="text-gray-400">-</span>}
                             </td>
                             <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                               <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
