@@ -3,7 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
-import { BarChart3, Upload, School, GraduationCap, TrendingUp } from 'lucide-react'
+import { BarChart3, Upload, School, GraduationCap, TrendingUp, Users } from 'lucide-react'
 
 export default function TecnicoDashboard() {
   const [estatisticas, setEstatisticas] = useState({
@@ -13,6 +13,10 @@ export default function TecnicoDashboard() {
     totalAlunos: 0,
     totalAlunosPresentes: 0,
     mediaGeral: 0,
+    mediaAnosIniciais: 0,
+    mediaAnosFinais: 0,
+    totalAnosIniciais: 0,
+    totalAnosFinais: 0,
   })
 
   useEffect(() => {
@@ -34,6 +38,10 @@ export default function TecnicoDashboard() {
             totalAlunos: Number(data.totalAlunos) || 0,
             totalAlunosPresentes: Number(data.totalAlunosPresentes) || 0,
             mediaGeral: Number(data.mediaGeral) || 0,
+            mediaAnosIniciais: Number(data.mediaAnosIniciais) || 0,
+            mediaAnosFinais: Number(data.mediaAnosFinais) || 0,
+            totalAnosIniciais: Number(data.totalAnosIniciais) || 0,
+            totalAnosFinais: Number(data.totalAnosFinais) || 0,
           })
         }
       } catch (error) {
@@ -127,6 +135,91 @@ export default function TecnicoDashboard() {
                 </div>
                 <TrendingUp className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600 dark:text-blue-400 flex-shrink-0 ml-2" />
               </div>
+            </div>
+          </div>
+
+          {/* Médias por Tipo de Ensino */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {/* Card Anos Iniciais */}
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-900/40 p-4 sm:p-6 rounded-lg shadow-md dark:shadow-slate-900/50 border border-emerald-200 dark:border-emerald-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-500 rounded-lg">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold">Anos Iniciais</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">1º ao 5º Ano</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl sm:text-4xl font-bold text-emerald-700 dark:text-emerald-400">
+                    {estatisticas.mediaAnosIniciais > 0 ? estatisticas.mediaAnosIniciais.toFixed(1) : '-'}
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                    Média de desempenho
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                    {estatisticas.totalAnosIniciais.toLocaleString('pt-BR')}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">alunos avaliados</p>
+                </div>
+              </div>
+              {estatisticas.mediaAnosIniciais > 0 && (
+                <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-700">
+                  <div className="w-full bg-emerald-200 dark:bg-emerald-800 rounded-full h-2">
+                    <div
+                      className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(estatisticas.mediaAnosIniciais * 10, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Card Anos Finais */}
+            <div className="bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-900/30 dark:to-violet-900/40 p-4 sm:p-6 rounded-lg shadow-md dark:shadow-slate-900/50 border border-violet-200 dark:border-violet-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-violet-500 rounded-lg">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold">Anos Finais</p>
+                    <p className="text-xs text-violet-600 dark:text-violet-400">6º ao 9º Ano</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl sm:text-4xl font-bold text-violet-700 dark:text-violet-400">
+                    {estatisticas.mediaAnosFinais > 0 ? estatisticas.mediaAnosFinais.toFixed(1) : '-'}
+                  </p>
+                  <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">
+                    Média de desempenho
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-violet-600 dark:text-violet-400">
+                    {estatisticas.totalAnosFinais.toLocaleString('pt-BR')}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">alunos avaliados</p>
+                </div>
+              </div>
+              {estatisticas.mediaAnosFinais > 0 && (
+                <div className="mt-3 pt-3 border-t border-violet-200 dark:border-violet-700">
+                  <div className="w-full bg-violet-200 dark:bg-violet-800 rounded-full h-2">
+                    <div
+                      className="bg-violet-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(estatisticas.mediaAnosFinais * 10, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
