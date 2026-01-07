@@ -689,23 +689,37 @@ export default function DadosPage() {
 
   // Efeito para detectar scroll e fixar abas
   useEffect(() => {
+    if (!abasContainerRef.current) return
+
+    const mainElement = document.querySelector('main')
+    if (!mainElement) return
+
     const handleScroll = () => {
       if (abasContainerRef.current) {
-        const rect = abasContainerRef.current.getBoundingClientRect()
-        // Fixa as abas quando o topo do container atinge o topo da viewport (considerando header de 64px)
-        setAbasFixas(rect.top <= 64)
+        // Obter posição do container das abas relativo ao main
+        const mainRect = mainElement.getBoundingClientRect()
+        const abasRect = abasContainerRef.current.getBoundingClientRect()
+
+        // Fixar quando as abas atingem o topo do main (considerando padding)
+        // O main tem padding top que varia por breakpoint, usar 64px como referência do header
+        const shouldFix = abasRect.top <= mainRect.top + 8
+        setAbasFixas(shouldFix)
       }
     }
 
-    // Buscar o elemento main que é o container de scroll
-    const mainElement = document.querySelector('main')
-    if (mainElement) {
-      mainElement.addEventListener('scroll', handleScroll)
-      // Verificar estado inicial
-      handleScroll()
-      return () => mainElement.removeEventListener('scroll', handleScroll)
+    // Adicionar listener de scroll no main
+    mainElement.addEventListener('scroll', handleScroll)
+    // Também adicionar no window para cobrir casos onde o scroll está no body
+    window.addEventListener('scroll', handleScroll)
+
+    // Verificar estado inicial
+    handleScroll()
+
+    return () => {
+      mainElement.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('scroll', handleScroll)
     }
-  }, [])
+  }, [dados]) // Re-executar quando dados carregam para garantir que o elemento existe
 
   const limparFiltros = () => {
     // Para usuários polo ou escola, manter o polo_id fixo
@@ -1412,12 +1426,12 @@ export default function DadosPage() {
               {/* Abas de Navegacao - Com fixação via JavaScript */}
               <div ref={abasContainerRef} className="relative">
                 {/* Placeholder para manter altura quando abas estão fixas */}
-                {abasFixas && <div style={{ height: abasRef.current?.offsetHeight || 52 }} />}
+                {abasFixas && <div style={{ height: abasRef.current?.offsetHeight || 60 }} />}
 
                 {/* Abas - Fixas ou normais */}
                 <div
                   ref={abasRef}
-                  className={`${abasFixas ? 'fixed left-0 right-0 z-50 px-2 sm:px-4 md:px-6 lg:px-8 lg:pl-72' : ''} bg-gray-50 dark:bg-slate-900 py-2`}
+                  className={`${abasFixas ? 'fixed left-0 right-0 z-40 px-2 sm:px-4 md:px-6 lg:px-8 lg:ml-64' : ''} bg-gray-50 dark:bg-slate-900 py-2`}
                   style={abasFixas ? { top: '56px' } : {}}
                 >
                   <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
