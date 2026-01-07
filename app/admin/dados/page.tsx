@@ -689,10 +689,18 @@ export default function DadosPage() {
 
   // Efeito para detectar scroll e fixar abas
   useEffect(() => {
-    if (!abasContainerRef.current) return
+    if (!abasContainerRef.current) {
+      console.log('[Abas Debug] abasContainerRef não encontrado')
+      return
+    }
 
     const mainElement = document.querySelector('main')
-    if (!mainElement) return
+    if (!mainElement) {
+      console.log('[Abas Debug] main element não encontrado')
+      return
+    }
+
+    console.log('[Abas Debug] Inicializando listeners de scroll')
 
     const handleScroll = () => {
       if (abasContainerRef.current) {
@@ -703,6 +711,14 @@ export default function DadosPage() {
         // Fixar quando as abas atingem o topo do main (considerando padding)
         // O main tem padding top que varia por breakpoint, usar 64px como referência do header
         const shouldFix = abasRect.top <= mainRect.top + 8
+
+        console.log('[Abas Debug] Scroll detectado:', {
+          mainTop: mainRect.top,
+          abasTop: abasRect.top,
+          shouldFix,
+          abasFixasAtual: abasFixas
+        })
+
         setAbasFixas(shouldFix)
       }
     }
@@ -719,7 +735,7 @@ export default function DadosPage() {
       mainElement.removeEventListener('scroll', handleScroll)
       window.removeEventListener('scroll', handleScroll)
     }
-  }, [dados]) // Re-executar quando dados carregam para garantir que o elemento existe
+  }, [dados, abasFixas]) // Re-executar quando dados carregam para garantir que o elemento existe
 
   const limparFiltros = () => {
     // Para usuários polo ou escola, manter o polo_id fixo
