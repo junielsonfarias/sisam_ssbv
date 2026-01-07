@@ -704,20 +704,11 @@ export default function DadosPage() {
 
     const handleScroll = () => {
       if (abasContainerRef.current) {
-        // Obter posição do container das abas relativo ao main
-        const mainRect = mainElement.getBoundingClientRect()
         const abasRect = abasContainerRef.current.getBoundingClientRect()
 
-        // Fixar quando as abas atingem o topo do main (considerando padding)
-        // O main tem padding top que varia por breakpoint, usar 64px como referência do header
-        const shouldFix = abasRect.top <= mainRect.top + 8
-
-        console.log('[Abas Debug] Scroll detectado:', {
-          mainTop: mainRect.top,
-          abasTop: abasRect.top,
-          shouldFix,
-          abasFixasAtual: abasFixas
-        })
+        // Fixar quando as abas atingem o topo da viewport (abaixo do header de 64px)
+        // abasTop <= 64 significa que as abas chegaram ou passaram do header
+        const shouldFix = abasRect.top <= 64
 
         setAbasFixas(shouldFix)
       }
