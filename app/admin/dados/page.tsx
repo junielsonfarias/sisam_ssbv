@@ -580,6 +580,11 @@ export default function DadosPage() {
             acertos_mat: toNum(r.total_acertos_mat),
             acertos_ch: toNum(r.total_acertos_ch),
             acertos_cn: toNum(r.total_acertos_cn),
+            // Campos de configuração de questões por série
+            qtd_questoes_lp: r.qtd_questoes_lp,
+            qtd_questoes_mat: r.qtd_questoes_mat,
+            qtd_questoes_ch: r.qtd_questoes_ch,
+            qtd_questoes_cn: r.qtd_questoes_cn,
             nivel_aprendizagem: r.nivel_aprendizagem || 'Não classificado'
           }
         }),

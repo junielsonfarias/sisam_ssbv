@@ -547,13 +547,18 @@ export async function GET(request: NextRequest) {
         rc.total_acertos_lp,
         rc.total_acertos_ch,
         rc.total_acertos_mat,
-        rc.total_acertos_cn
+        rc.total_acertos_cn,
+        cs.qtd_questoes_lp,
+        cs.qtd_questoes_mat,
+        cs.qtd_questoes_ch,
+        cs.qtd_questoes_cn
       FROM resultados_consolidados_unificada rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
+      LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
       ${whereClause}
       ${alunosDetalhadosOrderBy}
       LIMIT ${limiteAlunos} OFFSET ${offsetAlunos}
