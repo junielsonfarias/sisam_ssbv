@@ -1386,9 +1386,10 @@ export default function DadosPage() {
                 )}
               </div>
 
-              {/* Abas de Navegacao - Scrollável em mobile */}
-              <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
-                <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700 min-w-max sm:min-w-0">
+              {/* Abas de Navegacao - Sticky e Scrollável em mobile */}
+              <div className="sticky top-0 z-20 bg-gray-50 dark:bg-slate-900 py-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+                <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
+                  <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700 min-w-max sm:min-w-0">
                   {[
                     { id: 'visao_geral', label: 'Visão Geral', icon: PieChartIcon },
                     { id: 'escolas', label: 'Escolas', icon: School },
@@ -1410,6 +1411,7 @@ export default function DadosPage() {
                       <span className="xs:hidden sm:hidden">{aba.label.split(' ')[0]}</span>
                     </button>
                   ))}
+                  </div>
                 </div>
               </div>
 
