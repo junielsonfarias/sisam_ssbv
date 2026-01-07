@@ -78,13 +78,14 @@ export async function GET(request: NextRequest) {
     let totalAnosFinais = 0
 
     try {
+      // Extrair apenas o número da série para fazer o JOIN (ex: '2º Ano' -> '2')
       const mediaTipoResult = await pool.query(`
         SELECT
           cs.tipo_ensino,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno > 0 THEN rc.media_aluno ELSE NULL END), 2) as media,
           COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno > 0 THEN 1 END) as total
-        FROM resultados_consolidados rc
-        JOIN configuracao_series cs ON rc.serie = cs.serie
+        FROM resultados_consolidados_unificada rc
+        JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') = cs.serie
         WHERE rc.presenca IN ('P', 'p')
         GROUP BY cs.tipo_ensino
       `)
