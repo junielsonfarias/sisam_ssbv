@@ -832,8 +832,8 @@ export default function ResultadosEscolaPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+            <div className="flex-1 overflow-auto">
             {carregando ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
@@ -1011,11 +1011,10 @@ export default function ResultadosEscolaPage() {
                   }))}
                 </div>
 
-                {/* Visualização Tablet/Desktop - Tabela */}
-                <div className="hidden sm:block w-full">
-                  <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
-                    <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-0 md:min-w-[600px] lg:min-w-[700px]">
-                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100">
+                {/* Visualização Tablet/Desktop - Tabela com header fixo */}
+                <div className="hidden sm:block w-full h-full">
+                  <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-[900px] lg:min-w-[1100px]">
+                    <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 sticky top-0 z-20">
                         <tr>
                           <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12">
                             #
@@ -1244,9 +1243,8 @@ export default function ResultadosEscolaPage() {
                         )
                       })
                     )}
-                  </tbody>
-                    </table>
-                  </div>
+                      </tbody>
+                  </table>
                 </div>
 
                 {/* Controles de Paginação */}
