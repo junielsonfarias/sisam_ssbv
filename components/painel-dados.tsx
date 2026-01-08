@@ -8,6 +8,13 @@ import {
 } from 'lucide-react'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { obterDisciplinasPorSerieSync, obterTodasDisciplinas } from '@/lib/disciplinas-por-serie'
+import {
+  isCacheValid,
+  getCachedEstatisticas,
+  getCachedEscolas,
+  getCachedTurmas,
+  getCachedSeries
+} from '@/lib/dashboard-cache'
 
 // Tipos
 interface ResultadoConsolidado {
@@ -262,11 +269,38 @@ export default function PainelDados({
   const [filtrosCarregados, setFiltrosCarregados] = useState(false)
   const [carregandoAlunos, setCarregandoAlunos] = useState(false)
 
-  // Carregar estatísticas - usar cache do servidor
+  // Carregar estatísticas - PRIMEIRO do cache, depois da API se necessário
   useEffect(() => {
     const carregarEstatisticas = async () => {
+      // Tentar usar cache local primeiro (sincronizado no login)
+      if (isCacheValid()) {
+        const cachedStats = getCachedEstatisticas()
+        if (cachedStats) {
+          console.log('[PainelDados] Usando estatísticas do cache local')
+          setEstatisticas({
+            totalEscolas: Number(cachedStats.totalEscolas) || 0,
+            totalPolos: Number(cachedStats.totalPolos) || 0,
+            totalResultados: Number(cachedStats.totalResultados) || 0,
+            totalAlunos: Number(cachedStats.totalAlunos) || 0,
+            totalTurmas: Number(cachedStats.totalTurmas) || 0,
+            totalAlunosPresentes: Number(cachedStats.totalAlunosPresentes) || 0,
+            totalAlunosFaltantes: Number(cachedStats.totalAlunosFaltantes) || 0,
+            mediaGeral: Number(cachedStats.mediaGeral) || 0,
+            mediaAnosIniciais: Number(cachedStats.mediaAnosIniciais) || 0,
+            mediaAnosFinais: Number(cachedStats.mediaAnosFinais) || 0,
+            totalAnosIniciais: Number(cachedStats.totalAnosIniciais) || 0,
+            totalAnosFinais: Number(cachedStats.totalAnosFinais) || 0,
+            nomeEscola: cachedStats.nomeEscola || '',
+            nomePolo: cachedStats.nomePolo || '',
+          })
+          setCarregando(false)
+          return
+        }
+      }
+
+      // Fallback: buscar da API se cache não disponível
       try {
-        // Não forçar no-cache - deixar o servidor gerenciar o cache
+        console.log('[PainelDados] Cache não disponível, buscando da API')
         const response = await fetch(estatisticasEndpoint)
 
         if (!response.ok) {
@@ -329,6 +363,20 @@ export default function PainelDados({
     if (!escolasEndpoint) return
     try {
       setCarregando(true)
+
+      // Tentar usar cache local primeiro
+      if (isCacheValid()) {
+        const cachedEscolas = getCachedEscolas()
+        if (cachedEscolas && cachedEscolas.length > 0) {
+          console.log('[PainelDados] Usando escolas do cache local')
+          setEscolas(cachedEscolas)
+          setCarregando(false)
+          return
+        }
+      }
+
+      // Fallback: buscar da API
+      console.log('[PainelDados] Cache não disponível, buscando escolas da API')
       const response = await fetch(escolasEndpoint)
       if (response.ok) {
         const data = await response.json()
@@ -345,6 +393,20 @@ export default function PainelDados({
     if (!turmasEndpoint) return
     try {
       setCarregando(true)
+
+      // Tentar usar cache local primeiro
+      if (isCacheValid()) {
+        const cachedTurmas = getCachedTurmas()
+        if (cachedTurmas && cachedTurmas.length > 0) {
+          console.log('[PainelDados] Usando turmas do cache local')
+          setTurmas(cachedTurmas)
+          setCarregando(false)
+          return
+        }
+      }
+
+      // Fallback: buscar da API
+      console.log('[PainelDados] Cache não disponível, buscando turmas da API')
       const response = await fetch(turmasEndpoint)
       if (response.ok) {
         const data = await response.json()
@@ -408,7 +470,30 @@ export default function PainelDados({
 
   const carregarFiltros = async () => {
     try {
-      // Carregar escolas e turmas em PARALELO para melhor performance
+      // Tentar usar cache local primeiro (sincronizado no login)
+      if (isCacheValid()) {
+        const cachedEscolas = getCachedEscolas()
+        const cachedTurmas = getCachedTurmas()
+        const cachedSeries = getCachedSeries()
+
+        console.log('[PainelDados] Usando filtros do cache local')
+
+        if (cachedEscolas && cachedEscolas.length > 0) {
+          setListaEscolas(cachedEscolas)
+        }
+        if (cachedTurmas && cachedTurmas.length > 0) {
+          setListaTurmas(cachedTurmas)
+        }
+        if (cachedSeries && cachedSeries.length > 0) {
+          setListaSeries(cachedSeries)
+        }
+
+        setFiltrosCarregados(true)
+        return
+      }
+
+      // Fallback: Carregar escolas e turmas em PARALELO da API
+      console.log('[PainelDados] Cache não disponível, buscando filtros da API')
       const promises: Promise<void>[] = []
 
       if (escolasEndpoint) {
