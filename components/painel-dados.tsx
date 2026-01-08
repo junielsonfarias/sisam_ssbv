@@ -215,7 +215,8 @@ export default function PainelDados({
     totalAnosIniciais: 0,
     totalAnosFinais: 0,
   })
-  const [carregando, setCarregando] = useState(true)
+  const [carregando, setCarregando] = useState(false)
+  const [pesquisouGeral, setPesquisouGeral] = useState(false)
 
   // Estados para aba Escolas
   const [escolas, setEscolas] = useState<Escola[]>([])
@@ -274,72 +275,76 @@ export default function PainelDados({
   const [pesquisouTurmas, setPesquisouTurmas] = useState(false)
   const [pesquisouAlunos, setPesquisouAlunos] = useState(false)
 
-  // Carregar estatísticas - PRIMEIRO do cache, depois da API se necessário
-  useEffect(() => {
-    const carregarEstatisticas = async () => {
-      // Tentar usar cache local primeiro (sincronizado no login)
-      if (isCacheValid()) {
-        const cachedStats = getCachedEstatisticas()
-        if (cachedStats) {
-          console.log('[PainelDados] Usando estatísticas do cache local')
-          setEstatisticas({
-            totalEscolas: Number(cachedStats.totalEscolas) || 0,
-            totalPolos: Number(cachedStats.totalPolos) || 0,
-            totalResultados: Number(cachedStats.totalResultados) || 0,
-            totalAlunos: Number(cachedStats.totalAlunos) || 0,
-            totalTurmas: Number(cachedStats.totalTurmas) || 0,
-            totalAlunosPresentes: Number(cachedStats.totalAlunosPresentes) || 0,
-            totalAlunosFaltantes: Number(cachedStats.totalAlunosFaltantes) || 0,
-            mediaGeral: Number(cachedStats.mediaGeral) || 0,
-            mediaAnosIniciais: Number(cachedStats.mediaAnosIniciais) || 0,
-            mediaAnosFinais: Number(cachedStats.mediaAnosFinais) || 0,
-            totalAnosIniciais: Number(cachedStats.totalAnosIniciais) || 0,
-            totalAnosFinais: Number(cachedStats.totalAnosFinais) || 0,
-            nomeEscola: cachedStats.nomeEscola || '',
-            nomePolo: cachedStats.nomePolo || '',
-          })
-          setCarregando(false)
-          return
-        }
-      }
+  // NÃO carregar estatísticas automaticamente - apenas quando clicar em Pesquisar
+  const [carregandoGeral, setCarregandoGeral] = useState(false)
 
-      // Fallback: buscar da API se cache não disponível
-      try {
-        console.log('[PainelDados] Cache não disponível, buscando da API')
-        const response = await fetch(estatisticasEndpoint)
+  const carregarEstatisticas = async () => {
+    setCarregandoGeral(true)
 
-        if (!response.ok) {
-          console.error('Erro ao buscar estatísticas:', response.status)
-          return
-        }
-
-        const data = await response.json()
-        if (data) {
-          setEstatisticas({
-            totalEscolas: Number(data.totalEscolas) || 0,
-            totalPolos: Number(data.totalPolos) || 0,
-            totalResultados: Number(data.totalResultados) || 0,
-            totalAlunos: Number(data.totalAlunos) || 0,
-            totalTurmas: Number(data.totalTurmas) || 0,
-            totalAlunosPresentes: Number(data.totalAlunosPresentes) || 0,
-            totalAlunosFaltantes: Number(data.totalAlunosFaltantes) || 0,
-            mediaGeral: Number(data.mediaGeral) || 0,
-            mediaAnosIniciais: Number(data.mediaAnosIniciais) || 0,
-            mediaAnosFinais: Number(data.mediaAnosFinais) || 0,
-            totalAnosIniciais: Number(data.totalAnosIniciais) || 0,
-            totalAnosFinais: Number(data.totalAnosFinais) || 0,
-            nomeEscola: data.nomeEscola || '',
-            nomePolo: data.nomePolo || '',
-          })
-        }
-      } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error)
-      } finally {
-        setCarregando(false)
+    // Tentar usar cache local primeiro (sincronizado no login)
+    if (isCacheValid()) {
+      const cachedStats = getCachedEstatisticas()
+      if (cachedStats) {
+        console.log('[PainelDados] Usando estatísticas do cache local')
+        setEstatisticas({
+          totalEscolas: Number(cachedStats.totalEscolas) || 0,
+          totalPolos: Number(cachedStats.totalPolos) || 0,
+          totalResultados: Number(cachedStats.totalResultados) || 0,
+          totalAlunos: Number(cachedStats.totalAlunos) || 0,
+          totalTurmas: Number(cachedStats.totalTurmas) || 0,
+          totalAlunosPresentes: Number(cachedStats.totalAlunosPresentes) || 0,
+          totalAlunosFaltantes: Number(cachedStats.totalAlunosFaltantes) || 0,
+          mediaGeral: Number(cachedStats.mediaGeral) || 0,
+          mediaAnosIniciais: Number(cachedStats.mediaAnosIniciais) || 0,
+          mediaAnosFinais: Number(cachedStats.mediaAnosFinais) || 0,
+          totalAnosIniciais: Number(cachedStats.totalAnosIniciais) || 0,
+          totalAnosFinais: Number(cachedStats.totalAnosFinais) || 0,
+          nomeEscola: cachedStats.nomeEscola || '',
+          nomePolo: cachedStats.nomePolo || '',
+        })
+        setPesquisouGeral(true)
+        setCarregandoGeral(false)
+        return
       }
     }
-    carregarEstatisticas()
-  }, [estatisticasEndpoint])
+
+    // Fallback: buscar da API se cache não disponível
+    try {
+      console.log('[PainelDados] Cache não disponível, buscando da API')
+      const response = await fetch(estatisticasEndpoint)
+
+      if (!response.ok) {
+        console.error('Erro ao buscar estatísticas:', response.status)
+        setCarregandoGeral(false)
+        return
+      }
+
+      const data = await response.json()
+      if (data) {
+        setEstatisticas({
+          totalEscolas: Number(data.totalEscolas) || 0,
+          totalPolos: Number(data.totalPolos) || 0,
+          totalResultados: Number(data.totalResultados) || 0,
+          totalAlunos: Number(data.totalAlunos) || 0,
+          totalTurmas: Number(data.totalTurmas) || 0,
+          totalAlunosPresentes: Number(data.totalAlunosPresentes) || 0,
+          totalAlunosFaltantes: Number(data.totalAlunosFaltantes) || 0,
+          mediaGeral: Number(data.mediaGeral) || 0,
+          mediaAnosIniciais: Number(data.mediaAnosIniciais) || 0,
+          mediaAnosFinais: Number(data.mediaAnosFinais) || 0,
+          totalAnosIniciais: Number(data.totalAnosIniciais) || 0,
+          totalAnosFinais: Number(data.totalAnosFinais) || 0,
+          nomeEscola: data.nomeEscola || '',
+          nomePolo: data.nomePolo || '',
+        })
+      }
+      setPesquisouGeral(true)
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error)
+    } finally {
+      setCarregandoGeral(false)
+    }
+  }
 
   // NÃO carregar escolas automaticamente - apenas quando clicar em Pesquisar
   // Resetar estado de pesquisa ao mudar de aba
@@ -605,7 +610,13 @@ export default function PainelDados({
       {/* Conteudo das Abas */}
       <div className="space-y-4">
       {abaAtiva === 'geral' && (
-        <AbaGeral estatisticas={estatisticas} tipoUsuario={tipoUsuario} carregando={carregando} />
+        <AbaGeral
+          estatisticas={estatisticas}
+          tipoUsuario={tipoUsuario}
+          carregando={carregandoGeral}
+          pesquisou={pesquisouGeral}
+          onPesquisar={carregarEstatisticas}
+        />
       )}
 
       {abaAtiva === 'escolas' && (
@@ -679,9 +690,99 @@ export default function PainelDados({
 }
 
 // Componente Aba Geral
-function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Estatisticas; tipoUsuario: string; carregando: boolean }) {
+function AbaGeral({ estatisticas, tipoUsuario, carregando, pesquisou, onPesquisar }: {
+  estatisticas: Estatisticas;
+  tipoUsuario: string;
+  carregando: boolean;
+  pesquisou: boolean;
+  onPesquisar: () => void;
+}) {
+  // Se não pesquisou ainda, mostrar tela de boas-vindas
+  if (!pesquisou && !carregando) {
+    return (
+      <div className="space-y-6">
+        {/* Botão de Pesquisa */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Visão Geral do Sistema</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Clique em pesquisar para carregar as estatísticas</p>
+            </div>
+            <button
+              onClick={onPesquisar}
+              disabled={carregando}
+              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[180px]"
+            >
+              {carregando ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Carregando...</span>
+                </>
+              ) : (
+                <>
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Carregar Estatísticas</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Estado vazio */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-12">
+          <div className="text-center">
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+              <BarChart3 className="w-12 h-12 text-indigo-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">Bem-vindo ao Painel de Dados</h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+              Clique no botão <strong className="text-indigo-600">Carregar Estatísticas</strong> acima para visualizar os dados gerais do sistema, incluindo totais de escolas, alunos, turmas e médias.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Se está carregando, mostrar animação
+  if (carregando) {
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-12">
+        <div className="text-center">
+          <div className="relative mx-auto w-20 h-20 mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-slate-700"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 dark:border-t-indigo-400 animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <BarChart3 className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+            </div>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">Carregando estatísticas...</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Aguarde enquanto buscamos os dados</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className={`space-y-6 ${carregando ? 'opacity-50' : ''}`}>
+    <div className="space-y-6">
+      {/* Botão de Atualizar */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Visão Geral do Sistema</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Dados carregados com sucesso</p>
+          </div>
+          <button
+            onClick={onPesquisar}
+            disabled={carregando}
+            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Atualizar</span>
+          </button>
+        </div>
+      </div>
+
       {/* Cards principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {tipoUsuario !== 'escola' && (
