@@ -256,7 +256,11 @@ export default function PainelDados({
   // Listas para filtros
   const [listaEscolas, setListaEscolas] = useState<any[]>([])
   const [listaTurmas, setListaTurmas] = useState<any[]>([])
-  const [listaSeries, setListaSeries] = useState<string[]>([])
+  const [listaSeries, setListaSeries] = useState<string[]>(['2º Ano', '3º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'])
+
+  // Controle de carregamento
+  const [filtrosCarregados, setFiltrosCarregados] = useState(false)
+  const [carregandoAlunos, setCarregandoAlunos] = useState(false)
 
   // Carregar estatísticas
   useEffect(() => {
@@ -317,23 +321,19 @@ export default function PainelDados({
     }
   }, [abaAtiva, turmasEndpoint])
 
-  // Carregar filtros quando mudar para aba alunos
+  // Carregar filtros apenas uma vez quando entrar na aba alunos
   useEffect(() => {
-    if (abaAtiva === 'alunos') {
+    if (abaAtiva === 'alunos' && !filtrosCarregados) {
       carregarFiltros()
     }
-  }, [abaAtiva])
+  }, [abaAtiva, filtrosCarregados])
 
-  // Carregar alunos quando filtros mudarem ou ao entrar na aba
+  // Carregar alunos quando entrar na aba (primeira vez)
   useEffect(() => {
-    if (abaAtiva === 'alunos') {
-      // Debounce para evitar múltiplas chamadas
-      const timeoutId = setTimeout(() => {
-        carregarAlunos(1)
-      }, 150)
-      return () => clearTimeout(timeoutId)
+    if (abaAtiva === 'alunos' && filtrosCarregados) {
+      carregarAlunosComFiltros(filtrosAlunos, buscaAluno, 1)
     }
-  }, [abaAtiva, filtrosAlunos, buscaAluno])
+  }, [abaAtiva, filtrosCarregados])
 
   const carregarEscolas = async () => {
     if (!escolasEndpoint) return
@@ -367,21 +367,29 @@ export default function PainelDados({
     }
   }
 
-  const carregarAlunos = async (pagina = 1) => {
+  // Função que recebe filtros como parâmetro para garantir valores atualizados
+  const carregarAlunosComFiltros = useCallback(async (
+    filtros: typeof filtrosAlunos,
+    busca: string,
+    pagina: number
+  ) => {
+    if (carregandoAlunos) return // Evita chamadas duplicadas
+
     try {
+      setCarregandoAlunos(true)
       setCarregando(true)
       const params = new URLSearchParams()
       params.set('pagina', pagina.toString())
       params.set('limite', '50')
-      // Usar cache para melhorar performance (não forçar atualização)
-      if (filtrosAlunos.escola_id) params.set('escola_id', filtrosAlunos.escola_id)
-      if (filtrosAlunos.turma_id) params.set('turma_id', filtrosAlunos.turma_id)
-      if (filtrosAlunos.serie) params.set('serie', filtrosAlunos.serie)
-      if (filtrosAlunos.presenca) params.set('presenca', filtrosAlunos.presenca)
-      if (filtrosAlunos.etapa_ensino) params.set('tipo_ensino', filtrosAlunos.etapa_ensino)
-      if (buscaAluno) params.set('busca', buscaAluno)
 
-      const response = await fetch(`${resultadosEndpoint}?${params.toString()}&_t=${Date.now()}`)
+      if (filtros.escola_id) params.set('escola_id', filtros.escola_id)
+      if (filtros.turma_id) params.set('turma_id', filtros.turma_id)
+      if (filtros.serie) params.set('serie', filtros.serie)
+      if (filtros.presenca) params.set('presenca', filtros.presenca)
+      if (filtros.etapa_ensino) params.set('tipo_ensino', filtros.etapa_ensino)
+      if (busca) params.set('busca', busca)
+
+      const response = await fetch(`${resultadosEndpoint}?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
         setResultados(data.resultados || [])
@@ -398,34 +406,46 @@ export default function PainelDados({
     } catch (error) {
       console.error('Erro ao carregar alunos:', error)
     } finally {
+      setCarregandoAlunos(false)
       setCarregando(false)
     }
-  }
+  }, [resultadosEndpoint, carregandoAlunos])
+
+  // Wrapper para compatibilidade com chamadas existentes
+  const carregarAlunos = useCallback((pagina = 1) => {
+    carregarAlunosComFiltros(filtrosAlunos, buscaAluno, pagina)
+  }, [carregarAlunosComFiltros, filtrosAlunos, buscaAluno])
 
   const carregarFiltros = async () => {
     try {
-      // Carregar escolas para filtro
+      // Carregar escolas e turmas em PARALELO para melhor performance
+      const promises: Promise<void>[] = []
+
       if (escolasEndpoint) {
-        const resEscolas = await fetch(`${escolasEndpoint}?_t=${Date.now()}`)
-        if (resEscolas.ok) {
-          const data = await resEscolas.json()
-          setListaEscolas(Array.isArray(data) ? data : data.escolas || [])
-        }
+        promises.push(
+          fetch(escolasEndpoint)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data) setListaEscolas(Array.isArray(data) ? data : data.escolas || [])
+            })
+        )
       }
 
-      // Carregar turmas para filtro
       if (turmasEndpoint) {
-        const resTurmas = await fetch(`${turmasEndpoint}?_t=${Date.now()}`)
-        if (resTurmas.ok) {
-          const data = await resTurmas.json()
-          setListaTurmas(Array.isArray(data) ? data : data.turmas || [])
-        }
+        promises.push(
+          fetch(turmasEndpoint)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data) setListaTurmas(Array.isArray(data) ? data : data.turmas || [])
+            })
+        )
       }
 
-      // Series fixas
-      setListaSeries(['2º Ano', '3º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'])
+      await Promise.all(promises)
+      setFiltrosCarregados(true)
     } catch (error) {
       console.error('Erro ao carregar filtros:', error)
+      setFiltrosCarregados(true) // Mesmo com erro, marca como carregado para não travar
     }
   }
 
@@ -533,7 +553,8 @@ export default function PainelDados({
           paginacao={paginacao}
           paginaAtual={paginaAtual}
           carregarAlunos={carregarAlunos}
-          carregando={carregando}
+          carregarAlunosComFiltros={carregarAlunosComFiltros}
+          carregando={carregando || carregandoAlunos}
           disciplinasExibir={disciplinasExibir}
           getTotalQuestoesPorSerie={getTotalQuestoesPorSerie}
           setAlunoSelecionado={setAlunoSelecionado}
@@ -897,6 +918,7 @@ function AbaAlunos({
   paginacao,
   paginaAtual,
   carregarAlunos,
+  carregarAlunosComFiltros,
   carregando,
   disciplinasExibir,
   getTotalQuestoesPorSerie,
@@ -917,6 +939,7 @@ function AbaAlunos({
   paginacao: any
   paginaAtual: number
   carregarAlunos: (p: number) => void
+  carregarAlunosComFiltros: (filtros: any, busca: string, pagina: number) => void
   carregando: boolean
   disciplinasExibir: any[]
   getTotalQuestoesPorSerie: (resultado: ResultadoConsolidado, codigo: string) => number | undefined
@@ -929,19 +952,24 @@ function AbaAlunos({
   const temFiltrosAtivos = Object.values(filtros).some(v => v) || busca
 
   const limparFiltros = () => {
-    setFiltros({})
+    const novosFiltros = {}
+    setFiltros(novosFiltros)
     setBusca('')
-    carregarAlunos(1)
+    // Chamar diretamente com os novos valores
+    carregarAlunosComFiltros(novosFiltros, '', 1)
   }
 
   // Handler para mudança de série com detecção automática de etapa
   const handleSerieChange = (novaSerie: string) => {
-    const novaEtapa = getEtapaFromSerie(novaSerie)
-    setFiltros({
+    const novaEtapa = novaSerie ? getEtapaFromSerie(novaSerie) : undefined
+    const novosFiltros = {
       ...filtros,
-      serie: novaSerie,
-      etapa_ensino: novaEtapa || filtros.etapa_ensino
-    })
+      serie: novaSerie || undefined,
+      etapa_ensino: novaEtapa || (novaSerie ? filtros.etapa_ensino : undefined)
+    }
+    setFiltros(novosFiltros)
+    // Chamar diretamente com os novos valores
+    carregarAlunosComFiltros(novosFiltros, busca, 1)
   }
 
   // Handler para mudança de etapa que limpa série se incompatível
@@ -953,15 +981,53 @@ function AbaAlunos({
     if (serieAtual && novaEtapa) {
       const etapaDaSerie = getEtapaFromSerie(serieAtual)
       if (etapaDaSerie !== novaEtapa) {
-        novaSerie = ''
+        novaSerie = undefined
       }
     }
 
-    setFiltros({
+    const novosFiltros = {
       ...filtros,
-      etapa_ensino: novaEtapa,
+      etapa_ensino: novaEtapa || undefined,
       serie: novaSerie
-    })
+    }
+    setFiltros(novosFiltros)
+    // Chamar diretamente com os novos valores
+    carregarAlunosComFiltros(novosFiltros, busca, 1)
+  }
+
+  // Handler para mudança de escola
+  const handleEscolaChange = (novaEscola: string) => {
+    const novosFiltros = {
+      ...filtros,
+      escola_id: novaEscola || undefined,
+      turma_id: undefined // Limpa turma ao mudar escola
+    }
+    setFiltros(novosFiltros)
+    carregarAlunosComFiltros(novosFiltros, busca, 1)
+  }
+
+  // Handler para mudança de turma
+  const handleTurmaChange = (novaTurma: string) => {
+    const novosFiltros = { ...filtros, turma_id: novaTurma || undefined }
+    setFiltros(novosFiltros)
+    carregarAlunosComFiltros(novosFiltros, busca, 1)
+  }
+
+  // Handler para mudança de presença
+  const handlePresencaChange = (novaPresenca: string) => {
+    const novosFiltros = { ...filtros, presenca: novaPresenca || undefined }
+    setFiltros(novosFiltros)
+    carregarAlunosComFiltros(novosFiltros, busca, 1)
+  }
+
+  // Handler para busca (com debounce)
+  const handleBuscaChange = (novaBusca: string) => {
+    setBusca(novaBusca)
+  }
+
+  // Handler para pesquisar
+  const handlePesquisar = () => {
+    carregarAlunosComFiltros(filtros, busca, 1)
   }
 
   // Filtra turmas baseado na escola selecionada
@@ -1049,10 +1115,7 @@ function AbaAlunos({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Escola</label>
               <select
                 value={filtros.escola_id || ''}
-                onChange={(e) => {
-                  // Ao mudar escola, limpar turma selecionada
-                  setFiltros({ ...filtros, escola_id: e.target.value, turma_id: '' })
-                }}
+                onChange={(e) => handleEscolaChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
               >
                 <option value="">Todas</option>
@@ -1094,7 +1157,7 @@ function AbaAlunos({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Turma</label>
             <select
               value={filtros.turma_id || ''}
-              onChange={(e) => setFiltros({ ...filtros, turma_id: e.target.value })}
+              onChange={(e) => handleTurmaChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
             >
               <option value="">Todas</option>
@@ -1111,7 +1174,7 @@ function AbaAlunos({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Presenca</label>
             <select
               value={filtros.presenca || ''}
-              onChange={(e) => setFiltros({ ...filtros, presenca: e.target.value })}
+              onChange={(e) => handlePresencaChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
             >
               <option value="">Todas</option>
@@ -1128,7 +1191,8 @@ function AbaAlunos({
                 type="text"
                 placeholder="Nome do aluno..."
                 value={busca}
-                onChange={(e) => setBusca(e.target.value)}
+                onChange={(e) => handleBuscaChange(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handlePesquisar()}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
               />
             </div>
@@ -1137,7 +1201,7 @@ function AbaAlunos({
 
         <div className="mt-4 flex justify-end">
           <button
-            onClick={() => carregarAlunos(1)}
+            onClick={handlePesquisar}
             disabled={carregando}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50 flex items-center gap-2"
           >
