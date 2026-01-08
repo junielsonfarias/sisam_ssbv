@@ -328,12 +328,7 @@ export default function PainelDados({
     }
   }, [abaAtiva, filtrosCarregados])
 
-  // Carregar alunos quando entrar na aba (primeira vez)
-  useEffect(() => {
-    if (abaAtiva === 'alunos' && filtrosCarregados) {
-      carregarAlunosComFiltros(filtrosAlunos, buscaAluno, 1)
-    }
-  }, [abaAtiva, filtrosCarregados])
+  // NÃO carregar alunos automaticamente - apenas quando clicar em Pesquisar
 
   const carregarEscolas = async () => {
     if (!escolasEndpoint) return
@@ -952,24 +947,20 @@ function AbaAlunos({
   const temFiltrosAtivos = Object.values(filtros).some(v => v) || busca
 
   const limparFiltros = () => {
-    const novosFiltros = {}
-    setFiltros(novosFiltros)
+    setFiltros({})
     setBusca('')
-    // Chamar diretamente com os novos valores
-    carregarAlunosComFiltros(novosFiltros, '', 1)
+    // NÃO recarregar automaticamente - usuário precisa clicar em Pesquisar
   }
 
   // Handler para mudança de série com detecção automática de etapa
   const handleSerieChange = (novaSerie: string) => {
     const novaEtapa = novaSerie ? getEtapaFromSerie(novaSerie) : undefined
-    const novosFiltros = {
+    setFiltros({
       ...filtros,
       serie: novaSerie || undefined,
       etapa_ensino: novaEtapa || (novaSerie ? filtros.etapa_ensino : undefined)
-    }
-    setFiltros(novosFiltros)
-    // Chamar diretamente com os novos valores
-    carregarAlunosComFiltros(novosFiltros, busca, 1)
+    })
+    // NÃO recarregar automaticamente - usuário precisa clicar em Pesquisar
   }
 
   // Handler para mudança de etapa que limpa série se incompatível
@@ -985,47 +976,42 @@ function AbaAlunos({
       }
     }
 
-    const novosFiltros = {
+    setFiltros({
       ...filtros,
       etapa_ensino: novaEtapa || undefined,
       serie: novaSerie
-    }
-    setFiltros(novosFiltros)
-    // Chamar diretamente com os novos valores
-    carregarAlunosComFiltros(novosFiltros, busca, 1)
+    })
+    // NÃO recarregar automaticamente - usuário precisa clicar em Pesquisar
   }
 
   // Handler para mudança de escola
   const handleEscolaChange = (novaEscola: string) => {
-    const novosFiltros = {
+    setFiltros({
       ...filtros,
       escola_id: novaEscola || undefined,
       turma_id: undefined // Limpa turma ao mudar escola
-    }
-    setFiltros(novosFiltros)
-    carregarAlunosComFiltros(novosFiltros, busca, 1)
+    })
+    // NÃO recarregar automaticamente - usuário precisa clicar em Pesquisar
   }
 
   // Handler para mudança de turma
   const handleTurmaChange = (novaTurma: string) => {
-    const novosFiltros = { ...filtros, turma_id: novaTurma || undefined }
-    setFiltros(novosFiltros)
-    carregarAlunosComFiltros(novosFiltros, busca, 1)
+    setFiltros({ ...filtros, turma_id: novaTurma || undefined })
+    // NÃO recarregar automaticamente - usuário precisa clicar em Pesquisar
   }
 
   // Handler para mudança de presença
   const handlePresencaChange = (novaPresenca: string) => {
-    const novosFiltros = { ...filtros, presenca: novaPresenca || undefined }
-    setFiltros(novosFiltros)
-    carregarAlunosComFiltros(novosFiltros, busca, 1)
+    setFiltros({ ...filtros, presenca: novaPresenca || undefined })
+    // NÃO recarregar automaticamente - usuário precisa clicar em Pesquisar
   }
 
-  // Handler para busca (com debounce)
+  // Handler para busca
   const handleBuscaChange = (novaBusca: string) => {
     setBusca(novaBusca)
   }
 
-  // Handler para pesquisar
+  // Handler para pesquisar - ÚNICA forma de carregar dados
   const handlePesquisar = () => {
     carregarAlunosComFiltros(filtros, busca, 1)
   }
@@ -1230,8 +1216,11 @@ function AbaAlunos({
             </div>
           ) : resultados.length === 0 ? (
             <div className="text-center py-12">
-              <GraduationCap className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-500">Nenhum aluno encontrado</p>
+              <Search className="w-12 h-12 mx-auto text-indigo-300 mb-3" />
+              <p className="text-gray-600 dark:text-gray-300 font-medium">Selecione os filtros desejados</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados
+              </p>
             </div>
           ) : (
             <table className="w-full min-w-[900px]">

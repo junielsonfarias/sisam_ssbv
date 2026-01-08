@@ -209,10 +209,8 @@ export default function ResultadosPage() {
     carregarDadosIniciais()
   }, [])
 
-  useEffect(() => {
-    setPaginaAtual(1) // Resetar para primeira página ao mudar filtros
-    carregarResultados(1)
-  }, [filtros])
+  // NÃO carregar automaticamente - apenas quando clicar em Pesquisar
+  // useEffect removido para melhorar performance
 
   useEffect(() => {
     // Carregar escolas quando o polo for selecionado
@@ -1307,9 +1305,9 @@ export default function ResultadosPage() {
                 <div className="block sm:hidden space-y-4 p-4">
                   {resultadosFiltrados.length === 0 ? (
                     <div className="text-center py-12">
-                      <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                      <p className="text-base font-medium text-gray-500 dark:text-gray-400">Nenhum resultado encontrado</p>
-                      <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Importe os dados primeiro</p>
+                      <Search className="w-12 h-12 mx-auto text-indigo-300 mb-3" />
+                      <p className="text-base font-medium text-gray-600 dark:text-gray-300">Selecione os filtros desejados</p>
+                      <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados</p>
                     </div>
                   ) : (
                     resultadosFiltrados.map((resultado, index) => {
@@ -1494,9 +1492,9 @@ export default function ResultadosPage() {
                     {resultadosFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={6 + disciplinasExibir.length + 1} className="py-8 sm:py-12 text-center text-gray-500 px-4">
-                          <Award className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3" />
-                          <p className="text-base sm:text-lg font-medium">Nenhum resultado encontrado</p>
-                          <p className="text-xs sm:text-sm mt-1">Importe os dados primeiro</p>
+                          <Search className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-indigo-300 mb-3" />
+                          <p className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-300">Selecione os filtros desejados</p>
+                          <p className="text-xs sm:text-sm mt-1 text-gray-500 dark:text-gray-400">Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados</p>
                         </td>
                       </tr>
                     ) : (
