@@ -72,26 +72,28 @@ export default function UsuariosPage() {
       u.email.toLowerCase().includes(busca.toLowerCase())
   )
 
-  const getTipoColor = (tipo: TipoUsuario) => {
+  const getTipoColor = (tipo: TipoUsuario | string) => {
+    // Normalizar 'admin' para 'administrador' (compatibilidade legada)
+    const tipoNormalizado = tipo === 'admin' ? 'administrador' : tipo
     const colors: Record<TipoUsuario, string> = {
       administrador: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200',
-      admin: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200', // admin é equivalente a administrador
       tecnico: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200',
       polo: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200',
       escola: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200',
     }
-    return colors[tipo] || 'bg-gray-100 text-gray-800'
+    return colors[tipoNormalizado as TipoUsuario] || 'bg-gray-100 text-gray-800'
   }
 
-  const getTipoLabel = (tipo: TipoUsuario) => {
+  const getTipoLabel = (tipo: TipoUsuario | string) => {
+    // Normalizar 'admin' para 'administrador' (compatibilidade legada)
+    const tipoNormalizado = tipo === 'admin' ? 'administrador' : tipo
     const labels: Record<TipoUsuario, string> = {
       administrador: 'Administrador',
-      admin: 'Administrador', // admin é equivalente a administrador
       tecnico: 'Técnico',
       polo: 'Polo',
       escola: 'Escola',
     }
-    return labels[tipo] || tipo
+    return labels[tipoNormalizado as TipoUsuario] || tipo
   }
 
   const handleSalvar = async () => {

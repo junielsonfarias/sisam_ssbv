@@ -1,96 +1,237 @@
-// NOTA: O tipo 'admin' foi removido em favor de 'administrador' para padronização
-// Se houver dados legados com 'admin', a função verificarPermissao em lib/auth.ts trata a compatibilidade
+/**
+ * Definições de Tipos do Sistema SISAM
+ *
+ * Este módulo contém todas as interfaces e tipos TypeScript utilizados
+ * no sistema, incluindo:
+ * - Entidades do banco de dados (Usuario, Escola, Polo, etc.)
+ * - Resultados de avaliações
+ * - Configurações de séries
+ * - Filtros de análise
+ *
+ * @module lib/types
+ */
+
+// ============================================================================
+// TIPOS DE USUÁRIO
+// ============================================================================
+
+/**
+ * Tipos de usuário do sistema
+ *
+ * Hierarquia de permissões (do mais restrito ao mais amplo):
+ * - escola: Acesso apenas à sua própria escola
+ * - polo: Acesso ao seu polo e escolas vinculadas
+ * - tecnico: Acesso total (mesmo que administrador)
+ * - administrador: Acesso total ao sistema
+ *
+ * NOTA: O tipo 'admin' foi removido em favor de 'administrador' para padronização.
+ * Se houver dados legados com 'admin', a função verificarPermissao em lib/auth.ts trata a compatibilidade.
+ */
 export type TipoUsuario = 'administrador' | 'tecnico' | 'polo' | 'escola';
 
+// ============================================================================
+// ENTIDADES PRINCIPAIS
+// ============================================================================
+
+/**
+ * Usuário do sistema
+ *
+ * Representa um usuário autenticado com suas permissões e vínculos.
+ */
 export interface Usuario {
+  /** ID único (UUID) */
   id: string;
+  /** Nome completo do usuário */
   nome: string;
+  /** Email (usado como login) */
   email: string;
+  /** Tipo de usuário para controle de acesso */
   tipo_usuario: TipoUsuario;
+  /** ID do polo (para usuários tipo 'polo') */
   polo_id?: string | null;
+  /** ID da escola (para usuários tipo 'escola') */
   escola_id?: string | null;
+  /** URL da foto de perfil */
   foto_url?: string | null;
+  /** Se o usuário está ativo no sistema */
   ativo: boolean;
+  /** Data de criação do registro */
   criado_em: Date;
+  /** Data da última atualização */
   atualizado_em: Date;
 }
 
+/**
+ * Polo educacional
+ *
+ * Agrupa várias escolas sob uma mesma coordenação regional.
+ */
 export interface Polo {
+  /** ID único (UUID) */
   id: string;
+  /** Nome do polo */
   nome: string;
+  /** Código identificador do polo */
   codigo?: string | null;
+  /** Descrição ou observações */
   descricao?: string | null;
+  /** Se o polo está ativo */
   ativo: boolean;
+  /** Data de criação do registro */
   criado_em: Date;
+  /** Data da última atualização */
   atualizado_em: Date;
 }
 
+/**
+ * Escola
+ *
+ * Unidade escolar vinculada a um polo.
+ */
 export interface Escola {
+  /** ID único (UUID) */
   id: string;
+  /** Nome da escola */
   nome: string;
+  /** Código identificador da escola */
   codigo?: string | null;
+  /** ID do polo ao qual a escola pertence */
   polo_id: string;
+  /** Endereço completo */
   endereco?: string | null;
+  /** Telefone de contato */
   telefone?: string | null;
+  /** Email de contato */
   email?: string | null;
+  /** Se a escola está ativa */
   ativo: boolean;
+  /** Data de criação do registro */
   criado_em: Date;
+  /** Data da última atualização */
   atualizado_em: Date;
 }
 
+/**
+ * Questão de avaliação
+ *
+ * Representa uma questão individual que pode ser aplicada em provas.
+ */
 export interface Questao {
+  /** ID único (UUID) */
   id: string;
+  /** Código identificador da questão (ex: Q001) */
   codigo?: string | null;
+  /** Descrição ou enunciado da questão */
   descricao?: string | null;
+  /** Disciplina (LP, MAT, CH, CN) */
   disciplina?: string | null;
+  /** Área de conhecimento */
   area_conhecimento?: string | null;
+  /** Nível de dificuldade */
   dificuldade?: string | null;
+  /** Resposta correta (A, B, C, D, E) */
   gabarito?: string | null;
+  /** Série para qual a questão se aplica */
   serie_aplicavel?: string | null;
+  /** Tipo de questão */
   tipo_questao?: 'objetiva' | 'discursiva';
+  /** Número da questão na prova */
   numero_questao?: number | null;
+  /** Data de criação */
   criado_em: Date;
 }
 
+// ============================================================================
+// RESULTADOS DE AVALIAÇÃO
+// ============================================================================
+
+/**
+ * Resultado individual de prova
+ *
+ * Armazena a resposta de um aluno a uma questão específica.
+ * Representa o dado bruto da avaliação antes da consolidação.
+ */
 export interface ResultadoProva {
+  /** ID único (UUID) */
   id: string;
+  /** ID da escola */
   escola_id: string;
+  /** ID do aluno */
   aluno_id?: string | null;
+  /** Código do aluno */
   aluno_codigo?: string | null;
+  /** Nome do aluno */
   aluno_nome?: string | null;
+  /** ID da turma */
   turma_id?: string | null;
+  /** ID da questão */
   questao_id?: string | null;
+  /** Código da questão */
   questao_codigo?: string | null;
+  /** Resposta dada pelo aluno (A, B, C, D, E) */
   resposta_aluno?: string | null;
+  /** Se o aluno acertou a questão */
   acertou?: boolean | null;
+  /** Nota da questão (se aplicável) */
   nota?: number | null;
+  /** Data de realização da prova */
   data_prova?: Date | null;
+  /** Ano letivo (ex: 2024) */
   ano_letivo?: string | null;
+  /** Série do aluno */
   serie?: string | null;
+  /** Nome/código da turma */
   turma?: string | null;
+  /** Disciplina da questão */
   disciplina?: string | null;
+  /** Área de conhecimento */
   area_conhecimento?: string | null;
+  /** Status de presença (P=presente, F=faltou) */
   presenca?: string | null;
+  /** Data de criação do registro */
   criado_em: Date;
+  /** Data da última atualização */
   atualizado_em: Date;
 }
 
+/**
+ * Resultado consolidado do aluno
+ *
+ * Agrega os resultados de todas as questões de um aluno em uma única avaliação.
+ * Contém notas por disciplina e média geral.
+ */
 export interface ResultadoConsolidado {
+  /** ID único (UUID) */
   id: string;
+  /** ID do aluno */
   aluno_id: string;
+  /** ID da escola */
   escola_id: string;
+  /** ID da turma */
   turma_id?: string | null;
+  /** Ano letivo */
   ano_letivo: string;
+  /** Série do aluno */
   serie?: string | null;
+  /** Status de presença (P=presente, F=faltou) */
   presenca?: string | null;
+  /** Total de acertos em Língua Portuguesa */
   total_acertos_lp: number;
+  /** Total de acertos em Ciências Humanas */
   total_acertos_ch: number;
+  /** Total de acertos em Matemática */
   total_acertos_mat: number;
+  /** Total de acertos em Ciências da Natureza */
   total_acertos_cn: number;
+  /** Nota em Língua Portuguesa (0-10) */
   nota_lp?: number | null;
+  /** Nota em Ciências Humanas (0-10) */
   nota_ch?: number | null;
+  /** Nota em Matemática (0-10) */
   nota_mat?: number | null;
+  /** Nota em Ciências da Natureza (0-10) */
   nota_cn?: number | null;
+  /** Média geral do aluno (0-10) */
   media_aluno?: number | null;
   // Novos campos para produção textual e nível de aprendizagem
   nota_producao?: number | null;

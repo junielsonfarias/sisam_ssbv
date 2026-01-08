@@ -2,7 +2,7 @@
  * Fetch com timeout - evita requisições que ficam pendentes indefinidamente
  */
 
-const DEFAULT_TIMEOUT = 30000 // 30 segundos
+import { TIMEOUT, RETRY } from '@/lib/constants'
 
 interface FetchWithTimeoutOptions extends RequestInit {
   timeout?: number
@@ -12,7 +12,7 @@ export async function fetchWithTimeout(
   url: string,
   options: FetchWithTimeoutOptions = {}
 ): Promise<Response> {
-  const { timeout = DEFAULT_TIMEOUT, ...fetchOptions } = options
+  const { timeout = TIMEOUT.FETCH_DEFAULT, ...fetchOptions } = options
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
@@ -45,7 +45,7 @@ export async function fetchWithRetry(
   url: string,
   options: FetchWithRetryOptions = {}
 ): Promise<Response> {
-  const { retries = 3, retryDelay = 1000, ...fetchOptions } = options
+  const { retries = RETRY.MAX_TENTATIVAS, retryDelay = RETRY.DELAY_INICIAL, ...fetchOptions } = options
 
   let lastError: Error | null = null
 

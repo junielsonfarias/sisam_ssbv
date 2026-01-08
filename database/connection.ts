@@ -1,4 +1,5 @@
 import { Pool, QueryResult, PoolClient } from 'pg';
+import { TIMEOUT, POOL, RETRY } from '@/lib/constants';
 
 let pool: Pool | null = null;
 let poolConfig: {
@@ -21,8 +22,7 @@ const MAX_CONCURRENT_QUERIES = 15; // Maximo de queries paralelas (ajustado para
 let lastHealthCheck: number = 0;
 let isHealthy: boolean = true;
 let consecutiveFailures: number = 0;
-const HEALTH_CHECK_INTERVAL = 30000; // 30 segundos
-const MAX_CONSECUTIVE_FAILURES = 3;
+const MAX_CONSECUTIVE_FAILURES = RETRY.MAX_TENTATIVAS;
 
 /**
  * Detecta o modo de conexão do Supabase
@@ -130,7 +130,7 @@ function createPool(): Pool {
     // Pool otimizado para modo detectado
     max: recommendedMax,
     min: 0, // Não manter conexões idle (importante para serverless)
-    idleTimeoutMillis: isSupabase ? 10000 : 30000,
+    idleTimeoutMillis: isSupabase ? TIMEOUT.IDLE_SUPABASE : TIMEOUT.IDLE_DEFAULT,
     connectionTimeoutMillis: isTransactionMode ? 10000 : 20000,
     ssl: sslConfig,
     // Opções para serverless/Vercel
@@ -145,8 +145,8 @@ function createPool(): Pool {
     config.family = 4;
 
     // Timeouts otimizados
-    config.query_timeout = 30000;
-    config.statement_timeout = 30000;
+    config.query_timeout = TIMEOUT.QUERY;
+    config.statement_timeout = TIMEOUT.STATEMENT;
   }
 
   // Log das configurações (sem senha) para debug
@@ -301,7 +301,7 @@ async function healthCheck(): Promise<boolean> {
   const now = Date.now();
 
   // Se verificou recentemente e está saudável, pular
-  if (isHealthy && (now - lastHealthCheck) < HEALTH_CHECK_INTERVAL) {
+  if (isHealthy && (now - lastHealthCheck) < TIMEOUT.HEALTH_CHECK_INTERVAL) {
     return true;
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { comparePassword, generateToken } from '@/lib/auth'
 import { checkRateLimit, resetRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
+import { SESSAO } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -254,7 +255,7 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 dias
+        maxAge: SESSAO.COOKIE_MAX_AGE,
         path: '/',
       })
       console.log('Cookie definido com sucesso')

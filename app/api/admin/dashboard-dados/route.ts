@@ -8,6 +8,7 @@ import {
   getCacheKeyDashboard,
   getCacheKeyFiltros
 } from '@/lib/cache-memoria'
+import { NOTAS, LIMITES } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 

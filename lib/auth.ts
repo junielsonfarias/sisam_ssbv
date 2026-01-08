@@ -1,11 +1,36 @@
+/**
+ * Módulo de Autenticação e Autorização
+ *
+ * Este módulo fornece funcionalidades para:
+ * - Geração e verificação de tokens JWT
+ * - Hash e comparação de senhas com bcrypt
+ * - Verificação de permissões baseada em tipos de usuário
+ * - Controle de acesso a escolas e polos
+ *
+ * Hierarquia de permissões:
+ * - administrador/admin: Acesso total ao sistema
+ * - tecnico: Acesso total (mesmas permissões do admin)
+ * - polo: Acesso a dados do seu polo e escolas vinculadas
+ * - escola: Acesso apenas aos dados da sua escola
+ *
+ * @module lib/auth
+ */
+
 import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import pool from '@/database/connection';
 import { Usuario, TipoUsuario } from './types';
 
-// IMPORTANTE: JWT_SECRET DEVE ser configurado via variavel de ambiente
-// Em producao, NUNCA use o valor padrao - gere uma chave segura com pelo menos 32 caracteres
+// ============================================================================
+// CONFIGURAÇÃO DE SEGURANÇA
+// ============================================================================
+
+/**
+ * Chave secreta para assinatura de tokens JWT.
+ * IMPORTANTE: Deve ser configurada via variável de ambiente.
+ * Nunca use valor padrão em produção - gere uma chave segura com pelo menos 32 caracteres.
+ */
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Validar JWT_SECRET na inicializacao
@@ -18,22 +43,79 @@ if (JWT_SECRET && JWT_SECRET.length < 32) {
   console.warn('AVISO: JWT_SECRET deve ter pelo menos 32 caracteres para seguranca adequada.');
 }
 
+// ============================================================================
+// TIPOS E INTERFACES
+// ============================================================================
+
+/**
+ * Payload do token JWT
+ * Contém informações do usuário para autenticação stateless
+ */
 export interface TokenPayload {
+  /** ID único do usuário */
   userId: string;
+  /** Email do usuário (usado como identificador de login) */
   email: string;
+  /** Tipo de usuário para controle de acesso */
   tipoUsuario: TipoUsuario;
+  /** ID do polo (para usuários do tipo 'polo') */
   poloId?: string | null;
+  /** ID da escola (para usuários do tipo 'escola') */
   escolaId?: string | null;
 }
 
+// ============================================================================
+// FUNÇÕES DE SENHA
+// ============================================================================
+
+/**
+ * Gera hash bcrypt de uma senha
+ *
+ * @param senha - Senha em texto plano
+ * @returns Hash bcrypt da senha (salt rounds: 10)
+ *
+ * @example
+ * const hash = await hashPassword('minhaSenha123')
+ * // Salvar hash no banco de dados
+ */
 export async function hashPassword(senha: string): Promise<string> {
   return bcrypt.hash(senha, 10);
 }
 
+/**
+ * Compara uma senha com seu hash
+ *
+ * @param senha - Senha em texto plano para verificar
+ * @param hash - Hash bcrypt armazenado
+ * @returns true se a senha corresponde ao hash
+ *
+ * @example
+ * const valida = await comparePassword('minhaSenha123', hashDoBanco)
+ * if (!valida) throw new Error('Senha incorreta')
+ */
 export async function comparePassword(senha: string, hash: string): Promise<boolean> {
   return bcrypt.compare(senha, hash);
 }
 
+// ============================================================================
+// FUNÇÕES DE TOKEN JWT
+// ============================================================================
+
+/**
+ * Gera um token JWT assinado
+ *
+ * @param payload - Dados do usuário a serem incluídos no token
+ * @returns Token JWT assinado com expiração de 7 dias
+ * @throws Error se JWT_SECRET não estiver configurado
+ * @throws Error se payload estiver incompleto
+ *
+ * @example
+ * const token = generateToken({
+ *   userId: '123',
+ *   email: 'usuario@exemplo.com',
+ *   tipoUsuario: 'administrador'
+ * })
+ */
 export function generateToken(payload: TokenPayload): string {
   try {
     if (!JWT_SECRET) {
@@ -55,6 +137,18 @@ export function generateToken(payload: TokenPayload): string {
   }
 }
 
+/**
+ * Verifica e decodifica um token JWT
+ *
+ * @param token - Token JWT a ser verificado
+ * @returns Payload decodificado ou null se inválido/expirado
+ *
+ * @example
+ * const payload = verifyToken(token)
+ * if (!payload) {
+ *   return redirect('/login')
+ * }
+ */
 export function verifyToken(token: string): TokenPayload | null {
   try {
     if (!JWT_SECRET) {
@@ -67,6 +161,28 @@ export function verifyToken(token: string): TokenPayload | null {
   }
 }
 
+// ============================================================================
+// FUNÇÕES DE AUTENTICAÇÃO
+// ============================================================================
+
+/**
+ * Extrai e valida usuário a partir de uma requisição Next.js
+ *
+ * Busca o token do cookie, verifica sua validade e retorna os dados
+ * completos do usuário do banco de dados.
+ *
+ * @param request - Objeto NextRequest da requisição
+ * @returns Usuário completo do banco ou null se não autenticado
+ *
+ * @example
+ * export async function GET(request: NextRequest) {
+ *   const usuario = await getUsuarioFromRequest(request)
+ *   if (!usuario) {
+ *     return unauthorized()
+ *   }
+ *   // Usuário autenticado, continuar...
+ * }
+ */
 export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuario | null> {
   const token = request.cookies.get('token')?.value;
   
@@ -103,6 +219,29 @@ export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuar
   }
 }
 
+// ============================================================================
+// FUNÇÕES DE AUTORIZAÇÃO
+// ============================================================================
+
+/**
+ * Verifica se o usuário tem permissão baseada em seu tipo
+ *
+ * @param usuario - Usuário a verificar (pode ser null)
+ * @param tiposPermitidos - Lista de tipos de usuário permitidos
+ * @returns true se o usuário tem um dos tipos permitidos
+ *
+ * @example
+ * // Verificar se é admin ou técnico
+ * if (!verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+ *   return forbidden()
+ * }
+ *
+ * @example
+ * // Verificar se pode acessar área de polo
+ * if (!verificarPermissao(usuario, ['administrador', 'tecnico', 'polo'])) {
+ *   return forbidden()
+ * }
+ */
 export function verificarPermissao(
   usuario: Usuario | null,
   tiposPermitidos: TipoUsuario[]
@@ -123,14 +262,37 @@ export function verificarPermissao(
   return tiposExpandidos.includes(tipoNormalizado) || tiposExpandidos.includes(usuario.tipo_usuario);
 }
 
-// Helper para verificar se é admin (aceita 'admin' ou 'administrador')
+/**
+ * Verifica se o tipo de usuário é administrador
+ * Aceita tanto 'admin' quanto 'administrador' para compatibilidade
+ *
+ * @param tipoUsuario - Tipo de usuário a verificar
+ * @returns true se é admin ou administrador
+ */
 function isAdmin(tipoUsuario: string): boolean {
   return tipoUsuario === 'administrador' || tipoUsuario === 'admin';
 }
 
 /**
- * Verifica se o usuario pode acessar uma escola especifica
- * IMPORTANTE: Para usuarios do tipo 'polo', verifica se a escola pertence ao polo do usuario
+ * Verifica se o usuário pode acessar dados de uma escola específica
+ *
+ * Esta função faz consulta ao banco de dados para verificar se uma escola
+ * pertence ao polo do usuário (quando aplicável).
+ *
+ * Regras de acesso:
+ * - Admin/Técnico: Acesso a qualquer escola
+ * - Polo: Apenas escolas do seu polo (verificado via banco de dados)
+ * - Escola: Apenas sua própria escola
+ *
+ * @param usuario - Usuário autenticado
+ * @param escolaId - ID da escola a ser acessada
+ * @returns true se tem permissão de acesso
+ *
+ * @example
+ * const podeAcessar = await podeAcessarEscola(usuario, escolaId)
+ * if (!podeAcessar) {
+ *   return forbidden('Você não tem acesso a esta escola')
+ * }
  */
 export async function podeAcessarEscola(usuario: Usuario, escolaId: string): Promise<boolean> {
   // Administrador e tecnico tem acesso total
@@ -165,8 +327,21 @@ export async function podeAcessarEscola(usuario: Usuario, escolaId: string): Pro
 }
 
 /**
- * Versao sincrona para verificacao rapida (sem consulta ao banco)
- * Usar apenas quando ja tiver o polo_id da escola disponivel
+ * Versão síncrona para verificação rápida de acesso a escola
+ *
+ * Diferente de `podeAcessarEscola`, esta função NÃO faz consulta ao banco.
+ * Use apenas quando já tiver o polo_id da escola disponível.
+ *
+ * @param usuario - Usuário autenticado
+ * @param escolaId - ID da escola a ser acessada
+ * @param escolaPoloId - ID do polo da escola (necessário para usuários de polo)
+ * @returns true se tem permissão de acesso
+ *
+ * @example
+ * // Quando já tem os dados da escola carregados
+ * if (!podeAcessarEscolaSync(usuario, escola.id, escola.polo_id)) {
+ *   return forbidden()
+ * }
  */
 export function podeAcessarEscolaSync(usuario: Usuario, escolaId: string, escolaPoloId?: string | null): boolean {
   if (isAdmin(usuario.tipo_usuario) || usuario.tipo_usuario === 'tecnico') {
@@ -187,6 +362,23 @@ export function podeAcessarEscolaSync(usuario: Usuario, escolaId: string, escola
   return false;
 }
 
+/**
+ * Verifica se o usuário pode acessar dados de um polo específico
+ *
+ * Regras de acesso:
+ * - Admin/Técnico: Acesso a qualquer polo
+ * - Polo: Apenas seu próprio polo
+ * - Escola: Sem acesso direto a polos
+ *
+ * @param usuario - Usuário autenticado
+ * @param poloId - ID do polo a ser acessado
+ * @returns true se tem permissão de acesso
+ *
+ * @example
+ * if (!podeAcessarPolo(usuario, poloId)) {
+ *   return forbidden('Você não tem acesso a este polo')
+ * }
+ */
 export function podeAcessarPolo(usuario: Usuario, poloId: string): boolean {
   if (isAdmin(usuario.tipo_usuario) || usuario.tipo_usuario === 'tecnico') {
     return true;

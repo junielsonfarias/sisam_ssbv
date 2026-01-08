@@ -1,6 +1,11 @@
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
+import { CACHE } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+// Logger específico para este módulo
+const log = createLogger('CacheDashboard')
 
 const CACHE_DIR = path.join(process.cwd(), 'config', 'cache')
 const CACHE_META_FILE = path.join(CACHE_DIR, 'cache-meta.json')
@@ -16,8 +21,7 @@ interface CacheMeta {
   }>
 }
 
-// Tempo de expiração do cache: 1 hora em milissegundos
-const CACHE_EXPIRATION_MS = 60 * 60 * 1000 // 1 hora
+// Usando constante centralizada para expiração do cache
 
 interface CacheOptions {
   filtros?: Record<string, any>
@@ -54,7 +58,7 @@ function carregarMeta(): CacheMeta {
       const conteudo = fs.readFileSync(CACHE_META_FILE, 'utf-8')
       return JSON.parse(conteudo)
     } catch (error) {
-      console.error('Erro ao carregar metadados do cache:', error)
+      log.error('Erro ao carregar metadados do cache', error)
     }
   }
 
@@ -91,21 +95,21 @@ export function verificarCache(options: CacheOptions): boolean {
   const expiraEm = new Date(cacheInfo.expiraEm || cacheInfo.criadoEm)
   
   if (agora > expiraEm) {
-    console.log(`Cache expirado: ${cacheInfo.arquivo} (criado em ${cacheInfo.criadoEm})`)
+    log.debug(`Cache expirado: ${cacheInfo.arquivo}`, { data: { criadoEm: cacheInfo.criadoEm } })
     // Remover cache expirado
     try {
       fs.unlinkSync(arquivoCache)
       delete meta.caches[chave]
       salvarMeta(meta)
     } catch (error) {
-      console.error('Erro ao remover cache expirado:', error)
+      log.error('Erro ao remover cache expirado', error)
     }
     return false
   }
 
   // Calcular tempo restante
   const tempoRestante = Math.floor((expiraEm.getTime() - agora.getTime()) / 1000 / 60)
-  console.log(`Cache válido: ${cacheInfo.arquivo} (expira em ${tempoRestante} minutos)`)
+  log.debug(`Cache válido: ${cacheInfo.arquivo}`, { data: { expiraEm: tempoRestante } })
   
   return true
 }
@@ -128,10 +132,10 @@ export function carregarCache<T>(options: CacheOptions): T | null {
 
   try {
     const conteudo = fs.readFileSync(arquivoCache, 'utf-8')
-    console.log(`Cache carregado: ${cacheInfo.arquivo} (${(cacheInfo.tamanho / 1024).toFixed(2)} KB)`)
+    log.debug(`Cache carregado: ${cacheInfo.arquivo}`, { data: { tamanhoKB: (cacheInfo.tamanho / 1024).toFixed(2) } })
     return JSON.parse(conteudo) as T
   } catch (error) {
-    console.error('Erro ao carregar cache:', error)
+    log.error('Erro ao carregar cache', error)
     return null
   }
 }
@@ -148,7 +152,7 @@ export function salvarCache<T>(options: CacheOptions, dados: T, tipo: string = '
   fs.writeFileSync(arquivoCache, conteudo)
 
   const agora = new Date()
-  const expiraEm = new Date(agora.getTime() + CACHE_EXPIRATION_MS)
+  const expiraEm = new Date(agora.getTime() + CACHE.EXPIRACAO_MS)
 
   const meta = carregarMeta()
   meta.ultimaAtualizacao = agora.toISOString()
@@ -162,7 +166,7 @@ export function salvarCache<T>(options: CacheOptions, dados: T, tipo: string = '
   salvarMeta(meta)
 
   const tamanhoKB = (Buffer.byteLength(conteudo, 'utf-8') / 1024).toFixed(2)
-  console.log(`Cache salvo: ${nomeArquivo} (${tamanhoKB} KB) - Expira em ${expiraEm.toLocaleString('pt-BR')}`)
+  log.debug(`Cache salvo: ${nomeArquivo}`, { data: { tamanhoKB, expiraEm: expiraEm.toISOString() } })
 }
 
 // Limpar todos os caches
@@ -176,7 +180,7 @@ export function limparTodosOsCaches(): void {
     const arquivoCache = path.join(CACHE_DIR, info.arquivo)
     if (fs.existsSync(arquivoCache)) {
       fs.unlinkSync(arquivoCache)
-      console.log(`Cache removido: ${info.arquivo}`)
+      log.debug(`Cache removido: ${info.arquivo}`)
     }
   }
 
@@ -186,7 +190,7 @@ export function limparTodosOsCaches(): void {
     caches: {}
   })
 
-  console.log('Todos os caches foram limpos')
+  log.info('Todos os caches foram limpos')
 }
 
 // Obter informacoes sobre os caches
@@ -241,9 +245,9 @@ export function limparCachesExpirados(): number {
         try {
           fs.unlinkSync(arquivoCache)
           removidos++
-          console.log(`Cache expirado removido: ${cacheInfo.arquivo}`)
+          log.debug(`Cache expirado removido: ${cacheInfo.arquivo}`)
         } catch (error) {
-          console.error(`Erro ao remover cache expirado ${cacheInfo.arquivo}:`, error)
+          log.error(`Erro ao remover cache expirado ${cacheInfo.arquivo}`, error)
         }
       }
       delete meta.caches[chave]
@@ -253,7 +257,7 @@ export function limparCachesExpirados(): number {
   if (removidos > 0) {
     meta.ultimaAtualizacao = new Date().toISOString()
     salvarMeta(meta)
-    console.log(`Total de caches expirados removidos: ${removidos}`)
+    log.info(`Total de caches expirados removidos: ${removidos}`)
   }
 
   return removidos

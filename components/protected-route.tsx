@@ -28,15 +28,17 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
       verificandoRef.current = true
 
       // Função para verificar se tipo de usuário é permitido
+      // Trata 'admin' como sinônimo de 'administrador' para compatibilidade
       const verificarTipoPermitido = (tipoUsuario: string): boolean => {
-        const tiposPermitidosExpandidos = [...tiposPermitidos]
-        if (tiposPermitidos.includes('administrador')) {
-          tiposPermitidosExpandidos.push('admin' as TipoUsuario)
+        const tiposPermitidosStr = tiposPermitidos as string[]
+        const tiposPermitidosExpandidos = [...tiposPermitidosStr]
+        if (tiposPermitidosStr.includes('administrador')) {
+          tiposPermitidosExpandidos.push('admin')
         }
-        if (tiposPermitidos.includes('admin')) {
-          tiposPermitidosExpandidos.push('administrador' as TipoUsuario)
+        if (tiposPermitidosStr.includes('admin')) {
+          tiposPermitidosExpandidos.push('administrador')
         }
-        return tiposPermitidosExpandidos.includes(tipoUsuario as TipoUsuario)
+        return tiposPermitidosExpandidos.includes(tipoUsuario)
       }
 
       // Verificar cache de autorização (evita re-verificação ao navegar entre páginas)
