@@ -23,8 +23,9 @@ export async function fetchWithTimeout(
       signal: controller.signal,
     })
     return response
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error) {
+    const err = error as Error & { name?: string }
+    if (err.name === 'AbortError') {
       throw new Error(`Request timeout after ${timeout}ms`)
     }
     throw error
@@ -52,11 +53,12 @@ export async function fetchWithRetry(
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fetchWithTimeout(url, fetchOptions)
-    } catch (error: any) {
-      lastError = error
+    } catch (error) {
+      const err = error as Error & { name?: string }
+      lastError = err
 
       // Não fazer retry em erros de abort manual ou timeout
-      if (error.message?.includes('timeout') || error.name === 'AbortError') {
+      if (err.message?.includes('timeout') || err.name === 'AbortError') {
         throw error
       }
 

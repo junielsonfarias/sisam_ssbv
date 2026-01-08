@@ -7,6 +7,48 @@
 import pool from '@/database/connection'
 import { ConfiguracaoSerie, NivelAprendizagem } from './types'
 
+/** Row retornado pela query de configuração de séries */
+interface ConfigSerieRow {
+  id: string
+  serie: string
+  nome_serie: string
+  qtd_questoes_lp: number
+  qtd_questoes_mat: number
+  qtd_questoes_ch: number
+  qtd_questoes_cn: number
+  total_questoes_objetivas: number
+  tem_producao_textual: boolean
+  qtd_itens_producao: number
+  avalia_lp: boolean
+  avalia_mat: boolean
+  avalia_ch: boolean
+  avalia_cn: boolean
+  peso_lp: string  // PostgreSQL DECIMAL retorna como string
+  peso_mat: string
+  peso_ch: string
+  peso_cn: string
+  peso_producao: string
+  usa_nivel_aprendizagem: boolean
+  ativo: boolean
+  criado_em: Date
+  atualizado_em: Date
+}
+
+/** Row retornado pela query de níveis de aprendizagem */
+interface NivelAprendizagemRow {
+  id: string
+  codigo: string
+  nome: string
+  descricao: string | null
+  cor: string | null
+  nota_minima: string
+  nota_maxima: string
+  ordem: number
+  serie_aplicavel: string | null
+  ativo: boolean
+  criado_em: Date
+}
+
 // Cache em memória para evitar consultas repetidas
 let cacheConfigSeries: Map<string, ConfiguracaoSerie> | null = null
 let cacheNiveis: NivelAprendizagem[] | null = null
@@ -49,7 +91,7 @@ export async function carregarConfigSeries(): Promise<Map<string, ConfiguracaoSe
     `)
 
     cacheConfigSeries = new Map()
-    result.rows.forEach((row: any) => {
+    result.rows.forEach((row: ConfigSerieRow) => {
       cacheConfigSeries!.set(row.serie, {
         id: row.id,
         serie: row.serie,
@@ -280,7 +322,7 @@ export async function carregarNiveisAprendizagem(): Promise<NivelAprendizagem[]>
       ORDER BY ordem
     `)
 
-    cacheNiveis = result.rows.map((row: any) => ({
+    cacheNiveis = result.rows.map((row: NivelAprendizagemRow) => ({
       id: row.id,
       codigo: row.codigo,
       nome: row.nome,
@@ -361,7 +403,7 @@ export function getColunasProducao(): string[] {
 /**
  * Extrai a nota de um item de produção do Excel
  */
-export function extrairNotaProducao(linha: any, itemNumero: number): number | null {
+export function extrairNotaProducao(linha: Record<string, unknown>, itemNumero: number): number | null {
   const variacoes = [
     `ITEM_${itemNumero}`,
     `ITEM ${itemNumero}`,

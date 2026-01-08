@@ -384,3 +384,81 @@ export interface ResultadoConsolidadoCompleto extends ResultadoConsolidado {
   avalia_cn?: boolean;
 }
 
+// ============================================================================
+// TIPOS DE BANCO DE DADOS
+// ============================================================================
+
+// Re-exportar tipos do connection para uso em toda a aplicação
+export type { QueryParams, QueryParamValue, DatabaseError } from '@/database/connection'
+
+/** Registro genérico retornado pelo banco de dados */
+export type RegistroDB = Record<string, unknown>
+
+/** Linha de dados de importação (planilha/CSV) */
+export interface LinhaImportacao {
+  escola?: string
+  polo?: string
+  turma?: string
+  aluno?: string
+  nome?: string
+  serie?: string
+  [key: string]: string | number | null | undefined
+}
+
+// ============================================================================
+// TIPOS DE RESPOSTA DE API
+// ============================================================================
+
+/** Resposta padrão de API com sucesso */
+export interface ApiResponse<T = unknown> {
+  success: boolean
+  data?: T
+  error?: string
+  message?: string
+  total?: number
+}
+
+/** Status de saúde do sistema */
+export interface HealthStatus {
+  status: 'healthy' | 'unhealthy' | 'degraded'
+  database: boolean
+  timestamp: string
+  uptime?: number
+  version?: string
+}
+
+/** Status de conexão do banco */
+export interface ConnectionStatus {
+  healthy: boolean
+  latency: number
+  error?: string
+}
+
+// ============================================================================
+// TIPOS DE CACHE E CONFIGURAÇÃO
+// ============================================================================
+
+/** Configuração de personalização do sistema */
+export interface PersonalizacaoConfig {
+  cor_primaria?: string
+  cor_secundaria?: string
+  logo_url?: string
+  nome_sistema?: string
+  [key: string]: string | undefined
+}
+
+// ============================================================================
+// TIPOS DE DADOS OFFLINE
+// ============================================================================
+
+/** Dados de usuário para armazenamento offline */
+export interface UsuarioOffline {
+  id: string
+  nome: string
+  email: string
+  tipo_usuario: TipoUsuario
+  polo_id?: string | null
+  escola_id?: string | null
+  token?: string
+}
+

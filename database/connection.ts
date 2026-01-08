@@ -1,6 +1,39 @@
 import { Pool, QueryResult, PoolClient } from 'pg';
 import { TIMEOUT, POOL, RETRY } from '@/lib/constants';
 
+// ============================================================================
+// TIPOS
+// ============================================================================
+
+/** Tipo para valores de parâmetros de query PostgreSQL */
+export type QueryParamValue = string | number | boolean | null | undefined | Date
+
+/** Array de parâmetros para queries */
+export type QueryParams = QueryParamValue[]
+
+/** Interface para erros de banco de dados */
+export interface DatabaseError extends Error {
+  code?: string
+  detail?: string
+  hint?: string
+  position?: string
+  schema?: string
+  table?: string
+  column?: string
+  constraint?: string
+}
+
+/** Item da fila de queries */
+interface QueryQueueItem {
+  resolve: (value: QueryResult) => void
+  reject: (error: DatabaseError) => void
+  queryFn: () => Promise<QueryResult>
+}
+
+// ============================================================================
+// ESTADO DO POOL
+// ============================================================================
+
 let pool: Pool | null = null;
 let poolConfig: {
   host?: string;
@@ -10,11 +43,7 @@ let poolConfig: {
 } | null = null;
 
 // Fila de queries para controlar concorrência
-let queryQueue: Array<{
-  resolve: (value: any) => void;
-  reject: (error: any) => void;
-  queryFn: () => Promise<any>;
-}> = [];
+let queryQueue: QueryQueueItem[] = [];
 let activeQueries = 0;
 const MAX_CONCURRENT_QUERIES = 15; // Maximo de queries paralelas (ajustado para 50 usuarios)
 
@@ -121,7 +150,7 @@ function createPool(): Pool {
       }
     : false;
 
-  const config: any = {
+  const config: Record<string, unknown> = {
     host: host,
     port: port,
     database: database,
@@ -164,7 +193,7 @@ function createPool(): Pool {
   const newPool = new Pool(config);
 
   // Tratamento de erros de conexão
-  newPool.on('error', (err: any) => {
+  newPool.on('error', (err: DatabaseError) => {
     const errorCode = err?.code;
     const errorMessage = err?.message || '';
     
@@ -241,11 +270,12 @@ function getPool(): Pool {
     console.log('Criando novo pool PostgreSQL...');
     try {
       pool = createPool();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as DatabaseError
       console.error('Erro ao criar pool PostgreSQL:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack
+        message: err.message,
+        code: err.code,
+        stack: err.stack
       });
       // Resetar pool para permitir nova tentativa
       pool = null;
@@ -274,10 +304,11 @@ export async function testConnection(): Promise<{ success: boolean; error?: stri
     consecutiveFailures = 0;
     isHealthy = true;
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as DatabaseError
     console.error('Erro ao testar conexão:', {
-      code: error.code,
-      message: error.message,
+      code: err.code,
+      message: err.message,
       host: process.env.DB_HOST,
     });
 
@@ -289,7 +320,7 @@ export async function testConnection(): Promise<{ success: boolean; error?: stri
 
     return {
       success: false,
-      error: error.message || 'Erro desconhecido ao conectar ao banco de dados',
+      error: err.message || 'Erro desconhecido ao conectar ao banco de dados',
     };
   }
 }
@@ -313,9 +344,10 @@ async function healthCheck(): Promise<boolean> {
     consecutiveFailures = 0;
     isHealthy = true;
     return true;
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as DatabaseError
     consecutiveFailures++;
-    console.warn(`[HealthCheck] Falha ${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}:`, error.message);
+    console.warn(`[HealthCheck] Falha ${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}:`, err.message);
 
     if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
       console.error('[HealthCheck] Muitas falhas consecutivas, recriando pool...');
@@ -330,9 +362,10 @@ async function healthCheck(): Promise<boolean> {
 /**
  * Verifica se o erro é recuperável (pode tentar reconectar)
  */
-function isRecoverableError(error: any): boolean {
-  const errorMessage = error?.message || '';
-  const errorCode = error?.code || '';
+function isRecoverableError(error: unknown): boolean {
+  const err = error as DatabaseError
+  const errorMessage = err?.message || '';
+  const errorCode = err?.code || '';
 
   const recoverableMessages = [
     'MaxClientsInSessionMode',
@@ -371,10 +404,10 @@ function delay(ms: number): Promise<void> {
 async function queryWithRetry(
   poolInstance: Pool,
   queryText: string,
-  params?: any[],
+  params?: QueryParams,
   maxRetries: number = 4
 ): Promise<QueryResult<any>> {
-  let lastError: any;
+  let lastError: unknown;
   let currentPool = poolInstance;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -389,12 +422,13 @@ async function queryWithRetry(
       isHealthy = true;
 
       return result;
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as DatabaseError
       lastError = error;
       consecutiveFailures++;
 
       const isRecoverable = isRecoverableError(error);
-      const errorMsg = error.message?.substring(0, 100) || 'Erro desconhecido';
+      const errorMsg = err.message?.substring(0, 100) || 'Erro desconhecido';
 
       console.warn(`[Query] Erro (tentativa ${attempt + 1}/${maxRetries}): ${errorMsg}`);
 
@@ -456,8 +490,8 @@ async function processQueryQueue(): Promise<void> {
 async function queuedQuery(
   pool: Pool,
   queryText: string,
-  params?: any[]
-): Promise<QueryResult<any>> {
+  params?: QueryParams
+): Promise<QueryResult> {
   return new Promise((resolve, reject) => {
     queryQueue.push({
       resolve,
@@ -473,7 +507,7 @@ async function queuedQuery(
  * Útil para o dashboard que precisa executar muitas queries
  */
 export async function batchQueries<T>(
-  queries: Array<{ sql: string; params?: any[] }>,
+  queries: Array<{ sql: string; params?: QueryParams }>,
   batchSize: number = 4
 ): Promise<T[]> {
   const results: T[] = [];
@@ -500,7 +534,7 @@ export async function batchQueries<T>(
  * Use quando precisa garantir ordem ou evitar sobrecarga
  */
 export async function serialQueries<T>(
-  queries: Array<{ sql: string; params?: any[] }>
+  queries: Array<{ sql: string; params?: QueryParams }>
 ): Promise<T[]> {
   const results: T[] = [];
   const poolInstance = getPool();
@@ -559,7 +593,8 @@ export async function forceHealthCheck(): Promise<{
     lastHealthCheck = Date.now();
 
     return { healthy: true, latency };
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as DatabaseError
     const latency = Date.now() - start;
     consecutiveFailures++;
     isHealthy = false;
@@ -567,7 +602,7 @@ export async function forceHealthCheck(): Promise<{
     return {
       healthy: false,
       latency,
-      error: error.message
+      error: err.message
     };
   }
 }
@@ -584,8 +619,9 @@ export async function warmupPool(): Promise<boolean> {
     isHealthy = true;
     consecutiveFailures = 0;
     return true;
-  } catch (error: any) {
-    console.error('[Pool] Erro no warmup:', error.message);
+  } catch (error) {
+    const err = error as DatabaseError
+    console.error('[Pool] Erro no warmup:', err.message);
     return false;
   }
 }

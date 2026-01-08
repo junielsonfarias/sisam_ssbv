@@ -169,9 +169,10 @@ export function useOfflineData(): UseOfflineDataReturn {
       setTurmas(turmasData);
       setAlunos(alunosData);
       setHasOfflineData(resultadosData.length > 0);
-    } catch (err: any) {
-      console.error('Erro ao carregar dados offline:', err);
-      setError(err.message || 'Erro ao carregar dados offline');
+    } catch (err) {
+      const error = err as Error
+      console.error('Erro ao carregar dados offline:', error);
+      setError(error.message || 'Erro ao carregar dados offline');
     } finally {
       setLoading(false);
     }

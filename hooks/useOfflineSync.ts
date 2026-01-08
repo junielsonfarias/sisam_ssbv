@@ -97,11 +97,12 @@ export function useOfflineSync(userId: string | null): UseOfflineSyncReturn {
         ...prev,
         syncedStores: [...new Set([...prev.syncedStores, storeName])]
       }));
-    } catch (error: any) {
-      console.error(`Erro ao sincronizar ${storeName}:`, error);
+    } catch (error) {
+      const err = error as Error
+      console.error(`Erro ao sincronizar ${storeName}:`, err);
       setStatus(prev => ({
         ...prev,
-        error: `Erro ao sincronizar ${storeName}: ${error.message}`
+        error: `Erro ao sincronizar ${storeName}: ${err.message}`
       }));
     }
   }, [userId]);
@@ -130,12 +131,13 @@ export function useOfflineSync(userId: string | null): UseOfflineSyncReturn {
         lastSync: new Date(),
         error: null
       }));
-    } catch (error: any) {
-      console.error('Erro na sincronização:', error);
+    } catch (error) {
+      const err = error as Error
+      console.error('Erro na sincronização:', err);
       setStatus(prev => ({
         ...prev,
         isSyncing: false,
-        error: error.message
+        error: err.message
       }));
     }
   }, [userId, syncStore]);

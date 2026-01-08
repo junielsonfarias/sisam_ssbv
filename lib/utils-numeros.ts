@@ -1,7 +1,12 @@
 /**
  * Utilitários para tratamento consistente de valores numéricos
  * Padroniza o tratamento de NULL, undefined, strings vazias e NaN em toda a aplicação
+ *
+ * @module lib/utils-numeros
  */
+
+/** Tipo para valores que podem ser convertidos para número */
+type NumericValue = string | number | null | undefined
 
 /**
  * Converte qualquer valor para número, tratando NULL, undefined, string vazia e NaN
@@ -9,7 +14,7 @@
  * @param valorPadrao - Valor padrão caso a conversão falhe (default: 0)
  * @returns Número válido ou valor padrão
  */
-export function toNumber(valor: any, valorPadrao: number = 0): number {
+export function toNumber(valor: NumericValue, valorPadrao: number = 0): number {
   if (valor === null || valor === undefined || valor === '') {
     return valorPadrao
   }
@@ -24,7 +29,7 @@ export function toNumber(valor: any, valorPadrao: number = 0): number {
  * @param valorPadrao - Valor padrão caso a conversão falhe (default: 0)
  * @returns Número inteiro válido ou valor padrão
  */
-export function toInt(valor: any, valorPadrao: number = 0): number {
+export function toInt(valor: NumericValue, valorPadrao: number = 0): number {
   if (valor === null || valor === undefined || valor === '') {
     return valorPadrao
   }
@@ -41,7 +46,7 @@ export function toInt(valor: any, valorPadrao: number = 0): number {
  * @returns String formatada
  */
 export function formatarNumero(
-  valor: any,
+  valor: NumericValue,
   casasDecimais: number = 2,
   valorPadrao: string = '-'
 ): string {
@@ -60,7 +65,7 @@ export function formatarNumero(
  * @param valorPadrao - Texto a exibir caso nota seja inválida (default: '-')
  * @returns String formatada
  */
-export function formatarNota(nota: any, valorPadrao: string = '-'): string {
+export function formatarNota(nota: NumericValue, valorPadrao: string = '-'): string {
   return formatarNumero(nota, 2, valorPadrao)
 }
 
@@ -70,7 +75,7 @@ export function formatarNota(nota: any, valorPadrao: string = '-'): string {
  * @param valorPadrao - Texto a exibir caso valor seja inválido (default: '-')
  * @returns String formatada com %
  */
-export function formatarPercentual(valor: any, valorPadrao: string = '-'): string {
+export function formatarPercentual(valor: NumericValue, valorPadrao: string = '-'): string {
   const num = toNumber(valor)
 
   if (num === 0 && (valor === null || valor === undefined || valor === '')) {
@@ -86,7 +91,7 @@ export function formatarPercentual(valor: any, valorPadrao: string = '-'): strin
  * @param ignorarZeros - Se deve ignorar zeros no cálculo (default: true)
  * @returns Média calculada ou 0
  */
-export function calcularMedia(valores: any[], ignorarZeros: boolean = true): number {
+export function calcularMedia(valores: NumericValue[], ignorarZeros: boolean = true): number {
   const numeros = valores
     .map(v => toNumber(v))
     .filter(n => !isNaN(n) && (ignorarZeros ? n > 0 : true))
@@ -102,8 +107,8 @@ export function calcularMedia(valores: any[], ignorarZeros: boolean = true): num
  * @param valores - Array de valores
  * @returns Soma calculada
  */
-export function calcularSoma(valores: any[]): number {
-  return valores.reduce((acc, v) => acc + toNumber(v), 0)
+export function calcularSoma(valores: NumericValue[]): number {
+  return valores.reduce<number>((acc, v) => acc + toNumber(v), 0)
 }
 
 /**
@@ -111,7 +116,7 @@ export function calcularSoma(valores: any[]): number {
  * @param valor - Valor a verificar
  * @returns true se o valor é null, undefined, string vazia ou NaN
  */
-export function isVazio(valor: any): boolean {
+export function isVazio(valor: unknown): boolean {
   if (valor === null || valor === undefined || valor === '') {
     return true
   }
@@ -141,7 +146,7 @@ export function valorOuPadrao<T>(valor: T | null | undefined, alternativa: T): T
  * @param valorPadrao - Valor padrão
  * @returns Número ou valor padrão
  */
-export function parseDbNumber(valor: any, valorPadrao: number = 0): number {
+export function parseDbNumber(valor: NumericValue, valorPadrao: number = 0): number {
   if (valor === null || valor === undefined) {
     return valorPadrao
   }
@@ -157,7 +162,7 @@ export function parseDbNumber(valor: any, valorPadrao: number = 0): number {
  * @param valorPadrao - Valor padrão
  * @returns Inteiro ou valor padrão
  */
-export function parseDbInt(valor: any, valorPadrao: number = 0): number {
+export function parseDbInt(valor: NumericValue, valorPadrao: number = 0): number {
   if (valor === null || valor === undefined) {
     return valorPadrao
   }

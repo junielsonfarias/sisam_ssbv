@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     let body
     try {
       body = await request.json()
-    } catch (jsonError: any) {
+    } catch (jsonError) {
       console.error('Erro ao parsear JSON:', jsonError)
       return NextResponse.json(
         { mensagem: 'Erro ao processar dados da requisicao' },
@@ -91,42 +91,43 @@ export async function POST(request: NextRequest) {
         [email.toLowerCase()]
       )
     } catch (dbError: any) {
-      console.error('Erro ao consultar banco de dados:', dbError)
-      console.error('Código do erro:', dbError.code)
-      console.error('Mensagem do erro:', dbError.message)
-      console.error('Stack trace:', dbError.stack)
-      
+      const err = dbError as Error & { code?: string }
+      console.error('Erro ao consultar banco de dados:', err)
+      console.error('Código do erro:', err.code)
+      console.error('Mensagem do erro:', err.message)
+      console.error('Stack trace:', err.stack)
+
       let errorMessage = 'Erro ao conectar com o banco de dados'
       let errorCode = 'DB_ERROR'
-      
+
       // Verificar se é erro de configuração
-      if (dbError.message?.includes('não está configurado') || 
-          dbError.message?.includes('not configured')) {
+      if (err.message?.includes('não está configurado') ||
+          err.message?.includes('not configured')) {
         errorMessage = 'Configuração do banco de dados incompleta. Verifique as variáveis de ambiente no Vercel'
         errorCode = 'DB_CONFIG_ERROR'
-      } else if (dbError.code === 'ECONNREFUSED') {
+      } else if (err.code === 'ECONNREFUSED') {
         errorMessage = 'Não foi possível conectar ao banco de dados. Verifique se o banco está ativo e acessível'
         errorCode = 'DB_CONNECTION_REFUSED'
-      } else if (dbError.code === 'ENOTFOUND') {
+      } else if (err.code === 'ENOTFOUND') {
         errorMessage = 'Host do banco de dados não encontrado. Verifique DB_HOST nas variáveis de ambiente'
         errorCode = 'DB_HOST_NOT_FOUND'
-      } else if (dbError.code === 'ENETUNREACH') {
+      } else if (err.code === 'ENETUNREACH') {
         errorMessage = 'Rede não alcançável. Verifique a configuração do banco e conexão de rede'
         errorCode = 'DB_NETWORK_ERROR'
-      } else if (dbError.code === '28P01') {
+      } else if (err.code === '28P01') {
         errorMessage = 'Credenciais do banco de dados inválidas. Verifique DB_USER e DB_PASSWORD'
         errorCode = 'DB_AUTH_ERROR'
-      } else if (dbError.code === 'ETIMEDOUT') {
+      } else if (err.code === 'ETIMEDOUT') {
         errorMessage = 'Timeout ao conectar ao banco de dados. Verifique se o banco está acessível'
         errorCode = 'DB_TIMEOUT'
       }
-      
+
       return NextResponse.json(
-        { 
+        {
           mensagem: errorMessage,
           erro: errorCode,
-          detalhes: process.env.NODE_ENV === 'development' 
-            ? dbError.message 
+          detalhes: process.env.NODE_ENV === 'development'
+            ? err.message
             : 'Verifique os logs do Vercel para mais detalhes'
         },
         { status: 500 }
@@ -171,12 +172,13 @@ export async function POST(request: NextRequest) {
     let senhaValida
     try {
       senhaValida = await comparePassword(senha, usuario.senha)
-    } catch (bcryptError: any) {
-      console.error('Erro ao comparar senha:', bcryptError)
+    } catch (bcryptError) {
+      const err = bcryptError as Error
+      console.error('Erro ao comparar senha:', err)
       return NextResponse.json(
-        { 
+        {
           mensagem: 'Erro ao validar senha',
-          detalhes: process.env.NODE_ENV === 'development' ? bcryptError.message : undefined
+          detalhes: process.env.NODE_ENV === 'development' ? err.message : undefined
         },
         { status: 500 }
       )
@@ -219,13 +221,14 @@ export async function POST(request: NextRequest) {
     try {
       token = generateToken(tokenPayload)
       console.log('Token gerado com sucesso')
-    } catch (tokenError: any) {
-      console.error('Erro ao gerar token:', tokenError)
-      console.error('Stack trace:', tokenError.stack)
+    } catch (tokenError) {
+      const err = tokenError as Error
+      console.error('Erro ao gerar token:', err)
+      console.error('Stack trace:', err.stack)
       return NextResponse.json(
-        { 
+        {
           mensagem: 'Erro ao gerar token de autenticação',
-          detalhes: process.env.NODE_ENV === 'development' ? tokenError.message : undefined
+          detalhes: process.env.NODE_ENV === 'development' ? err.message : undefined
         },
         { status: 500 }
       )
@@ -259,49 +262,51 @@ export async function POST(request: NextRequest) {
         path: '/',
       })
       console.log('Cookie definido com sucesso')
-    } catch (cookieError: any) {
-      console.error('Erro ao definir cookie:', cookieError)
-      console.error('Stack trace do cookie:', cookieError.stack)
+    } catch (cookieError) {
+      const err = cookieError as Error
+      console.error('Erro ao definir cookie:', err)
+      console.error('Stack trace do cookie:', err.stack)
       // Continuar mesmo com erro no cookie, o token ainda está na resposta
     }
 
     console.log('Retornando resposta de login')
     return response
   } catch (error: any) {
-    console.error('Erro no login:', error)
-    console.error('Stack trace:', error.stack)
-    console.error('Tipo do erro:', error.constructor.name)
-    console.error('Código do erro:', error.code)
-    
+    const err = error as Error & { code?: string }
+    console.error('Erro no login:', err)
+    console.error('Stack trace:', err.stack)
+    console.error('Tipo do erro:', err.constructor?.name)
+    console.error('Código do erro:', err.code)
+
     // Verificar se é erro de conexão com banco
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ENETUNREACH') {
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ENETUNREACH') {
       return NextResponse.json(
-        { 
+        {
           mensagem: 'Erro ao conectar com o banco de dados',
           erro: 'CONEXAO_BANCO',
-          detalhes: process.env.NODE_ENV === 'development' ? error.message : 'Verifique as configurações do banco de dados'
+          detalhes: process.env.NODE_ENV === 'development' ? err.message : 'Verifique as configurações do banco de dados'
         },
         { status: 500 }
       )
     }
-    
+
     // Verificar se é erro de JWT
-    if (error.message?.includes('JWT') || error.message?.includes('token')) {
+    if (err.message?.includes('JWT') || err.message?.includes('token')) {
       return NextResponse.json(
-        { 
+        {
           mensagem: 'Erro na configuração de autenticação',
           erro: 'JWT_ERROR',
-          detalhes: process.env.NODE_ENV === 'development' ? error.message : 'Verifique a configuração JWT_SECRET'
+          detalhes: process.env.NODE_ENV === 'development' ? err.message : 'Verifique a configuração JWT_SECRET'
         },
         { status: 500 }
       )
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         mensagem: 'Erro interno do servidor',
         erro: 'ERRO_INTERNO',
-        detalhes: process.env.NODE_ENV === 'development' ? error.message : 'Entre em contato com o suporte'
+        detalhes: process.env.NODE_ENV === 'development' ? err.message : 'Entre em contato com o suporte'
       },
       { status: 500 }
     )

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         "SELECT id FROM usuarios WHERE tipo_usuario = 'administrador' LIMIT 1"
       )
       adminExiste = checkAdmin.rows.length > 0
-    } catch (dbError) {
+    } catch (dbError: any) {
       // Se der erro de conexao, assumir que nao existe admin ainda
       adminExiste = false
     }
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Usuario autenticado como admin - retornar mais detalhes (mas sem expor sensiveis)
-    const status: any = {
+    const status: Record<string, unknown> = {
       ambiente: process.env.NODE_ENV,
       variaveis_configuradas: {
         DB_HOST: !!process.env.DB_HOST,
