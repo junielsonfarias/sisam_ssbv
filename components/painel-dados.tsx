@@ -262,17 +262,12 @@ export default function PainelDados({
   const [filtrosCarregados, setFiltrosCarregados] = useState(false)
   const [carregandoAlunos, setCarregandoAlunos] = useState(false)
 
-  // Carregar estatísticas
+  // Carregar estatísticas - usar cache do servidor
   useEffect(() => {
     const carregarEstatisticas = async () => {
       try {
-        const response = await fetch(`${estatisticasEndpoint}?_t=${Date.now()}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-          }
-        })
+        // Não forçar no-cache - deixar o servidor gerenciar o cache
+        const response = await fetch(estatisticasEndpoint)
 
         if (!response.ok) {
           console.error('Erro ao buscar estatísticas:', response.status)
@@ -334,7 +329,7 @@ export default function PainelDados({
     if (!escolasEndpoint) return
     try {
       setCarregando(true)
-      const response = await fetch(`${escolasEndpoint}?_t=${Date.now()}`)
+      const response = await fetch(escolasEndpoint)
       if (response.ok) {
         const data = await response.json()
         setEscolas(Array.isArray(data) ? data : data.escolas || [])
@@ -350,7 +345,7 @@ export default function PainelDados({
     if (!turmasEndpoint) return
     try {
       setCarregando(true)
-      const response = await fetch(`${turmasEndpoint}?_t=${Date.now()}`)
+      const response = await fetch(turmasEndpoint)
       if (response.ok) {
         const data = await response.json()
         setTurmas(Array.isArray(data) ? data : data.turmas || [])
