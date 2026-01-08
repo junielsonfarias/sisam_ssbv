@@ -1,4 +1,6 @@
-export type TipoUsuario = 'administrador' | 'admin' | 'tecnico' | 'polo' | 'escola';
+// NOTA: O tipo 'admin' foi removido em favor de 'administrador' para padronização
+// Se houver dados legados com 'admin', a função verificarPermissao em lib/auth.ts trata a compatibilidade
+export type TipoUsuario = 'administrador' | 'tecnico' | 'polo' | 'escola';
 
 export interface Usuario {
   id: string;

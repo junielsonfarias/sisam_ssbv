@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
+// Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
-// Cache de 60 segundos para polos (dados raramente mudam)
-export const revalidate = 60;
+export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)

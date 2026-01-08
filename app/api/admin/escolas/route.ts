@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
+// Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
-// Cache de 30 segundos para escolas
-export const revalidate = 30;
+export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
     const escolaId = searchParams.get('id')
 
     let query = `
-      SELECT e.*, p.nome as polo_nome 
-      FROM escolas e 
-      LEFT JOIN polos p ON e.polo_id = p.id 
-      WHERE 1=1
+      SELECT e.*, p.nome as polo_nome
+      FROM escolas e
+      LEFT JOIN polos p ON e.polo_id = p.id
+      WHERE e.ativo = true
     `
     const params: any[] = []
     let paramIndex = 1

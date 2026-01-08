@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON a.turma_id = t.id
       LEFT JOIN resultados_consolidados rc ON a.id = rc.aluno_id AND a.ano_letivo = rc.ano_letivo
-      WHERE 1=1
+      WHERE e.ativo = true
     `
 
     const params: any[] = []

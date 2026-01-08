@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         p.nome as polo_nome
       FROM escolas e
       LEFT JOIN polos p ON e.polo_id = p.id
-      WHERE 1=1
+      WHERE e.ativo = true
     `
 
     const params: any[] = []

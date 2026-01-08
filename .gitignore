@@ -63,3 +63,8 @@ public/workbox-*.js.map
 # Windows
 nul
 
+# Arquivos de teste e debug (temporarios)
+public/teste-*.html
+scripts/testar-*.js
+scripts/verificar-*.js
+

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     // Aplicar restrições de acesso
     if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      query += ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex})`
+      query += ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex} AND ativo = true)`
       params.push(usuario.polo_id)
       paramIndex++
     } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Aplicar filtros
     if (filtros.escola_id) {
-      if (!podeAcessarEscola(usuario, filtros.escola_id)) {
+      if (!(await podeAcessarEscola(usuario, filtros.escola_id))) {
         return NextResponse.json(
           { mensagem: 'Acesso negado a esta escola' },
           { status: 403 }

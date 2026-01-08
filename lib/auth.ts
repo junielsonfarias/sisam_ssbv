@@ -108,28 +108,87 @@ export function verificarPermissao(
   tiposPermitidos: TipoUsuario[]
 ): boolean {
   if (!usuario) return false;
-  return tiposPermitidos.includes(usuario.tipo_usuario);
+
+  // Normalizar tipo de usuario para compatibilidade com dados legados
+  // 'admin' é tratado como 'administrador'
+  const tipoNormalizado = usuario.tipo_usuario === 'admin' as any
+    ? 'administrador'
+    : usuario.tipo_usuario;
+
+  // Expandir tipos permitidos para incluir ambas as variantes de admin
+  const tiposExpandidos = tiposPermitidos.includes('administrador')
+    ? [...tiposPermitidos, 'admin' as TipoUsuario]
+    : tiposPermitidos;
+
+  return tiposExpandidos.includes(tipoNormalizado) || tiposExpandidos.includes(usuario.tipo_usuario);
 }
 
-export function podeAcessarEscola(usuario: Usuario, escolaId: string): boolean {
-  if (usuario.tipo_usuario === 'administrador' || usuario.tipo_usuario === 'tecnico') {
+// Helper para verificar se é admin (aceita 'admin' ou 'administrador')
+function isAdmin(tipoUsuario: string): boolean {
+  return tipoUsuario === 'administrador' || tipoUsuario === 'admin';
+}
+
+/**
+ * Verifica se o usuario pode acessar uma escola especifica
+ * IMPORTANTE: Para usuarios do tipo 'polo', verifica se a escola pertence ao polo do usuario
+ */
+export async function podeAcessarEscola(usuario: Usuario, escolaId: string): Promise<boolean> {
+  // Administrador e tecnico tem acesso total
+  if (isAdmin(usuario.tipo_usuario) || usuario.tipo_usuario === 'tecnico') {
     return true;
   }
 
+  // Usuario de escola so acessa sua propria escola
+  if (usuario.tipo_usuario === 'escola') {
+    return usuario.escola_id === escolaId;
+  }
+
+  // Usuario de polo: verificar se a escola pertence ao polo do usuario
   if (usuario.tipo_usuario === 'polo') {
-    // Verificar se a escola pertence ao polo do usuário
-    return usuario.polo_id !== null;
+    if (!usuario.polo_id) {
+      return false;
+    }
+
+    try {
+      const result = await pool.query(
+        'SELECT id FROM escolas WHERE id = $1 AND polo_id = $2 AND ativo = true',
+        [escolaId, usuario.polo_id]
+      );
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('Erro ao verificar acesso a escola:', error);
+      return false;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Versao sincrona para verificacao rapida (sem consulta ao banco)
+ * Usar apenas quando ja tiver o polo_id da escola disponivel
+ */
+export function podeAcessarEscolaSync(usuario: Usuario, escolaId: string, escolaPoloId?: string | null): boolean {
+  if (isAdmin(usuario.tipo_usuario) || usuario.tipo_usuario === 'tecnico') {
+    return true;
   }
 
   if (usuario.tipo_usuario === 'escola') {
     return usuario.escola_id === escolaId;
   }
 
+  if (usuario.tipo_usuario === 'polo') {
+    if (!usuario.polo_id || !escolaPoloId) {
+      return false;
+    }
+    return usuario.polo_id === escolaPoloId;
+  }
+
   return false;
 }
 
 export function podeAcessarPolo(usuario: Usuario, poloId: string): boolean {
-  if (usuario.tipo_usuario === 'administrador' || usuario.tipo_usuario === 'tecnico') {
+  if (isAdmin(usuario.tipo_usuario) || usuario.tipo_usuario === 'tecnico') {
     return true;
   }
 

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let query = 'SELECT id, nome, codigo FROM polos WHERE 1=1'
+    let query = 'SELECT id, nome, codigo FROM polos WHERE ativo = true'
     const params: any[] = []
     let paramIndex = 1
 

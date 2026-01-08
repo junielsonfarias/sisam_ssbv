@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         e.polo_id
       FROM turmas t
       INNER JOIN escolas e ON t.escola_id = e.id
-      WHERE 1=1
+      WHERE t.ativo = true AND e.ativo = true
     `
 
     const params: any[] = []

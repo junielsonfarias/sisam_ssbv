@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       FROM alunos a
       INNER JOIN escolas e ON a.escola_id = e.id
       LEFT JOIN turmas t ON a.turma_id = t.id
-      WHERE 1=1
+      WHERE a.ativo = true AND e.ativo = true
     `
 
     const params: any[] = []
