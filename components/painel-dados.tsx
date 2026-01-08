@@ -317,13 +317,23 @@ export default function PainelDados({
     }
   }, [abaAtiva, turmasEndpoint])
 
-  // Carregar alunos quando mudar para aba alunos
+  // Carregar filtros quando mudar para aba alunos
   useEffect(() => {
     if (abaAtiva === 'alunos') {
-      carregarAlunos()
       carregarFiltros()
     }
   }, [abaAtiva])
+
+  // Carregar alunos quando filtros mudarem ou ao entrar na aba
+  useEffect(() => {
+    if (abaAtiva === 'alunos') {
+      // Debounce para evitar múltiplas chamadas
+      const timeoutId = setTimeout(() => {
+        carregarAlunos(1)
+      }, 150)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [abaAtiva, filtrosAlunos, buscaAluno])
 
   const carregarEscolas = async () => {
     if (!escolasEndpoint) return
@@ -363,8 +373,7 @@ export default function PainelDados({
       const params = new URLSearchParams()
       params.set('pagina', pagina.toString())
       params.set('limite', '50')
-      // Forçar atualização do cache para garantir dados atualizados
-      params.set('atualizar_cache', 'true')
+      // Usar cache para melhorar performance (não forçar atualização)
       if (filtrosAlunos.escola_id) params.set('escola_id', filtrosAlunos.escola_id)
       if (filtrosAlunos.turma_id) params.set('turma_id', filtrosAlunos.turma_id)
       if (filtrosAlunos.serie) params.set('serie', filtrosAlunos.serie)
@@ -375,17 +384,6 @@ export default function PainelDados({
       const response = await fetch(`${resultadosEndpoint}?${params.toString()}&_t=${Date.now()}`)
       if (response.ok) {
         const data = await response.json()
-        // DEBUG: verificar dados recebidos da API
-        const julias = (data.resultados || []).filter((r: any) => r.aluno_nome?.toLowerCase().includes('julia'))
-        if (julias.length > 0) {
-          console.log('DEBUG PAINEL - Julia encontrada:', {
-            nome: julias[0].aluno_nome,
-            serie: julias[0].serie,
-            media_aluno: julias[0].media_aluno,
-            _debug_tipo_calculo: julias[0]._debug_tipo_calculo,
-            _debug_media_banco: julias[0]._debug_media_banco
-          })
-        }
         setResultados(data.resultados || [])
         setPaginacao({
           pagina: data.paginacao?.pagina || 1,
@@ -989,10 +987,7 @@ function AbaAlunos({
             ].map((etapa) => (
               <button
                 key={etapa.value}
-                onClick={() => {
-                  handleEtapaChange(etapa.value)
-                  setTimeout(() => carregarAlunos(1), 100)
-                }}
+                onClick={() => handleEtapaChange(etapa.value)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
                   (etapa.value === '' && !filtros.etapa_ensino) || filtros.etapa_ensino === etapa.value
                     ? 'bg-emerald-600 text-white'
@@ -1007,10 +1002,7 @@ function AbaAlunos({
           <div className="flex items-center gap-2 overflow-x-auto">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">Série:</span>
             <button
-              onClick={() => {
-                handleSerieChange('')
-                setTimeout(() => carregarAlunos(1), 100)
-              }}
+              onClick={() => handleSerieChange('')}
               className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
                 !filtros.serie
                   ? 'bg-indigo-600 text-white'
@@ -1022,10 +1014,7 @@ function AbaAlunos({
             {seriesFiltradas.map((serie) => (
               <button
                 key={serie}
-                onClick={() => {
-                  handleSerieChange(serie)
-                  setTimeout(() => carregarAlunos(1), 100)
-                }}
+                onClick={() => handleSerieChange(serie)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
                   filtros.serie === serie
                     ? 'bg-indigo-600 text-white'
