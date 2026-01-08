@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       WHERE (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
     `
 
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso
@@ -126,10 +126,18 @@ export async function GET(request: NextRequest) {
       },
       sincronizado_em: new Date().toISOString()
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar resultados para offline:', error)
+    console.error('Stack:', error?.stack)
+    console.error('Código:', error?.code)
+
+    // Retornar mensagem mais informativa
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
+      {
+        mensagem: 'Erro interno do servidor',
+        erro: process.env.NODE_ENV === 'development' ? error?.message : undefined,
+        codigo: error?.code
+      },
       { status: 500 }
     )
   }
