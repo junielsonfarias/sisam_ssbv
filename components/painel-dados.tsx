@@ -93,6 +93,28 @@ const isAnosIniciais = (serie: string | undefined | null): boolean => {
   return numero === '2' || numero === '3' || numero === '5'
 }
 
+// Determina a etapa de ensino baseado na série
+const getEtapaFromSerie = (serie: string | undefined | null): string | undefined => {
+  if (!serie) return undefined
+  const numero = serie.match(/(\d+)/)?.[1]
+  if (!numero) return undefined
+  if (['2', '3', '5'].includes(numero)) return 'anos_iniciais'
+  if (['6', '7', '8', '9'].includes(numero)) return 'anos_finais'
+  return undefined
+}
+
+// Filtra séries baseado na etapa de ensino
+const getSeriesByEtapa = (etapa: string | undefined, todasSeries: string[]): string[] => {
+  if (!etapa) return todasSeries
+  return todasSeries.filter(serie => {
+    const numero = serie.match(/(\d+)/)?.[1]
+    if (!numero) return false
+    if (etapa === 'anos_iniciais') return ['2', '3', '5'].includes(numero)
+    if (etapa === 'anos_finais') return ['6', '7', '8', '9'].includes(numero)
+    return true
+  })
+}
+
 const getNotaNumero = (nota: number | string | null | undefined): number | null => {
   if (nota === null || nota === undefined || nota === '') return null
   const num = typeof nota === 'string' ? parseFloat(nota) : nota
@@ -204,6 +226,7 @@ export default function PainelDados({
     turma_id?: string
     serie?: string
     presenca?: string
+    etapa_ensino?: string
   }>({})
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [paginacao, setPaginacao] = useState({
@@ -346,6 +369,7 @@ export default function PainelDados({
       if (filtrosAlunos.turma_id) params.set('turma_id', filtrosAlunos.turma_id)
       if (filtrosAlunos.serie) params.set('serie', filtrosAlunos.serie)
       if (filtrosAlunos.presenca) params.set('presenca', filtrosAlunos.presenca)
+      if (filtrosAlunos.etapa_ensino) params.set('tipo_ensino', filtrosAlunos.etapa_ensino)
       if (buscaAluno) params.set('busca', buscaAluno)
 
       const response = await fetch(`${resultadosEndpoint}?${params.toString()}&_t=${Date.now()}`)
@@ -517,6 +541,8 @@ export default function PainelDados({
           setAlunoSelecionado={setAlunoSelecionado}
           setModalAberto={setModalAberto}
           tipoUsuario={tipoUsuario}
+          getEtapaFromSerie={getEtapaFromSerie}
+          getSeriesByEtapa={getSeriesByEtapa}
         />
       )}
 
@@ -878,7 +904,9 @@ function AbaAlunos({
   getTotalQuestoesPorSerie,
   setAlunoSelecionado,
   setModalAberto,
-  tipoUsuario
+  tipoUsuario,
+  getEtapaFromSerie,
+  getSeriesByEtapa
 }: {
   resultados: ResultadoConsolidado[]
   busca: string
@@ -897,6 +925,8 @@ function AbaAlunos({
   setAlunoSelecionado: (v: any) => void
   setModalAberto: (v: boolean) => void
   tipoUsuario: string
+  getEtapaFromSerie: (serie: string | undefined | null) => string | undefined
+  getSeriesByEtapa: (etapa: string | undefined, todasSeries: string[]) => string[]
 }) {
   const temFiltrosAtivos = Object.values(filtros).some(v => v) || busca
 
@@ -906,26 +936,98 @@ function AbaAlunos({
     carregarAlunos(1)
   }
 
+  // Handler para mudança de série com detecção automática de etapa
+  const handleSerieChange = (novaSerie: string) => {
+    const novaEtapa = getEtapaFromSerie(novaSerie)
+    setFiltros({
+      ...filtros,
+      serie: novaSerie,
+      etapa_ensino: novaEtapa || filtros.etapa_ensino
+    })
+  }
+
+  // Handler para mudança de etapa que limpa série se incompatível
+  const handleEtapaChange = (novaEtapa: string) => {
+    const serieAtual = filtros.serie
+    let novaSerie = serieAtual
+
+    // Se a série atual não é compatível com a nova etapa, limpar série
+    if (serieAtual && novaEtapa) {
+      const etapaDaSerie = getEtapaFromSerie(serieAtual)
+      if (etapaDaSerie !== novaEtapa) {
+        novaSerie = ''
+      }
+    }
+
+    setFiltros({
+      ...filtros,
+      etapa_ensino: novaEtapa,
+      serie: novaSerie
+    })
+  }
+
+  // Filtra turmas baseado na escola selecionada
+  const turmasFiltradas = filtros.escola_id
+    ? listaTurmas.filter((t: any) => t.escola_id === filtros.escola_id)
+    : listaTurmas
+
+  // Filtra séries baseado na etapa selecionada
+  const seriesFiltradas = getSeriesByEtapa(filtros.etapa_ensino, listaSeries)
+
   return (
     <div className="flex flex-col flex-1 space-y-2 min-h-0">
-      {/* Filtro Rápido de Série - Sticky */}
+      {/* Filtro Rápido - Sticky */}
       <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-1 bg-gray-50 dark:bg-slate-900">
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 px-3 py-2">
-          <div className="flex items-center gap-2 overflow-x-auto">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">Série:</span>
-            {['Todas', '3º Ano', '5º Ano', '8º Ano', '9º Ano'].map((serie) => (
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 px-3 py-2 space-y-2">
+          {/* Filtro de Etapa de Ensino */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-gray-100 dark:border-slate-700">
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">Etapa:</span>
+            {[
+              { value: '', label: 'Todas' },
+              { value: 'anos_iniciais', label: 'Anos Iniciais (2º, 3º, 5º)' },
+              { value: 'anos_finais', label: 'Anos Finais (6º-9º)' }
+            ].map((etapa) => (
               <button
-                key={serie}
+                key={etapa.value}
                 onClick={() => {
-                  if (serie === 'Todas') {
-                    setFiltros({ ...filtros, serie: '' })
-                  } else {
-                    setFiltros({ ...filtros, serie })
-                  }
+                  handleEtapaChange(etapa.value)
                   setTimeout(() => carregarAlunos(1), 100)
                 }}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
-                  (serie === 'Todas' && !filtros.serie) || filtros.serie === serie
+                  (etapa.value === '' && !filtros.etapa_ensino) || filtros.etapa_ensino === etapa.value
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {etapa.label}
+              </button>
+            ))}
+          </div>
+          {/* Filtro de Série */}
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">Série:</span>
+            <button
+              onClick={() => {
+                handleSerieChange('')
+                setTimeout(() => carregarAlunos(1), 100)
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+                !filtros.serie
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+              }`}
+            >
+              Todas
+            </button>
+            {seriesFiltradas.map((serie) => (
+              <button
+                key={serie}
+                onClick={() => {
+                  handleSerieChange(serie)
+                  setTimeout(() => carregarAlunos(1), 100)
+                }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+                  filtros.serie === serie
                     ? 'bg-indigo-600 text-white'
                     : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                 }`}
@@ -952,13 +1054,16 @@ function AbaAlunos({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           {tipoUsuario !== 'escola' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Escola</label>
               <select
                 value={filtros.escola_id || ''}
-                onChange={(e) => setFiltros({ ...filtros, escola_id: e.target.value })}
+                onChange={(e) => {
+                  // Ao mudar escola, limpar turma selecionada
+                  setFiltros({ ...filtros, escola_id: e.target.value, turma_id: '' })
+                }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
               >
                 <option value="">Todas</option>
@@ -970,14 +1075,27 @@ function AbaAlunos({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Serie</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Etapa de Ensino</label>
             <select
-              value={filtros.serie || ''}
-              onChange={(e) => setFiltros({ ...filtros, serie: e.target.value })}
+              value={filtros.etapa_ensino || ''}
+              onChange={(e) => handleEtapaChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
             >
               <option value="">Todas</option>
-              {listaSeries.map((s) => (
+              <option value="anos_iniciais">Anos Iniciais (2º, 3º, 5º)</option>
+              <option value="anos_finais">Anos Finais (6º-9º)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Serie</label>
+            <select
+              value={filtros.serie || ''}
+              onChange={(e) => handleSerieChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
+            >
+              <option value="">Todas</option>
+              {seriesFiltradas.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
@@ -991,10 +1109,13 @@ function AbaAlunos({
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
             >
               <option value="">Todas</option>
-              {listaTurmas.map((t) => (
+              {turmasFiltradas.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.codigo || t.nome}</option>
               ))}
             </select>
+            {filtros.escola_id && turmasFiltradas.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1">Nenhuma turma encontrada para esta escola</p>
+            )}
           </div>
 
           <div>
