@@ -1,5 +1,9 @@
-// Sistema de armazenamento offline usando localStorage
-// Mais simples e confiável que IndexedDB
+// Sistema de armazenamento offline unificado
+// Usa IndexedDB como armazenamento principal e localStorage como fallback
+// Mantém os dois sincronizados para garantir compatibilidade
+
+import { offlineDB, STORES as IDB_STORES, isIndexedDBAvailable } from './offline-db'
+import { toNumber } from './utils-numeros'
 
 const STORAGE_KEYS = {
   USER: 'sisam_offline_user',
@@ -9,6 +13,7 @@ const STORAGE_KEYS = {
   RESULTADOS: 'sisam_offline_resultados',
   ALUNOS: 'sisam_offline_alunos',
   QUESTOES: 'sisam_offline_questoes',
+  CONFIG_SERIES: 'sisam_offline_config_series',
   SYNC_DATE: 'sisam_offline_sync_date',
   SYNC_STATUS: 'sisam_offline_sync_status'
 }
@@ -86,6 +91,32 @@ export interface OfflineAluno {
   nome: string
   escola_id: string
   turma_id?: string
+}
+
+// Interface para configuração de séries offline
+export interface OfflineConfigSerie {
+  id: number
+  serie: string
+  tipo_ensino: string
+  avalia_lp: boolean
+  avalia_mat: boolean
+  avalia_ch: boolean
+  avalia_cn: boolean
+  qtd_questoes_lp: number | null
+  qtd_questoes_mat: number | null
+  qtd_questoes_ch: number | null
+  qtd_questoes_cn: number | null
+  qtd_itens_producao: number | null
+  disciplinas?: Array<{
+    serie_id: number
+    disciplina: string
+    sigla: string
+    ordem: number
+    questao_inicio: number
+    questao_fim: number
+    qtd_questoes: number
+    valor_questao: number
+  }>
 }
 
 // Verificar se está online
@@ -179,8 +210,46 @@ export function clearUser(): void {
 
 // ========== FUNÇÕES DE POLOS ==========
 
+export async function savePolosAsync(polos: OfflinePolo[]): Promise<boolean> {
+  // Salvar no localStorage (backup)
+  const localSaved = saveToStorage(STORAGE_KEYS.POLOS, polos, true)
+
+  // Salvar no IndexedDB (principal)
+  if (isIndexedDBAvailable()) {
+    try {
+      await offlineDB.saveData(IDB_STORES.POLOS, polos.map(p => ({ ...p, id: p.id })))
+      console.log('[OfflineStorage] Polos salvos no IndexedDB:', polos.length)
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao salvar polos no IndexedDB:', error)
+    }
+  }
+
+  return localSaved
+}
+
 export function savePolos(polos: OfflinePolo[]): boolean {
-  return saveToStorage(STORAGE_KEYS.POLOS, polos, true) // essencial
+  // Manter compatibilidade com código síncrono existente
+  const result = saveToStorage(STORAGE_KEYS.POLOS, polos, true)
+  // Salvar no IndexedDB em background
+  savePolosAsync(polos).catch(console.error)
+  return result
+}
+
+export async function getPolosAsync(): Promise<OfflinePolo[]> {
+  // Tentar IndexedDB primeiro
+  if (isIndexedDBAvailable()) {
+    try {
+      const data = await offlineDB.getData<OfflinePolo>(IDB_STORES.POLOS)
+      if (data && data.length > 0) {
+        console.log('[OfflineStorage] Polos carregados do IndexedDB:', data.length)
+        return data
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao ler polos do IndexedDB:', error)
+    }
+  }
+  // Fallback para localStorage
+  return readFromStorage<OfflinePolo[]>(STORAGE_KEYS.POLOS) || []
 }
 
 export function getPolos(): OfflinePolo[] {
@@ -189,8 +258,40 @@ export function getPolos(): OfflinePolo[] {
 
 // ========== FUNÇÕES DE ESCOLAS ==========
 
+export async function saveEscolasAsync(escolas: OfflineEscola[]): Promise<boolean> {
+  const localSaved = saveToStorage(STORAGE_KEYS.ESCOLAS, escolas, true)
+
+  if (isIndexedDBAvailable()) {
+    try {
+      await offlineDB.saveData(IDB_STORES.ESCOLAS, escolas.map(e => ({ ...e, id: e.id })))
+      console.log('[OfflineStorage] Escolas salvas no IndexedDB:', escolas.length)
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao salvar escolas no IndexedDB:', error)
+    }
+  }
+
+  return localSaved
+}
+
 export function saveEscolas(escolas: OfflineEscola[]): boolean {
-  return saveToStorage(STORAGE_KEYS.ESCOLAS, escolas, true) // essencial
+  const result = saveToStorage(STORAGE_KEYS.ESCOLAS, escolas, true)
+  saveEscolasAsync(escolas).catch(console.error)
+  return result
+}
+
+export async function getEscolasAsync(): Promise<OfflineEscola[]> {
+  if (isIndexedDBAvailable()) {
+    try {
+      const data = await offlineDB.getData<OfflineEscola>(IDB_STORES.ESCOLAS)
+      if (data && data.length > 0) {
+        console.log('[OfflineStorage] Escolas carregadas do IndexedDB:', data.length)
+        return data
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao ler escolas do IndexedDB:', error)
+    }
+  }
+  return readFromStorage<OfflineEscola[]>(STORAGE_KEYS.ESCOLAS) || []
 }
 
 export function getEscolas(): OfflineEscola[] {
@@ -199,8 +300,40 @@ export function getEscolas(): OfflineEscola[] {
 
 // ========== FUNÇÕES DE TURMAS ==========
 
+export async function saveTurmasAsync(turmas: OfflineTurma[]): Promise<boolean> {
+  const localSaved = saveToStorage(STORAGE_KEYS.TURMAS, turmas, true)
+
+  if (isIndexedDBAvailable()) {
+    try {
+      await offlineDB.saveData(IDB_STORES.TURMAS, turmas.map(t => ({ ...t, id: t.id })))
+      console.log('[OfflineStorage] Turmas salvas no IndexedDB:', turmas.length)
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao salvar turmas no IndexedDB:', error)
+    }
+  }
+
+  return localSaved
+}
+
 export function saveTurmas(turmas: OfflineTurma[]): boolean {
-  return saveToStorage(STORAGE_KEYS.TURMAS, turmas, true) // essencial
+  const result = saveToStorage(STORAGE_KEYS.TURMAS, turmas, true)
+  saveTurmasAsync(turmas).catch(console.error)
+  return result
+}
+
+export async function getTurmasAsync(): Promise<OfflineTurma[]> {
+  if (isIndexedDBAvailable()) {
+    try {
+      const data = await offlineDB.getData<OfflineTurma>(IDB_STORES.TURMAS)
+      if (data && data.length > 0) {
+        console.log('[OfflineStorage] Turmas carregadas do IndexedDB:', data.length)
+        return data
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao ler turmas do IndexedDB:', error)
+    }
+  }
+  return readFromStorage<OfflineTurma[]>(STORAGE_KEYS.TURMAS) || []
 }
 
 export function getTurmas(): OfflineTurma[] {
@@ -209,12 +342,104 @@ export function getTurmas(): OfflineTurma[] {
 
 // ========== FUNÇÕES DE RESULTADOS ==========
 
+export async function saveResultadosAsync(resultados: OfflineResultado[]): Promise<boolean> {
+  const localSaved = saveToStorage(STORAGE_KEYS.RESULTADOS, resultados, true)
+
+  if (isIndexedDBAvailable()) {
+    try {
+      // Garantir que todos os resultados tenham um ID válido
+      const resultadosComId = resultados.map((r, index) => ({
+        ...r,
+        id: r.id || `temp_${index}`
+      }))
+      await offlineDB.saveData(IDB_STORES.RESULTADOS, resultadosComId as any)
+      console.log('[OfflineStorage] Resultados salvos no IndexedDB:', resultados.length)
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao salvar resultados no IndexedDB:', error)
+    }
+  }
+
+  return localSaved
+}
+
 export function saveResultados(resultados: OfflineResultado[]): boolean {
-  return saveToStorage(STORAGE_KEYS.RESULTADOS, resultados, true) // essencial - NUNCA pode ser perdido
+  const result = saveToStorage(STORAGE_KEYS.RESULTADOS, resultados, true)
+  saveResultadosAsync(resultados).catch(console.error)
+  return result
+}
+
+export async function getResultadosAsync(): Promise<OfflineResultado[]> {
+  if (isIndexedDBAvailable()) {
+    try {
+      const data = await offlineDB.getData<OfflineResultado>(IDB_STORES.RESULTADOS)
+      if (data && data.length > 0) {
+        console.log('[OfflineStorage] Resultados carregados do IndexedDB:', data.length)
+        return data
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao ler resultados do IndexedDB:', error)
+    }
+  }
+  return readFromStorage<OfflineResultado[]>(STORAGE_KEYS.RESULTADOS) || []
 }
 
 export function getResultados(): OfflineResultado[] {
   return readFromStorage<OfflineResultado[]>(STORAGE_KEYS.RESULTADOS) || []
+}
+
+// ========== FUNÇÕES DE CONFIGURAÇÃO DE SÉRIES ==========
+
+export async function saveConfigSeriesAsync(configs: OfflineConfigSerie[]): Promise<boolean> {
+  const localSaved = saveToStorage(STORAGE_KEYS.CONFIG_SERIES, configs, true)
+
+  if (isIndexedDBAvailable()) {
+    try {
+      await offlineDB.saveData(IDB_STORES.CONFIG_SERIES, configs.map(c => ({ ...c, id: c.id })))
+      console.log('[OfflineStorage] Config séries salvas no IndexedDB:', configs.length)
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao salvar config séries no IndexedDB:', error)
+    }
+  }
+
+  return localSaved
+}
+
+export function saveConfigSeries(configs: OfflineConfigSerie[]): boolean {
+  const result = saveToStorage(STORAGE_KEYS.CONFIG_SERIES, configs, true)
+  saveConfigSeriesAsync(configs).catch(console.error)
+  return result
+}
+
+export async function getConfigSeriesAsync(): Promise<OfflineConfigSerie[]> {
+  if (isIndexedDBAvailable()) {
+    try {
+      const data = await offlineDB.getData<OfflineConfigSerie>(IDB_STORES.CONFIG_SERIES)
+      if (data && data.length > 0) {
+        console.log('[OfflineStorage] Config séries carregadas do IndexedDB:', data.length)
+        return data
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao ler config séries do IndexedDB:', error)
+    }
+  }
+  return readFromStorage<OfflineConfigSerie[]>(STORAGE_KEYS.CONFIG_SERIES) || []
+}
+
+export function getConfigSeries(): OfflineConfigSerie[] {
+  return readFromStorage<OfflineConfigSerie[]>(STORAGE_KEYS.CONFIG_SERIES) || []
+}
+
+// Obter configuração de uma série específica
+export function getConfigSerieBySerie(serie: string): OfflineConfigSerie | null {
+  const configs = getConfigSeries()
+  const serieNum = serie.replace(/[^0-9]/g, '')
+  return configs.find(c => c.serie === serieNum || c.serie === serie) || null
+}
+
+export async function getConfigSerieBySeriAsync(serie: string): Promise<OfflineConfigSerie | null> {
+  const configs = await getConfigSeriesAsync()
+  const serieNum = serie.replace(/[^0-9]/g, '')
+  return configs.find(c => c.serie === serieNum || c.serie === serie) || null
 }
 
 // ========== FUNÇÕES DE SINCRONIZAÇÃO ==========
@@ -247,10 +472,33 @@ export function hasOfflineData(): boolean {
 
 // ========== LIMPAR TODOS OS DADOS OFFLINE ==========
 
+export async function clearAllOfflineDataAsync(): Promise<void> {
+  // Limpar localStorage
+  Object.values(STORAGE_KEYS).forEach(key => {
+    localStorage.removeItem(key)
+  })
+
+  // Limpar IndexedDB
+  if (isIndexedDBAvailable()) {
+    try {
+      await offlineDB.clearAll()
+      console.log('[OfflineStorage] IndexedDB limpo com sucesso')
+    } catch (error) {
+      console.error('[OfflineStorage] Erro ao limpar IndexedDB:', error)
+    }
+  }
+
+  console.log('[OfflineStorage] Todos os dados offline foram limpos')
+}
+
 export function clearAllOfflineData(): void {
   Object.values(STORAGE_KEYS).forEach(key => {
     localStorage.removeItem(key)
   })
+  // Limpar IndexedDB em background
+  if (isIndexedDBAvailable()) {
+    offlineDB.clearAll().catch(console.error)
+  }
   console.log('[OfflineStorage] Todos os dados offline foram limpos')
 }
 
@@ -265,12 +513,13 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
   console.log('[OfflineStorage] Iniciando sincronização...')
 
   try {
-    // Buscar todos os dados em paralelo (sem questões individuais - usamos estatísticas nos resultados)
-    const [polosRes, escolasRes, turmasRes, resultadosRes] = await Promise.all([
+    // Buscar todos os dados em paralelo (incluindo configuração de séries)
+    const [polosRes, escolasRes, turmasRes, resultadosRes, configSeriesRes] = await Promise.all([
       fetch('/api/offline/polos'),
       fetch('/api/offline/escolas'),
       fetch('/api/offline/turmas'),
-      fetch('/api/offline/resultados')
+      fetch('/api/offline/resultados'),
+      fetch('/api/offline/configuracao-series')
     ])
 
     // Verificar erros
@@ -279,11 +528,12 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
     }
 
     // Parsear dados - APIs retornam { dados: [...], total: ..., sincronizado_em: ... }
-    const [polosData, escolasData, turmasData, resultadosData] = await Promise.all([
+    const [polosData, escolasData, turmasData, resultadosData, configSeriesData] = await Promise.all([
       polosRes.json(),
       escolasRes.json(),
       turmasRes.json(),
-      resultadosRes.json()
+      resultadosRes.json(),
+      configSeriesRes.ok ? configSeriesRes.json() : { dados: [] }
     ])
 
     // Extrair arrays de dados (APIs retornam objeto com propriedade 'dados')
@@ -291,12 +541,14 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
     const escolas = Array.isArray(escolasData) ? escolasData : (escolasData.dados || [])
     const turmas = Array.isArray(turmasData) ? turmasData : (turmasData.dados || [])
     const resultados = Array.isArray(resultadosData) ? resultadosData : (resultadosData.dados || [])
+    const configSeries = Array.isArray(configSeriesData) ? configSeriesData : (configSeriesData.dados || [])
 
     console.log('[OfflineStorage] Dados recebidos:', {
       polos: polos.length,
       escolas: escolas.length,
       turmas: turmas.length,
-      resultados: resultados.length
+      resultados: resultados.length,
+      configSeries: configSeries.length
     })
 
     // Verificar se há dados para salvar
@@ -304,19 +556,23 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       console.warn('[OfflineStorage] Nenhum resultado encontrado para sincronizar')
     }
 
-    // Salvar no localStorage
-    const savedPolos = savePolos(polos)
-    const savedEscolas = saveEscolas(escolas)
-    const savedTurmas = saveTurmas(turmas)
-    const savedResultados = saveResultados(resultados)
+    // Salvar em ambos os sistemas (localStorage e IndexedDB)
+    // Usar versões async para garantir que IndexedDB seja salvo
+    const [savedPolos, savedEscolas, savedTurmas, savedResultados, savedConfigSeries] = await Promise.all([
+      savePolosAsync(polos),
+      saveEscolasAsync(escolas),
+      saveTurmasAsync(turmas),
+      saveResultadosAsync(resultados),
+      saveConfigSeriesAsync(configSeries)
+    ])
 
     if (savedPolos && savedEscolas && savedTurmas && savedResultados) {
       setSyncDate()
       setSyncStatus('success')
-      console.log('[OfflineStorage] Sincronização concluída com sucesso!')
+      console.log('[OfflineStorage] Sincronização concluída com sucesso! (localStorage + IndexedDB)')
       return {
         success: true,
-        message: `Sincronizado: ${polos.length} polos, ${escolas.length} escolas, ${turmas.length} turmas, ${resultados.length} resultados`
+        message: `Sincronizado: ${polos.length} polos, ${escolas.length} escolas, ${turmas.length} turmas, ${resultados.length} resultados, ${configSeries.length} config séries`
       }
     } else {
       setSyncStatus('error')
@@ -422,13 +678,6 @@ export function filterResultados(filters: {
 
 // ========== CALCULAR ESTATÍSTICAS ==========
 
-// Função auxiliar para converter valor para número
-function toNumber(value: number | string | null | undefined): number {
-  if (value === null || value === undefined || value === '') return 0
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  return isNaN(num) ? 0 : num
-}
-
 export function calcularEstatisticas(resultados: OfflineResultado[]): {
   total: number
   presentes: number
@@ -530,23 +779,23 @@ export function getEstatisticasAluno(alunoId: string | number, anoLetivo?: strin
   const resultado = getResultadoByAlunoId(alunoId, anoLetivo)
   if (!resultado) return null
 
-  const toNum = (v: any): number => {
-    if (v === null || v === undefined || v === '') return 0
-    const num = typeof v === 'string' ? parseFloat(v) : v
-    return isNaN(num) ? 0 : num
-  }
+  // Verificar se é anos iniciais (2º, 3º, 5º) para usar fallback correto
+  const serieNum = resultado.serie?.toString().replace(/[^0-9]/g, '') || ''
+  const isAnosIniciais = ['2', '3', '5'].includes(serieNum)
 
-  // Total de questões por disciplina (do banco ou padrão)
-  const totalLP = toNum(resultado.total_questoes_lp) || 20
-  const totalCH = toNum(resultado.total_questoes_ch) || 10
-  const totalMAT = toNum(resultado.total_questoes_mat) || 20
-  const totalCN = toNum(resultado.total_questoes_cn) || 10
+  // Total de questões por disciplina (do banco ou fallback baseado na série)
+  // Anos iniciais: LP=14, MAT=14, CH=0, CN=0 (têm produção textual no lugar)
+  // Anos finais: LP=20, MAT=20, CH=10, CN=10
+  const totalLP = toNumber(resultado.total_questoes_lp) || toNumber(resultado.qtd_questoes_lp) || (isAnosIniciais ? 14 : 20)
+  const totalCH = toNumber(resultado.total_questoes_ch) || toNumber(resultado.qtd_questoes_ch) || (isAnosIniciais ? 0 : 10)
+  const totalMAT = toNumber(resultado.total_questoes_mat) || toNumber(resultado.qtd_questoes_mat) || (isAnosIniciais ? 14 : 20)
+  const totalCN = toNumber(resultado.total_questoes_cn) || toNumber(resultado.qtd_questoes_cn) || (isAnosIniciais ? 0 : 10)
 
   // Acertos por disciplina
-  const acertosLP = toNum(resultado.total_acertos_lp)
-  const acertosCH = toNum(resultado.total_acertos_ch)
-  const acertosMAT = toNum(resultado.total_acertos_mat)
-  const acertosCN = toNum(resultado.total_acertos_cn)
+  const acertosLP = toNumber(resultado.total_acertos_lp)
+  const acertosCH = toNumber(resultado.total_acertos_ch)
+  const acertosMAT = toNumber(resultado.total_acertos_mat)
+  const acertosCN = toNumber(resultado.total_acertos_cn)
 
   // Erros por disciplina
   const errosLP = totalLP - acertosLP
@@ -577,30 +826,30 @@ export function getEstatisticasAluno(alunoId: string | number, anoLetivo?: strin
           total: totalLP,
           acertos: acertosLP,
           erros: errosLP,
-          media: toNum(resultado.nota_lp)
+          media: toNumber(resultado.nota_lp)
         },
         'Ciências Humanas': {
           total: totalCH,
           acertos: acertosCH,
           erros: errosCH,
-          media: toNum(resultado.nota_ch)
+          media: toNumber(resultado.nota_ch)
         },
         'Matemática': {
           total: totalMAT,
           acertos: acertosMAT,
           erros: errosMAT,
-          media: toNum(resultado.nota_mat)
+          media: toNumber(resultado.nota_mat)
         },
         'Ciências da Natureza': {
           total: totalCN,
           acertos: acertosCN,
           erros: errosCN,
-          media: toNum(resultado.nota_cn)
+          media: toNumber(resultado.nota_cn)
         }
       },
-      media_geral: toNum(resultado.media_aluno),
+      media_geral: toNumber(resultado.media_aluno),
       nivel_aprendizagem: resultado.nivel_aprendizagem || null,
-      nota_producao: resultado.nota_producao ? toNum(resultado.nota_producao) : null
+      nota_producao: resultado.nota_producao ? toNumber(resultado.nota_producao) : null
     }
   }
 }

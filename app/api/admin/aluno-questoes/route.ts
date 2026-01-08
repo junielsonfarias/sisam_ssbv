@@ -318,9 +318,44 @@ export async function GET(request: NextRequest) {
 
     try {
       // Primeiro tenta buscar da tabela resultados_consolidados (mais confiável)
+      // Media é calculada dinamicamente baseada na série
       const consolidadoResult = await pool.query(
         `SELECT
-          media_aluno,
+          -- Media calculada dinamicamente baseada na serie
+          CASE
+            WHEN REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              ROUND(
+                (
+                  COALESCE(CAST(nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(nota_producao AS DECIMAL), 0)
+                ) /
+                NULLIF(
+                  CASE WHEN nota_lp IS NOT NULL AND CAST(nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN nota_mat IS NOT NULL AND CAST(nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN nota_producao IS NOT NULL AND CAST(nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                  0
+                ),
+                1
+              )
+            ELSE
+              ROUND(
+                (
+                  COALESCE(CAST(nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(nota_ch AS DECIMAL), 0) +
+                  COALESCE(CAST(nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(nota_cn AS DECIMAL), 0)
+                ) /
+                NULLIF(
+                  CASE WHEN nota_lp IS NOT NULL AND CAST(nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN nota_ch IS NOT NULL AND CAST(nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN nota_mat IS NOT NULL AND CAST(nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN nota_cn IS NOT NULL AND CAST(nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                  0
+                ),
+                1
+              )
+          END as media_aluno,
           nota_producao,
           nivel_aprendizagem,
           nota_lp,
@@ -365,10 +400,44 @@ export async function GET(request: NextRequest) {
 
         console.log(`[API] Dados consolidados encontrados para aluno ${alunoId}: media=${mediaGeral}, producao=${notaProducao}`)
       } else {
-        // Fallback: tenta buscar da view unificada
+        // Fallback: tenta buscar da view unificada com média calculada dinamicamente
         const consolidadoView = await pool.query(
           `SELECT
-            media_aluno,
+            -- Media calculada dinamicamente baseada na serie
+            CASE
+              WHEN REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                ROUND(
+                  (
+                    COALESCE(CAST(nota_lp AS DECIMAL), 0) +
+                    COALESCE(CAST(nota_mat AS DECIMAL), 0) +
+                    COALESCE(CAST(nota_producao AS DECIMAL), 0)
+                  ) /
+                  NULLIF(
+                    CASE WHEN nota_lp IS NOT NULL AND CAST(nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN nota_mat IS NOT NULL AND CAST(nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN nota_producao IS NOT NULL AND CAST(nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                    0
+                  ),
+                  1
+                )
+              ELSE
+                ROUND(
+                  (
+                    COALESCE(CAST(nota_lp AS DECIMAL), 0) +
+                    COALESCE(CAST(nota_ch AS DECIMAL), 0) +
+                    COALESCE(CAST(nota_mat AS DECIMAL), 0) +
+                    COALESCE(CAST(nota_cn AS DECIMAL), 0)
+                  ) /
+                  NULLIF(
+                    CASE WHEN nota_lp IS NOT NULL AND CAST(nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN nota_ch IS NOT NULL AND CAST(nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN nota_mat IS NOT NULL AND CAST(nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN nota_cn IS NOT NULL AND CAST(nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                    0
+                  ),
+                  1
+                )
+            END as media_aluno,
             nota_producao,
             nivel_aprendizagem,
             nota_lp,

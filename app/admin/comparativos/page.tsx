@@ -269,7 +269,7 @@ export default function ComparativosPage() {
     if (valor === null || valor === undefined) return '-'
     const num = typeof valor === 'string' ? parseFloat(valor) : valor
     if (isNaN(num)) return '-'
-    return num.toFixed(1)
+    return num.toFixed(2)
   }
 
   const getNotaColor = (nota: number | string | null) => {
@@ -278,6 +278,22 @@ export default function ComparativosPage() {
     if (num >= 7) return 'text-green-600 font-semibold'
     if (num >= 5) return 'text-yellow-600 font-semibold'
     return 'text-red-600 font-semibold'
+  }
+
+  // Verifica se a série é de anos iniciais (2º, 3º, 5º)
+  const isAnosIniciais = (serie: string | null | undefined): boolean => {
+    if (!serie) return false
+    const numeroSerie = serie.toString().replace(/[^0-9]/g, '')
+    return ['2', '3', '5'].includes(numeroSerie)
+  }
+
+  // Formata valor ou retorna N/A se disciplina não aplicável
+  const formatarValorOuNA = (valor: number | string | null, serie: string, disciplina: 'CH' | 'CN'): string => {
+    // CH e CN não se aplicam a anos iniciais
+    if (isAnosIniciais(serie)) {
+      return 'N/A'
+    }
+    return formatarNumero(valor)
   }
 
   const escolasFiltradas = useMemo(() => {
@@ -575,12 +591,16 @@ export default function ComparativosPage() {
                                     </div>
                                   </td>
                                   <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 hidden md:block">{formatarNumero(item.media_acertos_ch)}/10</span>
-                                      <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
-                                        {formatarNumero(item.media_ch)}
-                                      </span>
-                                    </div>
+                                    {isAnosIniciais(item.serie) ? (
+                                      <span className="text-gray-400 dark:text-gray-500 text-xs italic">N/A</span>
+                                    ) : (
+                                      <div className="flex flex-col items-center">
+                                        <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 hidden md:block">{formatarNumero(item.media_acertos_ch)}/10</span>
+                                        <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                          {formatarNumero(item.media_ch)}
+                                        </span>
+                                      </div>
+                                    )}
                                   </td>
                                   <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap">
                                     <div className="flex flex-col items-center">
@@ -591,12 +611,16 @@ export default function ComparativosPage() {
                                     </div>
                                   </td>
                                   <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 hidden md:block">{formatarNumero(item.media_acertos_cn)}/10</span>
-                                      <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
-                                        {formatarNumero(item.media_cn)}
-                                      </span>
-                                    </div>
+                                    {isAnosIniciais(item.serie) ? (
+                                      <span className="text-gray-400 dark:text-gray-500 text-xs italic">N/A</span>
+                                    ) : (
+                                      <div className="flex flex-col items-center">
+                                        <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 hidden md:block">{formatarNumero(item.media_acertos_cn)}/10</span>
+                                        <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                          {formatarNumero(item.media_cn)}
+                                        </span>
+                                      </div>
+                                    )}
                                   </td>
                                   <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap">
                                     <div className={`inline-flex items-center justify-center px-1.5 md:px-3 py-0.5 md:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50 dark:bg-green-900/30' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50 dark:bg-yellow-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
@@ -769,12 +793,16 @@ export default function ComparativosPage() {
                               </div>
                             </td>
                             <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 hidden md:block">{formatarNumero(item.media_acertos_ch)}/10</span>
-                                <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
-                                  {formatarNumero(item.media_ch)}
-                                </span>
-                              </div>
+                              {isAnosIniciais(item.serie) ? (
+                                <span className="text-gray-400 dark:text-gray-500 text-xs italic">N/A</span>
+                              ) : (
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 hidden md:block">{formatarNumero(item.media_acertos_ch)}/10</span>
+                                  <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                    {formatarNumero(item.media_ch)}
+                                  </span>
+                                </div>
+                              )}
                             </td>
                             <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center">
@@ -785,12 +813,16 @@ export default function ComparativosPage() {
                               </div>
                             </td>
                             <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 hidden md:block">{formatarNumero(item.media_acertos_cn)}/10</span>
-                                <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
-                                  {formatarNumero(item.media_cn)}
-                                </span>
-                              </div>
+                              {isAnosIniciais(item.serie) ? (
+                                <span className="text-gray-400 dark:text-gray-500 text-xs italic">N/A</span>
+                              ) : (
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 hidden md:block">{formatarNumero(item.media_acertos_cn)}/10</span>
+                                  <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                    {formatarNumero(item.media_cn)}
+                                  </span>
+                                </div>
+                              )}
                             </td>
                             <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap">
                               <div className={`inline-flex items-center justify-center px-1.5 md:px-3 py-0.5 md:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50 dark:bg-green-900/30' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50 dark:bg-yellow-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>

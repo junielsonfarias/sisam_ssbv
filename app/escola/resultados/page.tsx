@@ -5,7 +5,7 @@ import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2, Eye, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
-import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
+import { obterDisciplinasPorSerieSync, obterTodasDisciplinas } from '@/lib/disciplinas-por-serie'
 
 interface ResultadoConsolidado {
   id: string
@@ -42,6 +42,25 @@ interface Filtros {
   serie?: string
   presenca?: string
   tipo_ensino?: string
+}
+
+// Verifica se uma disciplina e aplicavel para a serie
+const isDisciplinaAplicavel = (codigoDisciplina: string, serie: string | null | undefined): boolean => {
+  if (!serie) return true
+  const numeroSerie = serie.match(/(\d+)/)?.[1]
+  // Anos iniciais (2, 3, 5): CH e CN nao sao aplicaveis
+  if (numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5') {
+    if (codigoDisciplina === 'CH' || codigoDisciplina === 'CN') {
+      return false
+    }
+  }
+  // Anos finais (6, 7, 8, 9): PROD e NIVEL nao sao aplicaveis
+  if (numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9') {
+    if (codigoDisciplina === 'PROD' || codigoDisciplina === 'NIVEL') {
+      return false
+    }
+  }
+  return true
 }
 
 export default function ResultadosEscolaPage() {
@@ -351,7 +370,7 @@ export default function ResultadosEscolaPage() {
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
     if (isNaN(num)) return '-'
     if (num === 0) return '-' // Se nota for 0, também retornar "-"
-    return num.toFixed(1)
+    return num.toFixed(2)
   }
 
   const getNotaNumero = (nota: number | string | null | undefined): number | null => {
@@ -404,15 +423,11 @@ export default function ResultadosEscolaPage() {
     return disciplinas.some(d => d.codigo === codigoDisciplina)
   }, [])
 
-  // Obter disciplinas que devem ser exibidas baseado no filtro de série
+  // Obter disciplinas que devem ser exibidas - SEMPRE mostrar todas as disciplinas
+  // O N/A será tratado na renderização baseado na série de cada aluno
   const disciplinasExibir = useMemo(() => {
-    // Se há filtro de série, mostrar apenas as disciplinas daquela série
-    if (filtros.serie) {
-      return obterDisciplinasPorSerieSync(filtros.serie)
-    }
-    // Sem filtro, retorna todas as disciplinas
-    return obterDisciplinasPorSerieSync(null)
-  }, [filtros.serie])
+    return obterTodasDisciplinas()
+  }, [])
 
   // Calcular estatísticas - EXCLUIR alunos faltantes
   const estatisticas = useMemo(() => {
@@ -666,7 +681,7 @@ export default function ResultadosEscolaPage() {
               <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-4 sm:p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
                   <Target className="w-6 h-6 sm:w-8 sm:h-8 opacity-90" />
-                  <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.mediaGeral.toFixed(1)}</span>
+                  <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.mediaGeral.toFixed(2)}</span>
                 </div>
                 <p className="text-xs sm:text-sm opacity-90">Média Geral</p>
               </div>
@@ -714,7 +729,7 @@ export default function ResultadosEscolaPage() {
                 <div className="flex items-end justify-between">
                   <div>
                     <p className="text-3xl sm:text-4xl font-bold text-emerald-700 dark:text-emerald-400">
-                      {estatisticasAPI.mediaAnosIniciais > 0 ? estatisticasAPI.mediaAnosIniciais.toFixed(1) : '-'}
+                      {estatisticasAPI.mediaAnosIniciais > 0 ? estatisticasAPI.mediaAnosIniciais.toFixed(2) : '-'}
                     </p>
                     <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                       Média de desempenho
@@ -755,7 +770,7 @@ export default function ResultadosEscolaPage() {
                 <div className="flex items-end justify-between">
                   <div>
                     <p className="text-3xl sm:text-4xl font-bold text-violet-700 dark:text-violet-400">
-                      {estatisticasAPI.mediaAnosFinais > 0 ? estatisticasAPI.mediaAnosFinais.toFixed(1) : '-'}
+                      {estatisticasAPI.mediaAnosFinais > 0 ? estatisticasAPI.mediaAnosFinais.toFixed(2) : '-'}
                     </p>
                     <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">
                       Média de desempenho
@@ -790,7 +805,7 @@ export default function ResultadosEscolaPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Língua Portuguesa</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaLP)}`}>
-                      {estatisticasAPI.mediaLP.toFixed(1)}
+                      {estatisticasAPI.mediaLP.toFixed(2)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-400 flex-shrink-0 ml-1" />
@@ -810,7 +825,7 @@ export default function ResultadosEscolaPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCH)}`}>
-                      {estatisticasAPI.mediaCH.toFixed(1)}
+                      {estatisticasAPI.mediaCH.toFixed(2)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0 ml-1" />
@@ -830,7 +845,7 @@ export default function ResultadosEscolaPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Matemática</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaMAT)}`}>
-                      {estatisticasAPI.mediaMAT.toFixed(1)}
+                      {estatisticasAPI.mediaMAT.toFixed(2)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 flex-shrink-0 ml-1" />
@@ -850,7 +865,7 @@ export default function ResultadosEscolaPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCN)}`}>
-                      {estatisticasAPI.mediaCN.toFixed(1)}
+                      {estatisticasAPI.mediaCN.toFixed(2)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0 ml-1" />
@@ -938,14 +953,14 @@ export default function ResultadosEscolaPage() {
                           {disciplinasExibir.map((disciplina) => {
                             const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                             const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
-                            const existeNaSerie = disciplinaExisteNaSerie(resultado.serie, disciplina.codigo)
-
-                            if (!existeNaSerie) return null
+                            const aplicavel = isDisciplinaAplicavel(disciplina.codigo, resultado.serie)
 
                             return (
-                              <div key={disciplina.codigo} className={`p-2 rounded-lg ${getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
+                              <div key={disciplina.codigo} className={`p-2 rounded-lg ${!aplicavel ? 'bg-gray-100 dark:bg-slate-700' : getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
                                 <div className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{disciplina.codigo}</div>
-                                {disciplina.tipo === 'nivel' ? (
+                                {!aplicavel ? (
+                                  <div className="text-base font-bold text-gray-400">N/A</div>
+                                ) : disciplina.tipo === 'nivel' ? (
                                   <div className={`text-xs font-bold ${resultado.nivel_aprendizagem ? 'text-indigo-600' : 'text-gray-500'}`}>
                                     {resultado.nivel_aprendizagem || '-'}
                                   </div>
@@ -1109,11 +1124,13 @@ export default function ResultadosEscolaPage() {
                             {disciplinasExibir.map((disciplina) => {
                               const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                               const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
-                              const existeNaSerie = disciplinaExisteNaSerie(resultado.serie, disciplina.codigo)
+                              const aplicavel = isDisciplinaAplicavel(disciplina.codigo, resultado.serie)
 
                               return (
                                 <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                  {existeNaSerie ? (
+                                  {!aplicavel ? (
+                                    <span className="text-gray-400 font-bold">N/A</span>
+                                  ) : (
                                     <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                       {disciplina.tipo === 'objetiva' && acertos !== null && (
                                         <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
@@ -1134,7 +1151,7 @@ export default function ResultadosEscolaPage() {
                                         </div>
                                       )}
                                     </div>
-                                  ) : <span className="text-gray-400">-</span>}
+                                  )}
                                 </td>
                               )
                             })}

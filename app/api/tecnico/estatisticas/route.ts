@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { parseDbInt, parseDbNumber } from '@/lib/utils-numeros'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Sempre revalidar, sem cache
@@ -24,28 +25,28 @@ export async function GET(request: NextRequest) {
 
     try {
       const escolasResult = await pool.query('SELECT COUNT(*) as total FROM escolas WHERE ativo = true')
-      totalEscolas = parseInt(escolasResult.rows[0]?.total || '0', 10) || 0
+      totalEscolas = parseDbInt(escolasResult.rows[0]?.total)
     } catch (error: any) {
       console.error('Erro ao buscar total de escolas:', error.message)
     }
 
     try {
       const polosResult = await pool.query('SELECT COUNT(*) as total FROM polos WHERE ativo = true')
-      totalPolos = parseInt(polosResult.rows[0]?.total || '0', 10) || 0
+      totalPolos = parseDbInt(polosResult.rows[0]?.total)
     } catch (error: any) {
       console.error('Erro ao buscar total de polos:', error.message)
     }
 
     try {
       const resultadosResult = await pool.query('SELECT COUNT(*) as total FROM resultados_provas')
-      totalResultados = parseInt(resultadosResult.rows[0]?.total || '0', 10) || 0
+      totalResultados = parseDbInt(resultadosResult.rows[0]?.total)
     } catch (error: any) {
       console.error('Erro ao buscar total de resultados:', error.message)
     }
 
     try {
       const alunosResult = await pool.query('SELECT COUNT(*) as total FROM alunos WHERE ativo = true')
-      totalAlunos = parseInt(alunosResult.rows[0]?.total || '0', 10) || 0
+      totalAlunos = parseDbInt(alunosResult.rows[0]?.total)
     } catch (error: any) {
       console.error('Erro ao buscar total de alunos:', error.message)
     }
@@ -56,17 +57,21 @@ export async function GET(request: NextRequest) {
         FROM resultados_consolidados_unificada
         WHERE presenca = 'P' OR presenca = 'p'
       `)
-      totalAlunosPresentes = parseInt(presencaResult.rows[0]?.presentes || '0', 10) || 0
+      totalAlunosPresentes = parseDbInt(presencaResult.rows[0]?.presentes)
     } catch (error: any) {
       console.error('Erro ao buscar alunos presentes:', error.message)
     }
 
     try {
+      // Usa media_aluno já calculada corretamente durante importação (com fórmula 70%/30% para anos iniciais)
       const mediaResult = await pool.query(`
-        SELECT ROUND(AVG(CASE WHEN (presenca = 'P' OR presenca = 'p') AND (media_aluno IS NOT NULL AND CAST(media_aluno AS DECIMAL) > 0) THEN CAST(media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
+        SELECT ROUND(AVG(CAST(media_aluno AS DECIMAL)), 2) as media_geral
         FROM resultados_consolidados_unificada
+        WHERE (presenca = 'P' OR presenca = 'p')
+          AND media_aluno IS NOT NULL
+          AND CAST(media_aluno AS DECIMAL) > 0
       `)
-      mediaGeral = parseFloat(mediaResult.rows[0]?.media_geral || '0') || 0
+      mediaGeral = parseDbNumber(mediaResult.rows[0]?.media_geral)
     } catch (error: any) {
       console.error('Erro ao buscar média geral:', error.message)
     }
@@ -78,25 +83,27 @@ export async function GET(request: NextRequest) {
     let totalAnosFinais = 0
 
     try {
-      // Extrair apenas o número da série para fazer o JOIN (ex: '2º Ano' -> '2')
+      // Usa media_aluno já calculada corretamente durante importação
       const mediaTipoResult = await pool.query(`
         SELECT
           cs.tipo_ensino,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno > 0 THEN rc.media_aluno ELSE NULL END), 2) as media,
-          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno > 0 THEN 1 END) as total
+          ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
+          COUNT(*) as total
         FROM resultados_consolidados_unificada rc
         JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') = cs.serie
         WHERE rc.presenca IN ('P', 'p')
+          AND rc.media_aluno IS NOT NULL
+          AND CAST(rc.media_aluno AS DECIMAL) > 0
         GROUP BY cs.tipo_ensino
       `)
 
       for (const row of mediaTipoResult.rows) {
         if (row.tipo_ensino === 'anos_iniciais') {
-          mediaAnosIniciais = parseFloat(row.media || '0') || 0
-          totalAnosIniciais = parseInt(row.total || '0', 10) || 0
+          mediaAnosIniciais = parseDbNumber(row.media)
+          totalAnosIniciais = parseDbInt(row.total)
         } else if (row.tipo_ensino === 'anos_finais') {
-          mediaAnosFinais = parseFloat(row.media || '0') || 0
-          totalAnosFinais = parseInt(row.total || '0', 10) || 0
+          mediaAnosFinais = parseDbNumber(row.media)
+          totalAnosFinais = parseDbInt(row.total)
         }
       }
     } catch (error: any) {

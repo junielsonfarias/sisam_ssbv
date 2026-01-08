@@ -5,7 +5,7 @@ import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Target, CheckCircle2, Eye, WifiOff } from 'lucide-react'
-import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
+import { obterDisciplinasPorSerieSync, obterTodasDisciplinas } from '@/lib/disciplinas-por-serie'
 import * as offlineStorage from '@/lib/offline-storage'
 
 interface ResultadoConsolidado {
@@ -684,28 +684,52 @@ export default function ResultadosPage() {
     return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
   }
 
-  const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
+  // Verifica se uma disciplina e aplicavel para a serie
+  const isDisciplinaAplicavel = (codigoDisciplina: string, serie: string | null | undefined): boolean => {
+    if (!serie) return true
+    const numeroSerie = serie.match(/(\d+)/)?.[1]
+    // Anos iniciais (2, 3, 5): CH e CN nao sao aplicaveis
+    if (numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5') {
+      if (codigoDisciplina === 'CH' || codigoDisciplina === 'CN') {
+        return false
+      }
+    }
+    // Anos finais (6, 7, 8, 9): PROD e NIVEL nao sao aplicaveis
+    if (numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9') {
+      if (codigoDisciplina === 'PROD' || codigoDisciplina === 'NIVEL') {
+        return false
+      }
+    }
+    return true
+  }
+
+  const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null, codigoDisciplina?: string, serie?: string | null): string => {
+    // Se a disciplina nao e aplicavel para a serie, retornar N/A
+    if (codigoDisciplina && serie && !isDisciplinaAplicavel(codigoDisciplina, serie)) {
+      return 'N/A'
+    }
+
     // Se não houver dados de frequência, sempre retornar "-"
     if (presenca === '-') {
       return '-'
     }
-    
+
     // Se aluno faltou, sempre retornar "-"
     if (presenca === 'F' || presenca === 'f') {
       return '-'
     }
-    
+
     // Se média do aluno for 0 ou null, considerar faltante
     const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
     if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) {
       return '-'
     }
-    
+
     if (nota === null || nota === undefined || nota === '') return '-'
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
     if (isNaN(num)) return '-'
     if (num === 0) return '-' // Se nota for 0, também retornar "-"
-    return num.toFixed(1)
+    return num.toFixed(2)
   }
 
   const getNotaNumero = (nota: number | string | null | undefined): number | null => {
@@ -742,14 +766,11 @@ export default function ResultadosPage() {
     return false
   }, [filtros.serie, resultadosFiltrados])
 
-  // Obter disciplinas que devem ser exibidas baseadas na série selecionada (para cabeçalhos)
-  // Se não houver série específica selecionada, mostra todas as disciplinas (incluindo PROD)
+  // Obter disciplinas que devem ser exibidas - SEMPRE mostrar todas as disciplinas
+  // O N/A será tratado na renderização baseado na série de cada aluno
   const disciplinasExibir = useMemo(() => {
-    if (!filtros.serie) {
-      return obterDisciplinasPorSerieSync(null)
-    }
-    return obterDisciplinasPorSerieSync(filtros.serie)
-  }, [filtros.serie])
+    return obterTodasDisciplinas()
+  }, [])
 
   // Função para obter o total de questões: prioriza valores do banco, depois fallback para hardcoded
   const getTotalQuestoesPorSerie = useCallback((resultado: ResultadoConsolidado, codigoDisciplina: string): number | undefined => {
@@ -1041,7 +1062,7 @@ export default function ResultadosPage() {
               <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
                   <Target className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.mediaGeral.toFixed(1)}</span>
+                  <span className="text-3xl font-bold">{estatisticas.mediaGeral.toFixed(2)}</span>
                 </div>
                 <p className="text-sm opacity-90">Média Geral</p>
               </div>
@@ -1089,7 +1110,7 @@ export default function ResultadosPage() {
                 <div className="flex items-end justify-between">
                   <div>
                     <p className="text-3xl sm:text-4xl font-bold text-emerald-700 dark:text-emerald-400">
-                      {estatisticasGerais.mediaAnosIniciais > 0 ? estatisticasGerais.mediaAnosIniciais.toFixed(1) : '-'}
+                      {estatisticasGerais.mediaAnosIniciais > 0 ? estatisticasGerais.mediaAnosIniciais.toFixed(2) : '-'}
                     </p>
                     <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                       Média de desempenho
@@ -1130,7 +1151,7 @@ export default function ResultadosPage() {
                 <div className="flex items-end justify-between">
                   <div>
                     <p className="text-3xl sm:text-4xl font-bold text-violet-700 dark:text-violet-400">
-                      {estatisticasGerais.mediaAnosFinais > 0 ? estatisticasGerais.mediaAnosFinais.toFixed(1) : '-'}
+                      {estatisticasGerais.mediaAnosFinais > 0 ? estatisticasGerais.mediaAnosFinais.toFixed(2) : '-'}
                     </p>
                     <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">
                       Média de desempenho
@@ -1166,7 +1187,7 @@ export default function ResultadosPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Língua Portuguesa</p>
                     <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaLP)}`}>
-                      {estatisticas.mediaLP.toFixed(1)}
+                      {estatisticas.mediaLP.toFixed(2)}
                     </p>
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400 flex-shrink-0 ml-2" />
@@ -1188,7 +1209,7 @@ export default function ResultadosPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
                       <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCH)}`}>
-                        {estatisticas.mediaCH.toFixed(1)}
+                        {estatisticas.mediaCH.toFixed(2)}
                       </p>
                     </div>
                     <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 flex-shrink-0 ml-2" />
@@ -1210,7 +1231,7 @@ export default function ResultadosPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Matemática</p>
                     <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaMAT)}`}>
-                      {estatisticas.mediaMAT.toFixed(1)}
+                      {estatisticas.mediaMAT.toFixed(2)}
                     </p>
                   </div>
                   <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400 flex-shrink-0 ml-2" />
@@ -1232,7 +1253,7 @@ export default function ResultadosPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
                       <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaCN)}`}>
-                        {estatisticas.mediaCN.toFixed(1)}
+                        {estatisticas.mediaCN.toFixed(2)}
                       </p>
                     </div>
                     <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400 flex-shrink-0 ml-2" />
@@ -1255,7 +1276,7 @@ export default function ResultadosPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Produção Textual</p>
                       <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticasGerais.mediaProducao)}`}>
-                        {estatisticasGerais.mediaProducao.toFixed(1)}
+                        {estatisticasGerais.mediaProducao.toFixed(2)}
                       </p>
                     </div>
                     <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400 flex-shrink-0 ml-2" />
@@ -1361,9 +1382,11 @@ export default function ResultadosPage() {
                             const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
 
                             return (
-                              <div key={disciplina.codigo} className={`p-2 rounded-lg ${getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
+                              <div key={disciplina.codigo} className={`p-2 rounded-lg ${!isDisciplinaAplicavel(disciplina.codigo, resultado.serie) ? 'bg-gray-100 dark:bg-slate-700' : getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
                                 <div className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{disciplina.codigo}</div>
-                                {disciplina.tipo === 'nivel' ? (
+                                {!isDisciplinaAplicavel(disciplina.codigo, resultado.serie) ? (
+                                  <div className="text-base font-bold text-gray-400">N/A</div>
+                                ) : disciplina.tipo === 'nivel' ? (
                                   <div className={`text-xs font-bold ${nivelAprendizagem ? getNivelColor(nivelAprendizagem).replace('bg-', 'text-').split(' ')[0] : 'text-gray-500'}`}>
                                     {nivelAprendizagem || '-'}
                                   </div>
@@ -1568,7 +1591,11 @@ export default function ResultadosPage() {
                               
                               return (
                                 <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                  {disciplina.tipo === 'nivel' ? (
+                                  {!isDisciplinaAplicavel(disciplina.codigo, resultado.serie) ? (
+                                    <div className="inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg bg-gray-100 dark:bg-slate-700 w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]">
+                                      <div className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold text-gray-400">N/A</div>
+                                    </div>
+                                  ) : disciplina.tipo === 'nivel' ? (
                                     <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] md:text-xs font-semibold ${getNivelColor(nivelAprendizagem || '')}`}>
                                       {nivelAprendizagem || '-'}
                                     </span>

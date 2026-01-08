@@ -13,7 +13,7 @@ interface ModalHistoricoAlunoProps {
 
 const formatarNota = (nota: any): string => {
   if (nota == null || nota === '') return '-'
-  return parseFloat(String(nota)).toFixed(1)
+  return parseFloat(String(nota)).toFixed(2)
 }
 
 const formatarMedia = (media: any): string => {

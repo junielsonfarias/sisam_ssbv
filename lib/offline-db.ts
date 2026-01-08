@@ -1,7 +1,7 @@
 // Sistema de armazenamento offline usando IndexedDB
 
 const DB_NAME = 'sisam-offline-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incrementado para adicionar store CONFIG_SERIES
 
 // Stores (tabelas) do IndexedDB
 const STORES = {
@@ -10,6 +10,7 @@ const STORES = {
   POLOS: 'polos',
   TURMAS: 'turmas',
   ALUNOS: 'alunos',
+  CONFIG_SERIES: 'config_series',
   SYNC_META: 'sync_meta',
   USER_DATA: 'user_data'
 };
@@ -86,6 +87,12 @@ class OfflineDB {
 
         if (!db.objectStoreNames.contains(STORES.USER_DATA)) {
           db.createObjectStore(STORES.USER_DATA, { keyPath: 'id' });
+        }
+
+        if (!db.objectStoreNames.contains(STORES.CONFIG_SERIES)) {
+          const configSeriesStore = db.createObjectStore(STORES.CONFIG_SERIES, { keyPath: 'id' });
+          configSeriesStore.createIndex('serie', 'serie', { unique: false });
+          configSeriesStore.createIndex('tipo_ensino', 'tipo_ensino', { unique: false });
         }
       };
     });

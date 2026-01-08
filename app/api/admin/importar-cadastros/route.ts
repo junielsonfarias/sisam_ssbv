@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
+import { limparTodosOsCaches } from '@/lib/cache-dashboard'
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -286,6 +287,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Invalidar cache do dashboard após importação bem-sucedida
+    try {
+      limparTodosOsCaches()
+      console.log('[Importação] Cache do dashboard invalidado após importação')
+    } catch (cacheError) {
+      console.error('[Importação] Erro ao invalidar cache (não crítico):', cacheError)
+    }
+
     return NextResponse.json({
       mensagem: 'Cadastros importados com sucesso',
       ano_letivo: anoLetivo,
@@ -319,6 +328,7 @@ export async function POST(request: NextRequest) {
           existentes: questoesCriadas.existentes,
         },
       },
+      cache_invalidado: true,
     })
   } catch (error: any) {
     console.error('Erro ao importar cadastros:', error)

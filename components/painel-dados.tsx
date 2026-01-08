@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   BarChart3, School, Users, GraduationCap, BookOpen, TrendingUp,
   CheckCircle, XCircle, Search, Filter, X, Eye, ChevronLeft, ChevronRight,
   Award, Target, CheckCircle2, RefreshCw
 } from 'lucide-react'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
+import { obterDisciplinasPorSerieSync, obterTodasDisciplinas } from '@/lib/disciplinas-por-serie'
 
 // Tipos
 interface ResultadoConsolidado {
@@ -121,13 +121,36 @@ const getPresencaColor = (presenca: string) => {
   return 'bg-gray-100 text-gray-800'
 }
 
-const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
+// Verifica se uma disciplina e aplicavel para a serie
+const isDisciplinaAplicavel = (codigoDisciplina: string, serie: string | null | undefined): boolean => {
+  if (!serie) return true
+  const numeroSerie = serie.match(/(\d+)/)?.[1]
+  // Anos iniciais (2, 3, 5): CH e CN nao sao aplicaveis
+  if (numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5') {
+    if (codigoDisciplina === 'CH' || codigoDisciplina === 'CN') {
+      return false
+    }
+  }
+  // Anos finais (6, 7, 8, 9): PROD e NIVEL nao sao aplicaveis
+  if (numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9') {
+    if (codigoDisciplina === 'PROD' || codigoDisciplina === 'NIVEL') {
+      return false
+    }
+  }
+  return true
+}
+
+const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null, codigoDisciplina?: string, serie?: string | null): string => {
+  // Se a disciplina nao e aplicavel para a serie, retornar N/A
+  if (codigoDisciplina && serie && !isDisciplinaAplicavel(codigoDisciplina, serie)) {
+    return 'N/A'
+  }
   if (presenca === 'F' || presenca === 'f') return '-'
   if (nota === null || nota === undefined || nota === '') return '-'
   const num = typeof nota === 'string' ? parseFloat(nota) : nota
   if (isNaN(num)) return '-'
   if (num === 0) return '-'
-  return num.toFixed(1)
+  return num.toFixed(2)
 }
 
 const getNivelColor = (nivel: string | undefined | null): string => {
@@ -206,8 +229,6 @@ export default function PainelDados({
     };
   } | null>(null)
 
-  // Ref para abas (usada no sticky)
-  const abasContainerRef = useRef<HTMLDivElement>(null)
 
   // Listas para filtros
   const [listaEscolas, setListaEscolas] = useState<any[]>([])
@@ -319,6 +340,8 @@ export default function PainelDados({
       const params = new URLSearchParams()
       params.set('pagina', pagina.toString())
       params.set('limite', '50')
+      // Forçar atualização do cache para garantir dados atualizados
+      params.set('atualizar_cache', 'true')
       if (filtrosAlunos.escola_id) params.set('escola_id', filtrosAlunos.escola_id)
       if (filtrosAlunos.turma_id) params.set('turma_id', filtrosAlunos.turma_id)
       if (filtrosAlunos.serie) params.set('serie', filtrosAlunos.serie)
@@ -328,6 +351,17 @@ export default function PainelDados({
       const response = await fetch(`${resultadosEndpoint}?${params.toString()}&_t=${Date.now()}`)
       if (response.ok) {
         const data = await response.json()
+        // DEBUG: verificar dados recebidos da API
+        const julias = (data.resultados || []).filter((r: any) => r.aluno_nome?.toLowerCase().includes('julia'))
+        if (julias.length > 0) {
+          console.log('DEBUG PAINEL - Julia encontrada:', {
+            nome: julias[0].aluno_nome,
+            serie: julias[0].serie,
+            media_aluno: julias[0].media_aluno,
+            _debug_tipo_calculo: julias[0]._debug_tipo_calculo,
+            _debug_media_banco: julias[0]._debug_media_banco
+          })
+        }
         setResultados(data.resultados || [])
         setPaginacao({
           pagina: data.paginacao?.pagina || 1,
@@ -373,13 +407,11 @@ export default function PainelDados({
     }
   }
 
-  // Disciplinas para exibir
+  // Disciplinas para exibir - SEMPRE mostrar todas as disciplinas
+  // O N/A será tratado na renderização baseado na série de cada aluno
   const disciplinasExibir = useMemo(() => {
-    if (!filtrosAlunos.serie) {
-      return obterDisciplinasPorSerieSync(null)
-    }
-    return obterDisciplinasPorSerieSync(filtrosAlunos.serie)
-  }, [filtrosAlunos.serie])
+    return obterTodasDisciplinas()
+  }, [])
 
   // Função para obter total de questões: prioriza valores do banco, depois fallback para hardcoded
   const getTotalQuestoesPorSerie = useCallback((resultado: ResultadoConsolidado, codigoDisciplina: string): number | undefined => {
@@ -432,15 +464,6 @@ export default function PainelDados({
     }
   }
 
-  // Abas disponiveis baseado no tipo de usuario
-  const abas: { id: AbaAtiva; label: string; icon: React.ReactNode }[] = [
-    { id: 'geral', label: 'Geral', icon: <BarChart3 className="w-4 h-4" /> },
-    ...(tipoUsuario !== 'escola' ? [{ id: 'escolas' as AbaAtiva, label: 'Escolas', icon: <School className="w-4 h-4" /> }] : []),
-    { id: 'turmas', label: 'Turmas', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'alunos', label: 'Alunos', icon: <GraduationCap className="w-4 h-4" /> },
-    { id: 'analises', label: 'Analises', icon: <TrendingUp className="w-4 h-4" /> },
-  ]
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -450,29 +473,6 @@ export default function PainelDados({
           <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Polo: {estatisticas.nomePolo}</p>
         )}
       </div>
-
-      {/* Abas - Sticky */}
-      <div ref={abasContainerRef} className="sticky top-0 z-40 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-2 pb-1 bg-gray-50 dark:bg-slate-900">
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
-          <div className="flex overflow-x-auto">
-            {abas.map((aba) => (
-              <button
-                key={aba.id}
-                onClick={() => setAbaAtiva(aba.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  abaAtiva === aba.id
-                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-700'
-                }`}
-              >
-                {aba.icon}
-                {aba.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
 
       {/* Conteudo das Abas */}
       <div className="space-y-4">
@@ -630,7 +630,7 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Est
             <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-blue-700 dark:text-blue-400">
-            {estatisticas.mediaGeral > 0 ? estatisticas.mediaGeral.toFixed(1) : '-'}
+            {estatisticas.mediaGeral > 0 ? estatisticas.mediaGeral.toFixed(2) : '-'}
           </p>
           {estatisticas.mediaGeral > 0 && (
             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
@@ -655,7 +655,7 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Est
           <div className="flex items-end justify-between">
             <div>
               <p className="text-3xl sm:text-4xl font-bold text-emerald-700 dark:text-emerald-400">
-                {estatisticas.mediaAnosIniciais > 0 ? estatisticas.mediaAnosIniciais.toFixed(1) : '-'}
+                {estatisticas.mediaAnosIniciais > 0 ? estatisticas.mediaAnosIniciais.toFixed(2) : '-'}
               </p>
               <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Media de desempenho</p>
             </div>
@@ -691,7 +691,7 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Est
           <div className="flex items-end justify-between">
             <div>
               <p className="text-3xl sm:text-4xl font-bold text-violet-700 dark:text-violet-400">
-                {estatisticas.mediaAnosFinais > 0 ? estatisticas.mediaAnosFinais.toFixed(1) : '-'}
+                {estatisticas.mediaAnosFinais > 0 ? estatisticas.mediaAnosFinais.toFixed(2) : '-'}
               </p>
               <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">Media de desempenho</p>
             </div>
@@ -723,7 +723,7 @@ function AbaEscolas({ escolas, busca, setBusca, carregando }: { escolas: Escola[
   return (
     <div className="space-y-4">
       {/* Busca - Sticky */}
-      <div className="sticky top-[52px] z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-2 bg-gray-50 dark:bg-slate-900">
+      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-2 bg-gray-50 dark:bg-slate-900">
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -775,7 +775,7 @@ function AbaEscolas({ escolas, busca, setBusca, carregando }: { escolas: Escola[
                     <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{escola.total_turmas || 0}</td>
                     <td className="py-3 px-4 text-center">
                       <span className={`font-bold text-sm ${getNotaColor(escola.media_geral)}`}>
-                        {escola.media_geral ? escola.media_geral.toFixed(1) : '-'}
+                        {escola.media_geral ? escola.media_geral.toFixed(2) : '-'}
                       </span>
                     </td>
                   </tr>
@@ -794,7 +794,7 @@ function AbaTurmas({ turmas, busca, setBusca, carregando }: { turmas: Turma[]; b
   return (
     <div className="space-y-4">
       {/* Busca - Sticky */}
-      <div className="sticky top-[52px] z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-2 bg-gray-50 dark:bg-slate-900">
+      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-2 bg-gray-50 dark:bg-slate-900">
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -846,7 +846,7 @@ function AbaTurmas({ turmas, busca, setBusca, carregando }: { turmas: Turma[]; b
                     <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{turma.total_alunos || 0}</td>
                     <td className="py-3 px-4 text-center">
                       <span className={`font-bold text-sm ${getNotaColor(turma.media_geral)}`}>
-                        {turma.media_geral ? turma.media_geral.toFixed(1) : '-'}
+                        {turma.media_geral ? turma.media_geral.toFixed(2) : '-'}
                       </span>
                     </td>
                   </tr>
@@ -908,8 +908,8 @@ function AbaAlunos({
 
   return (
     <div className="flex flex-col flex-1 space-y-2 min-h-0">
-      {/* Filtro Rápido de Série - Sticky abaixo das abas */}
-      <div className="sticky top-[52px] z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-1 bg-gray-50 dark:bg-slate-900">
+      {/* Filtro Rápido de Série - Sticky */}
+      <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 py-1 bg-gray-50 dark:bg-slate-900">
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 px-3 py-2">
           <div className="flex items-center gap-2 overflow-x-auto">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">Série:</span>
@@ -1116,11 +1116,14 @@ function AbaAlunos({
                       const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                       const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
                       const totalQuestoes = getTotalQuestoesPorSerie(resultado, disciplina.codigo)
+                      const aplicavel = isDisciplinaAplicavel(disciplina.codigo, resultado.serie)
 
                       return (
                         <td key={disciplina.codigo} className="text-center py-2 px-1">
                           <div className="flex flex-col items-center">
-                            {disciplina.tipo === 'nivel' ? (
+                            {!aplicavel ? (
+                              <span className="text-gray-400 font-bold text-sm">N/A</span>
+                            ) : disciplina.tipo === 'nivel' ? (
                               <span className={`text-xs font-medium px-1 py-0.5 rounded ${getNivelColor(resultado.nivel_aprendizagem)}`}>
                                 {resultado.nivel_aprendizagem?.substring(0, 3) || '-'}
                               </span>
@@ -1234,7 +1237,7 @@ function AbaAnalises({ estatisticas, carregando }: { estatisticas: Estatisticas;
           <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Media Geral</p>
             <p className={`text-2xl font-bold ${getNotaColor(estatisticas.mediaGeral)}`}>
-              {estatisticas.mediaGeral > 0 ? estatisticas.mediaGeral.toFixed(1) : '-'}
+              {estatisticas.mediaGeral > 0 ? estatisticas.mediaGeral.toFixed(2) : '-'}
             </p>
             <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
               <div
@@ -1250,12 +1253,12 @@ function AbaAnalises({ estatisticas, carregando }: { estatisticas: Estatisticas;
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Anos Iniciais</p>
-                <p className="text-lg font-bold text-emerald-600">{estatisticas.mediaAnosIniciais.toFixed(1)}</p>
+                <p className="text-lg font-bold text-emerald-600">{estatisticas.mediaAnosIniciais.toFixed(2)}</p>
               </div>
               <div className="text-gray-400">vs</div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Anos Finais</p>
-                <p className="text-lg font-bold text-violet-600">{estatisticas.mediaAnosFinais.toFixed(1)}</p>
+                <p className="text-lg font-bold text-violet-600">{estatisticas.mediaAnosFinais.toFixed(2)}</p>
               </div>
             </div>
           </div>

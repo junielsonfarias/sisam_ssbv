@@ -29,7 +29,8 @@ function obterDisciplinasPadrao(): Disciplina[] {
 
 /**
  * Retorna todas as disciplinas (para exibição quando filtro "Todos" está ativo)
- * Ordem: LP, MAT, CH, CN, PROD
+ * Ordem: LP, MAT, CH, CN, PROD, NIVEL
+ * Disciplinas não aplicáveis à série do aluno serão exibidas como N/A
  */
 export function obterTodasDisciplinas(): Disciplina[] {
   return [
@@ -38,6 +39,7 @@ export function obterTodasDisciplinas(): Disciplina[] {
     { codigo: 'CH', nome: 'Ciências Humanas', campo_nota: 'nota_ch', campo_acertos: 'total_acertos_ch', total_questoes: 10, tipo: 'objetiva' },
     { codigo: 'CN', nome: 'Ciências da Natureza', campo_nota: 'nota_cn', campo_acertos: 'total_acertos_cn', total_questoes: 10, tipo: 'objetiva' },
     { codigo: 'PROD', nome: 'Produção Textual', campo_nota: 'nota_producao', campo_acertos: '', tipo: 'textual' },
+    { codigo: 'NIVEL', nome: 'Nível de Aprendizagem', campo_nota: 'nivel_aprendizagem', campo_acertos: '', tipo: 'nivel' },
   ]
 }
 

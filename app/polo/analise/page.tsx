@@ -356,7 +356,7 @@ export default function PoloAnalisePage() {
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
     if (isNaN(num)) return '-'
     if (num === 0) return '-'
-    return num.toFixed(1)
+    return num.toFixed(2)
   }
 
   const getNotaNumero = (nota: number | string | null | undefined): number | null => {
@@ -602,7 +602,7 @@ export default function PoloAnalisePage() {
               <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-4 sm:p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
                   <Target className="w-6 h-6 sm:w-8 sm:h-8 opacity-90" />
-                  <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.mediaGeral.toFixed(1)}</span>
+                  <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.mediaGeral.toFixed(2)}</span>
                 </div>
                 <p className="text-xs sm:text-sm opacity-90">Média Geral</p>
               </div>
@@ -640,7 +640,7 @@ export default function PoloAnalisePage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Língua Portuguesa</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaLP)}`}>
-                      {estatisticasAPI.mediaLP.toFixed(1)}
+                      {estatisticasAPI.mediaLP.toFixed(2)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-400 flex-shrink-0 ml-1" />
@@ -662,7 +662,7 @@ export default function PoloAnalisePage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências Humanas</p>
                       <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCH)}`}>
-                        {estatisticasAPI.mediaCH.toFixed(1)}
+                        {estatisticasAPI.mediaCH.toFixed(2)}
                       </p>
                     </div>
                     <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0 ml-1" />
@@ -684,7 +684,7 @@ export default function PoloAnalisePage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Matemática</p>
                     <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaMAT)}`}>
-                      {estatisticasAPI.mediaMAT.toFixed(1)}
+                      {estatisticasAPI.mediaMAT.toFixed(2)}
                     </p>
                   </div>
                   <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 flex-shrink-0 ml-1" />
@@ -706,7 +706,7 @@ export default function PoloAnalisePage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciências da Natureza</p>
                       <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCN)}`}>
-                        {estatisticasAPI.mediaCN.toFixed(1)}
+                        {estatisticasAPI.mediaCN.toFixed(2)}
                       </p>
                     </div>
                     <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0 ml-1" />

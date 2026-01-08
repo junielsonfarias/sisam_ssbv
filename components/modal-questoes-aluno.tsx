@@ -298,8 +298,8 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                     <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
                       {/* Prioriza a média passada diretamente do resultado consolidado */}
                       {mediaAluno !== undefined && mediaAluno !== null
-                        ? Number(mediaAluno).toFixed(1)
-                        : (dados.estatisticas.media_geral?.toFixed(1) || '-')}
+                        ? Number(mediaAluno).toFixed(2)
+                        : (dados.estatisticas.media_geral?.toFixed(2) || '-')}
                     </p>
                     {dados.estatisticas.nivel_aprendizagem && (
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{dados.estatisticas.nivel_aprendizagem}</p>
@@ -333,7 +333,7 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                           {notaExibir !== null && (
                             <div className={`px-3 py-1 rounded-lg bg-gradient-to-r ${area.corClasses} text-white`}>
                               <span className="text-xs font-medium">Nota: </span>
-                              <span className="text-lg font-bold">{notaExibir.toFixed(1)}</span>
+                              <span className="text-lg font-bold">{notaExibir.toFixed(2)}</span>
                             </div>
                           )}
                         </div>
@@ -402,7 +402,7 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                       </div>
                       <div className="px-3 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                         <span className="text-xs font-medium">Média: </span>
-                        <span className="text-lg font-bold">{dados.estatisticas.nota_producao.toFixed(1)}</span>
+                        <span className="text-lg font-bold">{dados.estatisticas.nota_producao.toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -434,7 +434,7 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                                     : 'text-red-700 dark:text-red-400'
                                   : 'text-gray-500 dark:text-gray-400'
                               }`}>
-                                {itemProd.nota !== null ? itemProd.nota.toFixed(1) : '-'}
+                                {itemProd.nota !== null ? itemProd.nota.toFixed(2) : '-'}
                               </p>
                             </div>
                           ))}

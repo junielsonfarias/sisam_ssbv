@@ -224,7 +224,7 @@ export default function ComparativosPolosPage() {
     if (valor === null || valor === undefined) return '-'
     const num = typeof valor === 'string' ? parseFloat(valor) : valor
     if (isNaN(num)) return '-'
-    return num.toFixed(1)
+    return num.toFixed(2)
   }
 
   const getNotaColor = (nota: number | string | null) => {

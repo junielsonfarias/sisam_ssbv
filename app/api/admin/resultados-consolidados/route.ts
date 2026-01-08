@@ -68,6 +68,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Otimizar query: usar JOIN ao invés de subconsultas
+    // IMPORTANTE: media_aluno é calculada dinamicamente baseada na série:
+    // - Anos iniciais (2,3,5): media de LP, MAT e PROD (se disponível)
+    // - Anos finais (6-9): media de LP, CH, MAT, CN
     let query = `
       SELECT
         rc.id,
@@ -85,7 +88,6 @@ export async function GET(request: NextRequest) {
         rc.nota_ch,
         rc.nota_mat,
         rc.nota_cn,
-        rc.media_aluno,
         rc.nota_producao,
         rc.nivel_aprendizagem,
         rc.nivel_aprendizagem_id,
@@ -108,7 +110,50 @@ export async function GET(request: NextRequest) {
         cs.qtd_questoes_lp,
         cs.qtd_questoes_mat,
         cs.qtd_questoes_ch,
-        cs.qtd_questoes_cn
+        cs.qtd_questoes_cn,
+        -- DEBUG: tipo de calculo usado (para verificar se a logica esta correta)
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
+          ELSE 'anos_finais'
+        END as _debug_tipo_calculo,
+        rc.media_aluno as _debug_media_banco,
+        -- Media calculada dinamicamente baseada na serie
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            -- Anos iniciais: media de LP, MAT e PROD (se disponivel)
+            ROUND(
+              (
+                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+              ) /
+              NULLIF(
+                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                0
+              ),
+              1
+            )
+          ELSE
+            -- Anos finais: media de LP, CH, MAT, CN
+            ROUND(
+              (
+                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+              ) /
+              NULLIF(
+                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                0
+              ),
+              1
+            )
+        END as media_aluno
       FROM resultados_consolidados rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id

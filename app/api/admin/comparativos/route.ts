@@ -80,7 +80,46 @@ export async function GET(request: NextRequest) {
         t.codigo as turma_codigo,
         COUNT(DISTINCT rc.aluno_id) as total_alunos,
         COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as alunos_presentes,
-        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) as media_geral,
+        -- Media calculada dinamicamente baseada na serie
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+          CASE
+            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              CASE WHEN (
+                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END
+              ) > 0 THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+                ) / (
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END
+                )
+              ELSE NULL END
+            ELSE
+              CASE WHEN (
+                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END
+              ) > 0 THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+                ) / (
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END
+                )
+              ELSE NULL END
+          END
+        ELSE NULL END) as media_geral,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END) as media_lp,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END) as media_ch,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END) as media_mat,
@@ -187,7 +226,46 @@ export async function GET(request: NextRequest) {
         NULL as turma_codigo,
         COUNT(DISTINCT rc.aluno_id) as total_alunos,
         COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as alunos_presentes,
-        AVG(CAST(rc.media_aluno AS DECIMAL)) as media_geral,
+        -- Media calculada dinamicamente baseada na serie
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+          CASE
+            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              CASE WHEN (
+                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END
+              ) > 0 THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+                ) / (
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END
+                )
+              ELSE NULL END
+            ELSE
+              CASE WHEN (
+                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END
+              ) > 0 THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+                ) / (
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END
+                )
+              ELSE NULL END
+          END
+        ELSE NULL END) as media_geral,
         AVG(CAST(rc.nota_lp AS DECIMAL)) as media_lp,
         AVG(CAST(rc.nota_ch AS DECIMAL)) as media_ch,
         AVG(CAST(rc.nota_mat AS DECIMAL)) as media_mat,
@@ -287,12 +365,46 @@ export async function GET(request: NextRequest) {
       if (!melhoresAlunos[key]) {
         // Construir query para buscar melhores alunos desta escola/série
         let queryMelhores = `
-          SELECT 
+          SELECT
             rc.aluno_id,
             a.nome as aluno_nome,
             t.id as turma_id,
             t.codigo as turma_codigo,
-            CAST(rc.media_aluno AS DECIMAL) as media_geral,
+            -- Media calculada dinamicamente baseada na serie
+            CASE
+              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                ROUND(
+                  (
+                    COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                    COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                    COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+                  ) /
+                  NULLIF(
+                    CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                    0
+                  ),
+                  1
+                )
+              ELSE
+                ROUND(
+                  (
+                    COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                    COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                    COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                    COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+                  ) /
+                  NULLIF(
+                    CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                    0
+                  ),
+                  1
+                )
+            END as media_geral,
             CAST(rc.nota_lp AS DECIMAL) as nota_lp,
             CAST(rc.nota_ch AS DECIMAL) as nota_ch,
             CAST(rc.nota_mat AS DECIMAL) as nota_mat,

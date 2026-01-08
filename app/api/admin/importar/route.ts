@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
+import { limparTodosOsCaches } from '@/lib/cache-dashboard'
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -328,6 +329,14 @@ export async function POST(request: NextRequest) {
       ]
     )
 
+    // Invalidar cache do dashboard após importação bem-sucedida
+    try {
+      limparTodosOsCaches()
+      console.log('[Importação] Cache do dashboard invalidado após importação')
+    } catch (cacheError) {
+      console.error('[Importação] Erro ao invalidar cache (não crítico):', cacheError)
+    }
+
     return NextResponse.json({
       mensagem: 'Importação concluída',
       total_linhas: dados.length,
@@ -349,7 +358,8 @@ export async function POST(request: NextRequest) {
         area: colArea,
       },
       todas_colunas: colunasDisponiveis,
-      erros: erros.slice(0, 20), // Retornar primeiros 20 erros
+      erros: erros.slice(0, 20),
+      cache_invalidado: true,
     })
   } catch (error: any) {
     console.error('Erro ao importar arquivo:', error)

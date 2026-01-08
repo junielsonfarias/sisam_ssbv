@@ -83,7 +83,7 @@ export default function ModalAlunosTurma({
     if (valor === null || valor === undefined) return '-'
     const num = typeof valor === 'string' ? parseFloat(valor) : valor
     if (isNaN(num)) return '-'
-    return num.toFixed(1)
+    return num.toFixed(2)
   }
 
   const getNotaColor = (nota: number | string | null) => {
@@ -171,7 +171,7 @@ export default function ModalAlunosTurma({
                   <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 sm:p-4 border border-blue-200 dark:border-blue-800">
                     <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">Média Geral</p>
                     <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                      {mediaGeral.toFixed(1)}
+                      {mediaGeral.toFixed(2)}
                     </p>
                   </div>
                   <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3 sm:p-4 border border-purple-200 dark:border-purple-800">

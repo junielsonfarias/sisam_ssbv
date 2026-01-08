@@ -193,7 +193,7 @@ const formatarNota = (nota: number | string | null | undefined, presenca?: strin
   const num = typeof nota === 'string' ? parseFloat(nota) : nota
   if (isNaN(num)) return '-'
   if (num === 0) return '-' // Se nota for 0, também retornar "-"
-  return num.toFixed(1)
+  return num.toFixed(2)
 }
 
 const getNotaNumero = (nota: number | string | null | undefined): number | null => {
@@ -1852,11 +1852,11 @@ export default function DadosPage() {
                                       return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                     }
 
-                                    // Se a disciplina não é aplicável à série do aluno, mostrar célula vazia
+                                    // Se a disciplina não é aplicável à série do aluno, mostrar N/A
                                     if (!disciplinaAplicavel) {
                                       return (
                                         <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                          <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+                                          <span className="text-gray-400 dark:text-gray-500 text-xs italic">N/A</span>
                                         </td>
                                       )
                                     }
