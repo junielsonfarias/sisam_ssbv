@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Parâmetros de paginação para alunos detalhados
     const paginaAlunos = parseInt(searchParams.get('pagina_alunos') || '1')
-    const limiteAlunos = Math.min(parseInt(searchParams.get('limite_alunos') || '50'), 500) // Padrão 50, máximo 500 por página
+    const limiteAlunos = Math.min(parseInt(searchParams.get('limite_alunos') || '50'), 10000) // Padrão 50, máximo 10000 para cache local
     const offsetAlunos = (paginaAlunos - 1) * limiteAlunos
 
     // Parametro para forcar atualizacao do cache
@@ -362,7 +362,8 @@ export async function GET(request: NextRequest) {
     // ========== DISTRIBUIÇÃO POR NÍVEL DE APRENDIZAGEM ==========
     // Filtrar apenas anos iniciais (2º, 3º, 5º) com presença ou falta registrada
     // Estes são os únicos anos que têm avaliação de nível de aprendizagem
-    const niveisConditions = [...whereConditions]
+    // CORREÇÃO: Usar whereConditionsBase (sem filtro de disciplina) pois a query usa paramsBase
+    const niveisConditions = [...whereConditionsBase]
     // Filtrar apenas anos iniciais (2º, 3º, 5º ano)
     niveisConditions.push(`(REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5'))`)
     // Filtrar apenas alunos com presença ou falta registrada
@@ -673,6 +674,7 @@ export async function GET(request: NextRequest) {
         a.id,
         a.nome as aluno,
         a.codigo,
+        e.id as escola_id,
         e.nome as escola,
         p.nome as polo,
         rc.serie,
@@ -975,6 +977,125 @@ export async function GET(request: NextRequest) {
     
     const rpWhereClause = rpWhereConditions.length > 0 ? `WHERE ${rpWhereConditions.join(' AND ')}` : ''
 
+    // ========== RESUMOS POR SÉRIE PARA CACHE LOCAL ==========
+    // Criar condições SEM filtro de série para trazer dados de todas as séries
+    const rpWhereConditionsSemSerie: string[] = []
+    const rpParamsSemSerie: any[] = []
+    let rpParamIndexSemSerie = 1
+
+    // Aplicar restrições de acesso (sem série)
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+      rpWhereConditionsSemSerie.push(`rp.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${rpParamIndexSemSerie})`)
+      rpParamsSemSerie.push(usuario.polo_id)
+      rpParamIndexSemSerie++
+    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      rpWhereConditionsSemSerie.push(`rp.escola_id = $${rpParamIndexSemSerie}`)
+      rpParamsSemSerie.push(usuario.escola_id)
+      rpParamIndexSemSerie++
+    }
+
+    // Aplicar filtros comuns (exceto série)
+    if (poloId) {
+      rpWhereConditionsSemSerie.push(`rp.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${rpParamIndexSemSerie})`)
+      rpParamsSemSerie.push(poloId)
+      rpParamIndexSemSerie++
+    }
+    if (escolaId) {
+      rpWhereConditionsSemSerie.push(`rp.escola_id = $${rpParamIndexSemSerie}`)
+      rpParamsSemSerie.push(escolaId)
+      rpParamIndexSemSerie++
+    }
+    if (anoLetivo) {
+      rpWhereConditionsSemSerie.push(`rp.ano_letivo = $${rpParamIndexSemSerie}`)
+      rpParamsSemSerie.push(anoLetivo)
+      rpParamIndexSemSerie++
+    }
+    if (turmaId) {
+      rpWhereConditionsSemSerie.push(`rp.turma_id = $${rpParamIndexSemSerie}`)
+      rpParamsSemSerie.push(turmaId)
+      rpParamIndexSemSerie++
+    }
+    // Adicionar filtro de presença
+    if (presenca) {
+      rpWhereConditionsSemSerie.push(`(rp.presenca = $${rpParamIndexSemSerie} OR rp.presenca = LOWER($${rpParamIndexSemSerie}))`)
+      rpParamsSemSerie.push(presenca.toUpperCase())
+      rpParamIndexSemSerie++
+    } else {
+      rpWhereConditionsSemSerie.push(`(rp.presenca = 'P' OR rp.presenca = 'p')`)
+    }
+
+    const rpWhereClauseSemSerie = rpWhereConditionsSemSerie.length > 0
+      ? `WHERE ${rpWhereConditionsSemSerie.join(' AND ')}`
+      : ''
+
+    // Query de resumo de questões por série (para cálculo dinâmico no frontend)
+    const resumoQuestoesPorSerieQuery = `
+      SELECT
+        rp.questao_codigo,
+        q.descricao as questao_descricao,
+        COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
+        rp.serie,
+        COUNT(*) as total_respostas,
+        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
+        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros
+      FROM resultados_provas rp
+      LEFT JOIN questoes q ON rp.questao_id = q.id OR rp.questao_codigo = q.codigo
+      ${rpWhereClauseSemSerie}
+      GROUP BY rp.questao_codigo, q.descricao, COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado'), rp.serie
+      HAVING COUNT(*) >= 5
+    `
+
+    // Query de resumo de escolas por série
+    const resumoEscolasPorSerieQuery = `
+      SELECT
+        e.id as escola_id,
+        e.nome as escola,
+        p.nome as polo,
+        rp.serie,
+        COUNT(*) as total_respostas,
+        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
+        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
+        COUNT(DISTINCT rp.aluno_id) as total_alunos
+      FROM resultados_provas rp
+      INNER JOIN escolas e ON rp.escola_id = e.id
+      LEFT JOIN polos p ON e.polo_id = p.id
+      ${rpWhereClauseSemSerie}
+      GROUP BY e.id, e.nome, p.nome, rp.serie
+      HAVING COUNT(*) >= 10
+    `
+
+    // Query de resumo de turmas por série
+    const resumoTurmasPorSerieQuery = `
+      SELECT
+        t.id as turma_id,
+        t.codigo as turma,
+        e.nome as escola,
+        rp.serie,
+        COUNT(*) as total_respostas,
+        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
+        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
+        COUNT(DISTINCT rp.aluno_id) as total_alunos
+      FROM resultados_provas rp
+      INNER JOIN escolas e ON rp.escola_id = e.id
+      LEFT JOIN turmas t ON rp.turma_id = t.id
+      ${rpWhereClauseSemSerie}
+      GROUP BY t.id, t.codigo, e.nome, rp.serie
+      HAVING t.id IS NOT NULL AND COUNT(*) >= 10
+    `
+
+    // Query de resumo de disciplinas por série
+    const resumoDisciplinasPorSerieQuery = `
+      SELECT
+        COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
+        rp.serie,
+        COUNT(*) as total_respostas,
+        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
+        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros
+      FROM resultados_provas rp
+      ${rpWhereClauseSemSerie}
+      GROUP BY COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado'), rp.serie
+    `
+
     // Taxa de acerto por disciplina
     const taxaAcertoPorDisciplinaQuery = `
       SELECT
@@ -1210,6 +1331,30 @@ export async function GET(request: NextRequest) {
       pool.query(turmasComMaisAcertosQuery, rpParams)
     ])
 
+    // Lote 6: Resumos por série para cache local (somente se não tem filtro de série)
+    let resumoQuestoesPorSerieResult: { rows: any[] } = { rows: [] }
+    let resumoEscolasPorSerieResult: { rows: any[] } = { rows: [] }
+    let resumoTurmasPorSerieResult: { rows: any[] } = { rows: [] }
+    let resumoDisciplinasPorSerieResult: { rows: any[] } = { rows: [] }
+
+    if (!serie) {
+      const [
+        questoesResumo,
+        escolasResumo,
+        turmasResumo,
+        disciplinasResumo
+      ] = await Promise.all([
+        pool.query(resumoQuestoesPorSerieQuery, rpParamsSemSerie),
+        pool.query(resumoEscolasPorSerieQuery, rpParamsSemSerie),
+        pool.query(resumoTurmasPorSerieQuery, rpParamsSemSerie),
+        pool.query(resumoDisciplinasPorSerieQuery, rpParamsSemSerie)
+      ])
+      resumoQuestoesPorSerieResult = questoesResumo
+      resumoEscolasPorSerieResult = escolasResumo
+      resumoTurmasPorSerieResult = turmasResumo
+      resumoDisciplinasPorSerieResult = disciplinasResumo
+    }
+
     const metricas = metricasResult.rows[0] || {}
     const taxaAcertoGeral = taxaAcertoGeralResult.rows[0] || {}
 
@@ -1406,6 +1551,45 @@ export async function GET(request: NextRequest) {
           taxa_acerto: parseFloat(row.taxa_acerto) || 0,
           taxa_erro: parseFloat(row.taxa_erro) || 0,
           total_alunos: parseInt(row.total_alunos) || 0
+        }))
+      },
+      // Resumos por série para cálculo dinâmico no frontend (cache local)
+      resumosPorSerie: {
+        questoes: resumoQuestoesPorSerieResult.rows.map(row => ({
+          questao_codigo: row.questao_codigo,
+          questao_descricao: row.questao_descricao || 'Descrição não disponível',
+          disciplina: row.disciplina,
+          serie: row.serie,
+          total_respostas: parseInt(row.total_respostas) || 0,
+          total_acertos: parseInt(row.total_acertos) || 0,
+          total_erros: parseInt(row.total_erros) || 0
+        })),
+        escolas: resumoEscolasPorSerieResult.rows.map(row => ({
+          escola_id: row.escola_id,
+          escola: row.escola,
+          polo: row.polo,
+          serie: row.serie,
+          total_respostas: parseInt(row.total_respostas) || 0,
+          total_acertos: parseInt(row.total_acertos) || 0,
+          total_erros: parseInt(row.total_erros) || 0,
+          total_alunos: parseInt(row.total_alunos) || 0
+        })),
+        turmas: resumoTurmasPorSerieResult.rows.map(row => ({
+          turma_id: row.turma_id,
+          turma: row.turma,
+          escola: row.escola,
+          serie: row.serie,
+          total_respostas: parseInt(row.total_respostas) || 0,
+          total_acertos: parseInt(row.total_acertos) || 0,
+          total_erros: parseInt(row.total_erros) || 0,
+          total_alunos: parseInt(row.total_alunos) || 0
+        })),
+        disciplinas: resumoDisciplinasPorSerieResult.rows.map(row => ({
+          disciplina: row.disciplina,
+          serie: row.serie,
+          total_respostas: parseInt(row.total_respostas) || 0,
+          total_acertos: parseInt(row.total_acertos) || 0,
+          total_erros: parseInt(row.total_erros) || 0
         }))
       }
     }

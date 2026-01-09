@@ -6,13 +6,13 @@ import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  PieChart, Pie, Cell
 } from 'recharts'
 import {
   Users, School, GraduationCap, MapPin, TrendingUp, TrendingDown,
   Filter, X, ChevronDown, ChevronUp, RefreshCw, Download,
   BookOpen, Calculator, Award, UserCheck, UserX, BarChart3,
-  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff, Search
+  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff, Search, Zap
 } from 'lucide-react'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 import * as offlineStorage from '@/lib/offline-storage'
@@ -141,6 +141,45 @@ interface DashboardData {
       total_alunos: number
     }[]
   }
+  // Resumos por série para cálculo dinâmico (evita chamadas de API ao filtrar por série)
+  resumosPorSerie?: {
+    questoes: {
+      questao_codigo: string
+      questao_descricao: string
+      disciplina: string
+      serie: string
+      total_respostas: number
+      total_acertos: number
+      total_erros: number
+    }[]
+    escolas: {
+      escola_id: string
+      escola: string
+      polo: string
+      serie: string
+      total_respostas: number
+      total_acertos: number
+      total_erros: number
+      total_alunos: number
+    }[]
+    turmas: {
+      turma_id: string
+      turma: string
+      escola: string
+      serie: string
+      total_respostas: number
+      total_acertos: number
+      total_erros: number
+      total_alunos: number
+    }[]
+    disciplinas: {
+      disciplina: string
+      serie: string
+      total_respostas: number
+      total_acertos: number
+      total_erros: number
+    }[]
+  }
 }
 
 const COLORS = {
@@ -189,6 +228,21 @@ const NIVEL_NAMES: Record<string, string> = {
 
 const getNivelName = (nivel: string): string => {
   return NIVEL_NAMES[nivel] || nivel
+}
+
+// Função para formatar série no padrão "Xº Ano"
+const formatarSerie = (serie: string | null | undefined): string => {
+  if (!serie) return '-'
+
+  // Se já está no formato correto (ex: "2º Ano", "5º Ano"), retorna como está
+  if (serie.toLowerCase().includes('ano')) return serie
+
+  // Extrai o número da série
+  const numeroMatch = serie.match(/(\d+)/)
+  if (!numeroMatch) return serie
+
+  const numero = numeroMatch[1]
+  return `${numero}º Ano`
 }
 
 // Funções helper para formatação
@@ -249,9 +303,10 @@ const getNotaBgColor = (nota: number | string | null | undefined) => {
 }
 
 export default function DadosPage() {
-  // Estado para modo offline
+  // Estado para modo offline e cache
   const [usandoDadosOffline, setUsandoDadosOffline] = useState(false)
   const [modoOffline, setModoOffline] = useState(false)
+  const [usandoCache, setUsandoCache] = useState(false) // Indica se está usando dados do cache local
 
   // Componente auxiliar para tooltip customizado
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -294,6 +349,9 @@ export default function DadosPage() {
     faixa_media: string
     disciplina: string
     tipo_ensino: string
+    taxa_acerto_min: string
+    taxa_acerto_max: string
+    questao_codigo: string
   } | null>(null) // Filtros usados no cache (exceto série)
   const [carregando, setCarregando] = useState(false)
   const [carregandoEmSegundoPlano, setCarregandoEmSegundoPlano] = useState(false) // Loading sem ocultar dados atuais
@@ -725,6 +783,7 @@ export default function DadosPage() {
       if (response.ok) {
         setDados(data)
         setUsandoDadosOffline(false)
+        setUsandoCache(false) // Dados vieram da API, não do cache
         // Salvar no cache se não tem filtro de série (dados completos para filtragem local)
         if (!serieParaFiltrar) {
           setDadosCache(data)
@@ -738,7 +797,10 @@ export default function DadosPage() {
             nivel: filtroNivel,
             faixa_media: filtroFaixaMedia,
             disciplina: filtroDisciplina,
-            tipo_ensino: filtroTipoEnsino
+            tipo_ensino: filtroTipoEnsino,
+            taxa_acerto_min: filtroTaxaAcertoMin,
+            taxa_acerto_max: filtroTaxaAcertoMax,
+            questao_codigo: filtroQuestaoCodigo
           })
         }
       } else {
@@ -820,9 +882,12 @@ export default function DadosPage() {
       filtrosCache.nivel === filtroNivel &&
       filtrosCache.faixa_media === filtroFaixaMedia &&
       filtrosCache.disciplina === filtroDisciplina &&
-      filtrosCache.tipo_ensino === filtroTipoEnsino
+      filtrosCache.tipo_ensino === filtroTipoEnsino &&
+      filtrosCache.taxa_acerto_min === filtroTaxaAcertoMin &&
+      filtrosCache.taxa_acerto_max === filtroTaxaAcertoMax &&
+      filtrosCache.questao_codigo === filtroQuestaoCodigo
     )
-  }, [filtrosCache, filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino])
+  }, [filtrosCache, filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
 
   // Função para salvar filtros atuais no cache
   const salvarFiltrosCache = useCallback(() => {
@@ -835,31 +900,278 @@ export default function DadosPage() {
       nivel: filtroNivel,
       faixa_media: filtroFaixaMedia,
       disciplina: filtroDisciplina,
-      tipo_ensino: filtroTipoEnsino
+      tipo_ensino: filtroTipoEnsino,
+      taxa_acerto_min: filtroTaxaAcertoMin,
+      taxa_acerto_max: filtroTaxaAcertoMax,
+      questao_codigo: filtroQuestaoCodigo
     })
-  }, [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino])
+  }, [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
+
+  // Função helper para comparar séries de forma flexível (extrai número e compara)
+  const compararSeries = useCallback((serie1: string | null | undefined, serie2: string | null | undefined): boolean => {
+    if (!serie1 || !serie2) return false
+    // Extrai apenas o número de cada série
+    const num1 = serie1.match(/(\d+)/)?.[1]
+    const num2 = serie2.match(/(\d+)/)?.[1]
+    // Se não conseguiu extrair número de algum, faz comparação case-insensitive
+    if (!num1 || !num2) {
+      return serie1.toLowerCase().trim() === serie2.toLowerCase().trim()
+    }
+    return num1 === num2
+  }, [])
+
+  // Função helper para comparar disciplinas de forma flexível
+  const compararDisciplinas = useCallback((disciplina1: string | null | undefined, disciplina2: string | null | undefined): boolean => {
+    if (!disciplina1 || !disciplina2) return false
+    const d1 = disciplina1.toLowerCase().trim()
+    const d2 = disciplina2.toLowerCase().trim()
+    // Comparação direta
+    if (d1 === d2) return true
+    // Mapeamentos comuns
+    const mapeamentos: Record<string, string[]> = {
+      'língua portuguesa': ['lp', 'portugues', 'português', 'lingua portuguesa'],
+      'matemática': ['mat', 'matematica'],
+      'ciências humanas': ['ch', 'ciencias humanas'],
+      'ciências da natureza': ['cn', 'ciencias da natureza', 'ciencias natureza']
+    }
+    for (const [chave, aliases] of Object.entries(mapeamentos)) {
+      const todasVariantes = [chave, ...aliases]
+      if (todasVariantes.some(v => d1.includes(v)) && todasVariantes.some(v => d2.includes(v))) {
+        return true
+      }
+    }
+    return false
+  }, [])
+
+  // Função para calcular dados de análise a partir dos resumos por série (cálculo dinâmico)
+  const calcularAnaliseDeResumos = useCallback((resumos: DashboardData['resumosPorSerie'], serie: string, disciplina?: string) => {
+    if (!resumos) return null
+
+    // Filtrar resumos pela série selecionada (se série vazia, manter todos)
+    let questoesFiltradas = serie
+      ? (resumos.questoes?.filter(q => compararSeries(q.serie, serie)) || [])
+      : (resumos.questoes || [])
+    let escolasFiltradas = serie
+      ? (resumos.escolas?.filter(e => compararSeries(e.serie, serie)) || [])
+      : (resumos.escolas || [])
+    let turmasFiltradas = serie
+      ? (resumos.turmas?.filter(t => compararSeries(t.serie, serie)) || [])
+      : (resumos.turmas || [])
+    let disciplinasFiltradas = serie
+      ? (resumos.disciplinas?.filter(d => compararSeries(d.serie, serie)) || [])
+      : (resumos.disciplinas || [])
+
+    // Se há filtro de disciplina, aplicar também
+    if (disciplina) {
+      questoesFiltradas = questoesFiltradas.filter(q => compararDisciplinas(q.disciplina, disciplina))
+      disciplinasFiltradas = disciplinasFiltradas.filter(d => compararDisciplinas(d.disciplina, disciplina))
+      // Nota: escolas e turmas nos resumos não têm disciplina, então não podem ser filtradas por disciplina
+      // Elas são agregadas por série. Para filtrar por disciplina, seria necessário mudar a estrutura da API.
+    }
+
+    // Calcular taxa geral
+    const totalRespostasGeral = disciplinasFiltradas.reduce((acc, d) => acc + d.total_respostas, 0)
+    const totalAcertosGeral = disciplinasFiltradas.reduce((acc, d) => acc + d.total_acertos, 0)
+    const totalErrosGeral = disciplinasFiltradas.reduce((acc, d) => acc + d.total_erros, 0)
+
+    const taxaAcertoGeral = totalRespostasGeral > 0 ? {
+      total_respostas: totalRespostasGeral,
+      total_acertos: totalAcertosGeral,
+      total_erros: totalErrosGeral,
+      taxa_acerto_geral: (totalAcertosGeral / totalRespostasGeral) * 100,
+      taxa_erro_geral: (totalErrosGeral / totalRespostasGeral) * 100
+    } : null
+
+    // Taxa por disciplina
+    const taxaAcertoPorDisciplina = disciplinasFiltradas.map(d => ({
+      disciplina: d.disciplina,
+      total_respostas: d.total_respostas,
+      total_acertos: d.total_acertos,
+      total_erros: d.total_erros,
+      taxa_acerto: d.total_respostas > 0 ? (d.total_acertos / d.total_respostas) * 100 : 0,
+      taxa_erro: d.total_respostas > 0 ? (d.total_erros / d.total_respostas) * 100 : 0
+    }))
+
+    // Questões com mais erros (ordenar por taxa de erro decrescente)
+    const questoesComMaisErros = questoesFiltradas
+      .map(q => ({
+        questao_codigo: q.questao_codigo,
+        questao_descricao: q.questao_descricao,
+        disciplina: q.disciplina,
+        total_respostas: q.total_respostas,
+        total_acertos: q.total_acertos,
+        total_erros: q.total_erros,
+        taxa_acerto: q.total_respostas > 0 ? (q.total_acertos / q.total_respostas) * 100 : 0,
+        taxa_erro: q.total_respostas > 0 ? (q.total_erros / q.total_respostas) * 100 : 0
+      }))
+      .sort((a, b) => b.taxa_erro - a.taxa_erro)
+      .slice(0, 20)
+
+    // Questões com mais acertos (ordenar por taxa de acerto decrescente)
+    const questoesComMaisAcertos = questoesFiltradas
+      .map(q => ({
+        questao_codigo: q.questao_codigo,
+        questao_descricao: q.questao_descricao,
+        disciplina: q.disciplina,
+        total_respostas: q.total_respostas,
+        total_acertos: q.total_acertos,
+        total_erros: q.total_erros,
+        taxa_acerto: q.total_respostas > 0 ? (q.total_acertos / q.total_respostas) * 100 : 0,
+        taxa_erro: q.total_respostas > 0 ? (q.total_erros / q.total_respostas) * 100 : 0
+      }))
+      .sort((a, b) => b.taxa_acerto - a.taxa_acerto)
+      .slice(0, 20)
+
+    // Escolas com mais erros
+    const escolasComMaisErros = escolasFiltradas
+      .map(e => ({
+        escola_id: e.escola_id,
+        escola: e.escola,
+        polo: e.polo,
+        total_respostas: e.total_respostas,
+        total_acertos: e.total_acertos,
+        total_erros: e.total_erros,
+        taxa_acerto: e.total_respostas > 0 ? (e.total_acertos / e.total_respostas) * 100 : 0,
+        taxa_erro: e.total_respostas > 0 ? (e.total_erros / e.total_respostas) * 100 : 0,
+        total_alunos: e.total_alunos
+      }))
+      .sort((a, b) => b.taxa_erro - a.taxa_erro)
+
+    // Escolas com mais acertos
+    const escolasComMaisAcertos = [...escolasComMaisErros].sort((a, b) => b.taxa_acerto - a.taxa_acerto)
+
+    // Turmas com mais erros
+    const turmasComMaisErros = turmasFiltradas
+      .map(t => ({
+        turma_id: t.turma_id,
+        turma: t.turma,
+        escola: t.escola,
+        serie: serie,
+        total_respostas: t.total_respostas,
+        total_acertos: t.total_acertos,
+        total_erros: t.total_erros,
+        taxa_acerto: t.total_respostas > 0 ? (t.total_acertos / t.total_respostas) * 100 : 0,
+        taxa_erro: t.total_respostas > 0 ? (t.total_erros / t.total_respostas) * 100 : 0,
+        total_alunos: t.total_alunos
+      }))
+      .sort((a, b) => b.taxa_erro - a.taxa_erro)
+
+    // Turmas com mais acertos
+    const turmasComMaisAcertos = [...turmasComMaisErros].sort((a, b) => b.taxa_acerto - a.taxa_acerto)
+
+    return {
+      taxaAcertoGeral,
+      taxaAcertoPorDisciplina,
+      questoesComMaisErros,
+      questoesComMaisAcertos,
+      escolasComMaisErros,
+      escolasComMaisAcertos,
+      turmasComMaisErros,
+      turmasComMaisAcertos
+    }
+  }, [compararSeries, compararDisciplinas])
 
   // Função para filtrar dados localmente do cache (muito mais rápido que API)
-  const filtrarDadosLocal = useCallback((serie: string) => {
+  const filtrarDadosLocal = useCallback((serie: string, disciplina?: string) => {
     if (!dadosCache) return null
 
-    // Se série vazia, retorna os dados completos do cache
-    if (!serie) return dadosCache
+    // Se série vazia E disciplina vazia, retorna os dados completos do cache
+    if (!serie && !disciplina) return dadosCache
 
-    // Filtrar alunos pela série
-    const alunosFiltrados = dadosCache.alunosDetalhados?.filter(aluno =>
-      aluno.serie === serie
-    ) || []
+    // Determinar se é anos iniciais ou finais para filtrar disciplinas
+    const numeroSerie = serie ? serie.match(/(\d+)/)?.[1] : null
+    const isAnosIniciais = ['2', '3', '5'].includes(numeroSerie || '')
 
-    // Filtrar médias por série
-    const mediasPorSerieFiltradas = dadosCache.mediasPorSerie?.filter(m =>
-      m.serie === serie
-    ) || []
+    // Disciplinas válidas para a série
+    const disciplinasValidas = isAnosIniciais
+      ? ['Língua Portuguesa', 'Matematica', 'Matemática', 'LP', 'MAT', 'Português']
+      : ['Língua Portuguesa', 'Matematica', 'Matemática', 'Ciências Humanas', 'Ciências da Natureza', 'LP', 'MAT', 'CH', 'CN', 'Português']
 
-    // Filtrar turmas pela série
-    const turmasFiltradas = dadosCache.mediasPorTurma?.filter(t =>
-      t.serie === serie
-    ) || []
+    // Filtrar alunos pela série (comparação flexível)
+    // Se série vazia, manter todos os alunos
+    const alunosFiltrados = serie
+      ? (dadosCache.alunosDetalhados?.filter(aluno => compararSeries(aluno.serie, serie)) || [])
+      : (dadosCache.alunosDetalhados || [])
+
+    // Filtrar médias por série (comparação flexível)
+    // Se série vazia, manter todas as médias
+    const mediasPorSerieFiltradas = serie
+      ? (dadosCache.mediasPorSerie?.filter(m => compararSeries(m.serie, serie)) || [])
+      : (dadosCache.mediasPorSerie || [])
+
+    // Filtrar turmas pela série (comparação flexível)
+    // Se série vazia, manter todas as turmas
+    const turmasFiltradas = serie
+      ? (dadosCache.mediasPorTurma?.filter(t => compararSeries(t.serie, serie)) || [])
+      : (dadosCache.mediasPorTurma || [])
+
+    // Filtrar escolas (recalcular baseado nos alunos filtrados)
+    const escolasIds = [...new Set(alunosFiltrados.map(a => a.escola_id))]
+    const escolasFiltradas = serie
+      ? (dadosCache.mediasPorEscola?.filter(e => escolasIds.includes(e.escola_id)) || [])
+      : (dadosCache.mediasPorEscola || [])
+
+    // Filtrar análise de acertos/erros
+    // PRIORIDADE: Usar cálculo dinâmico a partir de resumosPorSerie (dados corretos por série e disciplina)
+    let analiseAcertosErrosFiltrada = dadosCache.analiseAcertosErros
+
+    if (dadosCache.resumosPorSerie && (serie || disciplina)) {
+      // Usar cálculo dinâmico - dados precisos por série e disciplina
+      const analiseCalculada = calcularAnaliseDeResumos(dadosCache.resumosPorSerie, serie, disciplina)
+      if (analiseCalculada) {
+        analiseAcertosErrosFiltrada = analiseCalculada
+      }
+    } else if (dadosCache.analiseAcertosErros) {
+      // Fallback: filtrar dados existentes (quando não há resumos)
+      // Aplicar filtro de disciplina se selecionada, senão usar disciplinas válidas da série
+      const filtrarPorDisciplina = (d: { disciplina: string }) => {
+        if (disciplina) {
+          return compararDisciplinas(d.disciplina, disciplina)
+        }
+        return disciplinasValidas.some(dv => d.disciplina.toLowerCase().includes(dv.toLowerCase()))
+      }
+
+      const taxaAcertoPorDisciplinaFiltrada = dadosCache.analiseAcertosErros.taxaAcertoPorDisciplina?.filter(filtrarPorDisciplina) || []
+      const questoesComMaisErrosFiltradas = dadosCache.analiseAcertosErros.questoesComMaisErros?.filter(filtrarPorDisciplina) || []
+      const questoesComMaisAcertosFiltradas = dadosCache.analiseAcertosErros.questoesComMaisAcertos?.filter(filtrarPorDisciplina) || []
+
+      const turmasComMaisErrosFiltradas = dadosCache.analiseAcertosErros.turmasComMaisErros?.filter(t =>
+        compararSeries(t.serie, serie)
+      ) || []
+
+      const turmasComMaisAcertosFiltradas = dadosCache.analiseAcertosErros.turmasComMaisAcertos?.filter(t =>
+        compararSeries(t.serie, serie)
+      ) || []
+
+      const escolasComMaisErrosFiltradas = dadosCache.analiseAcertosErros.escolasComMaisErros?.filter(e =>
+        escolasIds.includes(e.escola_id)
+      ) || []
+
+      const escolasComMaisAcertosFiltradas = dadosCache.analiseAcertosErros.escolasComMaisAcertos?.filter(e =>
+        escolasIds.includes(e.escola_id)
+      ) || []
+
+      const totalRespostas = taxaAcertoPorDisciplinaFiltrada.reduce((acc, d) => acc + d.total_respostas, 0)
+      const totalAcertos = taxaAcertoPorDisciplinaFiltrada.reduce((acc, d) => acc + d.total_acertos, 0)
+      const totalErros = taxaAcertoPorDisciplinaFiltrada.reduce((acc, d) => acc + d.total_erros, 0)
+
+      analiseAcertosErrosFiltrada = {
+        taxaAcertoGeral: totalRespostas > 0 ? {
+          total_respostas: totalRespostas,
+          total_acertos: totalAcertos,
+          total_erros: totalErros,
+          taxa_acerto_geral: (totalAcertos / totalRespostas) * 100,
+          taxa_erro_geral: (totalErros / totalRespostas) * 100
+        } : null,
+        taxaAcertoPorDisciplina: taxaAcertoPorDisciplinaFiltrada,
+        questoesComMaisErros: questoesComMaisErrosFiltradas,
+        questoesComMaisAcertos: questoesComMaisAcertosFiltradas,
+        turmasComMaisErros: turmasComMaisErrosFiltradas,
+        turmasComMaisAcertos: turmasComMaisAcertosFiltradas,
+        escolasComMaisErros: escolasComMaisErrosFiltradas,
+        escolasComMaisAcertos: escolasComMaisAcertosFiltradas
+      }
+    }
 
     // Recalcular métricas baseado nos alunos filtrados
     const totalAlunos = alunosFiltrados.length
@@ -887,11 +1199,65 @@ export default function DadosPage() {
     const menorMedia = mediasAlunos.length > 0 ? Math.min(...mediasAlunos) : 0
     const maiorMedia = mediasAlunos.length > 0 ? Math.max(...mediasAlunos) : 0
 
+    // Recalcular níveis baseado nos alunos filtrados
+    // Níveis de aprendizagem só existem para anos iniciais (2º, 3º, 5º)
+    const niveisContagem: Record<string, number> = {}
+    if (isAnosIniciais) {
+      alunosFiltrados.forEach(a => {
+        // Apenas considerar alunos presentes ou com falta registrada
+        if (a.presenca === 'P' || a.presenca === 'p' || a.presenca === 'F' || a.presenca === 'f') {
+          const nivel = a.nivel_aprendizagem || 'Não classificado'
+          niveisContagem[nivel] = (niveisContagem[nivel] || 0) + 1
+        }
+      })
+    }
+    const niveisFiltrados = Object.entries(niveisContagem)
+      .map(([nivel, quantidade]) => ({ nivel, quantidade }))
+      .sort((a, b) => {
+        // Ordenar: Insuficiente, Básico, Adequado, Avançado, Não classificado
+        const ordem: Record<string, number> = {
+          'Insuficiente': 1, 'N1': 1,
+          'Básico': 2, 'N2': 2,
+          'Adequado': 3, 'N3': 3,
+          'Avançado': 4, 'N4': 4,
+          'Não classificado': 5
+        }
+        return (ordem[a.nivel] || 6) - (ordem[b.nivel] || 6)
+      })
+
+    // Recalcular faixas de nota (usar formato consistente com API: "0 a 2", "2 a 4", etc.)
+    const faixasContagem: Record<string, number> = { '0 a 2': 0, '2 a 4': 0, '4 a 6': 0, '6 a 8': 0, '8 a 10': 0 }
+    alunosFiltrados.forEach(a => {
+      // Apenas considerar alunos presentes
+      if (a.presenca === 'P' || a.presenca === 'p') {
+        const media = parseFloat(a.media_aluno)
+        if (!isNaN(media) && media > 0) {
+          if (media < 2) faixasContagem['0 a 2']++
+          else if (media < 4) faixasContagem['2 a 4']++
+          else if (media < 6) faixasContagem['4 a 6']++
+          else if (media < 8) faixasContagem['6 a 8']++
+          else faixasContagem['8 a 10']++
+        }
+      }
+    })
+    const faixasNotaFiltradas = Object.entries(faixasContagem).map(([faixa, quantidade]) => ({
+      faixa,
+      quantidade
+    }))
+
+    // Recalcular presença
+    const presencaFiltrada = [
+      { status: 'Presente', quantidade: presentes },
+      { status: 'Faltante', quantidade: faltantes }
+    ]
+
     return {
       ...dadosCache,
       metricas: {
         ...dadosCache.metricas,
         total_alunos: totalAlunos,
+        total_escolas: escolasFiltradas.length,
+        total_turmas: turmasFiltradas.length,
         total_presentes: presentes,
         total_faltantes: faltantes,
         taxa_presenca: totalAlunos > 0 ? (presentes / totalAlunos) * 100 : 0,
@@ -904,54 +1270,80 @@ export default function DadosPage() {
         menor_media: menorMedia,
         maior_media: maiorMedia
       },
+      niveis: niveisFiltrados,
+      faixasNota: faixasNotaFiltradas,
+      presenca: presencaFiltrada,
       alunosDetalhados: alunosFiltrados,
       mediasPorSerie: mediasPorSerieFiltradas,
-      mediasPorTurma: turmasFiltradas
+      mediasPorTurma: turmasFiltradas,
+      mediasPorEscola: escolasFiltradas,
+      analiseAcertosErros: analiseAcertosErrosFiltrada
     } as DashboardData
-  }, [dadosCache])
+  }, [dadosCache, compararSeries, calcularAnaliseDeResumos, compararDisciplinas])
 
-  // Função para alterar série via chips (usa cache local quando possível)
+  // Função para alterar série via chips
+  // Usa cache local com cálculo dinâmico para filtragem instantânea em TODAS as abas
   const handleSerieChipClick = (serie: string) => {
     setFiltroSerie(serie)
     setPaginaAtual(1)
+    // Resetar paginações das análises ao trocar série
+    setPaginaQuestoesErros(1)
+    setPaginaEscolasErros(1)
+    setPaginaTurmasErros(1)
+    setPaginaQuestoesAcertos(1)
+    setPaginaEscolasAcertos(1)
+    setPaginaTurmasAcertos(1)
 
     // Só atualiza se já fez uma pesquisa antes
     if (!pesquisaRealizada) return
 
-    // Tentar filtrar localmente do cache (instantâneo) - só se filtros principais são iguais
-    if (dadosCache && filtrosPrincipaisIguais()) {
-      const dadosFiltrados = filtrarDadosLocal(serie)
+    // Usar cache local com cálculo dinâmico para TODAS as abas (incluindo Análises)
+    if (dadosCache) {
+      const dadosFiltrados = filtrarDadosLocal(serie, filtroDisciplina)
       if (dadosFiltrados) {
         setDados(dadosFiltrados)
-        return // Não precisa chamar API - resposta instantânea!
+        setUsandoCache(true)
+        return
       }
     }
 
-    // Fallback: chamar API se não tem cache ou filtros mudaram
+    // Fallback: chamar API se não tem cache
+    setUsandoCache(false)
     carregarDados(true, undefined, true, serie)
   }
 
-  // Função para pesquisar (usa cache local quando possível)
+  // Função para pesquisar - Busca dados completos para cache
   const handlePesquisar = () => {
     setPesquisaRealizada(true)
+    // Resetar TODAS as paginações ao fazer nova pesquisa
     setPaginaAtual(1)
+    setPaginaQuestoesErros(1)
+    setPaginaEscolasErros(1)
+    setPaginaTurmasErros(1)
+    setPaginaQuestoesAcertos(1)
+    setPaginaEscolasAcertos(1)
+    setPaginaTurmasAcertos(1)
 
-    // Verificar se os filtros principais são iguais aos do cache (pode usar filtragem local)
-    if (dadosCache && filtrosPrincipaisIguais()) {
-      // Filtros principais são iguais, usar cache com filtragem local por série
-      const dadosFiltrados = filtrarDadosLocal(filtroSerie)
-      if (dadosFiltrados) {
-        setDados(dadosFiltrados)
-        return // Não precisa chamar API - resposta instantânea!
-      }
-    }
-
-    // Filtros mudaram ou não tem cache, fazer chamada à API
-    carregarDados(true)
+    // Sempre buscar dados SEM filtro de série para ter cache completo
+    // Passa string vazia como serieOverride para garantir que o cache será salvo
+    setUsandoCache(false)
+    carregarDados(true, undefined, false, '')
   }
 
-  const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroSerie || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo || filtroTipoEnsino
-  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino].filter(Boolean).length
+  // useEffect para aplicar filtro de série/disciplina após cache ser atualizado
+  useEffect(() => {
+    // Se tem cache e tem filtro de série ou disciplina, aplicar filtragem local
+    if (dadosCache && (filtroSerie || filtroDisciplina) && pesquisaRealizada) {
+      const dadosFiltrados = filtrarDadosLocal(filtroSerie, filtroDisciplina)
+      if (dadosFiltrados) {
+        setDados(dadosFiltrados)
+        setUsandoCache(true)
+      }
+    }
+  }, [dadosCache, filtroSerie, filtroDisciplina, pesquisaRealizada, filtrarDadosLocal])
+
+  const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo || filtroTipoEnsino
+  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino].filter(Boolean).length
 
   // Função para verificar se uma disciplina é aplicável à série do aluno
   const isDisciplinaAplicavel = useCallback((serie: string | null | undefined, disciplinaCodigo: string): boolean => {
@@ -1091,17 +1483,6 @@ export default function DadosPage() {
     setPaginaAtual(1)
   }
 
-  // Dados para gráfico radar de disciplinas
-  const dadosRadar = useMemo(() => {
-    if (!dados?.metricas) return []
-    return [
-      { disciplina: 'LP', media: dados.metricas.media_lp, fullMark: 10 },
-      { disciplina: 'MAT', media: dados.metricas.media_mat, fullMark: 10 },
-      { disciplina: 'CH', media: dados.metricas.media_ch || 0, fullMark: 10 },
-      { disciplina: 'CN', media: dados.metricas.media_cn || 0, fullMark: 10 },
-    ]
-  }, [dados?.metricas])
-
   useEffect(() => {
     const carregarTipoUsuario = async () => {
       // Se offline, usar usuário do localStorage
@@ -1199,6 +1580,14 @@ export default function DadosPage() {
                 <p className="text-sm font-medium text-orange-800">Modo Offline</p>
                 <p className="text-xs text-orange-600">Exibindo dados sincronizados. Conecte-se para atualizar.</p>
               </div>
+            </div>
+          )}
+
+          {/* Indicador de cache ativo */}
+          {usandoCache && !usandoDadosOffline && !modoOffline && (
+            <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-2 flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <p className="text-xs font-medium text-green-700 dark:text-green-300">Carregamento instantâneo (usando cache local)</p>
             </div>
           )}
 
@@ -1361,39 +1750,6 @@ export default function DadosPage() {
                   <option value="">Todas as etapas</option>
                   <option value="anos_iniciais">Anos Iniciais (2º, 3º, 5º)</option>
                   <option value="anos_finais">Anos Finais (6º, 7º, 8º, 9º)</option>
-                </select>
-              </div>
-
-              {/* Serie */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroSerie ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroSerie ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Série
-                </label>
-                <select
-                  value={filtroSerie}
-                  onChange={(e) => { setFiltroSerie(e.target.value); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroSerie
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                >
-                  <option value="">Todas as séries</option>
-                  {dados?.filtros.series
-                    .filter(serie => {
-                      if (!filtroTipoEnsino) return true
-                      const numeroSerie = serie.match(/(\d+)/)?.[1]
-                      if (filtroTipoEnsino === 'anos_iniciais') {
-                        return ['2', '3', '5'].includes(numeroSerie || '')
-                      } else if (filtroTipoEnsino === 'anos_finais') {
-                        return ['6', '7', '8', '9'].includes(numeroSerie || '')
-                      }
-                      return true
-                    })
-                    .map(serie => (
-                      <option key={serie} value={serie}>{serie}</option>
-                    ))}
                 </select>
               </div>
 
@@ -1632,7 +1988,16 @@ export default function DadosPage() {
                   ].map(aba => (
                     <button
                       key={aba.id}
-                      onClick={() => { setAbaAtiva(aba.id as any); setPaginaAtual(1); }}
+                      onClick={() => {
+                        const novaAba = aba.id as any
+                        setAbaAtiva(novaAba)
+                        setPaginaAtual(1)
+                        // Se mudou para aba Análises e tem filtro de série, recarregar da API
+                        if (novaAba === 'analises' && filtroSerie && pesquisaRealizada) {
+                          setUsandoCache(false)
+                          carregarDados(true, undefined, true, filtroSerie)
+                        }
+                      }}
                       className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                         abaAtiva === aba.id
                           ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
@@ -1674,7 +2039,7 @@ export default function DadosPage() {
                           filtroSerie === serie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                         }`}
                       >
-                        {serie}
+                        {formatarSerie(serie)}
                       </button>
                     ))}
                   </div>
@@ -1701,7 +2066,7 @@ export default function DadosPage() {
                             return num === '2' || num === '3' || num === '5'
                           })
                           .map(item => ({
-                            serie: item.serie,
+                            serie: formatarSerie(item.serie),
                             media_lp: item.media_lp,
                             media_mat: item.media_mat,
                             media_prod: item.media_prod
@@ -1713,7 +2078,7 @@ export default function DadosPage() {
                             return num === '6' || num === '7' || num === '8' || num === '9'
                           })
                           .map(item => ({
-                            serie: item.serie,
+                            serie: formatarSerie(item.serie),
                             media_lp: item.media_lp,
                             media_mat: item.media_mat,
                             media_ch: item.media_ch,
@@ -1950,7 +2315,7 @@ export default function DadosPage() {
                       colunas={[
                         { key: 'turma', label: 'Turma', align: 'left' },
                         { key: 'escola', label: 'Escola', align: 'left' },
-                        { key: 'serie', label: 'Serie', align: 'center' },
+                        { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
                         { key: 'total_alunos', label: 'Alunos', align: 'center' },
                         { key: 'media_geral', label: 'Media', align: 'center', format: 'nota' },
                         { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal' },
@@ -2011,7 +2376,7 @@ export default function DadosPage() {
                                   <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                                     {resultado.escola && <div className="whitespace-normal break-words">Escola: {resultado.escola}</div>}
                                     {resultado.turma && <div>Turma: {resultado.turma}</div>}
-                                    {resultado.serie && <div>Série: {resultado.serie}</div>}
+                                    {resultado.serie && <div>Série: {formatarSerie(resultado.serie)}</div>}
                                     <div className="flex items-center gap-2">
                                       <span>Presença: </span>
                                       <span
@@ -2179,7 +2544,7 @@ export default function DadosPage() {
                                       <div className="lg:hidden text-[9px] sm:text-[10px] md:text-xs text-gray-500 dark:text-gray-400 space-y-0.5 ml-6 sm:ml-7 md:ml-8 lg:ml-10">
                                         {resultado.escola && <div className="whitespace-normal break-words">Escola: {resultado.escola}</div>}
                                         {resultado.turma && <div>Turma: {resultado.turma}</div>}
-                                        {resultado.serie && <div>Série: {resultado.serie}</div>}
+                                        {resultado.serie && <div>Série: {formatarSerie(resultado.serie)}</div>}
                                         <div className="flex items-center gap-2">
                                           <span>Presença: </span>
                                           <span
@@ -2203,7 +2568,7 @@ export default function DadosPage() {
                                   </td>
                                   <td className="hidden xl:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
                                     <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-[9px] md:text-[10px] lg:text-xs font-medium">
-                                      {resultado.serie || '-'}
+                                      {formatarSerie(resultado.serie)}
                                     </span>
                                   </td>
                                   <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
@@ -2511,7 +2876,7 @@ export default function DadosPage() {
                               colunas={[
                                 { key: 'turma', label: 'Turma', align: 'left' },
                                 { key: 'escola', label: 'Escola', align: 'left' },
-                                { key: 'serie', label: 'Série', align: 'center' },
+                                { key: 'serie', label: 'Série', align: 'center', format: 'serie' },
                                 { key: 'total_alunos', label: 'Alunos', align: 'center' },
                                 { key: 'total_respostas', label: 'Total', align: 'center' },
                                 { key: 'total_acertos', label: 'Acertos', align: 'center' },
@@ -2599,7 +2964,7 @@ export default function DadosPage() {
                               colunas={[
                                 { key: 'turma', label: 'Turma', align: 'left' },
                                 { key: 'escola', label: 'Escola', align: 'left' },
-                                { key: 'serie', label: 'Série', align: 'center' },
+                                { key: 'serie', label: 'Série', align: 'center', format: 'serie' },
                                 { key: 'total_alunos', label: 'Alunos', align: 'center' },
                                 { key: 'total_respostas', label: 'Total', align: 'center' },
                                 { key: 'total_acertos', label: 'Acertos', align: 'center' },
@@ -2777,6 +3142,19 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
         ) : (
           <span className="text-gray-400 dark:text-gray-500 italic text-xs">Não classificado</span>
         )
+      case 'serie':
+        // Formatar série para exibir como "Xº Ano"
+        if (!valor) return <span className="text-gray-400 italic">-</span>
+        const serieStr = String(valor)
+        if (serieStr.toLowerCase().includes('ano')) {
+          return <span className="text-sm text-gray-700 dark:text-gray-300">{serieStr}</span>
+        }
+        const numeroMatch = serieStr.match(/(\d+)/)
+        if (!numeroMatch) {
+          return <span className="text-sm text-gray-700 dark:text-gray-300">{serieStr}</span>
+        }
+        const numero = numeroMatch[1]
+        return <span className="text-sm text-gray-700 dark:text-gray-300">{numero}º Ano</span>
       default:
         return <span className="text-sm text-gray-700 dark:text-gray-300">{valor}</span>
     }
