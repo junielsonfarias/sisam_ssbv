@@ -41,7 +41,7 @@ interface DashboardData {
     taxa_erro_geral?: number
   }
   niveis: { nivel: string; quantidade: number }[]
-  mediasPorSerie: { serie: string; total_alunos: number; presentes: number; media_geral: number; media_lp: number; media_mat: number; media_ch: number; media_cn: number }[]
+  mediasPorSerie: { serie: string; total_alunos: number; presentes: number; media_geral: number; media_lp: number; media_mat: number; media_ch: number | null; media_cn: number | null; media_prod: number | null }[]
   mediasPorPolo: { polo_id: string; polo: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; presentes: number; faltantes: number }[]
   mediasPorEscola: { escola_id: string; escola: string; polo: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; media_ch: number; media_cn: number; presentes: number; faltantes: number }[]
   mediasPorTurma: { turma_id: string; turma: string; escola: string; serie: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; presentes: number; faltantes: number }[]
@@ -156,7 +156,8 @@ const COLORS = {
     lp: '#3B82F6',
     mat: '#8B5CF6',
     ch: '#10B981',
-    cn: '#F59E0B'
+    cn: '#F59E0B',
+    prod: '#EC4899'
   },
   faixas: ['#EF4444', '#F97316', '#FBBF24', '#84CC16', '#22C55E']
 }
@@ -226,10 +227,14 @@ export default function DadosPage() {
   // Componente auxiliar para tooltip customizado
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      // Filtrar valores null/undefined para não mostrar disciplinas não aplicáveis
+      const filteredPayload = payload.filter((entry: any) => entry.value !== null && entry.value !== undefined)
+      if (filteredPayload.length === 0) return null
+
       return (
         <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 text-sm">
           <p className="font-semibold text-gray-900 dark:text-white mb-1">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {filteredPayload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="flex justify-between gap-4">
               <span>{entry.name}:</span>
               <span className="font-medium">{typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}</span>
@@ -374,6 +379,7 @@ export default function DadosPage() {
         soma_mat: number; count_mat: number
         soma_ch: number; count_ch: number
         soma_cn: number; count_cn: number
+        soma_prod: number; count_prod: number
       }
       const criarAcumulador = (): Acumulador => ({
         total: 0, presentes: 0, faltantes: 0,
@@ -381,7 +387,8 @@ export default function DadosPage() {
         soma_lp: 0, count_lp: 0,
         soma_mat: 0, count_mat: 0,
         soma_ch: 0, count_ch: 0,
-        soma_cn: 0, count_cn: 0
+        soma_cn: 0, count_cn: 0,
+        soma_prod: 0, count_prod: 0
       })
 
       const niveisMap: Record<string, number> = {}
@@ -407,6 +414,7 @@ export default function DadosPage() {
         const notaMat = toNum(r.nota_mat)
         const notaCh = toNum(r.nota_ch)
         const notaCn = toNum(r.nota_cn)
+        const notaProd = toNum(r.nota_producao)
 
         // Faixas de nota (apenas presentes com média > 0)
         if (isPresente && mediaAluno > 0) {
@@ -427,6 +435,7 @@ export default function DadosPage() {
             if (notaMat > 0) { acc.soma_mat += notaMat; acc.count_mat++ }
             if (notaCh > 0) { acc.soma_ch += notaCh; acc.count_ch++ }
             if (notaCn > 0) { acc.soma_cn += notaCn; acc.count_cn++ }
+            if (notaProd > 0) { acc.soma_prod += notaProd; acc.count_prod++ }
           }
           if (isFaltante) acc.faltantes++
         }
@@ -480,16 +489,26 @@ export default function DadosPage() {
           taxa_presenca: estatisticas.total > 0 ? (estatisticas.presentes / estatisticas.total) * 100 : 0
         },
         niveis: Object.entries(niveisMap).map(([nivel, quantidade]) => ({ nivel, quantidade })),
-        mediasPorSerie: Array.from(seriesMap.entries()).map(([serie, acc]) => ({
-          serie,
-          total_alunos: acc.total,
-          presentes: acc.presentes,
-          media_geral: calcMedia(acc.soma_geral, acc.count_geral),
-          media_lp: calcMedia(acc.soma_lp, acc.count_lp),
-          media_mat: calcMedia(acc.soma_mat, acc.count_mat),
-          media_ch: calcMedia(acc.soma_ch, acc.count_ch),
-          media_cn: calcMedia(acc.soma_cn, acc.count_cn)
-        })).sort((a, b) => a.serie.localeCompare(b.serie)),
+        mediasPorSerie: Array.from(seriesMap.entries()).map(([serie, acc]) => {
+          // Verificar se é anos iniciais (2º, 3º, 5º) ou anos finais (6º-9º)
+          const numeroSerie = serie.match(/(\d+)/)?.[1]
+          const isAnosIniciais = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+          const isAnosFinais = numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9'
+
+          return {
+            serie,
+            total_alunos: acc.total,
+            presentes: acc.presentes,
+            media_geral: calcMedia(acc.soma_geral, acc.count_geral),
+            media_lp: calcMedia(acc.soma_lp, acc.count_lp),
+            media_mat: calcMedia(acc.soma_mat, acc.count_mat),
+            // CH e CN apenas para anos finais
+            media_ch: isAnosFinais ? calcMedia(acc.soma_ch, acc.count_ch) : null,
+            media_cn: isAnosFinais ? calcMedia(acc.soma_cn, acc.count_cn) : null,
+            // PROD apenas para anos iniciais
+            media_prod: isAnosIniciais ? calcMedia(acc.soma_prod, acc.count_prod) : null
+          }
+        }).sort((a, b) => a.serie.localeCompare(b.serie)),
         mediasPorPolo: polosOffline.map((p) => {
           const acc = polosMap.get(String(p.id)) || criarAcumulador()
           return {
@@ -1460,6 +1479,7 @@ export default function DadosPage() {
                             <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} />
                             <Bar dataKey="media_ch" name="CH" fill={COLORS.disciplinas.ch} radius={[2, 2, 0, 0]} />
                             <Bar dataKey="media_cn" name="CN" fill={COLORS.disciplinas.cn} radius={[2, 2, 0, 0]} />
+                            <Bar dataKey="media_prod" name="PROD" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
