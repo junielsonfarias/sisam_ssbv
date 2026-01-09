@@ -43,12 +43,17 @@ export async function GET(request: NextRequest) {
 
     const forcarAtualizacao = request.nextUrl.searchParams.get('atualizar_cache') === 'true'
 
-    // Verificar cache
-    if (!forcarAtualizacao && verificarCache(cacheOptions)) {
-      const dadosCache = carregarCache<ReturnType<typeof getEstatisticasPadrao>>(cacheOptions)
-      if (dadosCache) {
-        return okComCache(dadosCache, 'cache')
+    // Verificar cache (com tratamento de erro para ambientes serverless como Vercel)
+    try {
+      if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+        const dadosCache = carregarCache<ReturnType<typeof getEstatisticasPadrao>>(cacheOptions)
+        if (dadosCache) {
+          return okComCache(dadosCache, 'cache')
+        }
       }
+    } catch {
+      // Ignorar erros de cache em ambientes serverless (sistema de arquivos efêmero)
+      console.log('[API Admin Estatisticas] Cache não disponível, buscando do banco')
     }
 
     // Buscar estatísticas usando o serviço centralizado

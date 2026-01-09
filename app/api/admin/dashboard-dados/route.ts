@@ -120,23 +120,28 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Verificar cache em arquivo (fallback)
-    if (!forcarAtualizacao && verificarCache(cacheOptions)) {
-      const dadosCache = carregarCache<any>(cacheOptions)
-      if (dadosCache) {
-        console.log('[Dashboard] Cache em arquivo encontrado')
-        // Salvar no cache em memória para próximas requisições
-        if (USE_MEMORY_CACHE) {
-          memoryCache.set(memoryCacheKey, dadosCache, CACHE_TTL.DASHBOARD)
-        }
-        return NextResponse.json({
-          ...dadosCache,
-          _cache: {
-            origem: 'arquivo',
-            carregadoEm: new Date().toISOString()
+    // Verificar cache em arquivo (fallback) - com tratamento de erro para ambientes serverless
+    try {
+      if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+        const dadosCache = carregarCache<any>(cacheOptions)
+        if (dadosCache) {
+          console.log('[Dashboard] Cache em arquivo encontrado')
+          // Salvar no cache em memória para próximas requisições
+          if (USE_MEMORY_CACHE) {
+            memoryCache.set(memoryCacheKey, dadosCache, CACHE_TTL.DASHBOARD)
           }
-        })
+          return NextResponse.json({
+            ...dadosCache,
+            _cache: {
+              origem: 'arquivo',
+              carregadoEm: new Date().toISOString()
+            }
+          })
+        }
       }
+    } catch {
+      // Ignorar erros de cache em ambientes serverless (sistema de arquivos efêmero)
+      console.log('[Dashboard] Cache de arquivo não disponível, buscando do banco')
     }
 
     // Construir condições de filtro

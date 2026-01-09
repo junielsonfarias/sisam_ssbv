@@ -59,12 +59,18 @@ export async function GET(request: NextRequest) {
 
     const forcarAtualizacao = searchParams.get('atualizar_cache') === 'true'
 
-    if (!forcarAtualizacao && verificarCache(cacheOptions)) {
-      const dadosCache = carregarCache<any>(cacheOptions)
-      if (dadosCache) {
-        console.log('Retornando resultados consolidados do cache')
-        return NextResponse.json(dadosCache)
+    // Verificar cache com tratamento de erro para ambientes serverless
+    try {
+      if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+        const dadosCache = carregarCache<any>(cacheOptions)
+        if (dadosCache) {
+          console.log('Retornando resultados consolidados do cache')
+          return NextResponse.json(dadosCache)
+        }
       }
+    } catch {
+      // Ignorar erros de cache em ambientes serverless
+      console.log('[Resultados Consolidados] Cache não disponível, buscando do banco')
     }
 
     // Otimizar query: usar JOIN ao invés de subconsultas

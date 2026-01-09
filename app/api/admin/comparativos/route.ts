@@ -48,18 +48,24 @@ export async function GET(request: NextRequest) {
 
     const forcarAtualizacao = searchParams.get('atualizar_cache') === 'true'
 
-    if (!forcarAtualizacao && verificarCache(cacheOptions)) {
-      const dadosCache = carregarCache<any>(cacheOptions)
-      if (dadosCache) {
-        console.log('Retornando comparativos do cache')
-        return NextResponse.json({
-          ...dadosCache,
-          _cache: {
-            origem: 'cache',
-            carregadoEm: new Date().toISOString()
-          }
-        })
+    // Verificar cache com tratamento de erro para ambientes serverless
+    try {
+      if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+        const dadosCache = carregarCache<any>(cacheOptions)
+        if (dadosCache) {
+          console.log('Retornando comparativos do cache')
+          return NextResponse.json({
+            ...dadosCache,
+            _cache: {
+              origem: 'cache',
+              carregadoEm: new Date().toISOString()
+            }
+          })
+        }
       }
+    } catch {
+      // Ignorar erros de cache em ambientes serverless
+      console.log('[Comparativos] Cache não disponível, buscando do banco')
     }
 
     if (escolasIds.length === 0 && !poloId) {
