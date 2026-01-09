@@ -484,11 +484,11 @@ export async function GET(request: NextRequest) {
     const faixasNotaQuery = `
       SELECT
         CASE
-          WHEN rc.media_aluno >= 0 AND rc.media_aluno < 2 THEN '0-2'
-          WHEN rc.media_aluno >= 2 AND rc.media_aluno < 4 THEN '2-4'
-          WHEN rc.media_aluno >= 4 AND rc.media_aluno < 6 THEN '4-6'
-          WHEN rc.media_aluno >= 6 AND rc.media_aluno < 8 THEN '6-8'
-          WHEN rc.media_aluno >= 8 AND rc.media_aluno <= 10 THEN '8-10'
+          WHEN rc.media_aluno >= 0 AND rc.media_aluno < 2 THEN '0 a 2'
+          WHEN rc.media_aluno >= 2 AND rc.media_aluno < 4 THEN '2 a 4'
+          WHEN rc.media_aluno >= 4 AND rc.media_aluno < 6 THEN '4 a 6'
+          WHEN rc.media_aluno >= 6 AND rc.media_aluno < 8 THEN '6 a 8'
+          WHEN rc.media_aluno >= 8 AND rc.media_aluno <= 10 THEN '8 a 10'
           ELSE 'N/A'
         END as faixa,
         COUNT(*) as quantidade
@@ -497,7 +497,15 @@ export async function GET(request: NextRequest) {
       ${joinNivelAprendizagem}
       ${faixasNotaWhere}
       GROUP BY faixa
-      ORDER BY faixa
+      ORDER BY
+        CASE
+          WHEN rc.media_aluno >= 0 AND rc.media_aluno < 2 THEN 1
+          WHEN rc.media_aluno >= 2 AND rc.media_aluno < 4 THEN 2
+          WHEN rc.media_aluno >= 4 AND rc.media_aluno < 6 THEN 3
+          WHEN rc.media_aluno >= 6 AND rc.media_aluno < 8 THEN 4
+          WHEN rc.media_aluno >= 8 AND rc.media_aluno <= 10 THEN 5
+          ELSE 6
+        END
     `
 
     // ========== DISTRIBUIÇÃO POR PRESENÇA ==========

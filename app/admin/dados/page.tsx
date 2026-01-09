@@ -148,9 +148,12 @@ const COLORS = {
   niveis: {
     'Insuficiente': '#EF4444',
     'Básico': '#F59E0B',
+    'Basico': '#F59E0B', // Sem acento
     'Adequado': '#3B82F6',
     'Avançado': '#10B981',
-    'Não classificado': '#9CA3AF'
+    'Avancado': '#10B981', // Sem acento
+    'Não classificado': '#9CA3AF',
+    'Nao classificado': '#9CA3AF' // Sem acento
   },
   disciplinas: {
     lp: '#3B82F6',
@@ -159,7 +162,8 @@ const COLORS = {
     cn: '#F59E0B',
     prod: '#EC4899'
   },
-  faixas: ['#EF4444', '#F97316', '#FBBF24', '#84CC16', '#22C55E']
+  faixas: ['#EF4444', '#F97316', '#FBBF24', '#84CC16', '#22C55E'],
+  ranking: ['#4F46E5', '#7C3AED', '#2563EB', '#0891B2', '#059669', '#D97706', '#DC2626', '#DB2777']
 }
 
 // Funções helper para formatação
@@ -234,12 +238,19 @@ export default function DadosPage() {
       return (
         <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 text-sm">
           <p className="font-semibold text-gray-900 dark:text-white mb-1">{label}</p>
-          {filteredPayload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }} className="flex justify-between gap-4">
-              <span>{entry.name}:</span>
-              <span className="font-medium">{typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}</span>
-            </p>
-          ))}
+          {filteredPayload.map((entry: any, index: number) => {
+            // Formatar valor: inteiro para contagens, decimal para médias/notas
+            const isContagem = entry.name === 'Alunos' || entry.dataKey === 'quantidade' || entry.dataKey === 'total_alunos'
+            const valorFormatado = typeof entry.value === 'number'
+              ? (isContagem ? Math.round(entry.value).toLocaleString('pt-BR') : entry.value.toFixed(2))
+              : entry.value
+            return (
+              <p key={index} style={{ color: entry.color }} className="flex justify-between gap-4">
+                <span>{entry.name}:</span>
+                <span className="font-medium">{valorFormatado}</span>
+              </p>
+            )
+          })}
         </div>
       )
     }
@@ -1464,12 +1475,42 @@ export default function DadosPage() {
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Grafico de Barras - Medias por Serie */}
-                      {dados.mediasPorSerie.length > 0 && (
+                      {dados.mediasPorSerie.length > 0 && (() => {
+                        // Processar dados para remover valores null e criar estrutura adequada
+                        const dadosProcessados = dados.mediasPorSerie.map(item => {
+                          const numeroSerie = item.serie?.match(/(\d+)/)?.[1]
+                          const isAnosIniciais = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+
+                          if (isAnosIniciais) {
+                            // Anos iniciais: LP, MAT, PROD
+                            return {
+                              serie: item.serie,
+                              media_lp: item.media_lp,
+                              media_mat: item.media_mat,
+                              media_prod: item.media_prod
+                            }
+                          } else {
+                            // Anos finais: LP, MAT, CH, CN
+                            return {
+                              serie: item.serie,
+                              media_lp: item.media_lp,
+                              media_mat: item.media_mat,
+                              media_ch: item.media_ch,
+                              media_cn: item.media_cn
+                            }
+                          }
+                        })
+
+                        // Verificar se há anos iniciais e finais nos dados
+                        const temAnosIniciais = dadosProcessados.some(d => 'media_prod' in d)
+                        const temAnosFinais = dadosProcessados.some(d => 'media_ch' in d)
+
+                        return (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Media por Serie</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={dados.mediasPorSerie}>
+                          <BarChart data={dadosProcessados} barCategoryGap="15%">
                             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                             <XAxis dataKey="serie" tick={{ fill: '#6B7280', fontSize: 11 }} />
                             <YAxis domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 11 }} />
@@ -1477,14 +1518,15 @@ export default function DadosPage() {
                             <Legend />
                             <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} />
                             <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} />
-                            <Bar dataKey="media_ch" name="CH" fill={COLORS.disciplinas.ch} radius={[2, 2, 0, 0]} />
-                            <Bar dataKey="media_cn" name="CN" fill={COLORS.disciplinas.cn} radius={[2, 2, 0, 0]} />
-                            <Bar dataKey="media_prod" name="PROD" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} />
+                            {temAnosFinais && <Bar dataKey="media_ch" name="CH" fill={COLORS.disciplinas.ch} radius={[2, 2, 0, 0]} />}
+                            {temAnosFinais && <Bar dataKey="media_cn" name="CN" fill={COLORS.disciplinas.cn} radius={[2, 2, 0, 0]} />}
+                            {temAnosIniciais && <Bar dataKey="media_prod" name="PROD" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} />}
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
-                  )}
+                        )
+                      })()}
 
                   {/* Grafico de Pizza - Niveis */}
                   {dados.niveis.length > 0 && (
@@ -1563,7 +1605,11 @@ export default function DadosPage() {
                             <XAxis type="number" domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 11 }} />
                             <YAxis type="category" dataKey="polo" width={100} tick={{ fill: '#6B7280', fontSize: 10 }} />
                             <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="media_geral" name="Media" fill={COLORS.primary} radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="media_geral" name="Media" radius={[0, 4, 4, 0]}>
+                              {dados.mediasPorPolo.slice(0, 8).map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS.ranking[index % COLORS.ranking.length]} />
+                              ))}
+                            </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
