@@ -12,7 +12,7 @@ import {
   Users, School, GraduationCap, MapPin, TrendingUp, TrendingDown,
   Filter, X, ChevronDown, ChevronUp, RefreshCw, Download,
   BookOpen, Calculator, Award, UserCheck, UserX, BarChart3,
-  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff
+  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff, Search
 } from 'lucide-react'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 import * as offlineStorage from '@/lib/offline-storage'
@@ -242,8 +242,9 @@ export default function DadosPage() {
   }
 
   const [dados, setDados] = useState<DashboardData | null>(null)
-  const [carregando, setCarregando] = useState(true)
+  const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [pesquisaRealizada, setPesquisaRealizada] = useState(false)
 
   // Filtros
   const [filtroPoloId, setFiltroPoloId] = useState('')
@@ -675,19 +676,15 @@ export default function DadosPage() {
     }
   }
 
-  useEffect(() => {
-    // Criar AbortController para cancelar requisições anteriores
-    const abortController = new AbortController()
-
-    // Sempre forçar atualização quando filtros mudam para garantir dados atualizados
-    carregarDados(true, abortController.signal)
-
-    // Cleanup: cancelar requisição anterior quando filtros mudarem ou componente desmontar
-    return () => {
-      abortController.abort()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino])
+  // NÃO carregar automaticamente - apenas quando clicar em Pesquisar
+  // useEffect removido para melhorar performance e evitar carregamentos desnecessários
+  // useEffect(() => {
+  //   const abortController = new AbortController()
+  //   carregarDados(true, abortController.signal)
+  //   return () => {
+  //     abortController.abort()
+  //   }
+  // }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino])
 
   const limparFiltros = () => {
     // Para usuários polo ou escola, manter o polo_id fixo
@@ -985,7 +982,7 @@ export default function DadosPage() {
               </p>
             </div>
             <button
-              onClick={() => carregarDados(true)}
+              onClick={() => { setPesquisaRealizada(true); carregarDados(true); }}
               disabled={carregando}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm sm:text-base flex-shrink-0"
               title="Pesquisar dados (força atualização do cache)"
@@ -1438,9 +1435,17 @@ export default function DadosPage() {
 
               {/* Conteudo das Abas */}
               {abaAtiva === 'visao_geral' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                  {/* Grafico de Barras - Medias por Serie */}
-                  {dados.mediasPorSerie.length > 0 && (
+                <div className="mt-4">
+                  {!pesquisaRealizada ? (
+                    <div className="text-center py-12">
+                      <Search className="w-12 h-12 mx-auto text-indigo-300 mb-3" />
+                      <p className="text-base font-medium text-gray-600 dark:text-gray-300">Selecione os filtros desejados</p>
+                      <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Grafico de Barras - Medias por Serie */}
+                      {dados.mediasPorSerie.length > 0 && (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Media por Serie</h3>
                       <div className="h-[280px]">
@@ -1544,73 +1549,99 @@ export default function DadosPage() {
                       </div>
                     </div>
                   )}
+                    </div>
+                  )}
                 </div>
               )}
 
               {abaAtiva === 'escolas' && (
                 <div className="mt-4">
-                <TabelaPaginada
-                  dados={escolasPaginadas}
-                  colunas={[
-                    { key: 'escola', label: 'Escola', align: 'left' },
-                    { key: 'polo', label: 'Polo', align: 'left' },
-                    { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                    { key: 'media_geral', label: 'Media', align: 'center', format: 'nota' },
-                    { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal' },
-                    { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal' },
-                    { key: 'media_ch', label: 'CH', align: 'center', format: 'decimal' },
-                    { key: 'media_cn', label: 'CN', align: 'center', format: 'decimal' },
-                    { key: 'presentes', label: 'Pres.', align: 'center' },
-                    { key: 'faltantes', label: 'Falt.', align: 'center' },
-                  ]}
-                  ordenacao={ordenacao}
-                  onOrdenar={handleOrdenacao}
-                  paginaAtual={paginaAtual}
-                  totalPaginas={totalPaginas}
-                  onPaginar={setPaginaAtual}
-                  totalRegistros={escolasOrdenadas.length}
-                  itensPorPagina={itensPorPagina}
-                />
+                  {!pesquisaRealizada ? (
+                    <div className="text-center py-12">
+                      <Search className="w-12 h-12 mx-auto text-indigo-300 mb-3" />
+                      <p className="text-base font-medium text-gray-600 dark:text-gray-300">Selecione os filtros desejados</p>
+                      <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados</p>
+                    </div>
+                  ) : (
+                    <TabelaPaginada
+                      dados={escolasPaginadas}
+                      colunas={[
+                        { key: 'escola', label: 'Escola', align: 'left' },
+                        { key: 'polo', label: 'Polo', align: 'left' },
+                        { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                        { key: 'media_geral', label: 'Media', align: 'center', format: 'nota' },
+                        { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal' },
+                        { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal' },
+                        { key: 'media_ch', label: 'CH', align: 'center', format: 'decimal' },
+                        { key: 'media_cn', label: 'CN', align: 'center', format: 'decimal' },
+                        { key: 'presentes', label: 'Pres.', align: 'center' },
+                        { key: 'faltantes', label: 'Falt.', align: 'center' },
+                      ]}
+                      ordenacao={ordenacao}
+                      onOrdenar={handleOrdenacao}
+                      paginaAtual={paginaAtual}
+                      totalPaginas={totalPaginas}
+                      onPaginar={setPaginaAtual}
+                      totalRegistros={escolasOrdenadas.length}
+                      itensPorPagina={itensPorPagina}
+                    />
+                  )}
                 </div>
               )}
 
-              {abaAtiva === 'turmas' && dados.mediasPorTurma && (
+              {abaAtiva === 'turmas' && (
                 <div className="mt-4">
-                <TabelaPaginada
-                  dados={dados.mediasPorTurma.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
-                  colunas={[
-                    { key: 'turma', label: 'Turma', align: 'left' },
-                    { key: 'escola', label: 'Escola', align: 'left' },
-                    { key: 'serie', label: 'Serie', align: 'center' },
-                    { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                    { key: 'media_geral', label: 'Media', align: 'center', format: 'nota' },
-                    { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal' },
-                    { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal' },
-                    { key: 'presentes', label: 'Pres.', align: 'center' },
-                    { key: 'faltantes', label: 'Falt.', align: 'center' },
-                  ]}
-                  ordenacao={ordenacao}
-                  onOrdenar={handleOrdenacao}
-                  paginaAtual={paginaAtual}
-                  totalPaginas={Math.ceil(dados.mediasPorTurma.length / itensPorPagina)}
-                  onPaginar={setPaginaAtual}
-                  totalRegistros={dados.mediasPorTurma.length}
-                  itensPorPagina={itensPorPagina}
-                />
+                  {!pesquisaRealizada ? (
+                    <div className="text-center py-12">
+                      <Search className="w-12 h-12 mx-auto text-indigo-300 mb-3" />
+                      <p className="text-base font-medium text-gray-600 dark:text-gray-300">Selecione os filtros desejados</p>
+                      <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados</p>
+                    </div>
+                  ) : dados.mediasPorTurma ? (
+                    <TabelaPaginada
+                      dados={dados.mediasPorTurma.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
+                      colunas={[
+                        { key: 'turma', label: 'Turma', align: 'left' },
+                        { key: 'escola', label: 'Escola', align: 'left' },
+                        { key: 'serie', label: 'Serie', align: 'center' },
+                        { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                        { key: 'media_geral', label: 'Media', align: 'center', format: 'nota' },
+                        { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal' },
+                        { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal' },
+                        { key: 'presentes', label: 'Pres.', align: 'center' },
+                        { key: 'faltantes', label: 'Falt.', align: 'center' },
+                      ]}
+                      ordenacao={ordenacao}
+                      onOrdenar={handleOrdenacao}
+                      paginaAtual={paginaAtual}
+                      totalPaginas={Math.ceil(dados.mediasPorTurma.length / itensPorPagina)}
+                      onPaginar={setPaginaAtual}
+                      totalRegistros={dados.mediasPorTurma.length}
+                      itensPorPagina={itensPorPagina}
+                    />
+                  ) : null}
                 </div>
               )}
 
               {abaAtiva === 'alunos' && (
                 <div className="space-y-4 mt-4">
-                  {/* Visualização Mobile - Cards */}
-                  <div className="block sm:hidden space-y-4 p-4">
-                    {alunosPaginados.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                        <p className="text-base font-medium text-gray-500 dark:text-gray-400">Nenhum resultado encontrado</p>
-                        <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Importe os dados primeiro</p>
-                      </div>
-                    ) : (
+                  {!pesquisaRealizada ? (
+                    <div className="text-center py-12">
+                      <Search className="w-12 h-12 mx-auto text-indigo-300 mb-3" />
+                      <p className="text-base font-medium text-gray-600 dark:text-gray-300">Selecione os filtros desejados</p>
+                      <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Visualização Mobile - Cards */}
+                      <div className="block sm:hidden space-y-4 p-4">
+                        {alunosPaginados.length === 0 ? (
+                          <div className="text-center py-12">
+                            <Award className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                            <p className="text-base font-medium text-gray-500 dark:text-gray-400">Nenhum resultado encontrado</p>
+                            <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Importe os dados primeiro</p>
+                          </div>
+                        ) : (
                       alunosPaginados.map((resultado: any, index: number) => {
                         const mediaNum = getNotaNumero(resultado.media_aluno)
                         // Notas serão obtidas dinamicamente pelas disciplinas
@@ -1988,14 +2019,24 @@ export default function DadosPage() {
                         </div>
                       </div>
                     )}
-                  </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
-              {abaAtiva === 'analises' && dados.analiseAcertosErros && (
+              {abaAtiva === 'analises' && (
                 <div className="space-y-6 mt-4">
-                  {/* Taxa de Acerto Geral */}
-                  {dados.analiseAcertosErros.taxaAcertoGeral && (
+                  {!pesquisaRealizada ? (
+                    <div className="text-center py-12">
+                      <Search className="w-12 h-12 mx-auto text-indigo-300 mb-3" />
+                      <p className="text-base font-medium text-gray-600 dark:text-gray-300">Selecione os filtros desejados</p>
+                      <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Taxa de Acerto Geral */}
+                      {dados.analiseAcertosErros?.taxaAcertoGeral && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                         <div className="flex items-center justify-between mb-2">
@@ -2228,6 +2269,8 @@ export default function DadosPage() {
                                                   />
                       </div>
                     </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
