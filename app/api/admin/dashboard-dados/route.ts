@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
 
     // Construir condições de filtro
     let whereConditions: string[] = []
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso

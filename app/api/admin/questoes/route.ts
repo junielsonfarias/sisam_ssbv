@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar questões:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
@@ -205,7 +205,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Questão excluída com sucesso' })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao excluir questão:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

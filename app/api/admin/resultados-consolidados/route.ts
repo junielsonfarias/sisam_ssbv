@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Limpar caches expirados
     try {
       limparCachesExpirados()
-    } catch (error) {
+    } catch (error: any) {
       // Não crítico
     }
 
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
       query += ` AND UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE')`
     }
 
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso usando JOIN ao invés de subconsulta
@@ -543,7 +543,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(resultado)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar resultados consolidados:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

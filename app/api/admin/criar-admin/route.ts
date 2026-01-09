@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         "SELECT id FROM usuarios WHERE tipo_usuario = 'administrador' LIMIT 1"
       )
       adminExiste = checkAdmin.rows.length > 0
-    } catch (dbError) {
+    } catch (dbError: any) {
       adminExiste = false
     }
 
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         "SELECT id FROM usuarios WHERE tipo_usuario = 'administrador' LIMIT 1"
       )
       adminExiste = checkAdmin.rows.length > 0
-    } catch (dbError) {
+    } catch (dbError: any) {
       adminExiste = false
     }
 

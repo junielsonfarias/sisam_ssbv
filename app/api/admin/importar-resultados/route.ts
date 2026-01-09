@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
 
       // Construir query de batch insert
       const placeholders: string[] = []
-      const params: any[] = []
+      const params: (string | number | boolean | null | undefined)[] = []
       let paramIndex = 1
 
       for (const values of batchValues) {

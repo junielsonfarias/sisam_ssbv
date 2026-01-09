@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Query base com condições
     let whereConditions: string[] = ['1=1']
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso
@@ -318,7 +318,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Aluno excluído com sucesso' })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao excluir aluno:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

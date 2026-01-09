@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         AND CAST(rc.media_aluno AS DECIMAL) > 0
     `
 
-    const params: any[] = [polosIds[0], polosIds[1]]
+    const params: (string | number | boolean | null | undefined)[] = [polosIds[0], polosIds[1]]
     let paramIndex = 3
 
     // Ano letivo é opcional - se não informado, busca todos

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Limpar caches expirados
     try {
       limparCachesExpirados()
-    } catch (error) {
+    } catch (error: any) {
       // Não crítico
     }
 

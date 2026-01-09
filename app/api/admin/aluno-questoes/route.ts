@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // Buscar todas as questões do aluno
     // Tentar múltiplas estratégias: aluno_id, código, nome (case-insensitive)
     let whereConditions: string[] = []
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Estratégia 1: Por aluno_id (mais confiável)

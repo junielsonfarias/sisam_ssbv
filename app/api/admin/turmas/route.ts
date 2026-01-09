@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       WHERE t.ativo = true
     `
 
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     const result = await pool.query(query, params)
 
     return NextResponse.json(result.rows)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar turmas:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

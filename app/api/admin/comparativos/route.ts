@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Limpar caches expirados
     try {
       limparCachesExpirados()
-    } catch (error) {
+    } catch (error: any) {
       // Não crítico
     }
 
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
         AND CAST(rc.media_aluno AS DECIMAL) > 0
     `
 
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso
@@ -531,7 +531,7 @@ export async function GET(request: NextRequest) {
         geradoEm: new Date().toISOString()
       }
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar comparativos:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

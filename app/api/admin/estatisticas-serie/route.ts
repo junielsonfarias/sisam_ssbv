@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       WHERE rc.serie IS NOT NULL
     `
 
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso

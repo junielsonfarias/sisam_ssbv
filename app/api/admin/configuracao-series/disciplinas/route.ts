@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
         total_questoes: totalQuestoes
       })
 
-    } catch (error) {
+    } catch (error: any) {
       await client.query('ROLLBACK')
       throw error
     } finally {

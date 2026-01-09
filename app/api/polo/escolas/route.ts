@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar escolas:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

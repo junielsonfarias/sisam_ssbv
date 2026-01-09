@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       WHERE rp.aluno_id IS NOT NULL
     `
 
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restricoes de acesso
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       total: result.rows.length,
       sincronizado_em: new Date().toISOString()
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar questoes para offline:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

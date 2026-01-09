@@ -33,7 +33,7 @@ function ensureDirectoryExists(dirPath: string) {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true })
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao criar diretorio:', error)
   }
 }
@@ -47,7 +47,7 @@ function readLocalConfig() {
       const content = fs.readFileSync(CONFIG_PATH, 'utf-8')
       return JSON.parse(content)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao ler arquivo de configuracao local:', error)
   }
   return null
@@ -60,7 +60,7 @@ function saveLocalConfig(config: any) {
     ensureDirectoryExists(path.dirname(CONFIG_PATH))
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8')
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao salvar arquivo de configuracao local:', error)
     return false
   }
@@ -108,7 +108,7 @@ function saveImageLocally(base64Data: string): string | null {
 
     // Retornar URL relativa
     return `/uploads/${filename}`
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao salvar imagem localmente:', error)
     return null
   }

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     // Construir query baseada no tipo de usuário
     let query = 'SELECT * FROM resultados_provas WHERE 1=1'
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
       totalAlunos: new Set(resultadosFiltrados.map((r) => r.aluno_codigo).filter(Boolean)).size,
       resultados: resultadosFiltrados.slice(0, 100), // Limitar a 100 resultados para performance
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar dados de análise:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

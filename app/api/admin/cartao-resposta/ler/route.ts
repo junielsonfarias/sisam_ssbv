@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         }
 
         await client.query('COMMIT')
-      } catch (error) {
+      } catch (error: any) {
         await client.query('ROLLBACK')
         throw error
       } finally {

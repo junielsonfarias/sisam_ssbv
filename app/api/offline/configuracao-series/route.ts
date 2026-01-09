@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       total: configuracoes.length,
       sincronizado_em: new Date().toISOString()
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar configuração de séries para offline:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

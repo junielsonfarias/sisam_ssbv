@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       FROM configuracao_series
       WHERE ativo = true
     `
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
 
     if (serie) {
       // Extrair apenas o número da série

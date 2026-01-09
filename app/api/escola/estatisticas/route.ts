@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const estatisticas = await getEstatisticas(usuario)
 
     return ok(estatisticas)
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API Escola Estatisticas] Erro:', error)
     return okComFallback(getEstatisticasPadrao(), error)
   }

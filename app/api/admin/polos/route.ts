@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     // Admin e tecnico podem ver todos os polos
     let query = 'SELECT * FROM polos'
-    const params: any[] = []
+    const params: (string | number | boolean | null | undefined)[] = []
 
     if (id) {
       query += ' WHERE id = $1'
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const result = await pool.query(query, params)
 
     return NextResponse.json(result.rows)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar polos:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
