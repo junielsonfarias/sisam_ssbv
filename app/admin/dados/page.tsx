@@ -148,12 +148,17 @@ const COLORS = {
   niveis: {
     'Insuficiente': '#EF4444',
     'Básico': '#F59E0B',
-    'Basico': '#F59E0B', // Sem acento
+    'Basico': '#F59E0B',
     'Adequado': '#3B82F6',
     'Avançado': '#10B981',
-    'Avancado': '#10B981', // Sem acento
+    'Avancado': '#10B981',
     'Não classificado': '#9CA3AF',
-    'Nao classificado': '#9CA3AF' // Sem acento
+    'Nao classificado': '#9CA3AF',
+    // Códigos de nível (N1, N2, N3, N4)
+    'N1': '#EF4444',  // Insuficiente - Vermelho
+    'N2': '#F59E0B',  // Básico - Amarelo
+    'N3': '#3B82F6',  // Adequado - Azul
+    'N4': '#10B981'   // Avançado - Verde
   },
   disciplinas: {
     lp: '#3B82F6',
@@ -164,6 +169,26 @@ const COLORS = {
   },
   faixas: ['#EF4444', '#F97316', '#FBBF24', '#84CC16', '#22C55E'],
   ranking: ['#4F46E5', '#7C3AED', '#2563EB', '#0891B2', '#059669', '#D97706', '#DC2626', '#DB2777']
+}
+
+// Mapeamento de códigos de nível para nomes completos
+const NIVEL_NAMES: Record<string, string> = {
+  'N1': 'Insuficiente',
+  'N2': 'Básico',
+  'N3': 'Adequado',
+  'N4': 'Avançado',
+  'Insuficiente': 'Insuficiente',
+  'Básico': 'Básico',
+  'Basico': 'Básico',
+  'Adequado': 'Adequado',
+  'Avançado': 'Avançado',
+  'Avancado': 'Avançado',
+  'Não classificado': 'Não classificado',
+  'Nao classificado': 'Não classificado'
+}
+
+const getNivelName = (nivel: string): string => {
+  return NIVEL_NAMES[nivel] || nivel
 }
 
 // Funções helper para formatação
@@ -1529,14 +1554,22 @@ export default function DadosPage() {
                       })()}
 
                   {/* Grafico de Pizza - Niveis */}
-                  {dados.niveis.length > 0 && (
+                  {dados.niveis.length > 0 && (() => {
+                    // Processar dados para converter códigos de nível em nomes
+                    const niveisProcessados = dados.niveis.map(n => ({
+                      ...n,
+                      nivelOriginal: n.nivel,
+                      nivel: getNivelName(n.nivel)
+                    }))
+
+                    return (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Distribuicao por Nivel</h3>
                       <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <Pie
-                              data={dados.niveis}
+                              data={niveisProcessados}
                               cx="50%"
                               cy="50%"
                               innerRadius={50}
@@ -1547,10 +1580,10 @@ export default function DadosPage() {
                               label={({ nivel, percent }) => `${nivel}: ${(percent * 100).toFixed(0)}%`}
                               labelLine={false}
                             >
-                              {dados.niveis.map((entry, index) => (
+                              {niveisProcessados.map((entry, index) => (
                                 <Cell
                                   key={`cell-${index}`}
-                                  fill={COLORS.niveis[entry.nivel as keyof typeof COLORS.niveis] || '#9CA3AF'}
+                                  fill={COLORS.niveis[entry.nivelOriginal as keyof typeof COLORS.niveis] || COLORS.niveis[entry.nivel as keyof typeof COLORS.niveis] || '#9CA3AF'}
                                 />
                               ))}
                             </Pie>
@@ -1559,18 +1592,19 @@ export default function DadosPage() {
                         </ResponsiveContainer>
                       </div>
                       <div className="flex flex-wrap justify-center gap-3 mt-2">
-                        {dados.niveis.map(n => (
-                          <div key={n.nivel} className="flex items-center gap-1.5 text-xs">
+                        {niveisProcessados.map(n => (
+                          <div key={n.nivelOriginal} className="flex items-center gap-1.5 text-xs">
                             <div
                               className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: COLORS.niveis[n.nivel as keyof typeof COLORS.niveis] || '#9CA3AF' }}
+                              style={{ backgroundColor: COLORS.niveis[n.nivelOriginal as keyof typeof COLORS.niveis] || COLORS.niveis[n.nivel as keyof typeof COLORS.niveis] || '#9CA3AF' }}
                             ></div>
                             <span>{n.nivel}: {n.quantidade}</span>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
+                    )
+                  })()}
 
                   {/* Distribuicao por Faixa de Nota */}
                   {dados.faixasNota.length > 0 && (
