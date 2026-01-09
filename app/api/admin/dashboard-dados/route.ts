@@ -383,7 +383,6 @@ export async function GET(request: NextRequest) {
 
     // ========== MÉDIAS POR SÉRIE ==========
     // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
-    // Nota: nota_producao pode não existir em todas as instalações, então calculamos separadamente
     const mediasPorSerieQuery = `
       SELECT
         rc.serie,
@@ -393,7 +392,8 @@ export async function GET(request: NextRequest) {
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       ${joinNivelAprendizagem}
@@ -1226,6 +1226,7 @@ export async function GET(request: NextRequest) {
       mediasPorSerie: mediasPorSerieResult.rows.map(row => {
         // Verificar se é anos iniciais (2º, 3º, 5º) ou anos finais (6º-9º)
         const numeroSerie = row.serie?.match(/(\d+)/)?.[1]
+        const isAnosIniciais = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
         const isAnosFinais = numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9'
 
         return {
@@ -1238,8 +1239,8 @@ export async function GET(request: NextRequest) {
           // CH e CN apenas para anos finais
           media_ch: isAnosFinais ? (parseFloat(row.media_ch) || 0) : null,
           media_cn: isAnosFinais ? (parseFloat(row.media_cn) || 0) : null,
-          // PROD: nota_producao pode não existir na VIEW, retorna null por enquanto
-          media_prod: null
+          // PROD apenas para anos iniciais
+          media_prod: isAnosIniciais ? (parseFloat(row.media_prod) || 0) : null
         }
       }),
       mediasPorPolo: mediasPorPoloResult.rows.map(row => ({
