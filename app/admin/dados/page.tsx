@@ -16,6 +16,13 @@ import {
 } from 'lucide-react'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 import * as offlineStorage from '@/lib/offline-storage'
+import {
+  compararSeries as compararSeriesLib,
+  compararDisciplinas as compararDisciplinasLib,
+  isAnosIniciais as isAnosIniciaisLib,
+  getDisciplinasValidas
+} from '@/lib/disciplinas-mapping'
+import { useDebouncedCallback } from '@/lib/hooks/useDebounce'
 
 interface DashboardData {
   metricas: {
@@ -380,13 +387,15 @@ export default function DadosPage() {
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina] = useState(50)
 
-  // Paginação independente para cada seção da aba Análises
-  const [paginaQuestoesErros, setPaginaQuestoesErros] = useState(1)
-  const [paginaEscolasErros, setPaginaEscolasErros] = useState(1)
-  const [paginaTurmasErros, setPaginaTurmasErros] = useState(1)
-  const [paginaQuestoesAcertos, setPaginaQuestoesAcertos] = useState(1)
-  const [paginaEscolasAcertos, setPaginaEscolasAcertos] = useState(1)
-  const [paginaTurmasAcertos, setPaginaTurmasAcertos] = useState(1)
+  // Paginação consolidada para aba Análises (reduz de 6 useState para 1)
+  const [paginasAnalises, setPaginasAnalises] = useState({
+    questoesErros: 1,
+    escolasErros: 1,
+    turmasErros: 1,
+    questoesAcertos: 1,
+    escolasAcertos: 1,
+    turmasAcertos: 1
+  })
 
   // Modal de questões
   const [modalAberto, setModalAberto] = useState(false)
@@ -836,13 +845,14 @@ export default function DadosPage() {
 
   // NÃO carregar automaticamente - apenas quando clicar em Pesquisar
   // useEffect removido para melhorar performance e evitar carregamentos desnecessários
-  // useEffect(() => {
-  //   const abortController = new AbortController()
-  //   carregarDados(true, abortController.signal)
-  //   return () => {
-  //     abortController.abort()
-  //   }
-  // }, [filtroPoloId, filtroEscolaId, filtroSerie, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino])
+
+  // Versão debounced do carregarDados para evitar múltiplas chamadas rápidas
+  const carregarDadosDebounced = useDebouncedCallback(
+    (mostrarLoading: boolean, signal?: AbortSignal, usarFiltroAtual?: boolean, serieOverride?: string) => {
+      carregarDados(mostrarLoading, signal, usarFiltroAtual, serieOverride)
+    },
+    300 // 300ms de debounce
+  )
 
   const limparFiltros = () => {
     // Para usuários polo ou escola, manter o polo_id fixo
@@ -907,41 +917,9 @@ export default function DadosPage() {
     })
   }, [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
 
-  // Função helper para comparar séries de forma flexível (extrai número e compara)
-  const compararSeries = useCallback((serie1: string | null | undefined, serie2: string | null | undefined): boolean => {
-    if (!serie1 || !serie2) return false
-    // Extrai apenas o número de cada série
-    const num1 = serie1.match(/(\d+)/)?.[1]
-    const num2 = serie2.match(/(\d+)/)?.[1]
-    // Se não conseguiu extrair número de algum, faz comparação case-insensitive
-    if (!num1 || !num2) {
-      return serie1.toLowerCase().trim() === serie2.toLowerCase().trim()
-    }
-    return num1 === num2
-  }, [])
-
-  // Função helper para comparar disciplinas de forma flexível
-  const compararDisciplinas = useCallback((disciplina1: string | null | undefined, disciplina2: string | null | undefined): boolean => {
-    if (!disciplina1 || !disciplina2) return false
-    const d1 = disciplina1.toLowerCase().trim()
-    const d2 = disciplina2.toLowerCase().trim()
-    // Comparação direta
-    if (d1 === d2) return true
-    // Mapeamentos comuns
-    const mapeamentos: Record<string, string[]> = {
-      'língua portuguesa': ['lp', 'portugues', 'português', 'lingua portuguesa'],
-      'matemática': ['mat', 'matematica'],
-      'ciências humanas': ['ch', 'ciencias humanas'],
-      'ciências da natureza': ['cn', 'ciencias da natureza', 'ciencias natureza']
-    }
-    for (const [chave, aliases] of Object.entries(mapeamentos)) {
-      const todasVariantes = [chave, ...aliases]
-      if (todasVariantes.some(v => d1.includes(v)) && todasVariantes.some(v => d2.includes(v))) {
-        return true
-      }
-    }
-    return false
-  }, [])
+  // Funções de comparação importadas do módulo centralizado
+  const compararSeries = compararSeriesLib
+  const compararDisciplinas = compararDisciplinasLib
 
   // Função para calcular dados de análise a partir dos resumos por série (cálculo dinâmico)
   const calcularAnaliseDeResumos = useCallback((resumos: DashboardData['resumosPorSerie'], serie: string, disciplina?: string) => {
@@ -1069,7 +1047,7 @@ export default function DadosPage() {
       turmasComMaisErros,
       turmasComMaisAcertos
     }
-  }, [compararSeries, compararDisciplinas])
+  }, []) // compararSeries e compararDisciplinas são imports estáveis
 
   // Função para filtrar dados localmente do cache (muito mais rápido que API)
   const filtrarDadosLocal = useCallback((serie: string, disciplina?: string) => {
@@ -1078,14 +1056,9 @@ export default function DadosPage() {
     // Se série vazia E disciplina vazia, retorna os dados completos do cache
     if (!serie && !disciplina) return dadosCache
 
-    // Determinar se é anos iniciais ou finais para filtrar disciplinas
-    const numeroSerie = serie ? serie.match(/(\d+)/)?.[1] : null
-    const isAnosIniciais = ['2', '3', '5'].includes(numeroSerie || '')
-
-    // Disciplinas válidas para a série
-    const disciplinasValidas = isAnosIniciais
-      ? ['Língua Portuguesa', 'Matematica', 'Matemática', 'LP', 'MAT', 'Português']
-      : ['Língua Portuguesa', 'Matematica', 'Matemática', 'Ciências Humanas', 'Ciências da Natureza', 'LP', 'MAT', 'CH', 'CN', 'Português']
+    // Usar funções centralizadas para verificar tipo de ensino e disciplinas válidas
+    const isAnosIniciais = isAnosIniciaisLib(serie)
+    const disciplinasValidas = getDisciplinasValidas(serie)
 
     // Filtrar alunos pela série (comparação flexível)
     // Se série vazia, manter todos os alunos
@@ -1173,74 +1146,95 @@ export default function DadosPage() {
       }
     }
 
-    // Recalcular métricas baseado nos alunos filtrados
+    // ========== CÁLCULO OTIMIZADO EM UMA ÚNICA PASSADA ==========
+    // Em vez de múltiplos loops (map, filter, reduce, forEach), fazemos tudo em um único reduce
     const totalAlunos = alunosFiltrados.length
-    const presentes = alunosFiltrados.filter(a => a.presenca === 'P' || a.presenca === 'p').length
-    const faltantes = totalAlunos - presentes
 
-    // Calcular médias dos alunos filtrados
-    const calcularMedia = (campo: string) => {
-      const valores = alunosFiltrados
-        .map(a => parseFloat(a[campo]))
-        .filter(v => !isNaN(v) && v > 0)
-      return valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0
-    }
+    const estatisticas = alunosFiltrados.reduce((acc, aluno) => {
+      const isPresente = aluno.presenca === 'P' || aluno.presenca === 'p'
+      const isFaltante = aluno.presenca === 'F' || aluno.presenca === 'f'
 
-    const mediaGeral = calcularMedia('media_aluno')
-    const mediaLp = calcularMedia('nota_lp')
-    const mediaMat = calcularMedia('nota_mat')
-    const mediaCh = calcularMedia('nota_ch')
-    const mediaCn = calcularMedia('nota_cn')
-    const mediaProducao = calcularMedia('nota_producao')
+      // Contagem de presença
+      if (isPresente) acc.presentes++
 
-    const mediasAlunos = alunosFiltrados
-      .map(a => parseFloat(a.media_aluno))
-      .filter(v => !isNaN(v) && v > 0)
-    const menorMedia = mediasAlunos.length > 0 ? Math.min(...mediasAlunos) : 0
-    const maiorMedia = mediasAlunos.length > 0 ? Math.max(...mediasAlunos) : 0
+      // Parse das notas (apenas uma vez por aluno)
+      const mediaAluno = parseFloat(aluno.media_aluno)
+      const notaLp = parseFloat(aluno.nota_lp)
+      const notaMat = parseFloat(aluno.nota_mat)
+      const notaCh = parseFloat(aluno.nota_ch)
+      const notaCn = parseFloat(aluno.nota_cn)
+      const notaProd = parseFloat(aluno.nota_producao)
 
-    // Recalcular níveis baseado nos alunos filtrados
-    // Níveis de aprendizagem só existem para anos iniciais (2º, 3º, 5º)
-    const niveisContagem: Record<string, number> = {}
-    if (isAnosIniciais) {
-      alunosFiltrados.forEach(a => {
-        // Apenas considerar alunos presentes ou com falta registrada
-        if (a.presenca === 'P' || a.presenca === 'p' || a.presenca === 'F' || a.presenca === 'f') {
-          const nivel = a.nivel_aprendizagem || 'Não classificado'
-          niveisContagem[nivel] = (niveisContagem[nivel] || 0) + 1
-        }
-      })
-    }
-    const niveisFiltrados = Object.entries(niveisContagem)
-      .map(([nivel, quantidade]) => ({ nivel, quantidade }))
-      .sort((a, b) => {
-        // Ordenar: Insuficiente, Básico, Adequado, Avançado, Não classificado
-        const ordem: Record<string, number> = {
-          'Insuficiente': 1, 'N1': 1,
-          'Básico': 2, 'N2': 2,
-          'Adequado': 3, 'N3': 3,
-          'Avançado': 4, 'N4': 4,
-          'Não classificado': 5
-        }
-        return (ordem[a.nivel] || 6) - (ordem[b.nivel] || 6)
-      })
+      // Acumular somas e contagens para médias (apenas valores válidos > 0)
+      if (!isNaN(mediaAluno) && mediaAluno > 0) {
+        acc.somaGeral += mediaAluno
+        acc.countGeral++
+        // Min/Max
+        if (mediaAluno < acc.menorMedia) acc.menorMedia = mediaAluno
+        if (mediaAluno > acc.maiorMedia) acc.maiorMedia = mediaAluno
 
-    // Recalcular faixas de nota (usar formato consistente com API: "0 a 2", "2 a 4", etc.)
-    const faixasContagem: Record<string, number> = { '0 a 2': 0, '2 a 4': 0, '4 a 6': 0, '6 a 8': 0, '8 a 10': 0 }
-    alunosFiltrados.forEach(a => {
-      // Apenas considerar alunos presentes
-      if (a.presenca === 'P' || a.presenca === 'p') {
-        const media = parseFloat(a.media_aluno)
-        if (!isNaN(media) && media > 0) {
-          if (media < 2) faixasContagem['0 a 2']++
-          else if (media < 4) faixasContagem['2 a 4']++
-          else if (media < 6) faixasContagem['4 a 6']++
-          else if (media < 8) faixasContagem['6 a 8']++
-          else faixasContagem['8 a 10']++
+        // Faixas de nota (apenas presentes)
+        if (isPresente) {
+          if (mediaAluno < 2) acc.faixas['0 a 2']++
+          else if (mediaAluno < 4) acc.faixas['2 a 4']++
+          else if (mediaAluno < 6) acc.faixas['4 a 6']++
+          else if (mediaAluno < 8) acc.faixas['6 a 8']++
+          else acc.faixas['8 a 10']++
         }
       }
+      if (!isNaN(notaLp) && notaLp > 0) { acc.somaLp += notaLp; acc.countLp++ }
+      if (!isNaN(notaMat) && notaMat > 0) { acc.somaMat += notaMat; acc.countMat++ }
+      if (!isNaN(notaCh) && notaCh > 0) { acc.somaCh += notaCh; acc.countCh++ }
+      if (!isNaN(notaCn) && notaCn > 0) { acc.somaCn += notaCn; acc.countCn++ }
+      if (!isNaN(notaProd) && notaProd > 0) { acc.somaProd += notaProd; acc.countProd++ }
+
+      // Níveis de aprendizagem (apenas anos iniciais e com presença registrada)
+      if (isAnosIniciais && (isPresente || isFaltante)) {
+        const nivel = aluno.nivel_aprendizagem || 'Não classificado'
+        acc.niveis[nivel] = (acc.niveis[nivel] || 0) + 1
+      }
+
+      return acc
+    }, {
+      presentes: 0,
+      somaGeral: 0, countGeral: 0,
+      somaLp: 0, countLp: 0,
+      somaMat: 0, countMat: 0,
+      somaCh: 0, countCh: 0,
+      somaCn: 0, countCn: 0,
+      somaProd: 0, countProd: 0,
+      menorMedia: Infinity,
+      maiorMedia: 0,
+      faixas: { '0 a 2': 0, '2 a 4': 0, '4 a 6': 0, '6 a 8': 0, '8 a 10': 0 } as Record<string, number>,
+      niveis: {} as Record<string, number>
     })
-    const faixasNotaFiltradas = Object.entries(faixasContagem).map(([faixa, quantidade]) => ({
+
+    // Calcular médias finais
+    const presentes = estatisticas.presentes
+    const faltantes = totalAlunos - presentes
+    const mediaGeral = estatisticas.countGeral > 0 ? estatisticas.somaGeral / estatisticas.countGeral : 0
+    const mediaLp = estatisticas.countLp > 0 ? estatisticas.somaLp / estatisticas.countLp : 0
+    const mediaMat = estatisticas.countMat > 0 ? estatisticas.somaMat / estatisticas.countMat : 0
+    const mediaCh = estatisticas.countCh > 0 ? estatisticas.somaCh / estatisticas.countCh : 0
+    const mediaCn = estatisticas.countCn > 0 ? estatisticas.somaCn / estatisticas.countCn : 0
+    const mediaProducao = estatisticas.countProd > 0 ? estatisticas.somaProd / estatisticas.countProd : 0
+    const menorMedia = estatisticas.menorMedia === Infinity ? 0 : estatisticas.menorMedia
+    const maiorMedia = estatisticas.maiorMedia
+
+    // Formatar níveis ordenados
+    const ordemNiveis: Record<string, number> = {
+      'Insuficiente': 1, 'N1': 1,
+      'Básico': 2, 'N2': 2,
+      'Adequado': 3, 'N3': 3,
+      'Avançado': 4, 'N4': 4,
+      'Não classificado': 5
+    }
+    const niveisFiltrados = Object.entries(estatisticas.niveis)
+      .map(([nivel, quantidade]) => ({ nivel, quantidade }))
+      .sort((a, b) => (ordemNiveis[a.nivel] || 6) - (ordemNiveis[b.nivel] || 6))
+
+    // Formatar faixas de nota
+    const faixasNotaFiltradas = Object.entries(estatisticas.faixas).map(([faixa, quantidade]) => ({
       faixa,
       quantidade
     }))
@@ -1279,7 +1273,7 @@ export default function DadosPage() {
       mediasPorEscola: escolasFiltradas,
       analiseAcertosErros: analiseAcertosErrosFiltrada
     } as DashboardData
-  }, [dadosCache, compararSeries, calcularAnaliseDeResumos, compararDisciplinas])
+  }, [dadosCache, calcularAnaliseDeResumos]) // compararSeries e compararDisciplinas são imports estáveis
 
   // Função para alterar série via chips
   // Usa cache local com cálculo dinâmico para filtragem instantânea em TODAS as abas
@@ -1287,12 +1281,7 @@ export default function DadosPage() {
     setFiltroSerie(serie)
     setPaginaAtual(1)
     // Resetar paginações das análises ao trocar série
-    setPaginaQuestoesErros(1)
-    setPaginaEscolasErros(1)
-    setPaginaTurmasErros(1)
-    setPaginaQuestoesAcertos(1)
-    setPaginaEscolasAcertos(1)
-    setPaginaTurmasAcertos(1)
+    setPaginasAnalises({ questoesErros: 1, escolasErros: 1, turmasErros: 1, questoesAcertos: 1, escolasAcertos: 1, turmasAcertos: 1 })
 
     // Só atualiza se já fez uma pesquisa antes
     if (!pesquisaRealizada) return
@@ -1307,27 +1296,23 @@ export default function DadosPage() {
       }
     }
 
-    // Fallback: chamar API se não tem cache
+    // Fallback: chamar API se não tem cache (usa versão debounced)
     setUsandoCache(false)
-    carregarDados(true, undefined, true, serie)
+    carregarDadosDebounced(true, undefined, true, serie)
   }
 
   // Função para pesquisar - Busca dados completos para cache
+  // Usa versão debounced para evitar múltiplos cliques rápidos
   const handlePesquisar = () => {
     setPesquisaRealizada(true)
     // Resetar TODAS as paginações ao fazer nova pesquisa
     setPaginaAtual(1)
-    setPaginaQuestoesErros(1)
-    setPaginaEscolasErros(1)
-    setPaginaTurmasErros(1)
-    setPaginaQuestoesAcertos(1)
-    setPaginaEscolasAcertos(1)
-    setPaginaTurmasAcertos(1)
+    setPaginasAnalises({ questoesErros: 1, escolasErros: 1, turmasErros: 1, questoesAcertos: 1, escolasAcertos: 1, turmasAcertos: 1 })
 
     // Sempre buscar dados SEM filtro de série para ter cache completo
     // Passa string vazia como serieOverride para garantir que o cache será salvo
     setUsandoCache(false)
-    carregarDados(true, undefined, false, '')
+    carregarDadosDebounced(true, undefined, false, '')
   }
 
   // useEffect para aplicar filtro de série/disciplina após cache ser atualizado
@@ -2814,7 +2799,7 @@ export default function DadosPage() {
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Erros</h3>
                           <div className="overflow-x-auto -mx-4 sm:mx-0">
                             <TabelaPaginada
-                              dados={dados.analiseAcertosErros?.questoesComMaisErros.slice((paginaQuestoesErros - 1) * itensPorPagina, paginaQuestoesErros * itensPorPagina)}
+                              dados={dados.analiseAcertosErros?.questoesComMaisErros.slice((paginasAnalises.questoesErros - 1) * itensPorPagina, paginasAnalises.questoesErros * itensPorPagina)}
                               colunas={[
                                 { key: 'questao_codigo', label: 'Questão', align: 'center' },
                                 { key: 'questao_descricao', label: 'Descrição', align: 'left' },
@@ -2827,9 +2812,9 @@ export default function DadosPage() {
                               ]}
                               ordenacao={ordenacao}
                               onOrdenar={handleOrdenacao}
-                              paginaAtual={paginaQuestoesErros}
+                              paginaAtual={paginasAnalises.questoesErros}
                               totalPaginas={Math.ceil(dados.analiseAcertosErros?.questoesComMaisErros.length / itensPorPagina)}
-                              onPaginar={setPaginaQuestoesErros}
+                              onPaginar={(p: number) => setPaginasAnalises(prev => ({ ...prev, questoesErros: p }))}
                               totalRegistros={dados.analiseAcertosErros?.questoesComMaisErros.length}
                               itensPorPagina={itensPorPagina}
                             />
@@ -2843,7 +2828,7 @@ export default function DadosPage() {
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Escolas com Mais Erros</h3>
                           <div className="overflow-x-auto -mx-4 sm:mx-0">
                             <TabelaPaginada
-                              dados={dados.analiseAcertosErros?.escolasComMaisErros.slice((paginaEscolasErros - 1) * itensPorPagina, paginaEscolasErros * itensPorPagina)}
+                              dados={dados.analiseAcertosErros?.escolasComMaisErros.slice((paginasAnalises.escolasErros - 1) * itensPorPagina, paginasAnalises.escolasErros * itensPorPagina)}
                               colunas={[
                                 { key: 'escola', label: 'Escola', align: 'left' },
                                 { key: 'polo', label: 'Polo', align: 'left' },
@@ -2856,9 +2841,9 @@ export default function DadosPage() {
                               ]}
                               ordenacao={ordenacao}
                               onOrdenar={handleOrdenacao}
-                              paginaAtual={paginaEscolasErros}
+                              paginaAtual={paginasAnalises.escolasErros}
                               totalPaginas={Math.ceil(dados.analiseAcertosErros?.escolasComMaisErros.length / itensPorPagina)}
-                              onPaginar={setPaginaEscolasErros}
+                              onPaginar={(p: number) => setPaginasAnalises(prev => ({ ...prev, escolasErros: p }))}
                               totalRegistros={dados.analiseAcertosErros?.escolasComMaisErros.length}
                               itensPorPagina={itensPorPagina}
                             />
@@ -2872,7 +2857,7 @@ export default function DadosPage() {
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Turmas com Mais Erros</h3>
                           <div className="overflow-x-auto -mx-4 sm:mx-0">
                             <TabelaPaginada
-                              dados={dados.analiseAcertosErros?.turmasComMaisErros.slice((paginaTurmasErros - 1) * itensPorPagina, paginaTurmasErros * itensPorPagina)}
+                              dados={dados.analiseAcertosErros?.turmasComMaisErros.slice((paginasAnalises.turmasErros - 1) * itensPorPagina, paginasAnalises.turmasErros * itensPorPagina)}
                               colunas={[
                                 { key: 'turma', label: 'Turma', align: 'left' },
                                 { key: 'escola', label: 'Escola', align: 'left' },
@@ -2886,9 +2871,9 @@ export default function DadosPage() {
                               ]}
                               ordenacao={ordenacao}
                               onOrdenar={handleOrdenacao}
-                              paginaAtual={paginaTurmasErros}
+                              paginaAtual={paginasAnalises.turmasErros}
                               totalPaginas={Math.ceil(dados.analiseAcertosErros?.turmasComMaisErros.length / itensPorPagina)}
-                              onPaginar={setPaginaTurmasErros}
+                              onPaginar={(p: number) => setPaginasAnalises(prev => ({ ...prev, turmasErros: p }))}
                               totalRegistros={dados.analiseAcertosErros?.turmasComMaisErros.length}
                               itensPorPagina={itensPorPagina}
                             />
@@ -2902,7 +2887,7 @@ export default function DadosPage() {
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Acertos</h3>
                           <div className="overflow-x-auto -mx-4 sm:mx-0">
                             <TabelaPaginada
-                              dados={dados.analiseAcertosErros?.questoesComMaisAcertos.slice((paginaQuestoesAcertos - 1) * itensPorPagina, paginaQuestoesAcertos * itensPorPagina)}
+                              dados={dados.analiseAcertosErros?.questoesComMaisAcertos.slice((paginasAnalises.questoesAcertos - 1) * itensPorPagina, paginasAnalises.questoesAcertos * itensPorPagina)}
                               colunas={[
                                 { key: 'questao_codigo', label: 'Questão', align: 'center' },
                                 { key: 'questao_descricao', label: 'Descrição', align: 'left' },
@@ -2915,9 +2900,9 @@ export default function DadosPage() {
                               ]}
                               ordenacao={ordenacao}
                               onOrdenar={handleOrdenacao}
-                              paginaAtual={paginaQuestoesAcertos}
+                              paginaAtual={paginasAnalises.questoesAcertos}
                               totalPaginas={Math.ceil(dados.analiseAcertosErros?.questoesComMaisAcertos.length / itensPorPagina)}
-                              onPaginar={setPaginaQuestoesAcertos}
+                              onPaginar={(p: number) => setPaginasAnalises(prev => ({ ...prev, questoesAcertos: p }))}
                               totalRegistros={dados.analiseAcertosErros?.questoesComMaisAcertos.length}
                               itensPorPagina={itensPorPagina}
                             />
@@ -2931,7 +2916,7 @@ export default function DadosPage() {
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Escolas com Mais Acertos</h3>
                           <div className="overflow-x-auto -mx-4 sm:mx-0">
                             <TabelaPaginada
-                              dados={dados.analiseAcertosErros?.escolasComMaisAcertos.slice((paginaEscolasAcertos - 1) * itensPorPagina, paginaEscolasAcertos * itensPorPagina)}
+                              dados={dados.analiseAcertosErros?.escolasComMaisAcertos.slice((paginasAnalises.escolasAcertos - 1) * itensPorPagina, paginasAnalises.escolasAcertos * itensPorPagina)}
                               colunas={[
                                 { key: 'escola', label: 'Escola', align: 'left' },
                                 { key: 'polo', label: 'Polo', align: 'left' },
@@ -2944,9 +2929,9 @@ export default function DadosPage() {
                               ]}
                               ordenacao={ordenacao}
                               onOrdenar={handleOrdenacao}
-                              paginaAtual={paginaEscolasAcertos}
+                              paginaAtual={paginasAnalises.escolasAcertos}
                               totalPaginas={Math.ceil(dados.analiseAcertosErros?.escolasComMaisAcertos.length / itensPorPagina)}
-                              onPaginar={setPaginaEscolasAcertos}
+                              onPaginar={(p: number) => setPaginasAnalises(prev => ({ ...prev, escolasAcertos: p }))}
                               totalRegistros={dados.analiseAcertosErros?.escolasComMaisAcertos.length}
                               itensPorPagina={itensPorPagina}
                             />
@@ -2960,7 +2945,7 @@ export default function DadosPage() {
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Turmas com Mais Acertos</h3>
                           <div className="overflow-x-auto -mx-4 sm:mx-0">
                             <TabelaPaginada
-                              dados={dados.analiseAcertosErros?.turmasComMaisAcertos.slice((paginaTurmasAcertos - 1) * itensPorPagina, paginaTurmasAcertos * itensPorPagina)}
+                              dados={dados.analiseAcertosErros?.turmasComMaisAcertos.slice((paginasAnalises.turmasAcertos - 1) * itensPorPagina, paginasAnalises.turmasAcertos * itensPorPagina)}
                               colunas={[
                                 { key: 'turma', label: 'Turma', align: 'left' },
                                 { key: 'escola', label: 'Escola', align: 'left' },
@@ -2974,9 +2959,9 @@ export default function DadosPage() {
                               ]}
                               ordenacao={ordenacao}
                               onOrdenar={handleOrdenacao}
-                              paginaAtual={paginaTurmasAcertos}
+                              paginaAtual={paginasAnalises.turmasAcertos}
                               totalPaginas={Math.ceil(dados.analiseAcertosErros?.turmasComMaisAcertos.length / itensPorPagina)}
-                              onPaginar={setPaginaTurmasAcertos}
+                              onPaginar={(p: number) => setPaginasAnalises(prev => ({ ...prev, turmasAcertos: p }))}
                               totalRegistros={dados.analiseAcertosErros?.turmasComMaisAcertos.length}
                               itensPorPagina={itensPorPagina}
                             />
