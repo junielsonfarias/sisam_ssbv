@@ -283,7 +283,20 @@ export default function DadosPage() {
   }
 
   const [dados, setDados] = useState<DashboardData | null>(null)
+  const [dadosCache, setDadosCache] = useState<DashboardData | null>(null) // Cache dos dados completos para filtragem local
+  const [filtrosCache, setFiltrosCache] = useState<{
+    polo_id: string
+    escola_id: string
+    turma_id: string
+    ano_letivo: string
+    presenca: string
+    nivel: string
+    faixa_media: string
+    disciplina: string
+    tipo_ensino: string
+  } | null>(null) // Filtros usados no cache (exceto série)
   const [carregando, setCarregando] = useState(false)
+  const [carregandoEmSegundoPlano, setCarregandoEmSegundoPlano] = useState(false) // Loading sem ocultar dados atuais
   const [erro, setErro] = useState<string | null>(null)
   const [pesquisaRealizada, setPesquisaRealizada] = useState(false)
 
@@ -307,7 +320,7 @@ export default function DadosPage() {
   const [abaAtiva, setAbaAtiva] = useState<'visao_geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'>('visao_geral')
   const [ordenacao, setOrdenacao] = useState<{ coluna: string; direcao: 'asc' | 'desc' }>({ coluna: 'media_geral', direcao: 'desc' })
   const [paginaAtual, setPaginaAtual] = useState(1)
-  const [itensPorPagina] = useState(15)
+  const [itensPorPagina] = useState(50)
 
   // Paginação independente para cada seção da aba Análises
   const [paginaQuestoesErros, setPaginaQuestoesErros] = useState(1)
@@ -337,9 +350,17 @@ export default function DadosPage() {
   const [escolaNome, setEscolaNome] = useState<string>('')
   const [poloNome, setPoloNome] = useState<string>('')
 
-  const carregarDados = async (forcarAtualizacao: boolean = false, signal?: AbortSignal) => {
-    setCarregando(true)
+  const carregarDados = async (forcarAtualizacao: boolean = false, signal?: AbortSignal, emSegundoPlano: boolean = false, serieOverride?: string) => {
+    // Se em segundo plano, não oculta os dados atuais
+    if (emSegundoPlano) {
+      setCarregandoEmSegundoPlano(true)
+    } else {
+      setCarregando(true)
+    }
     setErro(null)
+
+    // Usar serieOverride se fornecido, senão usar o estado atual
+    const serieParaFiltrar = serieOverride !== undefined ? serieOverride : filtroSerie
 
     // Verificar se já foi cancelado antes de iniciar
     if (signal?.aborted) {
@@ -365,7 +386,7 @@ export default function DadosPage() {
         polo_id: filtroPoloId,
         escola_id: filtroEscolaId,
         turma_id: filtroTurmaId,
-        serie: filtroSerie,
+        serie: serieParaFiltrar,
         ano_letivo: filtroAnoLetivo,
         presenca: filtroPresenca
       })
@@ -662,6 +683,7 @@ export default function DadosPage() {
 
       setDados(dadosOffline)
       setCarregando(false)
+      setCarregandoEmSegundoPlano(false)
       return
     }
 
@@ -670,7 +692,7 @@ export default function DadosPage() {
       const params = new URLSearchParams()
       if (filtroPoloId) params.append('polo_id', filtroPoloId)
       if (filtroEscolaId) params.append('escola_id', filtroEscolaId)
-      if (filtroSerie) params.append('serie', filtroSerie)
+      if (serieParaFiltrar) params.append('serie', serieParaFiltrar)
       if (filtroTurmaId) params.append('turma_id', filtroTurmaId)
       if (filtroAnoLetivo) params.append('ano_letivo', filtroAnoLetivo)
       if (filtroPresenca) params.append('presenca', filtroPresenca)
@@ -681,6 +703,8 @@ export default function DadosPage() {
       if (filtroTaxaAcertoMin) params.append('taxa_acerto_min', filtroTaxaAcertoMin)
       if (filtroTaxaAcertoMax) params.append('taxa_acerto_max', filtroTaxaAcertoMax)
       if (filtroQuestaoCodigo) params.append('questao_codigo', filtroQuestaoCodigo)
+      // Aumentar limite de alunos para trazer todos (paginação feita no frontend)
+      params.append('limite_alunos', '10000')
       // Forçar atualização do cache quando clicado no botão Atualizar
       if (forcarAtualizacao) params.append('atualizar_cache', 'true')
 
@@ -701,6 +725,22 @@ export default function DadosPage() {
       if (response.ok) {
         setDados(data)
         setUsandoDadosOffline(false)
+        // Salvar no cache se não tem filtro de série (dados completos para filtragem local)
+        if (!serieParaFiltrar) {
+          setDadosCache(data)
+          // Salvar os filtros usados para verificar se pode usar cache depois
+          setFiltrosCache({
+            polo_id: filtroPoloId,
+            escola_id: filtroEscolaId,
+            turma_id: filtroTurmaId,
+            ano_letivo: filtroAnoLetivo,
+            presenca: filtroPresenca,
+            nivel: filtroNivel,
+            faixa_media: filtroFaixaMedia,
+            disciplina: filtroDisciplina,
+            tipo_ensino: filtroTipoEnsino
+          })
+        }
       } else {
         setErro(data.mensagem || 'Erro ao carregar dados')
       }
@@ -727,6 +767,7 @@ export default function DadosPage() {
       // Só atualizar loading se não foi cancelado
       if (!signal?.aborted) {
         setCarregando(false)
+        setCarregandoEmSegundoPlano(false)
       }
     }
   }
@@ -762,6 +803,151 @@ export default function DadosPage() {
     setFiltroQuestaoCodigo('')
     setFiltroTipoEnsino('')
     setPaginaAtual(1)
+    // Limpar cache pois os filtros foram resetados
+    setDadosCache(null)
+    setFiltrosCache(null)
+  }
+
+  // Função para verificar se os filtros atuais são iguais aos do cache (exceto série)
+  const filtrosPrincipaisIguais = useCallback(() => {
+    if (!filtrosCache) return false
+    return (
+      filtrosCache.polo_id === filtroPoloId &&
+      filtrosCache.escola_id === filtroEscolaId &&
+      filtrosCache.turma_id === filtroTurmaId &&
+      filtrosCache.ano_letivo === filtroAnoLetivo &&
+      filtrosCache.presenca === filtroPresenca &&
+      filtrosCache.nivel === filtroNivel &&
+      filtrosCache.faixa_media === filtroFaixaMedia &&
+      filtrosCache.disciplina === filtroDisciplina &&
+      filtrosCache.tipo_ensino === filtroTipoEnsino
+    )
+  }, [filtrosCache, filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino])
+
+  // Função para salvar filtros atuais no cache
+  const salvarFiltrosCache = useCallback(() => {
+    setFiltrosCache({
+      polo_id: filtroPoloId,
+      escola_id: filtroEscolaId,
+      turma_id: filtroTurmaId,
+      ano_letivo: filtroAnoLetivo,
+      presenca: filtroPresenca,
+      nivel: filtroNivel,
+      faixa_media: filtroFaixaMedia,
+      disciplina: filtroDisciplina,
+      tipo_ensino: filtroTipoEnsino
+    })
+  }, [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino])
+
+  // Função para filtrar dados localmente do cache (muito mais rápido que API)
+  const filtrarDadosLocal = useCallback((serie: string) => {
+    if (!dadosCache) return null
+
+    // Se série vazia, retorna os dados completos do cache
+    if (!serie) return dadosCache
+
+    // Filtrar alunos pela série
+    const alunosFiltrados = dadosCache.alunosDetalhados?.filter(aluno =>
+      aluno.serie === serie
+    ) || []
+
+    // Filtrar médias por série
+    const mediasPorSerieFiltradas = dadosCache.mediasPorSerie?.filter(m =>
+      m.serie === serie
+    ) || []
+
+    // Filtrar turmas pela série
+    const turmasFiltradas = dadosCache.mediasPorTurma?.filter(t =>
+      t.serie === serie
+    ) || []
+
+    // Recalcular métricas baseado nos alunos filtrados
+    const totalAlunos = alunosFiltrados.length
+    const presentes = alunosFiltrados.filter(a => a.presenca === 'P' || a.presenca === 'p').length
+    const faltantes = totalAlunos - presentes
+
+    // Calcular médias dos alunos filtrados
+    const calcularMedia = (campo: string) => {
+      const valores = alunosFiltrados
+        .map(a => parseFloat(a[campo]))
+        .filter(v => !isNaN(v) && v > 0)
+      return valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0
+    }
+
+    const mediaGeral = calcularMedia('media_aluno')
+    const mediaLp = calcularMedia('nota_lp')
+    const mediaMat = calcularMedia('nota_mat')
+    const mediaCh = calcularMedia('nota_ch')
+    const mediaCn = calcularMedia('nota_cn')
+    const mediaProducao = calcularMedia('nota_producao')
+
+    const mediasAlunos = alunosFiltrados
+      .map(a => parseFloat(a.media_aluno))
+      .filter(v => !isNaN(v) && v > 0)
+    const menorMedia = mediasAlunos.length > 0 ? Math.min(...mediasAlunos) : 0
+    const maiorMedia = mediasAlunos.length > 0 ? Math.max(...mediasAlunos) : 0
+
+    return {
+      ...dadosCache,
+      metricas: {
+        ...dadosCache.metricas,
+        total_alunos: totalAlunos,
+        total_presentes: presentes,
+        total_faltantes: faltantes,
+        taxa_presenca: totalAlunos > 0 ? (presentes / totalAlunos) * 100 : 0,
+        media_geral: mediaGeral,
+        media_lp: mediaLp,
+        media_mat: mediaMat,
+        media_ch: mediaCh,
+        media_cn: mediaCn,
+        media_producao: mediaProducao,
+        menor_media: menorMedia,
+        maior_media: maiorMedia
+      },
+      alunosDetalhados: alunosFiltrados,
+      mediasPorSerie: mediasPorSerieFiltradas,
+      mediasPorTurma: turmasFiltradas
+    } as DashboardData
+  }, [dadosCache])
+
+  // Função para alterar série via chips (usa cache local quando possível)
+  const handleSerieChipClick = (serie: string) => {
+    setFiltroSerie(serie)
+    setPaginaAtual(1)
+
+    // Só atualiza se já fez uma pesquisa antes
+    if (!pesquisaRealizada) return
+
+    // Tentar filtrar localmente do cache (instantâneo) - só se filtros principais são iguais
+    if (dadosCache && filtrosPrincipaisIguais()) {
+      const dadosFiltrados = filtrarDadosLocal(serie)
+      if (dadosFiltrados) {
+        setDados(dadosFiltrados)
+        return // Não precisa chamar API - resposta instantânea!
+      }
+    }
+
+    // Fallback: chamar API se não tem cache ou filtros mudaram
+    carregarDados(true, undefined, true, serie)
+  }
+
+  // Função para pesquisar (usa cache local quando possível)
+  const handlePesquisar = () => {
+    setPesquisaRealizada(true)
+    setPaginaAtual(1)
+
+    // Verificar se os filtros principais são iguais aos do cache (pode usar filtragem local)
+    if (dadosCache && filtrosPrincipaisIguais()) {
+      // Filtros principais são iguais, usar cache com filtragem local por série
+      const dadosFiltrados = filtrarDadosLocal(filtroSerie)
+      if (dadosFiltrados) {
+        setDados(dadosFiltrados)
+        return // Não precisa chamar API - resposta instantânea!
+      }
+    }
+
+    // Filtros mudaram ou não tem cache, fazer chamada à API
+    carregarDados(true)
   }
 
   const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroSerie || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo || filtroTipoEnsino
@@ -1037,10 +1223,10 @@ export default function DadosPage() {
               </p>
             </div>
             <button
-              onClick={() => { setPesquisaRealizada(true); carregarDados(true); }}
+              onClick={handlePesquisar}
               disabled={carregando}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm sm:text-base flex-shrink-0"
-              title="Pesquisar dados (força atualização do cache)"
+              title="Pesquisar dados (usa cache quando possível)"
             >
               <RefreshCw className={`w-4 h-4 ${carregando ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Pesquisar</span>
@@ -1432,8 +1618,8 @@ export default function DadosPage() {
                 )}
               </div>
 
-              {/* Container Sticky para Abas + Serie */}
-              <div className="sticky top-0 z-40 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-4 pb-2 bg-gray-50 dark:bg-slate-900 space-y-2" style={{ marginTop: '1rem' }}>
+              {/* Container Sticky para Abas + Serie - Fixo abaixo do header */}
+              <div className="sticky top-14 sm:top-16 z-40 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-4 pb-2 bg-gray-50 dark:bg-slate-900 space-y-2 shadow-md" style={{ marginTop: '1rem' }}>
                 {/* Abas de Navegacao */}
                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
                   <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
@@ -1461,13 +1647,19 @@ export default function DadosPage() {
                   </div>
                 </div>
 
-                {/* Chips de Series */}
+                {/* Chips de Series - Clique atualiza pesquisa automaticamente */}
                 {dados?.filtros.series && dados.filtros.series.length > 0 && (
-                  <div className="flex flex-wrap gap-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-2">
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase self-center mr-2">Serie:</span>
+                  <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-2">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase self-center mr-2 flex items-center gap-2">
+                      Serie:
+                      {carregandoEmSegundoPlano && (
+                        <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
+                      )}
+                    </span>
                     <button
-                      onClick={() => { setFiltroSerie(''); setPaginaAtual(1); }}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      onClick={() => handleSerieChipClick('')}
+                      disabled={carregandoEmSegundoPlano}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors disabled:opacity-70 ${
                         !filtroSerie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                       }`}
                     >
@@ -1476,8 +1668,9 @@ export default function DadosPage() {
                     {dados.filtros.series.map(serie => (
                       <button
                         key={serie}
-                        onClick={() => { setFiltroSerie(serie); setPaginaAtual(1); }}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                        onClick={() => handleSerieChipClick(serie)}
+                        disabled={carregandoEmSegundoPlano}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors disabled:opacity-70 ${
                           filtroSerie === serie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                         }`}
                       >
@@ -1501,53 +1694,106 @@ export default function DadosPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Grafico de Barras - Medias por Serie */}
                       {dados.mediasPorSerie.length > 0 && (() => {
-                        // Processar dados para remover valores null e criar estrutura adequada
-                        const dadosProcessados = dados.mediasPorSerie.map(item => {
-                          const numeroSerie = item.serie?.match(/(\d+)/)?.[1]
-                          const isAnosIniciais = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+                        // Separar dados em anos iniciais (2º, 3º, 5º) e anos finais (6º-9º)
+                        const anosIniciais = dados.mediasPorSerie
+                          .filter(item => {
+                            const num = item.serie?.match(/(\d+)/)?.[1]
+                            return num === '2' || num === '3' || num === '5'
+                          })
+                          .map(item => ({
+                            serie: item.serie,
+                            media_lp: item.media_lp,
+                            media_mat: item.media_mat,
+                            media_prod: item.media_prod
+                          }))
 
-                          if (isAnosIniciais) {
-                            // Anos iniciais: LP, MAT, PROD
-                            return {
-                              serie: item.serie,
-                              media_lp: item.media_lp,
-                              media_mat: item.media_mat,
-                              media_prod: item.media_prod
-                            }
-                          } else {
-                            // Anos finais: LP, MAT, CH, CN
-                            return {
-                              serie: item.serie,
-                              media_lp: item.media_lp,
-                              media_mat: item.media_mat,
-                              media_ch: item.media_ch,
-                              media_cn: item.media_cn
-                            }
-                          }
-                        })
-
-                        // Verificar se há anos iniciais e finais nos dados
-                        const temAnosIniciais = dadosProcessados.some(d => 'media_prod' in d)
-                        const temAnosFinais = dadosProcessados.some(d => 'media_ch' in d)
+                        const anosFinais = dados.mediasPorSerie
+                          .filter(item => {
+                            const num = item.serie?.match(/(\d+)/)?.[1]
+                            return num === '6' || num === '7' || num === '8' || num === '9'
+                          })
+                          .map(item => ({
+                            serie: item.serie,
+                            media_lp: item.media_lp,
+                            media_mat: item.media_mat,
+                            media_ch: item.media_ch,
+                            media_cn: item.media_cn
+                          }))
 
                         return (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Media por Serie</h3>
-                      <div className="h-[280px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={dadosProcessados} barCategoryGap="15%">
-                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                            <XAxis dataKey="serie" tick={{ fill: '#6B7280', fontSize: 11 }} />
-                            <YAxis domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 11 }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend />
-                            <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} />
-                            <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} />
-                            {temAnosFinais && <Bar dataKey="media_ch" name="CH" fill={COLORS.disciplinas.ch} radius={[2, 2, 0, 0]} />}
-                            {temAnosFinais && <Bar dataKey="media_cn" name="CN" fill={COLORS.disciplinas.cn} radius={[2, 2, 0, 0]} />}
-                            {temAnosIniciais && <Bar dataKey="media_prod" name="PROD" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} />}
-                          </BarChart>
-                        </ResponsiveContainer>
+                      <div className="space-y-4">
+                        {/* Anos Iniciais: LP, MAT, PROD */}
+                        {anosIniciais.length > 0 && (
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Anos Iniciais (2º, 3º, 5º) - LP, MAT, PROD</p>
+                            <div className="h-[120px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={anosIniciais} barCategoryGap="20%">
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                                  <XAxis dataKey="serie" tick={{ fill: '#6B7280', fontSize: 10 }} />
+                                  <YAxis domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 10 }} width={30} />
+                                  <Tooltip content={<CustomTooltip />} />
+                                  <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} />
+                                  <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} />
+                                  <Bar dataKey="media_prod" name="PROD" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Anos Finais: LP, MAT, CH, CN */}
+                        {anosFinais.length > 0 && (
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Anos Finais (6º-9º) - LP, MAT, CH, CN</p>
+                            <div className="h-[120px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={anosFinais} barCategoryGap="20%">
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                                  <XAxis dataKey="serie" tick={{ fill: '#6B7280', fontSize: 10 }} />
+                                  <YAxis domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 10 }} width={30} />
+                                  <Tooltip content={<CustomTooltip />} />
+                                  <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} />
+                                  <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} />
+                                  <Bar dataKey="media_ch" name="CH" fill={COLORS.disciplinas.ch} radius={[2, 2, 0, 0]} />
+                                  <Bar dataKey="media_cn" name="CN" fill={COLORS.disciplinas.cn} radius={[2, 2, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Legenda unificada */}
+                        <div className="flex flex-wrap justify-center gap-4 pt-2 border-t border-gray-200 dark:border-slate-700">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.lp }}></div>
+                            <span>LP</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.mat }}></div>
+                            <span>MAT</span>
+                          </div>
+                          {anosFinais.length > 0 && (
+                            <>
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.ch }}></div>
+                                <span>CH</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.cn }}></div>
+                                <span>CN</span>
+                              </div>
+                            </>
+                          )}
+                          {anosIniciais.length > 0 && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.prod }}></div>
+                              <span>PROD</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                         )
@@ -1684,6 +1930,7 @@ export default function DadosPage() {
                       onPaginar={setPaginaAtual}
                       totalRegistros={escolasOrdenadas.length}
                       itensPorPagina={itensPorPagina}
+                      stickyHeader={true}
                     />
                   )}
                 </div>
@@ -1718,6 +1965,7 @@ export default function DadosPage() {
                       onPaginar={setPaginaAtual}
                       totalRegistros={dados.mediasPorTurma.length}
                       itensPorPagina={itensPorPagina}
+                      stickyHeader={true}
                     />
                   ) : null}
                 </div>
@@ -1864,7 +2112,7 @@ export default function DadosPage() {
                   {/* Visualização Tablet/Desktop - Tabela */}
                   <div className="hidden sm:block w-full">
                     <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
-                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/50 dark:to-indigo-800/50 sticky top-[124px] z-20">
+                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/50 dark:to-indigo-800/50 sticky top-[180px] sm:top-[190px] z-30">
                           <tr>
                             <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-8 md:w-10 lg:w-12">
                               #
@@ -2135,240 +2383,240 @@ export default function DadosPage() {
                     </div>
                   ) : (
                     <>
-                      {/* Taxa de Acerto Geral */}
+                      {/* Cards de Resumo - Taxa de Acerto Geral */}
                       {dados.analiseAcertosErros?.taxaAcertoGeral && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Taxa de Acerto</h3>
-                          <Target className="w-5 h-5 text-green-600" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">Taxa de Acerto</h3>
+                              <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                            </div>
+                            <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">
+                              {dados.analiseAcertosErros?.taxaAcertoGeral.taxa_acerto_geral.toFixed(2)}%
+                            </p>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {dados.analiseAcertosErros?.taxaAcertoGeral.total_acertos.toLocaleString('pt-BR')} de {dados.analiseAcertosErros?.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')} respostas
+                            </p>
+                          </div>
+                          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">Taxa de Erro</h3>
+                              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                            </div>
+                            <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">
+                              {dados.analiseAcertosErros?.taxaAcertoGeral.taxa_erro_geral.toFixed(2)}%
+                            </p>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {dados.analiseAcertosErros?.taxaAcertoGeral.total_erros.toLocaleString('pt-BR')} erros
+                            </p>
+                          </div>
+                          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">Total de Respostas</h3>
+                              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                            </div>
+                            <p className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                              {dados.analiseAcertosErros?.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')}
+                            </p>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Respostas analisadas</p>
+                          </div>
                         </div>
-                        <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                          {dados.analiseAcertosErros?.taxaAcertoGeral.taxa_acerto_geral.toFixed(2)}%
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {dados.analiseAcertosErros?.taxaAcertoGeral.total_acertos.toLocaleString('pt-BR')} de {dados.analiseAcertosErros?.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')} respostas
-                        </p>
-                      </div>
-                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Taxa de Erro</h3>
-                          <AlertTriangle className="w-5 h-5 text-red-600" />
+                      )}
+
+                      {/* Taxa de Acerto por Disciplina */}
+                      {dados.analiseAcertosErros?.taxaAcertoPorDisciplina && dados.analiseAcertosErros?.taxaAcertoPorDisciplina.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Taxa de Acerto por Disciplina</h3>
+                          <div className="h-[250px] sm:h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={dados.analiseAcertosErros?.taxaAcertoPorDisciplina}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                                <XAxis dataKey="disciplina" tick={{ fill: '#6B7280', fontSize: 10 }} />
+                                <YAxis domain={[0, 100]} tick={{ fill: '#6B7280', fontSize: 10 }} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                <Bar dataKey="taxa_acerto" name="Taxa de Acerto (%)" fill="#10B981" radius={[2, 2, 0, 0]} />
+                                <Bar dataKey="taxa_erro" name="Taxa de Erro (%)" fill="#EF4444" radius={[2, 2, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
                         </div>
-                        <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                          {dados.analiseAcertosErros?.taxaAcertoGeral.taxa_erro_geral.toFixed(2)}%
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {dados.analiseAcertosErros?.taxaAcertoGeral.total_erros.toLocaleString('pt-BR')} erros
-                        </p>
-                      </div>
-                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">Total de Respostas</h3>
-                          <BarChart3 className="w-5 h-5 text-indigo-600" />
+                      )}
+
+                      {/* Questões com Mais Erros */}
+                      {dados.analiseAcertosErros?.questoesComMaisErros && dados.analiseAcertosErros?.questoesComMaisErros.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 overflow-hidden">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Erros</h3>
+                          <div className="overflow-x-auto -mx-4 sm:mx-0">
+                            <TabelaPaginada
+                              dados={dados.analiseAcertosErros?.questoesComMaisErros.slice((paginaQuestoesErros - 1) * itensPorPagina, paginaQuestoesErros * itensPorPagina)}
+                              colunas={[
+                                { key: 'questao_codigo', label: 'Questão', align: 'center' },
+                                { key: 'questao_descricao', label: 'Descrição', align: 'left' },
+                                { key: 'disciplina', label: 'Disciplina', align: 'center' },
+                                { key: 'total_respostas', label: 'Total', align: 'center' },
+                                { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                                { key: 'total_erros', label: 'Erros', align: 'center' },
+                                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                              ]}
+                              ordenacao={ordenacao}
+                              onOrdenar={handleOrdenacao}
+                              paginaAtual={paginaQuestoesErros}
+                              totalPaginas={Math.ceil(dados.analiseAcertosErros?.questoesComMaisErros.length / itensPorPagina)}
+                              onPaginar={setPaginaQuestoesErros}
+                              totalRegistros={dados.analiseAcertosErros?.questoesComMaisErros.length}
+                              itensPorPagina={itensPorPagina}
+                            />
+                          </div>
                         </div>
-                        <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                          {dados.analiseAcertosErros?.taxaAcertoGeral.total_respostas.toLocaleString('pt-BR')}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Respostas analisadas</p>
-                      </div>
-                    </div>
-                  )}
+                      )}
 
-                  {/* Taxa de Acerto por Disciplina */}
-                  {dados.analiseAcertosErros?.taxaAcertoPorDisciplina && dados.analiseAcertosErros?.taxaAcertoPorDisciplina.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Taxa de Acerto por Disciplina</h3>
-                      <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={dados.analiseAcertosErros?.taxaAcertoPorDisciplina}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                            <XAxis dataKey="disciplina" tick={{ fill: '#6B7280', fontSize: 11 }} />
-                            <YAxis domain={[0, 100]} tick={{ fill: '#6B7280', fontSize: 11 }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend />
-                            <Bar dataKey="taxa_acerto" name="Taxa de Acerto (%)" fill="#10B981" radius={[2, 2, 0, 0]} />
-                            <Bar dataKey="taxa_erro" name="Taxa de Erro (%)" fill="#EF4444" radius={[2, 2, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  )}
+                      {/* Escolas com Mais Erros */}
+                      {dados.analiseAcertosErros?.escolasComMaisErros && dados.analiseAcertosErros?.escolasComMaisErros.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 overflow-hidden">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Escolas com Mais Erros</h3>
+                          <div className="overflow-x-auto -mx-4 sm:mx-0">
+                            <TabelaPaginada
+                              dados={dados.analiseAcertosErros?.escolasComMaisErros.slice((paginaEscolasErros - 1) * itensPorPagina, paginaEscolasErros * itensPorPagina)}
+                              colunas={[
+                                { key: 'escola', label: 'Escola', align: 'left' },
+                                { key: 'polo', label: 'Polo', align: 'left' },
+                                { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                                { key: 'total_respostas', label: 'Total', align: 'center' },
+                                { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                                { key: 'total_erros', label: 'Erros', align: 'center' },
+                                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                              ]}
+                              ordenacao={ordenacao}
+                              onOrdenar={handleOrdenacao}
+                              paginaAtual={paginaEscolasErros}
+                              totalPaginas={Math.ceil(dados.analiseAcertosErros?.escolasComMaisErros.length / itensPorPagina)}
+                              onPaginar={setPaginaEscolasErros}
+                              totalRegistros={dados.analiseAcertosErros?.escolasComMaisErros.length}
+                              itensPorPagina={itensPorPagina}
+                            />
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Questões com Mais Erros */}
-                  {dados.analiseAcertosErros?.questoesComMaisErros && dados.analiseAcertosErros?.questoesComMaisErros.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Erros</h3>
-                      <div className="overflow-x-auto">
-                        <TabelaPaginada
-                          dados={dados.analiseAcertosErros?.questoesComMaisErros.slice((paginaQuestoesErros - 1) * itensPorPagina, paginaQuestoesErros * itensPorPagina)}
-                          colunas={[
-                            { key: 'questao_codigo', label: 'Questão', align: 'center' },
-                            { key: 'questao_descricao', label: 'Descrição', align: 'left' },
-                            { key: 'disciplina', label: 'Disciplina', align: 'center' },
-                            { key: 'total_respostas', label: 'Total', align: 'center' },
-                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                            { key: 'total_erros', label: 'Erros', align: 'center' },
-                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                          ]}
-                          ordenacao={ordenacao}
-                          onOrdenar={handleOrdenacao}
-                          paginaAtual={paginaQuestoesErros}
-                          totalPaginas={Math.ceil(dados.analiseAcertosErros?.questoesComMaisErros.length / itensPorPagina)}
-                          onPaginar={setPaginaQuestoesErros}
-                          totalRegistros={dados.analiseAcertosErros?.questoesComMaisErros.length}
-                          itensPorPagina={itensPorPagina}
-                                                  />
-                      </div>
-                    </div>
-                  )}
+                      {/* Turmas com Mais Erros */}
+                      {dados.analiseAcertosErros?.turmasComMaisErros && dados.analiseAcertosErros?.turmasComMaisErros.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 overflow-hidden">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Turmas com Mais Erros</h3>
+                          <div className="overflow-x-auto -mx-4 sm:mx-0">
+                            <TabelaPaginada
+                              dados={dados.analiseAcertosErros?.turmasComMaisErros.slice((paginaTurmasErros - 1) * itensPorPagina, paginaTurmasErros * itensPorPagina)}
+                              colunas={[
+                                { key: 'turma', label: 'Turma', align: 'left' },
+                                { key: 'escola', label: 'Escola', align: 'left' },
+                                { key: 'serie', label: 'Série', align: 'center' },
+                                { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                                { key: 'total_respostas', label: 'Total', align: 'center' },
+                                { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                                { key: 'total_erros', label: 'Erros', align: 'center' },
+                                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                              ]}
+                              ordenacao={ordenacao}
+                              onOrdenar={handleOrdenacao}
+                              paginaAtual={paginaTurmasErros}
+                              totalPaginas={Math.ceil(dados.analiseAcertosErros?.turmasComMaisErros.length / itensPorPagina)}
+                              onPaginar={setPaginaTurmasErros}
+                              totalRegistros={dados.analiseAcertosErros?.turmasComMaisErros.length}
+                              itensPorPagina={itensPorPagina}
+                            />
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Escolas com Mais Erros */}
-                  {dados.analiseAcertosErros?.escolasComMaisErros && dados.analiseAcertosErros?.escolasComMaisErros.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Escolas com Mais Erros</h3>
-                      <div className="overflow-x-auto">
-                        <TabelaPaginada
-                          dados={dados.analiseAcertosErros?.escolasComMaisErros.slice((paginaEscolasErros - 1) * itensPorPagina, paginaEscolasErros * itensPorPagina)}
-                          colunas={[
-                            { key: 'escola', label: 'Escola', align: 'left' },
-                            { key: 'polo', label: 'Polo', align: 'left' },
-                            { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                            { key: 'total_respostas', label: 'Total', align: 'center' },
-                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                            { key: 'total_erros', label: 'Erros', align: 'center' },
-                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                          ]}
-                          ordenacao={ordenacao}
-                          onOrdenar={handleOrdenacao}
-                          paginaAtual={paginaEscolasErros}
-                          totalPaginas={Math.ceil(dados.analiseAcertosErros?.escolasComMaisErros.length / itensPorPagina)}
-                          onPaginar={setPaginaEscolasErros}
-                          totalRegistros={dados.analiseAcertosErros?.escolasComMaisErros.length}
-                          itensPorPagina={itensPorPagina}
-                                                  />
-                      </div>
-                    </div>
-                  )}
+                      {/* Questões com Mais Acertos */}
+                      {dados.analiseAcertosErros?.questoesComMaisAcertos && dados.analiseAcertosErros?.questoesComMaisAcertos.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 overflow-hidden">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Acertos</h3>
+                          <div className="overflow-x-auto -mx-4 sm:mx-0">
+                            <TabelaPaginada
+                              dados={dados.analiseAcertosErros?.questoesComMaisAcertos.slice((paginaQuestoesAcertos - 1) * itensPorPagina, paginaQuestoesAcertos * itensPorPagina)}
+                              colunas={[
+                                { key: 'questao_codigo', label: 'Questão', align: 'center' },
+                                { key: 'questao_descricao', label: 'Descrição', align: 'left' },
+                                { key: 'disciplina', label: 'Disciplina', align: 'center' },
+                                { key: 'total_respostas', label: 'Total', align: 'center' },
+                                { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                                { key: 'total_erros', label: 'Erros', align: 'center' },
+                                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                              ]}
+                              ordenacao={ordenacao}
+                              onOrdenar={handleOrdenacao}
+                              paginaAtual={paginaQuestoesAcertos}
+                              totalPaginas={Math.ceil(dados.analiseAcertosErros?.questoesComMaisAcertos.length / itensPorPagina)}
+                              onPaginar={setPaginaQuestoesAcertos}
+                              totalRegistros={dados.analiseAcertosErros?.questoesComMaisAcertos.length}
+                              itensPorPagina={itensPorPagina}
+                            />
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Turmas com Mais Erros */}
-                  {dados.analiseAcertosErros?.turmasComMaisErros && dados.analiseAcertosErros?.turmasComMaisErros.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Turmas com Mais Erros</h3>
-                      <div className="overflow-x-auto">
-                        <TabelaPaginada
-                          dados={dados.analiseAcertosErros?.turmasComMaisErros.slice((paginaTurmasErros - 1) * itensPorPagina, paginaTurmasErros * itensPorPagina)}
-                          colunas={[
-                            { key: 'turma', label: 'Turma', align: 'left' },
-                            { key: 'escola', label: 'Escola', align: 'left' },
-                            { key: 'serie', label: 'Série', align: 'center' },
-                            { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                            { key: 'total_respostas', label: 'Total', align: 'center' },
-                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                            { key: 'total_erros', label: 'Erros', align: 'center' },
-                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                          ]}
-                          ordenacao={ordenacao}
-                          onOrdenar={handleOrdenacao}
-                          paginaAtual={paginaTurmasErros}
-                          totalPaginas={Math.ceil(dados.analiseAcertosErros?.turmasComMaisErros.length / itensPorPagina)}
-                          onPaginar={setPaginaTurmasErros}
-                          totalRegistros={dados.analiseAcertosErros?.turmasComMaisErros.length}
-                          itensPorPagina={itensPorPagina}
-                                                  />
-                      </div>
-                    </div>
-                  )}
+                      {/* Escolas com Mais Acertos */}
+                      {dados.analiseAcertosErros?.escolasComMaisAcertos && dados.analiseAcertosErros?.escolasComMaisAcertos.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 overflow-hidden">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Escolas com Mais Acertos</h3>
+                          <div className="overflow-x-auto -mx-4 sm:mx-0">
+                            <TabelaPaginada
+                              dados={dados.analiseAcertosErros?.escolasComMaisAcertos.slice((paginaEscolasAcertos - 1) * itensPorPagina, paginaEscolasAcertos * itensPorPagina)}
+                              colunas={[
+                                { key: 'escola', label: 'Escola', align: 'left' },
+                                { key: 'polo', label: 'Polo', align: 'left' },
+                                { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                                { key: 'total_respostas', label: 'Total', align: 'center' },
+                                { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                                { key: 'total_erros', label: 'Erros', align: 'center' },
+                                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                              ]}
+                              ordenacao={ordenacao}
+                              onOrdenar={handleOrdenacao}
+                              paginaAtual={paginaEscolasAcertos}
+                              totalPaginas={Math.ceil(dados.analiseAcertosErros?.escolasComMaisAcertos.length / itensPorPagina)}
+                              onPaginar={setPaginaEscolasAcertos}
+                              totalRegistros={dados.analiseAcertosErros?.escolasComMaisAcertos.length}
+                              itensPorPagina={itensPorPagina}
+                            />
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Questões com Mais Acertos */}
-                  {dados.analiseAcertosErros?.questoesComMaisAcertos && dados.analiseAcertosErros?.questoesComMaisAcertos.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Acertos</h3>
-                      <div className="overflow-x-auto">
-                        <TabelaPaginada
-                          dados={dados.analiseAcertosErros?.questoesComMaisAcertos.slice((paginaQuestoesAcertos - 1) * itensPorPagina, paginaQuestoesAcertos * itensPorPagina)}
-                          colunas={[
-                            { key: 'questao_codigo', label: 'Questão', align: 'center' },
-                            { key: 'questao_descricao', label: 'Descrição', align: 'left' },
-                            { key: 'disciplina', label: 'Disciplina', align: 'center' },
-                            { key: 'total_respostas', label: 'Total', align: 'center' },
-                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                            { key: 'total_erros', label: 'Erros', align: 'center' },
-                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                          ]}
-                          ordenacao={ordenacao}
-                          onOrdenar={handleOrdenacao}
-                          paginaAtual={paginaQuestoesAcertos}
-                          totalPaginas={Math.ceil(dados.analiseAcertosErros?.questoesComMaisAcertos.length / itensPorPagina)}
-                          onPaginar={setPaginaQuestoesAcertos}
-                          totalRegistros={dados.analiseAcertosErros?.questoesComMaisAcertos.length}
-                          itensPorPagina={itensPorPagina}
-                                                  />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Escolas com Mais Acertos */}
-                  {dados.analiseAcertosErros?.escolasComMaisAcertos && dados.analiseAcertosErros?.escolasComMaisAcertos.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Escolas com Mais Acertos</h3>
-                      <div className="overflow-x-auto">
-                        <TabelaPaginada
-                          dados={dados.analiseAcertosErros?.escolasComMaisAcertos.slice((paginaEscolasAcertos - 1) * itensPorPagina, paginaEscolasAcertos * itensPorPagina)}
-                          colunas={[
-                            { key: 'escola', label: 'Escola', align: 'left' },
-                            { key: 'polo', label: 'Polo', align: 'left' },
-                            { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                            { key: 'total_respostas', label: 'Total', align: 'center' },
-                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                            { key: 'total_erros', label: 'Erros', align: 'center' },
-                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                          ]}
-                          ordenacao={ordenacao}
-                          onOrdenar={handleOrdenacao}
-                          paginaAtual={paginaEscolasAcertos}
-                          totalPaginas={Math.ceil(dados.analiseAcertosErros?.escolasComMaisAcertos.length / itensPorPagina)}
-                          onPaginar={setPaginaEscolasAcertos}
-                          totalRegistros={dados.analiseAcertosErros?.escolasComMaisAcertos.length}
-                          itensPorPagina={itensPorPagina}
-                                                  />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Turmas com Mais Acertos */}
-                  {dados.analiseAcertosErros?.turmasComMaisAcertos && dados.analiseAcertosErros?.turmasComMaisAcertos.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 overflow-x-hidden">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Turmas com Mais Acertos</h3>
-                      <div className="overflow-x-auto">
-                        <TabelaPaginada
-                          dados={dados.analiseAcertosErros?.turmasComMaisAcertos.slice((paginaTurmasAcertos - 1) * itensPorPagina, paginaTurmasAcertos * itensPorPagina)}
-                          colunas={[
-                            { key: 'turma', label: 'Turma', align: 'left' },
-                            { key: 'escola', label: 'Escola', align: 'left' },
-                            { key: 'serie', label: 'Série', align: 'center' },
-                            { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                            { key: 'total_respostas', label: 'Total', align: 'center' },
-                            { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                            { key: 'total_erros', label: 'Erros', align: 'center' },
-                            { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                            { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-                          ]}
-                          ordenacao={ordenacao}
-                          onOrdenar={handleOrdenacao}
-                          paginaAtual={paginaTurmasAcertos}
-                          totalPaginas={Math.ceil(dados.analiseAcertosErros?.turmasComMaisAcertos.length / itensPorPagina)}
-                          onPaginar={setPaginaTurmasAcertos}
-                          totalRegistros={dados.analiseAcertosErros?.turmasComMaisAcertos.length}
-                          itensPorPagina={itensPorPagina}
-                                                  />
-                      </div>
-                    </div>
+                      {/* Turmas com Mais Acertos */}
+                      {dados.analiseAcertosErros?.turmasComMaisAcertos && dados.analiseAcertosErros?.turmasComMaisAcertos.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 overflow-hidden">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Turmas com Mais Acertos</h3>
+                          <div className="overflow-x-auto -mx-4 sm:mx-0">
+                            <TabelaPaginada
+                              dados={dados.analiseAcertosErros?.turmasComMaisAcertos.slice((paginaTurmasAcertos - 1) * itensPorPagina, paginaTurmasAcertos * itensPorPagina)}
+                              colunas={[
+                                { key: 'turma', label: 'Turma', align: 'left' },
+                                { key: 'escola', label: 'Escola', align: 'left' },
+                                { key: 'serie', label: 'Série', align: 'center' },
+                                { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                                { key: 'total_respostas', label: 'Total', align: 'center' },
+                                { key: 'total_acertos', label: 'Acertos', align: 'center' },
+                                { key: 'total_erros', label: 'Erros', align: 'center' },
+                                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
+                                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
+                              ]}
+                              ordenacao={ordenacao}
+                              onOrdenar={handleOrdenacao}
+                              paginaAtual={paginaTurmasAcertos}
+                              totalPaginas={Math.ceil(dados.analiseAcertosErros?.turmasComMaisAcertos.length / itensPorPagina)}
+                              onPaginar={setPaginaTurmasAcertos}
+                              totalRegistros={dados.analiseAcertosErros?.turmasComMaisAcertos.length}
+                              itensPorPagina={itensPorPagina}
+                            />
+                          </div>
+                        </div>
                       )}
                     </>
                   )}
@@ -2481,7 +2729,7 @@ function DisciplinaCard({ titulo, media, cor, sigla }: any) {
   )
 }
 
-function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, totalPaginas, onPaginar, totalRegistros, itensPorPagina }: any) {
+function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, totalPaginas, onPaginar, totalRegistros, itensPorPagina, stickyHeader = false }: any) {
   const formatarValor = (valor: any, formato: string) => {
     if (valor === null || valor === undefined) return (
       <span className="text-gray-400 italic">-</span>
@@ -2584,9 +2832,9 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
       </div>
 
       {/* Visualização Desktop - Tabela */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600">
+      <div className="hidden md:block">
+        <table className="w-full min-w-[800px]">
+          <thead className={`bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600 ${stickyHeader ? 'sticky top-[180px] sm:top-[190px] z-30' : ''}`}>
             <tr>
               {colunas.map((col: any) => (
                 <th
