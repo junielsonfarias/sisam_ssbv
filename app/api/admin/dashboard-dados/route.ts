@@ -360,8 +360,15 @@ export async function GET(request: NextRequest) {
     `
 
     // ========== DISTRIBUIÇÃO POR NÍVEL DE APRENDIZAGEM ==========
-    // Usar LEFT JOIN com resultados_consolidados para pegar nivel_aprendizagem
-    // CORREÇÃO: Usar whereClauseBase para não ser afetado pelo filtro de disciplina
+    // Filtrar apenas anos iniciais (2º, 3º, 5º) com presença ou falta registrada
+    // Estes são os únicos anos que têm avaliação de nível de aprendizagem
+    const niveisConditions = [...whereConditions]
+    // Filtrar apenas anos iniciais (2º, 3º, 5º ano)
+    niveisConditions.push(`(REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5'))`)
+    // Filtrar apenas alunos com presença ou falta registrada
+    niveisConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`)
+    const niveisWhere = niveisConditions.length > 0 ? `WHERE ${niveisConditions.join(' AND ')}` : ''
+
     const niveisQuery = `
       SELECT
         COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado') as nivel,
@@ -369,14 +376,18 @@ export async function GET(request: NextRequest) {
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
-      ${whereClauseBase}
+      ${niveisWhere}
       GROUP BY COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado')
       ORDER BY
         CASE COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado')
           WHEN 'Insuficiente' THEN 1
+          WHEN 'N1' THEN 1
           WHEN 'Básico' THEN 2
+          WHEN 'N2' THEN 2
           WHEN 'Adequado' THEN 3
+          WHEN 'N3' THEN 3
           WHEN 'Avançado' THEN 4
+          WHEN 'N4' THEN 4
           ELSE 5
         END
     `
