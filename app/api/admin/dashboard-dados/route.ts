@@ -482,30 +482,32 @@ export async function GET(request: NextRequest) {
     const faixasNotaWhere = faixasNotaConditions.length > 0 ? `WHERE ${faixasNotaConditions.join(' AND ')}` : ''
     
     const faixasNotaQuery = `
-      SELECT
-        CASE
-          WHEN CAST(rc.media_aluno AS DECIMAL) >= 0 AND CAST(rc.media_aluno AS DECIMAL) < 2 THEN '0 a 2'
-          WHEN CAST(rc.media_aluno AS DECIMAL) >= 2 AND CAST(rc.media_aluno AS DECIMAL) < 4 THEN '2 a 4'
-          WHEN CAST(rc.media_aluno AS DECIMAL) >= 4 AND CAST(rc.media_aluno AS DECIMAL) < 6 THEN '4 a 6'
-          WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 AND CAST(rc.media_aluno AS DECIMAL) < 8 THEN '6 a 8'
-          WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 AND CAST(rc.media_aluno AS DECIMAL) <= 10 THEN '8 a 10'
-          ELSE 'N/A'
-        END as faixa,
-        COUNT(*) as quantidade
-      FROM resultados_consolidados_unificada rc
-      INNER JOIN escolas e ON rc.escola_id = e.id
-      ${joinNivelAprendizagem}
-      ${faixasNotaWhere}
-      GROUP BY faixa
-      ORDER BY
-        CASE faixa
-          WHEN '0 a 2' THEN 1
-          WHEN '2 a 4' THEN 2
-          WHEN '4 a 6' THEN 3
-          WHEN '6 a 8' THEN 4
-          WHEN '8 a 10' THEN 5
-          ELSE 6
-        END
+      SELECT faixa, quantidade FROM (
+        SELECT
+          CASE
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 0 AND CAST(rc.media_aluno AS DECIMAL) < 2 THEN '0 a 2'
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 2 AND CAST(rc.media_aluno AS DECIMAL) < 4 THEN '2 a 4'
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 4 AND CAST(rc.media_aluno AS DECIMAL) < 6 THEN '4 a 6'
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 AND CAST(rc.media_aluno AS DECIMAL) < 8 THEN '6 a 8'
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 AND CAST(rc.media_aluno AS DECIMAL) <= 10 THEN '8 a 10'
+            ELSE 'N/A'
+          END as faixa,
+          CASE
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 0 AND CAST(rc.media_aluno AS DECIMAL) < 2 THEN 1
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 2 AND CAST(rc.media_aluno AS DECIMAL) < 4 THEN 2
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 4 AND CAST(rc.media_aluno AS DECIMAL) < 6 THEN 3
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 AND CAST(rc.media_aluno AS DECIMAL) < 8 THEN 4
+            WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 AND CAST(rc.media_aluno AS DECIMAL) <= 10 THEN 5
+            ELSE 6
+          END as ordem,
+          COUNT(*) as quantidade
+        FROM resultados_consolidados_unificada rc
+        INNER JOIN escolas e ON rc.escola_id = e.id
+        ${joinNivelAprendizagem}
+        ${faixasNotaWhere}
+        GROUP BY faixa, ordem
+      ) sub
+      ORDER BY ordem
     `
 
     // ========== DISTRIBUIÇÃO POR PRESENÇA ==========
