@@ -54,7 +54,7 @@ const isAnosIniciais = (serie: string | undefined | null): boolean => {
 
 export default function TecnicoAnalisePage() {
   const [resultados, setResultados] = useState<ResultadoConsolidado[]>([])
-  const [carregando, setCarregando] = useState(true)
+  const [carregando, setCarregando] = useState(false)
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<Filtros>({})
   const [polos, setPolos] = useState<any[]>([])

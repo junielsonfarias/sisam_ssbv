@@ -217,6 +217,19 @@ export async function POST(request: NextRequest) {
 
     console.log('Login bem sucedido para:', tokenPayload.email)
 
+    // Registrar log de acesso (em background para nao impactar performance)
+    const userAgent = request.headers.get('user-agent') || 'Desconhecido'
+    registrarLogAcesso({
+      usuarioId: usuario.id,
+      usuarioNome: usuario.nome,
+      email: usuario.email,
+      tipoUsuario: usuario.tipo_usuario,
+      ipAddress: maskedIP,
+      userAgent: userAgent
+    }).catch(err => {
+      console.error('Erro ao registrar log de acesso:', err)
+    })
+
     let token
     try {
       token = generateToken(tokenPayload)
@@ -313,3 +326,33 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Funcao para registrar log de acesso no banco de dados
+interface LogAcessoParams {
+  usuarioId: string
+  usuarioNome: string
+  email: string
+  tipoUsuario: string
+  ipAddress: string
+  userAgent: string
+}
+
+async function registrarLogAcesso(params: LogAcessoParams): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO logs_acesso (usuario_id, usuario_nome, email, tipo_usuario, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        params.usuarioId,
+        params.usuarioNome,
+        params.email,
+        params.tipoUsuario,
+        params.ipAddress,
+        params.userAgent
+      ]
+    )
+    console.log('Log de acesso registrado para:', params.email)
+  } catch (error) {
+    // Nao propagar erro - log de acesso nao deve impedir login
+    console.error('Falha ao registrar log de acesso:', error)
+  }
+}

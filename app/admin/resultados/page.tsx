@@ -119,7 +119,7 @@ export default function ResultadosPage() {
     mediaAnosFinais: 0,
     totalAnosFinais: 0
   })
-  const [carregando, setCarregando] = useState(true)
+  const [carregando, setCarregando] = useState(false)
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<Filtros>({})
   const [polos, setPolos] = useState<any[]>([])

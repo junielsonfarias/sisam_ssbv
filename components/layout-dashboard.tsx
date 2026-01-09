@@ -24,7 +24,8 @@ import {
   FilePlus,
   UserPlus,
   User,
-  WifiOff
+  WifiOff,
+  Activity
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
@@ -178,7 +179,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         { icon: Settings, label: 'Configurar Series', href: '/admin/configuracao-series' },
         { icon: FileScan, label: 'Cartao-Resposta', href: '/admin/cartao-resposta' },
         { icon: Settings, label: 'Personalizacao', href: '/admin/personalizacao' },
-        { icon: Settings, label: 'Modulos Tecnico', href: '/admin/modulos-tecnico' }
+        { icon: Settings, label: 'Modulos Tecnico', href: '/admin/modulos-tecnico' },
+        { icon: Activity, label: 'Logs de Acesso', href: '/admin/logs-acesso' }
       )
     }
 

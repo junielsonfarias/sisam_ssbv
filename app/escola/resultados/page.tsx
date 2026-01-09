@@ -66,7 +66,7 @@ const isDisciplinaAplicavel = (codigoDisciplina: string, serie: string | null | 
 export default function ResultadosEscolaPage() {
   const [tipoUsuario, setTipoUsuario] = useState<string>('escola')
   const [resultados, setResultados] = useState<ResultadoConsolidado[]>([])
-  const [carregando, setCarregando] = useState(true)
+  const [carregando, setCarregando] = useState(false)
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<Filtros>({})
   const [escolaId, setEscolaId] = useState<string>('')
