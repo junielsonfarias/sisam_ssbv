@@ -235,14 +235,15 @@ export async function GET(request: NextRequest) {
       if (!isNaN(min) && !isNaN(max)) {
         // CORREÇÃO: Usar a mesma fórmula de cálculo de média que é usada na query de alunos detalhados
         // A média é calculada dinamicamente baseada na série do aluno
+        // IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
         const mediaCalculada = `
           CASE
             WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
               ROUND(
-                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
+                (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
                 NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
             ELSE
               ROUND(
@@ -293,14 +294,15 @@ export async function GET(request: NextRequest) {
     // Filtro de taxa de acerto mínima/máxima
     if (taxaAcertoMin || taxaAcertoMax) {
       // CORREÇÃO: Usar a mesma fórmula de cálculo de média que é usada na query de alunos detalhados
+      // IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
       const mediaCalculadaTaxa = `
         CASE
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
             ROUND(
-              (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
+              (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
               NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                 CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
           ELSE
             ROUND(
@@ -566,16 +568,17 @@ export async function GET(request: NextRequest) {
     const topAlunosWhere = topAlunosConditions.length > 0 ? `WHERE ${topAlunosConditions.join(' AND ')}` : ''
     
     // CORREÇÃO: Ordenação dinâmica - por média CALCULADA para presentes, por nome para faltantes
+    // IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
     const topAlunosOrderBy = presenca === 'F'
       ? 'ORDER BY a.nome ASC'
       : `ORDER BY
           CASE
             WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
               ROUND(
-                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
+                (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
                 NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
             ELSE
               ROUND(
@@ -594,17 +597,18 @@ export async function GET(request: NextRequest) {
         rc.serie,
         t.codigo as turma,
         -- Media calculada dinamicamente baseada na serie
+        -- IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
         CASE
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
             ROUND(
               (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) +
+                COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) +
                 COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)
               ) /
               NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                 CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
                 0
               ),
@@ -628,8 +632,9 @@ export async function GET(request: NextRequest) {
               1
             )
         END as media_aluno,
-        rc.nota_lp,
-        rc.nota_mat,
+        -- Notas: Para Anos Iniciais usar rc_table, para Anos Finais usar rc
+        CASE WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_lp ELSE rc.nota_lp END as nota_lp,
+        CASE WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_mat ELSE rc.nota_mat END as nota_mat,
         rc.nota_ch,
         rc.nota_cn,
         rc.presenca,
@@ -656,16 +661,17 @@ export async function GET(request: NextRequest) {
     // ========== ALUNOS DETALHADOS (para tabela com paginação) ==========
     // CORREÇÃO: Ordenação dinâmica - por média CALCULADA para presentes/todos, por nome para faltantes
     // Usa a mesma fórmula do SELECT para ordenar corretamente
+    // IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
     const alunosDetalhadosOrderBy = presenca === 'F'
       ? 'ORDER BY a.nome ASC'
       : `ORDER BY
           CASE
             WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
               ROUND(
-                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
+                (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
                 NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
             ELSE
               ROUND(
@@ -689,18 +695,19 @@ export async function GET(request: NextRequest) {
         t.codigo as turma,
         rc.presenca,
         -- Media calculada dinamicamente baseada na serie
+        -- IMPORTANTE: Para Anos Iniciais, usar dados da tabela rc_table (valores corretos)
         CASE
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            -- Anos iniciais: media de LP, MAT e PROD
+            -- Anos iniciais: media de LP, MAT e PROD (usar rc_table que tem valores corretos)
             ROUND(
               (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) +
+                COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) +
                 COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)
               ) /
               NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                 CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
                 0
               ),
@@ -725,15 +732,29 @@ export async function GET(request: NextRequest) {
               1
             )
         END as media_aluno,
-        rc.nota_lp,
-        rc.nota_mat,
+        -- Notas: Para Anos Iniciais usar rc_table, para Anos Finais usar rc
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_lp
+          ELSE rc.nota_lp
+        END as nota_lp,
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_mat
+          ELSE rc.nota_mat
+        END as nota_mat,
         rc.nota_ch,
         rc.nota_cn,
         COALESCE(rc_table.nota_producao, NULL) as nota_producao,
         COALESCE(rc_table.nivel_aprendizagem, NULL) as nivel_aprendizagem,
-        rc.total_acertos_lp,
+        -- Acertos: Para Anos Iniciais usar rc_table, para Anos Finais usar rc
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.total_acertos_lp
+          ELSE rc.total_acertos_lp
+        END as total_acertos_lp,
         rc.total_acertos_ch,
-        rc.total_acertos_mat,
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.total_acertos_mat
+          ELSE rc.total_acertos_mat
+        END as total_acertos_mat,
         rc.total_acertos_cn,
         cs.qtd_questoes_lp,
         cs.qtd_questoes_mat,
