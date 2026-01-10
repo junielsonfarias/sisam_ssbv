@@ -255,7 +255,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
                 title="Meu Perfil"
               >
                 {usuario?.foto_url ? (
-                  <img src={usuario.foto_url} alt="" className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover" />
+                  <img src={usuario.foto_url} alt="Foto do perfil" className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover" />
                 ) : (
                   <User className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}

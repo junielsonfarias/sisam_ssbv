@@ -1198,13 +1198,17 @@ function AbaAlunos({
     carregarAlunosComFiltros(filtros, busca, 1)
   }
 
-  // Filtra turmas baseado na escola selecionada
-  const turmasFiltradas = filtros.escola_id
-    ? listaTurmas.filter((t: any) => t.escola_id === filtros.escola_id)
-    : listaTurmas
+  // Filtra turmas baseado na escola selecionada - memoizado para performance
+  const turmasFiltradas = useMemo(() =>
+    filtros.escola_id
+      ? listaTurmas.filter((t: any) => t.escola_id === filtros.escola_id)
+      : listaTurmas
+  , [filtros.escola_id, listaTurmas])
 
-  // Filtra séries baseado na etapa selecionada
-  const seriesFiltradas = getSeriesByEtapa(filtros.etapa_ensino, listaSeries)
+  // Filtra séries baseado na etapa selecionada - memoizado para performance
+  const seriesFiltradas = useMemo(() =>
+    getSeriesByEtapa(filtros.etapa_ensino, listaSeries)
+  , [filtros.etapa_ensino, listaSeries])
 
   return (
     <div className="flex flex-col flex-1 space-y-2 min-h-0">

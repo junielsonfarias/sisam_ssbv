@@ -387,15 +387,18 @@ export default function DadosPage() {
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina] = useState(50)
 
-  // Paginação consolidada para aba Análises (reduz de 6 useState para 1)
-  const [paginasAnalises, setPaginasAnalises] = useState({
+  // Estado inicial padrão para paginação das análises (evita duplicação)
+  const PAGINACAO_ANALISES_INICIAL = {
     questoesErros: 1,
     escolasErros: 1,
     turmasErros: 1,
     questoesAcertos: 1,
     escolasAcertos: 1,
     turmasAcertos: 1
-  })
+  }
+
+  // Paginação consolidada para aba Análises (reduz de 6 useState para 1)
+  const [paginasAnalises, setPaginasAnalises] = useState(PAGINACAO_ANALISES_INICIAL)
 
   // Modal de questões
   const [modalAberto, setModalAberto] = useState(false)
@@ -1281,7 +1284,7 @@ export default function DadosPage() {
     setFiltroSerie(serie)
     setPaginaAtual(1)
     // Resetar paginações das análises ao trocar série
-    setPaginasAnalises({ questoesErros: 1, escolasErros: 1, turmasErros: 1, questoesAcertos: 1, escolasAcertos: 1, turmasAcertos: 1 })
+    setPaginasAnalises(PAGINACAO_ANALISES_INICIAL)
 
     // Só atualiza se já fez uma pesquisa antes
     if (!pesquisaRealizada) return
@@ -1307,7 +1310,7 @@ export default function DadosPage() {
     setPesquisaRealizada(true)
     // Resetar TODAS as paginações ao fazer nova pesquisa
     setPaginaAtual(1)
-    setPaginasAnalises({ questoesErros: 1, escolasErros: 1, turmasErros: 1, questoesAcertos: 1, escolasAcertos: 1, turmasAcertos: 1 })
+    setPaginasAnalises(PAGINACAO_ANALISES_INICIAL)
 
     // Sempre buscar dados SEM filtro de série para ter cache completo
     // Passa string vazia como serieOverride para garantir que o cache será salvo
@@ -1469,6 +1472,10 @@ export default function DadosPage() {
   }
 
   useEffect(() => {
+    // AbortController para cancelar requisições se componente desmontar
+    const abortController = new AbortController()
+    const signal = abortController.signal
+
     const carregarTipoUsuario = async () => {
       // Se offline, usar usuário do localStorage
       if (!offlineStorage.isOnline()) {
@@ -1497,8 +1504,16 @@ export default function DadosPage() {
       }
 
       try {
-        const response = await fetch('/api/auth/verificar')
+        const response = await fetch('/api/auth/verificar', { signal })
+
+        // Verificar se foi cancelado
+        if (signal.aborted) return
+
         const data = await response.json()
+
+        // Verificar novamente após parse
+        if (signal.aborted) return
+
         if (data.usuario) {
           const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
           setTipoUsuario(tipo)
@@ -1509,8 +1524,10 @@ export default function DadosPage() {
             setFiltroEscolaId(data.usuario.escola_id)
             // Carregar nome da escola e polo
             try {
-              const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`)
+              const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`, { signal })
+              if (signal.aborted) return
               const escolaData = await escolaRes.json()
+              if (signal.aborted) return
               if (Array.isArray(escolaData) && escolaData.length > 0) {
                 setEscolaNome(escolaData[0].nome)
                 setPoloNome(escolaData[0].polo_nome || '')
@@ -1519,8 +1536,10 @@ export default function DadosPage() {
                   setFiltroPoloId(escolaData[0].polo_id)
                 }
               }
-            } catch (err) {
-              console.error('Erro ao carregar dados da escola:', err)
+            } catch (err: any) {
+              if (err.name !== 'AbortError') {
+                console.error('Erro ao carregar dados da escola:', err)
+              }
             }
           }
 
@@ -1529,17 +1548,24 @@ export default function DadosPage() {
             setFiltroPoloId(data.usuario.polo_id)
             // Carregar nome do polo
             try {
-              const poloRes = await fetch(`/api/admin/polos?id=${data.usuario.polo_id}`)
+              const poloRes = await fetch(`/api/admin/polos?id=${data.usuario.polo_id}`, { signal })
+              if (signal.aborted) return
               const poloData = await poloRes.json()
+              if (signal.aborted) return
               if (Array.isArray(poloData) && poloData.length > 0) {
                 setPoloNome(poloData[0].nome)
               }
-            } catch (err) {
-              console.error('Erro ao carregar dados do polo:', err)
+            } catch (err: any) {
+              if (err.name !== 'AbortError') {
+                console.error('Erro ao carregar dados do polo:', err)
+              }
             }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Ignorar erros de abort
+        if (error.name === 'AbortError') return
+
         console.error('Erro ao carregar tipo de usuário:', error)
         // Fallback para usuário offline
         const offlineUser = offlineStorage.getUser()
@@ -1551,6 +1577,11 @@ export default function DadosPage() {
       }
     }
     carregarTipoUsuario()
+
+    // Cleanup: cancelar requisições pendentes ao desmontar
+    return () => {
+      abortController.abort()
+    }
   }, [])
 
   return (

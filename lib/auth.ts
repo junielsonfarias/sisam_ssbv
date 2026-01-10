@@ -250,7 +250,7 @@ export function verificarPermissao(
 
   // Normalizar tipo de usuario para compatibilidade com dados legados
   // 'admin' é tratado como 'administrador'
-  const tipoNormalizado = usuario.tipo_usuario === 'admin' as any
+  const tipoNormalizado = (usuario.tipo_usuario as string) === 'admin'
     ? 'administrador'
     : usuario.tipo_usuario;
 

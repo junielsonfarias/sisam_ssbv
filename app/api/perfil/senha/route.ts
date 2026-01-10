@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, hashPassword, comparePassword } from '@/lib/auth'
 import pool from '@/database/connection'
+import { validatePassword } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,9 +28,11 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    if (novaSenha.length < 6) {
+    // Validar força da senha (mínimo 12 caracteres, pelo menos letra e número)
+    const senhaValidacao = validatePassword(novaSenha)
+    if (!senhaValidacao.valid) {
       return NextResponse.json(
-        { mensagem: 'A nova senha deve ter pelo menos 6 caracteres' },
+        { mensagem: senhaValidacao.message },
         { status: 400 }
       )
     }

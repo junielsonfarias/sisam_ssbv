@@ -7,7 +7,9 @@
  * @module lib/api-utils
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { getUsuarioFromRequest, verificarPermissao } from './auth'
+import { Usuario, TipoUsuario } from './types'
 
 // ============================================================================
 // TIPOS
@@ -253,4 +255,181 @@ export function validarPeloMenosUm(
   }
 
   return null
+}
+
+// ============================================================================
+// AUTENTICAÇÃO E AUTORIZAÇÃO
+// ============================================================================
+
+/**
+ * Resultado da verificação de autenticação
+ */
+export interface AuthResult {
+  usuario: Usuario
+}
+
+/**
+ * Tipo do handler de API autenticado
+ */
+export type AuthenticatedHandler = (
+  request: NextRequest,
+  context: AuthResult
+) => Promise<NextResponse>
+
+/**
+ * Verifica autenticação e autorização para uma requisição
+ * Retorna o usuário se autorizado, ou resposta de erro
+ *
+ * @param request - Requisição Next.js
+ * @param tiposPermitidos - Tipos de usuário permitidos
+ * @returns Usuario ou NextResponse de erro
+ *
+ * @example
+ * const auth = await verificarAuth(request, ['administrador', 'tecnico'])
+ * if (auth instanceof NextResponse) return auth
+ * const { usuario } = auth
+ */
+export async function verificarAuth(
+  request: NextRequest,
+  tiposPermitidos: TipoUsuario[]
+): Promise<AuthResult | NextResponse> {
+  const usuario = await getUsuarioFromRequest(request)
+
+  if (!usuario) {
+    return unauthorized('Não autenticado')
+  }
+
+  if (!verificarPermissao(usuario, tiposPermitidos)) {
+    return forbidden('Não autorizado para esta operação')
+  }
+
+  return { usuario }
+}
+
+/**
+ * Decorator para handlers de API que requerem autenticação
+ * Elimina a necessidade de repetir a verificação de auth em cada rota
+ *
+ * @param tiposPermitidos - Tipos de usuário permitidos
+ * @param handler - Handler da API
+ *
+ * @example
+ * export const GET = withAuth(['administrador', 'tecnico'], async (request, { usuario }) => {
+ *   // usuário já está autenticado e autorizado aqui
+ *   return ok({ dados: [] })
+ * })
+ */
+export function withAuth(
+  tiposPermitidos: TipoUsuario[],
+  handler: AuthenticatedHandler
+) {
+  return async (request: NextRequest): Promise<NextResponse> => {
+    const auth = await verificarAuth(request, tiposPermitidos)
+
+    if (auth instanceof NextResponse) {
+      return auth
+    }
+
+    return handler(request, auth)
+  }
+}
+
+// ============================================================================
+// CONSTRUTOR DE QUERIES COM CONTROLE DE ACESSO
+// ============================================================================
+
+/**
+ * Configuração de filtros de acesso baseado no tipo de usuário
+ */
+export interface AccessControlConfig {
+  /** Alias da tabela de escolas (ex: 'e' ou 'escolas') */
+  escolaAlias?: string
+  /** Alias da tabela de polos (ex: 'p' ou 'polos') */
+  poloAlias?: string
+  /** Campo que referencia polo_id na tabela de escolas */
+  poloIdField?: string
+  /** Campo que referencia escola_id */
+  escolaIdField?: string
+}
+
+/**
+ * Resultado do controle de acesso para queries
+ */
+export interface AccessControlResult {
+  /** Condições WHERE a serem adicionadas */
+  conditions: string[]
+  /** Parâmetros para as condições */
+  params: (string | number)[]
+  /** Próximo índice de parâmetro disponível */
+  nextParamIndex: number
+}
+
+/**
+ * Gera condições de filtro baseadas no tipo de usuário
+ * Útil para restringir acesso a dados por polo ou escola
+ *
+ * @param usuario - Usuário autenticado
+ * @param paramIndex - Índice inicial para parâmetros ($1, $2, etc)
+ * @param config - Configuração dos aliases de tabela
+ *
+ * @example
+ * const { conditions, params, nextParamIndex } = buildAccessControl(usuario, 1, {
+ *   escolaAlias: 'e',
+ *   poloIdField: 'polo_id'
+ * })
+ *
+ * let query = 'SELECT * FROM escolas e WHERE 1=1'
+ * if (conditions.length > 0) {
+ *   query += ' AND ' + conditions.join(' AND ')
+ * }
+ */
+export function buildAccessControl(
+  usuario: Usuario,
+  paramIndex: number = 1,
+  config: AccessControlConfig = {}
+): AccessControlResult {
+  const {
+    escolaAlias = 'e',
+    poloIdField = 'polo_id',
+    escolaIdField = 'id'
+  } = config
+
+  const conditions: string[] = []
+  const params: (string | number)[] = []
+  let currentIndex = paramIndex
+
+  // Usuário tipo polo: filtrar por polo_id
+  if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+    conditions.push(`${escolaAlias}.${poloIdField} = $${currentIndex}`)
+    params.push(usuario.polo_id)
+    currentIndex++
+  }
+  // Usuário tipo escola: filtrar por escola_id
+  else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+    conditions.push(`${escolaAlias}.${escolaIdField} = $${currentIndex}`)
+    params.push(usuario.escola_id)
+    currentIndex++
+  }
+
+  return {
+    conditions,
+    params,
+    nextParamIndex: currentIndex
+  }
+}
+
+/**
+ * Cria resposta padronizada para endpoints offline
+ *
+ * @param dados - Array de dados
+ *
+ * @example
+ * return createOfflineResponse(result.rows)
+ */
+export function createOfflineResponse<T>(dados: T[]) {
+  return NextResponse.json({
+    dados,
+    total: dados.length,
+    sincronizado_em: new Date().toISOString()
+  })
 }

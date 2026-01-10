@@ -55,8 +55,32 @@ export function normalizarDisciplina(nome: string | null | undefined): string {
 }
 
 /**
- * Compara duas disciplinas de forma flexível
- * Aceita aliases e variações de escrita
+ * Verifica se uma string corresponde a uma variante de disciplina
+ * Usa comparação mais rigorosa para evitar falsos positivos
+ */
+function matchDisciplina(texto: string, variantes: string[]): boolean {
+  // Comparação exata primeiro
+  if (variantes.includes(texto)) return true
+
+  // Comparação por palavra completa (evita "at" matchando "matematica")
+  const palavras = texto.split(/\s+/)
+  for (const variante of variantes) {
+    // Se a variante é um código curto (2-3 caracteres), exigir match exato
+    if (variante.length <= 3) {
+      if (texto === variante || palavras.includes(variante)) return true
+    } else {
+      // Para variantes longas, verificar se texto começa com ou é igual à variante
+      if (texto === variante || texto.startsWith(variante + ' ') ||
+          variante.startsWith(texto + ' ') || variante === texto) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Compara duas disciplinas de forma flexível mas rigorosa
+ * Aceita aliases e variações de escrita, mas evita falsos positivos
+ * como "ciências humanas" vs "ciências da natureza"
  */
 export function compararDisciplinas(
   disciplina1: string | null | undefined,
@@ -70,14 +94,15 @@ export function compararDisciplinas(
   // Comparação direta
   if (d1 === d2) return true
 
-  // Verificar aliases
+  // Verificar aliases - ambas disciplinas devem pertencer ao MESMO grupo
   for (const [chave, aliases] of Object.entries(DISCIPLINAS_ALIASES)) {
     const chaveNorm = normalizarDisciplina(chave)
     const todasVariantes = [chaveNorm, ...aliases.map(a => normalizarDisciplina(a))]
 
-    const d1Match = todasVariantes.some(v => d1.includes(v) || v.includes(d1))
-    const d2Match = todasVariantes.some(v => d2.includes(v) || v.includes(d2))
+    const d1Match = matchDisciplina(d1, todasVariantes)
+    const d2Match = matchDisciplina(d2, todasVariantes)
 
+    // Ambas devem pertencer ao mesmo grupo de disciplina
     if (d1Match && d2Match) return true
   }
 

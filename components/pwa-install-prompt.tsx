@@ -121,6 +121,7 @@ export function PWAInstallPrompt() {
         <button
           onClick={handleDismiss}
           className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          aria-label="Fechar prompt de instalação"
         >
           <X className="w-5 h-5" />
         </button>
@@ -140,26 +141,35 @@ export function ConnectionStatus() {
 
     setIsOnline(navigator.onLine)
 
+    // Ref para armazenar timeout e limpar corretamente
+    let bannerTimeoutId: NodeJS.Timeout | null = null
+
     const handleOnline = () => {
+      // Limpar timeout anterior se existir
+      if (bannerTimeoutId) clearTimeout(bannerTimeoutId)
       setIsOnline(true)
       setBannerMessage('Conexão restaurada!')
       setShowBanner(true)
-      setTimeout(() => setShowBanner(false), 3000)
+      bannerTimeoutId = setTimeout(() => setShowBanner(false), 3000)
     }
 
     const handleOffline = () => {
+      // Limpar timeout anterior se existir
+      if (bannerTimeoutId) clearTimeout(bannerTimeoutId)
       setIsOnline(false)
       setBannerMessage('Modo offline ativado')
       setShowBanner(true)
-      setTimeout(() => setShowBanner(false), 3000)
+      bannerTimeoutId = setTimeout(() => setShowBanner(false), 3000)
     }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
     return () => {
+      // Cleanup: remover listeners e limpar timeout pendente
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      if (bannerTimeoutId) clearTimeout(bannerTimeoutId)
     }
   }, [])
 

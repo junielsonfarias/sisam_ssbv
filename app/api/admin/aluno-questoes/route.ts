@@ -15,6 +15,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const alunoId = searchParams.get('aluno_id')
     const anoLetivo = searchParams.get('ano_letivo')
+    // Limite de segurança para evitar retornos muito grandes
+    const limiteSeguranca = Math.min(
+      parseInt(searchParams.get('limite') || '500', 10),
+      1000
+    )
 
     if (!alunoId) {
       return NextResponse.json({ mensagem: 'ID do aluno é obrigatório' }, { status: 400 })
@@ -146,7 +151,8 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
-    query += ' ORDER BY rp.questao_codigo'
+    query += ` ORDER BY rp.questao_codigo LIMIT $${paramIndex}`
+    params.push(limiteSeguranca)
 
     const questoesResult = await pool.query(query, params)
 

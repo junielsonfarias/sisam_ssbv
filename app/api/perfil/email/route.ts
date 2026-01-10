@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, comparePassword } from '@/lib/auth'
 import pool from '@/database/connection'
+import { isValidEmail } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,9 +28,8 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Validar formato do email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(novoEmail.trim())) {
+    // Validar formato do email usando validação RFC 5322
+    if (!isValidEmail(novoEmail.trim())) {
       return NextResponse.json(
         { mensagem: 'Formato de email inválido' },
         { status: 400 }

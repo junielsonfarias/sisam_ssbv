@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
+import { isValidUUID, isUniqueConstraintError, getErrorMessage } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic';
 
@@ -81,9 +82,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (busca && busca.trim()) {
-      whereConditions.push(`(a.nome ILIKE $${paramIndex} OR a.codigo ILIKE $${paramIndex})`)
-      params.push(`%${busca.trim()}%`)
-      paramIndex++
+      // CORREÇÃO: Usar dois parâmetros separados para evitar SQL injection e paramIndex incorreto
+      const searchTerm = `%${busca.trim()}%`
+      whereConditions.push(`(a.nome ILIKE $${paramIndex} OR a.codigo ILIKE $${paramIndex + 1})`)
+      params.push(searchTerm, searchTerm)
+      paramIndex += 2
     }
 
     const whereClause = whereConditions.join(' AND ')
@@ -209,14 +212,14 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if (isUniqueConstraintError(error)) {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
       )
     }
-    console.error('Erro ao criar aluno:', error)
+    console.error('Erro ao criar aluno:', getErrorMessage(error))
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -240,6 +243,28 @@ export async function PUT(request: NextRequest) {
     if (!id || !nome || !escola_id) {
       return NextResponse.json(
         { mensagem: 'ID, nome e escola são obrigatórios' },
+        { status: 400 }
+      )
+    }
+
+    // Validar formato UUID
+    if (!isValidUUID(id)) {
+      return NextResponse.json(
+        { mensagem: 'ID do aluno inválido: deve ser um UUID válido' },
+        { status: 400 }
+      )
+    }
+
+    if (!isValidUUID(escola_id)) {
+      return NextResponse.json(
+        { mensagem: 'ID da escola inválido: deve ser um UUID válido' },
+        { status: 400 }
+      )
+    }
+
+    if (turma_id && !isValidUUID(turma_id)) {
+      return NextResponse.json(
+        { mensagem: 'ID da turma inválido: deve ser um UUID válido' },
         { status: 400 }
       )
     }
@@ -269,14 +294,14 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if (isUniqueConstraintError(error)) {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
       )
     }
-    console.error('Erro ao atualizar aluno:', error)
+    console.error('Erro ao atualizar aluno:', getErrorMessage(error))
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -305,6 +330,14 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // Validar formato UUID
+    if (!isValidUUID(id)) {
+      return NextResponse.json(
+        { mensagem: 'ID do aluno inválido: deve ser um UUID válido' },
+        { status: 400 }
+      )
+    }
+
     const result = await pool.query(
       'DELETE FROM alunos WHERE id = $1 RETURNING id',
       [id]
@@ -318,8 +351,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Aluno excluído com sucesso' })
-  } catch (error: any) {
-    console.error('Erro ao excluir aluno:', error)
+  } catch (error: unknown) {
+    console.error('Erro ao excluir aluno:', getErrorMessage(error))
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
