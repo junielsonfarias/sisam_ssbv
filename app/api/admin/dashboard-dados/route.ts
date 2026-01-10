@@ -1045,13 +1045,14 @@ export async function GET(request: NextRequest) {
       HAVING COUNT(*) >= 5
     `
 
-    // Query de resumo de escolas por série
+    // Query de resumo de escolas por série E disciplina (para filtro preciso)
     const resumoEscolasPorSerieQuery = `
       SELECT
         e.id as escola_id,
         e.nome as escola,
         p.nome as polo,
         rp.serie,
+        COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
         COUNT(*) as total_respostas,
         COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
         COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
@@ -1060,17 +1061,18 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rp.escola_id = e.id
       LEFT JOIN polos p ON e.polo_id = p.id
       ${rpWhereClauseSemSerie}
-      GROUP BY e.id, e.nome, p.nome, rp.serie
+      GROUP BY e.id, e.nome, p.nome, rp.serie, COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado')
       HAVING COUNT(*) >= 10
     `
 
-    // Query de resumo de turmas por série
+    // Query de resumo de turmas por série E disciplina (para filtro preciso)
     const resumoTurmasPorSerieQuery = `
       SELECT
         t.id as turma_id,
         t.codigo as turma,
         e.nome as escola,
         rp.serie,
+        COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
         COUNT(*) as total_respostas,
         COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
         COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
@@ -1079,7 +1081,7 @@ export async function GET(request: NextRequest) {
       INNER JOIN escolas e ON rp.escola_id = e.id
       LEFT JOIN turmas t ON rp.turma_id = t.id
       ${rpWhereClauseSemSerie}
-      GROUP BY t.id, t.codigo, e.nome, rp.serie
+      GROUP BY t.id, t.codigo, e.nome, rp.serie, COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado')
       HAVING t.id IS NOT NULL AND COUNT(*) >= 10
     `
 
@@ -1558,6 +1560,7 @@ export async function GET(request: NextRequest) {
           escola: row.escola,
           polo: row.polo,
           serie: row.serie,
+          disciplina: row.disciplina,
           total_respostas: parseInt(row.total_respostas) || 0,
           total_acertos: parseInt(row.total_acertos) || 0,
           total_erros: parseInt(row.total_erros) || 0,
@@ -1568,6 +1571,7 @@ export async function GET(request: NextRequest) {
           turma: row.turma,
           escola: row.escola,
           serie: row.serie,
+          disciplina: row.disciplina,
           total_respostas: parseInt(row.total_respostas) || 0,
           total_acertos: parseInt(row.total_acertos) || 0,
           total_erros: parseInt(row.total_erros) || 0,

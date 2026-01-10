@@ -164,6 +164,7 @@ interface DashboardData {
       escola: string
       polo: string
       serie: string
+      disciplina: string
       total_respostas: number
       total_acertos: number
       total_erros: number
@@ -174,6 +175,7 @@ interface DashboardData {
       turma: string
       escola: string
       serie: string
+      disciplina: string
       total_respostas: number
       total_acertos: number
       total_erros: number
@@ -942,13 +944,47 @@ export default function DadosPage() {
       ? (resumos.disciplinas?.filter(d => compararSeries(d.serie, serie)) || [])
       : (resumos.disciplinas || [])
 
-    // Se há filtro de disciplina, aplicar também
+    // Se há filtro de disciplina, aplicar também (agora escolas e turmas também têm disciplina)
     if (disciplina) {
       questoesFiltradas = questoesFiltradas.filter(q => compararDisciplinas(q.disciplina, disciplina))
       disciplinasFiltradas = disciplinasFiltradas.filter(d => compararDisciplinas(d.disciplina, disciplina))
-      // Nota: escolas e turmas nos resumos não têm disciplina, então não podem ser filtradas por disciplina
-      // Elas são agregadas por série. Para filtrar por disciplina, seria necessário mudar a estrutura da API.
+      escolasFiltradas = escolasFiltradas.filter(e => compararDisciplinas(e.disciplina, disciplina))
+      turmasFiltradas = turmasFiltradas.filter(t => compararDisciplinas(t.disciplina, disciplina))
     }
+
+    // Agregar escolas (podem ter múltiplas entradas se não filtradas por disciplina)
+    const escolasAgregadas = new Map<string, typeof escolasFiltradas[0] & { disciplinas: Set<string> }>()
+    escolasFiltradas.forEach(e => {
+      const key = e.escola_id
+      if (escolasAgregadas.has(key)) {
+        const existing = escolasAgregadas.get(key)!
+        existing.total_respostas += e.total_respostas
+        existing.total_acertos += e.total_acertos
+        existing.total_erros += e.total_erros
+        existing.total_alunos = Math.max(existing.total_alunos, e.total_alunos) // Evitar duplicatas de alunos
+        existing.disciplinas.add(e.disciplina)
+      } else {
+        escolasAgregadas.set(key, { ...e, disciplinas: new Set([e.disciplina]) })
+      }
+    })
+    escolasFiltradas = Array.from(escolasAgregadas.values())
+
+    // Agregar turmas (podem ter múltiplas entradas se não filtradas por disciplina)
+    const turmasAgregadas = new Map<string, typeof turmasFiltradas[0] & { disciplinas: Set<string> }>()
+    turmasFiltradas.forEach(t => {
+      const key = t.turma_id
+      if (turmasAgregadas.has(key)) {
+        const existing = turmasAgregadas.get(key)!
+        existing.total_respostas += t.total_respostas
+        existing.total_acertos += t.total_acertos
+        existing.total_erros += t.total_erros
+        existing.total_alunos = Math.max(existing.total_alunos, t.total_alunos) // Evitar duplicatas de alunos
+        existing.disciplinas.add(t.disciplina)
+      } else {
+        turmasAgregadas.set(key, { ...t, disciplinas: new Set([t.disciplina]) })
+      }
+    })
+    turmasFiltradas = Array.from(turmasAgregadas.values())
 
     // Calcular taxa geral
     const totalRespostasGeral = disciplinasFiltradas.reduce((acc, d) => acc + d.total_respostas, 0)
@@ -1966,7 +2002,7 @@ export default function DadosPage() {
                 <MetricCard titulo="Alunos" valor={dados.metricas.total_alunos} icon={Users} cor="indigo" />
                 <MetricCard titulo="Escolas" valor={dados.metricas.total_escolas} icon={School} cor="blue" />
                 <MetricCard titulo="Turmas" valor={dados.metricas.total_turmas} icon={GraduationCap} cor="purple" />
-                <MetricCard titulo="Presentes" valor={dados.metricas.total_presentes} subtitulo={`${dados.metricas.taxa_presenca}%`} icon={UserCheck} cor="green" />
+                <MetricCard titulo="Presentes" valor={dados.metricas.total_presentes} subtitulo={`${(dados.metricas.taxa_presenca || 0).toFixed(1)}%`} icon={UserCheck} cor="green" />
                 <MetricCard titulo="Faltantes" valor={dados.metricas.total_faltantes} icon={UserX} cor="red" />
                 <MetricCard titulo="Media Geral" valor={dados.metricas.media_geral.toFixed(2)} icon={Award} cor="amber" isDecimal />
                 <MetricCard titulo="Menor" valor={dados.metricas.menor_media.toFixed(2)} icon={TrendingDown} cor="rose" isDecimal />
