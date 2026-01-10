@@ -168,7 +168,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         { icon: UserPlus, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
         { icon: FilePlus, label: 'Importar Resultados', href: '/admin/importar-resultados' },
         { icon: History, label: 'Importacoes', href: '/admin/importacoes' },
-        { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
+        { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
         { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
         { icon: Users, label: 'Usuarios', href: '/admin/usuarios' },
@@ -187,7 +187,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para TECNICO - fixo, sem carregar modulos
     if (tipoUsuarioReal === 'tecnico') {
       items.push(
-        { icon: FileText, label: 'Resultados', href: '/admin/resultados' },
+        { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
         { icon: School, label: 'Escolas', href: '/admin/escolas' },
         { icon: MapPin, label: 'Polos', href: '/admin/polos' },
@@ -198,7 +198,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para POLO
     if (tipoUsuarioReal === 'polo') {
       items.push(
-        { icon: FileText, label: 'Resultados', href: '/polo/analise' },
+        { icon: FileText, label: 'Resultados Consolidados', href: '/polo/analise' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
         { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
       )

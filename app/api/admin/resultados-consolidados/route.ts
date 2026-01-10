@@ -221,9 +221,20 @@ export async function GET(request: NextRequest) {
     }
 
     if (serie) {
-      query += ` AND rc.serie = $${paramIndex}`
-      params.push(serie)
-      paramIndex++
+      // Extrair apenas o número da série para comparação flexível
+      // Ex: "3º Ano" -> "3", "5º" -> "5"
+      const numeroSerie = serie.match(/\d+/)?.[0]
+      if (numeroSerie) {
+        // Buscar séries que contenham o mesmo número (ex: "3º", "3º Ano", "3")
+        query += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`
+        params.push(numeroSerie)
+        paramIndex++
+      } else {
+        // Se não for numérico, comparar diretamente
+        query += ` AND rc.serie ILIKE $${paramIndex}`
+        params.push(serie)
+        paramIndex++
+      }
     }
 
     if (presenca) {
@@ -304,9 +315,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (serie) {
-      countQuery += ` AND rc.serie = $${countParamIndex}`
-      countParams.push(serie)
-      countParamIndex++
+      const numeroSerie = serie.match(/\d+/)?.[0]
+      if (numeroSerie) {
+        countQuery += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${countParamIndex}`
+        countParams.push(numeroSerie)
+        countParamIndex++
+      } else {
+        countQuery += ` AND rc.serie ILIKE $${countParamIndex}`
+        countParams.push(serie)
+        countParamIndex++
+      }
     }
 
     if (presenca) {
@@ -467,9 +485,16 @@ export async function GET(request: NextRequest) {
     }
     
     if (serie) {
-      estatisticasQuery += ` AND rc.serie = $${estatisticasParamIndex}`
-      estatisticasParams.push(serie)
-      estatisticasParamIndex++
+      const numeroSerie = serie.match(/\d+/)?.[0]
+      if (numeroSerie) {
+        estatisticasQuery += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${estatisticasParamIndex}`
+        estatisticasParams.push(numeroSerie)
+        estatisticasParamIndex++
+      } else {
+        estatisticasQuery += ` AND rc.serie ILIKE $${estatisticasParamIndex}`
+        estatisticasParams.push(serie)
+        estatisticasParamIndex++
+      }
     }
     
     if (presenca) {

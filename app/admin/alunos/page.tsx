@@ -85,6 +85,7 @@ export default function AlunosPage() {
   const [mostrarModalHistorico, setMostrarModalHistorico] = useState(false)
   const [historicoAluno, setHistoricoAluno] = useState<any>(null)
   const [carregandoHistorico, setCarregandoHistorico] = useState(false)
+  const [pesquisaIniciada, setPesquisaIniciada] = useState(false)
 
   // Estado de paginação
   const [paginacao, setPaginacao] = useState<Paginacao>({
@@ -167,11 +168,18 @@ export default function AlunosPage() {
     return () => clearTimeout(timer)
   }, [busca])
 
+  // Só carrega alunos automaticamente após a pesquisa ser iniciada
   useEffect(() => {
-    if (!carregando) {
+    if (pesquisaIniciada) {
       carregarAlunos()
     }
-  }, [buscaDebounced, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, escolas])
+  }, [buscaDebounced, filtroPolo, filtroEscola, filtroTurma, filtroSerie, filtroAno, pesquisaIniciada])
+
+  // Função para iniciar a pesquisa
+  const handlePesquisar = () => {
+    setPesquisaIniciada(true)
+    carregarAlunos()
+  }
 
   // Funcao memoizada para carregar alunos - evita re-criacao a cada render
   const carregarAlunos = useCallback(async (pagina: number = paginaAtual) => {
@@ -184,6 +192,10 @@ export default function AlunosPage() {
       params.append('limite', '50')
 
       // Filtros
+      if (filtroPolo) {
+        params.append('polo_id', filtroPolo)
+      }
+
       if (filtroEscola) {
         params.append('escola_id', filtroEscola)
       }
@@ -243,16 +255,8 @@ export default function AlunosPage() {
         }
       }
 
-      // Aplicar filtro de polo no frontend se necessário
-      let alunosFiltrados = Array.isArray(alunosData) ? alunosData : []
-      if (filtroPolo && !filtroEscola && escolas.length > 0) {
-        alunosFiltrados = alunosFiltrados.filter((a: Aluno) =>
-          escolas.some(e => e.id === a.escola_id && e.polo_id === filtroPolo)
-        )
-        // Ajustar paginação se filtrar no frontend
-        paginacaoData.total = alunosFiltrados.length
-        paginacaoData.totalPaginas = Math.ceil(alunosFiltrados.length / paginacaoData.limite)
-      }
+      // Não precisa mais filtrar no frontend - API já filtra por polo_id
+      const alunosFiltrados = Array.isArray(alunosData) ? alunosData : []
 
       setAlunos(alunosFiltrados)
       setPaginacao(paginacaoData)
@@ -271,7 +275,7 @@ export default function AlunosPage() {
     } finally {
       setCarregando(false)
     }
-  }, [paginaAtual, filtroEscola, filtroTurma, filtroSerie, filtroAno, buscaDebounced, filtroPolo, escolas])
+  }, [paginaAtual, filtroEscola, filtroTurma, filtroSerie, filtroAno, buscaDebounced, filtroPolo])
 
   // Funcoes de navegacao de pagina - memoizadas para evitar re-renders
   const irParaPagina = useCallback((pagina: number) => {
@@ -441,7 +445,7 @@ export default function AlunosPage() {
             <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-2">Gestão de Alunos</h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Total de alunos cadastrados: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{alunos.length}</span>
+                Total de alunos cadastrados: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{paginacao.total}</span>
               </p>
             </div>
             <button
@@ -454,7 +458,7 @@ export default function AlunosPage() {
           </div>
 
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 sm:gap-4">
               <div className="relative sm:col-span-2 lg:col-span-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                 <input
@@ -531,11 +535,21 @@ export default function AlunosPage() {
                   <option key={a} value={a}>{a}</option>
                 ))}
               </select>
+
+              {/* Botão de Pesquisar */}
+              <button
+                onClick={handlePesquisar}
+                disabled={carregando}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full transition-colors"
+              >
+                <Search className="w-4 h-4" />
+                {carregando ? 'Pesquisando...' : 'Pesquisar'}
+              </button>
             </div>
           </div>
 
           {/* Card com total de alunos */}
-          {!carregando && (
+          {!carregando && pesquisaIniciada && (
             <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
@@ -592,9 +606,17 @@ export default function AlunosPage() {
                         </tr>
                       </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                    {alunos.length === 0 ? (
+                    {!pesquisaIniciada ? (
                       <tr>
-                        <td colSpan={3} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
+                        <td colSpan={8} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
+                          <Search className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                          <p className="text-base sm:text-lg font-medium">Selecione os filtros e clique em Pesquisar</p>
+                          <p className="text-xs sm:text-sm mt-1 text-gray-400 dark:text-gray-500">Use os filtros acima para encontrar alunos</p>
+                        </td>
+                      </tr>
+                    ) : alunos.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
                           <p className="text-base sm:text-lg font-medium">Nenhum aluno encontrado</p>
                           <p className="text-xs sm:text-sm mt-1 text-gray-400 dark:text-gray-500">Tente ajustar os filtros de busca</p>
                         </td>

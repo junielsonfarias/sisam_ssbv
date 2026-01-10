@@ -377,7 +377,7 @@ export async function GET(request: NextRequest) {
           item_producao_7,
           item_producao_8
         FROM resultados_consolidados
-        WHERE aluno_id = $1::integer
+        WHERE aluno_id = $1
         ${anoLetivo ? 'AND ano_letivo = $2' : ''}
         ORDER BY atualizado_em DESC NULLS LAST
         LIMIT 1`,
@@ -404,7 +404,20 @@ export async function GET(request: NextRequest) {
           })
         }
 
-        console.log(`[API] Dados consolidados encontrados para aluno ${alunoId}: media=${mediaGeral}, producao=${notaProducao}`)
+        // DEBUG: Log detalhado dos itens de produção
+        console.log(`[API] Dados consolidados para aluno ${alunoId}:`)
+        console.log(`  - media=${mediaGeral}, producao=${notaProducao}`)
+        console.log(`  - itens_producao raw:`, {
+          item_producao_1: consolidado.item_producao_1,
+          item_producao_2: consolidado.item_producao_2,
+          item_producao_3: consolidado.item_producao_3,
+          item_producao_4: consolidado.item_producao_4,
+          item_producao_5: consolidado.item_producao_5,
+          item_producao_6: consolidado.item_producao_6,
+          item_producao_7: consolidado.item_producao_7,
+          item_producao_8: consolidado.item_producao_8,
+        })
+        console.log(`  - itens_producao processado:`, itensProducao)
       } else {
         // Fallback: tenta buscar da view unificada com média calculada dinamicamente
         const consolidadoView = await pool.query(
@@ -459,7 +472,7 @@ export async function GET(request: NextRequest) {
             item_producao_7,
             item_producao_8
           FROM resultados_consolidados_unificada
-          WHERE aluno_id = $1::integer
+          WHERE aluno_id = $1
           ${anoLetivo ? 'AND ano_letivo = $2' : ''}
           LIMIT 1`,
           anoLetivo ? [alunoId, anoLetivo] : [alunoId]

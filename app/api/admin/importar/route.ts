@@ -275,13 +275,21 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Inserir resultado
+        // Inserir resultado (com tratamento de duplicação)
+        // Se já existe resultado para este aluno/questão/ano, atualiza ao invés de duplicar
         await pool.query(
-          `INSERT INTO resultados_provas 
-           (escola_id, aluno_codigo, aluno_nome, questao_id, questao_codigo, 
-            resposta_aluno, acertou, nota, data_prova, ano_letivo, serie, 
+          `INSERT INTO resultados_provas
+           (escola_id, aluno_codigo, aluno_nome, questao_id, questao_codigo,
+            resposta_aluno, acertou, nota, data_prova, ano_letivo, serie,
             turma, disciplina, area_conhecimento)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+           ON CONFLICT (aluno_id, questao_codigo, ano_letivo)
+           DO UPDATE SET
+             resposta_aluno = EXCLUDED.resposta_aluno,
+             acertou = EXCLUDED.acertou,
+             nota = EXCLUDED.nota,
+             data_prova = EXCLUDED.data_prova,
+             atualizado_em = CURRENT_TIMESTAMP`,
           [
             escolaId,
             alunoCodigo || null,

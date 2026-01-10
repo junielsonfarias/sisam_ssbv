@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+    const poloId = searchParams.get('polo_id')
     const escolaId = searchParams.get('escola_id')
     const turmaId = searchParams.get('turma_id')
     const serie = searchParams.get('serie')
@@ -40,8 +41,8 @@ export async function GET(request: NextRequest) {
     const limite = Math.min(200, Math.max(1, parseInt(searchParams.get('limite') || '50')))
     const offset = (pagina - 1) * limite
 
-    // Query base com condições
-    let whereConditions: string[] = ['1=1']
+    // Query base com condições (incluindo apenas alunos ativos)
+    let whereConditions: string[] = ['a.ativo = true']
     const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
@@ -57,6 +58,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Aplicar filtros
+    if (poloId) {
+      whereConditions.push(`e.polo_id = $${paramIndex}`)
+      params.push(poloId)
+      paramIndex++
+    }
+
     if (escolaId) {
       whereConditions.push(`a.escola_id = $${paramIndex}`)
       params.push(escolaId)
@@ -70,9 +77,20 @@ export async function GET(request: NextRequest) {
     }
 
     if (serie) {
-      whereConditions.push(`a.serie = $${paramIndex}`)
-      params.push(serie)
-      paramIndex++
+      // Extrair apenas o número da série para comparação flexível
+      // Ex: "3º Ano" -> "3", "5º" -> "5"
+      const numeroSerie = serie.match(/\d+/)?.[0]
+      if (numeroSerie) {
+        // Buscar séries que contenham o mesmo número (ex: "3º", "3º Ano", "3")
+        whereConditions.push(`REGEXP_REPLACE(a.serie, '[^0-9]', '', 'g') = $${paramIndex}`)
+        params.push(numeroSerie)
+        paramIndex++
+      } else {
+        // Se não for numérico, comparar diretamente
+        whereConditions.push(`a.serie ILIKE $${paramIndex}`)
+        params.push(serie)
+        paramIndex++
+      }
     }
 
     if (anoLetivo) {

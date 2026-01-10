@@ -511,6 +511,16 @@ async function processarImportacao(
         const numeroSerie = extrairNumeroSerie(serie)
         const configSerieAluno = numeroSerie ? configSeries.get(numeroSerie) : null
 
+        // DEBUG: Log da série e configuração (apenas para os primeiros 3 alunos)
+        if (resultadosProcessados < 3) {
+          console.log(`[IMPORT DEBUG] Série do aluno "${alunoNome}":`)
+          console.log(`  - serieRaw: "${serieRaw}"`)
+          console.log(`  - serie (normalizada): "${serie}"`)
+          console.log(`  - numeroSerie (extraído): "${numeroSerie}"`)
+          console.log(`  - configSerieAluno encontrada: ${configSerieAluno ? 'SIM' : 'NÃO'}`)
+          console.log(`  - configSeries.keys():`, Array.from(configSeries.keys()))
+        }
+
         // Extrair itens de produção textual (para 2º, 3º e 5º ano)
         let notaProducao: number | null = null
         const itensProducaoNotas: (number | null)[] = []
@@ -522,6 +532,18 @@ async function processarImportacao(
             itensProducaoNotas.push(notaItem)
           }
 
+          // DEBUG: Log dos itens extraídos (apenas para os primeiros 3 alunos)
+          if (resultadosProcessados < 3) {
+            console.log(`[IMPORT DEBUG] Aluno: ${nomeAluno}, Serie: ${serie}`)
+            console.log(`  - configSerieAluno.tem_producao_textual: ${configSerieAluno.tem_producao_textual}`)
+            console.log(`  - Colunas no Excel:`, Object.keys(linha).filter(k => k.toLowerCase().includes('item')))
+            console.log(`  - Valores Item1-8:`, {
+              Item1: linha['Item1'], Item2: linha['Item2'], Item3: linha['Item3'], Item4: linha['Item4'],
+              Item5: linha['Item5'], Item6: linha['Item6'], Item7: linha['Item7'], Item8: linha['Item8']
+            })
+            console.log(`  - itensProducaoNotas extraídos:`, itensProducaoNotas)
+          }
+
           // Calcular média da produção
           notaProducao = calcularMediaProducao(itensProducaoNotas)
 
@@ -531,6 +553,18 @@ async function processarImportacao(
               linha['PRODUÇÃO'] || linha['Produção'] || linha['PRODUCAO'] ||
               linha['Nota Produção'] || linha['NOTA PRODUÇÃO'] || linha['nota_producao']
             )
+          }
+
+          // DEBUG: Log da nota de produção calculada
+          if (resultadosProcessados < 3) {
+            console.log(`  - notaProducao calculada: ${notaProducao}`)
+          }
+        } else {
+          // DEBUG: Log quando não tem produção textual
+          if (resultadosProcessados < 3) {
+            console.log(`[IMPORT DEBUG] Aluno: ${nomeAluno}, Serie: ${serie} - SEM PRODUÇÃO TEXTUAL`)
+            console.log(`  - configSerieAluno: ${configSerieAluno ? 'existe' : 'NULL'}`)
+            console.log(`  - tem_producao_textual: ${configSerieAluno?.tem_producao_textual}`)
           }
         }
 
@@ -608,15 +642,15 @@ async function processarImportacao(
           nivel_aprendizagem_id: (semDados ? null : nivelAprendizagemId),
           tipo_avaliacao: tipoAvaliacao,
           total_questoes_esperadas: totalQuestoesEsperadas,
-          // Itens de produção individuais
-          item_producao_1: (alunoFaltou || semDados) ? null : itensProducaoNotas[0] || null,
-          item_producao_2: (alunoFaltou || semDados) ? null : itensProducaoNotas[1] || null,
-          item_producao_3: (alunoFaltou || semDados) ? null : itensProducaoNotas[2] || null,
-          item_producao_4: (alunoFaltou || semDados) ? null : itensProducaoNotas[3] || null,
-          item_producao_5: (alunoFaltou || semDados) ? null : itensProducaoNotas[4] || null,
-          item_producao_6: (alunoFaltou || semDados) ? null : itensProducaoNotas[5] || null,
-          item_producao_7: (alunoFaltou || semDados) ? null : itensProducaoNotas[6] || null,
-          item_producao_8: (alunoFaltou || semDados) ? null : itensProducaoNotas[7] || null,
+          // Itens de produção individuais (usar ?? para preservar valor 0)
+          item_producao_1: (alunoFaltou || semDados) ? null : (itensProducaoNotas[0] ?? null),
+          item_producao_2: (alunoFaltou || semDados) ? null : (itensProducaoNotas[1] ?? null),
+          item_producao_3: (alunoFaltou || semDados) ? null : (itensProducaoNotas[2] ?? null),
+          item_producao_4: (alunoFaltou || semDados) ? null : (itensProducaoNotas[3] ?? null),
+          item_producao_5: (alunoFaltou || semDados) ? null : (itensProducaoNotas[4] ?? null),
+          item_producao_6: (alunoFaltou || semDados) ? null : (itensProducaoNotas[5] ?? null),
+          item_producao_7: (alunoFaltou || semDados) ? null : (itensProducaoNotas[6] ?? null),
+          item_producao_8: (alunoFaltou || semDados) ? null : (itensProducaoNotas[7] ?? null),
         })
 
         // Adicionar resultados de produção à fila (se aplicável)

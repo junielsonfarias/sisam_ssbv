@@ -289,10 +289,26 @@ export async function POST(request: NextRequest) {
         // Ler itens de produção (Item1-Item8)
         const itensProducao: (number | null)[] = []
         for (let itemNum = 1; itemNum <= 8; itemNum++) {
-          const colunaItem = linha[`Item${itemNum}`] || linha[`ITEM${itemNum}`] || linha[`item${itemNum}`]
+          // Tentar múltiplas variações do nome da coluna
+          const variacoes = [
+            `Item${itemNum}`, `ITEM${itemNum}`, `item${itemNum}`,
+            `Item ${itemNum}`, `ITEM ${itemNum}`, `item ${itemNum}`,
+            `Item_${itemNum}`, `ITEM_${itemNum}`, `item_${itemNum}`,
+            `I${itemNum}`, `i${itemNum}`
+          ]
+
+          let colunaItem = undefined
+          for (const variacao of variacoes) {
+            if (linha[variacao] !== undefined) {
+              colunaItem = linha[variacao]
+              break
+            }
+          }
+
           if (colunaItem !== undefined && colunaItem !== null && colunaItem !== '') {
             const valorItem = colunaItem.toString().trim().toUpperCase()
-            itensProducao.push(valorItem === 'X' || valorItem === '1' ? 1 : 0)
+            const valorFinal = valorItem === 'X' || valorItem === '1' ? 1 : 0
+            itensProducao.push(valorFinal)
           } else {
             itensProducao.push(null)
           }
@@ -602,8 +618,14 @@ export async function POST(request: NextRequest) {
             notaLPCalc.toFixed(2), notaCHCalc.toFixed(2), notaMATCalc.toFixed(2), notaCNCalc.toFixed(2),
             mediaAluno.toFixed(2),
             notaProducaoPlanilha || 0, nivelProducao,
-            itensProducao[0], itensProducao[1], itensProducao[2], itensProducao[3],
-            itensProducao[4], itensProducao[5], itensProducao[6], itensProducao[7],
+            (alunoFaltou || semDados) ? null : (itensProducao[0] ?? null),
+            (alunoFaltou || semDados) ? null : (itensProducao[1] ?? null),
+            (alunoFaltou || semDados) ? null : (itensProducao[2] ?? null),
+            (alunoFaltou || semDados) ? null : (itensProducao[3] ?? null),
+            (alunoFaltou || semDados) ? null : (itensProducao[4] ?? null),
+            (alunoFaltou || semDados) ? null : (itensProducao[5] ?? null),
+            (alunoFaltou || semDados) ? null : (itensProducao[6] ?? null),
+            (alunoFaltou || semDados) ? null : (itensProducao[7] ?? null),
             questoesRespondidas, totalQuestoesEsperadas, tipoAvaliacao
           ])
         }

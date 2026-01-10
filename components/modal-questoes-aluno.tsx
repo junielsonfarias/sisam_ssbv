@@ -390,73 +390,147 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                   })}
                 </div>
 
-                {/* Nota de Produção (se disponível) */}
+                {/* Produção Textual (se disponível para a série) */}
                 {dados.estatisticas.nota_producao !== undefined && dados.estatisticas.nota_producao !== null && (
                   <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600">
-                          <BarChart3 className="w-5 h-5 text-white" />
-                        </div>
-                        <h4 className="font-semibold text-gray-800 dark:text-white">Produção Textual</h4>
+                    {/* Cabeçalho com título */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600">
+                        <BarChart3 className="w-5 h-5 text-white" />
                       </div>
-                      <div className="px-3 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-                        <span className="text-xs font-medium">Média: </span>
-                        <span className="text-lg font-bold">{dados.estatisticas.nota_producao.toFixed(2)}</span>
-                      </div>
+                      <h4 className="font-semibold text-gray-800 dark:text-white">Produção Textual</h4>
                     </div>
 
-                    {/* Itens individuais de Produção Textual */}
-                    {dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null) && (
-                      <div className="mt-3 pt-3 border-t border-orange-200 dark:border-orange-700">
-                        <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-2">Pontuação por Item:</p>
-                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                          {dados.estatisticas.itens_producao.map((itemProd) => (
-                            <div
-                              key={itemProd.item}
-                              className={`p-2 rounded-lg text-center ${
-                                itemProd.nota !== null
-                                  ? itemProd.nota >= 1.5
-                                    ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700'
-                                    : itemProd.nota >= 1
-                                    ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700'
-                                    : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
-                                  : 'bg-gray-100 dark:bg-gray-700/30 border border-gray-300 dark:border-gray-600'
-                              }`}
-                            >
-                              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Item {itemProd.item}</p>
-                              <p className={`text-sm font-bold ${
-                                itemProd.nota !== null
-                                  ? itemProd.nota >= 1.5
-                                    ? 'text-green-700 dark:text-green-400'
-                                    : itemProd.nota >= 1
-                                    ? 'text-yellow-700 dark:text-yellow-400'
-                                    : 'text-red-700 dark:text-red-400'
-                                  : 'text-gray-500 dark:text-gray-400'
-                              }`}>
-                                {itemProd.nota !== null ? itemProd.nota.toFixed(2) : '-'}
-                              </p>
+                    {/* Estatísticas de Acertos/Erros e Pontuação */}
+                    {dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null) && (() => {
+                      const itensValidos = dados.estatisticas.itens_producao!.filter(item => item.nota !== null)
+                      const totalItens = itensValidos.length
+                      const acertos = itensValidos.filter(item => item.nota !== null && item.nota >= 1).length
+                      const erros = totalItens - acertos
+                      const pontuacaoTotal = itensValidos.reduce((sum, item) => sum + (item.nota || 0), 0)
+                      const mediaProducao = totalItens > 0 ? pontuacaoTotal / totalItens : 0
+
+                      return (
+                        <>
+                          {/* Cards de estatísticas */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                            {/* Total de Itens */}
+                            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 text-center border border-orange-200 dark:border-orange-700">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Itens</p>
+                              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{totalItens}</p>
                             </div>
-                          ))}
-                        </div>
+                            {/* Acertos */}
+                            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 text-center border border-green-200 dark:border-green-700">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Acertos</p>
+                              <p className="text-xl font-bold text-green-600 dark:text-green-400">{acertos}</p>
+                            </div>
+                            {/* Erros */}
+                            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 text-center border border-red-200 dark:border-red-700">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Erros</p>
+                              <p className="text-xl font-bold text-red-600 dark:text-red-400">{erros}</p>
+                            </div>
+                            {/* Pontuação Total */}
+                            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-700">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pontuação</p>
+                              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{pontuacaoTotal}/{totalItens}</p>
+                            </div>
+                          </div>
+
+                          {/* Média/Nota de Produção */}
+                          <div className="flex items-center justify-between mb-4 p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white">
+                            <span className="font-medium">Média de Produção Textual:</span>
+                            <span className="text-2xl font-bold">{dados.estatisticas.nota_producao!.toFixed(2)}</span>
+                          </div>
+
+                          {/* Itens individuais */}
+                          <div className="pt-3 border-t border-orange-200 dark:border-orange-700">
+                            <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-2">Detalhamento por Item (X=Acerto, -/0=Erro):</p>
+                            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                              {dados.estatisticas.itens_producao!.map((itemProd) => {
+                                const isAcerto = itemProd.nota !== null && itemProd.nota >= 1
+                                return (
+                                  <div
+                                    key={itemProd.item}
+                                    className={`p-2 rounded-lg text-center cursor-pointer transition-transform hover:scale-105 ${
+                                      itemProd.nota !== null
+                                        ? isAcerto
+                                          ? 'bg-green-100 dark:bg-green-900/30 border-2 border-green-400 dark:border-green-600'
+                                          : 'bg-red-100 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600'
+                                        : 'bg-gray-100 dark:bg-gray-700/30 border border-gray-300 dark:border-gray-600'
+                                    }`}
+                                    title={`Item ${itemProd.item}: ${itemProd.nota !== null ? (isAcerto ? 'ACERTO' : 'ERRO') : 'Não avaliado'}`}
+                                  >
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Item {itemProd.item}</p>
+                                    <div className="flex items-center justify-center gap-1">
+                                      {itemProd.nota !== null ? (
+                                        isAcerto ? (
+                                          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                        ) : (
+                                          <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                        )
+                                      ) : (
+                                        <span className="text-gray-400">-</span>
+                                      )}
+                                    </div>
+                                    <p className={`text-xs font-bold mt-0.5 ${
+                                      itemProd.nota !== null
+                                        ? isAcerto
+                                          ? 'text-green-700 dark:text-green-400'
+                                          : 'text-red-700 dark:text-red-400'
+                                        : 'text-gray-500 dark:text-gray-400'
+                                    }`}>
+                                      {itemProd.nota !== null ? itemProd.nota : '-'}
+                                    </p>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      )
+                    })()}
+
+                    {/* Fallback se não houver itens individuais mas houver nota de produção */}
+                    {(!dados.estatisticas.itens_producao || !dados.estatisticas.itens_producao.some(item => item.nota !== null)) && (
+                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white">
+                        <span className="font-medium">Nota de Produção Textual:</span>
+                        <span className="text-2xl font-bold">{dados.estatisticas.nota_producao.toFixed(2)}</span>
                       </div>
                     )}
                   </div>
                 )}
 
                 {/* Legenda */}
-                {temQuestoesDetalhadas && (
+                {(temQuestoesDetalhadas || (dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null))) && (
                   <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4 border border-gray-200 dark:border-slate-600">
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Legenda:</p>
                     <div className="flex flex-wrap gap-4 text-sm">
-                      <div className="flex items-center">
-                        <div className="w-5 h-5 bg-green-500 rounded mr-2"></div>
-                        <span className="text-gray-700 dark:text-gray-300">Questão acertada</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-5 h-5 bg-red-500 rounded mr-2"></div>
-                        <span className="text-gray-700 dark:text-gray-300">Questão errada</span>
-                      </div>
+                      {/* Legenda para Questões Objetivas */}
+                      {temQuestoesDetalhadas && (
+                        <>
+                          <div className="flex items-center">
+                            <div className="w-5 h-5 bg-green-500 rounded mr-2"></div>
+                            <span className="text-gray-700 dark:text-gray-300">Questão acertada</span>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="w-5 h-5 bg-red-500 rounded mr-2"></div>
+                            <span className="text-gray-700 dark:text-gray-300">Questão errada</span>
+                          </div>
+                        </>
+                      )}
+                      {/* Legenda para Produção Textual */}
+                      {dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null) && (
+                        <>
+                          <div className="flex items-center">
+                            <CheckCircle2 className="w-5 h-5 text-green-500 mr-2" />
+                            <span className="text-gray-700 dark:text-gray-300">Item PROD acerto (X=1pt)</span>
+                          </div>
+                          <div className="flex items-center">
+                            <XCircle className="w-5 h-5 text-red-500 mr-2" />
+                            <span className="text-gray-700 dark:text-gray-300">Item PROD erro (-/0=0pt)</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
