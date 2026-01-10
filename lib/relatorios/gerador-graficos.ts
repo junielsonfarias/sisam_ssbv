@@ -2,9 +2,28 @@
  * Gerador de Gráficos para Relatórios PDF
  * Utiliza QuickChart.io para compatibilidade com serverless (Vercel)
  * @module lib/relatorios/gerador-graficos
+ *
+ * Este módulo gera gráficos como imagens PNG usando a API QuickChart.io,
+ * que é compatível com ambientes serverless como Vercel.
+ *
+ * Características:
+ * - Timeout de 15 segundos por requisição
+ * - Retry automático em caso de falha (até 2 tentativas)
+ * - Retorna buffer vazio em caso de erro (não bloqueia geração do PDF)
+ *
+ * @example
+ * ```typescript
+ * const buffer = await gerarGraficoBarrasDisciplinas(disciplinas);
+ * // buffer contém PNG da imagem ou buffer vazio se falhou
+ * ```
  */
 
 import { DesempenhoDisciplina, AnaliseQuestao, EscolaComparativo } from './tipos';
+
+// Configurações
+const QUICKCHART_TIMEOUT_MS = 15000;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
 
 // Cores padrão do SISAM
 const CORES = {
@@ -42,14 +61,29 @@ interface ChartConfig {
 }
 
 /**
- * Gera gráfico via QuickChart.io
+ * Aguarda um tempo especificado
+ * @param ms - Milissegundos para aguardar
  */
-async function gerarGraficoQuickChart(config: ChartConfig, width = 600, height = 400): Promise<Buffer> {
-  try {
-    // Timeout de 15 segundos para evitar travamentos
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
+/**
+ * Tenta fazer uma requisição ao QuickChart com timeout
+ * @param config - Configuração do gráfico
+ * @param width - Largura em pixels
+ * @param height - Altura em pixels
+ * @returns Buffer com a imagem ou null se falhou
+ */
+async function tentarGerarGrafico(
+  config: ChartConfig,
+  width: number,
+  height: number
+): Promise<Buffer | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), QUICKCHART_TIMEOUT_MS);
+
+  try {
     const response = await fetch(QUICKCHART_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -66,20 +100,64 @@ async function gerarGraficoQuickChart(config: ChartConfig, width = 600, height =
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Erro ao gerar gráfico: ${response.status}`);
+      throw new Error(`HTTP ${response.status}`);
     }
 
     const arrayBuffer = await response.arrayBuffer();
     return Buffer.from(arrayBuffer);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.warn('Timeout ao gerar gráfico via QuickChart');
-    } else {
-      console.error('Erro ao gerar gráfico via QuickChart:', error);
-    }
-    // Retorna um buffer vazio em caso de erro
-    return Buffer.alloc(0);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
   }
+}
+
+/**
+ * Gera gráfico via QuickChart.io com retry automático
+ *
+ * @param config - Configuração do Chart.js
+ * @param width - Largura da imagem em pixels (default: 600)
+ * @param height - Altura da imagem em pixels (default: 400)
+ * @returns Buffer PNG da imagem ou buffer vazio se falhou após retries
+ *
+ * @example
+ * ```typescript
+ * const config = { type: 'bar', data: {...} };
+ * const buffer = await gerarGraficoQuickChart(config, 600, 400);
+ * ```
+ */
+async function gerarGraficoQuickChart(
+  config: ChartConfig,
+  width = 600,
+  height = 400
+): Promise<Buffer> {
+  let lastError: Error | null = null;
+
+  for (let tentativa = 1; tentativa <= MAX_RETRIES; tentativa++) {
+    try {
+      const resultado = await tentarGerarGrafico(config, width, height);
+      if (resultado) {
+        return resultado;
+      }
+    } catch (error: unknown) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Log do erro
+      if (lastError.name === 'AbortError') {
+        console.warn(`Timeout ao gerar gráfico (tentativa ${tentativa}/${MAX_RETRIES})`);
+      } else {
+        console.warn(`Erro ao gerar gráfico (tentativa ${tentativa}/${MAX_RETRIES}):`, lastError.message);
+      }
+
+      // Aguardar antes de tentar novamente (exceto na última tentativa)
+      if (tentativa < MAX_RETRIES) {
+        await delay(RETRY_DELAY_MS * tentativa);
+      }
+    }
+  }
+
+  // Após todas as tentativas, retornar buffer vazio
+  console.error('Falha ao gerar gráfico após todas as tentativas:', lastError?.message);
+  return Buffer.alloc(0);
 }
 
 /**

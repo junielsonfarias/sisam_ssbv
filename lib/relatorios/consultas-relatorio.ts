@@ -908,7 +908,17 @@ export async function buscarDadosRelatorioPolo(
       distribuicao_niveis
     };
   } catch (error) {
+    // Re-lançar ErroRelatorio sem modificação
+    if (error instanceof ErroRelatorio) {
+      throw error;
+    }
+
+    // Converter outros erros para ErroRelatorio
     console.error('Erro ao buscar dados do relatório do polo:', error);
-    throw error;
+    throw new ErroRelatorio(
+      CodigoErroRelatorio.ERRO_CONSULTA_BD,
+      'Erro ao buscar dados do relatório do polo',
+      { poloId, anoLetivo, serie, originalError: String(error) }
+    );
   }
 }
