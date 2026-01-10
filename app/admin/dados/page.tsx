@@ -12,7 +12,7 @@ import {
   Users, School, GraduationCap, MapPin, TrendingUp, TrendingDown,
   Filter, X, ChevronDown, ChevronUp, RefreshCw, Download,
   BookOpen, Calculator, Award, UserCheck, UserX, BarChart3,
-  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff, Search, Zap
+  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff, Search, Zap, FileText
 } from 'lucide-react'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 import * as offlineStorage from '@/lib/offline-storage'
@@ -2800,6 +2800,100 @@ export default function DadosPage() {
                     </div>
                   ) : (
                     <>
+                      {/* Verificar se é Anos Iniciais para mostrar análise de Produção Textual */}
+                      {(() => {
+                        const serieNum = filtroSerie?.match(/(\d+)/)?.[1]
+                        const isAnosIniciaisSelecionado = serieNum === '2' || serieNum === '3' || serieNum === '5'
+                        const temDadosQuestoes = dados.analiseAcertosErros?.taxaAcertoGeral ||
+                          (dados.analiseAcertosErros?.questoesComMaisErros && dados.analiseAcertosErros.questoesComMaisErros.length > 0)
+
+                        // Calcular estatísticas de Produção Textual para Anos Iniciais
+                        const alunosComProducao = dados.alunosDetalhados?.filter(a => {
+                          const notaProd = parseFloat(a.nota_producao as any)
+                          return !isNaN(notaProd) && notaProd > 0 &&
+                            (filtroSerie ? compararSeries(a.serie, filtroSerie) : true)
+                        }) || []
+
+                        const estatisticasProducao = alunosComProducao.length > 0 ? {
+                          total: alunosComProducao.length,
+                          media: alunosComProducao.reduce((acc, a) => acc + parseFloat(a.nota_producao as any), 0) / alunosComProducao.length,
+                          minima: Math.min(...alunosComProducao.map(a => parseFloat(a.nota_producao as any))),
+                          maxima: Math.max(...alunosComProducao.map(a => parseFloat(a.nota_producao as any))),
+                          faixas: {
+                            baixa: alunosComProducao.filter(a => parseFloat(a.nota_producao as any) < 4).length,
+                            media: alunosComProducao.filter(a => parseFloat(a.nota_producao as any) >= 4 && parseFloat(a.nota_producao as any) < 7).length,
+                            alta: alunosComProducao.filter(a => parseFloat(a.nota_producao as any) >= 7).length
+                          }
+                        } : null
+
+                        return (
+                          <>
+                            {/* Mensagem quando não há dados de questões para Anos Iniciais */}
+                            {isAnosIniciaisSelecionado && !temDadosQuestoes && (
+                              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6">
+                                <div className="flex items-start gap-3">
+                                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                      Dados de Questões Objetivas Não Disponíveis
+                                    </h4>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                                      Não há registros de respostas de questões objetivas para esta série.
+                                      Verifique se os dados foram importados corretamente na tabela de resultados de provas.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Análise de Produção Textual para Anos Iniciais */}
+                            {isAnosIniciaisSelecionado && estatisticasProducao && (
+                              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 mb-6">
+                                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                  <FileText className="w-5 h-5 text-rose-600" />
+                                  Análise de Produção Textual
+                                </h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                                  <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{estatisticasProducao.total}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Alunos Avaliados</p>
+                                  </div>
+                                  <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{estatisticasProducao.media.toFixed(2)}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Média Geral</p>
+                                  </div>
+                                  <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{estatisticasProducao.minima.toFixed(2)}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Nota Mínima</p>
+                                  </div>
+                                  <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{estatisticasProducao.maxima.toFixed(2)}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Nota Máxima</p>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
+                                    <p className="text-xl font-bold text-red-600 dark:text-red-400">{estatisticasProducao.faixas.baixa}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Abaixo de 4</p>
+                                    <p className="text-[10px] text-gray-500">({((estatisticasProducao.faixas.baixa / estatisticasProducao.total) * 100).toFixed(1)}%)</p>
+                                  </div>
+                                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 text-center">
+                                    <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{estatisticasProducao.faixas.media}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Entre 4 e 7</p>
+                                    <p className="text-[10px] text-gray-500">({((estatisticasProducao.faixas.media / estatisticasProducao.total) * 100).toFixed(1)}%)</p>
+                                  </div>
+                                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                                    <p className="text-xl font-bold text-green-600 dark:text-green-400">{estatisticasProducao.faixas.alta}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Acima de 7</p>
+                                    <p className="text-[10px] text-gray-500">({((estatisticasProducao.faixas.alta / estatisticasProducao.total) * 100).toFixed(1)}%)</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
+
                       {/* Cards de Resumo - Taxa de Acerto Geral */}
                       {dados.analiseAcertosErros?.taxaAcertoGeral && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
