@@ -1323,6 +1323,19 @@ export default function DadosPage() {
     // Resetar paginações das análises ao trocar série
     setPaginasAnalises(PAGINACAO_ANALISES_INICIAL)
 
+    // MELHORIA: Sincronizar Etapa de Ensino automaticamente baseado na série
+    if (serie) {
+      const numeroSerie = serie.match(/\d+/)?.[0]
+      if (numeroSerie) {
+        if (['2', '3', '5'].includes(numeroSerie)) {
+          setFiltroTipoEnsino('anos_iniciais')
+        } else if (['6', '7', '8', '9'].includes(numeroSerie)) {
+          setFiltroTipoEnsino('anos_finais')
+        }
+      }
+    }
+    // Se série vazia, NÃO limpar etapa de ensino (para permitir filtrar por etapa sem série)
+
     // Só atualiza se já fez uma pesquisa antes
     if (!pesquisaRealizada) return
 
@@ -1367,8 +1380,29 @@ export default function DadosPage() {
     }
   }, [dadosCache, filtroSerie, filtroDisciplina, pesquisaRealizada, filtrarDadosLocal])
 
-  const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo || filtroTipoEnsino
-  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino].filter(Boolean).length
+  // MELHORIA: Limpar disciplina selecionada se não estiver mais disponível na etapa/série atual
+  useEffect(() => {
+    if (!filtroDisciplina) return // Nada selecionado, não precisa limpar
+
+    // Verificar se a disciplina atual está disponível
+    const isAnosIniciais = filtroTipoEnsino === 'anos_iniciais' ||
+      (filtroSerie && isAnosIniciaisLib(filtroSerie))
+    const isAnosFinais = filtroTipoEnsino === 'anos_finais' ||
+      (filtroSerie && !isAnosIniciaisLib(filtroSerie) && filtroSerie.match(/\d+/)?.[0] &&
+        ['6', '7', '8', '9'].includes(filtroSerie.match(/\d+/)![0]))
+
+    // Anos Iniciais não tem CH e CN
+    if (isAnosIniciais && (filtroDisciplina === 'CH' || filtroDisciplina === 'CN')) {
+      setFiltroDisciplina('')
+    }
+    // Anos Finais não tem PT (Produção Textual)
+    if (isAnosFinais && filtroDisciplina === 'PT') {
+      setFiltroDisciplina('')
+    }
+  }, [filtroTipoEnsino, filtroSerie, filtroDisciplina])
+
+  const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo || filtroTipoEnsino || filtroSerie
+  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino, filtroSerie].filter(Boolean).length
 
   // Função para verificar se uma disciplina é aplicável à série do aluno
   const isDisciplinaAplicavel = useCallback((serie: string | null | undefined, disciplinaCodigo: string): boolean => {
@@ -1450,6 +1484,76 @@ export default function DadosPage() {
     }
     return turmas
   }, [dados?.filtros.turmas, filtroEscolaId, filtroSerie])
+
+  // Séries para os chips - sempre mostra todas as séries disponíveis
+  // A sincronização Série → Etapa de Ensino é feita automaticamente ao clicar no chip
+  const seriesFiltradas = useMemo(() => {
+    if (!dados?.filtros.series) return []
+    return dados.filtros.series
+  }, [dados?.filtros.series])
+
+  // MELHORIA: Disciplinas disponíveis filtradas por Etapa/Série
+  const disciplinasDisponiveis = useMemo(() => {
+    const todas = [
+      { value: '', label: 'Todas as disciplinas' },
+      { value: 'LP', label: 'Lingua Portuguesa' },
+      { value: 'MAT', label: 'Matematica' },
+      { value: 'CH', label: 'Ciencias Humanas' },
+      { value: 'CN', label: 'Ciencias da Natureza' },
+      { value: 'PT', label: 'Producao Textual' }
+    ]
+
+    // Verificar se é anos iniciais (série ou etapa de ensino)
+    const isAnosIniciais = filtroTipoEnsino === 'anos_iniciais' ||
+      (filtroSerie && isAnosIniciaisLib(filtroSerie))
+
+    // Verificar se é anos finais (série ou etapa de ensino)
+    const isAnosFinais = filtroTipoEnsino === 'anos_finais' ||
+      (filtroSerie && !isAnosIniciaisLib(filtroSerie) && filtroSerie.match(/\d+/)?.[0] &&
+        ['6', '7', '8', '9'].includes(filtroSerie.match(/\d+/)![0]))
+
+    if (isAnosIniciais) {
+      // Anos Iniciais: LP, MAT, PT (sem CH e CN)
+      return todas.filter(d => ['', 'LP', 'MAT', 'PT'].includes(d.value))
+    }
+
+    if (isAnosFinais) {
+      // Anos Finais: LP, MAT, CH, CN (sem PT)
+      return todas.filter(d => ['', 'LP', 'MAT', 'CH', 'CN'].includes(d.value))
+    }
+
+    // Sem filtro específico: mostrar todas
+    return todas
+  }, [filtroTipoEnsino, filtroSerie])
+
+  // MELHORIA: Helper para obter dados da disciplina selecionada
+  const disciplinaSelecionadaInfo = useMemo(() => {
+    if (!filtroDisciplina || !dados?.metricas) return null
+
+    const mapaDisciplinas: Record<string, { nome: string; media: number; sigla: string; cor: string }> = {
+      'LP': { nome: 'Língua Portuguesa', media: dados.metricas.media_lp, sigla: 'LP', cor: 'blue' },
+      'MAT': { nome: 'Matemática', media: dados.metricas.media_mat, sigla: 'MAT', cor: 'purple' },
+      'CH': { nome: 'Ciências Humanas', media: dados.metricas.media_ch, sigla: 'CH', cor: 'green' },
+      'CN': { nome: 'Ciências da Natureza', media: dados.metricas.media_cn, sigla: 'CN', cor: 'amber' },
+      'PT': { nome: 'Produção Textual', media: dados.metricas.media_producao, sigla: 'PT', cor: 'rose' }
+    }
+
+    return mapaDisciplinas[filtroDisciplina] || null
+  }, [filtroDisciplina, dados?.metricas])
+
+  // MELHORIA: Função para obter a média da disciplina de um registro (escola, turma, aluno)
+  const getMediaDisciplina = useCallback((registro: any): number => {
+    if (!filtroDisciplina) return registro.media_geral || registro.media_aluno || 0
+
+    switch (filtroDisciplina) {
+      case 'LP': return registro.nota_lp || registro.media_lp || 0
+      case 'MAT': return registro.nota_mat || registro.media_mat || 0
+      case 'CH': return registro.nota_ch || registro.media_ch || 0
+      case 'CN': return registro.nota_cn || registro.media_cn || 0
+      case 'PT': return registro.nota_producao || registro.media_prod || 0
+      default: return registro.media_geral || registro.media_aluno || 0
+    }
+  }, [filtroDisciplina])
 
   // Ordenação e paginação de escolas
   const escolasOrdenadas = useMemo(() => {
@@ -1831,6 +1935,7 @@ export default function DadosPage() {
               </div>
 
               {/* Disciplina */}
+              {/* MELHORIA: Usa disciplinasDisponiveis que filtra baseado na Etapa/Série */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroDisciplina ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
                 <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${filtroDisciplina ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
@@ -1840,17 +1945,14 @@ export default function DadosPage() {
                   value={filtroDisciplina}
                   onChange={(e) => { setFiltroDisciplina(e.target.value); setPaginaAtual(1); }}
                   className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroDisciplina 
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
+                    filtroDisciplina
+                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
                       : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
                   }`}
                 >
-                  <option value="">Todas as disciplinas</option>
-                  <option value="LP">Língua Portuguesa</option>
-                  <option value="MAT">Matemática</option>
-                  <option value="CH">Ciências Humanas</option>
-                  <option value="CN">Ciências da Natureza</option>
-                  <option value="PT">Produção Textual</option>
+                  {disciplinasDisponiveis.map(d => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -2005,7 +2107,14 @@ export default function DadosPage() {
                 <MetricCard titulo="Turmas" valor={dados.metricas.total_turmas} icon={GraduationCap} cor="purple" />
                 <MetricCard titulo="Presentes" valor={dados.metricas.total_presentes} subtitulo={`${(dados.metricas.taxa_presenca || 0).toFixed(1)}%`} icon={UserCheck} cor="green" />
                 <MetricCard titulo="Faltantes" valor={dados.metricas.total_faltantes} icon={UserX} cor="red" />
-                <MetricCard titulo="Media Geral" valor={dados.metricas.media_geral.toFixed(2)} icon={Award} cor="amber" isDecimal />
+                {/* MELHORIA: Mostra média da disciplina selecionada ou média geral */}
+                <MetricCard
+                  titulo={disciplinaSelecionadaInfo ? `Media ${disciplinaSelecionadaInfo.sigla}` : "Media Geral"}
+                  valor={(disciplinaSelecionadaInfo ? disciplinaSelecionadaInfo.media : dados.metricas.media_geral).toFixed(2)}
+                  icon={Award}
+                  cor={disciplinaSelecionadaInfo ? disciplinaSelecionadaInfo.cor : "amber"}
+                  isDecimal
+                />
                 <MetricCard titulo="Menor" valor={dados.metricas.menor_media.toFixed(2)} icon={TrendingDown} cor="rose" isDecimal />
                 <MetricCard titulo="Maior" valor={dados.metricas.maior_media.toFixed(2)} icon={TrendingUp} cor="emerald" isDecimal />
                 {dados.metricas.taxa_acerto_geral !== undefined && dados.metricas.taxa_erro_geral !== undefined && (
@@ -2016,14 +2125,14 @@ export default function DadosPage() {
                 )}
               </div>
 
-              {/* Medias por Disciplina */}
+              {/* Medias por Disciplina - MELHORIA: Destaque na disciplina selecionada */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-                <DisciplinaCard titulo="Lingua Portuguesa" media={dados.metricas.media_lp} cor="blue" sigla="LP" />
-                <DisciplinaCard titulo="Matematica" media={dados.metricas.media_mat} cor="purple" sigla="MAT" />
-                <DisciplinaCard titulo="Ciencias Humanas" media={dados.metricas.media_ch} cor="green" sigla="CH" />
-                <DisciplinaCard titulo="Ciencias da Natureza" media={dados.metricas.media_cn} cor="amber" sigla="CN" />
+                <DisciplinaCard titulo="Lingua Portuguesa" media={dados.metricas.media_lp} cor="blue" sigla="LP" destaque={filtroDisciplina === 'LP'} />
+                <DisciplinaCard titulo="Matematica" media={dados.metricas.media_mat} cor="purple" sigla="MAT" destaque={filtroDisciplina === 'MAT'} />
+                <DisciplinaCard titulo="Ciencias Humanas" media={dados.metricas.media_ch} cor="green" sigla="CH" destaque={filtroDisciplina === 'CH'} />
+                <DisciplinaCard titulo="Ciencias da Natureza" media={dados.metricas.media_cn} cor="amber" sigla="CN" destaque={filtroDisciplina === 'CN'} />
                 {dados.metricas.media_producao > 0 && (
-                  <DisciplinaCard titulo="Producao Textual" media={dados.metricas.media_producao} cor="rose" sigla="PT" />
+                  <DisciplinaCard titulo="Producao Textual" media={dados.metricas.media_producao} cor="rose" sigla="PT" destaque={filtroDisciplina === 'PT'} />
                 )}
               </div>
 
@@ -2066,7 +2175,8 @@ export default function DadosPage() {
                 </div>
 
                 {/* Chips de Series - Clique atualiza pesquisa automaticamente */}
-                {dados?.filtros.series && dados.filtros.series.length > 0 && (
+                {/* MELHORIA: Usa seriesFiltradas que filtra baseado na Etapa de Ensino */}
+                {seriesFiltradas && seriesFiltradas.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-2">
                     <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase self-center mr-2 flex items-center gap-2">
                       Serie:
@@ -2083,7 +2193,7 @@ export default function DadosPage() {
                     >
                       Todas
                     </button>
-                    {dados.filtros.series.map(serie => (
+                    {seriesFiltradas.map(serie => (
                       <button
                         key={serie}
                         onClick={() => handleSerieChipClick(serie)}
@@ -2333,11 +2443,11 @@ export default function DadosPage() {
                         { key: 'escola', label: 'Escola', align: 'left' },
                         { key: 'polo', label: 'Polo', align: 'left' },
                         { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                        { key: 'media_geral', label: 'Media', align: 'center', format: 'nota' },
-                        { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal' },
-                        { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal' },
-                        { key: 'media_ch', label: 'CH', align: 'center', format: 'decimal' },
-                        { key: 'media_cn', label: 'CN', align: 'center', format: 'decimal' },
+                        { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
+                        { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'LP' },
+                        { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'MAT' },
+                        { key: 'media_ch', label: 'CH', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CH' },
+                        { key: 'media_cn', label: 'CN', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CN' },
                         { key: 'presentes', label: 'Pres.', align: 'center' },
                         { key: 'faltantes', label: 'Falt.', align: 'center' },
                       ]}
@@ -2370,9 +2480,9 @@ export default function DadosPage() {
                         { key: 'escola', label: 'Escola', align: 'left' },
                         { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
                         { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                        { key: 'media_geral', label: 'Media', align: 'center', format: 'nota' },
-                        { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal' },
-                        { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal' },
+                        { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
+                        { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'LP' },
+                        { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'MAT' },
                         { key: 'presentes', label: 'Pres.', align: 'center' },
                         { key: 'faltantes', label: 'Falt.', align: 'center' },
                       ]}
@@ -2550,11 +2660,15 @@ export default function DadosPage() {
                             <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-20">
                               Presença
                             </th>
-                            {disciplinasExibir.map((disciplina) => (
-                              <th key={disciplina.codigo} className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-14 md:w-16 lg:w-18">
-                                {disciplina.codigo}
-                              </th>
-                            ))}
+                            {disciplinasExibir.map((disciplina) => {
+                              const isDestaque = filtroDisciplina === disciplina.codigo
+                              return (
+                                <th key={disciplina.codigo} className={`text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b w-14 md:w-16 lg:w-18 ${isDestaque ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-100 border-indigo-400 dark:border-indigo-600 ring-2 ring-indigo-400' : 'text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-700'}`}>
+                                  {disciplina.codigo}
+                                  {isDestaque && <span className="ml-1 text-[8px]">●</span>}
+                                </th>
+                              )
+                            })}
                             <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-14 md:w-16 lg:w-18">
                               Média
                             </th>
@@ -2639,6 +2753,7 @@ export default function DadosPage() {
                                     const nota = disciplinaAplicavel ? getNotaNumero((resultado as any)[disciplina.campo_nota]) : null
                                     const acertos = disciplinaAplicavel && disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
                                     const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
+                                    const isDestaqueDisciplina = filtroDisciplina === disciplina.codigo
                                     const getNivelColor = (nivel: string | undefined | null): string => {
                                       if (!nivel) return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                       const nivelLower = nivel.toLowerCase()
@@ -2652,14 +2767,14 @@ export default function DadosPage() {
                                     // Se a disciplina não é aplicável à série do aluno, mostrar N/A
                                     if (!disciplinaAplicavel) {
                                       return (
-                                        <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                        <td key={disciplina.codigo} className={`py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center ${isDestaqueDisciplina ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
                                           <span className="text-gray-400 dark:text-gray-500 text-xs italic">N/A</span>
                                         </td>
                                       )
                                     }
 
                                     return (
-                                      <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                      <td key={disciplina.codigo} className={`py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center ${isDestaqueDisciplina ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
                                         {disciplina.tipo === 'nivel' ? (
                                           <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] md:text-xs font-semibold ${getNivelColor(nivelAprendizagem || '')}`}>
                                             {nivelAprendizagem || '-'}
@@ -3208,19 +3323,19 @@ function MetricCard({ titulo, valor, subtitulo, icon: Icon, cor, isDecimal }: an
   )
 }
 
-function DisciplinaCard({ titulo, media, cor, sigla }: any) {
-  const cores: Record<string, { bg: string; bar: string; text: string; border: string }> = {
-    blue: { bg: 'bg-blue-50 dark:bg-blue-900/30', bar: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800' },
-    purple: { bg: 'bg-purple-50 dark:bg-purple-900/30', bar: 'bg-purple-500', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
-    green: { bg: 'bg-green-50 dark:bg-green-900/30', bar: 'bg-green-500', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-800' },
-    amber: { bg: 'bg-amber-50 dark:bg-amber-900/30', bar: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
-    rose: { bg: 'bg-rose-50 dark:bg-rose-900/30', bar: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
+function DisciplinaCard({ titulo, media, cor, sigla, destaque = false }: any) {
+  const cores: Record<string, { bg: string; bar: string; text: string; border: string; ring: string }> = {
+    blue: { bg: 'bg-blue-50 dark:bg-blue-900/30', bar: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800', ring: 'ring-blue-500' },
+    purple: { bg: 'bg-purple-50 dark:bg-purple-900/30', bar: 'bg-purple-500', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800', ring: 'ring-purple-500' },
+    green: { bg: 'bg-green-50 dark:bg-green-900/30', bar: 'bg-green-500', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-800', ring: 'ring-green-500' },
+    amber: { bg: 'bg-amber-50 dark:bg-amber-900/30', bar: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800', ring: 'ring-amber-500' },
+    rose: { bg: 'bg-rose-50 dark:bg-rose-900/30', bar: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800', ring: 'ring-rose-500' },
   }
   const c = cores[cor] || cores.blue
   const porcentagem = Math.min((media / 10) * 100, 100)
 
   return (
-    <div className={`${c.bg} rounded-xl p-4 border-2 ${c.border} hover:shadow-md transition-shadow`}>
+    <div className={`${c.bg} rounded-xl p-4 border-2 ${c.border} hover:shadow-md transition-shadow ${destaque ? `ring-2 ${c.ring} shadow-lg scale-105` : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{sigla}</span>
         <span className={`text-xl font-bold ${c.text}`}>
@@ -3365,10 +3480,11 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                 <th
                   key={col.key}
                   onClick={() => onOrdenar(col.key)}
-                  className={`px-2 lg:px-4 py-2 lg:py-4 text-${col.align || 'left'} text-[10px] lg:text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 select-none whitespace-nowrap transition-colors`}
+                  className={`px-2 lg:px-4 py-2 lg:py-4 text-${col.align || 'left'} text-[10px] lg:text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 select-none whitespace-nowrap transition-colors ${col.destaque ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-x-2 border-indigo-300 dark:border-indigo-700' : 'text-gray-700 dark:text-gray-200'}`}
                 >
                   <div className={`flex items-center gap-1 lg:gap-2 ${col.align === 'center' ? 'justify-center' : col.align === 'right' ? 'justify-end' : ''}`}>
                     {col.label}
+                    {col.destaque && <span className="text-[8px] lg:text-[10px] ml-1">●</span>}
                     {ordenacao.coluna === col.key && (
                       ordenacao.direcao === 'asc' ?
                         <ChevronUp className="w-3 h-3 lg:w-4 lg:h-4 text-indigo-600" /> :
@@ -3400,11 +3516,12 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                     const valor = row[col.key]
                     const isNumero = typeof valor === 'number'
                     const alignClass = col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
+                    const destaqueClass = col.destaque ? 'bg-indigo-50 dark:bg-indigo-900/30 border-x-2 border-indigo-200 dark:border-indigo-800' : ''
 
                     return (
                       <td
                         key={col.key}
-                        className={`px-2 lg:px-4 py-2 lg:py-3 ${alignClass} whitespace-nowrap align-middle`}
+                        className={`px-2 lg:px-4 py-2 lg:py-3 ${alignClass} whitespace-nowrap align-middle ${destaqueClass}`}
                       >
                         {col.format ? formatarValor(valor, col.format) : (
                           <span className={`text-xs lg:text-sm ${isNumero ? 'font-semibold text-gray-800 dark:text-gray-100' : 'font-medium text-gray-700 dark:text-gray-200'}`}>
