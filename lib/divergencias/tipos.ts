@@ -132,11 +132,11 @@ export const CONFIGURACOES_DIVERGENCIAS: Record<TipoDivergencia, ConfigDivergenc
     tipo: 'alunos_duplicados',
     nivel: 'critico',
     titulo: 'Alunos Duplicados',
-    descricao: 'Alunos com mesmo código cadastrados mais de uma vez',
+    descricao: 'Alunos com mesmo código ou mesmo nome na mesma escola/série',
     icone: 'Users',
     corrigivel: true,
     correcaoAutomatica: false,
-    acaoCorrecao: 'Mesclar ou excluir registros duplicados'
+    acaoCorrecao: 'Verificar se são a mesma pessoa e mesclar ou excluir duplicatas'
   },
   alunos_orfaos: {
     tipo: 'alunos_orfaos',
