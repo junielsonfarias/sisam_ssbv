@@ -80,6 +80,10 @@ SELECT
     ELSE COALESCE(v2.media_aluno, rc.media_aluno)
   END as media_aluno,
 
+  -- Campos adicionais da tabela resultados_consolidados
+  COALESCE(rc.nota_producao, NULL) as nota_producao,
+  COALESCE(rc.nivel_aprendizagem, NULL) as nivel_aprendizagem,
+
   COALESCE(v2.criado_em, rc.criado_em) as criado_em,
   COALESCE(v2.atualizado_em, rc.atualizado_em) as atualizado_em
 FROM resultados_consolidados_v2 v2
