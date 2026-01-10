@@ -512,7 +512,7 @@ async function processarImportacao(
         const configSerieAluno = numeroSerie ? configSeries.get(numeroSerie) : null
 
         // DEBUG: Log da série e configuração (apenas para os primeiros 3 alunos)
-        if (resultadosProcessados < 3) {
+        if (i < 3) {
           console.log(`[IMPORT DEBUG] Série do aluno "${alunoNome}":`)
           console.log(`  - serieRaw: "${serieRaw}"`)
           console.log(`  - serie (normalizada): "${serie}"`)
@@ -533,7 +533,7 @@ async function processarImportacao(
           }
 
           // DEBUG: Log dos itens extraídos (apenas para os primeiros 3 alunos)
-          if (resultadosProcessados < 3) {
+          if (i < 3) {
             console.log(`[IMPORT DEBUG] Aluno: ${nomeAluno}, Serie: ${serie}`)
             console.log(`  - configSerieAluno.tem_producao_textual: ${configSerieAluno.tem_producao_textual}`)
             console.log(`  - Colunas no Excel:`, Object.keys(linha).filter(k => k.toLowerCase().includes('item')))
@@ -556,12 +556,12 @@ async function processarImportacao(
           }
 
           // DEBUG: Log da nota de produção calculada
-          if (resultadosProcessados < 3) {
+          if (i < 3) {
             console.log(`  - notaProducao calculada: ${notaProducao}`)
           }
         } else {
           // DEBUG: Log quando não tem produção textual
-          if (resultadosProcessados < 3) {
+          if (i < 3) {
             console.log(`[IMPORT DEBUG] Aluno: ${nomeAluno}, Serie: ${serie} - SEM PRODUÇÃO TEXTUAL`)
             console.log(`  - configSerieAluno: ${configSerieAluno ? 'existe' : 'NULL'}`)
             console.log(`  - tem_producao_textual: ${configSerieAluno?.tem_producao_textual}`)

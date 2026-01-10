@@ -180,9 +180,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (serie) {
-      whereConditions.push(`rc.serie = $${paramIndex}`)
-      params.push(serie)
-      paramIndex++
+      // Extrair apenas o número da série para comparação flexível
+      const numeroSerie = serie.match(/\d+/)?.[0]
+      if (numeroSerie) {
+        whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+        params.push(numeroSerie)
+        paramIndex++
+      } else {
+        whereConditions.push(`rc.serie ILIKE $${paramIndex}`)
+        params.push(serie)
+        paramIndex++
+      }
     }
 
     // Filtro por tipo de ensino (anos_iniciais ou anos_finais)
@@ -904,9 +912,20 @@ export async function GET(request: NextRequest) {
     }
 
     if (serie) {
-      rpWhereConditions.push(`rp.serie = $${rpParamIndex}`)
-      rpParams.push(serie)
-      rpParamIndex++
+      // Extrair apenas o número da série para comparação flexível
+      // Ex: "3º Ano" -> "3", "5º" -> "5"
+      const numeroSerie = serie.match(/\d+/)?.[0]
+      if (numeroSerie) {
+        // Buscar séries que contenham o mesmo número (ex: "3º", "3º Ano", "3")
+        rpWhereConditions.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') = $${rpParamIndex}`)
+        rpParams.push(numeroSerie)
+        rpParamIndex++
+      } else {
+        // Se não for numérico, comparar diretamente
+        rpWhereConditions.push(`rp.serie ILIKE $${rpParamIndex}`)
+        rpParams.push(serie)
+        rpParamIndex++
+      }
     }
 
     if (turmaId) {
