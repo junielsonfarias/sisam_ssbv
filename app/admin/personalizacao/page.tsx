@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
 import { Settings, Image, Palette, Type, Link as LinkIcon, Save, Upload, X } from 'lucide-react'
 
@@ -137,18 +136,15 @@ export default function PersonalizacaoPage() {
   if (carregando) {
     return (
       <ProtectedRoute tiposPermitidos={['administrador']}>
-        <LayoutDashboard tipoUsuario="admin">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
-        </LayoutDashboard>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador']}>
-      <LayoutDashboard tipoUsuario="admin">
         <div className="space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
             <div>
@@ -366,7 +362,6 @@ export default function PersonalizacaoPage() {
             </button>
           </div>
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

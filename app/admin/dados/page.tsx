@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
@@ -1727,7 +1726,6 @@ export default function DadosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="max-w-full">
           {/* Indicador de modo offline */}
           {(usandoDadosOffline || modoOffline) && (
@@ -3273,7 +3271,6 @@ export default function DadosPage() {
             }}
           />
         )}
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

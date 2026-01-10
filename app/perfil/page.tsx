@@ -1,7 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
+
 import { useEffect, useState, useRef } from 'react'
 import { User, Mail, Shield, Building2, MapPin, Camera, Save, Lock, Eye, EyeOff, Check, X, Loader2, Edit2, Calendar } from 'lucide-react'
 
@@ -295,21 +295,21 @@ export default function PerfilPage() {
   if (carregando) {
     return (
       <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
-        <LayoutDashboard tipoUsuario={tipoLayout}>
+
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
               <p className="text-gray-600 dark:text-gray-400">Carregando perfil...</p>
             </div>
           </div>
-        </LayoutDashboard>
+
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
-      <LayoutDashboard tipoUsuario={tipoLayout}>
+
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-6">Meu Perfil</h1>
 
@@ -702,7 +702,7 @@ export default function PerfilPage() {
             </div>
           </div>
         </div>
-      </LayoutDashboard>
+
     </ProtectedRoute>
   )
 }

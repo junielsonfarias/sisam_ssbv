@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
 import { Settings, Save, Plus, X, BookOpen, Trash2, GripVertical, Check, AlertTriangle, ArrowUp, ArrowDown } from 'lucide-react'
 
@@ -568,7 +567,6 @@ export default function ConfiguracaoSeriesPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador']}>
-      <LayoutDashboard tipoUsuario="admin">
         <div className="space-y-6">
           {/* Cabeçalho */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -941,7 +939,6 @@ export default function ConfiguracaoSeriesPage() {
             </div>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

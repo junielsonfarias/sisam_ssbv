@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   LayoutGrid,
@@ -25,12 +25,15 @@ import {
   UserPlus,
   User,
   WifiOff,
-  Activity
+  Activity,
+  FileBarChart,
+  AlertTriangle
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from './theme-toggle'
+import AlertaDivergencias from './alerta-divergencias'
 
 interface LayoutDashboardProps {
   children: React.ReactNode
@@ -39,9 +42,17 @@ interface LayoutDashboardProps {
 
 export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboardProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const [usuario, setUsuario] = useState<any>(null)
   const [menuAberto, setMenuAberto] = useState(false)
   const [modoOffline, setModoOffline] = useState(false)
+
+  // Função para verificar se o item do menu está ativo
+  const isMenuItemActive = (href: string): boolean => {
+    if (!pathname) return false
+    // Verifica correspondência exata ou se é uma subrota
+    return pathname === href || pathname.startsWith(href + '/')
+  }
 
   useEffect(() => {
     const carregarUsuario = async () => {
@@ -164,10 +175,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para ADMINISTRADOR
     if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
       items.push(
+        { icon: FileBarChart, label: 'Relatorios', href: '/admin/relatorios' },
         { icon: Upload, label: 'Importar Dados', href: '/admin/importar-completo' },
         { icon: UserPlus, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
         { icon: FilePlus, label: 'Importar Resultados', href: '/admin/importar-resultados' },
         { icon: History, label: 'Importacoes', href: '/admin/importacoes' },
+        { icon: AlertTriangle, label: 'Divergencias', href: '/admin/divergencias' },
         { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
         { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
@@ -187,6 +200,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para TECNICO - fixo, sem carregar modulos
     if (tipoUsuarioReal === 'tecnico') {
       items.push(
+        { icon: FileBarChart, label: 'Relatorios', href: '/admin/relatorios' },
         { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
         { icon: School, label: 'Escolas', href: '/admin/escolas' },
@@ -198,6 +212,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para POLO
     if (tipoUsuarioReal === 'polo') {
       items.push(
+        { icon: FileBarChart, label: 'Relatorios', href: '/admin/relatorios' },
         { icon: FileText, label: 'Resultados Consolidados', href: '/polo/analise' },
         { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
         { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
@@ -207,6 +222,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para ESCOLA
     if (tipoUsuarioReal === 'escola') {
       items.push(
+        { icon: FileBarChart, label: 'Relatorios', href: '/admin/relatorios' },
         { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
         { icon: BarChart3, label: 'Analise Grafica', href: '/escola/graficos' },
         { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' }
@@ -277,6 +293,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         </div>
       </header>
 
+      {/* Alerta de Divergências Críticas */}
+      <AlertaDivergencias tipoUsuario={tipoUsuarioReal} />
+
       {/* Espaçador para compensar o header fixo */}
       <div className="h-14 sm:h-16 flex-shrink-0" />
 
@@ -295,15 +314,25 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             <ul className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon
+                const isActive = isMenuItemActive(item.href)
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="flex items-center px-2 sm:px-3 py-2 sm:py-2.5 text-sm text-gray-700 dark:text-gray-200 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      className={`
+                        flex items-center px-2 sm:px-3 py-2 sm:py-2.5 text-sm rounded-lg transition-all duration-200
+                        ${isActive
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 font-medium'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:text-indigo-600 dark:hover:text-indigo-400'
+                        }
+                      `}
                       onClick={() => setMenuAberto(false)}
                     >
-                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0" />
+                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0 ${isActive ? 'text-white' : ''}`} />
                       <span className="truncate">{item.label}</span>
+                      {isActive && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      )}
                     </Link>
                   </li>
                 )

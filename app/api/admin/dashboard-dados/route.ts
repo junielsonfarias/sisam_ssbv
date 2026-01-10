@@ -1082,7 +1082,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN questoes q ON rp.questao_id = q.id OR rp.questao_codigo = q.codigo
       ${rpWhereClauseSemSerie}
       GROUP BY rp.questao_codigo, q.descricao, COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado'), rp.serie
-      HAVING COUNT(*) >= 5
+      HAVING COUNT(*) >= 1
     `
 
     // Query de resumo de escolas por série E disciplina (para filtro preciso)
@@ -1102,7 +1102,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN polos p ON e.polo_id = p.id
       ${rpWhereClauseSemSerie}
       GROUP BY e.id, e.nome, p.nome, rp.serie, COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado')
-      HAVING COUNT(*) >= 10
+      HAVING COUNT(*) >= 1
     `
 
     // Query de resumo de turmas por série E disciplina (para filtro preciso)
@@ -1168,7 +1168,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN questoes q ON rp.questao_id = q.id OR rp.questao_codigo = q.codigo
       ${rpWhereClauseComPresenca}
       GROUP BY rp.questao_codigo, q.descricao, COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado')
-      HAVING COUNT(*) >= 5
+      HAVING COUNT(*) >= 1
       ORDER BY taxa_erro DESC, total_erros DESC
       LIMIT 20
     `
@@ -1190,7 +1190,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN polos p ON e.polo_id = p.id
       ${rpWhereClauseComPresenca}
       GROUP BY e.id, e.nome, p.nome
-      HAVING COUNT(*) >= 10
+      HAVING COUNT(*) >= 1
       ORDER BY taxa_erro DESC, total_erros DESC
       LIMIT 20
     `
@@ -1233,7 +1233,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN questoes q ON rp.questao_id = q.id OR rp.questao_codigo = q.codigo
       ${rpWhereClauseComPresenca}
       GROUP BY rp.questao_codigo, q.descricao, COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado')
-      HAVING COUNT(*) >= 5
+      HAVING COUNT(*) >= 1
       ORDER BY taxa_acerto DESC, total_acertos DESC
       LIMIT 20
     `
@@ -1255,7 +1255,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN polos p ON e.polo_id = p.id
       ${rpWhereClauseComPresenca}
       GROUP BY e.id, e.nome, p.nome
-      HAVING COUNT(*) >= 10
+      HAVING COUNT(*) >= 1
       ORDER BY taxa_acerto DESC, total_acertos DESC
       LIMIT 20
     `

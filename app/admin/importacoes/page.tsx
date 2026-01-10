@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useState, useEffect } from 'react'
 import { Database, Calendar, FileText, CheckCircle, XCircle, Clock, AlertCircle, Filter, Search, StopCircle } from 'lucide-react'
 import { useToast } from '@/components/toast'
@@ -150,7 +149,6 @@ export default function ImportacoesPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
-      <LayoutDashboard tipoUsuario="admin">
         <div className="p-3 sm:p-4 md:p-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 md:mb-8">
             Histórico de Importações
@@ -389,7 +387,6 @@ export default function ImportacoesPage() {
             </>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

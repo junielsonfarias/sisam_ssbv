@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, MapPin, X } from 'lucide-react'
 import { useToast } from '@/components/toast'
@@ -116,7 +115,6 @@ export default function PolosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
@@ -318,7 +316,6 @@ export default function PolosPage() {
             </div>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

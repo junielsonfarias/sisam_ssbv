@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import ModalHistoricoAluno from '@/components/modal-historico-aluno'
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { Search, Eye, School } from 'lucide-react'
@@ -244,7 +243,6 @@ export default function AlunosEscolaPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['escola']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex justify-between items-center">
             <div>
@@ -424,7 +422,6 @@ export default function AlunosEscolaPage() {
             }}
           />
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

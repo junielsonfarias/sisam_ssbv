@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, Users, X, UserCheck, UserX, ToggleLeft, ToggleRight } from 'lucide-react'
 import { TipoUsuario } from '@/lib/types'
@@ -264,7 +263,6 @@ export default function UsuariosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador']}>
-      <LayoutDashboard tipoUsuario="admin">
         <div className="space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
             <div>
@@ -687,7 +685,6 @@ export default function UsuariosPage() {
             </div>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

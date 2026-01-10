@@ -1,7 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
+
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Target, CheckCircle2, Eye, WifiOff } from 'lucide-react'
@@ -836,7 +836,7 @@ export default function ResultadosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
+
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           {/* Indicador de modo offline */}
           {(usandoDadosOffline || modoOffline) && (
@@ -1790,7 +1790,7 @@ export default function ResultadosPage() {
             />
           )}
         </div>
-      </LayoutDashboard>
+
     </ProtectedRoute>
   )
 }

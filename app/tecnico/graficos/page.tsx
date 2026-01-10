@@ -1,10 +1,10 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Filter, BarChart3, TrendingUp, PieChart, Users, BookOpen, School, XCircle } from 'lucide-react'
 import { BarChart, Bar, LineChart, Line, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter, ReferenceLine } from 'recharts'
+import { isAnosIniciais, DISCIPLINAS_OPTIONS_ANOS_INICIAIS, DISCIPLINAS_OPTIONS_ANOS_FINAIS } from '@/lib/disciplinas-mapping'
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 
@@ -36,6 +36,24 @@ export default function GraficosTecnicoPage() {
   const [carregando, setCarregando] = useState(false)
   const [tipoVisualizacao, setTipoVisualizacao] = useState<string>('geral')
   const [erro, setErro] = useState<string>('')
+
+  // Disciplinas disponíveis baseado na série selecionada
+  const disciplinasDisponiveis = useMemo(() => {
+    if (filtros.serie && isAnosIniciais(filtros.serie)) {
+      return DISCIPLINAS_OPTIONS_ANOS_INICIAIS
+    }
+    return DISCIPLINAS_OPTIONS_ANOS_FINAIS
+  }, [filtros.serie])
+
+  // Limpar disciplina se não estiver disponível para a série selecionada
+  useEffect(() => {
+    if (filtros.disciplina && filtros.serie) {
+      const disciplinaValida = disciplinasDisponiveis.some(d => d.value === filtros.disciplina)
+      if (!disciplinaValida) {
+        setFiltros(prev => ({ ...prev, disciplina: undefined }))
+      }
+    }
+  }, [filtros.serie, filtros.disciplina, disciplinasDisponiveis])
 
   useEffect(() => {
     carregarDadosIniciais()
@@ -251,7 +269,6 @@ export default function GraficosTecnicoPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['tecnico']}>
-      <LayoutDashboard tipoUsuario="tecnico">
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           {/* Header */}
           <div>
@@ -379,10 +396,11 @@ export default function GraficosTecnicoPage() {
                   className="select-custom w-full text-sm sm:text-base"
                 >
                   <option value="">Todas</option>
-                  <option value="LP">Língua Portuguesa</option>
-                  <option value="CH">Ciências Humanas</option>
-                  <option value="MAT">Matemática</option>
-                  <option value="CN">Ciências da Natureza</option>
+                  {disciplinasDisponiveis.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1016,7 +1034,6 @@ export default function GraficosTecnicoPage() {
             </div>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

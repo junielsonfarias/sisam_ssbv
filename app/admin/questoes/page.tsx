@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, X, Calendar, FileText, BookOpen, Settings, ChevronDown, ChevronUp, AlertCircle, Check } from 'lucide-react'
 import Link from 'next/link'
@@ -277,7 +276,6 @@ export default function QuestoesPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador']}>
-      <LayoutDashboard tipoUsuario="admin">
         <div className="space-y-6">
           {/* Cabeçalho */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -687,7 +685,6 @@ export default function QuestoesPage() {
             </div>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

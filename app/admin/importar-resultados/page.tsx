@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useState } from 'react'
 import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 
@@ -67,7 +66,6 @@ export default function ImportarResultadosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
-      <LayoutDashboard tipoUsuario="admin">
         <div className="p-3 sm:p-4 md:p-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 md:mb-8">Importar Resultados das Provas</h1>
 
@@ -203,7 +201,6 @@ export default function ImportarResultadosPage() {
             </div>
           </div>
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState, useMemo } from 'react'
 import { Filter, X, MapPin, TrendingUp, BarChart3, Users, Target, BookOpen, School } from 'lucide-react'
 
@@ -241,7 +240,6 @@ export default function ComparativosPolosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex justify-between items-center">
             <div>
@@ -679,7 +677,6 @@ export default function ComparativosPolosPage() {
             </div>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

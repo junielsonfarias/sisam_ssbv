@@ -1,7 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
+
 import { useEffect, useState, Suspense, lazy, memo, useMemo, useCallback } from 'react'
 import { Filter, BarChart3, TrendingUp, PieChart, Users, BookOpen, School, XCircle } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -16,6 +16,7 @@ const ResponsiveContainer = dynamic(() => import('recharts').then(mod => ({ defa
 
 // Componentes auxiliares importados diretamente (pequenos)
 import { Bar, Line, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ReferenceLine } from 'recharts'
+import { isAnosIniciais, isAnosFinais, DISCIPLINAS_OPTIONS_ANOS_INICIAIS, DISCIPLINAS_OPTIONS_ANOS_FINAIS } from '@/lib/disciplinas-mapping'
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 
@@ -48,6 +49,65 @@ export default function GraficosPage() {
   const [carregando, setCarregando] = useState(false)
   const [tipoVisualizacao, setTipoVisualizacao] = useState<string>('geral')
   const [erro, setErro] = useState<string>('')
+  const [carregandoSeries, setCarregandoSeries] = useState(false)
+
+  // Filtrar séries com base na Etapa de Ensino selecionada
+  const seriesFiltradas = useMemo(() => {
+    if (!filtros.tipo_ensino) return series
+
+    return series.filter(s => {
+      if (filtros.tipo_ensino === 'anos_iniciais') {
+        return isAnosIniciais(s)
+      } else if (filtros.tipo_ensino === 'anos_finais') {
+        return isAnosFinais(s)
+      }
+      return true
+    })
+  }, [series, filtros.tipo_ensino])
+
+  // Determinar disciplinas disponíveis com base na Etapa de Ensino ou Série selecionada
+  const disciplinasDisponiveis = useMemo(() => {
+    // Se há série selecionada, usar ela para determinar
+    if (filtros.serie) {
+      if (isAnosIniciais(filtros.serie)) {
+        return DISCIPLINAS_OPTIONS_ANOS_INICIAIS
+      } else if (isAnosFinais(filtros.serie)) {
+        return DISCIPLINAS_OPTIONS_ANOS_FINAIS
+      }
+    }
+
+    // Se há etapa de ensino selecionada, usar ela
+    if (filtros.tipo_ensino === 'anos_iniciais') {
+      return DISCIPLINAS_OPTIONS_ANOS_INICIAIS
+    } else if (filtros.tipo_ensino === 'anos_finais') {
+      return DISCIPLINAS_OPTIONS_ANOS_FINAIS
+    }
+
+    // Se não há filtro, mostrar todas
+    return DISCIPLINAS_OPTIONS_ANOS_FINAIS
+  }, [filtros.tipo_ensino, filtros.serie])
+
+  // Carregar séries do banco de dados
+  const carregarSeries = useCallback(async () => {
+    setCarregandoSeries(true)
+    try {
+      const params = new URLSearchParams()
+      params.append('tipo', 'geral')
+      if (filtros.ano_letivo) params.append('ano_letivo', filtros.ano_letivo)
+
+      const response = await fetch(`/api/admin/graficos?${params.toString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.series_disponiveis && Array.isArray(data.series_disponiveis)) {
+          setSeries(data.series_disponiveis)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar séries:', error)
+    } finally {
+      setCarregandoSeries(false)
+    }
+  }, [filtros.ano_letivo])
 
   useEffect(() => {
     carregarTipoUsuario()
@@ -56,10 +116,43 @@ export default function GraficosPage() {
   useEffect(() => {
     if (tipoUsuario && tipoUsuario !== 'admin') {
       carregarDadosIniciais()
+      carregarSeries()
     } else if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
       carregarDadosIniciais()
+      carregarSeries()
     }
   }, [tipoUsuario])
+
+  // Limpar disciplina quando mudar para Anos Iniciais e disciplina não for válida
+  useEffect(() => {
+    if (filtros.disciplina) {
+      const disciplinaValida = disciplinasDisponiveis.some(d => d.value === filtros.disciplina)
+      if (!disciplinaValida) {
+        setFiltros(prev => ({ ...prev, disciplina: undefined }))
+      }
+    }
+  }, [disciplinasDisponiveis, filtros.disciplina])
+
+  // Limpar série quando mudar etapa de ensino e série não for válida
+  useEffect(() => {
+    if (filtros.serie && filtros.tipo_ensino) {
+      const serieValida = seriesFiltradas.includes(filtros.serie)
+      if (!serieValida) {
+        setFiltros(prev => ({ ...prev, serie: undefined }))
+      }
+    }
+  }, [seriesFiltradas, filtros.serie, filtros.tipo_ensino])
+
+  // Limpar escola e turma quando mudar polo
+  useEffect(() => {
+    if (filtros.polo_id) {
+      // Verificar se a escola selecionada pertence ao polo
+      const escolaDoPolo = escolas.find(e => e.id === filtros.escola_id && e.polo_id === filtros.polo_id)
+      if (filtros.escola_id && !escolaDoPolo) {
+        setFiltros(prev => ({ ...prev, escola_id: undefined, turma_id: undefined }))
+      }
+    }
+  }, [filtros.polo_id, filtros.escola_id, escolas])
 
   // Carregar turmas quando escola for selecionada
   useEffect(() => {
@@ -223,7 +316,19 @@ export default function GraficosPage() {
       
       // Verificar se há dados válidos
       if (!data || Object.keys(data).length === 0) {
-        setErro('Nenhum dado encontrado para os filtros selecionados')
+        // Construir mensagem detalhada sobre os filtros aplicados
+        const filtrosAtivos: string[] = []
+        if (filtros.ano_letivo) filtrosAtivos.push(`Ano: ${filtros.ano_letivo}`)
+        if (filtros.tipo_ensino) filtrosAtivos.push(`Etapa: ${filtros.tipo_ensino === 'anos_iniciais' ? 'Anos Iniciais' : 'Anos Finais'}`)
+        if (filtros.serie) filtrosAtivos.push(`Série: ${filtros.serie}`)
+        if (filtros.disciplina) filtrosAtivos.push(`Disciplina: ${filtros.disciplina}`)
+        if (filtros.polo_id) filtrosAtivos.push('Polo selecionado')
+        if (filtros.escola_id) filtrosAtivos.push('Escola selecionada')
+
+        const msgFiltros = filtrosAtivos.length > 0
+          ? ` Filtros aplicados: ${filtrosAtivos.join(', ')}.`
+          : ''
+        setErro(`Nenhum dado encontrado para os filtros selecionados.${msgFiltros}`)
         return
       }
 
@@ -245,7 +350,28 @@ export default function GraficosPage() {
                           'gaps'
         
         if (!data[campoDados] || (Array.isArray(data[campoDados]) && data[campoDados].length === 0)) {
-          setErro('Nenhum dado encontrado para os filtros selecionados. Verifique se há alunos cadastrados com os critérios escolhidos.')
+          // Mensagem específica por tipo de visualização
+          const tipoNome = {
+            'acertos_erros': 'Acertos e Erros',
+            'questoes': 'Taxa de Acerto por Questão',
+            'heatmap': 'Heatmap de Desempenho',
+            'radar': 'Perfil de Desempenho',
+            'boxplot': 'Distribuição Detalhada',
+            'correlacao': 'Correlação entre Disciplinas',
+            'ranking': 'Ranking Interativo',
+            'aprovacao': 'Taxa de Aprovação',
+            'gaps': 'Análise de Gaps'
+          }[tipoVisualizacao] || tipoVisualizacao
+
+          // Verificar se filtro de disciplina é incompatível com etapa
+          let dicaAdicional = ''
+          if (filtros.disciplina && (filtros.disciplina === 'CH' || filtros.disciplina === 'CN')) {
+            if (filtros.tipo_ensino === 'anos_iniciais' || (filtros.serie && isAnosIniciais(filtros.serie))) {
+              dicaAdicional = ' Dica: Anos Iniciais não possuem as disciplinas Ciências Humanas e Ciências da Natureza.'
+            }
+          }
+
+          setErro(`Nenhum dado encontrado para "${tipoNome}" com os filtros selecionados.${dicaAdicional}`)
           setDados(null)
           return
         }
@@ -302,7 +428,7 @@ export default function GraficosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola', 'polo']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
+
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           {/* Header */}
           <div>
@@ -427,17 +553,23 @@ export default function GraficosPage() {
                   className="select-custom w-full text-sm sm:text-base"
                 >
                   <option value="">Todas</option>
-                  {series.map((s) => (
+                  {seriesFiltradas.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
                   ))}
+                  {carregandoSeries && (
+                    <option value="" disabled>Carregando...</option>
+                  )}
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Disciplina
+                  {(filtros.tipo_ensino === 'anos_iniciais' || (filtros.serie && isAnosIniciais(filtros.serie))) && (
+                    <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">(Anos Iniciais)</span>
+                  )}
                 </label>
                 <select
                   value={filtros.disciplina || ''}
@@ -445,10 +577,11 @@ export default function GraficosPage() {
                   className="select-custom w-full text-sm sm:text-base"
                 >
                   <option value="">Todas</option>
-                  <option value="LP">Língua Portuguesa</option>
-                  <option value="CH">Ciências Humanas</option>
-                  <option value="MAT">Matemática</option>
-                  <option value="CN">Ciências da Natureza</option>
+                  {disciplinasDisponiveis.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1244,7 +1377,7 @@ export default function GraficosPage() {
             </div>
           )}
         </div>
-      </LayoutDashboard>
+
     </ProtectedRoute>
   )
 }

@@ -25,6 +25,34 @@ export const DISCIPLINAS_ANOS_FINAIS = [
 // Séries de anos iniciais (2º, 3º, 5º)
 export const SERIES_ANOS_INICIAIS = ['2', '3', '5']
 
+// Séries de anos finais (6º, 7º, 8º, 9º)
+export const SERIES_ANOS_FINAIS = ['6', '7', '8', '9']
+
+// Opções de disciplinas para UI (selects, dropdowns, etc.)
+export interface DisciplinaOption {
+  value: string
+  label: string
+}
+
+export const DISCIPLINAS_OPTIONS_ANOS_INICIAIS: DisciplinaOption[] = [
+  { value: 'LP', label: 'Língua Portuguesa' },
+  { value: 'MAT', label: 'Matemática' }
+]
+
+export const DISCIPLINAS_OPTIONS_ANOS_FINAIS: DisciplinaOption[] = [
+  { value: 'LP', label: 'Língua Portuguesa' },
+  { value: 'CH', label: 'Ciências Humanas' },
+  { value: 'MAT', label: 'Matemática' },
+  { value: 'CN', label: 'Ciências da Natureza' }
+]
+
+/**
+ * Retorna opções de disciplinas para UI baseado na série
+ */
+export function getDisciplinasOptions(serie: string | null | undefined): DisciplinaOption[] {
+  return isAnosIniciais(serie) ? DISCIPLINAS_OPTIONS_ANOS_INICIAIS : DISCIPLINAS_OPTIONS_ANOS_FINAIS
+}
+
 /**
  * Extrai o número da série de uma string
  * Ex: "2º Ano" -> "2", "5º ano A" -> "5"
@@ -41,6 +69,14 @@ export function extrairNumeroSerie(serie: string | null | undefined): string | n
 export function isAnosIniciais(serie: string | null | undefined): boolean {
   const numero = extrairNumeroSerie(serie)
   return SERIES_ANOS_INICIAIS.includes(numero || '')
+}
+
+/**
+ * Verifica se é anos finais baseado na série
+ */
+export function isAnosFinais(serie: string | null | undefined): boolean {
+  const numero = extrairNumeroSerie(serie)
+  return SERIES_ANOS_FINAIS.includes(numero || '')
 }
 
 /**

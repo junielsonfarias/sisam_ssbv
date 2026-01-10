@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useState } from 'react'
 import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 
@@ -65,7 +64,6 @@ export default function TecnicoImportarPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['tecnico']}>
-      <LayoutDashboard tipoUsuario="tecnico">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-8">Importar Dados</h1>
 
@@ -133,7 +131,6 @@ export default function TecnicoImportarPage() {
             </button>
           </div>
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

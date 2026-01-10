@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import ModalAlunosTurma from '@/components/modal-alunos-turma'
 import { useEffect, useState, useMemo } from 'react'
 import { Filter, X, School, TrendingUp, BarChart3, Users, Target, BookOpen, Eye, Trophy, WifiOff } from 'lucide-react'
@@ -312,7 +311,6 @@ export default function ComparativosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
@@ -897,7 +895,6 @@ export default function ComparativosPage() {
           </>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import ModalAluno from '@/components/modal-aluno'
 import ModalHistoricoAluno from '@/components/modal-historico-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
@@ -439,7 +438,6 @@ export default function AlunosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
             <div className="flex-1">
@@ -798,7 +796,6 @@ export default function AlunosPage() {
             onClose={() => setMostrarModalHistorico(false)}
           />
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

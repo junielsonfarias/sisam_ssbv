@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useEffect, useState } from 'react'
 import { Settings, Save, Loader2, CheckCircle2, XCircle, GripVertical } from 'lucide-react'
 
@@ -117,7 +116,6 @@ export default function ModulosTecnicoPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador']}>
-      <LayoutDashboard tipoUsuario={tipoUsuario}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
             <div>
@@ -230,7 +228,6 @@ export default function ModulosTecnicoPage() {
             </ul>
           </div>
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import LayoutDashboard from '@/components/layout-dashboard'
+
 import ProtectedRoute from '@/components/protected-route'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -202,7 +202,7 @@ export default function LogsAcessoPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador']}>
-      <LayoutDashboard tipoUsuario="admin">
+
         <div className="p-4 sm:p-6 lg:p-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -550,7 +550,7 @@ export default function LogsAcessoPage() {
             </CardContent>
           </Card>
         </div>
-      </LayoutDashboard>
+
     </ProtectedRoute>
   )
 }

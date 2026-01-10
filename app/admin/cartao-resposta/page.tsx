@@ -1,7 +1,6 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import LayoutDashboard from '@/components/layout-dashboard'
 import { useState } from 'react'
 import { Download, Upload, FileImage, Loader2 } from 'lucide-react'
 
@@ -58,7 +57,6 @@ export default function CartaoRespostaPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
-      <LayoutDashboard tipoUsuario="admin">
         <div className="p-3 sm:p-4 md:p-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 md:mb-8">Cartão-Resposta</h1>
 
@@ -232,7 +230,6 @@ export default function CartaoRespostaPage() {
             </div>
           )}
         </div>
-      </LayoutDashboard>
     </ProtectedRoute>
   )
 }

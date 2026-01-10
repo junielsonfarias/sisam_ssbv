@@ -356,6 +356,26 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // Verificar se o aluno existe antes de tentar excluir
+    const alunoExiste = await pool.query(
+      'SELECT id FROM alunos WHERE id = $1',
+      [id]
+    )
+
+    if (alunoExiste.rows.length === 0) {
+      return NextResponse.json(
+        { mensagem: 'Aluno não encontrado' },
+        { status: 404 }
+      )
+    }
+
+    // Excluir dados relacionados explicitamente (fallback para garantir limpeza completa)
+    // Isso garante que mesmo se a constraint não for CASCADE, os dados sejam removidos
+    await pool.query('DELETE FROM resultados_provas WHERE aluno_id = $1', [id])
+    await pool.query('DELETE FROM resultados_producao WHERE aluno_id = $1', [id])
+    await pool.query('DELETE FROM resultados_consolidados WHERE aluno_id = $1', [id])
+
+    // Agora excluir o aluno
     const result = await pool.query(
       'DELETE FROM alunos WHERE id = $1 RETURNING id',
       [id]
