@@ -8,11 +8,15 @@ export const DISCIPLINAS_ALIASES: Record<string, string[]> = {
   'língua portuguesa': ['lp', 'portugues', 'português', 'lingua portuguesa', 'linguaportuguesa'],
   'matemática': ['mat', 'matematica'],
   'ciências humanas': ['ch', 'ciencias humanas', 'cienciashumanas'],
-  'ciências da natureza': ['cn', 'ciencias da natureza', 'ciencias natureza', 'cienciasdanatureza']
+  'ciências da natureza': ['cn', 'ciencias da natureza', 'ciencias natureza', 'cienciasdanatureza'],
+  'produção textual': ['pt', 'producao textual', 'producaotextual', 'redação', 'redacao']
 }
 
 // Disciplinas válidas por tipo de ensino
-export const DISCIPLINAS_ANOS_INICIAIS = ['Língua Portuguesa', 'Matemática', 'LP', 'MAT', 'Português', 'Matematica']
+export const DISCIPLINAS_ANOS_INICIAIS = [
+  'Língua Portuguesa', 'Matemática', 'Produção Textual',
+  'LP', 'MAT', 'PT', 'Português', 'Matematica', 'Redação'
+]
 export const DISCIPLINAS_ANOS_FINAIS = [
   'Língua Portuguesa', 'Matemática', 'Ciências Humanas', 'Ciências da Natureza',
   'LP', 'MAT', 'CH', 'CN', 'Português', 'Matematica'

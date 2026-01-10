@@ -1140,7 +1140,8 @@ export default function DadosPage() {
         if (disciplina) {
           return compararDisciplinas(d.disciplina, disciplina)
         }
-        return disciplinasValidas.some(dv => d.disciplina.toLowerCase().includes(dv.toLowerCase()))
+        // Usar compararDisciplinas para comparação robusta em vez de includes
+        return disciplinasValidas.some(dv => compararDisciplinas(d.disciplina, dv))
       }
 
       const taxaAcertoPorDisciplinaFiltrada = dadosCache.analiseAcertosErros.taxaAcertoPorDisciplina?.filter(filtrarPorDisciplina) || []
