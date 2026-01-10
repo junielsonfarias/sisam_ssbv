@@ -534,7 +534,7 @@ async function processarImportacao(
 
           // DEBUG: Log dos itens extraídos (apenas para os primeiros 3 alunos)
           if (i < 3) {
-            console.log(`[IMPORT DEBUG] Aluno: ${nomeAluno}, Serie: ${serie}`)
+            console.log(`[IMPORT DEBUG] Aluno: ${alunoNome}, Serie: ${serie}`)
             console.log(`  - configSerieAluno.tem_producao_textual: ${configSerieAluno.tem_producao_textual}`)
             console.log(`  - Colunas no Excel:`, Object.keys(linha).filter(k => k.toLowerCase().includes('item')))
             console.log(`  - Valores Item1-8:`, {
@@ -562,7 +562,7 @@ async function processarImportacao(
         } else {
           // DEBUG: Log quando não tem produção textual
           if (i < 3) {
-            console.log(`[IMPORT DEBUG] Aluno: ${nomeAluno}, Serie: ${serie} - SEM PRODUÇÃO TEXTUAL`)
+            console.log(`[IMPORT DEBUG] Aluno: ${alunoNome}, Serie: ${serie} - SEM PRODUÇÃO TEXTUAL`)
             console.log(`  - configSerieAluno: ${configSerieAluno ? 'existe' : 'NULL'}`)
             console.log(`  - tem_producao_textual: ${configSerieAluno?.tem_producao_textual}`)
           }
