@@ -63,11 +63,22 @@ async function getUsuarioEDados() {
     ]);
   }
 
+  // Buscar anos disponíveis com dados
+  const anosResult = await pool.query(`
+    SELECT DISTINCT ano_letivo
+    FROM resultados_consolidados
+    WHERE ano_letivo IS NOT NULL
+    ORDER BY ano_letivo DESC
+    LIMIT 5
+  `);
+  const anosDisponiveis = anosResult.rows.map((r: { ano_letivo: string }) => r.ano_letivo);
+
   return {
     usuario,
     tipoUsuario,
     polos: polosResult.rows,
-    escolas: escolasResult.rows
+    escolas: escolasResult.rows,
+    anosDisponiveis
   };
 }
 
@@ -78,8 +89,9 @@ export default async function RelatoriosPage() {
     redirect('/login');
   }
 
-  const { usuario, tipoUsuario, polos, escolas } = dados;
-  const anoLetivo = new Date().getFullYear().toString();
+  const { usuario, tipoUsuario, polos, escolas, anosDisponiveis } = dados;
+  // Usar o ano mais recente com dados, ou o ano atual se não houver dados
+  const anoLetivo = anosDisponiveis.length > 0 ? anosDisponiveis[0] : new Date().getFullYear().toString();
 
   return (
 
@@ -100,6 +112,7 @@ export default async function RelatoriosPage() {
             polos={polos}
             escolas={escolas}
             anoLetivo={anoLetivo}
+            anosDisponiveis={anosDisponiveis}
             tipoUsuario={tipoUsuario}
             poloIdUsuario={usuario.polo_id}
             escolaIdUsuario={usuario.escola_id}
@@ -113,7 +126,11 @@ export default async function RelatoriosPage() {
               Dicas para gerar relatórios
             </h3>
             <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-              <li>• Relatórios são gerados com dados do ano letivo atual por padrão</li>
+              {anosDisponiveis.length > 0 ? (
+                <li>• Anos com dados disponíveis: <strong>{anosDisponiveis.join(', ')}</strong></li>
+              ) : (
+                <li>• Nenhum dado de avaliação encontrado no sistema</li>
+              )}
               <li>• Você pode filtrar por série específica para análises mais detalhadas</li>
               <li>• Relatórios de polo incluem ranking comparativo de todas as escolas</li>
               <li>• O download pode demorar alguns segundos dependendo do volume de dados</li>

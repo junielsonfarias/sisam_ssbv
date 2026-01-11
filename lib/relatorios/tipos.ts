@@ -303,6 +303,24 @@ export interface DadosGraficos {
   radar_competencias: Array<{ area: string; valor: number }>;
 }
 
+/**
+ * Dados específicos de um segmento (Anos Iniciais ou Anos Finais)
+ */
+export interface DadosSegmento {
+  nome_segmento: string;
+  series: string[];
+  estatisticas: {
+    total_alunos: number;
+    total_turmas: number;
+    media_geral: number;
+    taxa_participacao: number;
+  };
+  desempenho_disciplinas: DesempenhoDisciplina[];
+  distribuicao_niveis?: DistribuicaoNivel[];
+  producao_textual?: ProducaoTextual;
+  turmas: TurmaRelatorio[];
+}
+
 export interface DadosRelatorioEscola {
   escola: {
     id: string;
@@ -331,6 +349,9 @@ export interface DadosRelatorioEscola {
     posicao_ranking?: number;
     total_escolas_polo?: number;
   };
+  // Dados por segmento
+  anos_iniciais?: DadosSegmento;
+  anos_finais?: DadosSegmento;
 }
 
 export interface EscolaComparativo {
@@ -371,6 +392,9 @@ export interface DadosRelatorioPolo {
   // Dados específicos para Anos Iniciais
   producao_textual?: ProducaoTextual;
   distribuicao_niveis?: DistribuicaoNivel[];
+  // Dados por segmento
+  anos_iniciais?: DadosSegmento;
+  anos_finais?: DadosSegmento;
 }
 
 /**

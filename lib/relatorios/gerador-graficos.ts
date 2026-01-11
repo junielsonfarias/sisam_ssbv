@@ -177,7 +177,7 @@ export async function gerarGraficoBarrasDisciplinas(
       labels: dados.map(d => d.disciplina_nome),
       datasets: [{
         label: 'Média',
-        data: dados.map(d => d.media),
+        data: dados.map(d => Number(d.media.toFixed(1))),
         backgroundColor: dados.map(d => CORES[d.disciplina as keyof typeof CORES] || CORES.CINZA),
         borderRadius: 4
       }]
@@ -190,19 +190,29 @@ export async function gerarGraficoBarrasDisciplinas(
           display: true,
           text: 'Desempenho por Disciplina',
           font: { size: 16, weight: 'bold' }
+        },
+        datalabels: {
+          display: true,
+          color: '#1F2937',
+          anchor: 'end',
+          align: 'top',
+          font: { weight: 'bold', size: 12 },
+          formatter: (value: number) => value.toFixed(1)
         }
       },
       scales: {
         y: {
           beginAtZero: true,
+          min: 0,
           max: 10,
+          ticks: { stepSize: 2 },
           title: { display: true, text: 'Nota' }
         }
       }
     }
   };
 
-  return gerarGraficoQuickChart(config);
+  return gerarGraficoQuickChart(config, 600, 350);
 }
 
 /**
@@ -216,19 +226,26 @@ export async function gerarGraficoComparativoEscolas(
     return Buffer.alloc(0);
   }
 
-  // Limitar a 15 escolas para legibilidade
-  const dadosLimitados = dados.slice(0, 15);
+  // Limitar a 12 escolas para legibilidade
+  const dadosLimitados = dados.slice(0, 12);
+
+  // Cores gradientes baseadas no ranking
+  const cores = dadosLimitados.map((_, index) => {
+    if (index < 3) return CORES.SUCESSO;
+    if (index < 6) return CORES.PRIMARIA;
+    return CORES.ALERTA;
+  });
 
   const config: ChartConfig = {
     type: 'horizontalBar',
     data: {
       labels: dadosLimitados.map(d =>
-        d.nome.length > 25 ? d.nome.substring(0, 25) + '...' : d.nome
+        d.nome.length > 30 ? d.nome.substring(0, 30) + '...' : d.nome
       ),
       datasets: [{
         label: 'Média Geral',
-        data: dadosLimitados.map(d => d.media_geral),
-        backgroundColor: CORES.PRIMARIA,
+        data: dadosLimitados.map(d => Number(d.media_geral.toFixed(1))),
+        backgroundColor: cores,
         borderRadius: 4
       }]
     },
@@ -241,19 +258,29 @@ export async function gerarGraficoComparativoEscolas(
           display: true,
           text: 'Ranking de Escolas por Média',
           font: { size: 16, weight: 'bold' }
+        },
+        datalabels: {
+          display: true,
+          color: '#1F2937',
+          anchor: 'end',
+          align: 'right',
+          font: { weight: 'bold', size: 10 },
+          formatter: (value: number) => value.toFixed(1)
         }
       },
       scales: {
         x: {
           beginAtZero: true,
+          min: 0,
           max: 10,
+          ticks: { stepSize: 2 },
           title: { display: true, text: 'Média' }
         }
       }
     }
   };
 
-  return gerarGraficoQuickChart(config, 600, Math.max(300, dadosLimitados.length * 30));
+  return gerarGraficoQuickChart(config, 600, Math.max(280, dadosLimitados.length * 28));
 }
 
 /**
@@ -360,6 +387,13 @@ export async function gerarGraficoErrosAcertos(
   // Limitar a 20 questões para legibilidade
   const dadosLimitados = dados.slice(0, 20);
 
+  // Cores baseadas no percentual de acerto
+  const cores = dadosLimitados.map(d => {
+    if (d.percentual_acerto >= 70) return CORES.SUCESSO;
+    if (d.percentual_acerto >= 40) return CORES.ALERTA;
+    return CORES.ERRO;
+  });
+
   const config: ChartConfig = {
     type: 'bar',
     data: {
@@ -367,8 +401,8 @@ export async function gerarGraficoErrosAcertos(
       datasets: [
         {
           label: 'Acertos (%)',
-          data: dadosLimitados.map(d => d.percentual_acerto),
-          backgroundColor: CORES.SUCESSO,
+          data: dadosLimitados.map(d => Number(d.percentual_acerto.toFixed(1))),
+          backgroundColor: cores,
           borderRadius: 2
         }
       ]
@@ -381,19 +415,29 @@ export async function gerarGraficoErrosAcertos(
           text: 'Taxa de Acerto por Questão',
           font: { size: 16, weight: 'bold' }
         },
-        legend: { display: false }
+        legend: { display: false },
+        datalabels: {
+          display: true,
+          color: '#1F2937',
+          anchor: 'end',
+          align: 'top',
+          font: { size: 9, weight: 'bold' },
+          formatter: (value: number) => `${value}%`
+        }
       },
       scales: {
         y: {
           beginAtZero: true,
+          min: 0,
           max: 100,
+          ticks: { stepSize: 20 },
           title: { display: true, text: '% Acerto' }
         }
       }
     }
   };
 
-  return gerarGraficoQuickChart(config, 700, 350);
+  return gerarGraficoQuickChart(config, 700, 320);
 }
 
 /**

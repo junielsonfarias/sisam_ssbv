@@ -112,6 +112,9 @@ export async function corrigirResultadosOrfaos(
 
 /**
  * Recalcula médias de alunos com valores inconsistentes
+ * USA A MESMA LÓGICA DO PAINEL DE DADOS:
+ * - Anos Iniciais (2º, 3º, 5º): (LP + MAT + PROD) / qtd notas > 0
+ * - Anos Finais (8º, 9º): (LP + CH + MAT + CN) / qtd notas > 0
  */
 export async function corrigirMediasInconsistentes(
   params: ParametrosCorrecao,
@@ -119,49 +122,95 @@ export async function corrigirMediasInconsistentes(
   usuarioNome: string
 ): Promise<ResultadoCorrecao> {
   try {
-    // Buscar resultados para recalcular
+    // Buscar resultados com média calculada usando MESMA LÓGICA DO PAINEL
     const { rows } = await pool.query(`
-      SELECT id, aluno_id, nota_lp, nota_mat, nota_ch, nota_cn, media_aluno
-      FROM resultados_consolidados
-      WHERE media_aluno IS NOT NULL
+      SELECT
+        rc.id,
+        rc.aluno_id,
+        rc.serie,
+        rc.nota_lp,
+        rc.nota_mat,
+        rc.nota_ch,
+        rc.nota_cn,
+        rc.nota_producao,
+        rc.media_aluno as media_atual,
+        REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') as numero_serie,
+        -- Média calculada dinamicamente (MESMA LÓGICA DO PAINEL DE DADOS)
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            -- Anos iniciais: media de LP, MAT e PROD (se nota > 0)
+            ROUND(
+              (
+                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+              ) /
+              NULLIF(
+                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                0
+              ),
+              2
+            )
+          ELSE
+            -- Anos finais: media de LP, CH, MAT, CN
+            ROUND(
+              (
+                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+              ) /
+              NULLIF(
+                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                0
+              ),
+              2
+            )
+        END as media_calculada
+      FROM resultados_consolidados rc
+      WHERE rc.presenca = 'P'
+        AND rc.media_aluno IS NOT NULL
     `)
 
     let corrigidos = 0
     let erros = 0
 
     for (const resultado of rows) {
-      const notas = [resultado.nota_lp, resultado.nota_mat, resultado.nota_ch, resultado.nota_cn]
-        .filter(n => n !== null && n !== undefined)
-        .map(n => parseFloat(String(n)) || 0)
+      const mediaAtual = parseFloat(resultado.media_atual) || 0
+      const mediaCalculada = parseFloat(resultado.media_calculada) || 0
 
-      if (notas.length === 0) continue
+      // Se não conseguiu calcular ou são iguais, pular
+      if (isNaN(mediaCalculada) || mediaCalculada === 0) continue
+      if (Math.abs(mediaCalculada - mediaAtual) <= 0.1) continue
 
-      const mediaCalculada = Number((notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(2))
-      const mediaAtual = parseFloat(resultado.media_aluno) || 0
+      try {
+        await pool.query(
+          'UPDATE resultados_consolidados SET media_aluno = $1 WHERE id = $2',
+          [mediaCalculada, resultado.id]
+        )
+        corrigidos++
 
-      if (Math.abs(mediaCalculada - mediaAtual) > 0.01) {
-        try {
-          await pool.query(
-            'UPDATE resultados_consolidados SET media_aluno = $1 WHERE id = $2',
-            [mediaCalculada, resultado.id]
-          )
-          corrigidos++
+        const tipoCalculo = ['2', '3', '5'].includes(resultado.numero_serie) ? 'Anos Iniciais' : 'Anos Finais'
 
-          await registrarHistorico(
-            'medias_inconsistentes',
-            'resultado_consolidado',
-            resultado.id,
-            null,
-            { media_aluno: mediaAtual },
-            { media_aluno: mediaCalculada },
-            `Média recalculada de ${mediaAtual} para ${mediaCalculada}`,
-            params.corrigirTodos || false,
-            usuarioId,
-            usuarioNome
-          )
-        } catch {
-          erros++
-        }
+        await registrarHistorico(
+          'medias_inconsistentes',
+          'resultado_consolidado',
+          resultado.id,
+          null,
+          { media_aluno: mediaAtual, serie: resultado.serie },
+          { media_aluno: mediaCalculada, tipoCalculo },
+          `Média recalculada de ${mediaAtual.toFixed(2)} para ${mediaCalculada.toFixed(2)} (${tipoCalculo})`,
+          params.corrigirTodos || false,
+          usuarioId,
+          usuarioNome
+        )
+      } catch {
+        erros++
       }
     }
 
@@ -173,6 +222,108 @@ export async function corrigirMediasInconsistentes(
     }
   } catch (error: any) {
     return { sucesso: false, mensagem: `Erro ao corrigir médias: ${error.message}`, corrigidos: 0, erros: 1 }
+  }
+}
+
+/**
+ * Corrige nível de aprendizagem incorreto
+ * Recalcula o nível baseado na média calculada dinamicamente
+ */
+export async function corrigirNivelAprendizagemErrado(
+  params: ParametrosCorrecao,
+  usuarioId: string,
+  usuarioNome: string
+): Promise<ResultadoCorrecao> {
+  try {
+    // Buscar níveis de aprendizagem
+    const { rows: niveis } = await pool.query(`
+      SELECT id, codigo, nome, nota_minima, nota_maxima, serie_aplicavel
+      FROM niveis_aprendizagem WHERE ativo = true ORDER BY ordem
+    `)
+
+    if (niveis.length === 0) {
+      return { sucesso: false, mensagem: 'Nenhum nível de aprendizagem configurado', corrigidos: 0, erros: 1 }
+    }
+
+    // Buscar resultados de Anos Iniciais com média recalculada
+    const { rows } = await pool.query(`
+      SELECT
+        rc.id,
+        rc.serie,
+        rc.nivel_aprendizagem as nivel_atual,
+        rc.nivel_aprendizagem_id,
+        REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') as numero_serie,
+        -- Média calculada dinamicamente (MESMA LÓGICA DO PAINEL DE DADOS)
+        ROUND(
+          (
+            COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+            COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+            COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+          ) /
+          NULLIF(
+            CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+            CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+            CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+            0
+          ),
+          2
+        ) as media_calculada
+      FROM resultados_consolidados rc
+      WHERE rc.presenca = 'P'
+        AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+    `)
+
+    let corrigidos = 0
+    let erros = 0
+
+    for (const resultado of rows) {
+      const media = parseFloat(resultado.media_calculada) || 0
+      if (media === 0 || isNaN(media)) continue
+
+      // Encontrar nível correto
+      const nivelCorreto = niveis.find((n: any) =>
+        media >= parseFloat(n.nota_minima) &&
+        media <= parseFloat(n.nota_maxima) &&
+        (n.serie_aplicavel === null || n.serie_aplicavel === resultado.numero_serie)
+      )
+
+      if (!nivelCorreto) continue
+
+      const nivelAtual = resultado.nivel_atual
+      if (nivelAtual === nivelCorreto.nome) continue
+
+      try {
+        await pool.query(
+          'UPDATE resultados_consolidados SET nivel_aprendizagem = $1, nivel_aprendizagem_id = $2 WHERE id = $3',
+          [nivelCorreto.nome, nivelCorreto.id, resultado.id]
+        )
+        corrigidos++
+
+        await registrarHistorico(
+          'nivel_aprendizagem_errado',
+          'resultado_consolidado',
+          resultado.id,
+          null,
+          { nivel_aprendizagem: nivelAtual, media: media },
+          { nivel_aprendizagem: nivelCorreto.nome, nivel_aprendizagem_id: nivelCorreto.id },
+          `Nível alterado de "${nivelAtual || 'vazio'}" para "${nivelCorreto.nome}" (média ${media.toFixed(2)})`,
+          params.corrigirTodos || false,
+          usuarioId,
+          usuarioNome
+        )
+      } catch {
+        erros++
+      }
+    }
+
+    return {
+      sucesso: erros === 0,
+      mensagem: `${corrigidos} nível(is) corrigido(s)${erros > 0 ? `, ${erros} erro(s)` : ''}`,
+      corrigidos,
+      erros
+    }
+  } catch (error: any) {
+    return { sucesso: false, mensagem: `Erro ao corrigir níveis: ${error.message}`, corrigidos: 0, erros: 1 }
   }
 }
 
@@ -499,6 +650,9 @@ export async function executarCorrecao(
 
     case 'medias_inconsistentes':
       return corrigirMediasInconsistentes(params, usuarioId, usuarioNome)
+
+    case 'nivel_aprendizagem_errado':
+      return corrigirNivelAprendizagemErrado(params, usuarioId, usuarioNome)
 
     case 'presenca_inconsistente':
       return corrigirPresencaInconsistente(params, usuarioId, usuarioNome)

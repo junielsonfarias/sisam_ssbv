@@ -8,7 +8,8 @@ import {
   MapPin,
   Loader2,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Calendar
 } from 'lucide-react';
 
 interface Polo {
@@ -26,6 +27,7 @@ interface Props {
   polos: Polo[];
   escolas: Escola[];
   anoLetivo: string;
+  anosDisponiveis?: string[];
   tipoUsuario: string;
   poloIdUsuario?: string | null;
   escolaIdUsuario?: string | null;
@@ -36,7 +38,8 @@ type TipoRelatorio = 'escola' | 'polo';
 export function SeletorRelatorio({
   polos,
   escolas,
-  anoLetivo,
+  anoLetivo: anoLetivoInicial,
+  anosDisponiveis = [],
   tipoUsuario,
   poloIdUsuario,
   escolaIdUsuario
@@ -45,8 +48,21 @@ export function SeletorRelatorio({
   const [poloSelecionado, setPoloSelecionado] = useState<string>('');
   const [escolaSelecionada, setEscolaSelecionada] = useState<string>('');
   const [serie, setSerie] = useState<string>('');
+  const [anoLetivo, setAnoLetivo] = useState<string>(anoLetivoInicial);
   const [gerando, setGerando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+
+  // Gerar lista de anos se não foi passada
+  const anosParaExibir = anosDisponiveis.length > 0
+    ? anosDisponiveis
+    : Array.from({ length: 3 }, (_, i) => String(new Date().getFullYear() - i));
+
+  // Atualizar ano quando anosDisponiveis mudar (garante usar ano com dados)
+  useEffect(() => {
+    if (anosDisponiveis.length > 0 && !anosDisponiveis.includes(anoLetivo)) {
+      setAnoLetivo(anosDisponiveis[0]);
+    }
+  }, [anosDisponiveis, anoLetivo]);
 
   // Inicializar seleções baseadas no tipo de usuário
   useEffect(() => {
@@ -84,11 +100,17 @@ export function SeletorRelatorio({
     setGerando(true);
     setMensagem(null);
 
+    // Debug: verificar ano selecionado
+    console.log('Gerando relatório com ano:', anoLetivo);
+
     try {
       const params = new URLSearchParams({
         ano_letivo: anoLetivo,
         ...(serie && { serie })
       });
+
+      // Debug: verificar URL completa
+      console.log('URL da requisição:', `/api/admin/relatorios/${tipo}/${id}?${params}`);
 
       const response = await fetch(
         `/api/admin/relatorios/${tipo}/${id}?${params}`,
@@ -242,6 +264,31 @@ export function SeletorRelatorio({
           )}
         </div>
       )}
+
+      {/* Seleção de Ano Letivo */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <Calendar className="w-4 h-4 inline mr-1" />
+          Ano Letivo
+        </label>
+        <select
+          value={anoLetivo}
+          onChange={(e) => setAnoLetivo(e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg
+                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                     bg-white dark:bg-slate-700 text-gray-900 dark:text-white
+                     transition-colors"
+        >
+          {anosParaExibir.map(ano => (
+            <option key={ano} value={ano}>{ano}</option>
+          ))}
+        </select>
+        {anosDisponiveis.length > 0 && !anosDisponiveis.includes(anoLetivo) && (
+          <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">
+            O ano {anoLetivo} pode não ter dados disponíveis
+          </p>
+        )}
+      </div>
 
       {/* Filtro por Série (opcional) */}
       <div className="mb-6">
