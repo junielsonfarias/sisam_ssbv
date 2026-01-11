@@ -36,7 +36,8 @@ export interface DisciplinaOption {
 
 export const DISCIPLINAS_OPTIONS_ANOS_INICIAIS: DisciplinaOption[] = [
   { value: 'LP', label: 'Língua Portuguesa' },
-  { value: 'MAT', label: 'Matemática' }
+  { value: 'MAT', label: 'Matemática' },
+  { value: 'PT', label: 'Produção Textual' }
 ]
 
 export const DISCIPLINAS_OPTIONS_ANOS_FINAIS: DisciplinaOption[] = [

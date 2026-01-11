@@ -1174,102 +1174,123 @@ export default function GraficosPage() {
                 </div>
               )}
 
-              {/* Correlação entre Disciplinas */}
-              {dados.correlacao && dados.correlacao.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
-                  <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Correlação entre Disciplinas</h3>
+              {/* Correlação entre Disciplinas - Adaptado para Anos Iniciais/Finais */}
+              {dados.correlacao && dados.correlacao.length > 0 && (() => {
+                const meta = dados.correlacao_meta || { tem_anos_finais: true, tem_anos_iniciais: false }
+                const dadosFinais = dados.correlacao.filter((d: any) => d.tipo === 'anos_finais')
+                const dadosIniciais = dados.correlacao.filter((d: any) => d.tipo === 'anos_iniciais')
+
+                return (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
+                    <div className="flex items-center mb-4">
+                      <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Correlação entre Disciplinas</h3>
+                    </div>
+
+                    {/* Anos Iniciais: LP x MAT (e LP x PT se houver) */}
+                    {dadosIniciais.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3">Anos Iniciais (2º, 3º, 5º ano)</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* LP x MAT */}
+                          <ResponsiveContainer width="100%" height={300}>
+                            <ScatterChart data={dadosIniciais}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }} />
+                              <Scatter name="Alunos" data={dadosIniciais} fill="#4F46E5" opacity={0.6} />
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                          {/* LP x PT (se houver PT) */}
+                          {dadosIniciais.some((d: any) => d.PT !== null) && (
+                            <ResponsiveContainer width="100%" height={300}>
+                              <ScatterChart data={dadosIniciais.filter((d: any) => d.PT !== null)}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                                <YAxis type="number" dataKey="PT" name="PT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Produção Textual', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }} />
+                                <Scatter name="Alunos" data={dadosIniciais.filter((d: any) => d.PT !== null)} fill="#8B5CF6" opacity={0.6} />
+                              </ScatterChart>
+                            </ResponsiveContainer>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Anos Finais: LP x CH x MAT x CN */}
+                    {dadosFinais.length > 0 && (
+                      <div>
+                        {dadosIniciais.length > 0 && <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3">Anos Finais (6º ao 9º ano)</h4>}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {/* LP x MAT */}
+                          <ResponsiveContainer width="100%" height={300}>
+                            <ScatterChart data={dadosFinais}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }} />
+                              <Scatter name="Alunos" data={dadosFinais} fill="#4F46E5" opacity={0.6} />
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                          {/* LP x CH */}
+                          <ResponsiveContainer width="100%" height={300}>
+                            <ScatterChart data={dadosFinais}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <YAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências Humanas', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }} />
+                              <Scatter name="Alunos" data={dadosFinais} fill="#10B981" opacity={0.6} />
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                          {/* LP x CN */}
+                          <ResponsiveContainer width="100%" height={300}>
+                            <ScatterChart data={dadosFinais}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }} />
+                              <Scatter name="Alunos" data={dadosFinais} fill="#F59E0B" opacity={0.6} />
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                          {/* CH x MAT */}
+                          <ResponsiveContainer width="100%" height={300}>
+                            <ScatterChart data={dadosFinais}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências Humanas', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }} />
+                              <Scatter name="Alunos" data={dadosFinais} fill="#EF4444" opacity={0.6} />
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                          {/* CH x CN */}
+                          <ResponsiveContainer width="100%" height={300}>
+                            <ScatterChart data={dadosFinais}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências Humanas', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }} />
+                              <Scatter name="Alunos" data={dadosFinais} fill="#8B5CF6" opacity={0.6} />
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                          {/* MAT x CN */}
+                          <ResponsiveContainer width="100%" height={300}>
+                            <ScatterChart data={dadosFinais}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Matemática', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
+                              <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }} />
+                              <Scatter name="Alunos" data={dadosFinais} fill="#EC4899" opacity={0.6} />
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Cada ponto representa um aluno. Pontos próximos à diagonal indicam desempenho similar entre as disciplinas.</p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* LP x MAT */}
-                    <ResponsiveContainer width="100%" height={300}>
-                      <ScatterChart data={dados.correlacao}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <Tooltip 
-                          cursor={{ strokeDasharray: '3 3' }}
-                          contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                          labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
-                        />
-                        <Scatter name="Alunos" data={dados.correlacao} fill="#4F46E5" opacity={0.6} />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                    {/* LP x CH */}
-                    <ResponsiveContainer width="100%" height={300}>
-                      <ScatterChart data={dados.correlacao}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <YAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências Humanas', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <Tooltip 
-                          cursor={{ strokeDasharray: '3 3' }}
-                          contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                          labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
-                        />
-                        <Scatter name="Alunos" data={dados.correlacao} fill="#10B981" opacity={0.6} />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                    {/* LP x CN */}
-                    <ResponsiveContainer width="100%" height={300}>
-                      <ScatterChart data={dados.correlacao}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="LP" name="LP" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Língua Portuguesa', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <Tooltip 
-                          cursor={{ strokeDasharray: '3 3' }}
-                          contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                          labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
-                        />
-                        <Scatter name="Alunos" data={dados.correlacao} fill="#F59E0B" opacity={0.6} />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                    {/* CH x MAT */}
-                    <ResponsiveContainer width="100%" height={300}>
-                      <ScatterChart data={dados.correlacao}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências Humanas', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <YAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Matemática', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <Tooltip 
-                          cursor={{ strokeDasharray: '3 3' }}
-                          contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                          labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
-                        />
-                        <Scatter name="Alunos" data={dados.correlacao} fill="#EF4444" opacity={0.6} />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                    {/* CH x CN */}
-                    <ResponsiveContainer width="100%" height={300}>
-                      <ScatterChart data={dados.correlacao}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="CH" name="CH" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências Humanas', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <Tooltip 
-                          cursor={{ strokeDasharray: '3 3' }}
-                          contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                          labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
-                        />
-                        <Scatter name="Alunos" data={dados.correlacao} fill="#8B5CF6" opacity={0.6} />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                    {/* MAT x CN */}
-                    <ResponsiveContainer width="100%" height={300}>
-                      <ScatterChart data={dados.correlacao}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="MAT" name="MAT" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Matemática', position: 'insideBottom', offset: -5, style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <YAxis type="number" dataKey="CN" name="CN" domain={[0, 10]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Ciências da Natureza', angle: -90, position: 'insideLeft', style: { fontSize: '13px', fontWeight: 600 } }} />
-                        <Tooltip 
-                          cursor={{ strokeDasharray: '3 3' }}
-                          contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                          labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
-                        />
-                        <Scatter name="Alunos" data={dados.correlacao} fill="#EC4899" opacity={0.6} />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Cada ponto representa um aluno. Pontos próximos à diagonal indicam desempenho similar entre as disciplinas.</p>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Ranking Interativo */}
               {dados.ranking && dados.ranking.length > 0 && (
