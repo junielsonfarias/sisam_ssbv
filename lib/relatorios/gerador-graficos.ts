@@ -20,10 +20,10 @@
 
 import { DesempenhoDisciplina, AnaliseQuestao, EscolaComparativo } from './tipos';
 
-// Configurações
-const QUICKCHART_TIMEOUT_MS = 15000;
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 1000;
+// Configurações - timeout reduzido para compatibilidade com Vercel
+const QUICKCHART_TIMEOUT_MS = 8000;
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 500;
 
 // Cores padrão do SISAM
 const CORES = {

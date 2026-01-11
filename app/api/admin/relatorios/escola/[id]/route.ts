@@ -11,6 +11,9 @@ import { RelatorioEscolaPDF } from '@/lib/relatorios/gerador-pdf';
 import { gerarGraficosEscola } from '@/lib/relatorios/gerador-graficos';
 import React from 'react';
 
+// Configuração de timeout para Vercel (plano gratuito: máximo 10s)
+export const maxDuration = 10;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
