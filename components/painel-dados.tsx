@@ -70,7 +70,8 @@ interface Estatisticas {
   totalEscolas: number
   totalPolos: number
   totalResultados: number
-  totalAlunos: number
+  totalAlunos: number           // Total cadastrado (tabela alunos)
+  totalAlunosAvaliados: number  // Total com resultados (P ou F)
   totalTurmas: number
   totalAlunosPresentes: number
   totalAlunosFaltantes: number
@@ -206,6 +207,7 @@ export default function PainelDados({
     totalPolos: 0,
     totalResultados: 0,
     totalAlunos: 0,
+    totalAlunosAvaliados: 0,
     totalTurmas: 0,
     totalAlunosPresentes: 0,
     totalAlunosFaltantes: 0,
@@ -287,6 +289,7 @@ export default function PainelDados({
             totalPolos: Number(cachedStats.totalPolos) || 0,
             totalResultados: Number(cachedStats.totalResultados) || 0,
             totalAlunos: Number(cachedStats.totalAlunos) || 0,
+            totalAlunosAvaliados: Number(cachedStats.totalAlunosAvaliados) || 0,
             totalTurmas: Number(cachedStats.totalTurmas) || 0,
             totalAlunosPresentes: Number(cachedStats.totalAlunosPresentes) || 0,
             totalAlunosFaltantes: Number(cachedStats.totalAlunosFaltantes) || 0,
@@ -321,6 +324,7 @@ export default function PainelDados({
             totalPolos: Number(data.totalPolos) || 0,
             totalResultados: Number(data.totalResultados) || 0,
             totalAlunos: Number(data.totalAlunos) || 0,
+            totalAlunosAvaliados: Number(data.totalAlunosAvaliados) || 0,
             totalTurmas: Number(data.totalTurmas) || 0,
             totalAlunosPresentes: Number(data.totalAlunosPresentes) || 0,
             totalAlunosFaltantes: Number(data.totalAlunosFaltantes) || 0,
@@ -681,6 +685,9 @@ export default function PainelDados({
 
 // Componente Aba Geral
 function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Estatisticas; tipoUsuario: string; carregando: boolean }) {
+  // Base para calculo de percentuais: alunos avaliados (com P ou F), nao total cadastrado
+  const basePercentual = estatisticas.totalAlunosAvaliados > 0 ? estatisticas.totalAlunosAvaliados : estatisticas.totalAlunos
+
   return (
     <div className={`space-y-6 ${carregando ? 'opacity-50' : ''}`}>
       {/* Cards principais */}
@@ -704,6 +711,11 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Est
               <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-1">
                 {estatisticas.totalAlunos.toLocaleString('pt-BR')}
               </p>
+              {estatisticas.totalAlunosAvaliados > 0 && estatisticas.totalAlunosAvaliados !== estatisticas.totalAlunos && (
+                <p className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
+                  {estatisticas.totalAlunosAvaliados.toLocaleString('pt-BR')} avaliados
+                </p>
+              )}
             </div>
             <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 text-cyan-600 dark:text-cyan-400" />
           </div>
@@ -740,9 +752,9 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Est
             <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-green-700 dark:text-green-400">{estatisticas.totalAlunosPresentes.toLocaleString('pt-BR')}</p>
-          {estatisticas.totalAlunos > 0 && (
+          {basePercentual > 0 && (
             <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-              {((estatisticas.totalAlunosPresentes / estatisticas.totalAlunos) * 100).toFixed(1)}% do total
+              {((estatisticas.totalAlunosPresentes / basePercentual) * 100).toFixed(1)}% dos avaliados
             </p>
           )}
         </div>
@@ -753,9 +765,9 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Est
             <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-red-700 dark:text-red-400">{estatisticas.totalAlunosFaltantes.toLocaleString('pt-BR')}</p>
-          {estatisticas.totalAlunos > 0 && (
+          {basePercentual > 0 && (
             <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-              {((estatisticas.totalAlunosFaltantes / estatisticas.totalAlunos) * 100).toFixed(1)}% do total
+              {((estatisticas.totalAlunosFaltantes / basePercentual) * 100).toFixed(1)}% dos avaliados
             </p>
           )}
         </div>
@@ -1566,6 +1578,9 @@ function AbaAlunos({
 
 // Componente Aba Analises
 function AbaAnalises({ estatisticas, carregando }: { estatisticas: Estatisticas; carregando: boolean }) {
+  // Base para calculo de percentuais: alunos avaliados (com P ou F)
+  const basePercentual = estatisticas.totalAlunosAvaliados > 0 ? estatisticas.totalAlunosAvaliados : estatisticas.totalAlunos
+
   return (
     <div className={`space-y-6 ${carregando ? 'opacity-50' : ''}`}>
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
@@ -1577,16 +1592,16 @@ function AbaAnalises({ estatisticas, carregando }: { estatisticas: Estatisticas;
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Taxa de Presenca */}
           <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Taxa de Presenca</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Taxa de Presenca (avaliados)</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {estatisticas.totalAlunos > 0
-                ? ((estatisticas.totalAlunosPresentes / estatisticas.totalAlunos) * 100).toFixed(1)
+              {basePercentual > 0
+                ? ((estatisticas.totalAlunosPresentes / basePercentual) * 100).toFixed(1)
                 : 0}%
             </p>
             <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
               <div
                 className="bg-green-500 h-2 rounded-full"
-                style={{ width: `${estatisticas.totalAlunos > 0 ? (estatisticas.totalAlunosPresentes / estatisticas.totalAlunos) * 100 : 0}%` }}
+                style={{ width: `${basePercentual > 0 ? (estatisticas.totalAlunosPresentes / basePercentual) * 100 : 0}%` }}
               ></div>
             </div>
           </div>

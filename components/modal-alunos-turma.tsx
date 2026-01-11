@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { X, Users, XCircle } from 'lucide-react'
+import { useEffect, useState, useMemo } from 'react'
+import { X, Users, XCircle, Printer } from 'lucide-react'
+import { obterDisciplinasPorSerieSync, Disciplina } from '@/lib/disciplinas-por-serie'
 
 interface AlunoResultado {
   aluno_id: string
@@ -18,6 +19,8 @@ interface AlunoResultado {
   nota_ch: number | string | null
   nota_mat: number | string | null
   nota_cn: number | string | null
+  nota_producao: number | string | null
+  nivel_aprendizagem: string | null
   media_aluno: number | string | null
 }
 
@@ -103,6 +106,37 @@ export default function ModalAlunosTurma({
 
   if (!isOpen) return null
 
+  // Verifica se a série é de anos iniciais (2º, 3º, 5º)
+  const isAnosIniciais = (s: string | null | undefined): boolean => {
+    if (!s) return false
+    const numeroSerie = s.toString().replace(/[^0-9]/g, '')
+    return ['2', '3', '5'].includes(numeroSerie)
+  }
+
+  // Obter disciplinas baseadas na série
+  // Anos Iniciais: LP, MAT, PROD, NIVEL
+  // Anos Finais: LP, MAT, CH, CN
+  const disciplinas = useMemo(() => {
+    const todasDisciplinas = obterDisciplinasPorSerieSync(serie)
+    if (isAnosIniciais(serie)) {
+      // Anos iniciais: incluir objetivas (LP, MAT), textual (PROD) e nivel (NIVEL)
+      return todasDisciplinas.filter(d => d.tipo === 'objetiva' || d.tipo === 'textual' || d.tipo === 'nivel')
+    } else {
+      // Anos finais: apenas objetivas (LP, MAT, CH, CN)
+      return todasDisciplinas.filter(d => d.tipo === 'objetiva')
+    }
+  }, [serie])
+
+  // Função para imprimir
+  const handlePrint = () => {
+    window.print()
+  }
+
+  // Função para obter valor de nota/acertos dinamicamente
+  const getValorAluno = (aluno: AlunoResultado, campo: string): number | string | null => {
+    return (aluno as any)[campo] ?? null
+  }
+
   const alunosPresentes = alunos.filter(a => a.presenca === 'P' || a.presenca === 'p').length
   const medias = alunos
     .map(a => typeof a.media_aluno === 'string' ? parseFloat(a.media_aluno) : a.media_aluno)
@@ -186,16 +220,20 @@ export default function ModalAlunosTurma({
                 </div>
 
                 {/* Tabela de Alunos */}
-                <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg">
+                <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg print:border-0">
                   <table className="w-full min-w-[400px]">
-                    <thead className="bg-gray-50 dark:bg-slate-700">
+                    <thead className="bg-gray-50 dark:bg-slate-700 print:bg-gray-100">
                       <tr>
                         <th className="text-left py-2 px-2 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap">Aluno</th>
-                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap hidden sm:table-cell">Presença</th>
-                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap">LP</th>
-                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap hidden sm:table-cell">CH</th>
-                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap">MAT</th>
-                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap hidden sm:table-cell">CN</th>
+                        <th className="text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap hidden sm:table-cell print:table-cell">Presença</th>
+                        {disciplinas.map((disc, idx) => (
+                          <th
+                            key={disc.codigo}
+                            className={`text-center py-2 px-1 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap ${idx > 0 ? 'hidden sm:table-cell print:table-cell' : ''}`}
+                          >
+                            {disc.codigo}
+                          </th>
+                        ))}
                         <th className="text-center py-2 px-2 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs sm:text-sm uppercase whitespace-nowrap">Média</th>
                       </tr>
                     </thead>
@@ -232,38 +270,46 @@ export default function ModalAlunosTurma({
                                 {aluno.presenca === 'P' || aluno.presenca === 'p' ? '✓ P' : '✗ F'}
                               </span>
                             </td>
-                            <td className="py-2 px-1 md:px-4 text-center">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block">{aluno.total_acertos_lp}/20</span>
-                                <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_lp)}`}>
-                                  {formatarNumero(aluno.nota_lp)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="py-2 px-1 md:px-4 text-center hidden sm:table-cell">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block">{aluno.total_acertos_ch}/10</span>
-                                <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_ch)}`}>
-                                  {formatarNumero(aluno.nota_ch)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="py-2 px-1 md:px-4 text-center">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block">{aluno.total_acertos_mat}/20</span>
-                                <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_mat)}`}>
-                                  {formatarNumero(aluno.nota_mat)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="py-2 px-1 md:px-4 text-center hidden sm:table-cell">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block">{aluno.total_acertos_cn}/10</span>
-                                <span className={`text-xs sm:text-sm font-bold ${getNotaColor(aluno.nota_cn)}`}>
-                                  {formatarNumero(aluno.nota_cn)}
-                                </span>
-                              </div>
-                            </td>
+                            {disciplinas.map((disc, idx) => {
+                              const nota = getValorAluno(aluno, disc.campo_nota)
+                              const acertos = getValorAluno(aluno, disc.campo_acertos)
+                              // Formatar acertos como número inteiro
+                              const acertosInt = acertos !== null && acertos !== undefined
+                                ? Math.round(typeof acertos === 'string' ? parseFloat(acertos) : acertos)
+                                : '-'
+
+                              // Tratamento especial para NIVEL
+                              if (disc.tipo === 'nivel') {
+                                return (
+                                  <td
+                                    key={disc.codigo}
+                                    className={`py-2 px-1 md:px-4 text-center ${idx > 0 ? 'hidden sm:table-cell print:table-cell' : ''}`}
+                                  >
+                                    <span className="text-xs sm:text-sm font-semibold text-purple-600 dark:text-purple-400">
+                                      {nota || '-'}
+                                    </span>
+                                  </td>
+                                )
+                              }
+
+                              return (
+                                <td
+                                  key={disc.codigo}
+                                  className={`py-2 px-1 md:px-4 text-center ${idx > 0 ? 'hidden sm:table-cell print:table-cell' : ''}`}
+                                >
+                                  <div className="flex flex-col items-center">
+                                    {disc.tipo === 'objetiva' && disc.total_questoes && (
+                                      <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden md:block print:block">
+                                        {acertosInt}/{disc.total_questoes}
+                                      </span>
+                                    )}
+                                    <span className={`text-xs sm:text-sm font-bold ${getNotaColor(nota)}`}>
+                                      {formatarNumero(nota)}
+                                    </span>
+                                  </div>
+                                </td>
+                              )
+                            })}
                             <td className="py-2 px-2 md:px-4 text-center">
                               <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${
                                 getNotaColor(aluno.media_aluno).includes('green') ? 'bg-green-50 dark:bg-green-900/30' :
@@ -285,10 +331,18 @@ export default function ModalAlunosTurma({
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 dark:bg-slate-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex justify-end">
+          <div className="bg-gray-50 dark:bg-slate-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex justify-between print:hidden">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm sm:text-base"
+              title="Imprimir lista de alunos"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">Imprimir</span>
+            </button>
             <button
               onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm sm:text-base"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm sm:text-base"
             >
               Fechar
             </button>

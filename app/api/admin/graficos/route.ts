@@ -17,6 +17,8 @@ function getCampoNota(disciplina: string | null): { campo: string, label: string
       return { campo: 'rc.nota_mat', label: 'Matemática', totalQuestoes: 20 }
     case 'CN':
       return { campo: 'rc.nota_cn', label: 'Ciências da Natureza', totalQuestoes: 10 }
+    case 'PT':
+      return { campo: 'rc.nota_producao', label: 'Produção Textual', totalQuestoes: 1 }
     default:
       return { campo: 'rc.media_aluno', label: 'Média Geral', totalQuestoes: 60 }
   }
@@ -525,93 +527,80 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Gráfico de Acertos e Erros
+    // Gráfico de Acertos e Erros - CORRIGIDO para considerar questões por série
+    // Anos Iniciais (2º/3º): LP=14, MAT=14, Total=28
+    // Anos Iniciais (5º): LP=14, MAT=20, Total=34
+    // Anos Finais (6º-9º): LP=20, CH=10, MAT=20, CN=10, Total=60
     if (tipoGrafico === 'acertos_erros') {
+      // Helper para calcular total de questões baseado na série e disciplina
+      const getQuestoesSQL = (disc: string | null, campoSerie: string = 'rc.serie') => {
+        const numeroSerie = `REGEXP_REPLACE(${campoSerie}::text, '[^0-9]', '', 'g')`
+
+        if (disc === 'LP') {
+          // LP: 14 questões para anos iniciais, 20 para anos finais
+          return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 14 ELSE 20 END`
+        } else if (disc === 'CH') {
+          // CH: não existe para anos iniciais, 10 para anos finais
+          return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE 10 END`
+        } else if (disc === 'MAT') {
+          // MAT: 14 para 2º/3º, 20 para 5º e anos finais
+          return `CASE WHEN ${numeroSerie} IN ('2', '3') THEN 14 ELSE 20 END`
+        } else if (disc === 'CN') {
+          // CN: não existe para anos iniciais, 10 para anos finais
+          return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE 10 END`
+        } else {
+          // Geral: soma de todas as disciplinas válidas por série
+          return `CASE
+            WHEN ${numeroSerie} IN ('2', '3') THEN 28
+            WHEN ${numeroSerie} = '5' THEN 34
+            ELSE 60
+          END`
+        }
+      }
+
+      // Helper para calcular acertos baseado na disciplina
+      const getAcertosSQL = (disc: string | null) => {
+        const numeroSerie = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
+        if (disc === 'LP') {
+          return `SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0))`
+        } else if (disc === 'CH') {
+          // CH só existe para anos finais
+          return `SUM(CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) END)`
+        } else if (disc === 'MAT') {
+          return `SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0))`
+        } else if (disc === 'CN') {
+          // CN só existe para anos finais
+          return `SUM(CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0) END)`
+        } else {
+          // Geral: soma apenas disciplinas válidas por série
+          return `SUM(
+            COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) +
+            COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) +
+            CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) END +
+            CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0) END
+          )`
+        }
+      }
+
       // Se escola selecionada (e não é "Todas"), agrupar por série e turma
       if (escolaId && escolaId !== 'undefined' && escolaId !== '' && escolaId.toLowerCase() !== 'todas') {
-        let queryAcertosErros = ''
-        if (disciplina === 'LP') {
-          queryAcertosErros = `
-            SELECT 
-              COALESCE(t.codigo, CONCAT('Série ', rc.serie)) as nome,
-              rc.serie,
-              t.codigo as turma_codigo,
-              SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            LEFT JOIN turmas t ON rc.turma_id = t.id
-            ${whereClause}
-            GROUP BY rc.serie, t.codigo, t.id
-            ORDER BY rc.serie, t.codigo
-          `
-        } else if (disciplina === 'CH') {
-          queryAcertosErros = `
-            SELECT 
-              COALESCE(t.codigo, CONCAT('Série ', rc.serie)) as nome,
-              rc.serie,
-              t.codigo as turma_codigo,
-              SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            LEFT JOIN turmas t ON rc.turma_id = t.id
-            ${whereClause}
-            GROUP BY rc.serie, t.codigo, t.id
-            ORDER BY rc.serie, t.codigo
-          `
-        } else if (disciplina === 'MAT') {
-          queryAcertosErros = `
-            SELECT 
-              COALESCE(t.codigo, CONCAT('Série ', rc.serie)) as nome,
-              rc.serie,
-              t.codigo as turma_codigo,
-              SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            LEFT JOIN turmas t ON rc.turma_id = t.id
-            ${whereClause}
-            GROUP BY rc.serie, t.codigo, t.id
-            ORDER BY rc.serie, t.codigo
-          `
-        } else if (disciplina === 'CN') {
-          queryAcertosErros = `
-            SELECT 
-              COALESCE(t.codigo, CONCAT('Série ', rc.serie)) as nome,
-              rc.serie,
-              t.codigo as turma_codigo,
-              SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            LEFT JOIN turmas t ON rc.turma_id = t.id
-            ${whereClause}
-            GROUP BY rc.serie, t.codigo, t.id
-            ORDER BY rc.serie, t.codigo
-          `
-        } else {
-          // Geral: soma de todas as disciplinas
-          queryAcertosErros = `
-            SELECT 
-              COALESCE(t.codigo, CONCAT('Série ', rc.serie)) as nome,
-              rc.serie,
-              t.codigo as turma_codigo,
-              SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 60 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            LEFT JOIN turmas t ON rc.turma_id = t.id
-            ${whereClause}
-            GROUP BY rc.serie, t.codigo, t.id
-            ORDER BY rc.serie, t.codigo
-          `
-        }
+        const queryAcertosErros = `
+          SELECT
+            COALESCE(t.codigo, CONCAT('Série ', rc.serie)) as nome,
+            rc.serie,
+            t.codigo as turma_codigo,
+            ${getAcertosSQL(disciplina)} as total_acertos,
+            SUM(${getQuestoesSQL(disciplina)}) - ${getAcertosSQL(disciplina)} as total_erros,
+            COUNT(*) as total_alunos,
+            SUM(${getQuestoesSQL(disciplina)}) as total_questoes
+          FROM resultados_consolidados_unificada rc
+          INNER JOIN escolas e ON rc.escola_id = e.id
+          LEFT JOIN turmas t ON rc.turma_id = t.id
+          ${whereClause}
+          GROUP BY rc.serie, t.codigo, t.id
+          ORDER BY rc.serie, t.codigo
+        `
         const resAcertosErros = await pool.query(queryAcertosErros, params)
         if (resAcertosErros.rows.length > 0) {
           resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
@@ -619,206 +608,66 @@ export async function GET(request: NextRequest) {
             serie: r.serie,
             turma: r.turma_codigo || null,
             acertos: parseInt(r.total_acertos) || 0,
-            erros: parseInt(r.total_erros) || 0,
-            total_alunos: parseInt(r.total_alunos) || 0
+            erros: Math.max(0, parseInt(r.total_erros) || 0),
+            total_alunos: parseInt(r.total_alunos) || 0,
+            total_questoes: parseInt(r.total_questoes) || 0
           }))
         } else {
-          console.log('[DEBUG ACERTOS_ERROS] Nenhum resultado encontrado! Verificando se há dados no banco...')
-          // Verificar se há dados no banco com os filtros
-          const queryVerificacao = `
-            SELECT COUNT(*) as total
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-          `
-          const resVerificacao = await pool.query(queryVerificacao, params)
-          console.log('[DEBUG ACERTOS_ERROS] Total de registros no banco com os filtros:', resVerificacao.rows[0]?.total || 0)
           resultado.acertos_erros = []
         }
       } else if (serie || (poloId && (!escolaId || escolaId === '' || escolaId === 'undefined' || escolaId.toLowerCase() === 'todas'))) {
-        console.log('[DEBUG ACERTOS_ERROS] Caminho: Série ou Polo (sem escola) - agrupar por escola')
-        // Se série selecionada mas não escola, OU se há polo mas não escola, agrupar apenas por escola
-        let queryAcertosErros = ''
-        if (disciplina === 'LP') {
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        } else if (disciplina === 'CH') {
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        } else if (disciplina === 'MAT') {
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        } else if (disciplina === 'CN') {
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        } else {
-          // Geral: soma de todas as disciplinas
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 60 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        }
+        // Se série selecionada mas não escola, OU se há polo mas não escola, agrupar por escola
+        const queryAcertosErros = `
+          SELECT
+            e.nome as nome,
+            ${getAcertosSQL(disciplina)} as total_acertos,
+            SUM(${getQuestoesSQL(disciplina)}) - ${getAcertosSQL(disciplina)} as total_erros,
+            COUNT(*) as total_alunos,
+            SUM(${getQuestoesSQL(disciplina)}) as total_questoes
+          FROM resultados_consolidados_unificada rc
+          INNER JOIN escolas e ON rc.escola_id = e.id
+          ${whereClause}
+          GROUP BY e.id, e.nome
+          ORDER BY e.nome
+          ${deveRemoverLimites ? '' : 'LIMIT 30'}
+        `
         const resAcertosErros = await pool.query(queryAcertosErros, params)
-        console.log('[DEBUG ACERTOS_ERROS] Query executada (primeiros 400 chars):', queryAcertosErros.substring(0, 400))
-        console.log('[DEBUG ACERTOS_ERROS] Params usados:', params)
-        console.log('[DEBUG ACERTOS_ERROS] Resultados encontrados:', resAcertosErros.rows.length)
         if (resAcertosErros.rows.length > 0) {
-          console.log('[DEBUG ACERTOS_ERROS] Primeiro resultado:', resAcertosErros.rows[0])
           resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
             nome: r.nome,
             escola: r.nome,
             acertos: parseInt(r.total_acertos) || 0,
-            erros: parseInt(r.total_erros) || 0,
-            total_alunos: parseInt(r.total_alunos) || 0
+            erros: Math.max(0, parseInt(r.total_erros) || 0),
+            total_alunos: parseInt(r.total_alunos) || 0,
+            total_questoes: parseInt(r.total_questoes) || 0
           }))
         } else {
-          console.log('[DEBUG ACERTOS_ERROS] Nenhum resultado encontrado! Verificando se há dados no banco...')
-          // Verificar se há dados no banco com os filtros
-          const queryVerificacao = `
-            SELECT COUNT(*) as total
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-          `
-          const resVerificacao = await pool.query(queryVerificacao, params)
-          console.log('[DEBUG ACERTOS_ERROS] Total de registros no banco com os filtros:', resVerificacao.rows[0]?.total || 0)
           resultado.acertos_erros = []
         }
       } else {
         // Se não há escola nem série, agrupar por escola
-        let queryAcertosErros = ''
-        if (disciplina === 'LP') {
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        } else if (disciplina === 'CH') {
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        } else if (disciplina === 'MAT') {
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 20 - SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        } else if (disciplina === 'CN') {
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 10 - SUM(COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        } else {
-          // Geral: soma de todas as disciplinas
-          queryAcertosErros = `
-            SELECT 
-              e.nome as nome,
-              SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_acertos,
-              COUNT(*) * 60 - SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) + COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0)) as total_erros,
-              COUNT(*) as total_alunos
-            FROM resultados_consolidados_unificada rc
-            INNER JOIN escolas e ON rc.escola_id = e.id
-            ${whereClause}
-            GROUP BY e.id, e.nome
-            ORDER BY e.nome
-            ${deveRemoverLimites ? '' : 'LIMIT 30'}
-          `
-        }
+        const queryAcertosErros = `
+          SELECT
+            e.nome as nome,
+            ${getAcertosSQL(disciplina)} as total_acertos,
+            SUM(${getQuestoesSQL(disciplina)}) - ${getAcertosSQL(disciplina)} as total_erros,
+            COUNT(*) as total_alunos,
+            SUM(${getQuestoesSQL(disciplina)}) as total_questoes
+          FROM resultados_consolidados_unificada rc
+          INNER JOIN escolas e ON rc.escola_id = e.id
+          ${whereClause}
+          GROUP BY e.id, e.nome
+          ORDER BY e.nome
+          ${deveRemoverLimites ? '' : 'LIMIT 30'}
+        `
         const resAcertosErros = await pool.query(queryAcertosErros, params)
         if (resAcertosErros.rows.length > 0) {
           resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
             nome: r.nome,
             acertos: parseInt(r.total_acertos) || 0,
-            erros: parseInt(r.total_erros) || 0,
-            total_alunos: parseInt(r.total_alunos) || 0
+            erros: Math.max(0, parseInt(r.total_erros) || 0),
+            total_alunos: parseInt(r.total_alunos) || 0,
+            total_questoes: parseInt(r.total_questoes) || 0
           }))
         } else {
           resultado.acertos_erros = []
@@ -918,16 +767,27 @@ export async function GET(request: NextRequest) {
         : []
     }
 
-    // 2. Heatmap de Desempenho (Escolas × Disciplinas)
+    // 2. Heatmap de Desempenho (Escolas × Disciplinas) - CORRIGIDO para Anos Iniciais
+    // Anos Iniciais: LP, MAT, PT (se houver), Geral
+    // Anos Finais: LP, CH, MAT, CN, Geral
     if (tipoGrafico === 'heatmap') {
+      const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
       const queryHeatmap = `
         SELECT
           e.id as escola_id,
           e.nome as escola_nome,
+          -- Identificar se é predominantemente anos iniciais
+          CASE WHEN COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) > COUNT(CASE WHEN ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END)
+               THEN true ELSE false END as anos_iniciais,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+          -- CH só para anos finais
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+          -- CN só para anos finais
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+          -- PT (Produção Textual) só para anos iniciais
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_pt,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
@@ -942,24 +802,37 @@ export async function GET(request: NextRequest) {
         ? resHeatmap.rows.map((r: any) => ({
             escola: r.escola_nome,
             escola_id: r.escola_id,
+            anos_iniciais: r.anos_iniciais,
             LP: parseFloat(r.media_lp) || 0,
-            CH: parseFloat(r.media_ch) || 0,
+            CH: r.anos_iniciais ? null : (parseFloat(r.media_ch) || 0),
             MAT: parseFloat(r.media_mat) || 0,
-            CN: parseFloat(r.media_cn) || 0,
+            CN: r.anos_iniciais ? null : (parseFloat(r.media_cn) || 0),
+            PT: r.anos_iniciais ? (parseFloat(r.media_pt) || null) : null,
             Geral: parseFloat(r.media_geral) || 0
           }))
         : []
     }
 
-    // 3. Radar Chart (Perfil de Desempenho)
+    // 3. Radar Chart (Perfil de Desempenho) - CORRIGIDO para Anos Iniciais
+    // Anos Iniciais: LP, MAT, PT
+    // Anos Finais: LP, CH, MAT, CN
     if (tipoGrafico === 'radar') {
+      const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
       const queryRadar = `
         SELECT
           COALESCE(e.nome, 'Geral') as nome,
+          -- Identificar se é predominantemente anos iniciais
+          CASE WHEN COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) > COUNT(CASE WHEN ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END)
+               THEN true ELSE false END as anos_iniciais,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as lp,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as ch,
+          -- CH só para anos finais
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as ch,
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as mat,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as cn
+          -- CN só para anos finais
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as cn,
+          -- PT (Produção Textual) só para anos iniciais
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as pt
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
@@ -969,13 +842,15 @@ export async function GET(request: NextRequest) {
         ${deveRemoverLimites ? '' : 'LIMIT 10'}
       `
       const resRadar = await pool.query(queryRadar, params)
-      resultado.radar = resRadar.rows.length > 0 
+      resultado.radar = resRadar.rows.length > 0
         ? resRadar.rows.map((r: any) => ({
             nome: r.nome,
+            anos_iniciais: r.anos_iniciais,
             LP: parseFloat(r.lp) || 0,
-            CH: parseFloat(r.ch) || 0,
+            CH: r.anos_iniciais ? null : (parseFloat(r.ch) || 0),
             MAT: parseFloat(r.mat) || 0,
-            CN: parseFloat(r.cn) || 0
+            CN: r.anos_iniciais ? null : (parseFloat(r.cn) || 0),
+            PT: r.anos_iniciais ? (parseFloat(r.pt) || null) : null
           }))
         : []
     }
@@ -1039,32 +914,83 @@ export async function GET(request: NextRequest) {
       resultado.boxplot_disciplina = notaConfigBoxplot.label
     }
 
-    // 5. Correlação entre Disciplinas
+    // 5. Correlação entre Disciplinas - CORRIGIDO para Anos Iniciais
+    // Anos Iniciais: correlação LP x MAT (e PT se houver)
+    // Anos Finais: correlação LP x CH x MAT x CN
     if (tipoGrafico === 'correlacao') {
-      const whereCorrelacao = whereClause 
-        ? `${whereClause} AND rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL`
-        : 'WHERE rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL'
-      
-      const queryCorrelacao = `
-        SELECT 
+      const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
+      // Buscar dados para anos finais (LP, CH, MAT, CN)
+      const whereCorrelacaoFinais = whereClause
+        ? `${whereClause} AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL`
+        : `WHERE ${numeroSerieSQL} NOT IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL`
+
+      // Buscar dados para anos iniciais (LP, MAT, PT)
+      const whereCorrelacaoIniciais = whereClause
+        ? `${whereClause} AND ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_mat IS NOT NULL`
+        : `WHERE ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_mat IS NOT NULL`
+
+      const queryCorrelacaoFinais = `
+        SELECT
+          'anos_finais' as tipo,
           CAST(rc.nota_lp AS DECIMAL) as lp,
           CAST(rc.nota_ch AS DECIMAL) as ch,
           CAST(rc.nota_mat AS DECIMAL) as mat,
-          CAST(rc.nota_cn AS DECIMAL) as cn
+          CAST(rc.nota_cn AS DECIMAL) as cn,
+          NULL::DECIMAL as pt
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
-        ${whereCorrelacao}
-        ${deveRemoverLimites ? '' : 'LIMIT 1000'}
+        ${whereCorrelacaoFinais}
+        ${deveRemoverLimites ? '' : 'LIMIT 500'}
       `
-      const resCorrelacao = await pool.query(queryCorrelacao, params)
-      resultado.correlacao = resCorrelacao.rows.length > 0
-        ? resCorrelacao.rows.map((r: any) => ({
-            LP: parseFloat(r.lp) || 0,
-            CH: parseFloat(r.ch) || 0,
-            MAT: parseFloat(r.mat) || 0,
-            CN: parseFloat(r.cn) || 0
-          }))
-        : []
+
+      const queryCorrelacaoIniciais = `
+        SELECT
+          'anos_iniciais' as tipo,
+          CAST(rc.nota_lp AS DECIMAL) as lp,
+          NULL::DECIMAL as ch,
+          CAST(rc.nota_mat AS DECIMAL) as mat,
+          NULL::DECIMAL as cn,
+          CAST(rc.nota_producao AS DECIMAL) as pt
+        FROM resultados_consolidados_unificada rc
+        INNER JOIN escolas e ON rc.escola_id = e.id
+        ${whereCorrelacaoIniciais}
+        ${deveRemoverLimites ? '' : 'LIMIT 500'}
+      `
+
+      const [resCorrelacaoFinais, resCorrelacaoIniciais] = await Promise.all([
+        pool.query(queryCorrelacaoFinais, params),
+        pool.query(queryCorrelacaoIniciais, params)
+      ])
+
+      // Combinar resultados
+      const dadosFinais = resCorrelacaoFinais.rows.map((r: any) => ({
+        tipo: 'anos_finais',
+        LP: parseFloat(r.lp) || 0,
+        CH: parseFloat(r.ch) || 0,
+        MAT: parseFloat(r.mat) || 0,
+        CN: parseFloat(r.cn) || 0,
+        PT: null
+      }))
+
+      const dadosIniciais = resCorrelacaoIniciais.rows.map((r: any) => ({
+        tipo: 'anos_iniciais',
+        LP: parseFloat(r.lp) || 0,
+        CH: null,
+        MAT: parseFloat(r.mat) || 0,
+        CN: null,
+        PT: r.pt ? parseFloat(r.pt) : null
+      }))
+
+      resultado.correlacao = [...dadosFinais, ...dadosIniciais]
+
+      // Adicionar metadados para o frontend saber quais gráficos mostrar
+      resultado.correlacao_meta = {
+        tem_anos_finais: dadosFinais.length > 0,
+        tem_anos_iniciais: dadosIniciais.length > 0,
+        total_anos_finais: dadosFinais.length,
+        total_anos_iniciais: dadosIniciais.length
+      }
     }
 
     // 6. Ranking Interativo

@@ -1025,75 +1025,107 @@ export default function GraficosPage() {
                 </div>
               )}
 
-              {/* Heatmap de Desempenho */}
-              {dados.heatmap && dados.heatmap.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
-                  <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Heatmap de Desempenho (Escolas × Disciplinas)</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="bg-gray-100 dark:bg-slate-700 border-b-2 border-gray-300 dark:border-slate-600">
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-left font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">Escola</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">LP</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">CH</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">MAT</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">CN</th>
-                          <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-base md:text-lg uppercase">Geral</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dados.heatmap.map((item: any, index: number) => {
-                          const getColor = (value: number) => {
-                            if (value >= 8) return 'bg-green-500'
-                            if (value >= 6) return 'bg-green-300 dark:bg-green-600'
-                            if (value >= 4) return 'bg-yellow-300 dark:bg-yellow-600'
-                            return 'bg-red-300 dark:bg-red-600'
-                          }
-                          return (
+              {/* Heatmap de Desempenho - Adaptado para Anos Iniciais/Finais */}
+              {dados.heatmap && dados.heatmap.length > 0 && (() => {
+                // Verificar se há dados de anos iniciais ou finais
+                const temAnosIniciais = dados.heatmap.some((item: any) => item.anos_iniciais)
+                const temAnosFinais = dados.heatmap.some((item: any) => !item.anos_iniciais)
+
+                const getColor = (value: number | null) => {
+                  if (value === null) return 'bg-gray-200 dark:bg-gray-600'
+                  if (value >= 8) return 'bg-green-500'
+                  if (value >= 6) return 'bg-green-300 dark:bg-green-600'
+                  if (value >= 4) return 'bg-yellow-300 dark:bg-yellow-600'
+                  return 'bg-red-300 dark:bg-red-600'
+                }
+
+                return (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
+                    <div className="flex items-center mb-4">
+                      <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Heatmap de Desempenho (Escolas × Disciplinas)</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="bg-gray-100 dark:bg-slate-700 border-b-2 border-gray-300 dark:border-slate-600">
+                            <th className="px-3 md:px-4 py-2.5 md:py-3 text-left font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">Escola</th>
+                            <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">LP</th>
+                            {temAnosFinais && <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">CH</th>}
+                            <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">MAT</th>
+                            {temAnosFinais && <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">CN</th>}
+                            {temAnosIniciais && <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-sm md:text-base uppercase">PT</th>}
+                            <th className="px-3 md:px-4 py-2.5 md:py-3 text-center font-bold text-gray-900 dark:text-white text-base md:text-lg uppercase">Geral</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dados.heatmap.map((item: any, index: number) => (
                             <tr key={index} className="border-b dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700">
                               <td className="px-3 md:px-4 py-2.5 md:py-3 font-medium text-sm md:text-base text-gray-900 dark:text-white">{item.escola}</td>
-                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.LP)} text-white font-bold text-sm md:text-base`}>{item.LP.toFixed(2)}</td>
-                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.CH)} text-white font-bold text-sm md:text-base`}>{item.CH.toFixed(2)}</td>
-                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.MAT)} text-white font-bold text-sm md:text-base`}>{item.MAT.toFixed(2)}</td>
-                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.CN)} text-white font-bold text-sm md:text-base`}>{item.CN.toFixed(2)}</td>
-                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.Geral)} text-white font-bold text-base md:text-lg`}>{item.Geral.toFixed(2)}</td>
+                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.LP)} text-white font-bold text-sm md:text-base`}>
+                                {item.LP?.toFixed(2) || '-'}
+                              </td>
+                              {temAnosFinais && (
+                                <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.CH)} text-white font-bold text-sm md:text-base`}>
+                                  {item.CH !== null ? item.CH.toFixed(2) : '-'}
+                                </td>
+                              )}
+                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.MAT)} text-white font-bold text-sm md:text-base`}>
+                                {item.MAT?.toFixed(2) || '-'}
+                              </td>
+                              {temAnosFinais && (
+                                <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.CN)} text-white font-bold text-sm md:text-base`}>
+                                  {item.CN !== null ? item.CN.toFixed(2) : '-'}
+                                </td>
+                              )}
+                              {temAnosIniciais && (
+                                <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.PT)} text-white font-bold text-sm md:text-base`}>
+                                  {item.PT !== null ? item.PT.toFixed(2) : '-'}
+                                </td>
+                              )}
+                              <td className={`px-3 md:px-4 py-2.5 md:py-3 text-center ${getColor(item.Geral)} text-white font-bold text-base md:text-lg`}>
+                                {item.Geral?.toFixed(2) || '-'}
+                              </td>
                             </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
-              {/* Radar Chart */}
-              {dados.radar && dados.radar.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
-                  <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Perfil de Desempenho (Radar Chart)</h3>
+              {/* Radar Chart - Adaptado para Anos Iniciais/Finais */}
+              {dados.radar && dados.radar.length > 0 && (() => {
+                const temAnosIniciais = dados.radar.some((item: any) => item.anos_iniciais)
+                const temAnosFinais = dados.radar.some((item: any) => !item.anos_iniciais)
+
+                return (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-4 sm:p-6 border border-gray-200 dark:border-slate-700">
+                    <div className="flex items-center mb-4">
+                      <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Perfil de Desempenho (Radar Chart)</h3>
+                    </div>
+                    <ResponsiveContainer width="100%" height={Math.max(400, dados.radar.length * 80)}>
+                      <RadarChart data={dados.radar}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="nome" tick={{ fontSize: 13, fontWeight: 500 }} />
+                        <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fontSize: 13, fontWeight: 500 }} />
+                        <Radar name="LP" dataKey="LP" stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.6} strokeWidth={2} />
+                        {temAnosFinais && <Radar name="CH" dataKey="CH" stroke="#10B981" fill="#10B981" fillOpacity={0.6} strokeWidth={2} />}
+                        <Radar name="MAT" dataKey="MAT" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.6} strokeWidth={2} />
+                        {temAnosFinais && <Radar name="CN" dataKey="CN" stroke="#EF4444" fill="#EF4444" fillOpacity={0.6} strokeWidth={2} />}
+                        {temAnosIniciais && <Radar name="PT" dataKey="PT" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.6} strokeWidth={2} />}
+                        <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
+                        <Tooltip
+                          contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+                          labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <ResponsiveContainer width="100%" height={Math.max(400, dados.radar.length * 80)}>
-                    <RadarChart data={dados.radar}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="nome" tick={{ fontSize: 13, fontWeight: 500 }} />
-                      <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fontSize: 13, fontWeight: 500 }} />
-                      <Radar name="LP" dataKey="LP" stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.6} strokeWidth={2} />
-                      <Radar name="CH" dataKey="CH" stroke="#10B981" fill="#10B981" fillOpacity={0.6} strokeWidth={2} />
-                      <Radar name="MAT" dataKey="MAT" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.6} strokeWidth={2} />
-                      <Radar name="CN" dataKey="CN" stroke="#EF4444" fill="#EF4444" fillOpacity={0.6} strokeWidth={2} />
-                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
-                      <Tooltip 
-                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Box Plot (simulado com barras) */}
               {dados.boxplot && dados.boxplot.length > 0 && (

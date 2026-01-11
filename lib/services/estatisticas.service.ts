@@ -55,7 +55,8 @@ export interface EstatisticasGerais {
   // Contadores comuns
   totalEscolas: number
   totalResultados: number
-  totalAlunos: number
+  totalAlunos: number          // Total de alunos cadastrados (tabela alunos)
+  totalAlunosAvaliados: number // Total de alunos com resultados (P ou F na presença)
   totalTurmas: number
   totalAlunosPresentes: number
   totalAlunosFaltantes: number
@@ -312,16 +313,18 @@ async function buscarTotalAcertos(escolaId: string): Promise<number> {
 }
 
 /**
- * Busca presença (presentes e faltantes)
+ * Busca presença (presentes, faltantes e total de alunos avaliados)
+ * Alunos avaliados = alunos únicos com presença P ou F (não conta '-')
  */
 async function buscarPresenca(
   escopo: EscopoEstatisticas,
   filtros: FiltrosEstatisticas
-): Promise<{ presentes: number; faltantes: number }> {
+): Promise<{ presentes: number; faltantes: number; totalAvaliados: number }> {
   let query = `
     SELECT
-      COUNT(CASE WHEN presenca IN ('P', 'p') THEN 1 END) as presentes,
-      COUNT(CASE WHEN presenca IN ('F', 'f') THEN 1 END) as faltantes
+      COUNT(DISTINCT CASE WHEN presenca IN ('P', 'p') THEN aluno_id END) as presentes,
+      COUNT(DISTINCT CASE WHEN presenca IN ('F', 'f') THEN aluno_id END) as faltantes,
+      COUNT(DISTINCT CASE WHEN presenca IN ('P', 'p', 'F', 'f') THEN aluno_id END) as total_avaliados
     FROM resultados_consolidados_unificada rc
   `
   const params: (string | null)[] = []
@@ -329,8 +332,9 @@ async function buscarPresenca(
   if (escopo === 'polo' && filtros.poloId) {
     query = `
       SELECT
-        COUNT(CASE WHEN rc.presenca IN ('P', 'p') THEN 1 END) as presentes,
-        COUNT(CASE WHEN rc.presenca IN ('F', 'f') THEN 1 END) as faltantes
+        COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p') THEN rc.aluno_id END) as presentes,
+        COUNT(DISTINCT CASE WHEN rc.presenca IN ('F', 'f') THEN rc.aluno_id END) as faltantes,
+        COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p', 'F', 'f') THEN rc.aluno_id END) as total_avaliados
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       WHERE e.polo_id = $1
@@ -344,7 +348,8 @@ async function buscarPresenca(
   const result = await pool.query(query, params)
   return {
     presentes: parseDbInt(result.rows[0]?.presentes),
-    faltantes: parseDbInt(result.rows[0]?.faltantes)
+    faltantes: parseDbInt(result.rows[0]?.faltantes),
+    totalAvaliados: parseDbInt(result.rows[0]?.total_avaliados)
   }
 }
 
@@ -407,6 +412,9 @@ async function buscarMediaEAprovacao(
 
 /**
  * Busca médias por tipo de ensino (anos iniciais e finais)
+ * Anos Iniciais: 2º, 3º, 5º (séries 2, 3, 5)
+ * Anos Finais: 6º, 7º, 8º, 9º (séries 6, 7, 8, 9)
+ * Usa lógica direta sem depender de configuracao_series para maior robustez
  */
 async function buscarMediasPorTipoEnsino(
   escopo: EscopoEstatisticas,
@@ -417,13 +425,18 @@ async function buscarMediasPorTipoEnsino(
   totalAnosIniciais: number
   totalAnosFinais: number
 }> {
+  // Query usando CASE para determinar tipo de ensino diretamente da série
+  // Extrai o número da série e classifica em anos_iniciais ou anos_finais
   let query = `
     SELECT
-      cs.tipo_ensino,
+      CASE
+        WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
+        WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('6', '7', '8', '9') THEN 'anos_finais'
+        ELSE 'outro'
+      END as tipo_ensino,
       ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
-      COUNT(*) as total
+      COUNT(DISTINCT rc.aluno_id) as total
     FROM resultados_consolidados_unificada rc
-    JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') = cs.serie
     WHERE rc.presenca IN ('P', 'p')
       AND rc.media_aluno IS NOT NULL
       AND CAST(rc.media_aluno AS DECIMAL) > 0
@@ -433,24 +446,27 @@ async function buscarMediasPorTipoEnsino(
   if (escopo === 'polo' && filtros.poloId) {
     query = `
       SELECT
-        cs.tipo_ensino,
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
+          WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('6', '7', '8', '9') THEN 'anos_finais'
+          ELSE 'outro'
+        END as tipo_ensino,
         ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
-        COUNT(*) as total
+        COUNT(DISTINCT rc.aluno_id) as total
       FROM resultados_consolidados_unificada rc
-      JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') = cs.serie
-      JOIN escolas e ON rc.escola_id = e.id
+      INNER JOIN escolas e ON rc.escola_id = e.id
       WHERE rc.presenca IN ('P', 'p')
         AND e.polo_id = $1
         AND rc.media_aluno IS NOT NULL
         AND CAST(rc.media_aluno AS DECIMAL) > 0
-      GROUP BY cs.tipo_ensino
+      GROUP BY tipo_ensino
     `
     params.push(filtros.poloId)
   } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ` AND rc.escola_id = $1 GROUP BY cs.tipo_ensino`
+    query += ` AND rc.escola_id = $1 GROUP BY tipo_ensino`
     params.push(filtros.escolaId)
   } else {
-    query += ' GROUP BY cs.tipo_ensino'
+    query += ' GROUP BY tipo_ensino'
   }
 
   const result = await pool.query(query, params)
@@ -517,6 +533,7 @@ export async function getEstatisticas(
     totalEscolas: 0,
     totalResultados: 0,
     totalAlunos: 0,
+    totalAlunosAvaliados: 0,
     totalTurmas: 0,
     totalAlunosPresentes: 0,
     totalAlunosFaltantes: 0,
@@ -589,6 +606,7 @@ export async function getEstatisticas(
   if (presencaQuery.sucesso && presencaQuery.dados) {
     resultado.totalAlunosPresentes = presencaQuery.dados.presentes
     resultado.totalAlunosFaltantes = presencaQuery.dados.faltantes
+    resultado.totalAlunosAvaliados = presencaQuery.dados.totalAvaliados
   }
 
   if (mediaQuery.sucesso && mediaQuery.dados) {
@@ -629,6 +647,7 @@ export function getEstatisticasPadrao(): EstatisticasGerais {
     totalEscolas: 0,
     totalResultados: 0,
     totalAlunos: 0,
+    totalAlunosAvaliados: 0,
     totalTurmas: 0,
     totalAlunosPresentes: 0,
     totalAlunosFaltantes: 0,

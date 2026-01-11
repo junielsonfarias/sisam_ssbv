@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     }
 
     let query = `
-      SELECT 
+      SELECT
         e.id as escola_id,
         e.nome as escola_nome,
         p.id as polo_id,
@@ -84,7 +84,8 @@ export async function GET(request: NextRequest) {
         rc.serie,
         t.id as turma_id,
         t.codigo as turma_codigo,
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
+        -- Total de alunos: contar apenas alunos com presença P ou F (exclui presença "-" não contabilizada)
+        COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p', 'F', 'f') THEN rc.aluno_id END) as total_alunos,
         COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as alunos_presentes,
         -- Media calculada dinamicamente baseada na serie
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
@@ -130,6 +131,7 @@ export async function GET(request: NextRequest) {
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END) as media_ch,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END) as media_mat,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END) as media_cn,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END) as media_producao,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_lp IS NOT NULL) THEN CAST(rc.total_acertos_lp AS INTEGER) ELSE NULL END) as media_acertos_lp,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_ch IS NOT NULL) THEN CAST(rc.total_acertos_ch AS INTEGER) ELSE NULL END) as media_acertos_ch,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_mat IS NOT NULL) THEN CAST(rc.total_acertos_mat AS INTEGER) ELSE NULL END) as media_acertos_mat,
@@ -140,8 +142,6 @@ export async function GET(request: NextRequest) {
       INNER JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
-        AND rc.media_aluno IS NOT NULL
-        AND CAST(rc.media_aluno AS DECIMAL) > 0
     `
 
     const params: (string | number | boolean | null | undefined)[] = []
@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
     // ===== QUERY PARA DADOS AGREGADOS POR ESCOLA E SÉRIE (sem turma) =====
     // Reutilizar os mesmos filtros, mas agrupar apenas por escola e série
     let queryAgregado = `
-      SELECT 
+      SELECT
         e.id as escola_id,
         e.nome as escola_nome,
         p.id as polo_id,
@@ -230,7 +230,8 @@ export async function GET(request: NextRequest) {
         rc.serie,
         NULL as turma_id,
         NULL as turma_codigo,
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
+        -- Total de alunos: contar apenas alunos com presença P ou F (exclui presença "-" não contabilizada)
+        COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p', 'F', 'f') THEN rc.aluno_id END) as total_alunos,
         COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as alunos_presentes,
         -- Media calculada dinamicamente baseada na serie
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
@@ -272,14 +273,15 @@ export async function GET(request: NextRequest) {
               ELSE NULL END
           END
         ELSE NULL END) as media_geral,
-        AVG(CAST(rc.nota_lp AS DECIMAL)) as media_lp,
-        AVG(CAST(rc.nota_ch AS DECIMAL)) as media_ch,
-        AVG(CAST(rc.nota_mat AS DECIMAL)) as media_mat,
-        AVG(CAST(rc.nota_cn AS DECIMAL)) as media_cn,
-        AVG(CAST(rc.total_acertos_lp AS INTEGER)) as media_acertos_lp,
-        AVG(CAST(rc.total_acertos_ch AS INTEGER)) as media_acertos_ch,
-        AVG(CAST(rc.total_acertos_mat AS INTEGER)) as media_acertos_mat,
-        AVG(CAST(rc.total_acertos_cn AS INTEGER)) as media_acertos_cn,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END) as media_lp,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END) as media_ch,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END) as media_mat,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END) as media_cn,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END) as media_producao,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_lp IS NOT NULL) THEN CAST(rc.total_acertos_lp AS INTEGER) ELSE NULL END) as media_acertos_lp,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_ch IS NOT NULL) THEN CAST(rc.total_acertos_ch AS INTEGER) ELSE NULL END) as media_acertos_ch,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_mat IS NOT NULL) THEN CAST(rc.total_acertos_mat AS INTEGER) ELSE NULL END) as media_acertos_mat,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.total_acertos_cn IS NOT NULL) THEN CAST(rc.total_acertos_cn AS INTEGER) ELSE NULL END) as media_acertos_cn,
         COUNT(DISTINCT t.id) as total_turmas
       FROM resultados_consolidados_unificada rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
@@ -287,8 +289,6 @@ export async function GET(request: NextRequest) {
       INNER JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       WHERE (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
-        AND rc.media_aluno IS NOT NULL
-        AND CAST(rc.media_aluno AS DECIMAL) > 0
     `
 
     const paramsAgregado: any[] = []
@@ -414,8 +414,9 @@ export async function GET(request: NextRequest) {
             CAST(rc.nota_lp AS DECIMAL) as nota_lp,
             CAST(rc.nota_ch AS DECIMAL) as nota_ch,
             CAST(rc.nota_mat AS DECIMAL) as nota_mat,
-            CAST(rc.nota_cn AS DECIMAL) as nota_cn
-          FROM resultados_consolidados rc
+            CAST(rc.nota_cn AS DECIMAL) as nota_cn,
+            CAST(rc.nota_producao AS DECIMAL) as nota_producao
+          FROM resultados_consolidados_unificada rc
           INNER JOIN alunos a ON rc.aluno_id = a.id
           LEFT JOIN turmas t ON rc.turma_id = t.id
           WHERE rc.escola_id = $1 AND rc.serie = $2
@@ -482,6 +483,13 @@ export async function GET(request: NextRequest) {
             return currNota > prevNota ? curr : prev
           })
 
+          // Melhor aluno em Produção de Texto (anos iniciais)
+          const melhorPROD = alunos.reduce((prev, curr) => {
+            const prevNota = parseFloat(prev.nota_producao) || 0
+            const currNota = parseFloat(curr.nota_producao) || 0
+            return currNota > prevNota ? curr : prev
+          })
+
           // Melhor aluno por turma
           const alunosPorTurma: Record<string, any[]> = {}
           alunos.forEach((aluno: any) => {
@@ -508,6 +516,7 @@ export async function GET(request: NextRequest) {
             melhorCH,
             melhorMAT,
             melhorCN,
+            melhorPROD,
             melhoresPorTurma,
           }
         }

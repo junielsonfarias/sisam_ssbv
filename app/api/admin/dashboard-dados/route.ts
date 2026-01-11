@@ -347,6 +347,7 @@ export async function GET(request: NextRequest) {
 
     // CORREÇÃO: Usar whereClauseBase para métricas gerais (sem filtro de disciplina)
     // Isso garante que total_alunos, presentes e faltantes não sejam afetados pelo filtro de disciplina
+    // CORREÇÃO 2: Para anos iniciais, a média deve incluir nota_producao
     const metricasQuery = `
       SELECT
         COUNT(DISTINCT rc.aluno_id) as total_alunos,
@@ -355,12 +356,44 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT e.polo_id) as total_polos,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as total_presentes,
         COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as total_faltantes,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+        -- Média CORRIGIDA: anos iniciais inclui PROD, anos finais usa LP+CH+MAT+CN
+        ROUND(AVG(CASE
+          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+            CASE
+              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD
+              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+                ) / NULLIF(
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                  0
+                )
+              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN
+              ELSE
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+                ) / NULLIF(
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                  0
+                )
+            END
+          ELSE NULL
+        END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0) THEN CAST(rc_table.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_producao,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_producao,
         MIN(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) as menor_media,
         MAX(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) as maior_media
       FROM resultados_consolidados_unificada rc
@@ -448,17 +481,51 @@ export async function GET(request: NextRequest) {
 
     // ========== MÉDIAS POR ESCOLA ==========
     // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
+    // CORREÇÃO 2: Para anos iniciais, a média deve incluir nota_producao
     const mediasPorEscolaQuery = `
       SELECT
         e.id as escola_id,
         e.nome as escola,
         p.nome as polo,
         COUNT(DISTINCT rc.aluno_id) as total_alunos,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+        -- Média CORRIGIDA: considera nota_producao para anos iniciais
+        ROUND(AVG(CASE
+          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+            CASE
+              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD
+              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+                ) / NULLIF(
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                  0
+                )
+              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN
+              ELSE
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+                ) / NULLIF(
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                  0
+                )
+            END
+          ELSE NULL
+        END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
         COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
       FROM resultados_consolidados_unificada rc
@@ -472,6 +539,7 @@ export async function GET(request: NextRequest) {
 
     // ========== MÉDIAS POR TURMA ==========
     // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
+    // CORREÇÃO 2: Para anos iniciais (2,3,5), a média deve incluir nota_producao: (LP + MAT + PROD) / 3
     const mediasPorTurmaQuery = `
       SELECT
         t.id as turma_id,
@@ -479,9 +547,42 @@ export async function GET(request: NextRequest) {
         e.nome as escola,
         rc.serie,
         COUNT(DISTINCT rc.aluno_id) as total_alunos,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+        -- Média CORRIGIDA: anos iniciais inclui PROD, anos finais usa LP+CH+MAT+CN
+        ROUND(AVG(CASE
+          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+            CASE
+              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD
+              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+                ) / NULLIF(
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                  0
+                )
+              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN
+              ELSE
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+                ) / NULLIF(
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
+                  0
+                )
+            END
+          ELSE NULL
+        END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
         COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
       FROM resultados_consolidados_unificada rc

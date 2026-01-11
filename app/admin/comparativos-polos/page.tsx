@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useMemo } from 'react'
-import { Filter, X, MapPin, TrendingUp, BarChart3, Users, Target, BookOpen, School } from 'lucide-react'
+import { Filter, X, MapPin, TrendingUp, BarChart3, Users, Target, BookOpen, School, Printer } from 'lucide-react'
 
 interface DadosComparativoPolo {
   polo_id: string
@@ -19,6 +19,7 @@ interface DadosComparativoPolo {
   media_ch: number | string
   media_mat: number | string
   media_cn: number | string
+  media_producao?: number | string
   media_acertos_lp: number | string
   media_acertos_ch: number | string
   media_acertos_mat: number | string
@@ -219,19 +220,32 @@ export default function ComparativosPolosPage() {
     })
   }
 
-  const formatarNumero = (valor: number | string | null): string => {
+  const formatarNumero = (valor: number | string | null | undefined): string => {
     if (valor === null || valor === undefined) return '-'
     const num = typeof valor === 'string' ? parseFloat(valor) : valor
     if (isNaN(num)) return '-'
     return num.toFixed(2)
   }
 
-  const getNotaColor = (nota: number | string | null) => {
+  const getNotaColor = (nota: number | string | null | undefined) => {
+    if (nota === null || nota === undefined) return 'text-gray-500'
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
-    if (num === null || isNaN(num)) return 'text-gray-500'
+    if (isNaN(num)) return 'text-gray-500'
     if (num >= 7) return 'text-green-600 font-semibold'
     if (num >= 5) return 'text-yellow-600 font-semibold'
     return 'text-red-600 font-semibold'
+  }
+
+  // Verifica se a série é de anos iniciais (2º, 3º, 5º)
+  const isAnosIniciais = (serie: string | null | undefined): boolean => {
+    if (!serie) return false
+    const numeroSerie = serie.toString().replace(/[^0-9]/g, '')
+    return ['2', '3', '5'].includes(numeroSerie)
+  }
+
+  // Função para imprimir a página
+  const handlePrint = () => {
+    window.print()
   }
 
   const nomesPolos = useMemo(() => {
@@ -459,10 +473,17 @@ export default function ComparativosPolosPage() {
                                 <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">Turmas</th>
                                 <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[90px] sm:min-w-[100px]">Total Alunos</th>
                                 <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Presentes</th>
+                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Faltantes</th>
                                 <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">LP</th>
-                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CH</th>
                                 <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">MAT</th>
-                                <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CN</th>
+                                {isAnosIniciais(serie) ? (
+                                  <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">PROD</th>
+                                ) : (
+                                  <>
+                                    <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CH</th>
+                                    <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CN</th>
+                                  </>
+                                )}
                                 <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Média Geral</th>
                               </tr>
                             </thead>
@@ -471,7 +492,11 @@ export default function ComparativosPolosPage() {
                                 const mediaA = typeof a.media_geral === 'string' ? parseFloat(a.media_geral) : (a.media_geral || 0)
                                 const mediaB = typeof b.media_geral === 'string' ? parseFloat(b.media_geral) : (b.media_geral || 0)
                                 return mediaB - mediaA
-                              }).map((item, index) => (
+                              }).map((item, index) => {
+                                const faltantes = item.total_alunos - item.alunos_presentes
+                                const percentualFaltantes = item.total_alunos > 0 ? ((faltantes / item.total_alunos) * 100).toFixed(1) : '0.0'
+                                const percentualPresentes = item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : '0.0'
+                                return (
                                 <tr key={`agregado-${item.polo_id}-${item.serie}-${index}`} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 bg-indigo-50/30">
                                   <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
                                     <div className="flex items-center">
@@ -493,42 +518,45 @@ export default function ComparativosPolosPage() {
                                     <span className="text-gray-700 font-bold text-xs sm:text-sm">{item.total_alunos}</span>
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <span className="text-gray-700 font-medium text-xs sm:text-sm">
-                                      {item.alunos_presentes} ({item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : 0}%)
+                                    <span className="text-green-700 font-medium text-xs sm:text-sm">
+                                      {item.alunos_presentes} ({percentualPresentes}%)
                                     </span>
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">{formatarNumero(item.media_acertos_lp)}/20</span>
-                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
-                                        {formatarNumero(item.media_lp)}
-                                      </span>
-                                    </div>
+                                    <span className={`font-medium text-xs sm:text-sm ${faltantes > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                      {faltantes} ({percentualFaltantes}%)
+                                    </span>
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">{formatarNumero(item.media_acertos_ch)}/10</span>
-                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
-                                        {formatarNumero(item.media_ch)}
-                                      </span>
-                                    </div>
+                                    <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
+                                      {formatarNumero(item.media_lp)}
+                                    </span>
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">{formatarNumero(item.media_acertos_mat)}/20</span>
-                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
-                                        {formatarNumero(item.media_mat)}
-                                      </span>
-                                    </div>
+                                    <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
+                                      {formatarNumero(item.media_mat)}
+                                    </span>
                                   </td>
-                                  <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">{formatarNumero(item.media_acertos_cn)}/10</span>
-                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
-                                        {formatarNumero(item.media_cn)}
+                                  {isAnosIniciais(serie) ? (
+                                    <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_producao)}`}>
+                                        {formatarNumero(item.media_producao)}
                                       </span>
-                                    </div>
-                                  </td>
+                                    </td>
+                                  ) : (
+                                    <>
+                                      <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                        <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                          {formatarNumero(item.media_ch)}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                        <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                          {formatarNumero(item.media_cn)}
+                                        </span>
+                                      </td>
+                                    </>
+                                  )}
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                     <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
                                       <span className={`text-sm sm:text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
@@ -537,7 +565,7 @@ export default function ComparativosPolosPage() {
                                     </div>
                                   </td>
                                 </tr>
-                              ))}
+                              )})}
                             </tbody>
                           </table>
                         </div>
@@ -575,10 +603,17 @@ export default function ComparativosPolosPage() {
                                       <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">Turmas</th>
                                       <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[90px] sm:min-w-[100px]">Total Alunos</th>
                                       <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Presentes</th>
+                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Faltantes</th>
                                       <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">LP</th>
-                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CH</th>
                                       <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">MAT</th>
-                                      <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CN</th>
+                                      {isAnosIniciais(serie) ? (
+                                        <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">PROD</th>
+                                      ) : (
+                                        <>
+                                          <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CH</th>
+                                          <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[80px] sm:min-w-[100px]">CN</th>
+                                        </>
+                                      )}
                                       <th className="text-center py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[100px] sm:min-w-[120px]">Média Geral</th>
                                     </tr>
                                   </thead>
@@ -587,7 +622,11 @@ export default function ComparativosPolosPage() {
                                       const mediaA = typeof a.media_geral === 'string' ? parseFloat(a.media_geral) : (a.media_geral || 0)
                                       const mediaB = typeof b.media_geral === 'string' ? parseFloat(b.media_geral) : (b.media_geral || 0)
                                       return mediaB - mediaA
-                                    }).map((item, index) => (
+                                    }).map((item, index) => {
+                                      const faltantes = item.total_alunos - item.alunos_presentes
+                                      const percentualFaltantes = item.total_alunos > 0 ? ((faltantes / item.total_alunos) * 100).toFixed(1) : '0.0'
+                                      const percentualPresentes = item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : '0.0'
+                                      return (
                                       <tr key={`escola-${item.escola_id}-${item.serie}-${index}`} className="hover:bg-blue-50 bg-blue-50/30">
                                         <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
                                           <div className="flex items-center">
@@ -604,42 +643,45 @@ export default function ComparativosPolosPage() {
                                           <span className="text-gray-700 font-bold text-xs sm:text-sm">{item.total_alunos}</span>
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <span className="text-gray-700 font-medium text-xs sm:text-sm">
-                                            {item.alunos_presentes} ({item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : 0}%)
+                                          <span className="text-green-700 font-medium text-xs sm:text-sm">
+                                            {item.alunos_presentes} ({percentualPresentes}%)
                                           </span>
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">{formatarNumero(item.media_acertos_lp)}/20</span>
-                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
-                                              {formatarNumero(item.media_lp)}
-                                            </span>
-                                          </div>
+                                          <span className={`font-medium text-xs sm:text-sm ${faltantes > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                            {faltantes} ({percentualFaltantes}%)
+                                          </span>
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">{formatarNumero(item.media_acertos_ch)}/10</span>
-                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
-                                              {formatarNumero(item.media_ch)}
-                                            </span>
-                                          </div>
+                                          <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
+                                            {formatarNumero(item.media_lp)}
+                                          </span>
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">{formatarNumero(item.media_acertos_mat)}/20</span>
-                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
-                                              {formatarNumero(item.media_mat)}
-                                            </span>
-                                          </div>
+                                          <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
+                                            {formatarNumero(item.media_mat)}
+                                          </span>
                                         </td>
-                                        <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">{formatarNumero(item.media_acertos_cn)}/10</span>
-                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
-                                              {formatarNumero(item.media_cn)}
+                                        {isAnosIniciais(serie) ? (
+                                          <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_producao)}`}>
+                                              {formatarNumero(item.media_producao)}
                                             </span>
-                                          </div>
-                                        </td>
+                                          </td>
+                                        ) : (
+                                          <>
+                                            <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                              <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                                {formatarNumero(item.media_ch)}
+                                              </span>
+                                            </td>
+                                            <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                              <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                                {formatarNumero(item.media_cn)}
+                                              </span>
+                                            </td>
+                                          </>
+                                        )}
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                                           <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
                                             <span className={`text-sm sm:text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
@@ -648,7 +690,7 @@ export default function ComparativosPolosPage() {
                                           </div>
                                         </td>
                                       </tr>
-                                    ))}
+                                    )})}
                                   </tbody>
                                 </table>
                               </div>
