@@ -1,4 +1,4 @@
-# 🔧 Corrigir Variáveis no Vercel Dashboard (PASSO A PASSO)
+image.png# 🔧 Corrigir Variáveis no Vercel Dashboard (PASSO A PASSO)
 
 ## 📋 Guia Rápido com Prints
 
