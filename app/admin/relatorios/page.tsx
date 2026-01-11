@@ -90,6 +90,33 @@ export default async function RelatoriosPage() {
   }
 
   const { usuario, tipoUsuario, polos, escolas, anosDisponiveis } = dados;
+
+  // Temporariamente restrito apenas para administradores
+  if (usuario.tipo_usuario !== 'administrador') {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Relatórios
+          </h1>
+        </div>
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 text-center">
+            <svg className="mx-auto h-12 w-12 text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h3 className="text-lg font-medium text-yellow-800 dark:text-yellow-300 mb-2">
+              Funcionalidade em Manutenção
+            </h3>
+            <p className="text-yellow-700 dark:text-yellow-400">
+              A geração de relatórios está temporariamente disponível apenas para administradores.
+              Em breve estará liberada para todos os usuários.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   // Usar o ano mais recente com dados, ou o ano atual se não houver dados
   const anoLetivo = anosDisponiveis.length > 0 ? anosDisponiveis[0] : new Date().getFullYear().toString();
 

@@ -28,6 +28,14 @@ export async function GET(
       );
     }
 
+    // Temporariamente restrito apenas para administradores
+    if (usuario.tipo_usuario !== 'administrador') {
+      return NextResponse.json(
+        { error: 'Funcionalidade temporariamente disponível apenas para administradores' },
+        { status: 403 }
+      );
+    }
+
     const escolaId = params.id;
 
     // Verificar permissão para acessar escola
