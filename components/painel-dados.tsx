@@ -64,6 +64,13 @@ interface Turma {
   serie?: string
   total_alunos?: number
   media_geral?: number
+  media_lp?: number
+  media_mat?: number
+  media_prod?: number
+  media_ch?: number
+  media_cn?: number
+  presentes?: number
+  faltantes?: number
 }
 
 interface Estatisticas {
@@ -1066,25 +1073,60 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Serie</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Alunos</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Media</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">LP</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">MAT</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">PROD</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Presentes</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Faltantes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                {turmas.map((turma, index) => (
-                  <tr key={turma.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{index + 1}</td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-gray-900 dark:text-white text-sm">{turma.codigo || turma.nome || '-'}</div>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{turma.escola_nome || '-'}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{turma.serie || '-'}</td>
-                    <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{turma.total_alunos || 0}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`font-bold text-sm ${getNotaColor(turma.media_geral)}`}>
-                        {turma.media_geral ? turma.media_geral.toFixed(2) : '-'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {turmas.map((turma, index) => {
+                  // Detectar se é anos iniciais (2, 3, 5) para mostrar PROD
+                  const numSerie = turma.serie?.replace(/[^0-9]/g, '') || ''
+                  const isAnosIniciais = ['2', '3', '5'].includes(numSerie)
+                  return (
+                    <tr key={turma.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
+                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{index + 1}</td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-gray-900 dark:text-white text-sm">{turma.codigo || turma.nome || '-'}</div>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{turma.escola_nome || '-'}</td>
+                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{turma.serie || '-'}</td>
+                      <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{turma.total_alunos || 0}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`font-bold text-sm ${getNotaColor(turma.media_geral)}`}>
+                          {turma.media_geral != null ? turma.media_geral.toFixed(2) : '-'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`text-sm ${getNotaColor(turma.media_lp)}`}>
+                          {turma.media_lp != null ? turma.media_lp.toFixed(2) : '-'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`text-sm ${getNotaColor(turma.media_mat)}`}>
+                          {turma.media_mat != null ? turma.media_mat.toFixed(2) : '-'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {isAnosIniciais ? (
+                          <span className={`text-sm ${getNotaColor(turma.media_prod)}`}>
+                            {turma.media_prod != null ? turma.media_prod.toFixed(2) : '-'}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="text-sm text-green-600 dark:text-green-400 font-medium">{turma.presentes || 0}</span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="text-sm text-red-600 dark:text-red-400 font-medium">{turma.faltantes || 0}</span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
