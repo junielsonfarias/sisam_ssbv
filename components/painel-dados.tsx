@@ -610,10 +610,48 @@ export default function PainelDados({
         )}
       </div>
 
+      {/* Filtro Global de Série - Visível em todas as abas */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">Série:</span>
+          <button
+            onClick={() => setFiltrosAlunos(prev => ({ ...prev, serie: undefined, etapa_ensino: undefined }))}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+              !filtrosAlunos.serie
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Todas
+          </button>
+          {listaSeries.map((serie) => (
+            <button
+              key={serie}
+              onClick={() => {
+                const etapa = getEtapaFromSerie(serie)
+                setFiltrosAlunos(prev => ({ ...prev, serie, etapa_ensino: etapa }))
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+                filtrosAlunos.serie === serie
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+              }`}
+            >
+              {serie}
+            </button>
+          ))}
+          {filtrosAlunos.serie && (
+            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+              ({isAnosIniciais(filtrosAlunos.serie) ? 'Anos Iniciais' : 'Anos Finais'})
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Conteudo das Abas */}
       <div className="space-y-4">
       {abaAtiva === 'geral' && (
-        <AbaGeral estatisticas={estatisticas} tipoUsuario={tipoUsuario} carregando={carregando} />
+        <AbaGeral estatisticas={estatisticas} tipoUsuario={tipoUsuario} carregando={carregando} serieSelecionada={filtrosAlunos.serie} />
       )}
 
       {abaAtiva === 'escolas' && (
@@ -666,7 +704,7 @@ export default function PainelDados({
       )}
 
       {abaAtiva === 'analises' && (
-        <AbaAnalises estatisticas={estatisticas} carregando={carregando} />
+        <AbaAnalises estatisticas={estatisticas} carregando={carregando} serieSelecionada={filtrosAlunos.serie} />
       )}
       </div>
 
@@ -689,12 +727,26 @@ export default function PainelDados({
 }
 
 // Componente Aba Geral
-function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Estatisticas; tipoUsuario: string; carregando: boolean }) {
+function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
+  estatisticas: Estatisticas;
+  tipoUsuario: string;
+  carregando: boolean;
+  serieSelecionada?: string;
+}) {
   // Base para calculo de percentuais: alunos avaliados (com P ou F), nao total cadastrado
   const basePercentual = estatisticas.totalAlunosAvaliados > 0 ? estatisticas.totalAlunosAvaliados : estatisticas.totalAlunos
 
   return (
     <div className={`space-y-6 ${carregando ? 'opacity-50' : ''}`}>
+      {/* Aviso quando série selecionada - dados são globais */}
+      {serieSelecionada && (
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            <strong>Nota:</strong> A Visão Geral mostra estatísticas de todas as séries.
+            Para ver dados específicos do <strong>{serieSelecionada}</strong>, acesse as abas Escolas, Turmas ou Alunos.
+          </p>
+        </div>
+      )}
       {/* Cards principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {tipoUsuario !== 'escola' && (
@@ -1697,12 +1749,25 @@ function AbaAlunos({
 }
 
 // Componente Aba Analises
-function AbaAnalises({ estatisticas, carregando }: { estatisticas: Estatisticas; carregando: boolean }) {
+function AbaAnalises({ estatisticas, carregando, serieSelecionada }: {
+  estatisticas: Estatisticas;
+  carregando: boolean;
+  serieSelecionada?: string;
+}) {
   // Base para calculo de percentuais: alunos avaliados (com P ou F)
   const basePercentual = estatisticas.totalAlunosAvaliados > 0 ? estatisticas.totalAlunosAvaliados : estatisticas.totalAlunos
 
   return (
     <div className={`space-y-6 ${carregando ? 'opacity-50' : ''}`}>
+      {/* Aviso quando série selecionada - dados são globais */}
+      {serieSelecionada && (
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            <strong>Nota:</strong> As Análises mostram estatísticas de todas as séries.
+            Para ver dados específicos do <strong>{serieSelecionada}</strong>, acesse as abas Escolas, Turmas ou Alunos.
+          </p>
+        </div>
+      )}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-indigo-600" />
