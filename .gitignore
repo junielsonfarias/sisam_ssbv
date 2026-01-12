@@ -68,3 +68,6 @@ public/teste-*.html
 scripts/testar-*.js
 scripts/verificar-*.js
 
+# Claude Code (arquivos temporarios)
+tmpclaude-*
+
