@@ -42,10 +42,12 @@ export async function GET(request: NextRequest) {
     }
 
     const forcarAtualizacao = request.nextUrl.searchParams.get('atualizar_cache') === 'true'
+    const serie = request.nextUrl.searchParams.get('serie') || undefined
 
     // Verificar cache (com tratamento de erro para ambientes serverless como Vercel)
+    // Não usar cache quando há filtro de série
     try {
-      if (!forcarAtualizacao && verificarCache(cacheOptions)) {
+      if (!forcarAtualizacao && !serie && verificarCache(cacheOptions)) {
         const dadosCache = carregarCache<ReturnType<typeof getEstatisticasPadrao>>(cacheOptions)
         if (dadosCache) {
           return okComCache(dadosCache, 'cache')
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar estatísticas usando o serviço centralizado
-    const estatisticas = await getEstatisticas(usuario)
+    const estatisticas = await getEstatisticas(usuario, { serie })
 
     // Salvar no cache
     try {

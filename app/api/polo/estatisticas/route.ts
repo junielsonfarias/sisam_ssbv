@@ -24,9 +24,13 @@ export async function GET(request: NextRequest) {
       return forbidden()
     }
 
+    // Extrair filtros da query string
+    const { searchParams } = new URL(request.url)
+    const serie = searchParams.get('serie') || undefined
+
     // Buscar estatísticas usando o serviço centralizado
     // O serviço detecta automaticamente que é usuário de polo e aplica os filtros
-    const estatisticas = await getEstatisticas(usuario)
+    const estatisticas = await getEstatisticas(usuario, { serie })
 
     return ok(estatisticas)
   } catch (error: any) {

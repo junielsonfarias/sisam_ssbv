@@ -37,6 +37,8 @@ export interface FiltrosEstatisticas {
   escolaId?: string | null
   /** Ano letivo para filtrar */
   anoLetivo?: string | null
+  /** Série para filtrar (ex: '2º Ano', '8º Ano') */
+  serie?: string | null
 }
 
 /**
@@ -158,6 +160,15 @@ function montarFiltroEscopo(
   return { where, params }
 }
 
+/**
+ * Gera filtro SQL para série
+ * Retorna a condição SQL e se deve usar AND ou não
+ */
+function gerarFiltroSerie(serie: string | null | undefined, alias: string = 'rc'): string {
+  if (!serie) return ''
+  return `${alias}.serie = '${serie}'`
+}
+
 // ============================================================================
 // QUERIES DE ESTATÍSTICAS
 // ============================================================================
@@ -242,15 +253,25 @@ async function buscarTotalTurmas(
 ): Promise<number> {
   let query = 'SELECT COUNT(*) as total FROM turmas t WHERE t.ativo = true'
   const params: (string | null)[] = []
+  let paramIndex = 1
 
   if (escopo === 'polo' && filtros.poloId) {
     query = `SELECT COUNT(*) as total FROM turmas t
              INNER JOIN escolas e ON t.escola_id = e.id
-             WHERE t.ativo = true AND e.polo_id = $1`
+             WHERE t.ativo = true AND e.polo_id = $${paramIndex}`
     params.push(filtros.poloId)
+    paramIndex++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ' AND t.escola_id = $1'
+    query += ` AND t.escola_id = $${paramIndex}`
     params.push(filtros.escolaId)
+    paramIndex++
+  }
+
+  // Filtro de série
+  if (filtros.serie) {
+    query += ` AND t.serie = $${paramIndex}`
+    params.push(filtros.serie)
+    paramIndex++
   }
 
   const result = await pool.query(query, params)
@@ -266,13 +287,23 @@ async function buscarTotalAlunos(
 ): Promise<number> {
   let query = 'SELECT COUNT(*) as total FROM alunos WHERE ativo = true'
   const params: (string | null)[] = []
+  let paramIndex = 1
 
   if (escopo === 'polo' && filtros.poloId) {
-    query += ' AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $1)'
+    query += ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex})`
     params.push(filtros.poloId)
+    paramIndex++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ' AND escola_id = $1'
+    query += ` AND escola_id = $${paramIndex}`
     params.push(filtros.escolaId)
+    paramIndex++
+  }
+
+  // Filtro de série
+  if (filtros.serie) {
+    query += ` AND serie = $${paramIndex}`
+    params.push(filtros.serie)
+    paramIndex++
   }
 
   const result = await pool.query(query, params)
@@ -288,13 +319,27 @@ async function buscarTotalResultados(
 ): Promise<number> {
   let query = 'SELECT COUNT(*) as total FROM resultados_provas'
   const params: (string | null)[] = []
+  let paramIndex = 1
+  let hasWhere = false
 
   if (escopo === 'polo' && filtros.poloId) {
-    query += ' WHERE escola_id IN (SELECT id FROM escolas WHERE polo_id = $1)'
+    query += ` WHERE escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex})`
     params.push(filtros.poloId)
+    paramIndex++
+    hasWhere = true
   } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ' WHERE escola_id = $1'
+    query += ` WHERE escola_id = $${paramIndex}`
     params.push(filtros.escolaId)
+    paramIndex++
+    hasWhere = true
+  }
+
+  // Filtro de série
+  if (filtros.serie) {
+    query += hasWhere ? ' AND' : ' WHERE'
+    query += ` serie = $${paramIndex}`
+    params.push(filtros.serie)
+    paramIndex++
   }
 
   const result = await pool.query(query, params)
@@ -320,30 +365,40 @@ async function buscarPresenca(
   escopo: EscopoEstatisticas,
   filtros: FiltrosEstatisticas
 ): Promise<{ presentes: number; faltantes: number; totalAvaliados: number }> {
-  let query = `
-    SELECT
-      COUNT(DISTINCT CASE WHEN presenca IN ('P', 'p') THEN aluno_id END) as presentes,
-      COUNT(DISTINCT CASE WHEN presenca IN ('F', 'f') THEN aluno_id END) as faltantes,
-      COUNT(DISTINCT CASE WHEN presenca IN ('P', 'p', 'F', 'f') THEN aluno_id END) as total_avaliados
-    FROM resultados_consolidados_unificada rc
-  `
   const params: (string | null)[] = []
+  let paramIndex = 1
+  let whereConditions: string[] = []
 
+  // Construir condições WHERE
   if (escopo === 'polo' && filtros.poloId) {
-    query = `
-      SELECT
-        COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p') THEN rc.aluno_id END) as presentes,
-        COUNT(DISTINCT CASE WHEN rc.presenca IN ('F', 'f') THEN rc.aluno_id END) as faltantes,
-        COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p', 'F', 'f') THEN rc.aluno_id END) as total_avaliados
-      FROM resultados_consolidados_unificada rc
-      INNER JOIN escolas e ON rc.escola_id = e.id
-      WHERE e.polo_id = $1
-    `
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
     params.push(filtros.poloId)
+    paramIndex++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ' WHERE rc.escola_id = $1'
+    whereConditions.push(`rc.escola_id = $${paramIndex}`)
     params.push(filtros.escolaId)
+    paramIndex++
   }
+
+  // Filtro de série
+  if (filtros.serie) {
+    whereConditions.push(`rc.serie = $${paramIndex}`)
+    params.push(filtros.serie)
+    paramIndex++
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+  const needsJoin = escopo === 'polo' && filtros.poloId
+
+  const query = `
+    SELECT
+      COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p') THEN rc.aluno_id END) as presentes,
+      COUNT(DISTINCT CASE WHEN rc.presenca IN ('F', 'f') THEN rc.aluno_id END) as faltantes,
+      COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p', 'F', 'f') THEN rc.aluno_id END) as total_avaliados
+    FROM resultados_consolidados_unificada rc
+    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    ${whereClause}
+  `
 
   const result = await pool.query(query, params)
   return {
@@ -360,46 +415,44 @@ async function buscarMediaEAprovacao(
   escopo: EscopoEstatisticas,
   filtros: FiltrosEstatisticas
 ): Promise<{ mediaGeral: number; taxaAprovacao: number }> {
-  let query = `
+  const params: (string | null)[] = []
+  let paramIndex = 1
+  let whereConditions: string[] = [
+    `(rc.presenca IN ('P', 'p'))`,
+    `rc.media_aluno IS NOT NULL`,
+    `CAST(rc.media_aluno AS DECIMAL) > 0`
+  ]
+
+  // Construir condições WHERE
+  if (escopo === 'polo' && filtros.poloId) {
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
+    params.push(filtros.poloId)
+    paramIndex++
+  } else if (escopo === 'escola' && filtros.escolaId) {
+    whereConditions.push(`rc.escola_id = $${paramIndex}`)
+    params.push(filtros.escolaId)
+    paramIndex++
+  }
+
+  // Filtro de série
+  if (filtros.serie) {
+    whereConditions.push(`rc.serie = $${paramIndex}`)
+    params.push(filtros.serie)
+    paramIndex++
+  }
+
+  const whereClause = `WHERE ${whereConditions.join(' AND ')}`
+  const needsJoin = escopo === 'polo' && filtros.poloId
+
+  const query = `
     SELECT
-      ROUND(AVG(CAST(media_aluno AS DECIMAL)), 2) as media_geral,
-      COUNT(CASE WHEN CAST(media_aluno AS DECIMAL) >= ${NOTAS.APROVACAO} THEN 1 END) as aprovados,
+      ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral,
+      COUNT(CASE WHEN CAST(rc.media_aluno AS DECIMAL) >= ${NOTAS.APROVACAO} THEN 1 END) as aprovados,
       COUNT(*) as total_presentes
     FROM resultados_consolidados_unificada rc
-    WHERE (presenca IN ('P', 'p'))
-      AND media_aluno IS NOT NULL
-      AND CAST(media_aluno AS DECIMAL) > 0
+    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    ${whereClause}
   `
-  const params: (string | null)[] = []
-
-  if (escopo === 'polo' && filtros.poloId) {
-    query = `
-      SELECT
-        ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral,
-        COUNT(CASE WHEN CAST(rc.media_aluno AS DECIMAL) >= ${NOTAS.APROVACAO} THEN 1 END) as aprovados,
-        COUNT(*) as total_presentes
-      FROM resultados_consolidados_unificada rc
-      INNER JOIN escolas e ON rc.escola_id = e.id
-      WHERE e.polo_id = $1
-        AND (rc.presenca IN ('P', 'p'))
-        AND rc.media_aluno IS NOT NULL
-        AND CAST(rc.media_aluno AS DECIMAL) > 0
-    `
-    params.push(filtros.poloId)
-  } else if (escopo === 'escola' && filtros.escolaId) {
-    query = `
-      SELECT
-        ROUND(AVG(CAST(media_aluno AS DECIMAL)), 2) as media_geral,
-        COUNT(CASE WHEN CAST(media_aluno AS DECIMAL) >= ${NOTAS.APROVACAO} THEN 1 END) as aprovados,
-        COUNT(*) as total_presentes
-      FROM resultados_consolidados_unificada
-      WHERE escola_id = $1
-        AND (presenca IN ('P', 'p'))
-        AND media_aluno IS NOT NULL
-        AND CAST(media_aluno AS DECIMAL) > 0
-    `
-    params.push(filtros.escolaId)
-  }
 
   const result = await pool.query(query, params)
   const mediaGeral = parseDbNumber(result.rows[0]?.media_geral)
@@ -425,9 +478,38 @@ async function buscarMediasPorTipoEnsino(
   totalAnosIniciais: number
   totalAnosFinais: number
 }> {
+  const params: (string | null)[] = []
+  let paramIndex = 1
+  let whereConditions: string[] = [
+    `rc.presenca IN ('P', 'p')`,
+    `rc.media_aluno IS NOT NULL`,
+    `CAST(rc.media_aluno AS DECIMAL) > 0`
+  ]
+
+  // Construir condições WHERE
+  if (escopo === 'polo' && filtros.poloId) {
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
+    params.push(filtros.poloId)
+    paramIndex++
+  } else if (escopo === 'escola' && filtros.escolaId) {
+    whereConditions.push(`rc.escola_id = $${paramIndex}`)
+    params.push(filtros.escolaId)
+    paramIndex++
+  }
+
+  // Filtro de série
+  if (filtros.serie) {
+    whereConditions.push(`rc.serie = $${paramIndex}`)
+    params.push(filtros.serie)
+    paramIndex++
+  }
+
+  const whereClause = `WHERE ${whereConditions.join(' AND ')}`
+  const needsJoin = escopo === 'polo' && filtros.poloId
+
   // Query usando CASE para determinar tipo de ensino diretamente da série
   // Extrai o número da série e classifica em anos_iniciais ou anos_finais
-  let query = `
+  const query = `
     SELECT
       CASE
         WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
@@ -437,37 +519,10 @@ async function buscarMediasPorTipoEnsino(
       ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
       COUNT(DISTINCT rc.aluno_id) as total
     FROM resultados_consolidados_unificada rc
-    WHERE rc.presenca IN ('P', 'p')
-      AND rc.media_aluno IS NOT NULL
-      AND CAST(rc.media_aluno AS DECIMAL) > 0
+    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    ${whereClause}
+    GROUP BY tipo_ensino
   `
-  const params: (string | null)[] = []
-
-  if (escopo === 'polo' && filtros.poloId) {
-    query = `
-      SELECT
-        CASE
-          WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
-          WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('6', '7', '8', '9') THEN 'anos_finais'
-          ELSE 'outro'
-        END as tipo_ensino,
-        ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
-        COUNT(DISTINCT rc.aluno_id) as total
-      FROM resultados_consolidados_unificada rc
-      INNER JOIN escolas e ON rc.escola_id = e.id
-      WHERE rc.presenca IN ('P', 'p')
-        AND e.polo_id = $1
-        AND rc.media_aluno IS NOT NULL
-        AND CAST(rc.media_aluno AS DECIMAL) > 0
-      GROUP BY tipo_ensino
-    `
-    params.push(filtros.poloId)
-  } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ` AND rc.escola_id = $1 GROUP BY tipo_ensino`
-    params.push(filtros.escolaId)
-  } else {
-    query += ' GROUP BY tipo_ensino'
-  }
 
   const result = await pool.query(query, params)
 
@@ -525,7 +580,8 @@ export async function getEstatisticas(
   const filtros: FiltrosEstatisticas = {
     poloId: escopo === 'polo' ? usuario.polo_id : filtrosAdicionais?.poloId,
     escolaId: escopo === 'escola' ? usuario.escola_id : filtrosAdicionais?.escolaId,
-    anoLetivo: filtrosAdicionais?.anoLetivo
+    anoLetivo: filtrosAdicionais?.anoLetivo,
+    serie: filtrosAdicionais?.serie
   }
 
   // Inicializar resultado com valores padrão

@@ -5,6 +5,7 @@
  * Acesso restrito a usuários do tipo 'tecnico'.
  *
  * @route GET /api/tecnico/estatisticas
+ * @query serie - Filtrar por série específica (ex: "2º Ano", "8º Ano")
  */
 
 import { NextRequest } from 'next/server'
@@ -23,8 +24,12 @@ export async function GET(request: NextRequest) {
       return forbidden()
     }
 
+    // Extrair filtros da query string
+    const { searchParams } = new URL(request.url)
+    const serie = searchParams.get('serie') || undefined
+
     // Buscar estatísticas usando o serviço centralizado
-    const estatisticas = await getEstatisticas(usuario)
+    const estatisticas = await getEstatisticas(usuario, { serie })
 
     return ok(estatisticas)
   } catch (error: any) {

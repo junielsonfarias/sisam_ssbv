@@ -291,75 +291,88 @@ export default function PainelDados({
   const [pesquisouAlunos, setPesquisouAlunos] = useState(false)
 
   // Carregar estatísticas da aba Geral AUTOMATICAMENTE (do cache ou API)
-  useEffect(() => {
-    const carregarEstatisticas = async () => {
-      // Tentar usar cache local primeiro (sincronizado no login)
-      if (isCacheValid()) {
-        const cachedStats = getCachedEstatisticas()
-        if (cachedStats) {
-          console.log('[PainelDados] Usando estatísticas do cache local')
-          setEstatisticas({
-            totalEscolas: Number(cachedStats.totalEscolas) || 0,
-            totalPolos: Number(cachedStats.totalPolos) || 0,
-            totalResultados: Number(cachedStats.totalResultados) || 0,
-            totalAlunos: Number(cachedStats.totalAlunos) || 0,
-            totalAlunosAvaliados: Number(cachedStats.totalAlunosAvaliados) || 0,
-            totalTurmas: Number(cachedStats.totalTurmas) || 0,
-            totalAlunosPresentes: Number(cachedStats.totalAlunosPresentes) || 0,
-            totalAlunosFaltantes: Number(cachedStats.totalAlunosFaltantes) || 0,
-            mediaGeral: Number(cachedStats.mediaGeral) || 0,
-            mediaAnosIniciais: Number(cachedStats.mediaAnosIniciais) || 0,
-            mediaAnosFinais: Number(cachedStats.mediaAnosFinais) || 0,
-            totalAnosIniciais: Number(cachedStats.totalAnosIniciais) || 0,
-            totalAnosFinais: Number(cachedStats.totalAnosFinais) || 0,
-            nomeEscola: cachedStats.nomeEscola || '',
-            nomePolo: cachedStats.nomePolo || '',
-          })
-          setCarregando(false)
-          return
-        }
-      }
-
-      // Fallback: buscar da API se cache não disponível
-      try {
-        console.log('[PainelDados] Cache não disponível, buscando da API')
-        const response = await fetch(estatisticasEndpoint)
-
-        if (!response.ok) {
-          console.error('Erro ao buscar estatísticas:', response.status)
-          setCarregando(false)
-          return
-        }
-
-        const data = await response.json()
-        if (data) {
-          setEstatisticas({
-            totalEscolas: Number(data.totalEscolas) || 0,
-            totalPolos: Number(data.totalPolos) || 0,
-            totalResultados: Number(data.totalResultados) || 0,
-            totalAlunos: Number(data.totalAlunos) || 0,
-            totalAlunosAvaliados: Number(data.totalAlunosAvaliados) || 0,
-            totalTurmas: Number(data.totalTurmas) || 0,
-            totalAlunosPresentes: Number(data.totalAlunosPresentes) || 0,
-            totalAlunosFaltantes: Number(data.totalAlunosFaltantes) || 0,
-            mediaGeral: Number(data.mediaGeral) || 0,
-            mediaAnosIniciais: Number(data.mediaAnosIniciais) || 0,
-            mediaAnosFinais: Number(data.mediaAnosFinais) || 0,
-            totalAnosIniciais: Number(data.totalAnosIniciais) || 0,
-            totalAnosFinais: Number(data.totalAnosFinais) || 0,
-            nomeEscola: data.nomeEscola || '',
-            nomePolo: data.nomePolo || '',
-          })
-        }
-      } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error)
-      } finally {
+  // Função para carregar estatísticas com filtro de série opcional
+  const carregarEstatisticas = useCallback(async (serieParam?: string) => {
+    // Usar cache apenas se não houver filtro de série
+    if (!serieParam && isCacheValid()) {
+      const cachedStats = getCachedEstatisticas()
+      if (cachedStats) {
+        console.log('[PainelDados] Usando estatísticas do cache local')
+        setEstatisticas({
+          totalEscolas: Number(cachedStats.totalEscolas) || 0,
+          totalPolos: Number(cachedStats.totalPolos) || 0,
+          totalResultados: Number(cachedStats.totalResultados) || 0,
+          totalAlunos: Number(cachedStats.totalAlunos) || 0,
+          totalAlunosAvaliados: Number(cachedStats.totalAlunosAvaliados) || 0,
+          totalTurmas: Number(cachedStats.totalTurmas) || 0,
+          totalAlunosPresentes: Number(cachedStats.totalAlunosPresentes) || 0,
+          totalAlunosFaltantes: Number(cachedStats.totalAlunosFaltantes) || 0,
+          mediaGeral: Number(cachedStats.mediaGeral) || 0,
+          mediaAnosIniciais: Number(cachedStats.mediaAnosIniciais) || 0,
+          mediaAnosFinais: Number(cachedStats.mediaAnosFinais) || 0,
+          totalAnosIniciais: Number(cachedStats.totalAnosIniciais) || 0,
+          totalAnosFinais: Number(cachedStats.totalAnosFinais) || 0,
+          nomeEscola: cachedStats.nomeEscola || '',
+          nomePolo: cachedStats.nomePolo || '',
+        })
         setCarregando(false)
+        return
       }
     }
 
-    carregarEstatisticas()
+    // Buscar da API (com ou sem filtro de série)
+    try {
+      setCarregando(true)
+      const url = new URL(estatisticasEndpoint, window.location.origin)
+      if (serieParam) {
+        url.searchParams.set('serie', serieParam)
+      }
+      console.log('[PainelDados] Buscando estatísticas da API - série:', serieParam || 'todas')
+      const response = await fetch(url.toString())
+
+      if (!response.ok) {
+        console.error('Erro ao buscar estatísticas:', response.status)
+        setCarregando(false)
+        return
+      }
+
+      const data = await response.json()
+      if (data) {
+        setEstatisticas({
+          totalEscolas: Number(data.totalEscolas) || 0,
+          totalPolos: Number(data.totalPolos) || 0,
+          totalResultados: Number(data.totalResultados) || 0,
+          totalAlunos: Number(data.totalAlunos) || 0,
+          totalAlunosAvaliados: Number(data.totalAlunosAvaliados) || 0,
+          totalTurmas: Number(data.totalTurmas) || 0,
+          totalAlunosPresentes: Number(data.totalAlunosPresentes) || 0,
+          totalAlunosFaltantes: Number(data.totalAlunosFaltantes) || 0,
+          mediaGeral: Number(data.mediaGeral) || 0,
+          mediaAnosIniciais: Number(data.mediaAnosIniciais) || 0,
+          mediaAnosFinais: Number(data.mediaAnosFinais) || 0,
+          totalAnosIniciais: Number(data.totalAnosIniciais) || 0,
+          totalAnosFinais: Number(data.totalAnosFinais) || 0,
+          nomeEscola: data.nomeEscola || '',
+          nomePolo: data.nomePolo || '',
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error)
+    } finally {
+      setCarregando(false)
+    }
   }, [estatisticasEndpoint])
+
+  // Carregar estatísticas iniciais (sem filtro de série)
+  useEffect(() => {
+    carregarEstatisticas()
+  }, [carregarEstatisticas])
+
+  // Recarregar estatísticas quando a série mudar
+  useEffect(() => {
+    console.log('[PainelDados] Série mudou para:', filtrosAlunos.serie || 'todas')
+    carregarEstatisticas(filtrosAlunos.serie)
+  }, [filtrosAlunos.serie, carregarEstatisticas])
 
   // NÃO carregar NADA automaticamente - apenas quando clicar em Pesquisar
   // Carregar filtros do cache de forma SÍNCRONA apenas uma vez na montagem (sem API)
@@ -760,12 +773,12 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
 
   return (
     <div className={`space-y-6 ${carregando ? 'opacity-50' : ''}`}>
-      {/* Aviso quando série selecionada - dados são globais */}
+      {/* Aviso quando série selecionada - dados estão filtrados */}
       {serieSelecionada && (
-        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Nota:</strong> A Visão Geral mostra estatísticas de todas as séries.
-            Para ver dados específicos do <strong>{serieSelecionada}</strong>, acesse as abas Escolas, Turmas ou Alunos.
+        <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg p-3">
+          <p className="text-sm text-indigo-800 dark:text-indigo-200">
+            <strong>Filtro ativo:</strong> Exibindo estatísticas do <strong>{serieSelecionada}</strong>.
+            Clique em "Todas" para ver dados de todas as séries.
           </p>
         </div>
       )}
@@ -1816,12 +1829,12 @@ function AbaAnalises({ estatisticas, carregando, serieSelecionada }: {
 
   return (
     <div className={`space-y-6 ${carregando ? 'opacity-50' : ''}`}>
-      {/* Aviso quando série selecionada - dados são globais */}
+      {/* Aviso quando série selecionada - dados estão filtrados */}
       {serieSelecionada && (
-        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Nota:</strong> As Análises mostram estatísticas de todas as séries.
-            Para ver dados específicos do <strong>{serieSelecionada}</strong>, acesse as abas Escolas, Turmas ou Alunos.
+        <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg p-3">
+          <p className="text-sm text-indigo-800 dark:text-indigo-200">
+            <strong>Filtro ativo:</strong> Exibindo análises do <strong>{serieSelecionada}</strong>.
+            Clique em "Todas" para ver dados de todas as séries.
           </p>
         </div>
       )}
