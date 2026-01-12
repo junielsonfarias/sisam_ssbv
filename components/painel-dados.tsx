@@ -382,9 +382,8 @@ export default function PainelDados({
     }
   }, [filtrosCarregados])
 
-  // NÃO carregar alunos automaticamente - apenas quando clicar em Pesquisar
-
-  const carregarEscolas = async () => {
+  // Função para carregar escolas (chamada manualmente ou por useEffect)
+  const carregarEscolas = useCallback(async (serieParam?: string) => {
     if (!escolasEndpoint) return
     try {
       setCarregandoEscolas(true)
@@ -392,12 +391,15 @@ export default function PainelDados({
       // Construir URL com parâmetros de filtro
       const url = new URL(escolasEndpoint, window.location.origin)
       url.searchParams.set('com_estatisticas', 'true')
-      if (filtrosAlunos.serie) {
-        url.searchParams.set('serie', filtrosAlunos.serie)
+
+      // Usar o parâmetro passado ou o estado atual
+      const serieAtual = serieParam !== undefined ? serieParam : filtrosAlunos.serie
+      if (serieAtual) {
+        url.searchParams.set('serie', serieAtual)
       }
 
       // Buscar da API com estatísticas
-      console.log('[PainelDados] Buscando escolas com estatísticas da API')
+      console.log('[PainelDados] Buscando escolas - série:', serieAtual || 'todas')
       const response = await fetch(url.toString())
       if (response.ok) {
         const data = await response.json()
@@ -409,21 +411,25 @@ export default function PainelDados({
     } finally {
       setCarregandoEscolas(false)
     }
-  }
+  }, [escolasEndpoint, filtrosAlunos.serie])
 
-  const carregarTurmas = async () => {
+  // Função para carregar turmas (chamada manualmente ou por useEffect)
+  const carregarTurmas = useCallback(async (serieParam?: string) => {
     if (!turmasEndpoint) return
     try {
       setCarregandoTurmas(true)
 
       // Construir URL com parâmetros de filtro
       const url = new URL(turmasEndpoint, window.location.origin)
-      if (filtrosAlunos.serie) {
-        url.searchParams.set('serie', filtrosAlunos.serie)
+
+      // Usar o parâmetro passado ou o estado atual
+      const serieAtual = serieParam !== undefined ? serieParam : filtrosAlunos.serie
+      if (serieAtual) {
+        url.searchParams.set('serie', serieAtual)
       }
 
       // Buscar da API com estatísticas
-      console.log('[PainelDados] Buscando turmas com estatísticas da API')
+      console.log('[PainelDados] Buscando turmas - série:', serieAtual || 'todas')
       const response = await fetch(url.toString())
       if (response.ok) {
         const data = await response.json()
@@ -435,7 +441,23 @@ export default function PainelDados({
     } finally {
       setCarregandoTurmas(false)
     }
-  }
+  }, [turmasEndpoint, filtrosAlunos.serie])
+
+  // Recarregar escolas e turmas automaticamente quando série mudar (se já pesquisou)
+  useEffect(() => {
+    // Só recarregar se já pesquisou antes E está na aba correspondente
+    if (pesquisouEscolas && abaAtiva === 'escolas') {
+      console.log('[PainelDados] Série mudou, recarregando escolas:', filtrosAlunos.serie || 'todas')
+      carregarEscolas(filtrosAlunos.serie)
+    }
+    if (pesquisouTurmas && abaAtiva === 'turmas') {
+      console.log('[PainelDados] Série mudou, recarregando turmas:', filtrosAlunos.serie || 'todas')
+      carregarTurmas(filtrosAlunos.serie)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtrosAlunos.serie, abaAtiva])
+
+  // NÃO carregar alunos automaticamente - apenas quando clicar em Pesquisar
 
   // Função que recebe filtros como parâmetro para garantir valores atualizados
   const carregarAlunosComFiltros = useCallback(async (
@@ -1015,22 +1037,34 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Media</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">LP</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">MAT</th>
-                  {/* Mostrar PROD para anos iniciais, CH/CN para anos finais */}
-                  {temFiltroSerie && isAnosIniciaisSerie && (
+                  {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
+                  {(!temFiltroSerie || isAnosIniciaisSerie) && (
                     <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">PROD</th>
                   )}
-                  {temFiltroSerie && !isAnosIniciaisSerie && (
+                  {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
+                  {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                     <>
                       <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CH</th>
                       <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CN</th>
                     </>
                   )}
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Nível</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Pres.</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Falt.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                {escolas.map((escola) => (
+                {escolas.map((escola) => {
+                  // Calcular nível baseado na média
+                  const getNivelEscola = (media: number | null | undefined) => {
+                    if (media == null) return { texto: '-', cor: 'text-gray-400' }
+                    if (media >= 7) return { texto: 'Avançado', cor: 'text-green-600 dark:text-green-400' }
+                    if (media >= 5) return { texto: 'Básico', cor: 'text-yellow-600 dark:text-yellow-400' }
+                    return { texto: 'Abaixo do Básico', cor: 'text-red-600 dark:text-red-400' }
+                  }
+                  const nivelEscola = getNivelEscola(escola.media_geral)
+
+                  return (
                   <tr key={escola.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
                     <td className="py-3 px-4">
                       <div className="font-medium text-gray-900 dark:text-white text-sm">{escola.nome}</div>
@@ -1052,15 +1086,16 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                         {escola.media_mat != null ? escola.media_mat.toFixed(2) : '-'}
                       </span>
                     </td>
-                    {/* Mostrar PROD para anos iniciais, CH/CN para anos finais */}
-                    {temFiltroSerie && isAnosIniciaisSerie && (
+                    {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
+                    {(!temFiltroSerie || isAnosIniciaisSerie) && (
                       <td className="py-3 px-4 text-center">
                         <span className={`text-sm ${getNotaColor(escola.media_prod)}`}>
                           {escola.media_prod != null ? escola.media_prod.toFixed(2) : '-'}
                         </span>
                       </td>
                     )}
-                    {temFiltroSerie && !isAnosIniciaisSerie && (
+                    {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
+                    {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                       <>
                         <td className="py-3 px-4 text-center">
                           <span className={`text-sm ${getNotaColor(escola.media_ch)}`}>
@@ -1074,6 +1109,12 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                         </td>
                       </>
                     )}
+                    {/* Nível da Escola */}
+                    <td className="py-3 px-4 text-center">
+                      <span className={`text-xs font-semibold ${nivelEscola.cor}`}>
+                        {nivelEscola.texto}
+                      </span>
+                    </td>
                     <td className="py-3 px-4 text-center">
                       <span className="text-sm text-green-600 dark:text-green-400 font-medium">{escola.presentes || 0}</span>
                     </td>
@@ -1081,7 +1122,8 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                       <span className="text-sm text-red-600 dark:text-red-400 font-medium">{escola.faltantes || 0}</span>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -1184,25 +1226,33 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Media</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">LP</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">MAT</th>
-                  {/* Mostrar PROD para anos iniciais, CH/CN para anos finais */}
-                  {temFiltroSerie && isAnosIniciaisSerie && (
+                  {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
+                  {(!temFiltroSerie || isAnosIniciaisSerie) && (
                     <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">PROD</th>
                   )}
-                  {temFiltroSerie && !isAnosIniciaisSerie && (
+                  {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
+                  {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                     <>
                       <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CH</th>
                       <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CN</th>
                     </>
                   )}
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Nível</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Pres.</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Falt.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                 {turmas.map((turma) => {
-                  // Detectar se é anos iniciais (2, 3, 5) para mostrar PROD
-                  const numSerieTurma = turma.serie?.replace(/[^0-9]/g, '') || ''
-                  const isAnosIniciaisTurma = ['2', '3', '5'].includes(numSerieTurma)
+                  // Calcular nível baseado na média
+                  const getNivelTurma = (media: number | null | undefined) => {
+                    if (media == null) return { texto: '-', cor: 'text-gray-400' }
+                    if (media >= 7) return { texto: 'Avançado', cor: 'text-green-600 dark:text-green-400' }
+                    if (media >= 5) return { texto: 'Básico', cor: 'text-yellow-600 dark:text-yellow-400' }
+                    return { texto: 'Abaixo do Básico', cor: 'text-red-600 dark:text-red-400' }
+                  }
+                  const nivelTurma = getNivelTurma(turma.media_geral)
+
                   return (
                     <tr key={turma.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
                       <td className="py-3 px-4">
@@ -1226,15 +1276,16 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                           {turma.media_mat != null ? turma.media_mat.toFixed(2) : '-'}
                         </span>
                       </td>
-                      {/* Mostrar PROD para anos iniciais, CH/CN para anos finais */}
-                      {temFiltroSerie && isAnosIniciaisSerie && (
+                      {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
+                      {(!temFiltroSerie || isAnosIniciaisSerie) && (
                         <td className="py-3 px-4 text-center">
                           <span className={`text-sm ${getNotaColor(turma.media_prod)}`}>
                             {turma.media_prod != null ? turma.media_prod.toFixed(2) : '-'}
                           </span>
                         </td>
                       )}
-                      {temFiltroSerie && !isAnosIniciaisSerie && (
+                      {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
+                      {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                         <>
                           <td className="py-3 px-4 text-center">
                             <span className={`text-sm ${getNotaColor(turma.media_ch)}`}>
@@ -1248,6 +1299,12 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                           </td>
                         </>
                       )}
+                      {/* Nível da Turma */}
+                      <td className="py-3 px-4 text-center">
+                        <span className={`text-xs font-semibold ${nivelTurma.cor}`}>
+                          {nivelTurma.texto}
+                        </span>
+                      </td>
                       <td className="py-3 px-4 text-center">
                         <span className="text-sm text-green-600 dark:text-green-400 font-medium">{turma.presentes || 0}</span>
                       </td>

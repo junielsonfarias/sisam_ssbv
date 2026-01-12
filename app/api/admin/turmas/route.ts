@@ -58,6 +58,11 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
+    // Detectar se é filtro de anos iniciais (2, 3, 5) ou finais (6, 7, 8, 9)
+    const serieNumero = serie ? serie.replace(/[^0-9]/g, '') : ''
+    const isAnosIniciais = ['2', '3', '5'].includes(serieNumero)
+    const isAnosFinais = ['6', '7', '8', '9'].includes(serieNumero)
+
     // Query com cálculo de médias correto
     // Anos iniciais (2, 3, 5): média = (LP + MAT + PROD) / 3
     // Anos finais (6, 7, 8, 9): média = (LP + CH + MAT + CN) / 4
@@ -69,7 +74,7 @@ export async function GET(request: NextRequest) {
         rc.serie,
         t.escola_id,
         e.nome as escola_nome,
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
+        COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) as total_alunos,
         -- Média CORRIGIDA: anos iniciais inclui PROD, anos finais usa LP+CH+MAT+CN
         ROUND(AVG(CASE
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
@@ -116,30 +121,41 @@ export async function GET(request: NextRequest) {
         AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
       ${whereClause}
       GROUP BY t.id, t.codigo, t.nome, rc.serie, t.escola_id, e.nome
-      HAVING COUNT(DISTINCT rc.aluno_id) > 0
+      HAVING COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) > 0
       ORDER BY rc.serie, t.codigo, e.nome
     `
 
     const result = await pool.query(query, params)
 
     // Converter campos numéricos para garantir consistência
-    const turmas = result.rows.map(row => ({
-      id: row.id,
-      codigo: row.codigo,
-      nome: row.nome,
-      serie: row.serie,
-      escola_id: row.escola_id,
-      escola_nome: row.escola_nome,
-      total_alunos: parseInt(row.total_alunos) || 0,
-      media_geral: parseFloat(row.media_geral) || null,
-      media_lp: parseFloat(row.media_lp) || null,
-      media_mat: parseFloat(row.media_mat) || null,
-      media_prod: parseFloat(row.media_prod) || null,
-      media_ch: parseFloat(row.media_ch) || null,
-      media_cn: parseFloat(row.media_cn) || null,
-      presentes: parseInt(row.presentes) || 0,
-      faltantes: parseInt(row.faltantes) || 0
-    }))
+    // Quando filtro de série está ativo, ocultar disciplinas não aplicáveis
+    // Também verificar a série da própria turma para casos sem filtro
+    const turmas = result.rows.map(row => {
+      const turmaSerie = row.serie || ''
+      const turmaSerieNumero = turmaSerie.replace(/[^0-9]/g, '')
+      const turmaIsAnosIniciais = ['2', '3', '5'].includes(turmaSerieNumero)
+      const turmaIsAnosFinais = ['6', '7', '8', '9'].includes(turmaSerieNumero)
+
+      return {
+        id: row.id,
+        codigo: row.codigo,
+        nome: row.nome,
+        serie: row.serie,
+        escola_id: row.escola_id,
+        escola_nome: row.escola_nome,
+        total_alunos: parseInt(row.total_alunos) || 0,
+        media_geral: parseFloat(row.media_geral) || null,
+        media_lp: parseFloat(row.media_lp) || null,
+        media_mat: parseFloat(row.media_mat) || null,
+        // PROD: mostrar apenas para anos iniciais (2, 3, 5)
+        media_prod: turmaIsAnosFinais ? null : parseFloat(row.media_prod) || null,
+        // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9)
+        media_ch: turmaIsAnosIniciais ? null : parseFloat(row.media_ch) || null,
+        media_cn: turmaIsAnosIniciais ? null : parseFloat(row.media_cn) || null,
+        presentes: parseInt(row.presentes) || 0,
+        faltantes: parseInt(row.faltantes) || 0
+      }
+    })
 
     return NextResponse.json(turmas)
   } catch (error: any) {

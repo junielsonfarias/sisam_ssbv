@@ -1,21 +1,20 @@
 -- ============================================
--- MIGRACAO: Corrigir VIEW resultados_consolidados_v2
--- para considerar a estrutura de questoes por serie
+-- MIGRACAO: Adicionar nota_producao as VIEWs
 -- ============================================
 --
 -- PROBLEMA IDENTIFICADO:
--- A view anterior usava Q1-Q20 para LP em todas as series,
--- mas anos iniciais tem estrutura diferente:
--- - 2o/3o ano: LP = Q1-Q14, MAT = Q15-Q28
--- - 5o ano: LP = Q1-Q14, MAT = Q15-Q34
--- - Anos finais (6o-9o): LP = Q1-Q20, CH = Q21-Q30, MAT = Q31-Q50, CN = Q51-Q60
+-- A VIEW resultados_consolidados_unificada nao inclui o campo nota_producao,
+-- impedindo que a API de comparativos calcule a media de producao textual
+-- para os anos iniciais (2, 3 e 5 ano).
 --
--- Esta migracao corrige o calculo considerando a serie
+-- Esta migracao adiciona nota_producao as duas VIEWs:
+-- 1. resultados_consolidados_v2 - para calcular dinamicamente a partir de resultados_provas
+-- 2. resultados_consolidados_unificada - para unificar com dados de resultados_consolidados
 -- ============================================
 
 -- ============================================
 -- ETAPA 1: Recriar VIEW resultados_consolidados_v2
--- com logica correta por serie
+-- com logica correta por serie E nota_producao
 -- ============================================
 CREATE OR REPLACE VIEW resultados_consolidados_v2 AS
 WITH questoes_serie AS (
@@ -231,10 +230,11 @@ SELECT
   END as nota_cn,
 
   -- NOTA PRODUCAO: NULL por padrao (sera preenchida via resultados_consolidados)
+  -- Esta view nao calcula nota_producao, ela vem da tabela resultados_consolidados
   NULL::DECIMAL(5,2) as nota_producao,
 
   -- MEDIA: media das notas disponiveis
-  -- Anos iniciais: media de LP e MAT
+  -- Anos iniciais: media de LP e MAT (nota_producao vira de resultados_consolidados)
   -- Anos finais: media de LP, CH, MAT, CN
   CASE
     WHEN numero_serie IN ('2', '3', '5') THEN
@@ -277,7 +277,7 @@ SELECT
 FROM notas_calculadas;
 
 -- ============================================
--- ETAPA 2: Recriar VIEW unificada
+-- ETAPA 2: Recriar VIEW unificada com nota_producao
 -- ============================================
 CREATE OR REPLACE VIEW resultados_consolidados_unificada AS
 SELECT

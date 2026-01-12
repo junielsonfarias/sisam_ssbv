@@ -107,6 +107,11 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
+    // Detectar se é filtro de anos iniciais (2, 3, 5) ou finais (6, 7, 8, 9)
+    const serieNumero = serie ? serie.replace(/[^0-9]/g, '') : ''
+    const isAnosIniciais = ['2', '3', '5'].includes(serieNumero)
+    const isAnosFinais = ['6', '7', '8', '9'].includes(serieNumero)
+
     // Query com cálculo de médias correto
     // Anos iniciais (2, 3, 5): média = (LP + MAT + PROD) / 3
     // Anos finais (6, 7, 8, 9): média = (LP + CH + MAT + CN) / 4
@@ -116,7 +121,7 @@ export async function GET(request: NextRequest) {
         e.nome,
         e.codigo,
         p.nome as polo_nome,
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
+        COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) as total_alunos,
         COUNT(DISTINCT t.id) as total_turmas,
         -- Média CORRIGIDA: anos iniciais inclui PROD, anos finais usa LP+CH+MAT+CN
         ROUND(AVG(CASE
@@ -165,13 +170,14 @@ export async function GET(request: NextRequest) {
         AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
       ${whereClause}
       GROUP BY e.id, e.nome, e.codigo, p.nome
-      HAVING COUNT(DISTINCT rc.aluno_id) > 0
+      HAVING COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) > 0
       ORDER BY media_geral DESC NULLS LAST, e.nome
     `
 
     const result = await pool.query(query, params)
 
     // Converter campos numéricos para garantir consistência
+    // Quando filtro de série está ativo, ocultar disciplinas não aplicáveis
     const escolas = result.rows.map(row => ({
       id: row.id,
       nome: row.nome,
@@ -182,9 +188,11 @@ export async function GET(request: NextRequest) {
       media_geral: parseFloat(row.media_geral) || null,
       media_lp: parseFloat(row.media_lp) || null,
       media_mat: parseFloat(row.media_mat) || null,
-      media_prod: parseFloat(row.media_prod) || null,
-      media_ch: parseFloat(row.media_ch) || null,
-      media_cn: parseFloat(row.media_cn) || null,
+      // PROD: mostrar apenas para anos iniciais (2, 3, 5)
+      media_prod: isAnosFinais ? null : parseFloat(row.media_prod) || null,
+      // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9)
+      media_ch: isAnosIniciais ? null : parseFloat(row.media_ch) || null,
+      media_cn: isAnosIniciais ? null : parseFloat(row.media_cn) || null,
       presentes: parseInt(row.presentes) || 0,
       faltantes: parseInt(row.faltantes) || 0
     }))

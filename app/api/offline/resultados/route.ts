@@ -44,10 +44,10 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
-    // Query de contagem simplificada
+    // Query de contagem simplificada - usando view unificada que tem nota_producao
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM resultados_consolidados rc
+      FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       ${whereClause}
     `
@@ -61,10 +61,11 @@ export async function GET(request: NextRequest) {
       // Continuar mesmo com erro na contagem
     }
 
-    // Query principal usando tabela base (mais confiável)
+    // Query principal usando view unificada (inclui nota_producao corretamente)
+    // Nota: a view não tem 'id' nem 'nivel_aprendizagem', então geramos id e buscamos nivel da tabela original
     let dataQuery = `
       SELECT
-        rc.id,
+        CONCAT(rc.aluno_id, '-', rc.ano_letivo) as id,
         rc.aluno_id,
         rc.escola_id,
         rc.turma_id,
@@ -80,13 +81,14 @@ export async function GET(request: NextRequest) {
         rc.nota_mat,
         rc.nota_cn,
         rc.nota_producao,
-        rc.nivel_aprendizagem,
+        orig.nivel_aprendizagem,
         rc.media_aluno,
         COALESCE(a.nome, 'Aluno') as aluno_nome,
         COALESCE(e.nome, 'Escola') as escola_nome,
         e.polo_id,
         t.codigo as turma_codigo
-      FROM resultados_consolidados rc
+      FROM resultados_consolidados_unificada rc
+      LEFT JOIN resultados_consolidados orig ON rc.aluno_id = orig.aluno_id AND rc.ano_letivo = orig.ano_letivo
       LEFT JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN turmas t ON rc.turma_id = t.id

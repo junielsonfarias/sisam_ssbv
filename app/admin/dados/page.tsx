@@ -11,7 +11,7 @@ import {
   Users, School, GraduationCap, MapPin, TrendingUp, TrendingDown,
   Filter, X, ChevronDown, ChevronUp, RefreshCw, Download,
   BookOpen, Calculator, Award, UserCheck, UserX, BarChart3,
-  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff, Search, Zap, FileText
+  Table, PieChartIcon, Activity, Layers, Eye, EyeOff, AlertTriangle, Target, WifiOff, Search, Zap, FileText, ArrowUpDown
 } from 'lucide-react'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 import * as offlineStorage from '@/lib/offline-storage'
@@ -49,8 +49,8 @@ interface DashboardData {
   niveis: { nivel: string; quantidade: number }[]
   mediasPorSerie: { serie: string; total_alunos: number; presentes: number; media_geral: number; media_lp: number; media_mat: number; media_ch: number | null; media_cn: number | null; media_prod: number | null }[]
   mediasPorPolo: { polo_id: string; polo: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; presentes: number; faltantes: number }[]
-  mediasPorEscola: { escola_id: string; escola: string; polo: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; media_ch: number; media_cn: number; presentes: number; faltantes: number }[]
-  mediasPorTurma: { turma_id: string; turma: string; escola: string; serie: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; presentes: number; faltantes: number }[]
+  mediasPorEscola: { escola_id: string; escola: string; polo: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; media_prod: number; media_ch: number; media_cn: number; presentes: number; faltantes: number }[]
+  mediasPorTurma: { turma_id: string; turma: string; escola: string; serie: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; media_prod: number; media_ch: number; media_cn: number; presentes: number; faltantes: number }[]
   faixasNota: { faixa: string; quantidade: number }[]
   presenca: { status: string; quantidade: number }[]
   topAlunos: any[]
@@ -238,6 +238,23 @@ const getNivelName = (nivel: string): string => {
   return NIVEL_NAMES[nivel] || nivel
 }
 
+// Função para calcular o nível baseado na média (para turmas)
+const calcularNivelPorMedia = (media: number | null | undefined): { codigo: string, nome: string, cor: string } => {
+  if (media === null || media === undefined || media <= 0) {
+    return { codigo: '-', nome: 'Não classificado', cor: '#6B7280' }
+  }
+  if (media < 3) {
+    return { codigo: 'N1', nome: 'Insuficiente', cor: '#EF4444' }
+  }
+  if (media < 5) {
+    return { codigo: 'N2', nome: 'Básico', cor: '#F59E0B' }
+  }
+  if (media < 7.5) {
+    return { codigo: 'N3', nome: 'Adequado', cor: '#3B82F6' }
+  }
+  return { codigo: 'N4', nome: 'Avançado', cor: '#10B981' }
+}
+
 // Função para formatar série no padrão "Xº Ano"
 const formatarSerie = (serie: string | null | undefined): string => {
   if (!serie) return '-'
@@ -357,9 +374,6 @@ export default function DadosPage() {
     faixa_media: string
     disciplina: string
     tipo_ensino: string
-    taxa_acerto_min: string
-    taxa_acerto_max: string
-    questao_codigo: string
   } | null>(null) // Filtros usados no cache (exceto série)
   const [carregando, setCarregando] = useState(false)
   const [carregandoEmSegundoPlano, setCarregandoEmSegundoPlano] = useState(false) // Loading sem ocultar dados atuais
@@ -376,14 +390,61 @@ export default function DadosPage() {
   const [filtroNivel, setFiltroNivel] = useState('')
   const [filtroFaixaMedia, setFiltroFaixaMedia] = useState('')
   const [filtroDisciplina, setFiltroDisciplina] = useState('')
-  // Novos filtros de acertos/erros
-  const [filtroTaxaAcertoMin, setFiltroTaxaAcertoMin] = useState('')
-  const [filtroTaxaAcertoMax, setFiltroTaxaAcertoMax] = useState('')
-  const [filtroQuestaoCodigo, setFiltroQuestaoCodigo] = useState('')
   const [filtroTipoEnsino, setFiltroTipoEnsino] = useState('')
 
   // Visualização
   const [abaAtiva, setAbaAtiva] = useState<'visao_geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'>('visao_geral')
+
+  // Flag para controlar se os filtros foram carregados do localStorage
+  const [filtrosCarregados, setFiltrosCarregados] = useState(false)
+
+  // Chave para persistência de filtros no localStorage
+  const FILTROS_STORAGE_KEY = 'sisam_painel_dados_filtros'
+
+  // Carregar filtros do localStorage ao iniciar
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !filtrosCarregados) {
+      try {
+        const filtrosSalvos = localStorage.getItem(FILTROS_STORAGE_KEY)
+        if (filtrosSalvos) {
+          const filtros = JSON.parse(filtrosSalvos)
+          // Restaurar filtros (exceto polo e escola para usuários restritos)
+          if (filtros.serie) setFiltroSerie(filtros.serie)
+          if (filtros.anoLetivo) setFiltroAnoLetivo(filtros.anoLetivo)
+          if (filtros.presenca) setFiltroPresenca(filtros.presenca)
+          if (filtros.nivel) setFiltroNivel(filtros.nivel)
+          if (filtros.faixaMedia) setFiltroFaixaMedia(filtros.faixaMedia)
+          if (filtros.disciplina) setFiltroDisciplina(filtros.disciplina)
+          if (filtros.tipoEnsino) setFiltroTipoEnsino(filtros.tipoEnsino)
+          if (filtros.abaAtiva) setAbaAtiva(filtros.abaAtiva)
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar filtros do localStorage:', e)
+      }
+      setFiltrosCarregados(true)
+    }
+  }, [filtrosCarregados])
+
+  // Salvar filtros no localStorage quando mudarem
+  useEffect(() => {
+    if (typeof window !== 'undefined' && filtrosCarregados) {
+      try {
+        const filtros = {
+          serie: filtroSerie,
+          anoLetivo: filtroAnoLetivo,
+          presenca: filtroPresenca,
+          nivel: filtroNivel,
+          faixaMedia: filtroFaixaMedia,
+          disciplina: filtroDisciplina,
+          tipoEnsino: filtroTipoEnsino,
+          abaAtiva: abaAtiva,
+        }
+        localStorage.setItem(FILTROS_STORAGE_KEY, JSON.stringify(filtros))
+      } catch (e) {
+        console.warn('Erro ao salvar filtros no localStorage:', e)
+      }
+    }
+  }, [filtroSerie, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, abaAtiva, filtrosCarregados])
   const [ordenacao, setOrdenacao] = useState<{ coluna: string; direcao: 'asc' | 'desc' }>({ coluna: 'media_geral', direcao: 'desc' })
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina] = useState(50)
@@ -469,6 +530,16 @@ export default function DadosPage() {
         resultados: resultadosFiltrados.length
       })
 
+      // DEBUG: Verificar se nota_producao está nos dados carregados
+      const comNotaProd = resultadosFiltrados.filter(r => r.nota_producao && parseFloat(String(r.nota_producao)) > 0)
+      console.log('[DEBUG] Resultados com nota_producao > 0:', comNotaProd.length)
+      if (comNotaProd.length > 0) {
+        console.log('[DEBUG] Primeiro resultado com nota_producao:', comNotaProd[0])
+      } else if (resultadosFiltrados.length > 0) {
+        console.log('[DEBUG] Campos do primeiro resultado:', Object.keys(resultadosFiltrados[0]))
+        console.log('[DEBUG] Primeiro resultado completo:', resultadosFiltrados[0])
+      }
+
       // Calcular estatísticas usando função do offlineStorage
       const estatisticas = offlineStorage.calcularEstatisticas(resultadosFiltrados)
 
@@ -544,6 +615,11 @@ export default function DadosPage() {
         const notaCn = toNum(r.nota_cn)
         const notaProd = toNum(r.nota_producao)
 
+        // DEBUG: Log para verificar nota_producao
+        if (notaProd > 0) {
+          console.log('[DEBUG] Aluno com nota_producao:', { serie: r.serie, notaLp, notaMat, notaProd, mediaAluno })
+        }
+
         // Faixas de nota (apenas presentes com média > 0)
         if (isPresente && mediaAluno > 0) {
           if (mediaAluno < 2) faixasCount[0]++
@@ -554,8 +630,11 @@ export default function DadosPage() {
         }
 
         // Função para acumular valores
+        // CORREÇÃO: total_alunos conta apenas alunos com presença P ou F (não os "-")
         const acumular = (acc: Acumulador) => {
-          acc.total++
+          if (isPresente || isFaltante) {
+            acc.total++
+          }
           if (isPresente) {
             acc.presentes++
             if (mediaAluno > 0) { acc.soma_geral += mediaAluno; acc.count_geral++ }
@@ -660,6 +739,7 @@ export default function DadosPage() {
             media_geral: calcMedia(acc.soma_geral, acc.count_geral),
             media_lp: calcMedia(acc.soma_lp, acc.count_lp),
             media_mat: calcMedia(acc.soma_mat, acc.count_mat),
+            media_prod: calcMedia(acc.soma_prod, acc.count_prod),
             media_ch: calcMedia(acc.soma_ch, acc.count_ch),
             media_cn: calcMedia(acc.soma_cn, acc.count_cn),
             presentes: acc.presentes,
@@ -678,6 +758,9 @@ export default function DadosPage() {
             media_geral: calcMedia(acc.soma_geral, acc.count_geral),
             media_lp: calcMedia(acc.soma_lp, acc.count_lp),
             media_mat: calcMedia(acc.soma_mat, acc.count_mat),
+            media_prod: calcMedia(acc.soma_prod, acc.count_prod),
+            media_ch: calcMedia(acc.soma_ch, acc.count_ch),
+            media_cn: calcMedia(acc.soma_cn, acc.count_cn),
             presentes: acc.presentes,
             faltantes: acc.faltantes
           }
@@ -771,9 +854,6 @@ export default function DadosPage() {
       if (filtroNivel) params.append('nivel', filtroNivel)
       if (filtroFaixaMedia) params.append('faixa_media', filtroFaixaMedia)
       if (filtroDisciplina) params.append('disciplina', filtroDisciplina)
-      if (filtroTaxaAcertoMin) params.append('taxa_acerto_min', filtroTaxaAcertoMin)
-      if (filtroTaxaAcertoMax) params.append('taxa_acerto_max', filtroTaxaAcertoMax)
-      if (filtroQuestaoCodigo) params.append('questao_codigo', filtroQuestaoCodigo)
       // Aumentar limite de alunos para trazer todos (paginação feita no frontend)
       params.append('limite_alunos', '10000')
       // Forçar atualização do cache quando clicado no botão Atualizar
@@ -810,10 +890,7 @@ export default function DadosPage() {
             nivel: filtroNivel,
             faixa_media: filtroFaixaMedia,
             disciplina: filtroDisciplina,
-            tipo_ensino: filtroTipoEnsino,
-            taxa_acerto_min: filtroTaxaAcertoMin,
-            taxa_acerto_max: filtroTaxaAcertoMax,
-            questao_codigo: filtroQuestaoCodigo
+            tipo_ensino: filtroTipoEnsino
           })
         }
       } else {
@@ -874,14 +951,19 @@ export default function DadosPage() {
     setFiltroNivel('')
     setFiltroFaixaMedia('')
     setFiltroDisciplina('')
-    setFiltroTaxaAcertoMin('')
-    setFiltroTaxaAcertoMax('')
-    setFiltroQuestaoCodigo('')
     setFiltroTipoEnsino('')
     setPaginaAtual(1)
     // Limpar cache pois os filtros foram resetados
     setDadosCache(null)
     setFiltrosCache(null)
+    // Limpar filtros persistidos no localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(FILTROS_STORAGE_KEY)
+      } catch (e) {
+        console.warn('Erro ao limpar filtros do localStorage:', e)
+      }
+    }
   }
 
   // Função para verificar se os filtros atuais são iguais aos do cache (exceto série)
@@ -896,12 +978,9 @@ export default function DadosPage() {
       filtrosCache.nivel === filtroNivel &&
       filtrosCache.faixa_media === filtroFaixaMedia &&
       filtrosCache.disciplina === filtroDisciplina &&
-      filtrosCache.tipo_ensino === filtroTipoEnsino &&
-      filtrosCache.taxa_acerto_min === filtroTaxaAcertoMin &&
-      filtrosCache.taxa_acerto_max === filtroTaxaAcertoMax &&
-      filtrosCache.questao_codigo === filtroQuestaoCodigo
+      filtrosCache.tipo_ensino === filtroTipoEnsino
     )
-  }, [filtrosCache, filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
+  }, [filtrosCache, filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino])
 
   // Função para salvar filtros atuais no cache
   const salvarFiltrosCache = useCallback(() => {
@@ -914,12 +993,9 @@ export default function DadosPage() {
       nivel: filtroNivel,
       faixa_media: filtroFaixaMedia,
       disciplina: filtroDisciplina,
-      tipo_ensino: filtroTipoEnsino,
-      taxa_acerto_min: filtroTaxaAcertoMin,
-      taxa_acerto_max: filtroTaxaAcertoMax,
-      questao_codigo: filtroQuestaoCodigo
+      tipo_ensino: filtroTipoEnsino
     })
-  }, [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo])
+  }, [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino])
 
   // Funções de comparação importadas do módulo centralizado
   const compararSeries = compararSeriesLib
@@ -1110,17 +1186,290 @@ export default function DadosPage() {
       ? (dadosCache.mediasPorSerie?.filter(m => compararSeries(m.serie, serie)) || [])
       : (dadosCache.mediasPorSerie || [])
 
-    // Filtrar turmas pela série (comparação flexível)
-    // Se série vazia, manter todas as turmas
-    const turmasFiltradas = serie
-      ? (dadosCache.mediasPorTurma?.filter(t => compararSeries(t.serie, serie)) || [])
-      : (dadosCache.mediasPorTurma || [])
+    // Filtrar turmas pela série (recalcular baseado nos alunos filtrados)
+    let turmasFiltradas: typeof dadosCache.mediasPorTurma = []
+
+    if (serie && alunosFiltrados.length > 0) {
+      // Recalcular dados da turma baseado apenas nos alunos da série filtrada
+      const turmasMap = new Map<string, {
+        turma_id: string
+        turma: string
+        escola: string
+        serie: string
+        total_alunos: number
+        presentes: number
+        faltantes: number
+        soma_geral: number
+        count_geral: number
+        soma_lp: number
+        count_lp: number
+        soma_mat: number
+        count_mat: number
+        soma_prod: number
+        count_prod: number
+        soma_ch: number
+        count_ch: number
+        soma_cn: number
+        count_cn: number
+      }>()
+
+      // Obter dados das turmas do cache original e dos filtros
+      const turmasDados = new Map<string, { turma: string, escola: string, serie: string }>()
+      dadosCache.mediasPorTurma?.forEach(t => {
+        turmasDados.set(t.turma_id, { turma: t.turma, escola: t.escola, serie: t.serie })
+      })
+      // Fallback: usar dados dos filtros de turmas se disponíveis
+      const escolasNomes = new Map<string, string>()
+      dadosCache.mediasPorEscola?.forEach(e => {
+        escolasNomes.set(e.escola_id, e.escola)
+      })
+      dadosCache.filtros?.turmas?.forEach((t: any) => {
+        if (!turmasDados.has(String(t.id))) {
+          const escolaNome = escolasNomes.get(String(t.escola_id)) || ''
+          turmasDados.set(String(t.id), { turma: t.codigo || '', escola: escolaNome, serie: '' })
+        }
+      })
+
+      // Processar alunos filtrados
+      for (const aluno of alunosFiltrados) {
+        const turmaId = aluno.turma_id ? String(aluno.turma_id) : ''
+        if (!turmaId || turmaId === 'undefined' || turmaId === 'null' || turmaId === '') continue
+
+        const presencaUpper = aluno.presenca?.toString().toUpperCase()
+        const isPresente = presencaUpper === 'P'
+        const isFaltante = presencaUpper === 'F'
+
+        // Só contabilizar alunos com presença P ou F
+        if (!isPresente && !isFaltante) continue
+
+        if (!turmasMap.has(turmaId)) {
+          const dados = turmasDados.get(turmaId)
+          turmasMap.set(turmaId, {
+            turma_id: turmaId,
+            turma: dados?.turma || '',
+            escola: dados?.escola || '',
+            serie: dados?.serie || aluno.serie || '',
+            total_alunos: 0,
+            presentes: 0,
+            faltantes: 0,
+            soma_geral: 0,
+            count_geral: 0,
+            soma_lp: 0,
+            count_lp: 0,
+            soma_mat: 0,
+            count_mat: 0,
+            soma_prod: 0,
+            count_prod: 0,
+            soma_ch: 0,
+            count_ch: 0,
+            soma_cn: 0,
+            count_cn: 0
+          })
+        }
+
+        const acc = turmasMap.get(turmaId)!
+        acc.total_alunos++
+
+        if (isPresente) {
+          acc.presentes++
+          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          const notaLp = toNum(aluno.nota_lp)
+          const notaMat = toNum(aluno.nota_mat)
+          const notaCh = toNum(aluno.nota_ch)
+          const notaCn = toNum(aluno.nota_cn)
+          const notaProd = toNum(aluno.nota_producao)
+
+          // Calcular média dinamicamente baseado na série (Anos Iniciais vs Anos Finais)
+          const numeroSerie = aluno.serie?.match(/(\d+)/)?.[1]
+          const isAnosIniciaisAluno = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+
+          let somaNotas = 0
+          let countNotas = 0
+          if (notaLp > 0) { somaNotas += notaLp; countNotas++ }
+          if (notaMat > 0) { somaNotas += notaMat; countNotas++ }
+          if (isAnosIniciaisAluno) {
+            // Anos Iniciais: LP + MAT + PROD
+            if (notaProd > 0) { somaNotas += notaProd; countNotas++ }
+          } else {
+            // Anos Finais: LP + MAT + CH + CN
+            if (notaCh > 0) { somaNotas += notaCh; countNotas++ }
+            if (notaCn > 0) { somaNotas += notaCn; countNotas++ }
+          }
+          const mediaCalculada = countNotas > 0 ? somaNotas / countNotas : 0
+
+          if (mediaCalculada > 0) { acc.soma_geral += mediaCalculada; acc.count_geral++ }
+          if (notaLp > 0) { acc.soma_lp += notaLp; acc.count_lp++ }
+          if (notaMat > 0) { acc.soma_mat += notaMat; acc.count_mat++ }
+          if (notaCh > 0) { acc.soma_ch += notaCh; acc.count_ch++ }
+          if (notaCn > 0) { acc.soma_cn += notaCn; acc.count_cn++ }
+          if (notaProd > 0) { acc.soma_prod += notaProd; acc.count_prod++ }
+        }
+        if (isFaltante) acc.faltantes++
+      }
+
+      // Converter para formato esperado (arredondar para 2 casas decimais)
+      const calcMediaArredondada = (soma: number, count: number) => count > 0 ? Math.round((soma / count) * 100) / 100 : 0
+      turmasFiltradas = Array.from(turmasMap.values()).map(acc => ({
+        turma_id: acc.turma_id,
+        turma: acc.turma,
+        escola: acc.escola,
+        serie: acc.serie,
+        total_alunos: acc.total_alunos,
+        media_geral: calcMediaArredondada(acc.soma_geral, acc.count_geral),
+        media_lp: calcMediaArredondada(acc.soma_lp, acc.count_lp),
+        media_mat: calcMediaArredondada(acc.soma_mat, acc.count_mat),
+        media_prod: calcMediaArredondada(acc.soma_prod, acc.count_prod),
+        media_ch: calcMediaArredondada(acc.soma_ch, acc.count_ch),
+        media_cn: calcMediaArredondada(acc.soma_cn, acc.count_cn),
+        presentes: acc.presentes,
+        faltantes: acc.faltantes
+      }))
+
+      // Fallback: se o recálculo não encontrou turmas, usar filtro do cache
+      if (turmasFiltradas.length === 0) {
+        turmasFiltradas = dadosCache.mediasPorTurma?.filter(t => compararSeries(t.serie, serie)) || []
+      }
+    } else if (serie) {
+      // Filtrar turmas pela série do cache
+      turmasFiltradas = dadosCache.mediasPorTurma?.filter(t => compararSeries(t.serie, serie)) || []
+    } else {
+      turmasFiltradas = dadosCache.mediasPorTurma || []
+    }
 
     // Filtrar escolas (recalcular baseado nos alunos filtrados)
     const escolasIds = [...new Set(alunosFiltrados.map(a => a.escola_id))]
-    const escolasFiltradas = serie
-      ? (dadosCache.mediasPorEscola?.filter(e => escolasIds.includes(e.escola_id)) || [])
-      : (dadosCache.mediasPorEscola || [])
+    let escolasFiltradas: typeof dadosCache.mediasPorEscola = []
+
+    if (serie && alunosFiltrados.length > 0) {
+      // Recalcular dados da escola baseado apenas nos alunos da série filtrada
+      const escolasMap = new Map<string, {
+        escola_id: string
+        escola: string
+        polo: string
+        total_alunos: number
+        presentes: number
+        faltantes: number
+        soma_geral: number
+        count_geral: number
+        soma_lp: number
+        count_lp: number
+        soma_mat: number
+        count_mat: number
+        soma_prod: number
+        count_prod: number
+        soma_ch: number
+        count_ch: number
+        soma_cn: number
+        count_cn: number
+      }>()
+
+      // Obter nomes das escolas e polos do cache original
+      const escolasDados = new Map<string, { escola: string, polo: string }>()
+      dadosCache.mediasPorEscola?.forEach(e => {
+        escolasDados.set(e.escola_id, { escola: e.escola, polo: e.polo })
+      })
+
+      // Processar alunos filtrados
+      for (const aluno of alunosFiltrados) {
+        const escolaId = String(aluno.escola_id)
+        const presencaUpper = aluno.presenca?.toString().toUpperCase()
+        const isPresente = presencaUpper === 'P'
+        const isFaltante = presencaUpper === 'F'
+
+        // Só contabilizar alunos com presença P ou F
+        if (!isPresente && !isFaltante) continue
+
+        if (!escolasMap.has(escolaId)) {
+          const dados = escolasDados.get(escolaId)
+          escolasMap.set(escolaId, {
+            escola_id: escolaId,
+            escola: dados?.escola || '',
+            polo: dados?.polo || '',
+            total_alunos: 0,
+            presentes: 0,
+            faltantes: 0,
+            soma_geral: 0,
+            count_geral: 0,
+            soma_lp: 0,
+            count_lp: 0,
+            soma_mat: 0,
+            count_mat: 0,
+            soma_prod: 0,
+            count_prod: 0,
+            soma_ch: 0,
+            count_ch: 0,
+            soma_cn: 0,
+            count_cn: 0
+          })
+        }
+
+        const acc = escolasMap.get(escolaId)!
+        acc.total_alunos++
+
+        if (isPresente) {
+          acc.presentes++
+          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          const notaLp = toNum(aluno.nota_lp)
+          const notaMat = toNum(aluno.nota_mat)
+          const notaCh = toNum(aluno.nota_ch)
+          const notaCn = toNum(aluno.nota_cn)
+          const notaProd = toNum(aluno.nota_producao)
+
+          // Calcular média dinamicamente baseado na série (Anos Iniciais vs Anos Finais)
+          const numeroSerie = aluno.serie?.match(/(\d+)/)?.[1]
+          const isAnosIniciaisAluno = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+
+          let somaNotas = 0
+          let countNotas = 0
+          if (notaLp > 0) { somaNotas += notaLp; countNotas++ }
+          if (notaMat > 0) { somaNotas += notaMat; countNotas++ }
+          if (isAnosIniciaisAluno) {
+            // Anos Iniciais: LP + MAT + PROD
+            if (notaProd > 0) { somaNotas += notaProd; countNotas++ }
+          } else {
+            // Anos Finais: LP + MAT + CH + CN
+            if (notaCh > 0) { somaNotas += notaCh; countNotas++ }
+            if (notaCn > 0) { somaNotas += notaCn; countNotas++ }
+          }
+          const mediaCalculada = countNotas > 0 ? somaNotas / countNotas : 0
+
+          if (mediaCalculada > 0) { acc.soma_geral += mediaCalculada; acc.count_geral++ }
+          if (notaLp > 0) { acc.soma_lp += notaLp; acc.count_lp++ }
+          if (notaMat > 0) { acc.soma_mat += notaMat; acc.count_mat++ }
+          if (notaCh > 0) { acc.soma_ch += notaCh; acc.count_ch++ }
+          if (notaCn > 0) { acc.soma_cn += notaCn; acc.count_cn++ }
+          if (notaProd > 0) { acc.soma_prod += notaProd; acc.count_prod++ }
+        }
+        if (isFaltante) acc.faltantes++
+      }
+
+      // Converter para formato esperado (arredondar para 2 casas decimais para consistência com API)
+      const calcMediaArredondada = (soma: number, count: number) => count > 0 ? Math.round((soma / count) * 100) / 100 : 0
+      escolasFiltradas = Array.from(escolasMap.values()).map(acc => ({
+        escola_id: acc.escola_id,
+        escola: acc.escola,
+        polo: acc.polo,
+        total_alunos: acc.total_alunos,
+        media_geral: calcMediaArredondada(acc.soma_geral, acc.count_geral),
+        media_lp: calcMediaArredondada(acc.soma_lp, acc.count_lp),
+        media_mat: calcMediaArredondada(acc.soma_mat, acc.count_mat),
+        media_prod: calcMediaArredondada(acc.soma_prod, acc.count_prod),
+        media_ch: calcMediaArredondada(acc.soma_ch, acc.count_ch),
+        media_cn: calcMediaArredondada(acc.soma_cn, acc.count_cn),
+        presentes: acc.presentes,
+        faltantes: acc.faltantes
+      }))
+
+      // Fallback: se o recálculo não encontrou escolas, usar filtro do cache
+      if (escolasFiltradas.length === 0) {
+        escolasFiltradas = dadosCache.mediasPorEscola?.filter(e => escolasIds.includes(e.escola_id)) || []
+      }
+    } else if (serie) {
+      // Filtrar escolas pelos IDs dos alunos da série
+      escolasFiltradas = dadosCache.mediasPorEscola?.filter(e => escolasIds.includes(e.escola_id)) || []
+    } else {
+      escolasFiltradas = dadosCache.mediasPorEscola || []
+    }
 
     // Filtrar análise de acertos/erros
     // PRIORIDADE: Usar cálculo dinâmico a partir de resumosPorSerie (dados corretos por série e disciplina)
@@ -1197,35 +1546,52 @@ export default function DadosPage() {
       if (isPresente) acc.presentes++
 
       // Parse das notas (apenas uma vez por aluno)
-      const mediaAluno = parseFloat(aluno.media_aluno)
-      const notaLp = parseFloat(aluno.nota_lp)
-      const notaMat = parseFloat(aluno.nota_mat)
-      const notaCh = parseFloat(aluno.nota_ch)
-      const notaCn = parseFloat(aluno.nota_cn)
-      const notaProd = parseFloat(aluno.nota_producao)
+      const notaLp = parseFloat(aluno.nota_lp) || 0
+      const notaMat = parseFloat(aluno.nota_mat) || 0
+      const notaCh = parseFloat(aluno.nota_ch) || 0
+      const notaCn = parseFloat(aluno.nota_cn) || 0
+      const notaProd = parseFloat(aluno.nota_producao) || 0
+
+      // Calcular média dinamicamente baseado na série (Anos Iniciais vs Anos Finais)
+      const numeroSerie = aluno.serie?.match(/(\d+)/)?.[1]
+      const isAnosIniciaisAluno = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+
+      let somaNotas = 0
+      let countNotas = 0
+      if (notaLp > 0) { somaNotas += notaLp; countNotas++ }
+      if (notaMat > 0) { somaNotas += notaMat; countNotas++ }
+      if (isAnosIniciaisAluno) {
+        // Anos Iniciais: LP + MAT + PROD
+        if (notaProd > 0) { somaNotas += notaProd; countNotas++ }
+      } else {
+        // Anos Finais: LP + MAT + CH + CN
+        if (notaCh > 0) { somaNotas += notaCh; countNotas++ }
+        if (notaCn > 0) { somaNotas += notaCn; countNotas++ }
+      }
+      const mediaCalculada = countNotas > 0 ? somaNotas / countNotas : 0
 
       // Acumular somas e contagens para médias (apenas valores válidos > 0)
-      if (!isNaN(mediaAluno) && mediaAluno > 0) {
-        acc.somaGeral += mediaAluno
+      if (mediaCalculada > 0) {
+        acc.somaGeral += mediaCalculada
         acc.countGeral++
         // Min/Max
-        if (mediaAluno < acc.menorMedia) acc.menorMedia = mediaAluno
-        if (mediaAluno > acc.maiorMedia) acc.maiorMedia = mediaAluno
+        if (mediaCalculada < acc.menorMedia) acc.menorMedia = mediaCalculada
+        if (mediaCalculada > acc.maiorMedia) acc.maiorMedia = mediaCalculada
 
         // Faixas de nota (apenas presentes)
         if (isPresente) {
-          if (mediaAluno < 2) acc.faixas['0 a 2']++
-          else if (mediaAluno < 4) acc.faixas['2 a 4']++
-          else if (mediaAluno < 6) acc.faixas['4 a 6']++
-          else if (mediaAluno < 8) acc.faixas['6 a 8']++
+          if (mediaCalculada < 2) acc.faixas['0 a 2']++
+          else if (mediaCalculada < 4) acc.faixas['2 a 4']++
+          else if (mediaCalculada < 6) acc.faixas['4 a 6']++
+          else if (mediaCalculada < 8) acc.faixas['6 a 8']++
           else acc.faixas['8 a 10']++
         }
       }
-      if (!isNaN(notaLp) && notaLp > 0) { acc.somaLp += notaLp; acc.countLp++ }
-      if (!isNaN(notaMat) && notaMat > 0) { acc.somaMat += notaMat; acc.countMat++ }
-      if (!isNaN(notaCh) && notaCh > 0) { acc.somaCh += notaCh; acc.countCh++ }
-      if (!isNaN(notaCn) && notaCn > 0) { acc.somaCn += notaCn; acc.countCn++ }
-      if (!isNaN(notaProd) && notaProd > 0) { acc.somaProd += notaProd; acc.countProd++ }
+      if (notaLp > 0) { acc.somaLp += notaLp; acc.countLp++ }
+      if (notaMat > 0) { acc.somaMat += notaMat; acc.countMat++ }
+      if (notaCh > 0) { acc.somaCh += notaCh; acc.countCh++ }
+      if (notaCn > 0) { acc.somaCn += notaCn; acc.countCn++ }
+      if (notaProd > 0) { acc.somaProd += notaProd; acc.countProd++ }
 
       // Níveis de aprendizagem (apenas anos iniciais e com presença registrada)
       if (isAnosIniciais && (isPresente || isFaltante)) {
@@ -1400,8 +1766,8 @@ export default function DadosPage() {
     }
   }, [filtroTipoEnsino, filtroSerie, filtroDisciplina])
 
-  const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTaxaAcertoMin || filtroTaxaAcertoMax || filtroQuestaoCodigo || filtroTipoEnsino || filtroSerie
-  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTaxaAcertoMin, filtroTaxaAcertoMax, filtroQuestaoCodigo, filtroTipoEnsino, filtroSerie].filter(Boolean).length
+  const temFiltrosAtivos = filtroPoloId || filtroEscolaId || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTipoEnsino || filtroSerie
+  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, filtroSerie].filter(Boolean).length
 
   // Função para verificar se uma disciplina é aplicável à série do aluno
   const isDisciplinaAplicavel = useCallback((serie: string | null | undefined, disciplinaCodigo: string): boolean => {
@@ -1554,9 +1920,84 @@ export default function DadosPage() {
     }
   }, [filtroDisciplina])
 
+  // Calcular médias por etapa de ensino (Anos Iniciais e Anos Finais) para cada escola
+  const mediasPorEtapaEscola = useMemo(() => {
+    if (!dadosCache?.alunosDetalhados) return new Map<string, { media_ai: number | null; media_af: number | null }>()
+
+    const escolasMap = new Map<string, {
+      soma_ai: number; count_ai: number;
+      soma_af: number; count_af: number;
+    }>()
+
+    // Processar todos os alunos do cache (dados completos, não filtrados)
+    for (const aluno of dadosCache.alunosDetalhados) {
+      const escolaId = String(aluno.escola_id)
+      const presencaUpper = aluno.presenca?.toString().toUpperCase()
+      const isPresente = presencaUpper === 'P'
+
+      // Só calcular média para alunos presentes
+      if (!isPresente) continue
+
+      // Determinar etapa de ensino
+      const numeroSerie = aluno.serie?.match(/(\d+)/)?.[1]
+      const isAnosIniciais = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+      const isAnosFinais = numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9'
+
+      if (!isAnosIniciais && !isAnosFinais) continue
+
+      // Parse das notas
+      const notaLp = parseFloat(aluno.nota_lp) || 0
+      const notaMat = parseFloat(aluno.nota_mat) || 0
+      const notaCh = parseFloat(aluno.nota_ch) || 0
+      const notaCn = parseFloat(aluno.nota_cn) || 0
+      const notaProd = parseFloat(aluno.nota_producao) || 0
+
+      // Calcular média do aluno baseado na etapa
+      let somaNotas = 0
+      let countNotas = 0
+      if (notaLp > 0) { somaNotas += notaLp; countNotas++ }
+      if (notaMat > 0) { somaNotas += notaMat; countNotas++ }
+      if (isAnosIniciais) {
+        if (notaProd > 0) { somaNotas += notaProd; countNotas++ }
+      } else {
+        if (notaCh > 0) { somaNotas += notaCh; countNotas++ }
+        if (notaCn > 0) { somaNotas += notaCn; countNotas++ }
+      }
+      const mediaAluno = countNotas > 0 ? somaNotas / countNotas : 0
+
+      if (mediaAluno <= 0) continue
+
+      // Inicializar escola se necessário
+      if (!escolasMap.has(escolaId)) {
+        escolasMap.set(escolaId, { soma_ai: 0, count_ai: 0, soma_af: 0, count_af: 0 })
+      }
+
+      const acc = escolasMap.get(escolaId)!
+      if (isAnosIniciais) {
+        acc.soma_ai += mediaAluno
+        acc.count_ai++
+      } else {
+        acc.soma_af += mediaAluno
+        acc.count_af++
+      }
+    }
+
+    // Converter para médias finais
+    const resultado = new Map<string, { media_ai: number | null; media_af: number | null }>()
+    escolasMap.forEach((acc, escolaId) => {
+      resultado.set(escolaId, {
+        media_ai: acc.count_ai > 0 ? Math.round((acc.soma_ai / acc.count_ai) * 100) / 100 : null,
+        media_af: acc.count_af > 0 ? Math.round((acc.soma_af / acc.count_af) * 100) / 100 : null
+      })
+    })
+
+    return resultado
+  }, [dadosCache?.alunosDetalhados])
+
   // Ordenação e paginação de escolas
   const escolasOrdenadas = useMemo(() => {
     if (!dados?.mediasPorEscola) return []
+    // Ordenar
     return [...dados.mediasPorEscola].sort((a, b) => {
       const valorA = a[ordenacao.coluna as keyof typeof a]
       const valorB = b[ordenacao.coluna as keyof typeof b]
@@ -1571,12 +2012,46 @@ export default function DadosPage() {
 
   const escolasPaginadas = useMemo(() => {
     const inicio = (paginaAtual - 1) * itensPorPagina
-    return escolasOrdenadas.slice(inicio, inicio + itensPorPagina)
-  }, [escolasOrdenadas, paginaAtual, itensPorPagina])
+    const escolasPagina = escolasOrdenadas.slice(inicio, inicio + itensPorPagina)
+
+    // Adicionar médias por etapa de ensino aos dados
+    return escolasPagina.map(escola => {
+      const mediaEtapa = mediasPorEtapaEscola.get(escola.escola_id)
+      return {
+        ...escola,
+        media_ai: mediaEtapa?.media_ai ?? null,
+        media_af: mediaEtapa?.media_af ?? null
+      }
+    })
+  }, [escolasOrdenadas, paginaAtual, itensPorPagina, mediasPorEtapaEscola])
+
+  // Ordenação e paginação de turmas
+  const turmasOrdenadas = useMemo(() => {
+    if (!dados?.mediasPorTurma) return []
+    // Ordenar
+    return [...dados.mediasPorTurma].sort((a, b) => {
+      const valorA = a[ordenacao.coluna as keyof typeof a]
+      const valorB = b[ordenacao.coluna as keyof typeof b]
+      if (valorA === null || valorA === undefined) return 1
+      if (valorB === null || valorB === undefined) return -1
+      if (typeof valorA === 'number' && typeof valorB === 'number') {
+        return ordenacao.direcao === 'asc' ? valorA - valorB : valorB - valorA
+      }
+      return ordenacao.direcao === 'asc'
+        ? String(valorA || '').localeCompare(String(valorB || ''))
+        : String(valorB || '').localeCompare(String(valorA || ''))
+    })
+  }, [dados?.mediasPorTurma, ordenacao])
+
+  const turmasPaginadas = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina
+    return turmasOrdenadas.slice(inicio, inicio + itensPorPagina)
+  }, [turmasOrdenadas, paginaAtual, itensPorPagina])
 
   // Ordenação e paginação de alunos
   const alunosOrdenados = useMemo(() => {
     if (!dados?.alunosDetalhados) return []
+    // Ordenar
     return [...dados.alunosDetalhados].sort((a, b) => {
       const valorA = a[ordenacao.coluna as keyof typeof a]
       const valorB = b[ordenacao.coluna as keyof typeof b]
@@ -1599,9 +2074,9 @@ export default function DadosPage() {
   const totalPaginas = useMemo(() => {
     if (abaAtiva === 'escolas') return Math.ceil(escolasOrdenadas.length / itensPorPagina)
     if (abaAtiva === 'alunos') return Math.ceil(alunosOrdenados.length / itensPorPagina)
-    if (abaAtiva === 'turmas') return Math.ceil((dados?.mediasPorTurma?.length || 0) / itensPorPagina)
+    if (abaAtiva === 'turmas') return Math.ceil(turmasOrdenadas.length / itensPorPagina)
     return 1
-  }, [abaAtiva, escolasOrdenadas.length, alunosOrdenados.length, dados?.mediasPorTurma?.length, itensPorPagina])
+  }, [abaAtiva, escolasOrdenadas.length, alunosOrdenados.length, turmasOrdenadas.length, itensPorPagina])
 
   const handleOrdenacao = (coluna: string) => {
     setOrdenacao(prev => ({
@@ -1766,15 +2241,6 @@ export default function DadosPage() {
                 )}
               </p>
             </div>
-            <button
-              onClick={handlePesquisar}
-              disabled={carregando}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm sm:text-base flex-shrink-0"
-              title="Pesquisar dados (usa cache quando possível)"
-            >
-              <RefreshCw className={`w-4 h-4 ${carregando ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Pesquisar</span>
-            </button>
           </div>
 
           {/* Barra de Filtros */}
@@ -1797,7 +2263,7 @@ export default function DadosPage() {
                 </span>
               )}
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {/* Ano Letivo */}
               <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroAnoLetivo ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
@@ -2019,65 +2485,17 @@ export default function DadosPage() {
                 </select>
               </div>
 
-              {/* Taxa de Acerto Mínima */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMin ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroTaxaAcertoMin ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Taxa de Acerto Mín. (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={filtroTaxaAcertoMin}
-                  onChange={(e) => { setFiltroTaxaAcertoMin(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroTaxaAcertoMin 
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                  placeholder="Ex: 50"
-                />
-              </div>
-
-              {/* Taxa de Acerto Máxima */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTaxaAcertoMax ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroTaxaAcertoMax ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Taxa de Acerto Máx. (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={filtroTaxaAcertoMax}
-                  onChange={(e) => { setFiltroTaxaAcertoMax(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroTaxaAcertoMax 
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                  placeholder="Ex: 80"
-                />
-              </div>
-
-              {/* Questão Específica */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroQuestaoCodigo ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroQuestaoCodigo ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Questão Específica
-                </label>
-                <input
-                  type="text"
-                  value={filtroQuestaoCodigo}
-                  onChange={(e) => { setFiltroQuestaoCodigo(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroQuestaoCodigo 
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                  placeholder="Ex: Q1, Q25"
-                />
+              {/* Botão Pesquisar */}
+              <div className="flex items-end p-3">
+                <button
+                  onClick={handlePesquisar}
+                  disabled={carregando}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-semibold shadow-md"
+                  title="Pesquisar dados (usa cache quando possível)"
+                >
+                  <RefreshCw className={`w-4 h-4 ${carregando ? 'animate-spin' : ''}`} />
+                  Pesquisar
+                </button>
               </div>
 
             </div>
@@ -2400,6 +2818,101 @@ export default function DadosPage() {
                     </div>
                   )}
 
+                  {/* Gráfico Comparativo Anos Iniciais vs Anos Finais */}
+                  {dados.mediasPorSerie.length > 0 && (() => {
+                    // Calcular médias por etapa de ensino
+                    const anosIniciaisDados = dados.mediasPorSerie.filter(item => {
+                      const num = item.serie?.match(/(\d+)/)?.[1]
+                      return num === '2' || num === '3' || num === '5'
+                    })
+                    const anosFinaisDados = dados.mediasPorSerie.filter(item => {
+                      const num = item.serie?.match(/(\d+)/)?.[1]
+                      return num === '6' || num === '7' || num === '8' || num === '9'
+                    })
+
+                    // Calcular médias gerais para cada etapa
+                    const calcularMediaEtapa = (etapaDados: typeof dados.mediasPorSerie, disciplinas: string[]) => {
+                      if (etapaDados.length === 0) return { media_geral: 0, total_alunos: 0 }
+                      let somaTotal = 0
+                      let countTotal = 0
+                      let totalAlunos = 0
+                      etapaDados.forEach(item => {
+                        totalAlunos += item.total_alunos || 0
+                        disciplinas.forEach(disc => {
+                          const valor = (item as any)[`media_${disc}`]
+                          if (valor && valor > 0) {
+                            somaTotal += valor * (item.total_alunos || 1)
+                            countTotal += item.total_alunos || 1
+                          }
+                        })
+                      })
+                      return {
+                        media_geral: countTotal > 0 ? Math.round((somaTotal / countTotal) * 100) / 100 : 0,
+                        total_alunos: totalAlunos
+                      }
+                    }
+
+                    const mediaAI = calcularMediaEtapa(anosIniciaisDados, ['lp', 'mat', 'prod'])
+                    const mediaAF = calcularMediaEtapa(anosFinaisDados, ['lp', 'mat', 'ch', 'cn'])
+
+                    // Dados para o gráfico
+                    const dadosComparativo = [
+                      { etapa: 'Anos Iniciais', media: mediaAI.media_geral, alunos: mediaAI.total_alunos, cor: '#10B981' },
+                      { etapa: 'Anos Finais', media: mediaAF.media_geral, alunos: mediaAF.total_alunos, cor: '#3B82F6' }
+                    ].filter(d => d.alunos > 0)
+
+                    if (dadosComparativo.length === 0) return null
+
+                    return (
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Comparativo por Etapa de Ensino</h3>
+                      <div className="h-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={dadosComparativo} layout="vertical" barCategoryGap="30%">
+                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                            <XAxis type="number" domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 11 }} />
+                            <YAxis type="category" dataKey="etapa" tick={{ fill: '#6B7280', fontSize: 12 }} width={100} />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload
+                                  return (
+                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700">
+                                      <p className="font-semibold text-gray-900 dark:text-white">{data.etapa}</p>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Média: <span className="font-bold">{data.media.toFixed(2)}</span>
+                                      </p>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Alunos: <span className="font-bold">{data.alunos}</span>
+                                      </p>
+                                    </div>
+                                  )
+                                }
+                                return null
+                              }}
+                            />
+                            <Bar dataKey="media" name="Média" radius={[0, 4, 4, 0]}>
+                              {dadosComparativo.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.cor} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      {/* Cards com detalhes */}
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        {dadosComparativo.map(item => (
+                          <div key={item.etapa} className="p-3 rounded-lg border" style={{ borderColor: item.cor, backgroundColor: `${item.cor}10` }}>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{item.etapa}</p>
+                            <p className="text-2xl font-bold" style={{ color: item.cor }}>{item.media.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{item.alunos} alunos</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    )
+                  })()}
+
                   {/* Ranking de Polos */}
                   {dados.mediasPorPolo.length > 0 && (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
@@ -2437,18 +2950,45 @@ export default function DadosPage() {
                   ) : (
                     <TabelaPaginada
                       dados={escolasPaginadas}
-                      colunas={[
-                        { key: 'escola', label: 'Escola', align: 'left' },
-                        { key: 'polo', label: 'Polo', align: 'left' },
-                        { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                        { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
-                        { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'LP' },
-                        { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'MAT' },
-                        { key: 'media_ch', label: 'CH', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CH' },
-                        { key: 'media_cn', label: 'CN', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CN' },
-                        { key: 'presentes', label: 'Pres.', align: 'center' },
-                        { key: 'faltantes', label: 'Falt.', align: 'center' },
-                      ]}
+                      colunas={(() => {
+                        // Determinar se é anos iniciais ou finais baseado no filtro de série
+                        const numSerie = filtroSerie?.replace(/[^0-9]/g, '') || ''
+                        const isAnosIniciais = ['2', '3', '5'].includes(numSerie)
+                        const isAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
+                        const temFiltro = !!filtroSerie && filtroSerie.trim() !== ''
+
+                        const colunas: any[] = [
+                          { key: 'escola', label: 'Escola', align: 'left' },
+                          { key: 'polo', label: 'Polo', align: 'left' },
+                          { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                          { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
+                        ]
+
+                        // Média por etapa de ensino: mostrar apenas quando sem filtro de série (Todos)
+                        if (!temFiltro) {
+                          colunas.push({ key: 'media_ai', label: 'Média AI', align: 'center', format: 'media_etapa' })
+                          colunas.push({ key: 'media_af', label: 'Média AF', align: 'center', format: 'media_etapa' })
+                        }
+
+                        colunas.push({ key: 'media_lp', label: 'LP', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'LP' })
+                        colunas.push({ key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'MAT' })
+
+                        // PROD: mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro
+                        if (!temFiltro || isAnosIniciais) {
+                          colunas.push({ key: 'media_prod', label: 'PROD', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'PT' })
+                        }
+
+                        // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro
+                        if (!temFiltro || isAnosFinais) {
+                          colunas.push({ key: 'media_ch', label: 'CH', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CH' })
+                          colunas.push({ key: 'media_cn', label: 'CN', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CN' })
+                        }
+
+                        colunas.push({ key: 'presentes', label: 'Pres.', align: 'center' })
+                        colunas.push({ key: 'faltantes', label: 'Falt.', align: 'center' })
+
+                        return colunas
+                      })()}
                       ordenacao={ordenacao}
                       onOrdenar={handleOrdenacao}
                       paginaAtual={paginaAtual}
@@ -2472,24 +3012,54 @@ export default function DadosPage() {
                     </div>
                   ) : dados.mediasPorTurma ? (
                     <TabelaPaginada
-                      dados={dados.mediasPorTurma.slice((paginaAtual - 1) * itensPorPagina, paginaAtual * itensPorPagina)}
-                      colunas={[
-                        { key: 'turma', label: 'Turma', align: 'left' },
-                        { key: 'escola', label: 'Escola', align: 'left' },
-                        { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
-                        { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                        { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
-                        { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'LP' },
-                        { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'MAT' },
-                        { key: 'presentes', label: 'Pres.', align: 'center' },
-                        { key: 'faltantes', label: 'Falt.', align: 'center' },
-                      ]}
+                      dados={turmasPaginadas.map(turma => ({
+                        ...turma,
+                        nivel_turma: calcularNivelPorMedia(turma.media_geral).codigo
+                      }))}
+                      colunas={(() => {
+                        // Determinar se é anos iniciais ou finais baseado no filtro de série
+                        const numSerie = filtroSerie?.replace(/[^0-9]/g, '') || ''
+                        const isAnosIniciais = ['2', '3', '5'].includes(numSerie)
+                        const isAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
+                        const temFiltro = !!filtroSerie && filtroSerie.trim() !== ''
+
+                        const colunas: any[] = [
+                          { key: 'turma', label: 'Turma', align: 'left' },
+                          { key: 'escola', label: 'Escola', align: 'left' },
+                          { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
+                          { key: 'total_alunos', label: 'Alunos', align: 'center' },
+                          { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
+                          { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'LP' },
+                          { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'MAT' },
+                        ]
+
+                        // PROD: mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro
+                        if (!temFiltro || isAnosIniciais) {
+                          colunas.push({ key: 'media_prod', label: 'PROD', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'PT' })
+                        }
+
+                        // Nível da Turma: mostrar apenas para anos iniciais (2, 3, 5)
+                        if (isAnosIniciais) {
+                          colunas.push({ key: 'nivel_turma', label: 'Nível', align: 'center', format: 'nivel' })
+                        }
+
+                        // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro
+                        if (!temFiltro || isAnosFinais) {
+                          colunas.push({ key: 'media_ch', label: 'CH', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CH' })
+                          colunas.push({ key: 'media_cn', label: 'CN', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CN' })
+                        }
+
+                        colunas.push({ key: 'presentes', label: 'Pres.', align: 'center' })
+                        colunas.push({ key: 'faltantes', label: 'Falt.', align: 'center' })
+
+                        return colunas
+                      })()}
                       ordenacao={ordenacao}
                       onOrdenar={handleOrdenacao}
                       paginaAtual={paginaAtual}
-                      totalPaginas={Math.ceil(dados.mediasPorTurma.length / itensPorPagina)}
+                      totalPaginas={Math.ceil(turmasOrdenadas.length / itensPorPagina)}
                       onPaginar={setPaginaAtual}
-                      totalRegistros={dados.mediasPorTurma.length}
+                      totalRegistros={turmasOrdenadas.length}
                       itensPorPagina={itensPorPagina}
                       stickyHeader={true}
                     />
@@ -3353,6 +3923,44 @@ function DisciplinaCard({ titulo, media, cor, sigla, destaque = false }: any) {
   )
 }
 
+// Tooltips explicativos para as colunas
+const TOOLTIPS_COLUNAS: Record<string, string> = {
+  // Disciplinas
+  media_lp: 'Língua Portuguesa - Média das notas de LP',
+  media_mat: 'Matemática - Média das notas de MAT',
+  media_prod: 'Produção Textual - Média das notas de PROD (Anos Iniciais)',
+  media_ch: 'Ciências Humanas - Média das notas de CH (Anos Finais)',
+  media_cn: 'Ciências da Natureza - Média das notas de CN (Anos Finais)',
+  // Médias
+  media_geral: 'Média Geral - Média ponderada de todas as disciplinas',
+  media_ai: 'Média Anos Iniciais - Média dos alunos do 2º, 3º e 5º ano',
+  media_af: 'Média Anos Finais - Média dos alunos do 6º ao 9º ano',
+  media_aluno: 'Média do Aluno - Média geral calculada para o aluno',
+  // Notas individuais
+  nota_lp: 'Nota de Língua Portuguesa',
+  nota_mat: 'Nota de Matemática',
+  nota_producao: 'Nota de Produção Textual (Anos Iniciais)',
+  nota_ch: 'Nota de Ciências Humanas (Anos Finais)',
+  nota_cn: 'Nota de Ciências da Natureza (Anos Finais)',
+  // Outros campos
+  total_alunos: 'Total de alunos com presença P ou F',
+  presentes: 'Quantidade de alunos presentes (P)',
+  faltantes: 'Quantidade de alunos faltantes (F)',
+  nivel_turma: 'Nível de aprendizagem da turma: N1 (Insuficiente), N2 (Básico), N3 (Adequado), N4 (Avançado)',
+  nivel_aprendizagem: 'Nível de aprendizagem: N1 (<3), N2 (3-5), N3 (5-7.5), N4 (≥7.5)',
+  taxa_acerto: 'Taxa de acerto em porcentagem',
+  taxa_erro: 'Taxa de erro em porcentagem',
+  total_acertos: 'Total de questões acertadas',
+  total_erros: 'Total de questões erradas',
+  total_respostas: 'Total de respostas registradas',
+  serie: 'Série/Ano escolar',
+  turma: 'Código da turma',
+  escola: 'Nome da escola',
+  polo: 'Polo educacional',
+  presenca: 'Status de presença: P (Presente) ou F (Faltante)',
+  nome: 'Nome do aluno',
+}
+
 function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, totalPaginas, onPaginar, totalRegistros, itensPorPagina, stickyHeader = false }: any) {
   const formatarValor = (valor: any, formato: string) => {
     if (valor === null || valor === undefined) return (
@@ -3361,19 +3969,51 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
     switch (formato) {
       case 'nota':
         const nota = parseFloat(valor)
-        const corNota = nota >= 7 ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-200' :
-                       nota >= 5 ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-200' :
-                       'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-200'
+        const corNota = nota >= 7.5 ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300' :
+                       nota >= 5 ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300' :
+                       nota >= 3 ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300' :
+                       'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
+        const isCritico = nota < 3
         return (
-          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-sm font-bold border-2 ${corNota} min-w-[60px]`}>
+          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-sm font-bold border-2 ${corNota} min-w-[60px] ${isCritico ? 'animate-pulse' : ''}`}>
+            {isCritico && <span className="mr-1">⚠</span>}
             {nota.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         )
       case 'decimal':
         const decimal = parseFloat(valor)
+        // Destaque visual para médias críticas
+        const corDecimal = decimal >= 7.5 ? 'text-green-700 dark:text-green-400' :
+                          decimal >= 5 ? 'text-blue-700 dark:text-blue-400' :
+                          decimal >= 3 ? 'text-yellow-700 dark:text-yellow-400' :
+                          decimal > 0 ? 'text-red-600 dark:text-red-400 font-bold' :
+                          'text-gray-700 dark:text-gray-300'
+        const isCriticoDecimal = decimal > 0 && decimal < 3
         return (
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <span className={`text-sm font-semibold ${corDecimal} ${isCriticoDecimal ? 'animate-pulse' : ''}`}>
+            {isCriticoDecimal && <span className="mr-0.5">⚠</span>}
             {decimal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        )
+      case 'media_etapa':
+        // Formato para média por etapa de ensino - mostra "--" quando não há dados
+        if (valor === null || valor === undefined) {
+          return <span className="text-gray-400 dark:text-gray-500 italic text-sm">--</span>
+        }
+        const mediaEtapa = parseFloat(valor)
+        if (isNaN(mediaEtapa) || mediaEtapa <= 0) {
+          return <span className="text-gray-400 dark:text-gray-500 italic text-sm">--</span>
+        }
+        // Destaque visual para médias críticas (mesma lógica do formato 'decimal')
+        const corEtapa = mediaEtapa >= 7.5 ? 'text-green-700 dark:text-green-400' :
+                        mediaEtapa >= 5 ? 'text-blue-700 dark:text-blue-400' :
+                        mediaEtapa >= 3 ? 'text-yellow-700 dark:text-yellow-400' :
+                        'text-red-600 dark:text-red-400 font-bold'
+        const isCriticoEtapa = mediaEtapa < 3
+        return (
+          <span className={`text-sm font-semibold ${corEtapa} ${isCriticoEtapa ? 'animate-pulse' : ''}`}>
+            {isCriticoEtapa && <span className="mr-0.5">⚠</span>}
+            {mediaEtapa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         )
       case 'presenca':
@@ -3393,13 +4033,18 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
           'Adequado': 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300',
           'Avançado': 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300',
           'Não classificado': 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-slate-600',
+          // Códigos N1, N2, N3, N4
+          'N1': 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300',
+          'N2': 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300',
+          'N3': 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300',
+          'N4': 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300',
         }
-        return valor ? (
+        return valor && valor !== '-' ? (
           <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-bold border-2 ${nivelCores[valor] || 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-slate-600'}`}>
             {valor}
           </span>
         ) : (
-          <span className="text-gray-400 dark:text-gray-500 italic text-xs">Não classificado</span>
+          <span className="text-gray-400 dark:text-gray-500 italic text-xs">-</span>
         )
       case 'serie':
         // Formatar série para exibir como "Xº Ano"
@@ -3477,15 +4122,21 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                 <th
                   key={col.key}
                   onClick={() => onOrdenar(col.key)}
-                  className={`px-2 lg:px-4 py-2 lg:py-4 text-${col.align || 'left'} text-[10px] lg:text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 select-none whitespace-nowrap transition-colors ${col.destaque ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-x-2 border-indigo-300 dark:border-indigo-700' : 'text-gray-700 dark:text-gray-200'}`}
+                  title={TOOLTIPS_COLUNAS[col.key] || col.label}
+                  className={`px-2 lg:px-4 py-2 lg:py-4 text-${col.align || 'left'} text-[10px] lg:text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 select-none whitespace-nowrap transition-colors ${col.destaque ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-x-2 border-indigo-300 dark:border-indigo-700' : 'text-gray-700 dark:text-gray-200'} ${ordenacao.coluna === col.key ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}
                 >
                   <div className={`flex items-center gap-1 lg:gap-2 ${col.align === 'center' ? 'justify-center' : col.align === 'right' ? 'justify-end' : ''}`}>
                     {col.label}
                     {col.destaque && <span className="text-[8px] lg:text-[10px] ml-1">●</span>}
-                    {ordenacao.coluna === col.key && (
+                    {TOOLTIPS_COLUNAS[col.key] && (
+                      <span className="text-gray-400 dark:text-gray-500 text-[10px]" title={TOOLTIPS_COLUNAS[col.key]}>ⓘ</span>
+                    )}
+                    {ordenacao.coluna === col.key ? (
                       ordenacao.direcao === 'asc' ?
                         <ChevronUp className="w-3 h-3 lg:w-4 lg:h-4 text-indigo-600" /> :
                         <ChevronDown className="w-3 h-3 lg:w-4 lg:h-4 text-indigo-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 lg:w-4 lg:h-4 text-gray-400 dark:text-gray-500 opacity-50 group-hover:opacity-100" />
                     )}
                   </div>
                 </th>
