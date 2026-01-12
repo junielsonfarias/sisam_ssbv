@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
                 CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
                 0
               ),
-              1
+              2
             )
           ELSE
             -- Anos finais: media de LP, CH, MAT, CN
@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
                 CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
                 0
               ),
-              1
+              2
             )
         END as media_aluno
       FROM resultados_consolidados rc

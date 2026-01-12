@@ -273,8 +273,9 @@ export default function ResultadosPage() {
       const escolasData = await escolasRes.json()
       const seriesData = await seriesRes.json()
 
-      setPolos(polosData)
-      setEscolas(escolasData)
+      // Garantir que polos e escolas são arrays
+      setPolos(Array.isArray(polosData) ? polosData : polosData?.polos || [])
+      setEscolas(Array.isArray(escolasData) ? escolasData : escolasData?.escolas || [])
 
       // Carregar séries configuradas
       if (seriesData.series && Array.isArray(seriesData.series)) {

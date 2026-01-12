@@ -244,7 +244,7 @@ export async function GET(request: NextRequest) {
                 NULLIF(
                   CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
             ELSE
               ROUND(
                 (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
@@ -252,7 +252,7 @@ export async function GET(request: NextRequest) {
                   CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
           END
         `
         whereConditions.push(`(${mediaCalculada}) >= $${paramIndex} AND (${mediaCalculada}) < $${paramIndex + 1}`)
@@ -303,7 +303,7 @@ export async function GET(request: NextRequest) {
               NULLIF(
                 CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                 CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+                CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
           ELSE
             ROUND(
               (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
@@ -311,7 +311,7 @@ export async function GET(request: NextRequest) {
                 CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                 CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                 CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
         END
       `
       // Taxa = (total_acertos / total_questoes) * 100
@@ -350,7 +350,7 @@ export async function GET(request: NextRequest) {
     // CORREÇÃO 2: Para anos iniciais, a média deve incluir nota_producao
     const metricasQuery = `
       SELECT
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
+        COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
         COUNT(DISTINCT rc.escola_id) as total_escolas,
         COUNT(DISTINCT rc.turma_id) as total_turmas,
         COUNT(DISTINCT e.polo_id) as total_polos,
@@ -441,7 +441,7 @@ export async function GET(request: NextRequest) {
     const mediasPorSerieQuery = `
       SELECT
         rc.serie,
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
+        COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
@@ -464,7 +464,7 @@ export async function GET(request: NextRequest) {
       SELECT
         p.id as polo_id,
         p.nome as polo,
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
+        COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
@@ -487,7 +487,7 @@ export async function GET(request: NextRequest) {
         e.id as escola_id,
         e.nome as escola,
         p.nome as polo,
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
+        COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
         -- Média CORRIGIDA: considera nota_producao para anos iniciais
         ROUND(AVG(CASE
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
@@ -546,42 +546,13 @@ export async function GET(request: NextRequest) {
         t.codigo as turma,
         e.nome as escola,
         rc.serie,
-        COUNT(DISTINCT rc.aluno_id) as total_alunos,
-        -- Média CORRIGIDA: anos iniciais inclui PROD, anos finais usa LP+CH+MAT+CN
-        ROUND(AVG(CASE
-          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
-            CASE
-              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD
-              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-                (
-                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                  0
-                )
-              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN
-              ELSE
-                (
-                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                  0
-                )
-            END
-          ELSE NULL
-        END), 2) as media_geral,
+        COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
+        -- Média usando campo media_aluno pré-calculado (consistente com escola e alunos)
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
         COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
@@ -680,7 +651,7 @@ export async function GET(request: NextRequest) {
                 NULLIF(
                   CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
             ELSE
               ROUND(
                 (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
@@ -688,7 +659,7 @@ export async function GET(request: NextRequest) {
                   CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
           END DESC`
 
     const topAlunosQuery = `
@@ -713,7 +684,7 @@ export async function GET(request: NextRequest) {
                 CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
                 0
               ),
-              1
+              2
             )
           ELSE
             ROUND(
@@ -730,7 +701,7 @@ export async function GET(request: NextRequest) {
                 CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
                 0
               ),
-              1
+              2
             )
         END as media_aluno,
         -- Notas: Para Anos Iniciais usar rc_table, para Anos Finais usar rc
@@ -773,7 +744,7 @@ export async function GET(request: NextRequest) {
                 NULLIF(
                   CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
             ELSE
               ROUND(
                 (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
@@ -781,7 +752,7 @@ export async function GET(request: NextRequest) {
                   CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
                   CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
           END DESC NULLS LAST`
 
     const alunosDetalhadosQuery = `
@@ -812,7 +783,7 @@ export async function GET(request: NextRequest) {
                 CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
                 0
               ),
-              1
+              2
             )
           ELSE
             -- Anos finais: media de LP, CH, MAT, CN
@@ -830,7 +801,7 @@ export async function GET(request: NextRequest) {
                 CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
                 0
               ),
-              1
+              2
             )
         END as media_aluno,
         -- Notas: Para Anos Iniciais usar rc_table, para Anos Finais usar rc
@@ -1551,31 +1522,53 @@ export async function GET(request: NextRequest) {
         presentes: parseInt(row.presentes),
         faltantes: parseInt(row.faltantes)
       })),
-      mediasPorEscola: mediasPorEscolaResult.rows.map(row => ({
-        escola_id: row.escola_id,
-        escola: row.escola,
-        polo: row.polo,
-        total_alunos: parseInt(row.total_alunos),
-        media_geral: parseFloat(row.media_geral) || 0,
-        media_lp: parseFloat(row.media_lp) || 0,
-        media_mat: parseFloat(row.media_mat) || 0,
-        media_ch: parseFloat(row.media_ch) || 0,
-        media_cn: parseFloat(row.media_cn) || 0,
-        presentes: parseInt(row.presentes),
-        faltantes: parseInt(row.faltantes)
-      })),
-      mediasPorTurma: mediasPorTurmaResult.rows.map(row => ({
-        turma_id: row.turma_id,
-        turma: row.turma,
-        escola: row.escola,
-        serie: row.serie,
-        total_alunos: parseInt(row.total_alunos),
-        media_geral: parseFloat(row.media_geral) || 0,
-        media_lp: parseFloat(row.media_lp) || 0,
-        media_mat: parseFloat(row.media_mat) || 0,
-        presentes: parseInt(row.presentes),
-        faltantes: parseInt(row.faltantes)
-      })),
+      mediasPorEscola: mediasPorEscolaResult.rows.map(row => {
+        // Verificar se o filtro de série ativo é anos iniciais
+        const numeroSerieFiltro = serie?.match(/(\d+)/)?.[1]
+        const isAnosIniciaisFiltro = numeroSerieFiltro === '2' || numeroSerieFiltro === '3' || numeroSerieFiltro === '5'
+        const isAnosFinaisFiltro = numeroSerieFiltro === '6' || numeroSerieFiltro === '7' || numeroSerieFiltro === '8' || numeroSerieFiltro === '9'
+
+        return {
+          escola_id: row.escola_id,
+          escola: row.escola,
+          polo: row.polo,
+          total_alunos: parseInt(row.total_alunos),
+          media_geral: parseFloat(row.media_geral) || 0,
+          media_lp: parseFloat(row.media_lp) || 0,
+          media_mat: parseFloat(row.media_mat) || 0,
+          // CH e CN: mostrar se não há filtro de série ou se é anos finais
+          media_ch: (!serie || isAnosFinaisFiltro) ? (parseFloat(row.media_ch) || 0) : null,
+          media_cn: (!serie || isAnosFinaisFiltro) ? (parseFloat(row.media_cn) || 0) : null,
+          // PROD: mostrar se não há filtro de série ou se é anos iniciais
+          media_prod: (!serie || isAnosIniciaisFiltro) ? (parseFloat(row.media_prod) || 0) : null,
+          presentes: parseInt(row.presentes),
+          faltantes: parseInt(row.faltantes)
+        }
+      }),
+      mediasPorTurma: mediasPorTurmaResult.rows.map(row => {
+        // Verificar se a turma é de anos iniciais baseado na série dela
+        const numeroSerieTurma = row.serie?.match(/(\d+)/)?.[1]
+        const isAnosIniciaisTurma = numeroSerieTurma === '2' || numeroSerieTurma === '3' || numeroSerieTurma === '5'
+        const isAnosFinaisTurma = numeroSerieTurma === '6' || numeroSerieTurma === '7' || numeroSerieTurma === '8' || numeroSerieTurma === '9'
+
+        return {
+          turma_id: row.turma_id,
+          turma: row.turma,
+          escola: row.escola,
+          serie: row.serie,
+          total_alunos: parseInt(row.total_alunos),
+          media_geral: parseFloat(row.media_geral) || 0,
+          media_lp: parseFloat(row.media_lp) || 0,
+          media_mat: parseFloat(row.media_mat) || 0,
+          // CH e CN apenas para anos finais
+          media_ch: isAnosFinaisTurma ? (parseFloat(row.media_ch) || 0) : null,
+          media_cn: isAnosFinaisTurma ? (parseFloat(row.media_cn) || 0) : null,
+          // PROD apenas para anos iniciais
+          media_prod: isAnosIniciaisTurma ? (parseFloat(row.media_prod) || 0) : null,
+          presentes: parseInt(row.presentes),
+          faltantes: parseInt(row.faltantes)
+        }
+      }),
       faixasNota: faixasNotaResult.rows.map(row => ({
         faixa: row.faixa,
         quantidade: parseInt(row.quantidade)
