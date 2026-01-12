@@ -53,6 +53,13 @@ interface Escola {
   total_alunos?: number
   total_turmas?: number
   media_geral?: number
+  media_lp?: number
+  media_mat?: number
+  media_prod?: number
+  media_ch?: number
+  media_cn?: number
+  presentes?: number
+  faltantes?: number
 }
 
 interface Turma {
@@ -382,21 +389,16 @@ export default function PainelDados({
     try {
       setCarregandoEscolas(true)
 
-      // Tentar usar cache local primeiro
-      if (isCacheValid()) {
-        const cachedEscolas = getCachedEscolas()
-        if (cachedEscolas && cachedEscolas.length > 0) {
-          console.log('[PainelDados] Usando escolas do cache local')
-          setEscolas(cachedEscolas)
-          setPesquisouEscolas(true)
-          setCarregandoEscolas(false)
-          return
-        }
+      // Construir URL com parâmetros de filtro
+      const url = new URL(escolasEndpoint, window.location.origin)
+      url.searchParams.set('com_estatisticas', 'true')
+      if (filtrosAlunos.serie) {
+        url.searchParams.set('serie', filtrosAlunos.serie)
       }
 
-      // Fallback: buscar da API
-      console.log('[PainelDados] Cache não disponível, buscando escolas da API')
-      const response = await fetch(escolasEndpoint)
+      // Buscar da API com estatísticas
+      console.log('[PainelDados] Buscando escolas com estatísticas da API')
+      const response = await fetch(url.toString())
       if (response.ok) {
         const data = await response.json()
         setEscolas(Array.isArray(data) ? data : data.escolas || [])
@@ -414,21 +416,15 @@ export default function PainelDados({
     try {
       setCarregandoTurmas(true)
 
-      // Tentar usar cache local primeiro
-      if (isCacheValid()) {
-        const cachedTurmas = getCachedTurmas()
-        if (cachedTurmas && cachedTurmas.length > 0) {
-          console.log('[PainelDados] Usando turmas do cache local')
-          setTurmas(cachedTurmas)
-          setPesquisouTurmas(true)
-          setCarregandoTurmas(false)
-          return
-        }
+      // Construir URL com parâmetros de filtro
+      const url = new URL(turmasEndpoint, window.location.origin)
+      if (filtrosAlunos.serie) {
+        url.searchParams.set('serie', filtrosAlunos.serie)
       }
 
-      // Fallback: buscar da API
-      console.log('[PainelDados] Cache não disponível, buscando turmas da API')
-      const response = await fetch(turmasEndpoint)
+      // Buscar da API com estatísticas
+      console.log('[PainelDados] Buscando turmas com estatísticas da API')
+      const response = await fetch(url.toString())
       if (response.ok) {
         const data = await response.json()
         setTurmas(Array.isArray(data) ? data : data.turmas || [])
@@ -628,6 +624,7 @@ export default function PainelDados({
           carregando={carregandoEscolas}
           pesquisou={pesquisouEscolas}
           onPesquisar={carregarEscolas}
+          serieSelecionada={filtrosAlunos.serie}
         />
       )}
 
@@ -639,6 +636,7 @@ export default function PainelDados({
           carregando={carregandoTurmas}
           pesquisou={pesquisouTurmas}
           onPesquisar={carregarTurmas}
+          serieSelecionada={filtrosAlunos.serie}
         />
       )}
 
@@ -874,14 +872,20 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando }: { estatisticas: Est
 }
 
 // Componente Aba Escolas
-function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquisar }: {
+function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquisar, serieSelecionada }: {
   escolas: Escola[];
   busca: string;
   setBusca: (v: string) => void;
   carregando: boolean;
   pesquisou: boolean;
   onPesquisar: () => void;
+  serieSelecionada?: string;
 }) {
+  // Detectar se é anos iniciais (2, 3, 5) para mostrar PROD em vez de CH/CN
+  const numSerie = serieSelecionada?.replace(/[^0-9]/g, '') || ''
+  const isAnosIniciaisSerie = ['2', '3', '5'].includes(numSerie)
+  const temFiltroSerie = !!serieSelecionada && serieSelecionada.trim() !== ''
+
   return (
     <div className="space-y-4">
       {/* Busca e Botão Pesquisar */}
@@ -953,28 +957,76 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
             <table className="w-full">
               <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
                 <tr>
-                  <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">#</th>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Escola</th>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Polo</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Alunos</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Turmas</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Media</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">LP</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">MAT</th>
+                  {/* Mostrar PROD para anos iniciais, CH/CN para anos finais */}
+                  {temFiltroSerie && isAnosIniciaisSerie && (
+                    <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">PROD</th>
+                  )}
+                  {temFiltroSerie && !isAnosIniciaisSerie && (
+                    <>
+                      <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CH</th>
+                      <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CN</th>
+                    </>
+                  )}
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Pres.</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Falt.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                {escolas.map((escola, index) => (
+                {escolas.map((escola) => (
                   <tr key={escola.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{index + 1}</td>
                     <td className="py-3 px-4">
                       <div className="font-medium text-gray-900 dark:text-white text-sm">{escola.nome}</div>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{escola.polo_nome || '-'}</td>
                     <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{escola.total_alunos || 0}</td>
-                    <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{escola.total_turmas || 0}</td>
                     <td className="py-3 px-4 text-center">
                       <span className={`font-bold text-sm ${getNotaColor(escola.media_geral)}`}>
-                        {escola.media_geral ? escola.media_geral.toFixed(2) : '-'}
+                        {escola.media_geral != null ? escola.media_geral.toFixed(2) : '-'}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`text-sm ${getNotaColor(escola.media_lp)}`}>
+                        {escola.media_lp != null ? escola.media_lp.toFixed(2) : '-'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`text-sm ${getNotaColor(escola.media_mat)}`}>
+                        {escola.media_mat != null ? escola.media_mat.toFixed(2) : '-'}
+                      </span>
+                    </td>
+                    {/* Mostrar PROD para anos iniciais, CH/CN para anos finais */}
+                    {temFiltroSerie && isAnosIniciaisSerie && (
+                      <td className="py-3 px-4 text-center">
+                        <span className={`text-sm ${getNotaColor(escola.media_prod)}`}>
+                          {escola.media_prod != null ? escola.media_prod.toFixed(2) : '-'}
+                        </span>
+                      </td>
+                    )}
+                    {temFiltroSerie && !isAnosIniciaisSerie && (
+                      <>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`text-sm ${getNotaColor(escola.media_ch)}`}>
+                            {escola.media_ch != null ? escola.media_ch.toFixed(2) : '-'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`text-sm ${getNotaColor(escola.media_cn)}`}>
+                            {escola.media_cn != null ? escola.media_cn.toFixed(2) : '-'}
+                          </span>
+                        </td>
+                      </>
+                    )}
+                    <td className="py-3 px-4 text-center">
+                      <span className="text-sm text-green-600 dark:text-green-400 font-medium">{escola.presentes || 0}</span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="text-sm text-red-600 dark:text-red-400 font-medium">{escola.faltantes || 0}</span>
                     </td>
                   </tr>
                 ))}
@@ -988,14 +1040,20 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
 }
 
 // Componente Aba Turmas
-function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar }: {
+function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar, serieSelecionada }: {
   turmas: Turma[];
   busca: string;
   setBusca: (v: string) => void;
   carregando: boolean;
   pesquisou: boolean;
   onPesquisar: () => void;
+  serieSelecionada?: string;
 }) {
+  // Detectar se é anos iniciais (2, 3, 5) para mostrar PROD em vez de CH/CN
+  const numSerie = serieSelecionada?.replace(/[^0-9]/g, '') || ''
+  const isAnosIniciaisSerie = ['2', '3', '5'].includes(numSerie)
+  const temFiltroSerie = !!serieSelecionada && serieSelecionada.trim() !== ''
+
   return (
     <div className="space-y-4">
       {/* Busca e Botão Pesquisar */}
@@ -1067,7 +1125,6 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
             <table className="w-full">
               <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
                 <tr>
-                  <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">#</th>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Turma</th>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Escola</th>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Serie</th>
@@ -1075,19 +1132,27 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Media</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">LP</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">MAT</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">PROD</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Presentes</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Faltantes</th>
+                  {/* Mostrar PROD para anos iniciais, CH/CN para anos finais */}
+                  {temFiltroSerie && isAnosIniciaisSerie && (
+                    <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">PROD</th>
+                  )}
+                  {temFiltroSerie && !isAnosIniciaisSerie && (
+                    <>
+                      <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CH</th>
+                      <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CN</th>
+                    </>
+                  )}
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Pres.</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Falt.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                {turmas.map((turma, index) => {
+                {turmas.map((turma) => {
                   // Detectar se é anos iniciais (2, 3, 5) para mostrar PROD
-                  const numSerie = turma.serie?.replace(/[^0-9]/g, '') || ''
-                  const isAnosIniciais = ['2', '3', '5'].includes(numSerie)
+                  const numSerieTurma = turma.serie?.replace(/[^0-9]/g, '') || ''
+                  const isAnosIniciaisTurma = ['2', '3', '5'].includes(numSerieTurma)
                   return (
                     <tr key={turma.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
-                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{index + 1}</td>
                       <td className="py-3 px-4">
                         <div className="font-medium text-gray-900 dark:text-white text-sm">{turma.codigo || turma.nome || '-'}</div>
                       </td>
@@ -1109,15 +1174,28 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                           {turma.media_mat != null ? turma.media_mat.toFixed(2) : '-'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        {isAnosIniciais ? (
+                      {/* Mostrar PROD para anos iniciais, CH/CN para anos finais */}
+                      {temFiltroSerie && isAnosIniciaisSerie && (
+                        <td className="py-3 px-4 text-center">
                           <span className={`text-sm ${getNotaColor(turma.media_prod)}`}>
                             {turma.media_prod != null ? turma.media_prod.toFixed(2) : '-'}
                           </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </td>
+                        </td>
+                      )}
+                      {temFiltroSerie && !isAnosIniciaisSerie && (
+                        <>
+                          <td className="py-3 px-4 text-center">
+                            <span className={`text-sm ${getNotaColor(turma.media_ch)}`}>
+                              {turma.media_ch != null ? turma.media_ch.toFixed(2) : '-'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className={`text-sm ${getNotaColor(turma.media_cn)}`}>
+                              {turma.media_cn != null ? turma.media_cn.toFixed(2) : '-'}
+                            </span>
+                          </td>
+                        </>
+                      )}
                       <td className="py-3 px-4 text-center">
                         <span className="text-sm text-green-600 dark:text-green-400 font-medium">{turma.presentes || 0}</span>
                       </td>
