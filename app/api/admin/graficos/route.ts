@@ -6,6 +6,69 @@ import { NOTAS, LIMITES } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
+// Helper para gerar filtro de range de questões baseado na série e disciplina
+// Configuração de questões por série:
+// - 2º/3º Ano: LP=14 (Q1-Q14), MAT=14 (Q15-Q28)
+// - 5º Ano: LP=14 (Q1-Q14), MAT=20 (Q15-Q34)
+// - 8º/9º Ano: LP=20 (Q1-Q20), CH=10 (Q21-Q30), MAT=20 (Q31-Q50), CN=10 (Q51-Q60)
+function getQuestaoRangeFilter(serie: string | null, disciplina: string | null, tipoEnsino: string | null): string | null {
+  // Extrair apenas o número da série
+  const getNumeroSerie = (s: string) => {
+    const match = s.match(/(\d+)/)
+    return match ? match[1] : null
+  }
+
+  // Se temos série específica
+  if (serie) {
+    const numeroSerie = getNumeroSerie(serie)
+    if (!numeroSerie) return null
+
+    // Anos iniciais: 2º, 3º
+    if (numeroSerie === '2' || numeroSerie === '3') {
+      if (disciplina === 'LP') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 14`
+      if (disciplina === 'MAT') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 15 AND 28`
+      // Se não tem disciplina específica, todas as questões da série (1-28)
+      if (!disciplina) return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 28`
+    }
+    // 5º ano
+    if (numeroSerie === '5') {
+      if (disciplina === 'LP') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 14`
+      if (disciplina === 'MAT') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 15 AND 34`
+      // Se não tem disciplina específica, todas as questões da série (1-34)
+      if (!disciplina) return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 34`
+    }
+    // Anos finais: 6º, 7º, 8º, 9º
+    if (['6', '7', '8', '9'].includes(numeroSerie)) {
+      if (disciplina === 'LP') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 20`
+      if (disciplina === 'CH') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 21 AND 30`
+      if (disciplina === 'MAT') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 31 AND 50`
+      if (disciplina === 'CN') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 51 AND 60`
+      // Se não tem disciplina específica, todas as questões da série (1-60)
+      if (!disciplina) return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 60`
+    }
+  }
+
+  // Se temos tipo de ensino mas não série específica
+  if (tipoEnsino === 'anos_iniciais') {
+    // Anos iniciais: 2º, 3º, 5º - considerar maior range
+    if (disciplina === 'LP') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 14`
+    if (disciplina === 'MAT') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 15 AND 34`
+    // Sem disciplina: considerar todas (1-34 para 5º ano que tem mais)
+    if (!disciplina) return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 34`
+  }
+
+  if (tipoEnsino === 'anos_finais') {
+    if (disciplina === 'LP') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 20`
+    if (disciplina === 'CH') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 21 AND 30`
+    if (disciplina === 'MAT') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 31 AND 50`
+    if (disciplina === 'CN') return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 51 AND 60`
+    // Sem disciplina: todas (1-60)
+    if (!disciplina) return `CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) BETWEEN 1 AND 60`
+  }
+
+  return null
+}
+
 // Helper para determinar campo de nota baseado na disciplina selecionada
 function getCampoNota(disciplina: string | null): { campo: string, label: string, totalQuestoes: number } {
   switch (disciplina) {
@@ -725,15 +788,51 @@ export async function GET(request: NextRequest) {
       }
 
       if (disciplina) {
+        // Mapear código da disciplina para nome completo usado em resultados_provas
+        const disciplinaMap: Record<string, string> = {
+          'LP': 'Língua Portuguesa',
+          'MAT': 'Matemática',
+          'CH': 'Ciências Humanas',
+          'CN': 'Ciências da Natureza',
+          'PT': 'Produção Textual'
+        }
+        const disciplinaNome = disciplinaMap[disciplina] || disciplina
         whereQuestoes.push(`rp.disciplina = $${paramIndexQuestoes}`)
-        paramsQuestoes.push(disciplina)
+        paramsQuestoes.push(disciplinaNome)
         paramIndexQuestoes++
+      }
+
+      // Filtro de tipo de ensino para questões
+      if (tipoEnsino === 'anos_iniciais') {
+        whereQuestoes.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`)
+      } else if (tipoEnsino === 'anos_finais') {
+        whereQuestoes.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`)
+      }
+
+      // Filtro de range de questões baseado na série e disciplina selecionadas
+      const questaoRangeFilter = getQuestaoRangeFilter(serie, disciplina, tipoEnsino)
+      if (questaoRangeFilter) {
+        whereQuestoes.push(questaoRangeFilter)
+        console.log('[Graficos] Filtro de range de questões aplicado:', questaoRangeFilter)
       }
 
       const whereClauseQuestoes = whereQuestoes.length > 0 ? `WHERE ${whereQuestoes.join(' AND ')} AND rp.questao_codigo IS NOT NULL` : 'WHERE rp.questao_codigo IS NOT NULL'
 
+      // Debug: verificar disciplinas disponíveis na tabela
+      const debugQuery = await pool.query(`
+        SELECT DISTINCT rp.disciplina, rp.serie, COUNT(*) as qtd
+        FROM resultados_provas rp
+        GROUP BY rp.disciplina, rp.serie
+        ORDER BY rp.disciplina, rp.serie
+      `)
+      console.log('[Graficos] Disciplinas disponíveis em resultados_provas:', debugQuery.rows)
+      console.log('[Graficos] Filtro disciplina recebido:', disciplina)
+      console.log('[Graficos] Filtro tipoEnsino recebido:', tipoEnsino)
+      console.log('[Graficos] WHERE clause:', whereClauseQuestoes)
+      console.log('[Graficos] Params:', paramsQuestoes)
+
       const queryQuestoes = `
-        SELECT 
+        SELECT
           rp.questao_codigo as codigo,
           q.descricao,
           q.disciplina,
@@ -741,22 +840,25 @@ export async function GET(request: NextRequest) {
           COUNT(rp.id) as total_respostas,
           SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END) as total_acertos,
           ROUND(
-            (SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END)::DECIMAL / 
-             NULLIF(COUNT(rp.id), 0)) * 100, 
+            (SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END)::DECIMAL /
+             NULLIF(COUNT(rp.id), 0)) * 100,
             2
-          ) as taxa_acerto
+          ) as taxa_acerto,
+          CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) as numero_questao
         FROM resultados_provas rp
         LEFT JOIN questoes q ON rp.questao_codigo = q.codigo
         LEFT JOIN escolas e2 ON rp.escola_id = e2.id
         ${whereClauseQuestoes}
         GROUP BY rp.questao_codigo, q.descricao, q.disciplina, q.area_conhecimento
-        ORDER BY taxa_acerto ASC
+        ORDER BY CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER) ASC
         ${deveRemoverLimites ? '' : 'LIMIT 50'}
       `
       const resQuestoes = await pool.query(queryQuestoes, paramsQuestoes)
+      console.log('[Graficos] Resultados encontrados:', resQuestoes.rows.length)
       resultado.questoes = resQuestoes.rows.length > 0
         ? resQuestoes.rows.map((r: any) => ({
             codigo: r.codigo,
+            numero: parseInt(r.numero_questao) || 0,
             descricao: r.descricao || r.codigo,
             disciplina: r.disciplina,
             area_conhecimento: r.area_conhecimento,

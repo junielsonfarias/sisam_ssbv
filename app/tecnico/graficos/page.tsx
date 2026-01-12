@@ -166,6 +166,8 @@ export default function GraficosTecnicoPage() {
     try {
       const params = new URLSearchParams()
       params.append('tipo', tipoVisualizacao)
+      // Forçar atualização do cache para sempre buscar dados frescos
+      params.append('atualizar_cache', 'true')
       Object.entries(filtros).forEach(([key, value]) => {
         if (value) params.append(key, value.toString())
       })

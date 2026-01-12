@@ -279,11 +279,34 @@ export default function GraficosPage() {
   }
 
   const handleFiltroChange = (campo: keyof FiltrosGraficos, valor: string) => {
-    setFiltros((prev) => ({
-      ...prev,
-      [campo]: valor || undefined,
-    }))
+    setFiltros((prev) => {
+      const novo = { ...prev, [campo]: valor || undefined }
+      // Limpar escola e turma quando mudar polo
+      if (campo === 'polo_id') {
+        novo.escola_id = undefined
+        novo.turma_id = undefined
+      }
+      // Limpar turma quando mudar escola
+      if (campo === 'escola_id') {
+        novo.turma_id = undefined
+      }
+      // Limpar série quando mudar etapa de ensino
+      if (campo === 'tipo_ensino') {
+        novo.serie = undefined
+      }
+      return novo
+    })
   }
+
+  // Função para limpar todos os filtros
+  const limparFiltros = () => {
+    setFiltros({})
+    setDados(null)
+    setErro('')
+  }
+
+  // Contar filtros ativos
+  const qtdFiltrosAtivos = Object.values(filtros).filter(v => v !== undefined && v !== '').length
 
   const handleBuscarGraficos = async () => {
     setCarregando(true)
@@ -292,6 +315,8 @@ export default function GraficosPage() {
     try {
       const params = new URLSearchParams()
       params.append('tipo', tipoVisualizacao)
+      // Forçar atualização do cache para sempre buscar dados frescos
+      params.append('atualizar_cache', 'true')
       Object.entries(filtros).forEach(([key, value]) => {
         if (value) params.append(key, value.toString())
       })
@@ -438,15 +463,32 @@ export default function GraficosPage() {
 
           {/* Filtros */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-3 sm:p-4 md:p-6 border border-gray-200 dark:border-slate-700">
-            <div className="flex items-center mb-3 sm:mb-4">
-              <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600 dark:text-indigo-400" />
-              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-white">Filtros</h2>
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center">
+                <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-white">Filtros</h2>
+                {qtdFiltrosAtivos > 0 && (
+                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full">
+                    {qtdFiltrosAtivos} ativo{qtdFiltrosAtivos > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              {qtdFiltrosAtivos > 0 && (
+                <button
+                  onClick={limparFiltros}
+                  className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-1"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Limpar filtros
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4">
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              <div className="p-2 rounded-lg transition-all bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Tipo de Visualização
+                  <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>
                 </label>
                 <select
                   value={tipoVisualizacao}
@@ -473,9 +515,10 @@ export default function GraficosPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              <div className={`p-2 rounded-lg transition-all ${filtros.ano_letivo ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Ano Letivo
+                  {filtros.ano_letivo && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                 </label>
                 <input
                   type="text"
@@ -487,9 +530,10 @@ export default function GraficosPage() {
               </div>
 
               {(tipoUsuario === 'admin' || tipoUsuario === 'administrador' || tipoUsuario === 'tecnico') && (
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <div className={`p-2 rounded-lg transition-all ${filtros.polo_id ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                     Polo
+                    {filtros.polo_id && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                   </label>
                   <select
                     value={filtros.polo_id || ''}
@@ -507,16 +551,19 @@ export default function GraficosPage() {
               )}
 
               {(tipoUsuario === 'admin' || tipoUsuario === 'administrador' || tipoUsuario === 'tecnico' || tipoUsuario === 'polo') && (
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <div className={`p-2 rounded-lg transition-all ${filtros.escola_id ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''} ${!filtros.polo_id && tipoUsuario !== 'polo' ? 'opacity-50' : ''}`}>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                     Escola
+                    {filtros.escola_id && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
+                    {!filtros.polo_id && tipoUsuario !== 'polo' && <span className="ml-1 text-xs text-gray-400">(selecione um polo)</span>}
                   </label>
                   <select
                     value={filtros.escola_id || ''}
                     onChange={(e) => handleFiltroChange('escola_id', e.target.value)}
-                    className="select-custom w-full text-sm sm:text-base"
+                    className="select-custom w-full text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!filtros.polo_id && tipoUsuario !== 'polo'}
                   >
-                    <option value="">Todas</option>
+                    <option value="">{!filtros.polo_id && tipoUsuario !== 'polo' ? 'Selecione um polo primeiro' : 'Todas'}</option>
                     {escolas
                       .filter((e) => !filtros.polo_id || e.polo_id === filtros.polo_id)
                       .map((escola) => (
@@ -528,9 +575,10 @@ export default function GraficosPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              <div className={`p-2 rounded-lg transition-all ${filtros.tipo_ensino ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Etapa de Ensino
+                  {filtros.tipo_ensino && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                 </label>
                 <select
                   value={filtros.tipo_ensino || ''}
@@ -543,16 +591,19 @@ export default function GraficosPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              <div className={`p-2 rounded-lg transition-all ${filtros.serie ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''} ${filtros.tipo_ensino ? 'opacity-50' : ''}`}>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Série
+                  {filtros.serie && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
+                  {filtros.tipo_ensino && <span className="ml-1 text-xs text-gray-400">(filtrado por etapa)</span>}
                 </label>
                 <select
                   value={filtros.serie || ''}
                   onChange={(e) => handleFiltroChange('serie', e.target.value)}
-                  className="select-custom w-full text-sm sm:text-base"
+                  className="select-custom w-full text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!!filtros.tipo_ensino}
                 >
-                  <option value="">Todas</option>
+                  <option value="">{filtros.tipo_ensino ? 'Filtrado pela etapa' : 'Todas'}</option>
                   {seriesFiltradas.map((s) => (
                     <option key={s} value={s}>
                       {s}
@@ -564,9 +615,10 @@ export default function GraficosPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              <div className={`p-2 rounded-lg transition-all ${filtros.disciplina ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Disciplina
+                  {filtros.disciplina && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                   {(filtros.tipo_ensino === 'anos_iniciais' || (filtros.serie && isAnosIniciais(filtros.serie))) && (
                     <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">(Anos Iniciais)</span>
                   )}
@@ -586,9 +638,10 @@ export default function GraficosPage() {
               </div>
 
               {filtros.escola_id && filtros.escola_id !== '' && filtros.escola_id !== 'undefined' && filtros.escola_id.toLowerCase() !== 'todas' && (
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <div className={`p-2 rounded-lg transition-all ${filtros.turma_id ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                     Turma
+                    {filtros.turma_id && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                   </label>
                   <select
                     value={filtros.turma_id || ''}

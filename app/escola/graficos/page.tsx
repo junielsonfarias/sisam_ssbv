@@ -134,6 +134,8 @@ export default function GraficosEscolaPage() {
     try {
       const params = new URLSearchParams()
       params.append('tipo', tipoVisualizacao)
+      // Forçar atualização do cache para sempre buscar dados frescos
+      params.append('atualizar_cache', 'true')
       if (escolaId) {
         params.append('escola_id', escolaId)
       }
