@@ -3210,10 +3210,10 @@ export default function DadosPage() {
                     <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
                       <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/50 dark:to-indigo-800/50 sticky top-[180px] sm:top-[190px] z-30">
                           <tr>
-                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-8 md:w-10 lg:w-12">
+                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-8 md:w-10 lg:w-12">
                               #
                             </th>
-                            <th className="text-left py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 min-w-[120px] md:min-w-[140px] lg:min-w-[160px]">
+                            <th className="text-left py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 min-w-[120px] md:min-w-[140px] lg:min-w-[160px]">
                               Aluno
                             </th>
                             <th className="hidden lg:table-cell text-left py-1 px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 min-w-[150px]">
@@ -3231,16 +3231,16 @@ export default function DadosPage() {
                             {disciplinasExibir.map((disciplina) => {
                               const isDestaque = filtroDisciplina === disciplina.codigo
                               return (
-                                <th key={disciplina.codigo} className={`text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b w-14 md:w-16 lg:w-18 ${isDestaque ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-100 border-indigo-400 dark:border-indigo-600 ring-2 ring-indigo-400' : 'text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-700'}`}>
+                                <th key={disciplina.codigo} className={`text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b w-14 md:w-16 lg:w-18 ${isDestaque ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-100 border-indigo-400 dark:border-indigo-600 ring-2 ring-indigo-400' : 'text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-700'}`}>
                                   {disciplina.codigo}
                                   {isDestaque && <span className="ml-1 text-[8px]">●</span>}
                                 </th>
                               )
                             })}
-                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-14 md:w-16 lg:w-18">
+                            <th className="text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-14 md:w-16 lg:w-18">
                               Média
                             </th>
-                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] sm:text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16 md:w-20 lg:w-24">
+                            <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16 md:w-20 lg:w-24">
                               Ações
                             </th>
                           </tr>
@@ -4115,7 +4115,7 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
 
       {/* Visualização Desktop - Tabela */}
       <div className="hidden md:block">
-        <table className="w-full min-w-[800px]">
+        <table className="w-full min-w-[500px] lg:min-w-[800px]">
           <thead className={`bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600 ${stickyHeader ? 'sticky top-[180px] sm:top-[190px] z-30' : ''}`}>
             <tr>
               {colunas.map((col: any) => (

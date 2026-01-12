@@ -573,7 +573,7 @@ export default function ComparativosPage() {
                         </div>
 
                         <div className="overflow-x-auto">
-                          <table className="w-full min-w-[600px]">
+                          <table className="w-full min-w-[320px] sm:min-w-[500px] md:min-w-[600px]">
                             <thead className="bg-blue-50">
                               <tr>
                                 <th className="text-left py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">Escola</th>
@@ -796,7 +796,7 @@ export default function ComparativosPage() {
                       </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[500px]">
+                    <table className="w-full min-w-[300px] sm:min-w-[400px] md:min-w-[500px]">
                       <thead className="bg-gray-50 dark:bg-slate-700">
                         <tr>
                           <th className="text-left py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">Escola</th>

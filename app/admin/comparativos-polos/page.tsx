@@ -465,7 +465,7 @@ export default function ComparativosPolosPage() {
                         </div>
 
                         <div className="overflow-x-auto">
-                          <table className="w-full min-w-[800px]">
+                          <table className="w-full min-w-[400px] sm:min-w-[600px] lg:min-w-[800px]">
                             <thead className="bg-indigo-50">
                               <tr>
                                 <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[150px] sm:min-w-[200px]">Polo</th>
@@ -596,7 +596,7 @@ export default function ComparativosPolosPage() {
                                 </h4>
                               </div>
                               <div className="overflow-x-auto">
-                                <table className="w-full min-w-[900px]">
+                                <table className="w-full min-w-[500px] sm:min-w-[700px] lg:min-w-[900px]">
                                   <thead className="bg-blue-50">
                                     <tr>
                                       <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-700 text-xs sm:text-sm uppercase whitespace-nowrap min-w-[150px]">Escola</th>

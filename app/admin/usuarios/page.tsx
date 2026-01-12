@@ -335,7 +335,7 @@ export default function UsuariosPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
+                <table className="w-full min-w-[320px] sm:min-w-[500px] md:min-w-[600px]">
                   <thead className="bg-gray-50 dark:bg-slate-700">
                     <tr>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs uppercase tracking-wider">

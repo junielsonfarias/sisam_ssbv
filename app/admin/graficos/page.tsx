@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 
-import { useEffect, useState, Suspense, lazy, memo, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Filter, BarChart3, TrendingUp, PieChart, Users, BookOpen, School, XCircle } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -413,7 +413,7 @@ export default function GraficosPage() {
     }
   }
 
-  const prepararDadosBarras = (labels: string[], dados: number[], label: string) => {
+  const prepararDadosBarras = (labels: string[], dados: number[], _label?: string) => {
     return labels.map((l, i) => ({
       name: l,
       value: dados[i] || 0
@@ -486,7 +486,7 @@ export default function GraficosPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4">
               <div className="p-2 rounded-lg transition-all bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Tipo de Visualização
                   <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>
                 </label>
@@ -516,7 +516,7 @@ export default function GraficosPage() {
               </div>
 
               <div className={`p-2 rounded-lg transition-all ${filtros.ano_letivo ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Ano Letivo
                   {filtros.ano_letivo && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                 </label>
@@ -531,7 +531,7 @@ export default function GraficosPage() {
 
               {(tipoUsuario === 'admin' || tipoUsuario === 'administrador' || tipoUsuario === 'tecnico') && (
                 <div className={`p-2 rounded-lg transition-all ${filtros.polo_id ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                     Polo
                     {filtros.polo_id && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                   </label>
@@ -552,7 +552,7 @@ export default function GraficosPage() {
 
               {(tipoUsuario === 'admin' || tipoUsuario === 'administrador' || tipoUsuario === 'tecnico' || tipoUsuario === 'polo') && (
                 <div className={`p-2 rounded-lg transition-all ${filtros.escola_id ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''} ${!filtros.polo_id && tipoUsuario !== 'polo' ? 'opacity-50' : ''}`}>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                     Escola
                     {filtros.escola_id && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                     {!filtros.polo_id && tipoUsuario !== 'polo' && <span className="ml-1 text-xs text-gray-400">(selecione um polo)</span>}
@@ -576,7 +576,7 @@ export default function GraficosPage() {
               )}
 
               <div className={`p-2 rounded-lg transition-all ${filtros.tipo_ensino ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Etapa de Ensino
                   {filtros.tipo_ensino && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                 </label>
@@ -592,7 +592,7 @@ export default function GraficosPage() {
               </div>
 
               <div className={`p-2 rounded-lg transition-all ${filtros.serie ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''} ${filtros.tipo_ensino ? 'opacity-50' : ''}`}>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Série
                   {filtros.serie && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                   {filtros.tipo_ensino && <span className="ml-1 text-xs text-gray-400">(filtrado por etapa)</span>}
@@ -616,7 +616,7 @@ export default function GraficosPage() {
               </div>
 
               <div className={`p-2 rounded-lg transition-all ${filtros.disciplina ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                   Disciplina
                   {filtros.disciplina && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                   {(filtros.tipo_ensino === 'anos_iniciais' || (filtros.serie && isAnosIniciais(filtros.serie))) && (
@@ -639,7 +639,7 @@ export default function GraficosPage() {
 
               {filtros.escola_id && filtros.escola_id !== '' && filtros.escola_id !== 'undefined' && filtros.escola_id.toLowerCase() !== 'todas' && (
                 <div className={`p-2 rounded-lg transition-all ${filtros.turma_id ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1 flex items-center">
                     Turma
                     {filtros.turma_id && <span className="ml-1 w-2 h-2 bg-indigo-500 rounded-full"></span>}
                   </label>
@@ -947,7 +947,7 @@ export default function GraficosPage() {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {prepararDadosPizza(dados.presenca.labels, dados.presenca.dados).map((entry, index) => (
+                        {prepararDadosPizza(dados.presenca.labels, dados.presenca.dados).map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -1229,7 +1229,7 @@ export default function GraficosPage() {
 
               {/* Correlação entre Disciplinas - Adaptado para Anos Iniciais/Finais */}
               {dados.correlacao && dados.correlacao.length > 0 && (() => {
-                const meta = dados.correlacao_meta || { tem_anos_finais: true, tem_anos_iniciais: false }
+                const _meta = dados.correlacao_meta || { tem_anos_finais: true, tem_anos_iniciais: false }
                 const dadosFinais = dados.correlacao.filter((d: any) => d.tipo === 'anos_finais')
                 const dadosIniciais = dados.correlacao.filter((d: any) => d.tipo === 'anos_iniciais')
 

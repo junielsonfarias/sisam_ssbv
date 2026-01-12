@@ -1672,7 +1672,8 @@ function AbaAlunos({
               </p>
             </div>
           ) : (
-            <table className="w-full min-w-[900px]">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px] sm:min-w-[700px] lg:min-w-[900px]">
               <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
                 <tr>
                   <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase">#</th>
@@ -1783,6 +1784,7 @@ function AbaAlunos({
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
