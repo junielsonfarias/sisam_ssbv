@@ -639,27 +639,17 @@ export async function GET(request: NextRequest) {
     }
     const topAlunosWhere = topAlunosConditions.length > 0 ? `WHERE ${topAlunosConditions.join(' AND ')}` : ''
     
-    // CORREÇÃO: Ordenação dinâmica - por média CALCULADA para presentes, por nome para faltantes
-    // IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
+    // Ordenação: por média CALCULADA (divisor fixo) para presentes, por nome para faltantes
+    // Anos iniciais: LP + MAT + PROD / 3 (divisor fixo)
+    // Anos finais: LP + CH + MAT + CN / 4 (divisor fixo)
     const topAlunosOrderBy = presenca === 'F'
       ? 'ORDER BY a.nome ASC'
       : `ORDER BY
           CASE
             WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              ROUND(
-                (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
-                NULLIF(
-                  CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+              ROUND((COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) / 3.0, 2)
             ELSE
-              ROUND(
-                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
-                NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+              ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0, 2)
           END DESC`
 
     const topAlunosQuery = `
@@ -668,8 +658,9 @@ export async function GET(request: NextRequest) {
         e.nome as escola,
         rc.serie,
         t.codigo as turma,
-        -- Media calculada dinamicamente baseada na serie
-        -- IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
+        -- Media calculada com divisor fixo baseada na serie
+        -- Anos iniciais: LP + MAT + PROD / 3 (divisor fixo)
+        -- Anos finais: LP + CH + MAT + CN / 4 (divisor fixo)
         CASE
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
             ROUND(
@@ -677,13 +668,7 @@ export async function GET(request: NextRequest) {
                 COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) +
                 COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) +
                 COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
+              ) / 3.0,
               2
             )
           ELSE
@@ -693,14 +678,7 @@ export async function GET(request: NextRequest) {
                 COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
+              ) / 4.0,
               2
             )
         END as media_aluno,
@@ -731,28 +709,17 @@ export async function GET(request: NextRequest) {
     `
 
     // ========== ALUNOS DETALHADOS (para tabela com paginação) ==========
-    // CORREÇÃO: Ordenação dinâmica - por média CALCULADA para presentes/todos, por nome para faltantes
-    // Usa a mesma fórmula do SELECT para ordenar corretamente
-    // IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
+    // Ordenação: por média CALCULADA (divisor fixo) para presentes/todos, por nome para faltantes
+    // Anos iniciais: LP + MAT + PROD / 3 (divisor fixo)
+    // Anos finais: LP + CH + MAT + CN / 4 (divisor fixo)
     const alunosDetalhadosOrderBy = presenca === 'F'
       ? 'ORDER BY a.nome ASC'
       : `ORDER BY
           CASE
             WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              ROUND(
-                (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
-                NULLIF(
-                  CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+              ROUND((COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) / 3.0, 2)
             ELSE
-              ROUND(
-                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
-                NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+              ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0, 2)
           END DESC NULLS LAST`
 
     const alunosDetalhadosQuery = `
@@ -766,41 +733,27 @@ export async function GET(request: NextRequest) {
         rc.serie,
         t.codigo as turma,
         rc.presenca,
-        -- Media calculada dinamicamente baseada na serie
-        -- IMPORTANTE: Para Anos Iniciais, usar dados da tabela rc_table (valores corretos)
+        -- Media calculada com divisor fixo baseada na serie
+        -- Anos iniciais: LP + MAT + PROD / 3 (divisor fixo)
+        -- Anos finais: LP + CH + MAT + CN / 4 (divisor fixo)
         CASE
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            -- Anos iniciais: media de LP, MAT e PROD (usar rc_table que tem valores corretos)
             ROUND(
               (
                 COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) +
                 COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) +
                 COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
+              ) / 3.0,
               2
             )
           ELSE
-            -- Anos finais: media de LP, CH, MAT, CN
             ROUND(
               (
                 COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
+              ) / 4.0,
               2
             )
         END as media_aluno,

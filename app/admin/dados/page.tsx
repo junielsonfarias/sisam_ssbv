@@ -281,23 +281,38 @@ const getPresencaColor = (presenca: string) => {
   return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
 }
 
-const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
+const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null, codigoDisciplina?: string, serie?: string | null): string => {
   // Se não houver dados de frequência, sempre retornar "-"
   if (presenca === '-') {
     return '-'
   }
-  
+
   // Se aluno faltou, sempre retornar "-"
   if (presenca === 'F' || presenca === 'f') {
     return '-'
   }
-  
+
+  // Verificar se é PROD (Produção Textual) em anos iniciais - OBRIGATÓRIA
+  const numeroSerie = serie?.toString().replace(/[^0-9]/g, '')
+  const isAnosIniciaisSerie = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+  const isProducaoAnosIniciais = codigoDisciplina === 'PROD' && isAnosIniciaisSerie
+
+  // Para PROD em anos iniciais com aluno PRESENTE, mostrar 0.00 se nota for null/0
+  if (isProducaoAnosIniciais && (presenca === 'P' || presenca === 'p')) {
+    if (nota === null || nota === undefined || nota === '') {
+      return '0.00'
+    }
+    const num = typeof nota === 'string' ? parseFloat(nota) : nota
+    if (isNaN(num)) return '0.00'
+    return num.toFixed(2)
+  }
+
   // Se média do aluno for 0 ou null, considerar faltante
   const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
   if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) {
     return '-'
   }
-  
+
   if (nota === null || nota === undefined || nota === '') return '-'
   const num = typeof nota === 'string' ? parseFloat(nota) : nota
   if (isNaN(num)) return '-'
@@ -792,6 +807,22 @@ export default function DadosPage() {
         })(),
         alunosDetalhados: resultadosFiltrados.map((r) => {
           const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+          const notaLp = toNum(r.nota_lp)
+          const notaMat = toNum(r.nota_mat)
+          const notaCh = toNum(r.nota_ch)
+          const notaCn = toNum(r.nota_cn)
+          const notaProd = toNum(r.nota_producao)
+
+          // Calcular média com divisor fixo baseado na série
+          const numeroSerie = r.serie?.toString().replace(/[^0-9]/g, '')
+          const isAnosIniciaisAluno = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+
+          // Anos iniciais: LP + MAT + PROD / 3 (divisor fixo)
+          // Anos finais: LP + CH + MAT + CN / 4 (divisor fixo)
+          const mediaCalculada = isAnosIniciaisAluno
+            ? Math.round(((notaLp + notaMat + notaProd) / 3) * 100) / 100
+            : Math.round(((notaLp + notaCh + notaMat + notaCn) / 4) * 100) / 100
+
           return {
             id: r.id,
             aluno_id: r.aluno_id,
@@ -800,12 +831,12 @@ export default function DadosPage() {
             serie: r.serie,
             turma: r.turma_codigo,
             presenca: r.presenca,
-            media_aluno: toNum(r.media_aluno),
-            nota_lp: toNum(r.nota_lp),
-            nota_mat: toNum(r.nota_mat),
-            nota_ch: toNum(r.nota_ch),
-            nota_cn: toNum(r.nota_cn),
-            nota_producao: toNum(r.nota_producao),
+            media_aluno: mediaCalculada,
+            nota_lp: notaLp,
+            nota_mat: notaMat,
+            nota_ch: notaCh,
+            nota_cn: notaCn,
+            nota_producao: notaProd,
             // Campos de acertos para exibição
             acertos_lp: toNum(r.total_acertos_lp),
             acertos_mat: toNum(r.total_acertos_mat),
@@ -818,7 +849,7 @@ export default function DadosPage() {
             qtd_questoes_cn: r.qtd_questoes_cn,
             nivel_aprendizagem: r.nivel_aprendizagem || 'Não classificado'
           }
-        }),
+        }).sort((a, b) => b.media_aluno - a.media_aluno),
         filtros: {
           polos: polosOffline.map((p) => ({ id: p.id.toString(), nome: p.nome })),
           escolas: escolasOffline.map((e) => ({ id: e.id.toString(), nome: e.nome, polo_id: e.polo_id?.toString() || '' })),
@@ -3157,7 +3188,7 @@ export default function DadosPage() {
                                           <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{getTotalQuestoesPorSerie(resultado, disciplina.codigo)}</div>
                                         )}
                                         <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
-                                          {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                          {formatarNota(nota, resultado.presenca, resultado.media_aluno, disciplina.codigo, resultado.serie)}
                                         </div>
                                         {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
                                           <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
@@ -3355,7 +3386,7 @@ export default function DadosPage() {
                                               </div>
                                             )}
                                             <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota)}`}>
-                                              {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                              {formatarNota(nota, resultado.presenca, resultado.media_aluno, disciplina.codigo, resultado.serie)}
                                             </div>
                                             {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
                                               <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
