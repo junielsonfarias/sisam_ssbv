@@ -3,6 +3,20 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 import { isValidUUID, isUniqueConstraintError, getErrorMessage } from '@/lib/validation'
+import { alunoSchema, validateRequest, validateId } from '@/lib/schemas'
+import { z } from 'zod'
+
+// Schema para criação de aluno
+const criarAlunoSchema = alunoSchema.extend({
+  codigo: z.string().max(100).optional().nullable(),
+})
+
+// Schema para atualização de aluno
+const atualizarAlunoSchema = alunoSchema.extend({
+  id: z.string().uuid('ID do aluno inválido'),
+  codigo: z.string().max(100).optional().nullable(),
+  ativo: z.boolean().optional(),
+})
 
 export const dynamic = 'force-dynamic';
 
@@ -203,14 +217,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { codigo, nome, escola_id, turma_id, serie, ano_letivo } = await request.json()
-
-    if (!nome || !escola_id) {
-      return NextResponse.json(
-        { mensagem: 'Nome e escola são obrigatórios' },
-        { status: 400 }
-      )
+    // Validar dados de entrada com Zod
+    const validacao = await validateRequest(request, criarAlunoSchema)
+    if (!validacao.success) {
+      return validacao.response
     }
+
+    const { codigo, nome, escola_id, turma_id, serie, ano_letivo } = validacao.data
 
     // Gerar código automático se não fornecido
     const codigoFinal = codigo || await gerarCodigoAluno()
@@ -256,39 +269,16 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { id, codigo, nome, escola_id, turma_id, serie, ano_letivo, ativo } = await request.json()
-
-    if (!id || !nome || !escola_id) {
-      return NextResponse.json(
-        { mensagem: 'ID, nome e escola são obrigatórios' },
-        { status: 400 }
-      )
+    // Validar dados de entrada com Zod
+    const validacao = await validateRequest(request, atualizarAlunoSchema)
+    if (!validacao.success) {
+      return validacao.response
     }
 
-    // Validar formato UUID
-    if (!isValidUUID(id)) {
-      return NextResponse.json(
-        { mensagem: 'ID do aluno inválido: deve ser um UUID válido' },
-        { status: 400 }
-      )
-    }
-
-    if (!isValidUUID(escola_id)) {
-      return NextResponse.json(
-        { mensagem: 'ID da escola inválido: deve ser um UUID válido' },
-        { status: 400 }
-      )
-    }
-
-    if (turma_id && !isValidUUID(turma_id)) {
-      return NextResponse.json(
-        { mensagem: 'ID da turma inválido: deve ser um UUID válido' },
-        { status: 400 }
-      )
-    }
+    const { id, codigo, nome, escola_id, turma_id, serie, ano_letivo, ativo } = validacao.data
 
     const result = await pool.query(
-      `UPDATE alunos 
+      `UPDATE alunos
        SET codigo = $1, nome = $2, escola_id = $3, turma_id = $4, serie = $5, ano_letivo = $6, ativo = $7, atualizado_em = CURRENT_TIMESTAMP
        WHERE id = $8
        RETURNING *`,
@@ -339,22 +329,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const idParam = searchParams.get('id')
 
-    if (!id) {
-      return NextResponse.json(
-        { mensagem: 'ID do aluno é obrigatório' },
-        { status: 400 }
-      )
+    // Validar ID com schema Zod
+    const validacaoId = validateId(idParam)
+    if (!validacaoId.success) {
+      return validacaoId.response
     }
-
-    // Validar formato UUID
-    if (!isValidUUID(id)) {
-      return NextResponse.json(
-        { mensagem: 'ID do aluno inválido: deve ser um UUID válido' },
-        { status: 400 }
-      )
-    }
+    const id = validacaoId.data
 
     // Verificar se o aluno existe antes de tentar excluir
     const alunoExiste = await pool.query(

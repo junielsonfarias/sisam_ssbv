@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao, hashPassword } from '@/lib/auth'
 import pool from '@/database/connection'
+import { usuarioSchema, validateRequest, validateId } from '@/lib/schemas'
+import { z } from 'zod'
+
+// Schema para criação de usuário (senha obrigatória)
+const criarUsuarioSchema = usuarioSchema.extend({
+  senha: z.string().min(12, 'Senha deve ter pelo menos 12 caracteres'),
+})
+
+// Schema para atualização de usuário (senha opcional)
+const atualizarUsuarioSchema = usuarioSchema.extend({
+  id: z.string().uuid('ID do usuário inválido'),
+  senha: z.string().min(12, 'Senha deve ter pelo menos 12 caracteres').optional().nullable(),
+})
 
 export const dynamic = 'force-dynamic';
 
@@ -43,14 +56,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { nome, email, senha, tipo_usuario, polo_id, escola_id } = await request.json()
-
-    if (!nome || !email || !senha || !tipo_usuario) {
-      return NextResponse.json(
-        { mensagem: 'Campos obrigatórios: nome, email, senha, tipo_usuario' },
-        { status: 400 }
-      )
+    // Validar dados de entrada com Zod
+    const validacao = await validateRequest(request, criarUsuarioSchema)
+    if (!validacao.success) {
+      return validacao.response
     }
+
+    const { nome, email, senha, tipo_usuario, polo_id, escola_id } = validacao.data
 
     const senhaHash = await hashPassword(senha)
 
@@ -58,7 +70,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO usuarios (nome, email, senha, tipo_usuario, polo_id, escola_id)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, nome, email, tipo_usuario, ativo, criado_em`,
-      [nome, email.toLowerCase(), senhaHash, tipo_usuario, polo_id || null, escola_id || null]
+      [nome, email, senhaHash, tipo_usuario, polo_id || null, escola_id || null]
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
@@ -89,21 +101,13 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { id, nome, email, senha, tipo_usuario, polo_id, escola_id, ativo } = await request.json()
-
-    if (!id) {
-      return NextResponse.json(
-        { mensagem: 'ID do usuário é obrigatório' },
-        { status: 400 }
-      )
+    // Validar dados de entrada com Zod
+    const validacao = await validateRequest(request, atualizarUsuarioSchema)
+    if (!validacao.success) {
+      return validacao.response
     }
 
-    if (!nome || !email || !tipo_usuario) {
-      return NextResponse.json(
-        { mensagem: 'Campos obrigatórios: nome, email, tipo_usuario' },
-        { status: 400 }
-      )
-    }
+    const { id, nome, email, senha, tipo_usuario, polo_id, escola_id, ativo } = validacao.data
 
     // Verificar se o usuário existe
     const usuarioExistente = await pool.query(
@@ -125,7 +129,7 @@ export async function PUT(request: NextRequest) {
         `UPDATE usuarios
          SET nome = $1, email = $2, senha = $3, tipo_usuario = $4, polo_id = $5, escola_id = $6, ativo = $7, atualizado_em = NOW()
          WHERE id = $8`,
-        [nome, email.toLowerCase(), senhaHash, tipo_usuario, polo_id || null, escola_id || null, ativo !== false, id]
+        [nome, email, senhaHash, tipo_usuario, polo_id || null, escola_id || null, ativo !== false, id]
       )
     } else {
       // Atualizar sem mudar a senha
@@ -133,7 +137,7 @@ export async function PUT(request: NextRequest) {
         `UPDATE usuarios
          SET nome = $1, email = $2, tipo_usuario = $3, polo_id = $4, escola_id = $5, ativo = $6, atualizado_em = NOW()
          WHERE id = $7`,
-        [nome, email.toLowerCase(), tipo_usuario, polo_id || null, escola_id || null, ativo !== false, id]
+        [nome, email, tipo_usuario, polo_id || null, escola_id || null, ativo !== false, id]
       )
     }
 
@@ -173,15 +177,15 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const idParam = searchParams.get('id')
     const hardDelete = searchParams.get('hard') === 'true'
 
-    if (!id) {
-      return NextResponse.json(
-        { mensagem: 'ID do usuário é obrigatório' },
-        { status: 400 }
-      )
+    // Validar ID com schema Zod
+    const validacaoId = validateId(idParam)
+    if (!validacaoId.success) {
+      return validacaoId.response
     }
+    const id = validacaoId.data
 
     // Verificar se o usuário existe
     const usuarioExistente = await pool.query(
