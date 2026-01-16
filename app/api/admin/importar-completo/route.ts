@@ -105,21 +105,74 @@ async function processarImportacao(
 
     const erros: string[] = []
 
+    // ========== FUNÇÕES AUXILIARES PARA INFERÊNCIA DE SÉRIE ==========
+
+    // Função para inferir série da turma (ex: "2A", "2º A", "T2A" -> "2")
+    const inferirSerieDaTurma = (turma: string): string => {
+      if (!turma) return ''
+      const match = turma.match(/(\d+)/)?.[1]
+      return match || ''
+    }
+
+    // Função para detectar série baseada na maior questão respondida
+    const detectarSeriePorQuestoes = (linha: any): string => {
+      let maiorQuestao = 0
+      for (let q = 1; q <= 60; q++) {
+        const valor = linha[`Q${q}`]
+        if (valor !== undefined && valor !== null && valor !== '') {
+          maiorQuestao = q
+        }
+      }
+
+      if (maiorQuestao > 0 && maiorQuestao <= 28) return '2'
+      if (maiorQuestao > 28 && maiorQuestao <= 34) return '5'
+      if (maiorQuestao > 34) return '8'
+      return ''
+    }
+
+    // Função para ler série com múltiplas variações
+    const lerSerieDoExcel = (linha: any, turma: string): string => {
+      let serieOriginal = (
+        linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['SÉRIE'] ||
+        linha['serie'] || linha['Serie'] || linha['Ano'] || linha['ANO'] || linha['ano'] ||
+        linha['ANO_SERIE'] || linha['Ano_Serie'] || linha['SERIE'] || linha['Serie'] ||
+        ''
+      ).toString().trim()
+
+      // Se série está vazia, tentar inferir da turma
+      if (!serieOriginal || extrairNumeroSerie(serieOriginal) === null) {
+        const serieInferida = inferirSerieDaTurma(turma)
+        if (serieInferida) {
+          serieOriginal = serieInferida
+        }
+      }
+
+      // Se ainda está vazia, tentar detectar pela quantidade de questões
+      if (!serieOriginal || extrairNumeroSerie(serieOriginal) === null) {
+        const serieDetectada = detectarSeriePorQuestoes(linha)
+        if (serieDetectada) {
+          serieOriginal = serieDetectada
+        }
+      }
+
+      return serieOriginal
+    }
+
     // ========== FASE 1: PRÉ-PROCESSAMENTO E EXTRAÇÃO DE DADOS ÚNICOS ==========
     console.log('[FASE 1] Extraindo dados únicos do arquivo...')
-    
+
     const polosUnicos = new Set<string>()
     const escolasUnicas = new Map<string, string>() // escola -> polo
     const turmasUnicas = new Map<string, { escola: string, serie: string }>() // turma -> {escola, serie}
     const alunosUnicos = new Map<string, { escola: string, turma: string, serie: string }>() // aluno -> {escola, turma, serie}
-    
+
     dados.forEach((linha: any) => {
       const polo = (linha['POLO'] || linha['Polo'] || linha['polo'] || '').toString().trim()
       const escola = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
       const turma = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
       const aluno = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
-      const serie = (linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['serie'] || linha['Ano'] || '').toString().trim()
-      
+      const serie = lerSerieDoExcel(linha, turma)
+
       if (polo) polosUnicos.add(polo)
       if (escola && polo) escolasUnicas.set(escola, polo)
       if (turma && escola) turmasUnicas.set(`${turma}_${escola}`, { escola, serie })
@@ -352,7 +405,8 @@ async function processarImportacao(
         const escolaNome = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
         const alunoNome = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
         const turmaCodigo = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
-        const serieRaw = (linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['serie'] || linha['Ano'] || '').toString().trim()
+        // Usar função melhorada de leitura de série com inferência automática
+        const serieRaw = lerSerieDoExcel(linha, turmaCodigo)
         const serie = normalizarSerie(serieRaw) || null
         
         // IMPORTANTE: Validar dados antes de processar
@@ -681,14 +735,40 @@ async function processarImportacao(
         let questoesComValor = 0
 
         // Gerar áreas de questões baseado na configuração da série
-        const areasAluno = configSerieAluno
-          ? gerarAreasQuestoes(configSerieAluno)
-          : [
+        // IMPORTANTE: Usar fallback INTELIGENTE quando série não configurada
+        let areasAluno: { inicio: number, fim: number, area: string, disciplina: string }[]
+
+        if (configSerieAluno) {
+          areasAluno = gerarAreasQuestoes(configSerieAluno)
+        } else {
+          // Fallback inteligente baseado no número da série
+          const serieNumFallback = parseInt(numeroSerie || '0')
+
+          if (serieNumFallback === 2 || serieNumFallback === 3) {
+            // 2º e 3º ano: LP (Q1-Q14) + MAT (Q15-Q28)
+            console.warn(`[IMPORT] Fallback ANOS INICIAIS (2º/3º) para série: "${serie}"`)
+            areasAluno = [
+              { inicio: 1, fim: 14, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
+              { inicio: 15, fim: 28, area: 'Matemática', disciplina: 'Matemática' },
+            ]
+          } else if (serieNumFallback === 5) {
+            // 5º ano: LP (Q1-Q14) + MAT (Q15-Q34)
+            console.warn(`[IMPORT] Fallback ANOS INICIAIS (5º) para série: "${serie}"`)
+            areasAluno = [
+              { inicio: 1, fim: 14, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
+              { inicio: 15, fim: 34, area: 'Matemática', disciplina: 'Matemática' },
+            ]
+          } else {
+            // Anos finais (6º ao 9º): LP + CH + MAT + CN
+            console.warn(`[IMPORT] Fallback ANOS FINAIS para série: "${serie}"`)
+            areasAluno = [
               { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
               { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas' },
               { inicio: 31, fim: 50, area: 'Matemática', disciplina: 'Matemática' },
               { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza' },
             ]
+          }
+        }
 
         // DIAGNÓSTICO: Verificar se as colunas existem no Excel (apenas para primeiro aluno)
         if (i === 0) {

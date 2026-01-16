@@ -68,6 +68,39 @@ export async function POST(request: NextRequest) {
       return serie.toString().replace(/[^\d]/g, '').trim()
     }
 
+    // Função para inferir série da turma (ex: "2A", "2º A", "T2A" -> "2")
+    const inferirSerieDaTurma = (turma: string): string => {
+      if (!turma) return ''
+      // Padrões comuns: "2A", "2º A", "T2A", "TURMA 2A", "2-A"
+      const match = turma.match(/(\d+)/)?.[1]
+      return match || ''
+    }
+
+    // Função para detectar série baseada na maior questão respondida
+    const detectarSeriePorQuestoes = (linha: any): string => {
+      let maiorQuestao = 0
+      for (let q = 1; q <= 60; q++) {
+        const valor = linha[`Q${q}`]
+        if (valor !== undefined && valor !== null && valor !== '') {
+          maiorQuestao = q
+        }
+      }
+
+      // Se maior questão é até Q28, provavelmente é 2º ou 3º ano
+      if (maiorQuestao > 0 && maiorQuestao <= 28) {
+        return '2' // Assumir 2º ano (mesmo mapeamento que 3º)
+      }
+      // Se maior questão é até Q34, provavelmente é 5º ano
+      if (maiorQuestao > 28 && maiorQuestao <= 34) {
+        return '5'
+      }
+      // Se maior questão é até Q60, provavelmente é anos finais
+      if (maiorQuestao > 34) {
+        return '8' // Assumir 8º ano (mesmo mapeamento que 9º)
+      }
+      return ''
+    }
+
     // Criar mapa de configuração por série (usando série normalizada como chave)
     const configSeriesMap = new Map<string, any>()
     for (const config of configSeriesResult.rows) {
@@ -102,9 +135,30 @@ export async function POST(request: NextRequest) {
         configFinal = configSeriesMap.get(serieNum)
       }
 
-      // Se ainda não encontrou, retorna configuração padrão para anos finais
+      // Se ainda não encontrou, usar fallback INTELIGENTE baseado na série
       if (!configFinal || !configFinal.disciplinas || configFinal.disciplinas.length === 0) {
-        console.warn(`[Importação] AVISO: Sem config para série "${serie}", usando padrão anos finais`)
+        const serieNum = parseInt(serie.replace(/[^\d]/g, '') || '0')
+
+        // Anos iniciais: 2º e 3º ano (LP: Q1-Q14, MAT: Q15-Q28)
+        if (serieNum === 2 || serieNum === 3) {
+          console.warn(`[Importação] AVISO: Sem config para série "${serie}", usando padrão ANOS INICIAIS (2º/3º)`)
+          return [
+            { inicio: 1, fim: 14, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa', sigla: 'LP', valor_questao: 0.714 },
+            { inicio: 15, fim: 28, area: 'Matemática', disciplina: 'Matemática', sigla: 'MAT', valor_questao: 0.714 },
+          ]
+        }
+
+        // 5º ano (LP: Q1-Q14, MAT: Q15-Q34)
+        if (serieNum === 5) {
+          console.warn(`[Importação] AVISO: Sem config para série "${serie}", usando padrão ANOS INICIAIS (5º)`)
+          return [
+            { inicio: 1, fim: 14, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa', sigla: 'LP', valor_questao: 0.714 },
+            { inicio: 15, fim: 34, area: 'Matemática', disciplina: 'Matemática', sigla: 'MAT', valor_questao: 0.5 },
+          ]
+        }
+
+        // Anos finais: 6º ao 9º (LP, CH, MAT, CN)
+        console.warn(`[Importação] AVISO: Sem config para série "${serie}", usando padrão ANOS FINAIS`)
         return [
           { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa', sigla: 'LP', valor_questao: 0.5 },
           { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas', sigla: 'CH', valor_questao: 1.0 },
@@ -248,7 +302,35 @@ export async function POST(request: NextRequest) {
         const escolaNome = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
         const alunoNome = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
         const turmaCodigo = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
-        const serie = (linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['serie'] || linha['Ano'] || '').toString().trim()
+
+        // Ler série com múltiplas variações de nome de coluna
+        let serieOriginal = (
+          linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['SÉRIE'] ||
+          linha['serie'] || linha['Serie'] || linha['Ano'] || linha['ANO'] || linha['ano'] ||
+          linha['ANO_SERIE'] || linha['Ano_Serie'] || linha['SERIE'] || linha['Serie'] ||
+          linha['YEAR'] || linha['Year'] || linha['year'] || linha['Grade'] || linha['GRADE'] ||
+          ''
+        ).toString().trim()
+
+        // Se série está vazia, tentar inferir da turma
+        if (!serieOriginal || normalizarSerie(serieOriginal) === '') {
+          const serieInferida = inferirSerieDaTurma(turmaCodigo)
+          if (serieInferida) {
+            console.log(`[Importação] Série inferida da turma "${turmaCodigo}": ${serieInferida}`)
+            serieOriginal = serieInferida
+          }
+        }
+
+        // Se ainda está vazia, tentar detectar pela quantidade de questões
+        if (!serieOriginal || normalizarSerie(serieOriginal) === '') {
+          const serieDetectada = detectarSeriePorQuestoes(linha)
+          if (serieDetectada) {
+            console.log(`[Importação] Série detectada por questões (aluno "${alunoNome}"): ${serieDetectada}`)
+            serieOriginal = serieDetectada
+          }
+        }
+
+        const serie = serieOriginal
 
         // Tratamento da presenca/falta (suporta P/F, FALTA, PRESENÇA)
         let presenca: string | null = null
