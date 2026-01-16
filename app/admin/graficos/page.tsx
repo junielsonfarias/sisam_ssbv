@@ -25,7 +25,8 @@ const DISCIPLINA_COLORS: { [key: string]: string } = {
   'Língua Portuguesa': '#4F46E5', // Azul Indigo
   'Ciências Humanas': '#10B981',   // Verde Esmeralda
   'Matemática': '#F59E0B',         // Laranja Âmbar
-  'Ciências da Natureza': '#EF4444' // Vermelho
+  'Ciências da Natureza': '#EF4444', // Vermelho
+  'Produção Textual': '#8B5CF6'    // Roxo Violeta
 }
 
 interface FiltrosGraficos {
@@ -440,13 +441,14 @@ export default function GraficosPage() {
 
   const prepararDadosComparativo = () => {
     if (!dados?.comparativo_escolas) return []
-    
+
     return dados.comparativo_escolas.escolas.map((escola: string, index: number) => ({
       escola,
       LP: dados.comparativo_escolas.mediaLP[index],
-      CH: dados.comparativo_escolas.mediaCH[index],
+      CH: dados.comparativo_escolas.mediaCH?.[index] || 0,
       MAT: dados.comparativo_escolas.mediaMAT[index],
-      CN: dados.comparativo_escolas.mediaCN[index],
+      CN: dados.comparativo_escolas.mediaCN?.[index] || 0,
+      PT: dados.comparativo_escolas.mediaPT?.[index] || 0,
       Média: dados.comparativo_escolas.mediaGeral[index]
     }))
   }
@@ -970,29 +972,38 @@ export default function GraficosPage() {
                   <ResponsiveContainer width="100%" height={Math.max(400, dados.comparativo_escolas.escolas.length * 40)}>
                     <BarChart data={prepararDadosComparativo()}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="escola" 
+                      <XAxis
+                        dataKey="escola"
                         tick={{ fontSize: 12, fontWeight: 500 }}
                         interval={0}
                         angle={-15}
                         textAnchor="end"
                         height={Math.min(150, dados.comparativo_escolas.escolas.length * 8)}
                       />
-                      <YAxis 
-                        domain={[0, 10]} 
+                      <YAxis
+                        domain={[0, 10]}
                         tick={{ fontSize: 13, fontWeight: 500 }}
                         label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
                       />
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
                         labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
                       />
                       <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="LP" name="LP" fill="#4F46E5" />
-                      <Bar dataKey="CH" name="CH" fill="#10B981" />
+                      {/* CH e CN apenas para Anos Finais */}
+                      {dados.comparativo_escolas.temAnosFinais && (
+                        <Bar dataKey="CH" name="CH" fill="#10B981" />
+                      )}
                       <Bar dataKey="MAT" name="MAT" fill="#F59E0B" />
-                      <Bar dataKey="CN" name="CN" fill="#EF4444" />
-                      <Bar dataKey="Média" name="Média" fill="#8B5CF6" />
+                      {dados.comparativo_escolas.temAnosFinais && (
+                        <Bar dataKey="CN" name="CN" fill="#EF4444" />
+                      )}
+                      {/* PT apenas para Anos Iniciais */}
+                      {dados.comparativo_escolas.temAnosIniciais && (
+                        <Bar dataKey="PT" name="PT" fill="#8B5CF6" />
+                      )}
+                      <Bar dataKey="Média" name="Média" fill="#6B7280" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1045,27 +1056,27 @@ export default function GraficosPage() {
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-                      Taxa de Acerto por Questão (Top 20 Mais Difíceis)
+                      Taxa de Acerto por Questão ({dados.questoes.length} questões)
                     </h3>
                   </div>
-                  <ResponsiveContainer width="100%" height={500}>
-                    <BarChart data={dados.questoes.slice(0, 20)} layout="vertical">
+                  <ResponsiveContainer width="100%" height={Math.max(400, dados.questoes.length * 25)}>
+                    <BarChart data={dados.questoes} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" domain={[0, 100]} label={{ value: 'Taxa de Acerto (%)', position: 'insideBottom', offset: -5 }} />
-                      <YAxis 
-                        type="category" 
-                        dataKey="codigo" 
+                      <YAxis
+                        type="category"
+                        dataKey="codigo"
                         width={80}
                         tick={{ fontSize: 11 }}
                       />
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value: any) => [`${value}%`, 'Taxa de Acerto']}
                         labelFormatter={(label) => `Questão ${label}`}
                         contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }}
                       />
                       <Legend />
                       <Bar dataKey="taxa_acerto" name="Taxa de Acerto (%)" fill="#EF4444">
-                        {dados.questoes.slice(0, 20).map((entry: any, index: number) => (
+                        {dados.questoes.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={entry.taxa_acerto < 30 ? '#EF4444' : entry.taxa_acerto < 50 ? '#F59E0B' : entry.taxa_acerto < 70 ? '#10B981' : '#4F46E5'} />
                         ))}
                       </Bar>

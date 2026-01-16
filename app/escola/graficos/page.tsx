@@ -13,7 +13,8 @@ const DISCIPLINA_COLORS: { [key: string]: string } = {
   'Língua Portuguesa': '#4F46E5', // Azul Indigo
   'Ciências Humanas': '#10B981',   // Verde Esmeralda
   'Matemática': '#F59E0B',         // Laranja Âmbar
-  'Ciências da Natureza': '#EF4444' // Vermelho
+  'Ciências da Natureza': '#EF4444', // Vermelho
+  'Produção Textual': '#8B5CF6'    // Roxo Violeta
 }
 
 interface FiltrosGraficos {

@@ -325,7 +325,7 @@ export async function GET(request: NextRequest) {
         }
       } else if (disciplina === 'CN') {
         const queryDisciplina = `
-          SELECT 
+          SELECT
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN 1 END) as total_alunos
           FROM resultados_consolidados_unificada rc
@@ -340,23 +340,52 @@ export async function GET(request: NextRequest) {
             totalAlunos: parseInt(resDisciplina.rows[0].total_alunos) || 0
           }
         }
+      } else if (disciplina === 'PT') {
+        // Produção Textual - apenas para Anos Iniciais (2º, 3º, 5º ano)
+        const queryDisciplina = `
+          SELECT
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN 1 END) as total_alunos
+          FROM resultados_consolidados_unificada rc
+          INNER JOIN escolas e ON rc.escola_id = e.id
+          ${whereClause}
+        `
+        const resDisciplina = await pool.query(queryDisciplina, params)
+        if (resDisciplina.rows.length > 0 && resDisciplina.rows[0].total_alunos > 0) {
+          resultado.disciplinas = {
+            labels: ['Produção Textual'],
+            dados: [parseFloat(resDisciplina.rows[0].media) || 0],
+            totalAlunos: parseInt(resDisciplina.rows[0].total_alunos) || 0
+          }
+        }
       } else {
         // Sem disciplina específica, mostrar todas com indicadores estatísticos
+        // Inclui PT (Produção Textual) que só existe para Anos Iniciais (2º, 3º, 5º)
+        const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
         const queryDisciplinas = `
-          SELECT 
+          SELECT
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+            -- PT (Produção Textual) - apenas para Anos Iniciais
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_pt,
             ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as desvio_lp,
             ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as desvio_ch,
             ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as desvio_mat,
             ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as desvio_cn,
+            ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as desvio_pt,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN 1 END) as total_alunos_pt,
             SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_lp AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_lp,
             SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_ch AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_ch,
             SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_mat AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_mat,
-            SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_cn AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_cn
+            SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_cn AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_cn,
+            SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND CAST(rc.nota_producao AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_pt,
+            -- Verificar se há dados de Anos Iniciais ou Anos Finais
+            COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) as count_anos_iniciais,
+            COUNT(CASE WHEN ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END) as count_anos_finais
           FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -365,28 +394,53 @@ export async function GET(request: NextRequest) {
         if (resDisciplinas.rows.length > 0 && resDisciplinas.rows[0].total_alunos > 0) {
           const row = resDisciplinas.rows[0]
           const totalAlunos = parseInt(row.total_alunos) || 1
-          
+          const totalAlunosPT = parseInt(row.total_alunos_pt) || 0
+          const countAnosIniciais = parseInt(row.count_anos_iniciais) || 0
+          const countAnosFinais = parseInt(row.count_anos_finais) || 0
+
+          // Determinar quais disciplinas mostrar baseado nos dados disponíveis
+          const labels: string[] = ['Língua Portuguesa']
+          const dados: number[] = [parseFloat(row.media_lp) || 0]
+          const desvios: number[] = [parseFloat(row.desvio_lp) || 0]
+          const taxas_aprovacao: number[] = [((parseInt(row.aprovados_lp) || 0) / totalAlunos) * 100]
+
+          // CH e CN só existem para Anos Finais
+          if (countAnosFinais > 0 && parseFloat(row.media_ch) > 0) {
+            labels.push('Ciências Humanas')
+            dados.push(parseFloat(row.media_ch) || 0)
+            desvios.push(parseFloat(row.desvio_ch) || 0)
+            taxas_aprovacao.push(((parseInt(row.aprovados_ch) || 0) / totalAlunos) * 100)
+          }
+
+          labels.push('Matemática')
+          dados.push(parseFloat(row.media_mat) || 0)
+          desvios.push(parseFloat(row.desvio_mat) || 0)
+          taxas_aprovacao.push(((parseInt(row.aprovados_mat) || 0) / totalAlunos) * 100)
+
+          if (countAnosFinais > 0 && parseFloat(row.media_cn) > 0) {
+            labels.push('Ciências da Natureza')
+            dados.push(parseFloat(row.media_cn) || 0)
+            desvios.push(parseFloat(row.desvio_cn) || 0)
+            taxas_aprovacao.push(((parseInt(row.aprovados_cn) || 0) / totalAlunos) * 100)
+          }
+
+          // PT (Produção Textual) só existe para Anos Iniciais
+          if (countAnosIniciais > 0 && totalAlunosPT > 0 && parseFloat(row.media_pt) > 0) {
+            labels.push('Produção Textual')
+            dados.push(parseFloat(row.media_pt) || 0)
+            desvios.push(parseFloat(row.desvio_pt) || 0)
+            taxas_aprovacao.push(((parseInt(row.aprovados_pt) || 0) / totalAlunosPT) * 100)
+          }
+
           resultado.disciplinas = {
-            labels: ['Língua Portuguesa', 'Ciências Humanas', 'Matemática', 'Ciências da Natureza'],
-            dados: [
-              parseFloat(row.media_lp) || 0,
-              parseFloat(row.media_ch) || 0,
-              parseFloat(row.media_mat) || 0,
-              parseFloat(row.media_cn) || 0,
-            ],
-            desvios: [
-              parseFloat(row.desvio_lp) || 0,
-              parseFloat(row.desvio_ch) || 0,
-              parseFloat(row.desvio_mat) || 0,
-              parseFloat(row.desvio_cn) || 0
-            ],
-            taxas_aprovacao: [
-              ((parseInt(row.aprovados_lp) || 0) / totalAlunos) * 100,
-              ((parseInt(row.aprovados_ch) || 0) / totalAlunos) * 100,
-              ((parseInt(row.aprovados_mat) || 0) / totalAlunos) * 100,
-              ((parseInt(row.aprovados_cn) || 0) / totalAlunos) * 100
-            ],
+            labels,
+            dados,
+            desvios,
+            taxas_aprovacao,
             totalAlunos: totalAlunos,
+            totalAlunosPT: totalAlunosPT,
+            anosIniciais: countAnosIniciais,
+            anosFinais: countAnosFinais,
             faixas: {
               insuficiente: [0, 4],
               regular: [4, 6],
@@ -553,7 +607,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Comparativo de Escolas Detalhado (Top 5 e Bottom 5 ou Todas)
+    // Inclui PT (Produção Textual) para Anos Iniciais
     if (tipoGrafico === 'comparativo_escolas') {
+      const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
       const queryComparativo = `
         WITH ranking_escolas AS (
           SELECT
@@ -563,7 +620,12 @@ export async function GET(request: NextRequest) {
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+            -- PT (Produção Textual) - apenas para Anos Iniciais
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_pt,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos,
+            -- Contadores para determinar tipo de dados
+            COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) as count_anos_iniciais,
+            COUNT(CASE WHEN ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END) as count_anos_finais,
             ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC NULLS LAST) as rank_desc,
             ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) ASC NULLS LAST) as rank_asc
           FROM resultados_consolidados_unificada rc
@@ -578,6 +640,10 @@ export async function GET(request: NextRequest) {
       `
       const resComparativo = await pool.query(queryComparativo, params)
       if (resComparativo.rows.length > 0) {
+        // Calcular totais para determinar se há dados de cada etapa
+        const totalAnosIniciais = resComparativo.rows.reduce((acc, r) => acc + (parseInt(r.count_anos_iniciais) || 0), 0)
+        const totalAnosFinais = resComparativo.rows.reduce((acc, r) => acc + (parseInt(r.count_anos_finais) || 0), 0)
+
         resultado.comparativo_escolas = {
           escolas: resComparativo.rows.map(r => r.escola),
           mediaGeral: resComparativo.rows.map(r => parseFloat(r.media_geral) || 0),
@@ -585,7 +651,11 @@ export async function GET(request: NextRequest) {
           mediaCH: resComparativo.rows.map(r => parseFloat(r.media_ch) || 0),
           mediaMAT: resComparativo.rows.map(r => parseFloat(r.media_mat) || 0),
           mediaCN: resComparativo.rows.map(r => parseFloat(r.media_cn) || 0),
-          totais: resComparativo.rows.map(r => parseInt(r.total_alunos) || 0)
+          mediaPT: resComparativo.rows.map(r => parseFloat(r.media_pt) || 0),
+          totais: resComparativo.rows.map(r => parseInt(r.total_alunos) || 0),
+          // Metadados para o frontend saber quais disciplinas mostrar
+          temAnosIniciais: totalAnosIniciais > 0,
+          temAnosFinais: totalAnosFinais > 0
         }
       }
     }
