@@ -47,36 +47,25 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as alunos_presentes,
         COUNT(DISTINCT e.id) as total_escolas,
         COUNT(DISTINCT t.id) as total_turmas,
-        -- Média geral calculada corretamente por série
+        -- Média geral calculada corretamente por série (divisor FIXO - disciplinas obrigatórias)
         AVG(CASE
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
             CASE
               WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN
-                -- Anos Iniciais: média de LP, MAT, PT (se houver)
+                -- Anos Iniciais: média de LP, MAT, PROD (OBRIGATÓRIAS - divisor fixo 3)
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_producao IS NOT NULL THEN 1 ELSE 0 END,
-                  0
-                )
+                ) / 3.0
               ELSE
-                -- Anos Finais: média de LP, CH, MAT, CN
+                -- Anos Finais: média de LP, CH, MAT, CN (OBRIGATÓRIAS - divisor fixo 4)
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_ch IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL THEN 1 ELSE 0 END,
-                  0
-                )
+                ) / 4.0
             END
           ELSE NULL
         END) as media_geral,
@@ -157,36 +146,25 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as alunos_presentes,
         COUNT(DISTINCT e.id) as total_escolas,
         COUNT(DISTINCT t.id) as total_turmas,
-        -- Média geral calculada corretamente por série
+        -- Média geral calculada corretamente por série (divisor FIXO - disciplinas obrigatórias)
         AVG(CASE
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
             CASE
               WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN
-                -- Anos Iniciais: média de LP, MAT, PT (se houver)
+                -- Anos Iniciais: média de LP, MAT, PROD (OBRIGATÓRIAS - divisor fixo 3)
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_producao IS NOT NULL THEN 1 ELSE 0 END,
-                  0
-                )
+                ) / 3.0
               ELSE
-                -- Anos Finais: média de LP, CH, MAT, CN
+                -- Anos Finais: média de LP, CH, MAT, CN (OBRIGATÓRIAS - divisor fixo 4)
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_ch IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL THEN 1 ELSE 0 END,
-                  0
-                )
+                ) / 4.0
             END
           ELSE NULL
         END) as media_geral,

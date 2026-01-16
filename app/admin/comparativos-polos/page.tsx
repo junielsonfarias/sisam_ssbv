@@ -243,6 +243,24 @@ export default function ComparativosPolosPage() {
     return ['2', '3', '5'].includes(numeroSerie)
   }
 
+  // Função para calcular o nível baseado na média
+  const calcularNivelPorMedia = (media: number | string | null | undefined): { codigo: string, nome: string, cor: string, bgColor: string } => {
+    const num = typeof media === 'string' ? parseFloat(media) : media
+    if (num === null || num === undefined || isNaN(num) || num <= 0) {
+      return { codigo: '-', nome: 'Não classificado', cor: 'text-gray-500', bgColor: 'bg-gray-100' }
+    }
+    if (num < 3) {
+      return { codigo: 'N1', nome: 'Insuficiente', cor: 'text-red-700', bgColor: 'bg-red-100' }
+    }
+    if (num < 5) {
+      return { codigo: 'N2', nome: 'Básico', cor: 'text-yellow-700', bgColor: 'bg-yellow-100' }
+    }
+    if (num < 7.5) {
+      return { codigo: 'N3', nome: 'Adequado', cor: 'text-blue-700', bgColor: 'bg-blue-100' }
+    }
+    return { codigo: 'N4', nome: 'Avançado', cor: 'text-green-700', bgColor: 'bg-green-100' }
+  }
+
   // Função para imprimir a página
   const handlePrint = () => {
     window.print()

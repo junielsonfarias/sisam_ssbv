@@ -289,6 +289,24 @@ export default function ComparativosPage() {
     return ['2', '3', '5'].includes(numeroSerie)
   }
 
+  // Função para calcular o nível baseado na média
+  const calcularNivelPorMedia = (media: number | string | null | undefined): { codigo: string, nome: string, cor: string, bgColor: string } => {
+    const num = typeof media === 'string' ? parseFloat(media) : media
+    if (num === null || num === undefined || isNaN(num) || num <= 0) {
+      return { codigo: '-', nome: 'Não classificado', cor: 'text-gray-500', bgColor: 'bg-gray-100' }
+    }
+    if (num < 3) {
+      return { codigo: 'N1', nome: 'Insuficiente', cor: 'text-red-700', bgColor: 'bg-red-100' }
+    }
+    if (num < 5) {
+      return { codigo: 'N2', nome: 'Básico', cor: 'text-yellow-700', bgColor: 'bg-yellow-100' }
+    }
+    if (num < 7.5) {
+      return { codigo: 'N3', nome: 'Adequado', cor: 'text-blue-700', bgColor: 'bg-blue-100' }
+    }
+    return { codigo: 'N4', nome: 'Avançado', cor: 'text-green-700', bgColor: 'bg-green-100' }
+  }
+
   // Obtém o total de questões por disciplina baseado na série
   const getTotalQuestoes = (serie: string, disciplina: 'LP' | 'MAT' | 'CH' | 'CN'): number => {
     const disciplinas = obterDisciplinasPorSerieSync(serie)
@@ -818,6 +836,7 @@ export default function ComparativosPage() {
                             </>
                           )}
                           <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">Média</th>
+                          <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">Nível</th>
                           {!filtros.turma_id && (
                             <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap print:hidden">Ações</th>
                           )}
@@ -892,6 +911,16 @@ export default function ComparativosPage() {
                                   {formatarNumero(item.media_geral)}
                                 </span>
                               </div>
+                            </td>
+                            <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap">
+                              {(() => {
+                                const nivel = calcularNivelPorMedia(item.media_geral)
+                                return (
+                                  <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                    {nivel.codigo}
+                                  </span>
+                                )
+                              })()}
                             </td>
                             {!filtros.turma_id && (
                               <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap">
