@@ -718,29 +718,19 @@ export default function ResultadosPage() {
       return '-'
     }
 
-    // Verificar se e PROD (Producao Textual) em anos iniciais - OBRIGATORIA
-    const isProducaoAnosIniciais = codigoDisciplina === 'PROD' && serie && isAnosIniciais(serie)
-
-    // Para PROD em anos iniciais com aluno PRESENTE, mostrar 0,00 se nota for null/0
-    if (isProducaoAnosIniciais && (presenca === 'P' || presenca === 'p')) {
-      if (nota === null || nota === undefined || nota === '') {
-        return '0.00'
-      }
+    // Se aluno está presente (P), exibir nota mesmo que seja 0
+    if (presenca === 'P' || presenca === 'p') {
+      if (nota === null || nota === undefined || nota === '') return '-'
       const num = typeof nota === 'string' ? parseFloat(nota) : nota
-      if (isNaN(num)) return '0.00'
+      if (isNaN(num)) return '-'
+      // Aluno presente com nota 0 deve exibir 0.00
       return num.toFixed(2)
     }
 
-    // Se média do aluno for 0 ou null, considerar faltante
-    const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
-    if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) {
-      return '-'
-    }
-
+    // Caso padrão (sem presença definida)
     if (nota === null || nota === undefined || nota === '') return '-'
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
     if (isNaN(num)) return '-'
-    if (num === 0) return '-' // Se nota for 0, também retornar "-"
     return num.toFixed(2)
   }
 

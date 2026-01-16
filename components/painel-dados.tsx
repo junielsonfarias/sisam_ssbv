@@ -193,7 +193,7 @@ const formatarNota = (nota: number | string | null | undefined, presenca?: strin
   if (nota === null || nota === undefined || nota === '') return '-'
   const num = typeof nota === 'string' ? parseFloat(nota) : nota
   if (isNaN(num)) return '-'
-  if (num === 0) return '-'
+  // Se o aluno está presente (não é falta) e a nota é 0, exibir 0.00
   return num.toFixed(2)
 }
 

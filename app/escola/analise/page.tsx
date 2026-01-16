@@ -355,13 +355,18 @@ export default function EscolaAnalisePage() {
     if (presenca === '-') return '-'
     if (presenca === 'F' || presenca === 'f') return '-'
 
-    const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
-    if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) return '-'
+    // Se aluno está presente (P), exibir nota mesmo que seja 0
+    if (presenca === 'P' || presenca === 'p') {
+      if (nota === null || nota === undefined || nota === '') return '-'
+      const num = typeof nota === 'string' ? parseFloat(nota) : nota
+      if (isNaN(num)) return '-'
+      return num.toFixed(2)
+    }
 
+    // Caso padrão (sem presença definida)
     if (nota === null || nota === undefined || nota === '') return '-'
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
     if (isNaN(num)) return '-'
-    if (num === 0) return '-'
     return num.toFixed(2)
   }
 

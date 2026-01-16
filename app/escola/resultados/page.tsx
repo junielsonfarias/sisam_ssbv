@@ -353,22 +353,24 @@ export default function ResultadosEscolaPage() {
     if (presenca === '-') {
       return '-'
     }
-    
+
     // Se aluno faltou, sempre retornar "-"
     if (presenca === 'F' || presenca === 'f') {
       return '-'
     }
-    
-    // Se média do aluno for 0 ou null, considerar faltante
-    const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
-    if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) {
-      return '-'
+
+    // Se aluno está presente (P), exibir nota mesmo que seja 0
+    if (presenca === 'P' || presenca === 'p') {
+      if (nota === null || nota === undefined || nota === '') return '-'
+      const num = typeof nota === 'string' ? parseFloat(nota) : nota
+      if (isNaN(num)) return '-'
+      return num.toFixed(2)
     }
-    
+
+    // Caso padrão (sem presença definida)
     if (nota === null || nota === undefined || nota === '') return '-'
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
     if (isNaN(num)) return '-'
-    if (num === 0) return '-' // Se nota for 0, também retornar "-"
     return num.toFixed(2)
   }
 

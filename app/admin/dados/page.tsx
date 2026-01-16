@@ -292,31 +292,18 @@ const formatarNota = (nota: number | string | null | undefined, presenca?: strin
     return '-'
   }
 
-  // Verificar se é PROD (Produção Textual) em anos iniciais - OBRIGATÓRIA
-  const numeroSerie = serie?.toString().replace(/[^0-9]/g, '')
-  const isAnosIniciaisSerie = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
-  const isProducaoAnosIniciais = codigoDisciplina === 'PROD' && isAnosIniciaisSerie
-
-  // Para PROD em anos iniciais com aluno PRESENTE, mostrar 0.00 se nota for null/0
-  if (isProducaoAnosIniciais && (presenca === 'P' || presenca === 'p')) {
-    if (nota === null || nota === undefined || nota === '') {
-      return '0.00'
-    }
+  // Se aluno está presente (P), exibir nota mesmo que seja 0
+  if (presenca === 'P' || presenca === 'p') {
+    if (nota === null || nota === undefined || nota === '') return '-'
     const num = typeof nota === 'string' ? parseFloat(nota) : nota
-    if (isNaN(num)) return '0.00'
+    if (isNaN(num)) return '-'
     return num.toFixed(2)
   }
 
-  // Se média do aluno for 0 ou null, considerar faltante
-  const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
-  if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) {
-    return '-'
-  }
-
+  // Caso padrão (sem presença definida)
   if (nota === null || nota === undefined || nota === '') return '-'
   const num = typeof nota === 'string' ? parseFloat(nota) : nota
   if (isNaN(num)) return '-'
-  if (num === 0) return '-' // Se nota for 0, também retornar "-"
   return num.toFixed(2)
 }
 
