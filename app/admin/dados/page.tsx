@@ -3523,9 +3523,12 @@ export default function DadosPage() {
                           (dados.analiseAcertosErros?.questoesComMaisErros && dados.analiseAcertosErros.questoesComMaisErros.length > 0)
 
                         // Calcular estatísticas de Produção Textual para Anos Iniciais
+                        // Incluir todos os alunos presentes (mesmo com nota 0) - PROD é obrigatória
                         const alunosComProducao = dados.alunosDetalhados?.filter(a => {
                           const notaProd = parseFloat(a.nota_producao as any)
-                          return !isNaN(notaProd) && notaProd > 0 &&
+                          const isPresente = a.presenca === 'P' || a.presenca === 'p'
+                          // Incluir alunos presentes, mesmo com nota 0 (PROD obrigatória)
+                          return isPresente && !isNaN(notaProd) && notaProd >= 0 &&
                             (filtroSerie ? compararSeries(a.serie, filtroSerie) : true)
                         }) || []
 

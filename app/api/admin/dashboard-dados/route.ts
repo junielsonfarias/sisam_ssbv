@@ -356,36 +356,25 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT e.polo_id) as total_polos,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as total_presentes,
         COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as total_faltantes,
-        -- Média CORRIGIDA: anos iniciais inclui PROD, anos finais usa LP+CH+MAT+CN
+        -- Média com DIVISOR FIXO: anos iniciais LP+MAT+PROD/3, anos finais LP+CH+MAT+CN/4
         ROUND(AVG(CASE
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
             CASE
-              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD
+              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD (divisor fixo 3)
               WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                  0
-                )
-              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN
+                ) / 3.0
+              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN (divisor fixo 4)
               ELSE
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                  0
-                )
+                ) / 4.0
             END
           ELSE NULL
         END), 2) as media_geral,
@@ -393,7 +382,13 @@ export async function GET(request: NextRequest) {
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_producao,
+        -- PROD: incluir alunos presentes de anos iniciais mesmo com nota 0 (PROD obrigatória)
+        ROUND(AVG(CASE
+          WHEN (rc.presenca = 'P' OR rc.presenca = 'p')
+            AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+          THEN COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+          ELSE NULL
+        END), 2) as media_producao,
         MIN(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) as menor_media,
         MAX(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) as maior_media
       FROM resultados_consolidados_unificada rc
