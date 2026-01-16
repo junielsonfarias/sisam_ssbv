@@ -620,10 +620,15 @@ export default function ComparativosPage() {
                                 const percentualPresentes = item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : '0.0'
                                 return (
                                 <tr key={`agregado-${item.escola_id}-${item.serie}-${index}`} className="hover:bg-blue-50 dark:hover:bg-blue-900/20 bg-blue-50/30 dark:bg-blue-900/10">
-                                  <td className="py-2 px-2 md:py-3 md:px-4 whitespace-nowrap">
-                                    <div className="flex items-center">
-                                      <School className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                      <span className="font-bold text-gray-900 dark:text-white text-xs md:text-sm truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">{item.escola_nome}</span>
+                                  <td className="py-2 px-2 md:py-3 md:px-4">
+                                    <div className="flex items-start">
+                                      <School className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                      <div className="min-w-0">
+                                        <span className="font-bold text-gray-900 dark:text-white text-xs md:text-sm break-words">{item.escola_nome}</span>
+                                        <div className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                          <span className="font-medium">Polo:</span> {item.polo_nome}
+                                        </div>
+                                      </div>
                                     </div>
                                   </td>
                                   <td className="py-2 px-2 md:py-3 md:px-4 whitespace-nowrap hidden md:table-cell">
@@ -849,8 +854,16 @@ export default function ComparativosPage() {
                           const percentualPresentes = item.total_alunos > 0 ? ((item.alunos_presentes / item.total_alunos) * 100).toFixed(1) : '0.0'
                           return (
                           <tr key={`${item.escola_id}-${item.serie}-${item.turma_id || 'sem-turma'}-${index}`} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                            <td className="py-2 px-2 md:py-3 md:px-4 whitespace-nowrap">
-                              <span className="font-semibold text-gray-900 dark:text-white text-xs md:text-sm truncate max-w-[80px] sm:max-w-[120px] md:max-w-none block">{item.escola_nome}</span>
+                            <td className="py-2 px-2 md:py-3 md:px-4">
+                              <div className="min-w-0">
+                                <span className="font-semibold text-gray-900 dark:text-white text-xs md:text-sm break-words block">{item.escola_nome}</span>
+                                <div className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 space-y-0.5">
+                                  <div><span className="font-medium">Polo:</span> {item.polo_nome}</div>
+                                  {!filtros.turma_id && item.turma_codigo && (
+                                    <div><span className="font-medium">Turma:</span> {item.turma_codigo}</div>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                             <td className="py-2 px-2 md:py-3 md:px-4 whitespace-nowrap hidden md:table-cell">
                               <span className="text-gray-600 dark:text-gray-300 text-xs md:text-sm">{item.polo_nome}</span>
