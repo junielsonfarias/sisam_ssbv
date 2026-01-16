@@ -211,21 +211,21 @@ export default function PolosPage() {
                             </span>
                           </td>
                           <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleAbrirModal(polo)}
-                                className="p-1.5 md:p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                                 aria-label="Editar"
                                 title="Editar"
                               >
-                                <Edit className="w-4 h-4 md:w-5 md:h-5" />
+                                <Edit className="w-5 h-5" />
                               </button>
                               <button
-                                className="p-1.5 md:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 aria-label="Excluir"
                                 title="Excluir"
                               >
-                                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                                <Trash2 className="w-5 h-5" />
                               </button>
                             </div>
                           </td>

@@ -419,17 +419,17 @@ export default function UsuariosPage() {
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleAbrirModal(usuario)}
-                                className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                                 title="Editar usuário"
                               >
-                                <Edit className="w-4 h-4" />
+                                <Edit className="w-5 h-5" />
                               </button>
                               <button
                                 onClick={() => handleAbrirModalExcluir(usuario)}
-                                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                                 title="Excluir usuário"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-5 h-5" />
                               </button>
                             </div>
                           </td>

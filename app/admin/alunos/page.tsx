@@ -665,29 +665,29 @@ export default function AlunosPage() {
                             <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm">{aluno.ano_letivo || '-'}</span>
                           </td>
                           <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-end gap-1.5">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-end gap-2">
                               <button
                                 onClick={() => handleVisualizarHistorico(aluno)}
-                                className="w-full sm:w-auto flex items-center justify-center gap-1 px-2 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-xs font-medium border border-blue-200 sm:border-0"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm font-medium border border-blue-200 sm:border-0"
                                 title="Visualizar Histórico"
                               >
-                                <Eye className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                                <Eye className="w-4 h-4 flex-shrink-0" />
                                 <span className="sm:hidden">Histórico</span>
                               </button>
                               <button
                                 onClick={() => handleAbrirModal(aluno)}
-                                className="w-full sm:w-auto flex items-center justify-center gap-1 px-2 py-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors text-xs font-medium border border-indigo-200 sm:border-0"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-3 py-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors text-sm font-medium border border-indigo-200 sm:border-0"
                                 title="Editar"
                               >
-                                <Edit className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                                <Edit className="w-4 h-4 flex-shrink-0" />
                                 <span className="sm:hidden">Editar</span>
                               </button>
                               <button
                                 onClick={() => handleExcluir(aluno.id)}
-                                className="w-full sm:w-auto flex items-center justify-center gap-1 px-2 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-xs font-medium border border-red-200 sm:border-0"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium border border-red-200 sm:border-0"
                                 title="Excluir"
                               >
-                                <Trash2 className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                                <Trash2 className="w-4 h-4 flex-shrink-0" />
                                 <span className="sm:hidden">Excluir</span>
                               </button>
                             </div>

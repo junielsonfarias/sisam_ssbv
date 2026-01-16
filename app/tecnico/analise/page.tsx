@@ -944,8 +944,8 @@ export default function TecnicoAnalisePage() {
                 </div>
 
                 {/* Visualizacao Tablet/Desktop - Tabela com header fixo */}
-                <div className="hidden sm:block w-full h-full">
-                  <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-[600px] md:min-w-[800px] lg:min-w-[900px] xl:min-w-[1100px]">
+                <div className="hidden sm:block w-full h-full overflow-x-auto">
+                  <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">
                     <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 sticky top-0 z-20">
                         <tr>
                           <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12 bg-gradient-to-r from-indigo-50 to-indigo-100">

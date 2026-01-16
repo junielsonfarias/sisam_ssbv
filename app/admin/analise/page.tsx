@@ -944,8 +944,8 @@ export default function AdminAnalisePage() {
                 </div>
 
                 {/* Visualizacao Tablet/Desktop - Tabela com header fixo */}
-                <div className="hidden sm:block w-full h-full">
-                  <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 min-w-[600px] md:min-w-[800px] lg:min-w-[900px] xl:min-w-[1100px]">
+                <div className="hidden sm:block w-full h-full overflow-x-auto">
+                  <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">
                     <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 sticky top-0 z-20">
                         <tr>
                           <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 w-8 md:w-10 lg:w-12 bg-gradient-to-r from-indigo-50 to-indigo-100">
@@ -1019,7 +1019,7 @@ export default function AdminAnalisePage() {
                             return (
                               <tr key={resultado.id} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-gray-100">
                                 <td className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2">
-                                  <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs sm:text-xs md:text-sm">
                                     {index + 1}
                                   </span>
                                 </td>
@@ -1027,17 +1027,17 @@ export default function AdminAnalisePage() {
                                   <div className="flex flex-col">
                                     <button
                                       onClick={() => handleVisualizarQuestoes(resultado)}
-                                      className="flex items-center w-full text-left hover:opacity-80 transition-opacity mb-1"
+                                      className="flex items-center w-full text-left hover:opacity-80 transition-opacity mb-1 min-h-[44px]"
                                       title="Clique para ver questoes do aluno"
                                     >
-                                      <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-9 rounded-full bg-indigo-100 flex items-center justify-center mr-1 sm:mr-1.5 md:mr-2">
-                                        <span className="text-indigo-600 font-semibold text-[9px] sm:text-[10px] md:text-xs">
+                                      <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-indigo-100 flex items-center justify-center mr-2">
+                                        <span className="text-indigo-600 font-semibold text-xs sm:text-sm">
                                           {resultado.aluno_nome.charAt(0).toUpperCase()}
                                         </span>
                                       </div>
-                                      <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-[10px] sm:text-[11px] md:text-xs lg:text-sm truncate">{resultado.aluno_nome}</span>
+                                      <span className="font-semibold text-indigo-600 hover:text-indigo-800 underline text-xs sm:text-sm truncate">{resultado.aluno_nome}</span>
                                     </button>
-                                    <div className="lg:hidden text-[9px] sm:text-[10px] md:text-xs text-gray-500 space-y-0.5 ml-6 sm:ml-7 md:ml-8 lg:ml-10">
+                                    <div className="lg:hidden text-xs text-gray-500 space-y-0.5 ml-7 sm:ml-8 md:ml-9">
                                       {resultado.polo_nome && <div>Polo: {resultado.polo_nome}</div>}
                                       {resultado.escola_nome && <div>Escola: {resultado.escola_nome}</div>}
                                       {resultado.turma_codigo && <div>Turma: {resultado.turma_codigo}</div>}
@@ -1045,7 +1045,7 @@ export default function AdminAnalisePage() {
                                       <div className="flex items-center gap-2">
                                         <span>Presenca: </span>
                                         <span
-                                          className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${getPresencaColor(
+                                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getPresencaColor(
                                             resultado.presenca || 'P'
                                           )}`}
                                         >
@@ -1056,22 +1056,22 @@ export default function AdminAnalisePage() {
                                   </div>
                                 </td>
                                 <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5">
-                                  <span className="text-[9px] md:text-[10px] lg:text-xs text-gray-700 truncate block max-w-[100px]" title={resultado.polo_nome}>
+                                  <span className="text-xs text-gray-700 truncate block max-w-[100px] lg:max-w-[120px]" title={resultado.polo_nome}>
                                     {resultado.polo_nome || '-'}
                                   </span>
                                 </td>
                                 <td className="hidden md:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5">
-                                  <span className="text-[9px] md:text-[10px] lg:text-xs text-gray-700 truncate block max-w-[120px]" title={resultado.escola_nome}>
+                                  <span className="text-xs text-gray-700 truncate block max-w-[100px] lg:max-w-[140px]" title={resultado.escola_nome}>
                                     {resultado.escola_nome || '-'}
                                   </span>
                                 </td>
                                 <td className="hidden lg:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
-                                  <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-mono text-[9px] md:text-[10px] lg:text-xs font-medium">
+                                  <span className="inline-flex items-center px-1.5 lg:px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-mono text-xs font-medium">
                                     {resultado.turma_codigo || '-'}
                                   </span>
                                 </td>
                                 <td className="hidden xl:table-cell py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 text-center">
-                                  <span className="inline-flex items-center px-1 md:px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-[9px] md:text-[10px] lg:text-xs font-medium">
+                                  <span className="inline-flex items-center px-1.5 lg:px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-xs font-medium">
                                     {resultado.serie || '-'}
                                   </span>
                                 </td>
@@ -1086,12 +1086,12 @@ export default function AdminAnalisePage() {
                                 </td>
                                 {/* Ordem das celulas: LP, MAT, CH, CN, PROD, Media */}
                                 {/* 1. LP */}
-                                <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                  <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                    <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                  <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_lp)} w-full max-w-[55px] sm:max-w-[60px] md:max-w-[65px] lg:max-w-[70px]`}>
+                                    <div className="text-xs text-gray-600 mb-0.5 font-medium">
                                       {resultado.total_acertos_lp}/{getTotalQuestoesPorSerie(resultado, 'LP') || '-'}
                                     </div>
-                                    <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
+                                    <div className={`text-xs sm:text-sm md:text-base font-bold ${getNotaColor(resultado.nota_lp)}`}>
                                       {formatarNota(resultado.nota_lp, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {notaLP !== null && notaLP !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
@@ -1107,12 +1107,12 @@ export default function AdminAnalisePage() {
                                   </div>
                                 </td>
                                 {/* 2. MAT */}
-                                <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                  <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                    <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                  <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${getNotaBgColor(resultado.nota_mat)} w-full max-w-[55px] sm:max-w-[60px] md:max-w-[65px] lg:max-w-[70px]`}>
+                                    <div className="text-xs text-gray-600 mb-0.5 font-medium">
                                       {resultado.total_acertos_mat}/{getTotalQuestoesPorSerie(resultado, 'MAT') || '-'}
                                     </div>
-                                    <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
+                                    <div className={`text-xs sm:text-sm md:text-base font-bold ${getNotaColor(resultado.nota_mat)}`}>
                                       {formatarNota(resultado.nota_mat, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {notaMAT !== null && notaMAT !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
@@ -1129,19 +1129,19 @@ export default function AdminAnalisePage() {
                                 </td>
                                 {/* 3. CH - Apenas Anos Finais ou Todos */}
                                 {(filtros.tipo_ensino !== 'anos_iniciais') && (
-                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_ch)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                  <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_ch)} w-full max-w-[55px] sm:max-w-[60px] md:max-w-[65px] lg:max-w-[70px]`}>
                                       {isAnosIniciais(resultado.serie) ? (
                                         <>
-                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
-                                          <div className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold text-gray-400">-</div>
+                                          <div className="text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
+                                          <div className="text-xs sm:text-sm md:text-base font-bold text-gray-400">-</div>
                                         </>
                                       ) : (
                                         <>
-                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                          <div className="text-xs text-gray-600 mb-0.5 font-medium">
                                             {resultado.total_acertos_ch}/{getTotalQuestoesPorSerie(resultado, 'CH') || '-'}
                                           </div>
-                                          <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
+                                          <div className={`text-xs sm:text-sm md:text-base font-bold ${getNotaColor(resultado.nota_ch)}`}>
                                             {formatarNota(resultado.nota_ch, resultado.presenca, resultado.media_aluno)}
                                           </div>
                                           {notaCH !== null && notaCH !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
@@ -1161,19 +1161,19 @@ export default function AdminAnalisePage() {
                                 )}
                                 {/* 4. CN - Apenas Anos Finais ou Todos */}
                                 {(filtros.tipo_ensino !== 'anos_iniciais') && (
-                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_cn)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                  <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_cn)} w-full max-w-[55px] sm:max-w-[60px] md:max-w-[65px] lg:max-w-[70px]`}>
                                       {isAnosIniciais(resultado.serie) ? (
                                         <>
-                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
-                                          <div className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold text-gray-400">-</div>
+                                          <div className="text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
+                                          <div className="text-xs sm:text-sm md:text-base font-bold text-gray-400">-</div>
                                         </>
                                       ) : (
                                         <>
-                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">
+                                          <div className="text-xs text-gray-600 mb-0.5 font-medium">
                                             {resultado.total_acertos_cn}/{getTotalQuestoesPorSerie(resultado, 'CN') || '-'}
                                           </div>
-                                          <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
+                                          <div className={`text-xs sm:text-sm md:text-base font-bold ${getNotaColor(resultado.nota_cn)}`}>
                                             {formatarNota(resultado.nota_cn, resultado.presenca, resultado.media_aluno)}
                                           </div>
                                           {notaCN !== null && notaCN !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
@@ -1193,17 +1193,17 @@ export default function AdminAnalisePage() {
                                 )}
                                 {/* 5. PROD - Apenas Anos Iniciais ou Todos */}
                                 {(filtros.tipo_ensino !== 'anos_finais') && (
-                                  <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${!isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_producao)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                  <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                    <div className={`inline-flex flex-col items-center p-1 sm:p-1.5 md:p-2 rounded-lg ${!isAnosIniciais(resultado.serie) ? 'bg-gray-50' : getNotaBgColor(resultado.nota_producao)} w-full max-w-[55px] sm:max-w-[60px] md:max-w-[65px] lg:max-w-[70px]`}>
                                       {!isAnosIniciais(resultado.serie) ? (
                                         <>
-                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
-                                          <div className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold text-gray-400">-</div>
+                                          <div className="text-xs text-gray-400 mb-0.5 font-medium">N/A</div>
+                                          <div className="text-xs sm:text-sm md:text-base font-bold text-gray-400">-</div>
                                         </>
                                       ) : (
                                         <>
-                                          <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 mb-0.5 font-medium">-</div>
-                                          <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(resultado.nota_producao)}`}>
+                                          <div className="text-xs text-gray-600 mb-0.5 font-medium">-</div>
+                                          <div className={`text-xs sm:text-sm md:text-base font-bold ${getNotaColor(resultado.nota_producao)}`}>
                                             {formatarNota(resultado.nota_producao, resultado.presenca, resultado.media_aluno)}
                                           </div>
                                         </>
@@ -1212,17 +1212,17 @@ export default function AdminAnalisePage() {
                                   </td>
                                 )}
                                 {/* 6. Media */}
-                                <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
-                                  <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
+                                <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
+                                  <div className={`inline-flex flex-col items-center justify-center px-1 sm:px-1.5 md:px-2 py-1 sm:py-1.5 md:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
                                     mediaNum !== null && mediaNum >= 7 ? 'border-green-500' :
                                     mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' :
                                     'border-red-500'
-                                  } w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
-                                    <div className={`text-[10px] sm:text-xs md:text-sm lg:text-base xl:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
+                                  } w-full max-w-[55px] sm:max-w-[60px] md:max-w-[65px] lg:max-w-[70px]`}>
+                                    <div className={`text-xs sm:text-sm md:text-base lg:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                                       {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                                     </div>
                                     {mediaNum !== null && mediaNum !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
-                                      <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400">
+                                      <div className="mt-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
                                         Media
                                       </div>
                                     )}
@@ -1231,10 +1231,10 @@ export default function AdminAnalisePage() {
                                 <td className="py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-3 lg:px-2 text-center">
                                   <button
                                     onClick={() => handleVisualizarQuestoes(resultado)}
-                                    className="w-full inline-flex items-center justify-center px-1 sm:px-1.5 md:px-2 lg:px-3 py-1 sm:py-1 md:py-1.5 lg:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-[9px] sm:text-[10px] md:text-xs font-medium shadow-sm"
+                                    className="w-full inline-flex items-center justify-center min-h-[44px] px-2 sm:px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-medium shadow-sm"
                                     title="Ver questoes do aluno"
                                   >
-                                    <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 mr-0.5 sm:mr-1 flex-shrink-0" />
+                                    <Eye className="w-4 h-4 mr-1 flex-shrink-0" />
                                     <span className="hidden md:inline">Ver Questoes</span>
                                     <span className="md:hidden">Ver</span>
                                   </button>
