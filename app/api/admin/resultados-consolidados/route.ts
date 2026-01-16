@@ -126,37 +126,25 @@ export async function GET(request: NextRequest) {
         -- Media calculada dinamicamente baseada na serie
         CASE
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            -- Anos iniciais: media de LP, MAT e PROD (se disponivel)
+            -- Anos iniciais: media de LP, MAT e PROD (OBRIGATORIAS - divisor fixo 3)
+            -- Se aluno presente sem nota de producao, conta como 0 na media
             ROUND(
               (
                 COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
+              ) / 3.0,
               2
             )
           ELSE
-            -- Anos finais: media de LP, CH, MAT, CN
+            -- Anos finais: media de LP, CH, MAT, CN (OBRIGATORIAS - divisor fixo 4)
             ROUND(
               (
                 COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
+              ) / 4.0,
               2
             )
         END as media_aluno
@@ -255,7 +243,8 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
-    query += ' ORDER BY rc.media_aluno DESC NULLS LAST, a.nome'
+    // Ordenar pela media calculada dinamicamente (maior para menor)
+    query += ' ORDER BY media_aluno DESC NULLS LAST, a.nome'
     
     // Query para contar total (sem ORDER BY, LIMIT, OFFSET)
     let countQuery = `

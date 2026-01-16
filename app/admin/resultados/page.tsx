@@ -718,6 +718,19 @@ export default function ResultadosPage() {
       return '-'
     }
 
+    // Verificar se e PROD (Producao Textual) em anos iniciais - OBRIGATORIA
+    const isProducaoAnosIniciais = codigoDisciplina === 'PROD' && serie && isAnosIniciais(serie)
+
+    // Para PROD em anos iniciais com aluno PRESENTE, mostrar 0,00 se nota for null/0
+    if (isProducaoAnosIniciais && (presenca === 'P' || presenca === 'p')) {
+      if (nota === null || nota === undefined || nota === '') {
+        return '0.00'
+      }
+      const num = typeof nota === 'string' ? parseFloat(nota) : nota
+      if (isNaN(num)) return '0.00'
+      return num.toFixed(2)
+    }
+
     // Se média do aluno for 0 ou null, considerar faltante
     const mediaNum = typeof mediaAluno === 'string' ? parseFloat(mediaAluno) : mediaAluno
     if (mediaNum === 0 || mediaNum === null || mediaNum === undefined) {
@@ -737,16 +750,33 @@ export default function ResultadosPage() {
     return isNaN(num) ? null : num
   }
 
-  const getNotaColor = (nota: number | string | null | undefined) => {
-    const num = getNotaNumero(nota)
+  // Retorna a nota efetiva para exibicao, considerando PROD como 0 para anos iniciais
+  const getNotaEfetiva = (nota: number | null, codigoDisciplina: string, serie: string | null, presenca: string): number | null => {
+    // Para PROD em anos iniciais com aluno PRESENTE, tratar null como 0
+    if (codigoDisciplina === 'PROD' && serie && isAnosIniciais(serie) && (presenca === 'P' || presenca === 'p')) {
+      return nota === null ? 0 : nota
+    }
+    return nota
+  }
+
+  const getNotaColor = (nota: number | string | null | undefined, codigoDisciplina?: string, serie?: string | null, presenca?: string) => {
+    let num = getNotaNumero(nota)
+    // Para PROD em anos iniciais com aluno PRESENTE, tratar null como 0
+    if (codigoDisciplina === 'PROD' && serie && isAnosIniciais(serie) && (presenca === 'P' || presenca === 'p') && num === null) {
+      num = 0
+    }
     if (num === null) return 'text-gray-500'
     if (num >= 7) return 'text-green-600 font-semibold'
     if (num >= 5) return 'text-yellow-600 font-semibold'
     return 'text-red-600 font-semibold'
   }
 
-  const getNotaBgColor = (nota: number | string | null | undefined) => {
-    const num = getNotaNumero(nota)
+  const getNotaBgColor = (nota: number | string | null | undefined, codigoDisciplina?: string, serie?: string | null, presenca?: string) => {
+    let num = getNotaNumero(nota)
+    // Para PROD em anos iniciais com aluno PRESENTE, tratar null como 0
+    if (codigoDisciplina === 'PROD' && serie && isAnosIniciais(serie) && (presenca === 'P' || presenca === 'p') && num === null) {
+      num = 0
+    }
     if (num === null) return 'bg-gray-50'
     if (num >= 7) return 'bg-green-50 border-green-200'
     if (num >= 5) return 'bg-yellow-50 border-yellow-200'
@@ -1381,7 +1411,7 @@ export default function ResultadosPage() {
                             const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
 
                             return (
-                              <div key={disciplina.codigo} className={`p-2 rounded-lg ${!isDisciplinaAplicavel(disciplina.codigo, resultado.serie) ? 'bg-gray-100 dark:bg-slate-700' : getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
+                              <div key={disciplina.codigo} className={`p-2 rounded-lg ${!isDisciplinaAplicavel(disciplina.codigo, resultado.serie) ? 'bg-gray-100 dark:bg-slate-700' : getNotaBgColor(nota, disciplina.codigo, resultado.serie, resultado.presenca)} border border-gray-200 dark:border-slate-600`}>
                                 <div className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{disciplina.codigo}</div>
                                 {!isDisciplinaAplicavel(disciplina.codigo, resultado.serie) ? (
                                   <div className="text-base font-bold text-gray-400">N/A</div>
@@ -1394,8 +1424,8 @@ export default function ResultadosPage() {
                                     {getTotalQuestoesPorSerie(resultado, disciplina.codigo) && acertos !== null && (
                                       <div className="text-[10px] text-gray-600 dark:text-gray-400">{acertos}/{getTotalQuestoesPorSerie(resultado, disciplina.codigo)}</div>
                                     )}
-                                    <div className={`text-base font-bold ${getNotaColor(nota)}`}>
-                                      {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                    <div className={`text-base font-bold ${getNotaColor(nota, disciplina.codigo, resultado.serie, resultado.presenca)}`}>
+                                      {formatarNota(nota, resultado.presenca, resultado.media_aluno, disciplina.codigo, resultado.serie)}
                                     </div>
                                     {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
                                       <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1 mt-0.5">
@@ -1599,14 +1629,14 @@ export default function ResultadosPage() {
                                       {nivelAprendizagem || '-'}
                                     </span>
                                   ) : (
-                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
+                                    <div className={`inline-flex flex-col items-center p-0.5 sm:p-1 md:p-1.5 lg:p-2 rounded-lg ${getNotaBgColor(nota, disciplina.codigo, resultado.serie, resultado.presenca)} w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                       {getTotalQuestoesPorSerie(resultado, disciplina.codigo) && acertos !== null && (
                                         <div className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-0.5 font-medium">
                                           {acertos}/{getTotalQuestoesPorSerie(resultado, disciplina.codigo)}
                                         </div>
                                       )}
-                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota)}`}>
-                                        {formatarNota(nota, resultado.presenca, resultado.media_aluno)}
+                                      <div className={`text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base font-bold ${getNotaColor(nota, disciplina.codigo, resultado.serie, resultado.presenca)}`}>
+                                        {formatarNota(nota, resultado.presenca, resultado.media_aluno, disciplina.codigo, resultado.serie)}
                                       </div>
                                       {nota !== null && nota !== 0 && (resultado.presenca === 'P' || resultado.presenca === 'p') && (
                                         <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-0.5 md:h-1 mt-0.5 md:mt-1">
