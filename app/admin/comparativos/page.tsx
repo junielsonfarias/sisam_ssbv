@@ -603,11 +603,11 @@ export default function ComparativosPage() {
                                 <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">LP</th>
                                 <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">MAT</th>
                                 {isAnosIniciais(serie) ? (
-                                  <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap hidden sm:table-cell print:table-cell">PROD</th>
+                                  <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">PROD</th>
                                 ) : (
                                   <>
-                                    <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap hidden sm:table-cell print:table-cell">CH</th>
-                                    <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap hidden sm:table-cell print:table-cell">CN</th>
+                                    <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">CH</th>
+                                    <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">CN</th>
                                   </>
                                 )}
                                 <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">Média</th>
@@ -658,19 +658,19 @@ export default function ComparativosPage() {
                                     </span>
                                   </td>
                                   {isAnosIniciais(item.serie) ? (
-                                    <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell print:table-cell">
+                                    <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap">
                                       <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_producao)}`}>
                                         {formatarNumero(item.media_producao)}
                                       </span>
                                     </td>
                                   ) : (
                                     <>
-                                      <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell print:table-cell">
+                                      <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap">
                                         <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
                                           {formatarNumero(item.media_ch)}
                                         </span>
                                       </td>
-                                      <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell print:table-cell">
+                                      <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap">
                                         <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
                                           {formatarNumero(item.media_cn)}
                                         </span>
@@ -828,11 +828,11 @@ export default function ComparativosPage() {
                           <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">LP</th>
                           <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">MAT</th>
                           {isAnosIniciais(serie) ? (
-                            <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap hidden sm:table-cell print:table-cell">PROD</th>
+                            <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">PROD</th>
                           ) : (
                             <>
-                              <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap hidden sm:table-cell print:table-cell">CH</th>
-                              <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap hidden sm:table-cell print:table-cell">CN</th>
+                              <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">CH</th>
+                              <th className="text-center py-2 px-1 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">CN</th>
                             </>
                           )}
                           <th className="text-center py-2 px-2 md:py-3 md:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase whitespace-nowrap">Média</th>
@@ -886,19 +886,19 @@ export default function ComparativosPage() {
                               </span>
                             </td>
                             {isAnosIniciais(item.serie) ? (
-                              <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell print:table-cell">
+                              <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap">
                                 <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_producao)}`}>
                                   {formatarNumero(item.media_producao)}
                                 </span>
                               </td>
                             ) : (
                               <>
-                                <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell print:table-cell">
+                                <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap">
                                   <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
                                     {formatarNumero(item.media_ch)}
                                   </span>
                                 </td>
-                                <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap hidden sm:table-cell print:table-cell">
+                                <td className="py-2 px-1 md:py-3 md:px-4 text-center whitespace-nowrap">
                                   <span className={`text-xs md:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
                                     {formatarNumero(item.media_cn)}
                                   </span>
