@@ -381,7 +381,17 @@ async function buscarFiltros(usuario: any, presenca: string | null) {
        FROM resultados_consolidados_unificada rc
        INNER JOIN escolas e ON rc.escola_id = e.id
        ${whereClause} AND rc.ano_letivo IS NOT NULL
-      ) as anos_letivos
+      ) as anos_letivos,
+      (SELECT json_agg(DISTINCT nivel ORDER BY nivel)
+       FROM (
+         SELECT COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado') as nivel
+         FROM resultados_consolidados_unificada rc
+         INNER JOIN escolas e ON rc.escola_id = e.id
+         LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
+         ${whereClause}
+       ) sub
+       WHERE nivel IS NOT NULL
+      ) as niveis
   `
 
   const result = await pool.query(queryFiltros, filtrosParams)
@@ -392,6 +402,7 @@ async function buscarFiltros(usuario: any, presenca: string | null) {
     escolas: row.escolas || [],
     series: row.series || [],
     anosLetivos: row.anos_letivos || [],
+    niveis: row.niveis || [],
     faixasMedia: ['0-2', '2-4', '4-6', '6-8', '8-10']
   }
 }

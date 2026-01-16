@@ -825,8 +825,8 @@ export default function DadosPage() {
           series: offlineStorage.getSeries(),
           turmas: turmasOffline.map((t) => ({ id: t.id.toString(), codigo: t.codigo, escola_id: t.escola_id?.toString() || '' })),
           anosLetivos: offlineStorage.getAnosLetivos(),
-          niveis: [],
-          faixasMedia: []
+          niveis: Object.keys(niveisMap).sort(),
+          faixasMedia: ['0-2', '2-4', '4-6', '6-8', '8-10']
         }
       }
 
