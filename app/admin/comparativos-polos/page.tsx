@@ -546,40 +546,98 @@ export default function ComparativosPolosPage() {
                                     </span>
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
-                                      {formatarNumero(item.media_lp)}
-                                    </span>
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
+                                        {formatarNumero(item.media_lp)}
+                                      </span>
+                                      {(() => {
+                                        const nivel = calcularNivelPorMedia(item.media_lp)
+                                        return nivel.codigo !== '-' ? (
+                                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                            {nivel.codigo}
+                                          </span>
+                                        ) : null
+                                      })()}
+                                    </div>
                                   </td>
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
-                                      {formatarNumero(item.media_mat)}
-                                    </span>
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
+                                        {formatarNumero(item.media_mat)}
+                                      </span>
+                                      {(() => {
+                                        const nivel = calcularNivelPorMedia(item.media_mat)
+                                        return nivel.codigo !== '-' ? (
+                                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                            {nivel.codigo}
+                                          </span>
+                                        ) : null
+                                      })()}
+                                    </div>
                                   </td>
                                   {isAnosIniciais(serie) ? (
                                     <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                      <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_producao)}`}>
-                                        {formatarNumero(item.media_producao)}
-                                      </span>
+                                      <div className="flex flex-col items-center gap-0.5">
+                                        <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_producao)}`}>
+                                          {formatarNumero(item.media_producao)}
+                                        </span>
+                                        {(() => {
+                                          const nivel = calcularNivelPorMedia(item.media_producao)
+                                          return nivel.codigo !== '-' ? (
+                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                              {nivel.codigo}
+                                            </span>
+                                          ) : null
+                                        })()}
+                                      </div>
                                     </td>
                                   ) : (
                                     <>
                                       <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                        <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
-                                          {formatarNumero(item.media_ch)}
-                                        </span>
+                                        <div className="flex flex-col items-center gap-0.5">
+                                          <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                            {formatarNumero(item.media_ch)}
+                                          </span>
+                                          {(() => {
+                                            const nivel = calcularNivelPorMedia(item.media_ch)
+                                            return nivel.codigo !== '-' ? (
+                                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                                {nivel.codigo}
+                                              </span>
+                                            ) : null
+                                          })()}
+                                        </div>
                                       </td>
                                       <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                        <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
-                                          {formatarNumero(item.media_cn)}
-                                        </span>
+                                        <div className="flex flex-col items-center gap-0.5">
+                                          <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                            {formatarNumero(item.media_cn)}
+                                          </span>
+                                          {(() => {
+                                            const nivel = calcularNivelPorMedia(item.media_cn)
+                                            return nivel.codigo !== '-' ? (
+                                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                                {nivel.codigo}
+                                              </span>
+                                            ) : null
+                                          })()}
+                                        </div>
                                       </td>
                                     </>
                                   )}
                                   <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                    <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
+                                    <div className={`inline-flex flex-col items-center justify-center gap-0.5 px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
                                       <span className={`text-sm sm:text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
                                         {formatarNumero(item.media_geral)}
                                       </span>
+                                      {(() => {
+                                        const nivel = calcularNivelPorMedia(item.media_geral)
+                                        return nivel.codigo !== '-' ? (
+                                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                            {nivel.codigo}
+                                          </span>
+                                        ) : null
+                                      })()}
                                     </div>
                                   </td>
                                 </tr>
@@ -671,40 +729,98 @@ export default function ComparativosPolosPage() {
                                           </span>
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
-                                            {formatarNumero(item.media_lp)}
-                                          </span>
+                                          <div className="flex flex-col items-center gap-0.5">
+                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_lp)}`}>
+                                              {formatarNumero(item.media_lp)}
+                                            </span>
+                                            {(() => {
+                                              const nivel = calcularNivelPorMedia(item.media_lp)
+                                              return nivel.codigo !== '-' ? (
+                                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                                  {nivel.codigo}
+                                                </span>
+                                              ) : null
+                                            })()}
+                                          </div>
                                         </td>
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
-                                            {formatarNumero(item.media_mat)}
-                                          </span>
+                                          <div className="flex flex-col items-center gap-0.5">
+                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_mat)}`}>
+                                              {formatarNumero(item.media_mat)}
+                                            </span>
+                                            {(() => {
+                                              const nivel = calcularNivelPorMedia(item.media_mat)
+                                              return nivel.codigo !== '-' ? (
+                                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                                  {nivel.codigo}
+                                                </span>
+                                              ) : null
+                                            })()}
+                                          </div>
                                         </td>
                                         {isAnosIniciais(serie) ? (
                                           <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                            <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_producao)}`}>
-                                              {formatarNumero(item.media_producao)}
-                                            </span>
+                                            <div className="flex flex-col items-center gap-0.5">
+                                              <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_producao)}`}>
+                                                {formatarNumero(item.media_producao)}
+                                              </span>
+                                              {(() => {
+                                                const nivel = calcularNivelPorMedia(item.media_producao)
+                                                return nivel.codigo !== '-' ? (
+                                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                                    {nivel.codigo}
+                                                  </span>
+                                                ) : null
+                                              })()}
+                                            </div>
                                           </td>
                                         ) : (
                                           <>
                                             <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                              <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
-                                                {formatarNumero(item.media_ch)}
-                                              </span>
+                                              <div className="flex flex-col items-center gap-0.5">
+                                                <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_ch)}`}>
+                                                  {formatarNumero(item.media_ch)}
+                                                </span>
+                                                {(() => {
+                                                  const nivel = calcularNivelPorMedia(item.media_ch)
+                                                  return nivel.codigo !== '-' ? (
+                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                                      {nivel.codigo}
+                                                    </span>
+                                                  ) : null
+                                                })()}
+                                              </div>
                                             </td>
                                             <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                              <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
-                                                {formatarNumero(item.media_cn)}
-                                              </span>
+                                              <div className="flex flex-col items-center gap-0.5">
+                                                <span className={`text-xs sm:text-sm font-bold ${getNotaColor(item.media_cn)}`}>
+                                                  {formatarNumero(item.media_cn)}
+                                                </span>
+                                                {(() => {
+                                                  const nivel = calcularNivelPorMedia(item.media_cn)
+                                                  return nivel.codigo !== '-' ? (
+                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                                      {nivel.codigo}
+                                                    </span>
+                                                  ) : null
+                                                })()}
+                                              </div>
                                             </td>
                                           </>
                                         )}
                                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
-                                          <div className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
+                                          <div className={`inline-flex flex-col items-center justify-center gap-0.5 px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${getNotaColor(item.media_geral).includes('green') ? 'bg-green-50' : getNotaColor(item.media_geral).includes('yellow') ? 'bg-yellow-50' : 'bg-red-50'}`}>
                                             <span className={`text-sm sm:text-base lg:text-lg font-extrabold ${getNotaColor(item.media_geral)}`}>
                                               {formatarNumero(item.media_geral)}
                                             </span>
+                                            {(() => {
+                                              const nivel = calcularNivelPorMedia(item.media_geral)
+                                              return nivel.codigo !== '-' ? (
+                                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${nivel.bgColor} ${nivel.cor}`}>
+                                                  {nivel.codigo}
+                                                </span>
+                                              ) : null
+                                            })()}
                                           </div>
                                         </td>
                                       </tr>
