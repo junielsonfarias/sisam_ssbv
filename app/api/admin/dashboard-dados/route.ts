@@ -542,7 +542,7 @@ export async function GET(request: NextRequest) {
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN polos p ON e.polo_id = p.id
-      LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND t.serie = '${serie.trim()}'` : ''}
+      LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = REGEXP_REPLACE('${serie.trim()}'::text, '[^0-9]', '', 'g')` : ''}
       ${joinNivelAprendizagem}
       ${whereClauseBase}
       GROUP BY e.id, e.nome, p.nome
