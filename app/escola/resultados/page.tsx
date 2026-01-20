@@ -5,6 +5,14 @@ import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2, Eye, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { obterDisciplinasPorSerieSync, obterTodasDisciplinas } from '@/lib/disciplinas-por-serie'
+import {
+  isDisciplinaAplicavel,
+  getPresencaColor,
+  formatarNota,
+  getNotaNumero,
+  getNotaColor,
+  getNotaBgColor
+} from '@/lib/dados/utils'
 
 interface ResultadoConsolidado {
   id: string
@@ -41,25 +49,6 @@ interface Filtros {
   serie?: string
   presenca?: string
   tipo_ensino?: string
-}
-
-// Verifica se uma disciplina e aplicavel para a serie
-const isDisciplinaAplicavel = (codigoDisciplina: string, serie: string | null | undefined): boolean => {
-  if (!serie) return true
-  const numeroSerie = serie.match(/(\d+)/)?.[1]
-  // Anos iniciais (2, 3, 5): CH e CN nao sao aplicaveis
-  if (numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5') {
-    if (codigoDisciplina === 'CH' || codigoDisciplina === 'CN') {
-      return false
-    }
-  }
-  // Anos finais (6, 7, 8, 9): PROD e NIVEL nao sao aplicaveis
-  if (numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9') {
-    if (codigoDisciplina === 'PROD' || codigoDisciplina === 'NIVEL') {
-      return false
-    }
-  }
-  return true
 }
 
 export default function ResultadosEscolaPage() {
@@ -337,64 +326,6 @@ export default function ResultadosEscolaPage() {
 
     return filtrados
   }, [resultados, busca])
-
-  const getPresencaColor = (presenca: string) => {
-    if (presenca === 'P' || presenca === 'p') {
-      return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
-    }
-    if (presenca === '-') {
-      return 'bg-gray-100 text-gray-600'
-    }
-    return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
-  }
-
-  const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null): string => {
-    // Se não houver dados de frequência, sempre retornar "-"
-    if (presenca === '-') {
-      return '-'
-    }
-
-    // Se aluno faltou, sempre retornar "-"
-    if (presenca === 'F' || presenca === 'f') {
-      return '-'
-    }
-
-    // Se aluno está presente (P), exibir nota mesmo que seja 0
-    if (presenca === 'P' || presenca === 'p') {
-      if (nota === null || nota === undefined || nota === '') return '-'
-      const num = typeof nota === 'string' ? parseFloat(nota) : nota
-      if (isNaN(num)) return '-'
-      return num.toFixed(2)
-    }
-
-    // Caso padrão (sem presença definida)
-    if (nota === null || nota === undefined || nota === '') return '-'
-    const num = typeof nota === 'string' ? parseFloat(nota) : nota
-    if (isNaN(num)) return '-'
-    return num.toFixed(2)
-  }
-
-  const getNotaNumero = (nota: number | string | null | undefined): number | null => {
-    if (nota === null || nota === undefined || nota === '') return null
-    const num = typeof nota === 'string' ? parseFloat(nota) : nota
-    return isNaN(num) ? null : num
-  }
-
-  const getNotaColor = (nota: number | string | null | undefined) => {
-    const num = getNotaNumero(nota)
-    if (num === null) return 'text-gray-500'
-    if (num >= 7) return 'text-green-600 font-semibold'
-    if (num >= 5) return 'text-yellow-600 font-semibold'
-    return 'text-red-600 font-semibold'
-  }
-
-  const getNotaBgColor = (nota: number | string | null | undefined) => {
-    const num = getNotaNumero(nota)
-    if (num === null) return 'bg-gray-50'
-    if (num >= 7) return 'bg-green-50 border-green-200'
-    if (num >= 5) return 'bg-yellow-50 border-yellow-200'
-    return 'bg-red-50 border-red-200'
-  }
 
   // Função para obter o número de questões por disciplina: prioriza valores do banco
   const obterTotalQuestoes = useCallback((resultado: ResultadoConsolidado, codigoDisciplina: string): number => {

@@ -7,6 +7,18 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Target, CheckCircle2, Eye, WifiOff } from 'lucide-react'
 import { obterDisciplinasPorSerieSync, obterTodasDisciplinas } from '@/lib/disciplinas-por-serie'
 import * as offlineStorage from '@/lib/offline-storage'
+import {
+  isAnosIniciais,
+  getNivelColor,
+  getNivelBadgeClass,
+  getPresencaColor,
+  formatarNota,
+  getNotaNumero,
+  getNotaColor,
+  getNotaBgColor,
+  isDisciplinaAplicavel
+} from '@/lib/dados/utils'
+import { NivelBadge } from '@/components/dados'
 
 interface SerieConfig {
   serie: string | number
@@ -53,45 +65,6 @@ interface ResultadoConsolidado {
   nivel_mat?: string | null
   nivel_prod?: string | null
   nivel_aluno?: string | null
-}
-
-// Função para verificar se a série é dos anos iniciais (2º, 3º ou 5º ano)
-const isAnosIniciais = (serie: string | undefined | null): boolean => {
-  if (!serie) return false
-  const numero = serie.match(/(\d+)/)?.[1]
-  return numero === '2' || numero === '3' || numero === '5'
-}
-
-// Função para obter a cor do nível de aprendizagem
-const getNivelColor = (nivel: string | undefined | null): string => {
-  if (!nivel) return 'bg-gray-100 text-gray-700'
-  const nivelLower = nivel.toLowerCase()
-  if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300'
-  if (nivelLower.includes('adequado')) return 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-300'
-  if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300'
-  if (nivelLower.includes('insuficiente')) return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
-  return 'bg-gray-100 text-gray-700'
-}
-
-// Função para obter a cor do badge de nível (N1-N4)
-const getNivelBadgeClass = (nivel: string | null | undefined): string => {
-  if (!nivel) return 'bg-gray-100 text-gray-500'
-  const n = nivel.toUpperCase().trim()
-  if (n === 'N1') return 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
-  if (n === 'N2') return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300'
-  if (n === 'N3') return 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
-  if (n === 'N4') return 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
-  return 'bg-gray-100 text-gray-500'
-}
-
-// Componente NivelBadge para exibir badges de nível (N1-N4)
-const NivelBadge = ({ nivel, className = '' }: { nivel: string | null | undefined, className?: string }) => {
-  if (!nivel) return null
-  return (
-    <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold ${getNivelBadgeClass(nivel)} ${className}`}>
-      {nivel}
-    </span>
-  )
 }
 
 interface Paginacao {
