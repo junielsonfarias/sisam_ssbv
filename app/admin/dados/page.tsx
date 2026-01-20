@@ -34,6 +34,7 @@ import {
   LoadingSpinner,
   AbaNavegacao,
   SeriesChips,
+  FiltroSelect,
   type AbaConfig
 } from '@/components/dados'
 import type { DashboardData, AlunoSelecionado } from '@/lib/dados/types'
@@ -1967,224 +1968,96 @@ export default function DadosPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {/* Ano Letivo */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroAnoLetivo ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroAnoLetivo ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Ano Letivo
-                </label>
-                <select
-                  value={filtroAnoLetivo}
-                  onChange={(e) => { setFiltroAnoLetivo(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroAnoLetivo 
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                >
-                  <option value="">Todos os anos</option>
-                  {dados?.filtros.anosLetivos.map(ano => (
-                    <option key={ano} value={ano}>{ano}</option>
-                  ))}
-                </select>
-              </div>
+              <FiltroSelect
+                label="Ano Letivo"
+                value={filtroAnoLetivo}
+                onChange={(v) => { setFiltroAnoLetivo(v); setPaginaAtual(1); }}
+                opcoes={dados?.filtros.anosLetivos.map(ano => ({ value: ano, label: ano })) || []}
+                placeholder="Todos os anos"
+              />
 
               {/* Polo */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPoloId ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroPoloId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Polo
-                </label>
-                {/* Para usuários escola ou polo, mostrar input fixo com o nome do polo */}
-                {(usuario?.tipo_usuario === 'escola' || usuario?.tipo_usuario === 'polo') ? (
-                  <input
-                    type="text"
-                    value={poloNome || 'Carregando...'}
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 cursor-not-allowed"
-                  />
-                ) : (
-                  <select
-                    value={filtroPoloId}
-                    onChange={(e) => { setFiltroPoloId(e.target.value); setFiltroEscolaId(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                    className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                      filtroPoloId
-                        ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
-                        : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                    }`}
-                  >
-                    <option value="">Todos os polos</option>
-                    {dados?.filtros.polos.map(polo => (
-                      <option key={polo.id} value={polo.id}>{polo.nome}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
+              <FiltroSelect
+                label="Polo"
+                value={filtroPoloId}
+                onChange={(v) => { setFiltroPoloId(v); setFiltroEscolaId(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
+                opcoes={dados?.filtros.polos.map(polo => ({ value: polo.id, label: polo.nome })) || []}
+                placeholder="Todos os polos"
+                fixedValue={(usuario?.tipo_usuario === 'escola' || usuario?.tipo_usuario === 'polo') ? poloNome : undefined}
+              />
 
               {/* Escola */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroEscolaId ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroEscolaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Escola
-                </label>
-                {/* Para usuários escola, mostrar input fixo com o nome da escola */}
-                {usuario?.tipo_usuario === 'escola' ? (
-                  <input
-                    type="text"
-                    value={escolaNome || 'Carregando...'}
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 cursor-not-allowed"
-                  />
-                ) : (
-                  <select
-                    value={filtroEscolaId}
-                    onChange={(e) => { setFiltroEscolaId(e.target.value); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                    disabled={!filtroPoloId}
-                    className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
-                      filtroEscolaId
-                        ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
-                        : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                    }`}
-                    title={!filtroPoloId ? 'Selecione um polo primeiro' : ''}
-                  >
-                    <option value="">{!filtroPoloId ? 'Selecione um polo primeiro' : 'Todas as escolas'}</option>
-                    {escolasFiltradas.map(escola => (
-                      <option key={escola.id} value={escola.id}>{escola.nome}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
+              <FiltroSelect
+                label="Escola"
+                value={filtroEscolaId}
+                onChange={(v) => { setFiltroEscolaId(v); setFiltroTurmaId(''); setPaginaAtual(1); }}
+                opcoes={escolasFiltradas.map(escola => ({ value: escola.id, label: escola.nome }))}
+                placeholder="Todas as escolas"
+                disabled={!filtroPoloId && usuario?.tipo_usuario !== 'escola'}
+                disabledMessage="Selecione um polo primeiro"
+                fixedValue={usuario?.tipo_usuario === 'escola' ? escolaNome : undefined}
+              />
 
               {/* Tipo de Ensino */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTipoEnsino ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroTipoEnsino ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Etapa de Ensino
-                </label>
-                <select
-                  value={filtroTipoEnsino}
-                  onChange={(e) => { setFiltroTipoEnsino(e.target.value); setFiltroSerie(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroTipoEnsino
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                >
-                  <option value="">Todas as etapas</option>
-                  <option value="anos_iniciais">Anos Iniciais (2º, 3º, 5º)</option>
-                  <option value="anos_finais">Anos Finais (6º, 7º, 8º, 9º)</option>
-                </select>
-              </div>
+              <FiltroSelect
+                label="Etapa de Ensino"
+                value={filtroTipoEnsino}
+                onChange={(v) => { setFiltroTipoEnsino(v); setFiltroSerie(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
+                opcoes={[
+                  { value: 'anos_iniciais', label: 'Anos Iniciais (2º, 3º, 5º)' },
+                  { value: 'anos_finais', label: 'Anos Finais (6º, 7º, 8º, 9º)' }
+                ]}
+                placeholder="Todas as etapas"
+              />
 
               {/* Turma */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroTurmaId ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroTurmaId ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Turma
-                </label>
-                <select
-                  value={filtroTurmaId}
-                  onChange={(e) => { setFiltroTurmaId(e.target.value); setPaginaAtual(1); }}
-                  disabled={!filtroSerie}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 ${
-                    filtroTurmaId
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                  title={!filtroSerie ? 'Selecione uma série primeiro' : ''}
-                >
-                  <option value="">{!filtroSerie ? 'Selecione uma série primeiro' : 'Todas as turmas'}</option>
-                  {turmasFiltradas.map(turma => (
-                    <option key={turma.id} value={turma.id}>{turma.codigo}</option>
-                  ))}
-                </select>
-              </div>
+              <FiltroSelect
+                label="Turma"
+                value={filtroTurmaId}
+                onChange={(v) => { setFiltroTurmaId(v); setPaginaAtual(1); }}
+                opcoes={turmasFiltradas.map(turma => ({ value: turma.id, label: turma.codigo }))}
+                placeholder="Todas as turmas"
+                disabled={!filtroSerie}
+                disabledMessage="Selecione uma série primeiro"
+              />
 
               {/* Disciplina */}
-              {/* MELHORIA: Usa disciplinasDisponiveis que filtra baseado na Etapa/Série */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroDisciplina ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroDisciplina ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Disciplina
-                </label>
-                <select
-                  value={filtroDisciplina}
-                  onChange={(e) => { setFiltroDisciplina(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroDisciplina
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                >
-                  {disciplinasDisponiveis.map(d => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
-              </div>
+              <FiltroSelect
+                label="Disciplina"
+                value={filtroDisciplina}
+                onChange={(v) => { setFiltroDisciplina(v); setPaginaAtual(1); }}
+                opcoes={disciplinasDisponiveis}
+              />
 
               {/* Presenca */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroPresenca ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroPresenca ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Presença
-                </label>
-                <select
-                  value={filtroPresenca}
-                  onChange={(e) => { setFiltroPresenca(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroPresenca
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                >
-                  <option value="">Todos</option>
-                  <option value="P">Presentes</option>
-                  <option value="F">Faltantes</option>
-                </select>
-              </div>
+              <FiltroSelect
+                label="Presença"
+                value={filtroPresenca}
+                onChange={(v) => { setFiltroPresenca(v); setPaginaAtual(1); }}
+                opcoes={[
+                  { value: 'P', label: 'Presentes' },
+                  { value: 'F', label: 'Faltantes' }
+                ]}
+                placeholder="Todos"
+              />
 
               {/* Nivel */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroNivel ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroNivel ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Nível
-                </label>
-                <select
-                  value={filtroNivel}
-                  onChange={(e) => { setFiltroNivel(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroNivel 
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                >
-                  <option value="">Todos os níveis</option>
-                  {dados?.filtros.niveis.map(nivel => (
-                    <option key={nivel} value={nivel}>{nivel}</option>
-                  ))}
-                </select>
-              </div>
+              <FiltroSelect
+                label="Nível"
+                value={filtroNivel}
+                onChange={(v) => { setFiltroNivel(v); setPaginaAtual(1); }}
+                opcoes={dados?.filtros.niveis.map(nivel => ({ value: nivel, label: nivel })) || []}
+                placeholder="Todos os níveis"
+              />
 
               {/* Faixa de Media */}
-              <div className={`space-y-1.5 p-3 rounded-lg transition-all ${filtroFaixaMedia ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 shadow-sm' : 'bg-transparent'}`}>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${filtroFaixaMedia ? 'bg-indigo-600' : 'bg-indigo-500'}`}></span>
-                  Faixa de Média
-                </label>
-                <select
-                  value={filtroFaixaMedia}
-                  onChange={(e) => { setFiltroFaixaMedia(e.target.value); setPaginaAtual(1); }}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 ${
-                    filtroFaixaMedia 
-                      ? 'bg-white dark:bg-slate-700 border-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' 
-                      : 'bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200'
-                  }`}
-                >
-                  <option value="">Todas as faixas</option>
-                  {dados?.filtros.faixasMedia.map(faixa => (
-                    <option key={faixa} value={faixa}>{faixa}</option>
-                  ))}
-                </select>
-              </div>
+              <FiltroSelect
+                label="Faixa de Média"
+                value={filtroFaixaMedia}
+                onChange={(v) => { setFiltroFaixaMedia(v); setPaginaAtual(1); }}
+                opcoes={dados?.filtros.faixasMedia.map(faixa => ({ value: faixa, label: faixa })) || []}
+                placeholder="Todas as faixas"
+              />
 
               {/* Botão Pesquisar */}
               <div className="flex items-end p-3">
@@ -2251,74 +2124,34 @@ export default function DadosPage() {
               {/* Container Sticky para Abas + Serie - Fixo abaixo do header */}
               <div className="sticky top-14 sm:top-16 z-40 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-4 pb-2 bg-gray-50 dark:bg-slate-900 space-y-2 shadow-md" style={{ marginTop: '1rem' }}>
                 {/* Abas de Navegacao */}
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
-                  <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
-                  {[
+                <AbaNavegacao
+                  abas={[
                     { id: 'visao_geral', label: 'Visão Geral', icon: PieChartIcon },
                     { id: 'escolas', label: 'Escolas', icon: School },
                     { id: 'turmas', label: 'Turmas', icon: Layers },
                     { id: 'alunos', label: 'Alunos', icon: Users },
                     { id: 'analises', label: 'Análises', icon: Target },
-                  ].map(aba => (
-                    <button
-                      key={aba.id}
-                      onClick={() => {
-                        const novaAba = aba.id as any
-                        setAbaAtiva(novaAba)
-                        setPaginaAtual(1)
-                        // Se mudou para aba Análises e tem filtro de série, recarregar da API
-                        if (novaAba === 'analises' && filtroSerie && pesquisaRealizada) {
-                          setUsandoCache(false)
-                          carregarDados(true, undefined, true, filtroSerie)
-                        }
-                      }}
-                      className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                        abaAtiva === aba.id
-                          ? 'border-indigo-600 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      <aba.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline sm:inline">{aba.label}</span>
-                      <span className="xs:hidden sm:hidden">{aba.label.split(' ')[0]}</span>
-                    </button>
-                  ))}
-                  </div>
-                </div>
+                  ]}
+                  abaAtiva={abaAtiva}
+                  onChange={(novaAba) => {
+                    setAbaAtiva(novaAba as typeof abaAtiva)
+                    setPaginaAtual(1)
+                    // Se mudou para aba Análises e tem filtro de série, recarregar da API
+                    if (novaAba === 'analises' && filtroSerie && pesquisaRealizada) {
+                      setUsandoCache(false)
+                      carregarDados(true, undefined, true, filtroSerie)
+                    }
+                  }}
+                />
 
                 {/* Chips de Series - Clique atualiza pesquisa automaticamente */}
                 {/* MELHORIA: Usa seriesFiltradas que filtra baseado na Etapa de Ensino */}
-                {seriesFiltradas && seriesFiltradas.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-2">
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase self-center mr-2 flex items-center gap-2">
-                      Serie:
-                      {carregandoEmSegundoPlano && (
-                        <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
-                      )}
-                    </span>
-                    <button
-                      onClick={() => handleSerieChipClick('')}
-                      disabled={carregandoEmSegundoPlano}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors disabled:opacity-70 ${
-                        !filtroSerie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                      }`}
-                    >
-                      Todas
-                    </button>
-                    {seriesFiltradas.map(serie => (
-                      <button
-                        key={serie}
-                        onClick={() => handleSerieChipClick(serie)}
-                        disabled={carregandoEmSegundoPlano}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors disabled:opacity-70 ${
-                          filtroSerie === serie ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-                        }`}
-                      >
-                        {formatarSerie(serie)}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <SeriesChips
+                  series={seriesFiltradas || []}
+                  serieSelecionada={filtroSerie}
+                  onChange={handleSerieChipClick}
+                  carregando={carregandoEmSegundoPlano}
+                />
               </div>
 
               {/* Conteudo das Abas */}
