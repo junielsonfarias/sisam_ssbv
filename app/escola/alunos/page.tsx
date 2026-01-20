@@ -5,6 +5,7 @@ import ModalHistoricoAluno from '@/components/modal-historico-aluno'
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { Search, Eye, School } from 'lucide-react'
 import { useToast } from '@/components/toast'
+import { normalizarSerie, ordenarSeries } from '@/lib/dados/utils'
 
 interface Aluno {
   id: string
@@ -18,27 +19,6 @@ interface Aluno {
   escola_nome?: string
   turma_codigo?: string
   turma_nome?: string
-}
-
-// Função para normalizar série
-const normalizarSerie = (serie: string | null | undefined): string => {
-  if (!serie) return ''
-  const trim = serie.trim()
-  const match = trim.match(/^(\d+)/)
-  if (match) {
-    const num = parseInt(match[1])
-    return `${num}º Ano`
-  }
-  return trim
-}
-
-// Função para ordenar séries numericamente (2º, 3º, 5º, 6º, 7º, 8º, 9º)
-const ordenarSeries = (series: string[]): string[] => {
-  return series.sort((a, b) => {
-    const numA = parseInt(a.match(/^(\d+)/)?.[1] || '0')
-    const numB = parseInt(b.match(/^(\d+)/)?.[1] || '0')
-    return numA - numB
-  })
 }
 
 export default function AlunosEscolaPage() {

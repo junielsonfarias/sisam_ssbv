@@ -2,10 +2,11 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import ModalAlunosTurma from '@/components/modal-alunos-turma'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Filter, X, School, TrendingUp, BarChart3, Users, Target, BookOpen, Eye, Trophy, WifiOff, Printer } from 'lucide-react'
 import * as offlineStorage from '@/lib/offline-storage'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
+import { useUserType } from '@/lib/hooks/useUserType'
 
 interface DadosComparativo {
   escola_id: string
@@ -31,8 +32,6 @@ interface DadosComparativo {
 }
 
 export default function ComparativosPage() {
-  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
-  const [usuario, setUsuario] = useState<any>(null)
   const [escolas, setEscolas] = useState<any[]>([])
   const [polos, setPolos] = useState<any[]>([])
   const [series, setSeries] = useState<string[]>([])
@@ -58,33 +57,24 @@ export default function ComparativosPage() {
   } | null>(null)
   const [modoOffline, setModoOffline] = useState(false)
 
+  // Callback quando o usuário é carregado
+  const handleUsuarioCarregado = useCallback((usr: any, _tipo: string) => {
+    // Se for usuário polo, fixar o polo_id no filtro
+    if (usr.tipo_usuario === 'polo' && usr.polo_id) {
+      setFiltros(prev => ({ ...prev, polo_id: usr.polo_id }))
+    }
+  }, [])
+
+  // Hook para carregar tipo de usuário
+  const { tipoUsuario, usuario } = useUserType({
+    onUsuarioCarregado: handleUsuarioCarregado,
+    ignorarOffline: false
+  })
+
   useEffect(() => {
     // Verificar se está offline
     const online = offlineStorage.isOnline()
     setModoOffline(!online)
-
-    // Não carregar dados se estiver offline
-    if (!online) return
-
-    const carregarTipoUsuario = async () => {
-      try {
-        const response = await fetch('/api/auth/verificar')
-        const data = await response.json()
-        if (data.usuario) {
-          const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-          setTipoUsuario(tipo)
-          setUsuario(data.usuario)
-
-          // Se for usuário polo, fixar o polo_id no filtro
-          if (data.usuario.tipo_usuario === 'polo' && data.usuario.polo_id) {
-            setFiltros(prev => ({ ...prev, polo_id: data.usuario.polo_id }))
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao carregar tipo de usuário:', error)
-      }
-    }
-    carregarTipoUsuario()
   }, [])
 
   // Carregar dados iniciais após definir o usuário

@@ -278,3 +278,29 @@ export const avgNumbers = (values: unknown[]): number => {
   if (nums.length === 0) return 0
   return nums.reduce((acc, val) => acc + val, 0) / nums.length
 }
+
+/**
+ * Normaliza série para o formato padrão "Xº Ano"
+ * Retorna string vazia se série for null/undefined
+ */
+export const normalizarSerie = (serie: string | null | undefined): string => {
+  if (!serie) return ''
+  const trim = serie.trim()
+  const match = trim.match(/^(\d+)/)
+  if (match) {
+    const num = parseInt(match[1])
+    return `${num}º Ano`
+  }
+  return trim
+}
+
+/**
+ * Ordena array de séries numericamente (2º, 3º, 5º, 6º, 7º, 8º, 9º)
+ */
+export const ordenarSeries = (series: string[]): string[] => {
+  return [...series].sort((a, b) => {
+    const numA = parseInt(a.match(/^(\d+)/)?.[1] || '0')
+    const numB = parseInt(b.match(/^(\d+)/)?.[1] || '0')
+    return numA - numB
+  })
+}
