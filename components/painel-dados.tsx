@@ -859,7 +859,9 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-cyan-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total de Alunos</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                {serieSelecionada ? `Alunos do ${serieSelecionada}` : 'Total de Alunos'}
+              </p>
               <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-1">
                 {estatisticas.totalAlunos.toLocaleString('pt-BR')}
               </p>
@@ -876,8 +878,15 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total de Turmas</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                {serieSelecionada ? `Turmas do ${serieSelecionada}` : 'Total de Turmas'}
+              </p>
               <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-1">{estatisticas.totalTurmas}</p>
+              {serieSelecionada && (
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  {estatisticas.totalTurmas === 1 ? '1 turma' : `${estatisticas.totalTurmas} turmas`} desta série
+                </p>
+              )}
             </div>
             <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-orange-600 dark:text-orange-400" />
           </div>
@@ -886,7 +895,9 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-indigo-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Resultados de Provas</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                {serieSelecionada ? `Provas do ${serieSelecionada}` : 'Resultados de Provas'}
+              </p>
               <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-1">
                 {estatisticas.totalResultados.toLocaleString('pt-BR')}
               </p>
