@@ -21,6 +21,7 @@ import {
 import { NivelBadge } from '@/components/dados'
 import { Paginacao, PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
 import { useUserType } from '@/lib/hooks/useUserType'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface SerieConfig {
   serie: string | number
@@ -1290,10 +1291,7 @@ export default function ResultadosPage() {
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 280px)' }}>
             <div className="flex-1 overflow-auto">
             {carregando ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando resultados...</p>
-              </div>
+              <LoadingSpinner text="Carregando resultados..." centered />
             ) : (
               <>
                 {/* Visualização Mobile - Cards */}

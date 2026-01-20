@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, X, Calendar, FileText, BookOpen, Settings, ChevronDown, ChevronUp, AlertCircle, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useToast } from '@/components/toast'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Questao {
   id: string
@@ -442,10 +443,7 @@ export default function QuestoesPage() {
 
           {/* Lista de Questões */}
           {carregando ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-              <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando questões...</p>
-            </div>
+            <LoadingSpinner text="Carregando questões..." centered />
           ) : questoesFiltradas.length === 0 ? (
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50 p-12 text-center">
               <FileText className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />

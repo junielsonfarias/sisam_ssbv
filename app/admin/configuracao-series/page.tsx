@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import { Settings, Save, Plus, X, BookOpen, Trash2, GripVertical, Check, AlertTriangle, ArrowUp, ArrowDown } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Disciplina {
   id?: string
@@ -606,10 +607,7 @@ export default function ConfiguracaoSeriesPage() {
 
           {/* Cards de Configuração */}
           {carregando ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando configurações...</p>
-            </div>
+            <LoadingSpinner text="Carregando configurações..." centered />
           ) : series.length === 0 ? (
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-12 text-center">
               <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />

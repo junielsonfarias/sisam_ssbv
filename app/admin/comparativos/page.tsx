@@ -8,6 +8,7 @@ import * as offlineStorage from '@/lib/offline-storage'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 import { useUserType } from '@/lib/hooks/useUserType'
 import { PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface DadosComparativo {
   escola_id: string
@@ -526,10 +527,7 @@ export default function ComparativosPage() {
 
           {/* Resultados */}
           {carregando ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="text-gray-500 mt-4">Carregando comparativos...</p>
-            </div>
+            <LoadingSpinner text="Carregando comparativos..." centered />
           ) : Object.keys(dados).length > 0 ? (
             <div className="space-y-6">
               {/* Resumo */}

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, MapPin, X } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { useUserType } from '@/lib/hooks/useUserType'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Polo {
   id: string
@@ -133,10 +134,7 @@ export default function PolosPage() {
             </div>
 
             {carregando ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4">Carregando polos...</p>
-              </div>
+              <LoadingSpinner text="Carregando polos..." centered />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[300px]">

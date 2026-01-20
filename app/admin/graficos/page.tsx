@@ -19,6 +19,7 @@ import { Bar, Line, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Rad
 import { isAnosIniciais, isAnosFinais, DISCIPLINAS_OPTIONS_ANOS_INICIAIS, DISCIPLINAS_OPTIONS_ANOS_FINAIS } from '@/lib/disciplinas-mapping'
 import { useUserType } from '@/lib/hooks/useUserType'
 import { PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 
@@ -667,10 +668,7 @@ export default function GraficosPage() {
 
           {/* Gráficos */}
           {carregando ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-              <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-base">Gerando gráficos...</p>
-            </div>
+            <LoadingSpinner text="Gerando gráficos..." centered />
           ) : dados ? (
             <div className="space-y-4 sm:space-y-6">
               {/* Médias por Disciplina */}

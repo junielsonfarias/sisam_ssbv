@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import { Settings, Image, Palette, Type, Link as LinkIcon, Save, Upload, X } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Personalizacao {
   login_titulo: string
@@ -137,7 +138,7 @@ export default function PersonalizacaoPage() {
     return (
       <ProtectedRoute tiposPermitidos={['administrador']}>
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <LoadingSpinner />
           </div>
       </ProtectedRoute>
     )

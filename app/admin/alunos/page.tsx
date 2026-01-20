@@ -8,6 +8,8 @@ import { Plus, Edit, Trash2, Search, Eye } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { normalizarSerie, ordenarSeries } from '@/lib/dados/utils'
 import { Paginacao, PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useDebounce } from '@/lib/hooks/useDebounce'
 
 interface Aluno {
   id: string
@@ -43,7 +45,7 @@ export default function AlunosPage() {
   const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
-  const [buscaDebounced, setBuscaDebounced] = useState('')
+  const buscaDebounced = useDebounce(busca, 300)
   const [filtroPolo, setFiltroPolo] = useState('')
   const [filtroEscola, setFiltroEscola] = useState('')
   const [filtroTurma, setFiltroTurma] = useState('')
@@ -130,15 +132,7 @@ export default function AlunosPage() {
     }
   }, [filtroEscola])
 
-  // Debounce para busca (evita múltiplas requisições enquanto digita)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setBuscaDebounced(busca)
-    }, 300) // Aguarda 300ms após parar de digitar
-
-    return () => clearTimeout(timer)
-  }, [busca])
-
+  
   // Só carrega alunos automaticamente após a pesquisa ser iniciada
   useEffect(() => {
     if (pesquisaIniciada) {
@@ -540,10 +534,7 @@ export default function AlunosPage() {
 
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
             {carregando ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando alunos...</p>
-              </div>
+              <LoadingSpinner text="Carregando alunos..." centered />
             ) : (
               <div className="w-full overflow-x-auto">
                 <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, Users, X, UserCheck, UserX, ToggleLeft, ToggleRight } from 'lucide-react'
 import { TipoUsuario } from '@/lib/types'
 import { useToast } from '@/components/toast'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Usuario {
   id: string
@@ -329,10 +330,7 @@ export default function UsuariosPage() {
             </div>
 
             {carregando ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-base">Carregando usuários...</p>
-              </div>
+              <LoadingSpinner text="Carregando usuários..." centered />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[320px] sm:min-w-[500px] md:min-w-[600px]">
