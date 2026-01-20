@@ -168,3 +168,80 @@ export const calcularCodigoNivel = (nota: number): string | null => {
   if (nota < 7.5) return 'N3'
   return 'N4'
 }
+
+/**
+ * Verifica se é série de anos iniciais (2º, 3º, 5º)
+ */
+export const isAnosIniciais = (serie: string | undefined | null): boolean => {
+  if (!serie) return false
+  const numero = serie.match(/(\d+)/)?.[1]
+  return numero === '2' || numero === '3' || numero === '5'
+}
+
+/**
+ * Verifica se é série de anos finais (6º, 7º, 8º, 9º)
+ */
+export const isAnosFinais = (serie: string | undefined | null): boolean => {
+  if (!serie) return false
+  const numero = serie.match(/(\d+)/)?.[1]
+  return ['6', '7', '8', '9'].includes(numero || '')
+}
+
+/**
+ * Determina a etapa de ensino baseado na série
+ */
+export const getEtapaFromSerie = (serie: string | undefined | null): string | undefined => {
+  if (!serie) return undefined
+  const numero = serie.match(/(\d+)/)?.[1]
+  if (!numero) return undefined
+  if (['2', '3', '5'].includes(numero)) return 'anos_iniciais'
+  if (['6', '7', '8', '9'].includes(numero)) return 'anos_finais'
+  return undefined
+}
+
+/**
+ * Filtra séries baseado na etapa de ensino
+ */
+export const getSeriesByEtapa = (etapa: string | undefined, todasSeries: string[]): string[] => {
+  if (!etapa) return todasSeries
+  return todasSeries.filter(serie => {
+    const numero = serie.match(/(\d+)/)?.[1]
+    if (!numero) return false
+    if (etapa === 'anos_iniciais') return ['2', '3', '5'].includes(numero)
+    if (etapa === 'anos_finais') return ['6', '7', '8', '9'].includes(numero)
+    return true
+  })
+}
+
+/**
+ * Verifica se uma disciplina é aplicável para uma série
+ */
+export const isDisciplinaAplicavel = (codigoDisciplina: string, serie: string | null | undefined): boolean => {
+  if (!serie) return true
+  const codigo = codigoDisciplina.toUpperCase()
+  const anosIniciais = isAnosIniciais(serie)
+
+  // PROD só existe em anos iniciais
+  if (codigo === 'PROD' || codigo === 'PRODUCAO') {
+    return anosIniciais
+  }
+  // CH e CN só existem em anos finais
+  if (codigo === 'CH' || codigo === 'CN') {
+    return !anosIniciais
+  }
+  // LP e MAT existem em todas as séries
+  return true
+}
+
+/**
+ * Obtém cor do nível para exibição
+ */
+export const getNivelColor = (nivel: string | undefined | null): string => {
+  if (!nivel) return 'text-gray-500 dark:text-gray-400'
+  const n = nivel.toUpperCase()
+  if (n === 'N1' || n === 'INSUFICIENTE') return 'text-red-600 dark:text-red-400'
+  if (n === 'N2' || n === 'BÁSICO' || n === 'BASICO') return 'text-yellow-600 dark:text-yellow-400'
+  if (n === 'N3' || n === 'ADEQUADO') return 'text-blue-600 dark:text-blue-400'
+  if (n === 'N4' || n === 'AVANÇADO' || n === 'AVANCADO') return 'text-green-600 dark:text-green-400'
+  return 'text-gray-500 dark:text-gray-400'
+}

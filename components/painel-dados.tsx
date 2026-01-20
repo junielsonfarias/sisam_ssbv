@@ -16,228 +16,42 @@ import {
   getCachedSeries
 } from '@/lib/dashboard-cache'
 
-// Tipos
-interface ResultadoConsolidado {
-  id: string
-  aluno_id?: string
-  aluno_nome: string
-  escola_nome: string
-  turma_codigo: string
-  serie: string
-  presenca: string
-  total_acertos_lp: number | string
-  total_acertos_ch: number | string
-  total_acertos_mat: number | string
-  total_acertos_cn: number | string
-  nota_lp: number | string | null
-  nota_ch: number | string | null
-  nota_mat: number | string | null
-  nota_cn: number | string | null
-  media_aluno: number | string | null
-  nota_producao?: number | string | null
-  nivel_aprendizagem?: string | null
-  nivel_aprendizagem_id?: string | null
-  tipo_avaliacao?: string | null
-  // Campos de configuração de questões por série (do banco)
-  qtd_questoes_lp?: number | null
-  qtd_questoes_mat?: number | null
-  qtd_questoes_ch?: number | null
-  qtd_questoes_cn?: number | null
-  // Níveis por disciplina (Anos Iniciais)
-  nivel_lp?: string | null
-  nivel_mat?: string | null
-  nivel_prod?: string | null
-  nivel_aluno?: string | null
-}
+// Tipos e utilitários compartilhados
+import {
+  ResultadoConsolidadoPainel,
+  EscolaPainel,
+  TurmaPainel,
+  EstatisticasPainel,
+  PainelDadosProps,
+  AlunoSelecionado
+} from '@/lib/dados/types'
+import {
+  isAnosIniciais,
+  getEtapaFromSerie,
+  getSeriesByEtapa,
+  getNotaNumero,
+  calcularCodigoNivel,
+  getNivelBadgeClass,
+  getNotaColor,
+  getNotaBgColor,
+  getPresencaColor,
+  isDisciplinaAplicavel,
+  formatarNota
+} from '@/lib/dados/utils'
+import { NivelBadge } from '@/components/dados'
 
-interface Escola {
-  id: string
-  nome: string
-  polo_id?: string
-  polo_nome?: string
-  total_alunos?: number
-  total_turmas?: number
-  media_geral?: number
-  media_lp?: number
-  media_mat?: number
-  media_prod?: number
-  media_ch?: number
-  media_cn?: number
-  presentes?: number
-  faltantes?: number
-}
-
-interface Turma {
-  id: string
-  codigo: string
-  nome?: string
-  escola_id?: string
-  escola_nome?: string
-  serie?: string
-  total_alunos?: number
-  media_geral?: number
-  media_lp?: number
-  media_mat?: number
-  media_prod?: number
-  media_ch?: number
-  media_cn?: number
-  presentes?: number
-  faltantes?: number
-}
-
-interface Estatisticas {
-  totalEscolas: number
-  totalPolos: number
-  totalResultados: number
-  totalAlunos: number           // Total cadastrado (tabela alunos)
-  totalAlunosAvaliados: number  // Total com resultados (P ou F)
-  totalTurmas: number
-  totalAlunosPresentes: number
-  totalAlunosFaltantes: number
-  mediaGeral: number
-  mediaAnosIniciais: number
-  mediaAnosFinais: number
-  totalAnosIniciais: number
-  totalAnosFinais: number
-  nomeEscola?: string
-  nomePolo?: string
-}
-
-interface PainelDadosProps {
-  tipoUsuario: 'admin' | 'escola' | 'tecnico' | 'polo'
-  estatisticasEndpoint: string
-  resultadosEndpoint: string
-  escolasEndpoint?: string
-  turmasEndpoint?: string
-}
-
+// Aliases para compatibilidade
+type ResultadoConsolidado = ResultadoConsolidadoPainel
+type Escola = EscolaPainel
+type Turma = TurmaPainel
+type Estatisticas = EstatisticasPainel
 type AbaAtiva = 'geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'
 
-// Funcs auxiliares
-const isAnosIniciais = (serie: string | undefined | null): boolean => {
-  if (!serie) return false
-  const numero = serie.match(/(\d+)/)?.[1]
-  return numero === '2' || numero === '3' || numero === '5'
-}
+// Função wrapper para calcularNivel (mantém compatibilidade)
+const calcularNivel = calcularCodigoNivel
 
-// Determina a etapa de ensino baseado na série
-const getEtapaFromSerie = (serie: string | undefined | null): string | undefined => {
-  if (!serie) return undefined
-  const numero = serie.match(/(\d+)/)?.[1]
-  if (!numero) return undefined
-  if (['2', '3', '5'].includes(numero)) return 'anos_iniciais'
-  if (['6', '7', '8', '9'].includes(numero)) return 'anos_finais'
-  return undefined
-}
-
-// Filtra séries baseado na etapa de ensino
-const getSeriesByEtapa = (etapa: string | undefined, todasSeries: string[]): string[] => {
-  if (!etapa) return todasSeries
-  return todasSeries.filter(serie => {
-    const numero = serie.match(/(\d+)/)?.[1]
-    if (!numero) return false
-    if (etapa === 'anos_iniciais') return ['2', '3', '5'].includes(numero)
-    if (etapa === 'anos_finais') return ['6', '7', '8', '9'].includes(numero)
-    return true
-  })
-}
-
-const getNotaNumero = (nota: number | string | null | undefined): number | null => {
-  if (nota === null || nota === undefined || nota === '') return null
-  const num = typeof nota === 'string' ? parseFloat(nota) : nota
-  return isNaN(num) ? null : num
-}
-
-// Calcula nível N1-N4 baseado na média
-const calcularNivel = (media: number | null | undefined): string | null => {
-  if (media == null || media <= 0) return null
-  if (media < 3) return 'N1'
-  if (media < 5) return 'N2'
-  if (media < 7.5) return 'N3'
-  return 'N4'
-}
-
-// Função para obter cor do badge de nível
-const getNivelBadgeClass = (nivel: string | null | undefined): string => {
-  if (!nivel) return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-
-  const nivelUpper = nivel.toUpperCase().trim()
-  const cores: Record<string, string> = {
-    'N1': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
-    'N2': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800',
-    'N3': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
-    'N4': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800',
-  }
-
-  return cores[nivelUpper] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-}
-
-// Componente Badge de Nível
-const NivelBadge = ({ nivel, className = '' }: { nivel: string | null | undefined, className?: string }) => {
-  if (!nivel) return <span className="text-gray-400 dark:text-gray-500">-</span>
-
-  return (
-    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold ${getNivelBadgeClass(nivel)} ${className}`}>
-      {nivel.toUpperCase()}
-    </span>
-  )
-}
-
-const getNotaColor = (nota: number | string | null | undefined) => {
-  const num = getNotaNumero(nota)
-  if (num === null) return 'text-gray-500'
-  if (num >= 7) return 'text-green-600 font-semibold'
-  if (num >= 5) return 'text-yellow-600 font-semibold'
-  return 'text-red-600 font-semibold'
-}
-
-const getNotaBgColor = (nota: number | string | null | undefined) => {
-  const num = getNotaNumero(nota)
-  if (num === null) return 'bg-gray-50'
-  if (num >= 7) return 'bg-green-50 border-green-200'
-  if (num >= 5) return 'bg-yellow-50 border-yellow-200'
-  return 'bg-red-50 border-red-200'
-}
-
-const getPresencaColor = (presenca: string) => {
-  if (presenca === 'P' || presenca === 'p') return 'bg-green-100 text-green-800'
-  if (presenca === 'F' || presenca === 'f') return 'bg-red-100 text-red-800'
-  return 'bg-gray-100 text-gray-800'
-}
-
-// Verifica se uma disciplina e aplicavel para a serie
-const isDisciplinaAplicavel = (codigoDisciplina: string, serie: string | null | undefined): boolean => {
-  if (!serie) return true
-  const numeroSerie = serie.match(/(\d+)/)?.[1]
-  // Anos iniciais (2, 3, 5): CH e CN nao sao aplicaveis
-  if (numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5') {
-    if (codigoDisciplina === 'CH' || codigoDisciplina === 'CN') {
-      return false
-    }
-  }
-  // Anos finais (6, 7, 8, 9): PROD e NIVEL nao sao aplicaveis
-  if (numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9') {
-    if (codigoDisciplina === 'PROD' || codigoDisciplina === 'NIVEL') {
-      return false
-    }
-  }
-  return true
-}
-
-const formatarNota = (nota: number | string | null | undefined, presenca?: string, mediaAluno?: number | string | null, codigoDisciplina?: string, serie?: string | null): string => {
-  // Se a disciplina nao e aplicavel para a serie, retornar N/A
-  if (codigoDisciplina && serie && !isDisciplinaAplicavel(codigoDisciplina, serie)) {
-    return 'N/A'
-  }
-  if (presenca === 'F' || presenca === 'f') return '-'
-  if (nota === null || nota === undefined || nota === '') return '-'
-  const num = typeof nota === 'string' ? parseFloat(nota) : nota
-  if (isNaN(num)) return '-'
-  // Se o aluno está presente (não é falta) e a nota é 0, exibir 0.00
-  return num.toFixed(2)
-}
-
-const getNivelColor = (nivel: string | undefined | null): string => {
+// getNivelColor para uso em badges de nível de aprendizagem (texto descritivo)
+const getNivelColorDescritivo = (nivel: string | undefined | null): string => {
   if (!nivel) return 'bg-gray-100 text-gray-700'
   const nivelLower = nivel.toLowerCase()
   if (nivelLower.includes('avançado') || nivelLower.includes('avancado')) return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300'
@@ -303,23 +117,7 @@ export default function PainelDados({
 
   // Modal
   const [modalAberto, setModalAberto] = useState(false)
-  const [alunoSelecionado, setAlunoSelecionado] = useState<{
-    id: string;
-    anoLetivo?: string;
-    mediaAluno?: number | string | null;
-    notasDisciplinas?: {
-      nota_lp?: number | string | null;
-      nota_ch?: number | string | null;
-      nota_mat?: number | string | null;
-      nota_cn?: number | string | null;
-    };
-    niveisDisciplinas?: {
-      nivel_lp?: string | null;
-      nivel_mat?: string | null;
-      nivel_prod?: string | null;
-      nivel_aluno?: string | null;
-    };
-  } | null>(null)
+  const [alunoSelecionado, setAlunoSelecionado] = useState<AlunoSelecionado | null>(null)
 
 
   // Listas para filtros
@@ -1879,7 +1677,7 @@ function AbaAlunos({
                               <div className="text-xs sm:text-sm font-bold text-gray-400">N/A</div>
                             </div>
                           ) : disciplina.tipo === 'nivel' ? (
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${getNivelColor(resultado.nivel_aprendizagem)}`}>
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${getNivelColorDescritivo(resultado.nivel_aprendizagem)}`}>
                               {resultado.nivel_aprendizagem?.substring(0, 3) || '-'}
                             </span>
                           ) : (

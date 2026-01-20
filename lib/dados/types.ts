@@ -233,3 +233,97 @@ export interface PaginacaoAnalises {
 }
 
 export type AbaAtiva = 'visao_geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'
+export type AbaPainelDados = 'geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'
+
+// Tipos para PainelDados
+export interface ResultadoConsolidadoPainel {
+  id: string
+  aluno_id?: string
+  aluno_nome: string
+  escola_nome: string
+  turma_codigo: string
+  serie: string
+  presenca: string
+  total_acertos_lp: number | string
+  total_acertos_ch: number | string
+  total_acertos_mat: number | string
+  total_acertos_cn: number | string
+  nota_lp: number | string | null
+  nota_ch: number | string | null
+  nota_mat: number | string | null
+  nota_cn: number | string | null
+  media_aluno: number | string | null
+  nota_producao?: number | string | null
+  nivel_aprendizagem?: string | null
+  nivel_aprendizagem_id?: string | null
+  tipo_avaliacao?: string | null
+  qtd_questoes_lp?: number | null
+  qtd_questoes_mat?: number | null
+  qtd_questoes_ch?: number | null
+  qtd_questoes_cn?: number | null
+  nivel_lp?: string | null
+  nivel_mat?: string | null
+  nivel_prod?: string | null
+  nivel_aluno?: string | null
+}
+
+export interface EscolaPainel {
+  id: string
+  nome: string
+  polo_id?: string
+  polo_nome?: string
+  total_alunos?: number
+  total_turmas?: number
+  media_geral?: number
+  media_lp?: number
+  media_mat?: number
+  media_prod?: number
+  media_ch?: number
+  media_cn?: number
+  presentes?: number
+  faltantes?: number
+}
+
+export interface TurmaPainel {
+  id: string
+  codigo: string
+  nome?: string
+  escola_id?: string
+  escola_nome?: string
+  serie?: string
+  total_alunos?: number
+  media_geral?: number
+  media_lp?: number
+  media_mat?: number
+  media_prod?: number
+  media_ch?: number
+  media_cn?: number
+  presentes?: number
+  faltantes?: number
+}
+
+export interface EstatisticasPainel {
+  totalEscolas: number
+  totalPolos: number
+  totalResultados: number
+  totalAlunos: number
+  totalAlunosAvaliados: number
+  totalTurmas: number
+  totalAlunosPresentes: number
+  totalAlunosFaltantes: number
+  mediaGeral: number
+  mediaAnosIniciais: number
+  mediaAnosFinais: number
+  totalAnosIniciais: number
+  totalAnosFinais: number
+  nomeEscola?: string
+  nomePolo?: string
+}
+
+export interface PainelDadosProps {
+  tipoUsuario: 'admin' | 'escola' | 'tecnico' | 'polo'
+  estatisticasEndpoint: string
+  resultadosEndpoint: string
+  escolasEndpoint?: string
+  turmasEndpoint?: string
+}
