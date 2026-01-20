@@ -80,8 +80,8 @@ export interface DashboardData {
   }[]
   faixasNota: { faixa: string; quantidade: number }[]
   presenca: { status: string; quantidade: number }[]
-  topAlunos: any[]
-  alunosDetalhados: any[]
+  topAlunos: TopAluno[]
+  alunosDetalhados: AlunoDetalhado[]
   filtros: {
     polos: { id: string; nome: string }[]
     escolas: { id: string; nome: string; polo_id: string }[]
@@ -193,7 +193,7 @@ export interface TurmaAnalise {
 }
 
 export interface AlunoSelecionado {
-  id: string
+  id: string | number
   anoLetivo?: string
   mediaAluno?: number | string | null
   notasDisciplinas?: {
@@ -351,6 +351,7 @@ export interface OpcaoSelect {
   nome?: string
   codigo?: string
   escola_id?: string
+  polo_id?: string
 }
 
 // Interface para configuracao de disciplina
@@ -363,4 +364,77 @@ export interface DisciplinaConfig {
   campo_acertos: string
   campo_nivel?: string
   tipo?: 'nota' | 'nivel'
+}
+
+// Interface para top alunos (resumo para exibição)
+export interface TopAluno {
+  nome: string
+  escola: string
+  media_geral: number
+}
+
+// Interface para usuario autenticado
+export interface Usuario {
+  id: string
+  nome?: string
+  email?: string
+  tipo_usuario: 'administrador' | 'escola' | 'tecnico' | 'polo' | string
+  escola_id?: string | number
+  polo_id?: string | number
+  escola_nome?: string
+  polo_nome?: string
+}
+
+// Interface para aluno detalhado (usado em alunosDetalhados e topAlunos)
+export interface AlunoDetalhado {
+  id: string | number
+  aluno_id?: string | number
+  aluno: string
+  aluno_nome?: string
+  escola: string
+  escola_nome?: string
+  escola_id?: string
+  polo_id?: string
+  turma: string
+  turma_codigo?: string
+  serie: string
+  presenca: string
+  media_aluno: number | string | null
+  media_geral?: number | string | null
+  nota_lp: number | string | null
+  nota_mat: number | string | null
+  nota_ch: number | string | null
+  nota_cn: number | string | null
+  nota_producao?: number | string | null
+  total_acertos_lp?: number | string
+  total_acertos_mat?: number | string
+  total_acertos_ch?: number | string
+  total_acertos_cn?: number | string
+  qtd_questoes_lp?: number | null
+  qtd_questoes_mat?: number | null
+  qtd_questoes_ch?: number | null
+  qtd_questoes_cn?: number | null
+  nivel_aprendizagem?: string | null
+  nivel_lp?: string | null
+  nivel_mat?: string | null
+  nivel_prod?: string | null
+  nivel_aluno?: string | null
+  [key: string]: unknown // Para acesso dinâmico a campos de nota/acertos
+}
+
+// Interface para registro com medias (usado em getMediaDisciplina)
+export interface RegistroComMedias {
+  media_geral?: number | string | null
+  media_aluno?: number | string | null
+  media_lp?: number | string | null
+  media_mat?: number | string | null
+  media_ch?: number | string | null
+  media_cn?: number | string | null
+  media_prod?: number | string | null
+  nota_lp?: number | string | null
+  nota_mat?: number | string | null
+  nota_ch?: number | string | null
+  nota_cn?: number | string | null
+  nota_producao?: number | string | null
+  [key: string]: unknown
 }

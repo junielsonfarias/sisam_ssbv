@@ -8,6 +8,11 @@ import { Search, TrendingUp, BookOpen, Award, Filter, X, Users, BarChart3, Targe
 import { obterDisciplinasPorSerieSync, obterTodasDisciplinas } from '@/lib/disciplinas-por-serie'
 import * as offlineStorage from '@/lib/offline-storage'
 
+interface SerieConfig {
+  serie: string | number
+  nome_serie?: string
+}
+
 interface ResultadoConsolidado {
   id: string
   aluno_id?: string
@@ -311,7 +316,7 @@ export default function ResultadosPage() {
 
       // Carregar séries configuradas
       if (seriesData.series && Array.isArray(seriesData.series)) {
-        const seriesFormatadas = seriesData.series.map((s: any) => s.nome_serie || `${s.serie}º ano`)
+        const seriesFormatadas = seriesData.series.map((s: SerieConfig) => s.nome_serie || `${s.serie}º ano`)
         setSeries(seriesFormatadas)
       }
 
@@ -560,8 +565,8 @@ export default function ResultadosPage() {
           temAnterior: false
         }
         // Calcular estatísticas básicas do array (fallback)
-        const presentes = data.filter((r: any) => r.presenca === 'P' || r.presenca === 'p').length
-        const faltas = data.filter((r: any) => r.presenca === 'F' || r.presenca === 'f').length
+        const presentes = data.filter((r: ResultadoConsolidado) => r.presenca === 'P' || r.presenca === 'p').length
+        const faltas = data.filter((r: ResultadoConsolidado) => r.presenca === 'F' || r.presenca === 'f').length
         setEstatisticasGerais({
           totalAlunos: data.length,
           totalPresentes: presentes,
@@ -617,8 +622,8 @@ export default function ResultadosPage() {
         } else {
           console.log('Sem estatísticas na resposta, calculando localmente')
           // Calcular estatísticas localmente se API não retornou
-          const presentes = resultadosData.filter((r: any) => r.presenca === 'P' || r.presenca === 'p').length
-          const faltas = resultadosData.filter((r: any) => r.presenca === 'F' || r.presenca === 'f').length
+          const presentes = resultadosData.filter((r: ResultadoConsolidado) => r.presenca === 'P' || r.presenca === 'p').length
+          const faltas = resultadosData.filter((r: ResultadoConsolidado) => r.presenca === 'F' || r.presenca === 'f').length
           setEstatisticasGerais({
             totalAlunos: paginacaoData.total || resultadosData.length,
             totalPresentes: presentes,

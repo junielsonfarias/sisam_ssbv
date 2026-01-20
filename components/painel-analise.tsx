@@ -15,7 +15,7 @@ import {
   getPresencaColor,
   formatarNota
 } from '@/lib/dados/utils'
-import { AlunoSelecionado } from '@/lib/dados/types'
+import { AlunoSelecionado, OpcaoSelect } from '@/lib/dados/types'
 import { NivelBadge, CelulaNotaComNivel } from '@/components/dados'
 
 interface ResultadoConsolidadoAnalise {
@@ -106,9 +106,9 @@ export default function PainelAnalise({
     if (poloIdFixo) inicial.polo_id = poloIdFixo
     return inicial
   })
-  const [polos, setPolos] = useState<any[]>([])
-  const [escolas, setEscolas] = useState<any[]>([])
-  const [turmas, setTurmas] = useState<any[]>([])
+  const [polos, setPolos] = useState<OpcaoSelect[]>([])
+  const [escolas, setEscolas] = useState<OpcaoSelect[]>([])
+  const [turmas, setTurmas] = useState<OpcaoSelect[]>([])
   const [series, setSeries] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [alunoSelecionado, setAlunoSelecionado] = useState<AlunoSelecionado | null>(null)

@@ -71,7 +71,7 @@ interface NiveisDisciplinas {
 }
 
 interface ModalQuestoesAlunoProps {
-  alunoId: string
+  alunoId: string | number
   anoLetivo?: string
   mediaAluno?: number | string | null  // Média do aluno passada diretamente do resultado consolidado
   notasDisciplinas?: NotasDisciplinas  // Notas por disciplina do resultado consolidado
@@ -147,7 +147,7 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
 
       // Modo online - buscar da API
       const params = new URLSearchParams()
-      params.append('aluno_id', alunoId)
+      params.append('aluno_id', String(alunoId))
       if (anoLetivo) {
         params.append('ano_letivo', anoLetivo)
       }

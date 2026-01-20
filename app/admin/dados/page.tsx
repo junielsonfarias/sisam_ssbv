@@ -37,7 +37,7 @@ import {
   FiltroSelect,
   type AbaConfig
 } from '@/components/dados'
-import type { DashboardData, AlunoSelecionado } from '@/lib/dados/types'
+import type { DashboardData, AlunoSelecionado, Usuario, AlunoDetalhado, RegistroComMedias, ColunaTabela } from '@/lib/dados/types'
 import {
   COLORS,
   NIVEL_NAMES,
@@ -153,27 +153,11 @@ export default function DadosPage() {
 
   // Modal de questões
   const [modalAberto, setModalAberto] = useState(false)
-  const [alunoSelecionado, setAlunoSelecionado] = useState<{
-    id: string;
-    anoLetivo?: string;
-    mediaAluno?: number | string | null;
-    notasDisciplinas?: {
-      nota_lp?: number | string | null;
-      nota_ch?: number | string | null;
-      nota_mat?: number | string | null;
-      nota_cn?: number | string | null;
-    };
-    niveisDisciplinas?: {
-      nivel_lp?: string | null;
-      nivel_mat?: string | null;
-      nivel_prod?: string | null;
-      nivel_aluno?: string | null;
-    };
-  } | null>(null)
+  const [alunoSelecionado, setAlunoSelecionado] = useState<AlunoSelecionado | null>(null)
   
   // Usuário e tipo de usuário
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
-  const [usuario, setUsuario] = useState<any>(null)
+  const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [escolaNome, setEscolaNome] = useState<string>('')
   const [poloNome, setPoloNome] = useState<string>('')
 
@@ -610,9 +594,9 @@ export default function DadosPage() {
       } else {
         setErro(data.mensagem || 'Erro ao carregar dados')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Ignorar erros de abort - são esperados quando filtros mudam rápido
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         return
       }
 
@@ -937,7 +921,7 @@ export default function DadosPage() {
       dadosCache.mediasPorEscola?.forEach(e => {
         escolasNomes.set(e.escola_id, e.escola)
       })
-      dadosCache.filtros?.turmas?.forEach((t: any) => {
+      dadosCache.filtros?.turmas?.forEach((t) => {
         if (!turmasDados.has(String(t.id))) {
           const escolaNome = escolasNomes.get(String(t.escola_id)) || ''
           turmasDados.set(String(t.id), { turma: t.codigo || '', escola: escolaNome, serie: '' })
@@ -1265,11 +1249,11 @@ export default function DadosPage() {
       if (isPresente) acc.presentes++
 
       // Parse das notas (apenas uma vez por aluno)
-      const notaLp = parseFloat(aluno.nota_lp) || 0
-      const notaMat = parseFloat(aluno.nota_mat) || 0
-      const notaCh = parseFloat(aluno.nota_ch) || 0
-      const notaCn = parseFloat(aluno.nota_cn) || 0
-      const notaProd = parseFloat(aluno.nota_producao) || 0
+      const notaLp = toNumber(aluno.nota_lp)
+      const notaMat = toNumber(aluno.nota_mat)
+      const notaCh = toNumber(aluno.nota_ch)
+      const notaCn = toNumber(aluno.nota_cn)
+      const notaProd = toNumber(aluno.nota_producao)
 
       // Calcular média dinamicamente baseado na série (Anos Iniciais vs Anos Finais)
       const numeroSerie = aluno.serie?.match(/(\d+)/)?.[1]
@@ -1617,16 +1601,16 @@ export default function DadosPage() {
   }, [filtroDisciplina, dados?.metricas])
 
   // MELHORIA: Função para obter a média da disciplina de um registro (escola, turma, aluno)
-  const getMediaDisciplina = useCallback((registro: any): number => {
-    if (!filtroDisciplina) return registro.media_geral || registro.media_aluno || 0
+  const getMediaDisciplina = useCallback((registro: RegistroComMedias): number => {
+    if (!filtroDisciplina) return toNumber(registro.media_geral ?? registro.media_aluno)
 
     switch (filtroDisciplina) {
-      case 'LP': return registro.nota_lp || registro.media_lp || 0
-      case 'MAT': return registro.nota_mat || registro.media_mat || 0
-      case 'CH': return registro.nota_ch || registro.media_ch || 0
-      case 'CN': return registro.nota_cn || registro.media_cn || 0
-      case 'PT': return registro.nota_producao || registro.media_prod || 0
-      default: return registro.media_geral || registro.media_aluno || 0
+      case 'LP': return toNumber(registro.nota_lp ?? registro.media_lp)
+      case 'MAT': return toNumber(registro.nota_mat ?? registro.media_mat)
+      case 'CH': return toNumber(registro.nota_ch ?? registro.media_ch)
+      case 'CN': return toNumber(registro.nota_cn ?? registro.media_cn)
+      case 'PT': return toNumber(registro.nota_producao ?? registro.media_prod)
+      default: return toNumber(registro.media_geral ?? registro.media_aluno)
     }
   }, [filtroDisciplina])
 
@@ -1656,11 +1640,11 @@ export default function DadosPage() {
       if (!isAnosIniciais && !isAnosFinais) continue
 
       // Parse das notas
-      const notaLp = parseFloat(aluno.nota_lp) || 0
-      const notaMat = parseFloat(aluno.nota_mat) || 0
-      const notaCh = parseFloat(aluno.nota_ch) || 0
-      const notaCn = parseFloat(aluno.nota_cn) || 0
-      const notaProd = parseFloat(aluno.nota_producao) || 0
+      const notaLp = toNumber(aluno.nota_lp)
+      const notaMat = toNumber(aluno.nota_mat)
+      const notaCh = toNumber(aluno.nota_ch)
+      const notaCn = toNumber(aluno.nota_cn)
+      const notaProd = toNumber(aluno.nota_producao)
 
       // Calcular média do aluno baseado na etapa
       let somaNotas = 0
@@ -1861,8 +1845,8 @@ export default function DadosPage() {
                   setFiltroPoloId(escolaData[0].polo_id)
                 }
               }
-            } catch (err: any) {
-              if (err.name !== 'AbortError') {
+            } catch (err: unknown) {
+              if (!(err instanceof Error) || err.name !== 'AbortError') {
                 console.error('Erro ao carregar dados da escola:', err)
               }
             }
@@ -1880,16 +1864,16 @@ export default function DadosPage() {
               if (Array.isArray(poloData) && poloData.length > 0) {
                 setPoloNome(poloData[0].nome)
               }
-            } catch (err: any) {
-              if (err.name !== 'AbortError') {
+            } catch (err: unknown) {
+              if (!(err instanceof Error) || err.name !== 'AbortError') {
                 console.error('Erro ao carregar dados do polo:', err)
               }
             }
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Ignorar erros de abort
-        if (error.name === 'AbortError') return
+        if (error instanceof Error && error.name === 'AbortError') return
 
         console.error('Erro ao carregar tipo de usuário:', error)
         // Fallback para usuário offline
@@ -2482,7 +2466,7 @@ export default function DadosPage() {
                         const isAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
                         const temFiltro = !!filtroSerie && filtroSerie.trim() !== ''
 
-                        const colunas: any[] = [
+                        const colunas: ColunaTabela[] = [
                           { key: 'escola', label: 'Escola', align: 'left' },
                           { key: 'polo', label: 'Polo', align: 'left' },
                           { key: 'total_turmas', label: 'Turmas', align: 'center', format: 'badge_turmas' },
@@ -2549,7 +2533,7 @@ export default function DadosPage() {
                         const isAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
                         const temFiltro = !!filtroSerie && filtroSerie.trim() !== ''
 
-                        const colunas: any[] = [
+                        const colunas: ColunaTabela[] = [
                           { key: 'turma', label: 'Turma', align: 'left' },
                           { key: 'escola', label: 'Escola', align: 'left' },
                           { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
@@ -2607,7 +2591,7 @@ export default function DadosPage() {
                             <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Importe os dados primeiro</p>
                           </div>
                         ) : (
-                      alunosPaginados.map((resultado: any, index: number) => {
+                      alunosPaginados.map((resultado: AlunoDetalhado, index: number) => {
                         const mediaNum = getNotaNumero(resultado.media_aluno)
                         // Notas serão obtidas dinamicamente pelas disciplinas
 
@@ -2778,7 +2762,7 @@ export default function DadosPage() {
                               </td>
                             </tr>
                           ) : (
-                            alunosPaginados.map((resultado: any, index: number) => {
+                            alunosPaginados.map((resultado: AlunoDetalhado, index: number) => {
                               const mediaNum = getNotaNumero(resultado.media_aluno)
                               // Notas serão obtidas dinamicamente pelas disciplinas
 
