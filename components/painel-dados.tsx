@@ -1117,6 +1117,7 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                 <tr>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Escola</th>
                   <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Polo</th>
+                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Turmas</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Alunos</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Media</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">LP</th>
@@ -1143,6 +1144,11 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                       <div className="font-medium text-gray-900 dark:text-white text-sm">{escola.nome}</div>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{escola.polo_nome || '-'}</td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-bold text-sm">
+                        {escola.total_turmas || 0}
+                      </span>
+                    </td>
                     <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{escola.total_alunos || 0}</td>
                     {/* Média Geral + Nível */}
                     <td className="py-3 px-4 text-center">

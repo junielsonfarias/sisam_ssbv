@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
       FROM escolas e
       LEFT JOIN polos p ON e.polo_id = p.id
-      LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true
+      LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND t.serie = '${serie.trim()}'` : ''}
       LEFT JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
         AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
       ${whereClause}
