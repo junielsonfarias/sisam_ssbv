@@ -1751,18 +1751,9 @@ export default function DadosPage() {
     // Resetar paginações das análises ao trocar série
     setPaginasAnalises(PAGINACAO_ANALISES_INICIAL)
 
-    // MELHORIA: Sincronizar Etapa de Ensino automaticamente baseado na série
-    if (serie) {
-      const numeroSerie = serie.match(/\d+/)?.[0]
-      if (numeroSerie) {
-        if (['2', '3', '5'].includes(numeroSerie)) {
-          setFiltroTipoEnsino('anos_iniciais')
-        } else if (['6', '7', '8', '9'].includes(numeroSerie)) {
-          setFiltroTipoEnsino('anos_finais')
-        }
-      }
-    }
-    // Se série vazia, NÃO limpar etapa de ensino (para permitir filtrar por etapa sem série)
+    // Resetar Etapa de Ensino para "Todos" ao trocar série via chips
+    // Isso evita conflitos quando troca de anos iniciais para finais ou vice-versa
+    setFiltroTipoEnsino('')
 
     // Só atualiza se já fez uma pesquisa antes
     if (!pesquisaRealizada) return
