@@ -3025,18 +3025,18 @@ export default function DadosPage() {
                           colunas.push({ key: 'media_af', label: 'Média AF', align: 'center', format: 'media_etapa' })
                         }
 
-                        colunas.push({ key: 'media_lp', label: 'LP', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'LP' })
-                        colunas.push({ key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'MAT' })
+                        colunas.push({ key: 'media_lp', label: 'LP', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'LP' })
+                        colunas.push({ key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'MAT' })
 
                         // PROD: mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro
                         if (!temFiltro || isAnosIniciais) {
-                          colunas.push({ key: 'media_prod', label: 'PROD', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'PT' })
+                          colunas.push({ key: 'media_prod', label: 'PROD', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'PT' })
                         }
 
                         // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro
                         if (!temFiltro || isAnosFinais) {
-                          colunas.push({ key: 'media_ch', label: 'CH', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CH' })
-                          colunas.push({ key: 'media_cn', label: 'CN', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CN' })
+                          colunas.push({ key: 'media_ch', label: 'CH', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'CH' })
+                          colunas.push({ key: 'media_cn', label: 'CN', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'CN' })
                         }
 
                         colunas.push({ key: 'presentes', label: 'Pres.', align: 'center' })
@@ -3084,24 +3084,19 @@ export default function DadosPage() {
                           { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
                           { key: 'total_alunos', label: 'Alunos', align: 'center' },
                           { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
-                          { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'LP' },
-                          { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'MAT' },
+                          { key: 'media_lp', label: 'LP', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'LP' },
+                          { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'MAT' },
                         ]
 
                         // PROD: mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro
                         if (!temFiltro || isAnosIniciais) {
-                          colunas.push({ key: 'media_prod', label: 'PROD', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'PT' })
-                        }
-
-                        // Nível da Turma: mostrar apenas para anos iniciais (2, 3, 5)
-                        if (isAnosIniciais) {
-                          colunas.push({ key: 'nivel_turma', label: 'Nível', align: 'center', format: 'nivel' })
+                          colunas.push({ key: 'media_prod', label: 'PROD', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'PT' })
                         }
 
                         // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro
                         if (!temFiltro || isAnosFinais) {
-                          colunas.push({ key: 'media_ch', label: 'CH', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CH' })
-                          colunas.push({ key: 'media_cn', label: 'CN', align: 'center', format: 'decimal', destaque: filtroDisciplina === 'CN' })
+                          colunas.push({ key: 'media_ch', label: 'CH', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'CH' })
+                          colunas.push({ key: 'media_cn', label: 'CN', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'CN' })
                         }
 
                         colunas.push({ key: 'presentes', label: 'Pres.', align: 'center' })
@@ -4058,13 +4053,29 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                        nota >= 3 ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300' :
                        'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
         const isCritico = nota < 3
+        // Calcular nível N1-N4 para a média geral
+        const nivelNota = nota > 0 ? (nota < 3 ? 'N1' : nota < 5 ? 'N2' : nota < 7.5 ? 'N3' : 'N4') : null
+        const corBadgeNota: Record<string, string> = {
+          'N1': 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200',
+          'N2': 'bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200',
+          'N3': 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200',
+          'N4': 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200',
+        }
         return (
-          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-sm font-bold border-2 ${corNota} min-w-[60px] ${isCritico ? 'animate-pulse' : ''}`}>
-            {isCritico && <span className="mr-1">⚠</span>}
-            {nota.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-sm font-bold border-2 ${corNota} min-w-[60px] ${isCritico ? 'animate-pulse' : ''}`}>
+              {isCritico && <span className="mr-1">⚠</span>}
+              {nota.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            {nivelNota && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${corBadgeNota[nivelNota]}`}>
+                {nivelNota}
+              </span>
+            )}
+          </div>
         )
       case 'decimal':
+      case 'decimal_com_nivel':
         const decimal = parseFloat(valor)
         // Destaque visual para médias críticas
         const corDecimal = decimal >= 7.5 ? 'text-green-700 dark:text-green-400' :
@@ -4073,11 +4084,26 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
                           decimal > 0 ? 'text-red-600 dark:text-red-400 font-bold' :
                           'text-gray-700 dark:text-gray-300'
         const isCriticoDecimal = decimal > 0 && decimal < 3
+        // Calcular nível N1-N4
+        const nivelDecimal = decimal > 0 ? (decimal < 3 ? 'N1' : decimal < 5 ? 'N2' : decimal < 7.5 ? 'N3' : 'N4') : null
+        const corBadgeDecimal: Record<string, string> = {
+          'N1': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
+          'N2': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800',
+          'N3': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
+          'N4': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800',
+        }
         return (
-          <span className={`text-sm font-semibold ${corDecimal} ${isCriticoDecimal ? 'animate-pulse' : ''}`}>
-            {isCriticoDecimal && <span className="mr-0.5">⚠</span>}
-            {decimal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className={`text-sm font-semibold ${corDecimal} ${isCriticoDecimal ? 'animate-pulse' : ''}`}>
+              {isCriticoDecimal && <span className="mr-0.5">⚠</span>}
+              {decimal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            {formato === 'decimal_com_nivel' && nivelDecimal && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${corBadgeDecimal[nivelDecimal]}`}>
+                {nivelDecimal}
+              </span>
+            )}
+          </div>
         )
       case 'media_etapa':
         // Formato para média por etapa de ensino - mostra "--" quando não há dados

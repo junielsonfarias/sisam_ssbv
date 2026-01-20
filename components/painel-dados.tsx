@@ -148,6 +148,15 @@ const getNotaNumero = (nota: number | string | null | undefined): number | null 
   return isNaN(num) ? null : num
 }
 
+// Calcula nível N1-N4 baseado na média
+const calcularNivel = (media: number | null | undefined): string | null => {
+  if (media == null || media <= 0) return null
+  if (media < 3) return 'N1'
+  if (media < 5) return 'N2'
+  if (media < 7.5) return 'N3'
+  return 'N4'
+}
+
 // Função para obter cor do badge de nível
 const getNivelBadgeClass = (nivel: string | null | undefined): string => {
   if (!nivel) return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
@@ -1112,73 +1121,101 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                       <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CN</th>
                     </>
                   )}
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Nível</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Pres.</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Falt.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                {escolas.map((escola) => {
-                  // Calcular nível baseado na média
-                  const getNivelEscola = (media: number | null | undefined) => {
-                    if (media == null) return { texto: '-', cor: 'text-gray-400' }
-                    if (media >= 7) return { texto: 'Avançado', cor: 'text-green-600 dark:text-green-400' }
-                    if (media >= 5) return { texto: 'Básico', cor: 'text-yellow-600 dark:text-yellow-400' }
-                    return { texto: 'Abaixo do Básico', cor: 'text-red-600 dark:text-red-400' }
-                  }
-                  const nivelEscola = getNivelEscola(escola.media_geral)
-
-                  return (
+                {escolas.map((escola) => (
                   <tr key={escola.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
                     <td className="py-3 px-4">
                       <div className="font-medium text-gray-900 dark:text-white text-sm">{escola.nome}</div>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{escola.polo_nome || '-'}</td>
                     <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{escola.total_alunos || 0}</td>
+                    {/* Média Geral + Nível */}
                     <td className="py-3 px-4 text-center">
-                      <span className={`font-bold text-sm ${getNotaColor(escola.media_geral)}`}>
-                        {escola.media_geral != null ? escola.media_geral.toFixed(2) : '-'}
-                      </span>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`font-bold text-sm ${getNotaColor(escola.media_geral)}`}>
+                          {escola.media_geral != null ? escola.media_geral.toFixed(2) : '-'}
+                        </span>
+                        {escola.media_geral != null && calcularNivel(escola.media_geral) && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_geral))}`}>
+                            {calcularNivel(escola.media_geral)}
+                          </span>
+                        )}
+                      </div>
                     </td>
+                    {/* LP */}
                     <td className="py-3 px-4 text-center">
-                      <span className={`text-sm ${getNotaColor(escola.media_lp)}`}>
-                        {escola.media_lp != null ? escola.media_lp.toFixed(2) : '-'}
-                      </span>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`text-sm font-medium ${getNotaColor(escola.media_lp)}`}>
+                          {escola.media_lp != null ? escola.media_lp.toFixed(2) : '-'}
+                        </span>
+                        {escola.media_lp != null && calcularNivel(escola.media_lp) && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_lp))}`}>
+                            {calcularNivel(escola.media_lp)}
+                          </span>
+                        )}
+                      </div>
                     </td>
+                    {/* MAT */}
                     <td className="py-3 px-4 text-center">
-                      <span className={`text-sm ${getNotaColor(escola.media_mat)}`}>
-                        {escola.media_mat != null ? escola.media_mat.toFixed(2) : '-'}
-                      </span>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`text-sm font-medium ${getNotaColor(escola.media_mat)}`}>
+                          {escola.media_mat != null ? escola.media_mat.toFixed(2) : '-'}
+                        </span>
+                        {escola.media_mat != null && calcularNivel(escola.media_mat) && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_mat))}`}>
+                            {calcularNivel(escola.media_mat)}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
                     {(!temFiltroSerie || isAnosIniciaisSerie) && (
                       <td className="py-3 px-4 text-center">
-                        <span className={`text-sm ${getNotaColor(escola.media_prod)}`}>
-                          {escola.media_prod != null ? escola.media_prod.toFixed(2) : '-'}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`text-sm font-medium ${getNotaColor(escola.media_prod)}`}>
+                            {escola.media_prod != null ? escola.media_prod.toFixed(2) : '-'}
+                          </span>
+                          {escola.media_prod != null && calcularNivel(escola.media_prod) && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_prod))}`}>
+                              {calcularNivel(escola.media_prod)}
+                            </span>
+                          )}
+                        </div>
                       </td>
                     )}
                     {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
                     {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                       <>
                         <td className="py-3 px-4 text-center">
-                          <span className={`text-sm ${getNotaColor(escola.media_ch)}`}>
-                            {escola.media_ch != null ? escola.media_ch.toFixed(2) : '-'}
-                          </span>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`text-sm font-medium ${getNotaColor(escola.media_ch)}`}>
+                              {escola.media_ch != null ? escola.media_ch.toFixed(2) : '-'}
+                            </span>
+                            {escola.media_ch != null && calcularNivel(escola.media_ch) && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_ch))}`}>
+                                {calcularNivel(escola.media_ch)}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`text-sm ${getNotaColor(escola.media_cn)}`}>
-                            {escola.media_cn != null ? escola.media_cn.toFixed(2) : '-'}
-                          </span>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`text-sm font-medium ${getNotaColor(escola.media_cn)}`}>
+                              {escola.media_cn != null ? escola.media_cn.toFixed(2) : '-'}
+                            </span>
+                            {escola.media_cn != null && calcularNivel(escola.media_cn) && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_cn))}`}>
+                                {calcularNivel(escola.media_cn)}
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </>
                     )}
-                    {/* Nível da Escola */}
-                    <td className="py-3 px-4 text-center">
-                      <span className={`text-xs font-semibold ${nivelEscola.cor}`}>
-                        {nivelEscola.texto}
-                      </span>
-                    </td>
                     <td className="py-3 px-4 text-center">
                       <span className="text-sm text-green-600 dark:text-green-400 font-medium">{escola.presentes || 0}</span>
                     </td>
@@ -1186,8 +1223,7 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                       <span className="text-sm text-red-600 dark:text-red-400 font-medium">{escola.faltantes || 0}</span>
                     </td>
                   </tr>
-                  )
-                })}
+                ))}
               </tbody>
             </table>
           </div>
@@ -1301,23 +1337,12 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                       <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CN</th>
                     </>
                   )}
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Nível</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Pres.</th>
                   <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Falt.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                {turmas.map((turma) => {
-                  // Calcular nível baseado na média
-                  const getNivelTurma = (media: number | null | undefined) => {
-                    if (media == null) return { texto: '-', cor: 'text-gray-400' }
-                    if (media >= 7) return { texto: 'Avançado', cor: 'text-green-600 dark:text-green-400' }
-                    if (media >= 5) return { texto: 'Básico', cor: 'text-yellow-600 dark:text-yellow-400' }
-                    return { texto: 'Abaixo do Básico', cor: 'text-red-600 dark:text-red-400' }
-                  }
-                  const nivelTurma = getNivelTurma(turma.media_geral)
-
-                  return (
+                {turmas.map((turma) => (
                     <tr key={turma.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
                       <td className="py-3 px-4">
                         <div className="font-medium text-gray-900 dark:text-white text-sm">{turma.codigo || turma.nome || '-'}</div>
@@ -1325,50 +1350,89 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                       <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{turma.escola_nome || '-'}</td>
                       <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{turma.serie || '-'}</td>
                       <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{turma.total_alunos || 0}</td>
+                      {/* Média Geral + Nível */}
                       <td className="py-3 px-4 text-center">
-                        <span className={`font-bold text-sm ${getNotaColor(turma.media_geral)}`}>
-                          {turma.media_geral != null ? turma.media_geral.toFixed(2) : '-'}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`font-bold text-sm ${getNotaColor(turma.media_geral)}`}>
+                            {turma.media_geral != null ? turma.media_geral.toFixed(2) : '-'}
+                          </span>
+                          {turma.media_geral != null && calcularNivel(turma.media_geral) && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_geral))}`}>
+                              {calcularNivel(turma.media_geral)}
+                            </span>
+                          )}
+                        </div>
                       </td>
+                      {/* LP */}
                       <td className="py-3 px-4 text-center">
-                        <span className={`text-sm ${getNotaColor(turma.media_lp)}`}>
-                          {turma.media_lp != null ? turma.media_lp.toFixed(2) : '-'}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`text-sm font-medium ${getNotaColor(turma.media_lp)}`}>
+                            {turma.media_lp != null ? turma.media_lp.toFixed(2) : '-'}
+                          </span>
+                          {turma.media_lp != null && calcularNivel(turma.media_lp) && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_lp))}`}>
+                              {calcularNivel(turma.media_lp)}
+                            </span>
+                          )}
+                        </div>
                       </td>
+                      {/* MAT */}
                       <td className="py-3 px-4 text-center">
-                        <span className={`text-sm ${getNotaColor(turma.media_mat)}`}>
-                          {turma.media_mat != null ? turma.media_mat.toFixed(2) : '-'}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`text-sm font-medium ${getNotaColor(turma.media_mat)}`}>
+                            {turma.media_mat != null ? turma.media_mat.toFixed(2) : '-'}
+                          </span>
+                          {turma.media_mat != null && calcularNivel(turma.media_mat) && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_mat))}`}>
+                              {calcularNivel(turma.media_mat)}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
                       {(!temFiltroSerie || isAnosIniciaisSerie) && (
                         <td className="py-3 px-4 text-center">
-                          <span className={`text-sm ${getNotaColor(turma.media_prod)}`}>
-                            {turma.media_prod != null ? turma.media_prod.toFixed(2) : '-'}
-                          </span>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`text-sm font-medium ${getNotaColor(turma.media_prod)}`}>
+                              {turma.media_prod != null ? turma.media_prod.toFixed(2) : '-'}
+                            </span>
+                            {turma.media_prod != null && calcularNivel(turma.media_prod) && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_prod))}`}>
+                                {calcularNivel(turma.media_prod)}
+                              </span>
+                            )}
+                          </div>
                         </td>
                       )}
                       {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
                       {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                         <>
                           <td className="py-3 px-4 text-center">
-                            <span className={`text-sm ${getNotaColor(turma.media_ch)}`}>
-                              {turma.media_ch != null ? turma.media_ch.toFixed(2) : '-'}
-                            </span>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`text-sm font-medium ${getNotaColor(turma.media_ch)}`}>
+                                {turma.media_ch != null ? turma.media_ch.toFixed(2) : '-'}
+                              </span>
+                              {turma.media_ch != null && calcularNivel(turma.media_ch) && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_ch))}`}>
+                                  {calcularNivel(turma.media_ch)}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`text-sm ${getNotaColor(turma.media_cn)}`}>
-                              {turma.media_cn != null ? turma.media_cn.toFixed(2) : '-'}
-                            </span>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`text-sm font-medium ${getNotaColor(turma.media_cn)}`}>
+                                {turma.media_cn != null ? turma.media_cn.toFixed(2) : '-'}
+                              </span>
+                              {turma.media_cn != null && calcularNivel(turma.media_cn) && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_cn))}`}>
+                                  {calcularNivel(turma.media_cn)}
+                                </span>
+                              )}
+                            </div>
                           </td>
                         </>
                       )}
-                      {/* Nível da Turma */}
-                      <td className="py-3 px-4 text-center">
-                        <span className={`text-xs font-semibold ${nivelTurma.cor}`}>
-                          {nivelTurma.texto}
-                        </span>
-                      </td>
                       <td className="py-3 px-4 text-center">
                         <span className="text-sm text-green-600 dark:text-green-400 font-medium">{turma.presentes || 0}</span>
                       </td>
@@ -1376,8 +1440,7 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                         <span className="text-sm text-red-600 dark:text-red-400 font-medium">{turma.faltantes || 0}</span>
                       </td>
                     </tr>
-                  )
-                })}
+                ))}
               </tbody>
             </table>
           </div>
