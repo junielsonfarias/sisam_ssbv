@@ -2,10 +2,12 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
-import { Plus, Edit, Trash2, Search, MapPin, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, MapPin } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { useUserType } from '@/lib/hooks/useUserType'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useModal } from '@/lib/hooks/useModal'
+import { ModalBase, ModalFooter } from '@/components/ui/modal-base'
 
 interface Polo {
   id: string
@@ -15,20 +17,36 @@ interface Polo {
   ativo: boolean
 }
 
+const formDataInicial = {
+  nome: '',
+  codigo: '',
+  descricao: '',
+}
+
 export default function PolosPage() {
   const toast = useToast()
   const { tipoUsuario } = useUserType()
   const [polos, setPolos] = useState<Polo[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
-  const [mostrarModal, setMostrarModal] = useState(false)
-  const [poloEditando, setPoloEditando] = useState<Polo | null>(null)
-  const [formData, setFormData] = useState({
-    nome: '',
-    codigo: '',
-    descricao: '',
-  })
   const [salvando, setSalvando] = useState(false)
+
+  const {
+    mostrarModal,
+    itemEditando: poloEditando,
+    formData,
+    setFormData,
+    abrirModal,
+    fecharModal,
+    isEdicao,
+  } = useModal<Polo, typeof formDataInicial>({
+    formDataInicial,
+    itemParaFormData: (polo) => ({
+      nome: polo.nome,
+      codigo: polo.codigo || '',
+      descricao: polo.descricao || '',
+    }),
+  })
 
   useEffect(() => {
     carregarPolos()
@@ -65,13 +83,8 @@ export default function PolosPage() {
 
       if (response.ok) {
         await carregarPolos()
-        setMostrarModal(false)
-        setFormData({
-          nome: '',
-          codigo: '',
-          descricao: '',
-        })
-        toast.success(poloEditando ? 'Polo atualizado com sucesso!' : 'Polo cadastrado com sucesso!')
+        fecharModal()
+        toast.success(isEdicao ? 'Polo atualizado com sucesso!' : 'Polo cadastrado com sucesso!')
       } else {
         toast.error(data.mensagem || 'Erro ao salvar polo')
       }
@@ -83,25 +96,6 @@ export default function PolosPage() {
     }
   }
 
-  const handleAbrirModal = (polo?: Polo) => {
-    if (polo) {
-      setPoloEditando(polo)
-      setFormData({
-        nome: polo.nome,
-        codigo: polo.codigo || '',
-        descricao: polo.descricao || '',
-      })
-    } else {
-      setPoloEditando(null)
-      setFormData({
-        nome: '',
-        codigo: '',
-        descricao: '',
-      })
-    }
-    setMostrarModal(true)
-  }
-
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
         <div className="space-y-6">
@@ -111,7 +105,7 @@ export default function PolosPage() {
               <p className="text-gray-600 mt-1">Gerencie os polos educacionais do sistema</p>
             </div>
             <button
-              onClick={() => handleAbrirModal()}
+              onClick={() => abrirModal()}
               className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 flex items-center gap-2 shadow-sm transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -199,7 +193,7 @@ export default function PolosPage() {
                           <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
                               <button
-                                onClick={() => handleAbrirModal(polo)}
+                                onClick={() => abrirModal(polo)}
                                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                                 aria-label="Editar"
                                 title="Editar"
@@ -231,76 +225,50 @@ export default function PolosPage() {
           )}
 
           {/* Modal de Cadastro/Edição */}
-          {mostrarModal && (
-            <div className="fixed inset-0 z-50 overflow-y-auto">
-              <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setMostrarModal(false)}></div>
-                <div className="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                  <div className="bg-white px-6 py-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {poloEditando ? 'Editar Polo' : 'Novo Polo'}
-                      </h3>
-                      <button
-                        onClick={() => setMostrarModal(false)}
-                        className="text-gray-400 hover:text-gray-500"
-                      >
-                        <X className="w-6 h-6" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
-                        <input
-                          type="text"
-                          value={formData.nome}
-                          onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Código</label>
-                        <input
-                          type="text"
-                          value={formData.codigo}
-                          onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                        <textarea
-                          value={formData.descricao}
-                          onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
-                        />
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-4">
-                        <button
-                          onClick={() => setMostrarModal(false)}
-                          className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700"
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          onClick={handleSalvar}
-                          disabled={salvando || !formData.nome}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {salvando ? 'Salvando...' : 'Salvar'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          <ModalBase
+            aberto={mostrarModal}
+            onFechar={fecharModal}
+            titulo={isEdicao ? 'Editar Polo' : 'Novo Polo'}
+          >
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome *</label>
+                <input
+                  type="text"
+                  value={formData.nome}
+                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700"
+                />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código</label>
+                <input
+                  type="text"
+                  value={formData.codigo}
+                  onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
+                <textarea
+                  value={formData.descricao}
+                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700"
+                />
+              </div>
+
+              <ModalFooter
+                onFechar={fecharModal}
+                onSalvar={handleSalvar}
+                salvando={salvando}
+                desabilitado={!formData.nome}
+              />
             </div>
-          )}
+          </ModalBase>
         </div>
     </ProtectedRoute>
   )
