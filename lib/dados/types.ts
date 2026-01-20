@@ -337,12 +337,18 @@ export interface FiltrosAlunos {
   etapa_ensino?: string
 }
 
-// Interface para paginacao
+// Interface para paginacao basica
 export interface PaginacaoInfo {
   pagina: number
   limite: number
   total: number
   totalPaginas: number
+}
+
+// Interface para paginacao completa com flags de navegacao
+export interface Paginacao extends PaginacaoInfo {
+  temProxima: boolean
+  temAnterior: boolean
 }
 
 // Interface para opcao de select

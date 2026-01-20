@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, MapPin, X } from 'lucide-react'
 import { useToast } from '@/components/toast'
+import { useUserType } from '@/lib/hooks/useUserType'
 
 interface Polo {
   id: string
@@ -15,7 +16,7 @@ interface Polo {
 
 export default function PolosPage() {
   const toast = useToast()
-  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
+  const { tipoUsuario } = useUserType()
   const [polos, setPolos] = useState<Polo[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
@@ -29,19 +30,6 @@ export default function PolosPage() {
   const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
-    const carregarTipoUsuario = async () => {
-      try {
-        const response = await fetch('/api/auth/verificar')
-        const data = await response.json()
-        if (data.usuario) {
-          const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-          setTipoUsuario(tipo)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar tipo de usuário:', error)
-      }
-    }
-    carregarTipoUsuario()
     carregarPolos()
   }, [])
 

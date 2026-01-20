@@ -17,6 +17,7 @@ const ResponsiveContainer = dynamic(() => import('recharts').then(mod => ({ defa
 // Componentes auxiliares importados diretamente (pequenos)
 import { Bar, Line, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ReferenceLine } from 'recharts'
 import { isAnosIniciais, isAnosFinais, DISCIPLINAS_OPTIONS_ANOS_INICIAIS, DISCIPLINAS_OPTIONS_ANOS_FINAIS } from '@/lib/disciplinas-mapping'
+import { useUserType } from '@/lib/hooks/useUserType'
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 
@@ -40,7 +41,7 @@ interface FiltrosGraficos {
 }
 
 export default function GraficosPage() {
-  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
+  const { tipoUsuario } = useUserType()
   const [filtros, setFiltros] = useState<FiltrosGraficos>({})
   const [polos, setPolos] = useState<any[]>([])
   const [escolas, setEscolas] = useState<any[]>([])
@@ -111,14 +112,7 @@ export default function GraficosPage() {
   }, [filtros.ano_letivo])
 
   useEffect(() => {
-    carregarTipoUsuario()
-  }, [])
-
-  useEffect(() => {
-    if (tipoUsuario && tipoUsuario !== 'admin') {
-      carregarDadosIniciais()
-      carregarSeries()
-    } else if (tipoUsuario === 'admin' || tipoUsuario === 'administrador') {
+    if (tipoUsuario) {
       carregarDadosIniciais()
       carregarSeries()
     }
@@ -210,37 +204,6 @@ export default function GraficosPage() {
       setFiltros(prev => ({ ...prev, turma_id: undefined }))
     }
   }, [filtros.escola_id, filtros.ano_letivo, filtros.serie])
-
-  const carregarTipoUsuario = async () => {
-    try {
-      const response = await fetch('/api/auth/verificar')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.usuario && data.usuario.tipo_usuario) {
-          // Normalizar tipo de usuário
-          const tipo = data.usuario.tipo_usuario
-          if (tipo === 'administrador') {
-            setTipoUsuario('admin')
-          } else {
-            setTipoUsuario(tipo)
-          }
-        } else if (data.tipo_usuario) {
-          // Fallback para formato antigo
-          const tipo = data.tipo_usuario
-          if (tipo === 'administrador') {
-            setTipoUsuario('admin')
-          } else {
-            setTipoUsuario(tipo)
-          }
-        }
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao carregar tipo de usuário:', error)
-      }
-      setTipoUsuario('admin') // Fallback
-    }
-  }
 
   const carregarDadosIniciais = async () => {
     try {

@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Plus, Edit, Trash2, Search, Eye } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { normalizarSerie, ordenarSeries } from '@/lib/dados/utils'
+import { Paginacao } from '@/lib/dados/types'
 
 interface Aluno {
   id: string
@@ -31,15 +32,6 @@ const formDataInicial = {
   turma_id: '',
   serie: '',
   ano_letivo: new Date().getFullYear().toString(),
-}
-
-interface Paginacao {
-  pagina: number
-  limite: number
-  total: number
-  totalPaginas: number
-  temProxima: boolean
-  temAnterior: boolean
 }
 
 export default function AlunosPage() {

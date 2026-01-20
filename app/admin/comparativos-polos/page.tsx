@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useMemo } from 'react'
 import { Filter, X, MapPin, TrendingUp, BarChart3, Users, Target, BookOpen, School, Printer } from 'lucide-react'
+import { useUserType } from '@/lib/hooks/useUserType'
 
 interface DadosComparativoPolo {
   polo_id: string
@@ -32,7 +33,7 @@ interface DadosComparativoEscola extends DadosComparativoPolo {
 }
 
 export default function ComparativosPolosPage() {
-  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
+  const { tipoUsuario } = useUserType()
   const [polos, setPolos] = useState<any[]>([])
   const [escolas, setEscolas] = useState<any[]>([])
   const [series, setSeries] = useState<string[]>([])
@@ -50,19 +51,6 @@ export default function ComparativosPolosPage() {
   const [carregando, setCarregando] = useState(false)
 
   useEffect(() => {
-    const carregarTipoUsuario = async () => {
-      try {
-        const response = await fetch('/api/auth/verificar')
-        const data = await response.json()
-        if (data.usuario) {
-          const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-          setTipoUsuario(tipo)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar tipo de usuário:', error)
-      }
-    }
-    carregarTipoUsuario()
     carregarDadosIniciais()
   }, [])
 

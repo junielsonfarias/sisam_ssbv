@@ -19,6 +19,7 @@ import {
   isDisciplinaAplicavel
 } from '@/lib/dados/utils'
 import { NivelBadge } from '@/components/dados'
+import { Paginacao } from '@/lib/dados/types'
 
 interface SerieConfig {
   serie: string | number
@@ -65,15 +66,6 @@ interface ResultadoConsolidado {
   nivel_mat?: string | null
   nivel_prod?: string | null
   nivel_aluno?: string | null
-}
-
-interface Paginacao {
-  pagina: number
-  limite: number
-  total: number
-  totalPaginas: number
-  temProxima: boolean
-  temAnterior: boolean
 }
 
 interface Filtros {
