@@ -16,7 +16,7 @@ import {
   formatarNota
 } from '@/lib/dados/utils'
 import { AlunoSelecionado } from '@/lib/dados/types'
-import { NivelBadge } from '@/components/dados'
+import { NivelBadge, CelulaNotaComNivel } from '@/components/dados'
 
 interface ResultadoConsolidadoAnalise {
   id: string
@@ -788,96 +788,67 @@ export default function PainelAnalise({
                         </span>
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <div className={`inline-flex flex-col items-center p-1.5 rounded-lg ${getNotaBgColor(resultado.nota_lp)} border`}>
-                          {getTotalQuestoesPorSerie(resultado, 'LP') && (
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
-                              {resultado.total_acertos_lp}/{getTotalQuestoesPorSerie(resultado, 'LP')}
-                            </div>
-                          )}
-                          <div className={`text-sm font-bold ${getNotaColor(resultado.nota_lp)}`}>
-                            {formatarNota(resultado.nota_lp, resultado.presenca)}
-                          </div>
-                          {anosIniciais && resultado.nivel_lp && (
-                            <NivelBadge nivel={resultado.nivel_lp} className="mt-1" />
-                          )}
-                        </div>
+                        <CelulaNotaComNivel
+                          nota={resultado.nota_lp}
+                          acertos={resultado.total_acertos_lp}
+                          totalQuestoes={getTotalQuestoesPorSerie(resultado, 'LP')}
+                          nivel={anosIniciais ? resultado.nivel_lp : undefined}
+                          presenca={resultado.presenca}
+                          tamanho="md"
+                        />
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <div className={`inline-flex flex-col items-center p-1.5 rounded-lg ${getNotaBgColor(resultado.nota_mat)} border`}>
-                          {getTotalQuestoesPorSerie(resultado, 'MAT') && (
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
-                              {resultado.total_acertos_mat}/{getTotalQuestoesPorSerie(resultado, 'MAT')}
-                            </div>
-                          )}
-                          <div className={`text-sm font-bold ${getNotaColor(resultado.nota_mat)}`}>
-                            {formatarNota(resultado.nota_mat, resultado.presenca)}
-                          </div>
-                          {anosIniciais && resultado.nivel_mat && (
-                            <NivelBadge nivel={resultado.nivel_mat} className="mt-1" />
-                          )}
-                        </div>
+                        <CelulaNotaComNivel
+                          nota={resultado.nota_mat}
+                          acertos={resultado.total_acertos_mat}
+                          totalQuestoes={getTotalQuestoesPorSerie(resultado, 'MAT')}
+                          nivel={anosIniciais ? resultado.nivel_mat : undefined}
+                          presenca={resultado.presenca}
+                          tamanho="md"
+                        />
                       </td>
                       {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_finais') && (
                         <>
                           <td className="px-3 py-2 text-center">
-                            {anosIniciais ? (
-                              <span className="text-gray-400">N/A</span>
-                            ) : (
-                              <div className={`inline-flex flex-col items-center p-1.5 rounded-lg ${getNotaBgColor(resultado.nota_ch)} border`}>
-                                {getTotalQuestoesPorSerie(resultado, 'CH') && (
-                                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
-                                    {resultado.total_acertos_ch}/{getTotalQuestoesPorSerie(resultado, 'CH')}
-                                  </div>
-                                )}
-                                <div className={`text-sm font-bold ${getNotaColor(resultado.nota_ch)}`}>
-                                  {formatarNota(resultado.nota_ch, resultado.presenca)}
-                                </div>
-                              </div>
-                            )}
+                            <CelulaNotaComNivel
+                              nota={resultado.nota_ch}
+                              acertos={resultado.total_acertos_ch}
+                              totalQuestoes={getTotalQuestoesPorSerie(resultado, 'CH')}
+                              presenca={resultado.presenca}
+                              naoAplicavel={anosIniciais}
+                              tamanho="md"
+                            />
                           </td>
                           <td className="px-3 py-2 text-center">
-                            {anosIniciais ? (
-                              <span className="text-gray-400">N/A</span>
-                            ) : (
-                              <div className={`inline-flex flex-col items-center p-1.5 rounded-lg ${getNotaBgColor(resultado.nota_cn)} border`}>
-                                {getTotalQuestoesPorSerie(resultado, 'CN') && (
-                                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
-                                    {resultado.total_acertos_cn}/{getTotalQuestoesPorSerie(resultado, 'CN')}
-                                  </div>
-                                )}
-                                <div className={`text-sm font-bold ${getNotaColor(resultado.nota_cn)}`}>
-                                  {formatarNota(resultado.nota_cn, resultado.presenca)}
-                                </div>
-                              </div>
-                            )}
+                            <CelulaNotaComNivel
+                              nota={resultado.nota_cn}
+                              acertos={resultado.total_acertos_cn}
+                              totalQuestoes={getTotalQuestoesPorSerie(resultado, 'CN')}
+                              presenca={resultado.presenca}
+                              naoAplicavel={anosIniciais}
+                              tamanho="md"
+                            />
                           </td>
                         </>
                       )}
                       {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_iniciais') && (
                         <td className="px-3 py-2 text-center">
-                          {!anosIniciais ? (
-                            <span className="text-gray-400">N/A</span>
-                          ) : (
-                            <div className={`inline-flex flex-col items-center p-1.5 rounded-lg ${getNotaBgColor(resultado.nota_producao)} border`}>
-                              <div className={`text-sm font-bold ${getNotaColor(resultado.nota_producao)}`}>
-                                {formatarNota(resultado.nota_producao, resultado.presenca)}
-                              </div>
-                              {resultado.nivel_prod && (
-                                <NivelBadge nivel={resultado.nivel_prod} className="mt-1" />
-                              )}
-                            </div>
-                          )}
+                          <CelulaNotaComNivel
+                            nota={resultado.nota_producao}
+                            nivel={resultado.nivel_prod}
+                            presenca={resultado.presenca}
+                            naoAplicavel={!anosIniciais}
+                            tamanho="md"
+                          />
                         </td>
                       )}
                       <td className="px-3 py-2 text-center">
-                        <div className={`inline-flex flex-col items-center p-1.5 rounded-lg ${getNotaBgColor(resultado.media_aluno)} border`}>
-                          <div className={`text-sm font-bold ${getNotaColor(resultado.media_aluno)}`}>
-                            {formatarNota(resultado.media_aluno, resultado.presenca)}
-                          </div>
-                          {anosIniciais && resultado.nivel_aluno && (
-                            <NivelBadge nivel={resultado.nivel_aluno} className="mt-1" />
-                          )}
-                        </div>
+                        <CelulaNotaComNivel
+                          nota={resultado.media_aluno}
+                          nivel={anosIniciais ? resultado.nivel_aluno : undefined}
+                          presenca={resultado.presenca}
+                          tamanho="md"
+                        />
                       </td>
                       <td className="px-3 py-2 text-center">
                         <button
