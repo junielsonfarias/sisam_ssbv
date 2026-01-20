@@ -249,6 +249,11 @@ export interface ResultadoConsolidado {
   item_producao_6?: number | null;
   item_producao_7?: number | null;
   item_producao_8?: number | null;
+  // Níveis por disciplina (Anos Iniciais)
+  nivel_lp?: string | null;
+  nivel_mat?: string | null;
+  nivel_prod?: string | null;
+  nivel_aluno?: string | null;
   criado_em: Date;
   atualizado_em: Date;
 }

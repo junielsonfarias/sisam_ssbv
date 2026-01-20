@@ -9,6 +9,10 @@ import {
   calcularNivelAprendizagem,
   extrairNotaProducao,
   calcularMediaProducao,
+  calcularNivelPorAcertos,
+  converterNivelProducao,
+  calcularNivelAluno,
+  isAnosIniciais,
 } from '@/lib/config-series'
 import { ConfiguracaoSerie } from '@/lib/types'
 import * as XLSX from 'xlsx'
@@ -671,7 +675,36 @@ async function processarImportacao(
 
         // Se presença for "-" (sem dados), não calcular médias e zerar acertos
         const semDados = presencaFinal === '-'
-        
+
+        // Calcular níveis por disciplina (apenas para Anos Iniciais: 2º, 3º e 5º)
+        let nivelLp: string | null = null
+        let nivelMat: string | null = null
+        let nivelProd: string | null = null
+        let nivelAlunoCalc: string | null = null
+
+        if (isAnosIniciais(serie) && !alunoFaltou && !semDados) {
+          // Calcular nível de LP baseado em acertos
+          nivelLp = calcularNivelPorAcertos(totalAcertosLP, serie, 'LP')
+
+          // Calcular nível de MAT baseado em acertos
+          nivelMat = calcularNivelPorAcertos(totalAcertosMAT, serie, 'MAT')
+
+          // Converter nível de produção textual
+          nivelProd = converterNivelProducao(nivelAprendizagem)
+
+          // Calcular nível geral do aluno (média dos 3 níveis)
+          nivelAlunoCalc = calcularNivelAluno(nivelLp, nivelMat, nivelProd)
+
+          // DEBUG: Log dos níveis calculados (apenas para os primeiros 3 alunos)
+          if (i < 3) {
+            console.log(`[IMPORT DEBUG] Níveis calculados para "${alunoNome}" (${serie}):`)
+            console.log(`  - Acertos LP: ${totalAcertosLP} -> Nível LP: ${nivelLp}`)
+            console.log(`  - Acertos MAT: ${totalAcertosMAT} -> Nível MAT: ${nivelMat}`)
+            console.log(`  - Nível Produção (${nivelAprendizagem}): ${nivelProd}`)
+            console.log(`  - Nível Aluno (média): ${nivelAlunoCalc}`)
+          }
+        }
+
         // Adicionar consolidado à fila
         consolidadosParaInserir.push({
           aluno_id: alunoId,
@@ -705,6 +738,11 @@ async function processarImportacao(
           item_producao_6: (alunoFaltou || semDados) ? null : (itensProducaoNotas[5] ?? null),
           item_producao_7: (alunoFaltou || semDados) ? null : (itensProducaoNotas[6] ?? null),
           item_producao_8: (alunoFaltou || semDados) ? null : (itensProducaoNotas[7] ?? null),
+          // Níveis por disciplina (Anos Iniciais: 2º, 3º e 5º)
+          nivel_lp: nivelLp,
+          nivel_mat: nivelMat,
+          nivel_prod: nivelProd,
+          nivel_aluno: nivelAlunoCalc,
         })
 
         // Adicionar resultados de produção à fila (se aplicável)
@@ -1149,9 +1187,11 @@ async function processarImportacao(
               nota_producao, nivel_aprendizagem, nivel_aprendizagem_id,
               tipo_avaliacao, total_questoes_esperadas,
               item_producao_1, item_producao_2, item_producao_3, item_producao_4,
-              item_producao_5, item_producao_6, item_producao_7, item_producao_8)
+              item_producao_5, item_producao_6, item_producao_7, item_producao_8,
+              nivel_lp, nivel_mat, nivel_prod, nivel_aluno)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-                     $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+                     $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
+                     $29, $30, $31, $32)
              ON CONFLICT (aluno_id, ano_letivo)
              DO UPDATE SET
                escola_id = EXCLUDED.escola_id,
@@ -1180,6 +1220,10 @@ async function processarImportacao(
                item_producao_6 = EXCLUDED.item_producao_6,
                item_producao_7 = EXCLUDED.item_producao_7,
                item_producao_8 = EXCLUDED.item_producao_8,
+               nivel_lp = EXCLUDED.nivel_lp,
+               nivel_mat = EXCLUDED.nivel_mat,
+               nivel_prod = EXCLUDED.nivel_prod,
+               nivel_aluno = EXCLUDED.nivel_aluno,
                atualizado_em = CURRENT_TIMESTAMP`,
             [
               consolidado.aluno_id,
@@ -1210,6 +1254,10 @@ async function processarImportacao(
               consolidado.item_producao_6,
               consolidado.item_producao_7,
               consolidado.item_producao_8,
+              consolidado.nivel_lp,
+              consolidado.nivel_mat,
+              consolidado.nivel_prod,
+              consolidado.nivel_aluno,
             ]
           )
           consolidadosCriados++

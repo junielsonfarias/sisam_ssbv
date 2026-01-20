@@ -43,6 +43,11 @@ interface ResultadoConsolidado {
   qtd_questoes_mat?: number | null
   qtd_questoes_ch?: number | null
   qtd_questoes_cn?: number | null
+  // Campos de níveis por disciplina (Anos Iniciais)
+  nivel_lp?: string | null
+  nivel_mat?: string | null
+  nivel_prod?: string | null
+  nivel_aluno?: string | null
 }
 
 // Função para verificar se a série é dos anos iniciais (2º, 3º ou 5º ano)
@@ -61,6 +66,27 @@ const getNivelColor = (nivel: string | undefined | null): string => {
   if (nivelLower.includes('básico') || nivelLower.includes('basico')) return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300'
   if (nivelLower.includes('insuficiente')) return 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300'
   return 'bg-gray-100 text-gray-700'
+}
+
+// Função para obter a cor do badge de nível (N1-N4)
+const getNivelBadgeClass = (nivel: string | null | undefined): string => {
+  if (!nivel) return 'bg-gray-100 text-gray-500'
+  const n = nivel.toUpperCase().trim()
+  if (n === 'N1') return 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
+  if (n === 'N2') return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300'
+  if (n === 'N3') return 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+  if (n === 'N4') return 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
+  return 'bg-gray-100 text-gray-500'
+}
+
+// Componente NivelBadge para exibir badges de nível (N1-N4)
+const NivelBadge = ({ nivel, className = '' }: { nivel: string | null | undefined, className?: string }) => {
+  if (!nivel) return null
+  return (
+    <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold ${getNivelBadgeClass(nivel)} ${className}`}>
+      {nivel}
+    </span>
+  )
 }
 
 interface Paginacao {
@@ -137,6 +163,12 @@ export default function ResultadosPage() {
       nota_ch?: number | string | null;
       nota_mat?: number | string | null;
       nota_cn?: number | string | null;
+    };
+    niveisDisciplinas?: {
+      nivel_lp?: string | null;
+      nivel_mat?: string | null;
+      nivel_prod?: string | null;
+      nivel_aluno?: string | null;
     };
   } | null>(null)
   
@@ -1399,6 +1431,10 @@ export default function ResultadosPage() {
                             const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                             const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
                             const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
+                            // Obter nível da disciplina (Anos Iniciais)
+                            const nivelDisciplina = disciplina.codigo === 'LP' ? resultado.nivel_lp :
+                                                   disciplina.codigo === 'MAT' ? resultado.nivel_mat :
+                                                   disciplina.codigo === 'PROD' ? resultado.nivel_prod : null
 
                             return (
                               <div key={disciplina.codigo} className={`p-2 rounded-lg ${!isDisciplinaAplicavel(disciplina.codigo, resultado.serie) ? 'bg-gray-100 dark:bg-slate-700' : getNotaBgColor(nota, disciplina.codigo, resultado.serie, resultado.presenca)} border border-gray-200 dark:border-slate-600`}>
@@ -1427,6 +1463,12 @@ export default function ResultadosPage() {
                                         ></div>
                                       </div>
                                     )}
+                                    {/* Badge de nível (Anos Iniciais) */}
+                                    {isAnosIniciais(resultado.serie) && nivelDisciplina && (
+                                      <div className="mt-1">
+                                        <NivelBadge nivel={nivelDisciplina} />
+                                      </div>
+                                    )}
                                   </>
                                 )}
                               </div>
@@ -1445,6 +1487,10 @@ export default function ResultadosPage() {
                             <div className={`text-xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                               {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                             </div>
+                            {/* Nível geral do aluno (Anos Iniciais) */}
+                            {isAnosIniciais(resultado.serie) && resultado.nivel_aluno && (
+                              <NivelBadge nivel={resultado.nivel_aluno} className="mt-1 font-extrabold" />
+                            )}
                           </div>
                           <button
                             onClick={() => {
@@ -1457,6 +1503,12 @@ export default function ResultadosPage() {
                                   nota_ch: resultado.nota_ch,
                                   nota_mat: resultado.nota_mat,
                                   nota_cn: resultado.nota_cn,
+                                },
+                                niveisDisciplinas: {
+                                  nivel_lp: resultado.nivel_lp,
+                                  nivel_mat: resultado.nivel_mat,
+                                  nivel_prod: resultado.nivel_prod,
+                                  nivel_aluno: resultado.nivel_aluno,
                                 },
                               })
                               setModalAberto(true)
@@ -1607,7 +1659,11 @@ export default function ResultadosPage() {
                               const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                               const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
                               const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
-                              
+                              // Obter nível da disciplina (Anos Iniciais)
+                              const nivelDisciplina = disciplina.codigo === 'LP' ? resultado.nivel_lp :
+                                                     disciplina.codigo === 'MAT' ? resultado.nivel_mat :
+                                                     disciplina.codigo === 'PROD' ? resultado.nivel_prod : null
+
                               return (
                                 <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                   {!isDisciplinaAplicavel(disciplina.codigo, resultado.serie) ? (
@@ -1638,6 +1694,12 @@ export default function ResultadosPage() {
                                           ></div>
                                         </div>
                                       )}
+                                      {/* Badge de nível (Anos Iniciais) */}
+                                      {isAnosIniciais(resultado.serie) && nivelDisciplina && (
+                                        <div className="mt-0.5">
+                                          <NivelBadge nivel={nivelDisciplina} />
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </td>
@@ -1645,8 +1707,8 @@ export default function ResultadosPage() {
                             })}
                             <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                               <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
-                                mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
-                                mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
+                                mediaNum !== null && mediaNum >= 7 ? 'border-green-500' :
+                                mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' :
                                 'border-red-500'
                               } w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                 <div className={`text-[10px] sm:text-xs md:text-sm lg:text-base xl:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
@@ -1656,6 +1718,10 @@ export default function ResultadosPage() {
                                   <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400">
                                     Média
                                   </div>
+                                )}
+                                {/* Nível geral do aluno (Anos Iniciais) */}
+                                {isAnosIniciais(resultado.serie) && resultado.nivel_aluno && (
+                                  <NivelBadge nivel={resultado.nivel_aluno} className="mt-0.5 font-extrabold" />
                                 )}
                               </div>
                             </td>
@@ -1671,6 +1737,12 @@ export default function ResultadosPage() {
                                       nota_ch: resultado.nota_ch,
                                       nota_mat: resultado.nota_mat,
                                       nota_cn: resultado.nota_cn,
+                                    },
+                                    niveisDisciplinas: {
+                                      nivel_lp: resultado.nivel_lp,
+                                      nivel_mat: resultado.nivel_mat,
+                                      nivel_prod: resultado.nivel_prod,
+                                      nivel_aluno: resultado.nivel_aluno,
                                     },
                                   })
                                   setModalAberto(true)
@@ -1766,31 +1838,58 @@ export default function ResultadosPage() {
 
           {(resultadosFiltrados.length > 0 || estatisticas.total > 0) && (
             <div className={`bg-indigo-50 border border-indigo-200 rounded-xl p-4 ${carregando ? 'opacity-50' : ''}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 text-sm">
-                  <span className="text-indigo-700 font-medium">
-                    <Users className="w-4 h-4 inline mr-1" />
-                    Mostrando <strong>{resultadosFiltrados.length}</strong> de <strong>{paginacao.total || estatisticas.total}</strong> resultados
-                  </span>
-                  {temFiltrosAtivos && (
-                    <span className="text-indigo-600 dark:text-indigo-400">
-                      (Filtros aplicados)
+              <div className="flex flex-col gap-3">
+                {/* Linha 1: Total e Legenda de Desempenho */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex items-center space-x-4 text-sm">
+                    <span className="text-indigo-700 font-medium">
+                      <Users className="w-4 h-4 inline mr-1" />
+                      Mostrando <strong>{resultadosFiltrados.length}</strong> de <strong>{paginacao.total || estatisticas.total}</strong> resultados
                     </span>
-                  )}
+                    {temFiltrosAtivos && (
+                      <span className="text-indigo-600 dark:text-indigo-400">
+                        (Filtros aplicados)
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs text-indigo-600 dark:text-indigo-400">
+                    <span className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
+                      Bom (≥7.0)
+                    </span>
+                    <span className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-yellow-500 mr-1"></div>
+                      Médio (5.0-6.9)
+                    </span>
+                    <span className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-red-500 mr-1"></div>
+                      Abaixo (&lt;5.0)
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2 text-xs text-indigo-600 dark:text-indigo-400">
-                  <span className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-                    Bom desempenho (≥7.0)
-                  </span>
-                  <span className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-yellow-500 mr-1"></div>
-                    Desempenho médio (5.0-6.9)
-                  </span>
-                  <span className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-red-500 mr-1"></div>
-                    Desempenho abaixo (&lt;5.0)
-                  </span>
+
+                {/* Linha 2: Legenda de Níveis (Anos Iniciais) */}
+                <div className="border-t border-indigo-200 pt-3">
+                  <p className="text-xs font-semibold text-indigo-800 mb-2">Critérios de Avaliação por Nível (Anos Iniciais - 2º, 3º e 5º Ano):</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-[10px] sm:text-xs">
+                    <div className="flex items-start gap-1">
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full font-bold bg-red-100 text-red-700 text-[9px]">N1</span>
+                      <span className="text-gray-700">Crítico: LP/MAT 1-3 acertos (2º/3º/5º); 5º MAT 1-5</span>
+                    </div>
+                    <div className="flex items-start gap-1">
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full font-bold bg-yellow-100 text-yellow-700 text-[9px]">N2</span>
+                      <span className="text-gray-700">Básico: LP/MAT 4-7 acertos (2º/3º/5º); 5º MAT 6-10</span>
+                    </div>
+                    <div className="flex items-start gap-1">
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700 text-[9px]">N3</span>
+                      <span className="text-gray-700">Adequado: LP/MAT 8-11 acertos (2º/3º/5º); 5º MAT 11-15</span>
+                    </div>
+                    <div className="flex items-start gap-1">
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full font-bold bg-green-100 text-green-700 text-[9px]">N4</span>
+                      <span className="text-gray-700">Avançado: LP/MAT 12+ acertos (2º/3º/5º); 5º MAT 16+</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1">* PROD: Nível convertido da avaliação textual (Insuficiente→N1, Básico→N2, Adequado→N3, Avançado→N4). Nível Geral = média dos 3 níveis.</p>
                 </div>
               </div>
             </div>
@@ -1803,6 +1902,7 @@ export default function ResultadosPage() {
               anoLetivo={alunoSelecionado.anoLetivo}
               mediaAluno={alunoSelecionado.mediaAluno}
               notasDisciplinas={alunoSelecionado.notasDisciplinas}
+              niveisDisciplinas={alunoSelecionado.niveisDisciplinas}
               isOpen={modalAberto}
               onClose={() => {
                 setModalAberto(false)

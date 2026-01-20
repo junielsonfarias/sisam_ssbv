@@ -83,6 +83,11 @@ export interface OfflineResultado {
   qtd_questoes_mat?: number | null
   qtd_questoes_ch?: number | null
   qtd_questoes_cn?: number | null
+  // Níveis por disciplina (Anos Iniciais)
+  nivel_lp?: string
+  nivel_mat?: string
+  nivel_prod?: string
+  nivel_aluno?: string
 }
 
 // Interface para alunos offline
@@ -550,13 +555,6 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       resultados: resultados.length,
       configSeries: configSeries.length
     })
-
-    // DEBUG: Verificar se nota_producao está nos dados
-    const comNotaProd = resultados.filter((r: any) => r.nota_producao && parseFloat(r.nota_producao) > 0)
-    console.log('[OfflineStorage] DEBUG - Resultados com nota_producao > 0:', comNotaProd.length)
-    if (comNotaProd.length > 0) {
-      console.log('[OfflineStorage] DEBUG - Exemplo com nota_producao:', comNotaProd[0])
-    }
 
     // Verificar se há dados para salvar
     if (resultados.length === 0) {

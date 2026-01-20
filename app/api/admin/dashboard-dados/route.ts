@@ -779,7 +779,12 @@ export async function GET(request: NextRequest) {
         cs.qtd_questoes_lp,
         cs.qtd_questoes_mat,
         cs.qtd_questoes_ch,
-        cs.qtd_questoes_cn
+        cs.qtd_questoes_cn,
+        -- Níveis por disciplina (Anos Iniciais)
+        rc_table.nivel_lp,
+        rc_table.nivel_mat,
+        rc_table.nivel_prod,
+        rc_table.nivel_aluno
       FROM resultados_consolidados_unificada rc
       INNER JOIN alunos a ON rc.aluno_id = a.id
       INNER JOIN escolas e ON rc.escola_id = e.id

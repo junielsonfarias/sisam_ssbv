@@ -238,6 +238,32 @@ const getNivelName = (nivel: string): string => {
   return NIVEL_NAMES[nivel] || nivel
 }
 
+// Função para obter cor do badge de nível (N1, N2, N3, N4)
+const getNivelBadgeClass = (nivel: string | null | undefined): string => {
+  if (!nivel) return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+
+  const nivelUpper = nivel.toUpperCase().trim()
+  const cores: Record<string, string> = {
+    'N1': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
+    'N2': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800',
+    'N3': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
+    'N4': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800',
+  }
+
+  return cores[nivelUpper] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+}
+
+// Componente Badge de Nível
+const NivelBadge = ({ nivel, className = '' }: { nivel: string | null | undefined, className?: string }) => {
+  if (!nivel) return null
+
+  return (
+    <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${getNivelBadgeClass(nivel)} ${className}`}>
+      {nivel.toUpperCase()}
+    </span>
+  )
+}
+
 // Função para calcular o nível baseado na média (para turmas)
 const calcularNivelPorMedia = (media: number | null | undefined): { codigo: string, nome: string, cor: string } => {
   if (media === null || media === undefined || media <= 0) {
@@ -475,6 +501,12 @@ export default function DadosPage() {
       nota_ch?: number | string | null;
       nota_mat?: number | string | null;
       nota_cn?: number | string | null;
+    };
+    niveisDisciplinas?: {
+      nivel_lp?: string | null;
+      nivel_mat?: string | null;
+      nivel_prod?: string | null;
+      nivel_aluno?: string | null;
     };
   } | null>(null)
   
@@ -834,6 +866,11 @@ export default function DadosPage() {
             qtd_questoes_mat: r.qtd_questoes_mat,
             qtd_questoes_ch: r.qtd_questoes_ch,
             qtd_questoes_cn: r.qtd_questoes_cn,
+            // Campos de níveis por disciplina (Anos Iniciais)
+            nivel_lp: r.nivel_lp,
+            nivel_mat: r.nivel_mat,
+            nivel_prod: r.nivel_prod,
+            nivel_aluno: r.nivel_aluno,
             nivel_aprendizagem: r.nivel_aprendizagem || 'Não classificado'
           }
         }).sort((a, b) => b.media_aluno - a.media_aluno),
@@ -3359,6 +3396,11 @@ export default function DadosPage() {
                                       )
                                     }
 
+                                    // Obter nível correspondente à disciplina (Anos Iniciais)
+                                    const nivelDisciplina = disciplina.codigo === 'LP' ? resultado.nivel_lp :
+                                                           disciplina.codigo === 'MAT' ? resultado.nivel_mat :
+                                                           disciplina.codigo === 'PROD' ? resultado.nivel_prod : null
+
                                     return (
                                       <td key={disciplina.codigo} className={`py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center ${isDestaqueDisciplina ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-300 dark:ring-indigo-700' : ''}`}>
                                         {disciplina.tipo === 'nivel' ? (
@@ -3385,6 +3427,12 @@ export default function DadosPage() {
                                                 ></div>
                                               </div>
                                             )}
+                                            {/* Badge de nível dentro da célula (Anos Iniciais) */}
+                                            {isAnosIniciaisLib(resultado.serie) && nivelDisciplina && (
+                                              <div className="mt-0.5">
+                                                <NivelBadge nivel={nivelDisciplina} />
+                                              </div>
+                                            )}
                                           </div>
                                         )}
                                       </td>
@@ -3392,8 +3440,8 @@ export default function DadosPage() {
                                   })}
                                   <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                                     <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
-                                      mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
-                                      mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
+                                      mediaNum !== null && mediaNum >= 7 ? 'border-green-500' :
+                                      mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' :
                                       'border-red-500'
                                     } w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                       <div className={`text-[10px] sm:text-xs md:text-sm lg:text-base xl:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
@@ -3403,6 +3451,10 @@ export default function DadosPage() {
                                         <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400">
                                           Média
                                         </div>
+                                      )}
+                                      {/* Nível geral do aluno (Anos Iniciais) */}
+                                      {isAnosIniciaisLib(resultado.serie) && resultado.nivel_aluno && (
+                                        <NivelBadge nivel={resultado.nivel_aluno} className="mt-0.5 font-extrabold" />
                                       )}
                                     </div>
                                   </td>
@@ -3418,6 +3470,12 @@ export default function DadosPage() {
                                             nota_ch: resultado.nota_ch,
                                             nota_mat: resultado.nota_mat,
                                             nota_cn: resultado.nota_cn,
+                                          },
+                                          niveisDisciplinas: {
+                                            nivel_lp: resultado.nivel_lp,
+                                            nivel_mat: resultado.nivel_mat,
+                                            nivel_prod: resultado.nivel_prod,
+                                            nivel_aluno: resultado.nivel_aluno,
                                           },
                                         })
                                         setModalAberto(true)
@@ -3856,6 +3914,7 @@ export default function DadosPage() {
             anoLetivo={alunoSelecionado.anoLetivo}
             mediaAluno={alunoSelecionado.mediaAluno}
             notasDisciplinas={alunoSelecionado.notasDisciplinas}
+            niveisDisciplinas={alunoSelecionado.niveisDisciplinas}
             onClose={() => {
               setModalAberto(false)
               setAlunoSelecionado(null)

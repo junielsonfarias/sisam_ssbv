@@ -471,3 +471,196 @@ export function calcularMediaProducao(itens: (number | null)[]): number | null {
   const soma = itensValidos.reduce((acc, val) => acc + val, 0)
   return soma / itensValidos.length
 }
+
+// ============================================================================
+// FUNÇÕES PARA CÁLCULO DE NÍVEIS POR DISCIPLINA (LP, MAT, PRODUÇÃO)
+// Anos Iniciais: 2º, 3º e 5º Anos
+// ============================================================================
+
+/**
+ * Calcula o nível (N1, N2, N3, N4) baseado em acertos por disciplina
+ *
+ * Regras:
+ * - 2º e 3º Anos (14 questões LP, 14 questões MAT):
+ *   N1: 1-3 acertos, N2: 4-7 acertos, N3: 8-11 acertos, N4: 12-14 acertos
+ *
+ * - 5º Ano LP (14 questões): mesma regra do 2º/3º
+ * - 5º Ano MAT (20 questões):
+ *   N1: 1-5 acertos, N2: 6-10 acertos, N3: 11-15 acertos, N4: 16-20 acertos
+ */
+export function calcularNivelPorAcertos(
+  acertos: number | null | undefined,
+  serie: string | null | undefined,
+  disciplina: 'LP' | 'MAT'
+): string | null {
+  // Se acertos for null, undefined ou 0, retornar null
+  if (acertos === null || acertos === undefined || acertos <= 0) {
+    return null
+  }
+
+  const numeroSerie = extrairNumeroSerie(serie)
+  if (!numeroSerie) return null
+
+  // Regras para 2º e 3º Anos (LP e MAT: 14 questões cada)
+  if (numeroSerie === '2' || numeroSerie === '3') {
+    if (acertos >= 1 && acertos <= 3) return 'N1'
+    if (acertos >= 4 && acertos <= 7) return 'N2'
+    if (acertos >= 8 && acertos <= 11) return 'N3'
+    if (acertos >= 12 && acertos <= 14) return 'N4'
+    // Se passou de 14, ainda é N4
+    if (acertos > 14) return 'N4'
+  }
+
+  // Regras para 5º Ano
+  if (numeroSerie === '5') {
+    // LP: 14 questões (mesma regra do 2º/3º)
+    if (disciplina === 'LP') {
+      if (acertos >= 1 && acertos <= 3) return 'N1'
+      if (acertos >= 4 && acertos <= 7) return 'N2'
+      if (acertos >= 8 && acertos <= 11) return 'N3'
+      if (acertos >= 12 && acertos <= 14) return 'N4'
+      if (acertos > 14) return 'N4'
+    }
+    // MAT: 20 questões
+    if (disciplina === 'MAT') {
+      if (acertos >= 1 && acertos <= 5) return 'N1'
+      if (acertos >= 6 && acertos <= 10) return 'N2'
+      if (acertos >= 11 && acertos <= 15) return 'N3'
+      if (acertos >= 16 && acertos <= 20) return 'N4'
+      if (acertos > 20) return 'N4'
+    }
+  }
+
+  return null
+}
+
+/**
+ * Converte o nível de aprendizagem da produção textual para o formato N1-N4
+ *
+ * Mapeamento:
+ * - INSUFICIENTE -> N1
+ * - BÁSICO -> N2
+ * - ADEQUADO -> N3
+ * - AVANÇADO -> N4
+ */
+export function converterNivelProducao(nivelAtual: string | null | undefined): string | null {
+  if (!nivelAtual) return null
+
+  const nivelNormalizado = nivelAtual.toUpperCase().trim()
+
+  // Mapeamento direto
+  const mapeamento: Record<string, string> = {
+    'INSUFICIENTE': 'N1',
+    'BÁSICO': 'N2',
+    'BASICO': 'N2',  // Sem acento
+    'ADEQUADO': 'N3',
+    'AVANÇADO': 'N4',
+    'AVANCADO': 'N4', // Sem acento
+    // Também aceitar formato já convertido
+    'N1': 'N1',
+    'N2': 'N2',
+    'N3': 'N3',
+    'N4': 'N4',
+  }
+
+  return mapeamento[nivelNormalizado] || null
+}
+
+/**
+ * Converte um nível (N1, N2, N3, N4) para valor numérico
+ */
+export function nivelParaValor(nivel: string | null | undefined): number | null {
+  if (!nivel) return null
+
+  const mapeamento: Record<string, number> = {
+    'N1': 1,
+    'N2': 2,
+    'N3': 3,
+    'N4': 4,
+  }
+
+  return mapeamento[nivel.toUpperCase().trim()] || null
+}
+
+/**
+ * Converte um valor numérico para nível (N1, N2, N3, N4)
+ */
+export function valorParaNivel(valor: number | null | undefined): string | null {
+  if (valor === null || valor === undefined) return null
+
+  // Arredondar para o inteiro mais próximo
+  const valorArredondado = Math.round(valor)
+
+  // Garantir que está no intervalo 1-4
+  const valorLimitado = Math.max(1, Math.min(4, valorArredondado))
+
+  const mapeamento: Record<number, string> = {
+    1: 'N1',
+    2: 'N2',
+    3: 'N3',
+    4: 'N4',
+  }
+
+  return mapeamento[valorLimitado] || null
+}
+
+/**
+ * Calcula o nível geral do aluno como média dos 3 níveis (LP, MAT, Produção)
+ *
+ * - Converte cada nível para valor numérico (N1=1, N2=2, N3=3, N4=4)
+ * - Calcula a média dos níveis disponíveis
+ * - Arredonda para o nível mais próximo
+ *
+ * @param nivelLp Nível de LP (N1, N2, N3, N4)
+ * @param nivelMat Nível de MAT (N1, N2, N3, N4)
+ * @param nivelProd Nível de Produção (N1, N2, N3, N4)
+ * @returns Nível geral do aluno (N1, N2, N3, N4) ou null se não houver níveis válidos
+ */
+export function calcularNivelAluno(
+  nivelLp: string | null | undefined,
+  nivelMat: string | null | undefined,
+  nivelProd: string | null | undefined
+): string | null {
+  const valorLp = nivelParaValor(nivelLp)
+  const valorMat = nivelParaValor(nivelMat)
+  const valorProd = nivelParaValor(nivelProd)
+
+  // Coletar apenas valores válidos
+  const valoresValidos = [valorLp, valorMat, valorProd].filter(
+    (v): v is number => v !== null && v !== undefined
+  )
+
+  // Se não houver nenhum valor válido, retornar null
+  if (valoresValidos.length === 0) return null
+
+  // Calcular média
+  const soma = valoresValidos.reduce((acc, v) => acc + v, 0)
+  const media = soma / valoresValidos.length
+
+  // Converter média para nível
+  return valorParaNivel(media)
+}
+
+/**
+ * Verifica se uma série é dos Anos Iniciais (2º, 3º ou 5º)
+ */
+export function isAnosIniciais(serie: string | null | undefined): boolean {
+  const numero = extrairNumeroSerie(serie)
+  return numero === '2' || numero === '3' || numero === '5'
+}
+
+/**
+ * Obtém a cor do badge para um nível
+ */
+export function getCorNivel(nivel: string | null | undefined): string {
+  if (!nivel) return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+
+  const cores: Record<string, string> = {
+    'N1': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    'N2': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+    'N3': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    'N4': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  }
+
+  return cores[nivel.toUpperCase().trim()] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+}
