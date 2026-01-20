@@ -51,6 +51,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const pathname = usePathname()
   const [usuario, setUsuario] = useState<any>(null)
   const [menuAberto, setMenuAberto] = useState(false)
+  const [menuDesktopOculto, setMenuDesktopOculto] = useState(true) // Menu oculto por padrão em desktop
   const [modoOffline, setModoOffline] = useState(false)
   const [personalizacao, setPersonalizacao] = useState<Personalizacao>({})
   const [dataAtual, setDataAtual] = useState('')
@@ -310,14 +311,25 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         <div className="px-2 sm:px-4 md:px-6 lg:px-8">
           {/* Linha superior: Logo, Nome do Sistema, Data */}
           <div className="flex justify-between items-center h-14 sm:h-16 lg:h-[72px]">
-            {/* Seção esquerda: Menu mobile + Logo + Nome */}
+            {/* Seção esquerda: Menu mobile/desktop + Logo + Nome */}
             <div className="flex items-center min-w-0 gap-2 sm:gap-3">
+              {/* Botão menu mobile */}
               <button
                 onClick={() => setMenuAberto(!menuAberto)}
                 className="lg:hidden p-1.5 sm:p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 flex-shrink-0 transition-all duration-200"
                 aria-label="Menu"
               >
                 {menuAberto ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
+              </button>
+
+              {/* Botão toggle menu desktop (gaveta) */}
+              <button
+                onClick={() => setMenuDesktopOculto(!menuDesktopOculto)}
+                className="hidden lg:flex p-1.5 sm:p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 flex-shrink-0 transition-all duration-200"
+                aria-label={menuDesktopOculto ? "Abrir menu" : "Fechar menu"}
+                title={menuDesktopOculto ? "Abrir menu lateral" : "Fechar menu lateral"}
+              >
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
 
               {/* Logo do Sistema */}
@@ -452,7 +464,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           className={`
             fixed inset-y-0 left-0 z-40
             w-52 sm:w-56 md:w-64 bg-white dark:bg-slate-800 shadow-lg dark:shadow-slate-900/50 border-r border-gray-200 dark:border-slate-700 transform transition-all duration-300 ease-in-out
-            ${menuAberto ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            ${menuAberto ? 'translate-x-0' : '-translate-x-full'} ${menuDesktopOculto ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
             flex-shrink-0 overflow-y-auto
             pt-14 sm:pt-16 lg:pt-[72px]
           `}
@@ -473,7 +485,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
                           : 'text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:text-indigo-600 dark:hover:text-indigo-400'
                         }
                       `}
-                      onClick={() => setMenuAberto(false)}
+                      onClick={() => {
+                        setMenuAberto(false)
+                        setMenuDesktopOculto(true)
+                      }}
                     >
                       <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0 ${isActive ? 'text-white' : ''}`} />
                       <span className="truncate">{item.label}</span>
@@ -496,14 +511,22 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           />
         )}
 
+        {/* Overlay para desktop quando menu está visível */}
+        {!menuDesktopOculto && (
+          <div
+            className="hidden lg:block fixed inset-0 bg-black/30 dark:bg-black/50 z-30"
+            onClick={() => setMenuDesktopOculto(true)}
+          />
+        )}
+
         {/* Main Content - Com margem para compensar sidebar fixo em telas grandes */}
-        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-slate-900 transition-colors duration-300 lg:ml-64">
+        <main className={`flex-1 p-2 sm:p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-slate-900 transition-all duration-300 ${menuDesktopOculto ? '' : 'lg:ml-64'}`}>
           {children}
         </main>
       </div>
 
       {/* Rodape - Com margem para compensar sidebar fixo em telas grandes */}
-      <div className="lg:ml-64">
+      <div className={`transition-all duration-300 ${menuDesktopOculto ? '' : 'lg:ml-64'}`}>
         <Rodape />
       </div>
     </div>
