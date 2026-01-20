@@ -38,7 +38,7 @@ import {
   isDisciplinaAplicavel,
   formatarNota
 } from '@/lib/dados/utils'
-import { NivelBadge } from '@/components/dados'
+import { NivelBadge, SeriesChips } from '@/components/dados'
 
 // Aliases para compatibilidade
 type ResultadoConsolidado = ResultadoConsolidadoPainel
@@ -503,41 +503,24 @@ export default function PainelDados({
       </div>
 
       {/* Filtro Global de Série - Visível em todas as abas */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 mb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">Série:</span>
-          <button
-            onClick={() => setFiltrosAlunos(prev => ({ ...prev, serie: undefined, etapa_ensino: undefined }))}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
-              !filtrosAlunos.serie
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Todas
-          </button>
-          {listaSeries.map((serie) => (
-            <button
-              key={serie}
-              onClick={() => {
-                const etapa = getEtapaFromSerie(serie)
-                setFiltrosAlunos(prev => ({ ...prev, serie, etapa_ensino: etapa }))
-              }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
-                filtrosAlunos.serie === serie
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
-              }`}
-            >
-              {serie}
-            </button>
-          ))}
-          {filtrosAlunos.serie && (
-            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-              ({isAnosIniciais(filtrosAlunos.serie) ? 'Anos Iniciais' : 'Anos Finais'})
-            </span>
-          )}
-        </div>
+      <div className="mb-4">
+        <SeriesChips
+          series={listaSeries}
+          serieSelecionada={filtrosAlunos.serie || ''}
+          onChange={(serie) => {
+            if (!serie) {
+              setFiltrosAlunos(prev => ({ ...prev, serie: undefined, etapa_ensino: undefined }))
+            } else {
+              const etapa = getEtapaFromSerie(serie)
+              setFiltrosAlunos(prev => ({ ...prev, serie, etapa_ensino: etapa }))
+            }
+          }}
+        />
+        {filtrosAlunos.serie && (
+          <p className="mt-1 ml-2 text-xs text-gray-500 dark:text-gray-400">
+            ({isAnosIniciais(filtrosAlunos.serie) ? 'Anos Iniciais' : 'Anos Finais'})
+          </p>
+        )}
       </div>
 
       {/* Conteudo das Abas */}
