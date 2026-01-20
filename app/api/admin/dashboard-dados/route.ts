@@ -742,6 +742,7 @@ export async function GET(request: NextRequest) {
         e.nome as escola,
         p.nome as polo,
         rc.serie,
+        rc.turma_id,
         t.codigo as turma,
         rc.presenca,
         -- Media calculada com divisor fixo baseada na serie
