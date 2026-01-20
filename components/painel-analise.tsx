@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2,
-  Eye, RefreshCw, ChevronLeft, ChevronRight
+  Eye, RefreshCw
 } from 'lucide-react'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
@@ -16,7 +16,7 @@ import {
   formatarNota
 } from '@/lib/dados/utils'
 import { AlunoSelecionado, OpcaoSelect } from '@/lib/dados/types'
-import { NivelBadge, CelulaNotaComNivel } from '@/components/dados'
+import { NivelBadge, CelulaNotaComNivel, PaginationControls } from '@/components/dados'
 
 interface ResultadoConsolidadoAnalise {
   id: string
@@ -868,29 +868,14 @@ export default function PainelAnalise({
         </div>
 
         {/* Paginacao */}
-        {paginacao.totalPaginas > 1 && (
-          <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Pagina {paginaAtual} de {paginacao.totalPaginas}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={paginaAnterior}
-                disabled={!paginacao.temAnterior}
-                className="p-2 rounded-lg border border-gray-300 dark:border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-slate-700"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={proximaPagina}
-                disabled={!paginacao.temProxima}
-                className="p-2 rounded-lg border border-gray-300 dark:border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-slate-700"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        )}
+        <PaginationControls
+          paginaAtual={paginaAtual}
+          totalPaginas={paginacao.totalPaginas}
+          temProxima={paginacao.temProxima}
+          temAnterior={paginacao.temAnterior}
+          onProxima={proximaPagina}
+          onAnterior={paginaAnterior}
+        />
       </div>
 
       {/* Modal */}

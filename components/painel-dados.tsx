@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   BarChart3, School, Users, GraduationCap, BookOpen, TrendingUp,
-  CheckCircle, XCircle, Search, Filter, X, Eye, ChevronLeft, ChevronRight,
+  CheckCircle, XCircle, Search, Filter, X, Eye,
   Award, Target, CheckCircle2, RefreshCw
 } from 'lucide-react'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
@@ -41,7 +41,7 @@ import {
   isDisciplinaAplicavel,
   formatarNota
 } from '@/lib/dados/utils'
-import { NivelBadge, SeriesChips } from '@/components/dados'
+import { NivelBadge, SeriesChips, PaginationControls } from '@/components/dados'
 
 // Aliases para compatibilidade
 type ResultadoConsolidado = ResultadoConsolidadoPainel
@@ -1752,32 +1752,19 @@ function AbaAlunos({
         </div>
 
         {/* Paginacao */}
-        {paginacao.totalPaginas > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-slate-700 border-t border-gray-200 dark:border-slate-600">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Mostrando {((paginaAtual - 1) * 50) + 1} - {Math.min(paginaAtual * 50, paginacao.total)} de {paginacao.total}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => carregarAlunos(paginaAtual - 1)}
-                disabled={!paginacao.temAnterior}
-                className="p-2 rounded-lg border border-gray-300 dark:border-slate-600 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-600"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Pagina {paginaAtual} de {paginacao.totalPaginas}
-              </span>
-              <button
-                onClick={() => carregarAlunos(paginaAtual + 1)}
-                disabled={!paginacao.temProxima}
-                className="p-2 rounded-lg border border-gray-300 dark:border-slate-600 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-slate-600"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        <PaginationControls
+          paginaAtual={paginaAtual}
+          totalPaginas={paginacao.totalPaginas}
+          total={paginacao.total}
+          itensPorPagina={50}
+          temProxima={paginacao.temProxima}
+          temAnterior={paginacao.temAnterior}
+          onProxima={() => carregarAlunos(paginaAtual + 1)}
+          onAnterior={() => carregarAlunos(paginaAtual - 1)}
+          mostrarContagem={true}
+          tamanhoIcone="sm"
+          className="bg-gray-50 dark:bg-slate-700"
+        />
 
         {/* Legenda de Critérios de Avaliação (Anos Iniciais) */}
         {filtros.serie && isAnosIniciais(filtros.serie) && (

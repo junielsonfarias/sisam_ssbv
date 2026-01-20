@@ -11,6 +11,7 @@ export { default as CelulaNotaComNivel } from './CelulaNotaComNivel'
 
 // Componentes de tabela
 export { default as TabelaPaginada } from './TabelaPaginada'
+export { default as PaginationControls } from './PaginationControls'
 
 // Componentes de filtros e navegacao
 export { default as FiltroSelect } from './FiltroSelect'
