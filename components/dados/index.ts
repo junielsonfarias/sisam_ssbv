@@ -7,6 +7,7 @@
 export { default as MetricCard } from './MetricCard'
 export { default as DisciplinaCard } from './DisciplinaCard'
 export { default as NivelBadge } from './NivelBadge'
+export { default as CelulaNotaComNivel } from './CelulaNotaComNivel'
 
 // Componentes de tabela
 export { default as TabelaPaginada } from './TabelaPaginada'

@@ -245,3 +245,36 @@ export const getNivelColor = (nivel: string | undefined | null): string => {
   if (n === 'N4' || n === 'AVANÇADO' || n === 'AVANCADO') return 'text-green-600 dark:text-green-400'
   return 'text-gray-500 dark:text-gray-400'
 }
+
+/**
+ * Converte valor para número de forma segura
+ * Substitui duplicações de `const toNum = (v: any) => ...`
+ */
+export const toNumber = (value: unknown): number => {
+  if (typeof value === 'number') return isNaN(value) ? 0 : value
+  if (typeof value === 'string') return parseFloat(value) || 0
+  return 0
+}
+
+/**
+ * Converte array de valores para números
+ */
+export const toNumberArray = (values: unknown[]): number[] => {
+  return values.map(toNumber)
+}
+
+/**
+ * Soma um array de valores numéricos
+ */
+export const sumNumbers = (values: unknown[]): number => {
+  return toNumberArray(values).reduce((acc, val) => acc + val, 0)
+}
+
+/**
+ * Calcula média de um array de valores
+ */
+export const avgNumbers = (values: unknown[]): number => {
+  const nums = toNumberArray(values).filter(n => n > 0)
+  if (nums.length === 0) return 0
+  return nums.reduce((acc, val) => acc + val, 0) / nums.length
+}

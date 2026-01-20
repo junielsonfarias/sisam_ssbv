@@ -327,3 +327,40 @@ export interface PainelDadosProps {
   escolasEndpoint?: string
   turmasEndpoint?: string
 }
+
+// Interfaces para filtros de alunos
+export interface FiltrosAlunos {
+  escola_id?: string
+  turma_id?: string
+  serie?: string
+  presenca?: string
+  etapa_ensino?: string
+}
+
+// Interface para paginacao
+export interface PaginacaoInfo {
+  pagina: number
+  limite: number
+  total: number
+  totalPaginas: number
+}
+
+// Interface para opcao de select
+export interface OpcaoSelect {
+  id: string
+  nome?: string
+  codigo?: string
+  escola_id?: string
+}
+
+// Interface para configuracao de disciplina
+export interface DisciplinaConfig {
+  codigo: string
+  nome: string
+  sigla: string
+  cor: string
+  campo_nota: string
+  campo_acertos: string
+  campo_nivel?: string
+  tipo?: 'nota' | 'nivel'
+}

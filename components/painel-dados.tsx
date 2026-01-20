@@ -7,7 +7,7 @@ import {
   Award, Target, CheckCircle2, RefreshCw
 } from 'lucide-react'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { obterDisciplinasPorSerieSync, obterTodasDisciplinas } from '@/lib/disciplinas-por-serie'
+import { obterDisciplinasPorSerieSync, obterTodasDisciplinas, type Disciplina } from '@/lib/disciplinas-por-serie'
 import {
   isCacheValid,
   getCachedEstatisticas,
@@ -23,7 +23,10 @@ import {
   TurmaPainel,
   EstatisticasPainel,
   PainelDadosProps,
-  AlunoSelecionado
+  AlunoSelecionado,
+  FiltrosAlunos,
+  PaginacaoInfo,
+  OpcaoSelect
 } from '@/lib/dados/types'
 import {
   isAnosIniciais,
@@ -98,15 +101,9 @@ export default function PainelDados({
   // Estados para aba Alunos (similar a resultados consolidados)
   const [resultados, setResultados] = useState<ResultadoConsolidado[]>([])
   const [buscaAluno, setBuscaAluno] = useState('')
-  const [filtrosAlunos, setFiltrosAlunos] = useState<{
-    escola_id?: string
-    turma_id?: string
-    serie?: string
-    presenca?: string
-    etapa_ensino?: string
-  }>({})
+  const [filtrosAlunos, setFiltrosAlunos] = useState<FiltrosAlunos>({})
   const [paginaAtual, setPaginaAtual] = useState(1)
-  const [paginacao, setPaginacao] = useState({
+  const [paginacao, setPaginacao] = useState<PaginacaoInfo & { temProxima: boolean; temAnterior: boolean }>({
     pagina: 1,
     limite: 50,
     total: 0,
@@ -121,8 +118,8 @@ export default function PainelDados({
 
 
   // Listas para filtros
-  const [listaEscolas, setListaEscolas] = useState<any[]>([])
-  const [listaTurmas, setListaTurmas] = useState<any[]>([])
+  const [listaEscolas, setListaEscolas] = useState<OpcaoSelect[]>([])
+  const [listaTurmas, setListaTurmas] = useState<OpcaoSelect[]>([])
   const [listaSeries, setListaSeries] = useState<string[]>(['2º Ano', '3º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'])
 
   // Controle de carregamento
@@ -1274,19 +1271,19 @@ function AbaAlunos({
   resultados: ResultadoConsolidado[]
   busca: string
   setBusca: (v: string) => void
-  filtros: any
-  setFiltros: (v: any) => void
-  listaEscolas: any[]
-  listaTurmas: any[]
+  filtros: FiltrosAlunos
+  setFiltros: (v: FiltrosAlunos) => void
+  listaEscolas: OpcaoSelect[]
+  listaTurmas: OpcaoSelect[]
   listaSeries: string[]
-  paginacao: any
+  paginacao: PaginacaoInfo & { temProxima: boolean; temAnterior: boolean }
   paginaAtual: number
   carregarAlunos: (p: number) => void
-  carregarAlunosComFiltros: (filtros: any, busca: string, pagina: number) => void
+  carregarAlunosComFiltros: (filtros: FiltrosAlunos, busca: string, pagina: number) => void
   carregando: boolean
-  disciplinasExibir: any[]
+  disciplinasExibir: Disciplina[]
   getTotalQuestoesPorSerie: (resultado: ResultadoConsolidado, codigo: string) => number | undefined
-  setAlunoSelecionado: (v: any) => void
+  setAlunoSelecionado: (v: AlunoSelecionado | null) => void
   setModalAberto: (v: boolean) => void
   tipoUsuario: string
   getEtapaFromSerie: (serie: string | undefined | null) => string | undefined
@@ -1367,7 +1364,7 @@ function AbaAlunos({
   // Filtra turmas baseado na escola selecionada - memoizado para performance
   const turmasFiltradas = useMemo(() =>
     filtros.escola_id
-      ? listaTurmas.filter((t: any) => t.escola_id === filtros.escola_id)
+      ? listaTurmas.filter((t) => t.escola_id === filtros.escola_id)
       : listaTurmas
   , [filtros.escola_id, listaTurmas])
 
@@ -1499,7 +1496,7 @@ function AbaAlunos({
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700"
             >
               <option value="">Todas</option>
-              {turmasFiltradas.map((t: any) => (
+              {turmasFiltradas.map((t) => (
                 <option key={t.id} value={t.id}>{t.codigo || t.nome}</option>
               ))}
             </select>
@@ -1644,7 +1641,7 @@ function AbaAlunos({
                       </span>
                     </td>
                     {disciplinasExibir.map((disciplina) => {
-                      const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
+                      const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as number | string | null)
                       const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
                       const totalQuestoes = getTotalQuestoesPorSerie(resultado, disciplina.codigo)
                       const aplicavel = isDisciplinaAplicavel(disciplina.codigo, resultado.serie)

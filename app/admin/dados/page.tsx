@@ -53,7 +53,8 @@ import {
   formatarNota,
   getNotaNumero,
   getNotaColor,
-  getNotaBgColor
+  getNotaBgColor,
+  toNumber
 } from '@/lib/dados/utils'
 
 
@@ -242,8 +243,7 @@ export default function DadosPage() {
       // Em vez de múltiplas iterações O(n²) a O(n⁴)
       // =====================================================
 
-      // Helpers definidos uma única vez
-      const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
+      // Usa toNumber de lib/dados/utils (evita duplicação)
 
       // Pré-criar mapas de lookup para evitar .find() em loops
       const escolaParaPolo = new Map<string, string>()
@@ -302,12 +302,12 @@ export default function DadosPage() {
         niveisMap[nivel] = (niveisMap[nivel] || 0) + 1
 
         // Valores numéricos
-        const mediaAluno = toNum(r.media_aluno)
-        const notaLp = toNum(r.nota_lp)
-        const notaMat = toNum(r.nota_mat)
-        const notaCh = toNum(r.nota_ch)
-        const notaCn = toNum(r.nota_cn)
-        const notaProd = toNum(r.nota_producao)
+        const mediaAluno = toNumber(r.media_aluno)
+        const notaLp = toNumber(r.nota_lp)
+        const notaMat = toNumber(r.nota_mat)
+        const notaCh = toNumber(r.nota_ch)
+        const notaCn = toNumber(r.nota_cn)
+        const notaProd = toNumber(r.nota_producao)
 
         // DEBUG: Log para verificar nota_producao
         if (notaProd > 0) {
@@ -473,25 +473,23 @@ export default function DadosPage() {
         ],
         topAlunos: (() => {
           // Top 10 alunos com maior média
-          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
           const presentes = resultadosFiltrados.filter(r => r.presenca?.toString().toUpperCase() === 'P')
           return presentes
             .map(r => ({
               nome: r.aluno_nome,
               escola: r.escola_nome,
-              media_geral: toNum(r.media_aluno)
+              media_geral: toNumber(r.media_aluno)
             }))
             .filter(a => a.media_geral > 0)
             .sort((a, b) => b.media_geral - a.media_geral)
             .slice(0, 10)
         })(),
         alunosDetalhados: resultadosFiltrados.map((r) => {
-          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
-          const notaLp = toNum(r.nota_lp)
-          const notaMat = toNum(r.nota_mat)
-          const notaCh = toNum(r.nota_ch)
-          const notaCn = toNum(r.nota_cn)
-          const notaProd = toNum(r.nota_producao)
+          const notaLp = toNumber(r.nota_lp)
+          const notaMat = toNumber(r.nota_mat)
+          const notaCh = toNumber(r.nota_ch)
+          const notaCn = toNumber(r.nota_cn)
+          const notaProd = toNumber(r.nota_producao)
 
           // Calcular média com divisor fixo baseado na série
           const numeroSerie = r.serie?.toString().replace(/[^0-9]/g, '')
@@ -518,10 +516,10 @@ export default function DadosPage() {
             nota_cn: notaCn,
             nota_producao: notaProd,
             // Campos de acertos para exibição
-            acertos_lp: toNum(r.total_acertos_lp),
-            acertos_mat: toNum(r.total_acertos_mat),
-            acertos_ch: toNum(r.total_acertos_ch),
-            acertos_cn: toNum(r.total_acertos_cn),
+            acertos_lp: toNumber(r.total_acertos_lp),
+            acertos_mat: toNumber(r.total_acertos_mat),
+            acertos_ch: toNumber(r.total_acertos_ch),
+            acertos_cn: toNumber(r.total_acertos_cn),
             // Campos de configuração de questões por série
             qtd_questoes_lp: r.qtd_questoes_lp,
             qtd_questoes_mat: r.qtd_questoes_mat,
@@ -988,12 +986,11 @@ export default function DadosPage() {
 
         if (isPresente) {
           acc.presentes++
-          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
-          const notaLp = toNum(aluno.nota_lp)
-          const notaMat = toNum(aluno.nota_mat)
-          const notaCh = toNum(aluno.nota_ch)
-          const notaCn = toNum(aluno.nota_cn)
-          const notaProd = toNum(aluno.nota_producao)
+          const notaLp = toNumber(aluno.nota_lp)
+          const notaMat = toNumber(aluno.nota_mat)
+          const notaCh = toNumber(aluno.nota_ch)
+          const notaCn = toNumber(aluno.nota_cn)
+          const notaProd = toNumber(aluno.nota_producao)
 
           // Calcular média dinamicamente baseado na série (Anos Iniciais vs Anos Finais)
           const numeroSerie = aluno.serie?.match(/(\d+)/)?.[1]
@@ -1130,12 +1127,11 @@ export default function DadosPage() {
 
         if (isPresente) {
           acc.presentes++
-          const toNum = (v: any) => typeof v === 'string' ? parseFloat(v) || 0 : (v || 0)
-          const notaLp = toNum(aluno.nota_lp)
-          const notaMat = toNum(aluno.nota_mat)
-          const notaCh = toNum(aluno.nota_ch)
-          const notaCn = toNum(aluno.nota_cn)
-          const notaProd = toNum(aluno.nota_producao)
+          const notaLp = toNumber(aluno.nota_lp)
+          const notaMat = toNumber(aluno.nota_mat)
+          const notaCh = toNumber(aluno.nota_ch)
+          const notaCn = toNumber(aluno.nota_cn)
+          const notaProd = toNumber(aluno.nota_producao)
 
           // Calcular média dinamicamente baseado na série (Anos Iniciais vs Anos Finais)
           const numeroSerie = aluno.serie?.match(/(\d+)/)?.[1]
