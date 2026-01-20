@@ -16,7 +16,7 @@ import {
   formatarNota
 } from '@/lib/dados/utils'
 import { AlunoSelecionado, OpcaoSelect } from '@/lib/dados/types'
-import { NivelBadge, CelulaNotaComNivel, PaginationControls } from '@/components/dados'
+import { NivelBadge, CelulaNotaComNivel, PaginationControls, TableEmptyState } from '@/components/dados'
 
 interface ResultadoConsolidadoAnalise {
   id: string
@@ -753,18 +753,18 @@ export default function PainelAnalise({
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
               {carregando ? (
-                <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
-                    Carregando...
-                  </td>
-                </tr>
+                <TableEmptyState
+                  colSpan={12}
+                  tipo="carregando"
+                  titulo="Carregando..."
+                />
               ) : resultadosFiltrados.length === 0 ? (
-                <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                    Nenhum resultado encontrado. Clique em "Pesquisar" para carregar os dados.
-                  </td>
-                </tr>
+                <TableEmptyState
+                  colSpan={12}
+                  tipo="nao-pesquisado"
+                  titulo="Nenhum resultado encontrado"
+                  mensagem="Clique em Pesquisar para carregar os dados"
+                />
               ) : (
                 resultadosFiltrados.map((resultado) => {
                   const anosIniciais = isAnosIniciais(resultado.serie)

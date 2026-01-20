@@ -22,6 +22,7 @@ export { default as SeriesChips } from './SeriesChips'
 // Componentes de status e feedback
 export { default as StatusIndicators } from './StatusIndicators'
 export { default as LoadingSpinner } from './LoadingSpinner'
+export { default as EmptyState, TableEmptyState } from './EmptyState'
 
 // Componentes de graficos
 export { default as CustomTooltip } from './CustomTooltip'
