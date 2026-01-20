@@ -7,6 +7,7 @@ import { Filter, X, School, TrendingUp, BarChart3, Users, Target, BookOpen, Eye,
 import * as offlineStorage from '@/lib/offline-storage'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
 import { useUserType } from '@/lib/hooks/useUserType'
+import { PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
 
 interface DadosComparativo {
   escola_id: string
@@ -32,10 +33,10 @@ interface DadosComparativo {
 }
 
 export default function ComparativosPage() {
-  const [escolas, setEscolas] = useState<any[]>([])
-  const [polos, setPolos] = useState<any[]>([])
+  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
+  const [polos, setPolos] = useState<PoloSimples[]>([])
   const [series, setSeries] = useState<string[]>([])
-  const [turmas, setTurmas] = useState<any[]>([])
+  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [escolasSelecionadas, setEscolasSelecionadas] = useState<string[]>([])
   const [poloNome, setPoloNome] = useState<string>('')
   const [filtros, setFiltros] = useState({

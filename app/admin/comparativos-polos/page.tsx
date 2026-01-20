@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useMemo } from 'react'
 import { Filter, X, MapPin, TrendingUp, BarChart3, Users, Target, BookOpen, School, Printer } from 'lucide-react'
 import { useUserType } from '@/lib/hooks/useUserType'
+import { PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
 
 interface DadosComparativoPolo {
   polo_id: string
@@ -34,10 +35,10 @@ interface DadosComparativoEscola extends DadosComparativoPolo {
 
 export default function ComparativosPolosPage() {
   const { tipoUsuario } = useUserType()
-  const [polos, setPolos] = useState<any[]>([])
-  const [escolas, setEscolas] = useState<any[]>([])
+  const [polos, setPolos] = useState<PoloSimples[]>([])
+  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
   const [series, setSeries] = useState<string[]>([])
-  const [turmas, setTurmas] = useState<any[]>([])
+  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [polosSelecionados, setPolosSelecionados] = useState<string[]>([])
   const [filtros, setFiltros] = useState({
     ano_letivo: '',

@@ -351,6 +351,34 @@ export interface Paginacao extends PaginacaoInfo {
   temAnterior: boolean
 }
 
+// Interfaces simples para uso em selects e listas
+export interface PoloSimples {
+  id: string
+  nome: string
+  codigo?: string | null
+  ativo?: boolean
+}
+
+export interface EscolaSimples {
+  id: string
+  nome: string
+  polo_id: string
+  polo_nome?: string
+  codigo?: string | null
+  ativo?: boolean
+}
+
+export interface TurmaSimples {
+  id: string
+  codigo: string
+  nome?: string
+  serie: string
+  escola_id: string
+  escola_nome?: string
+  polo_id?: string
+  ano_letivo?: string
+}
+
 // Interface para opcao de select
 export interface OpcaoSelect {
   id: string

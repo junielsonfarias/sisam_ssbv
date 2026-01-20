@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import { Settings, Save, Loader2, CheckCircle2, XCircle, GripVertical } from 'lucide-react'
+import { useUserType } from '@/lib/hooks/useUserType'
 
 interface ModuloTecnico {
   id: string
@@ -13,26 +14,13 @@ interface ModuloTecnico {
 }
 
 export default function ModulosTecnicoPage() {
-  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
+  const { tipoUsuario } = useUserType()
   const [modulos, setModulos] = useState<ModuloTecnico[]>([])
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro', texto: string } | null>(null)
 
   useEffect(() => {
-    const carregarTipoUsuario = async () => {
-      try {
-        const response = await fetch('/api/auth/verificar')
-        const data = await response.json()
-        if (data.usuario) {
-          const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-          setTipoUsuario(tipo)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar tipo de usuário:', error)
-      }
-    }
-    carregarTipoUsuario()
     carregarModulos()
   }, [])
 

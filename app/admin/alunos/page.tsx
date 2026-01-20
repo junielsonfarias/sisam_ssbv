@@ -7,7 +7,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Plus, Edit, Trash2, Search, Eye } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { normalizarSerie, ordenarSeries } from '@/lib/dados/utils'
-import { Paginacao } from '@/lib/dados/types'
+import { Paginacao, PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
 
 interface Aluno {
   id: string
@@ -38,9 +38,9 @@ export default function AlunosPage() {
   const toast = useToast()
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [alunos, setAlunos] = useState<Aluno[]>([])
-  const [polos, setPolos] = useState<any[]>([])
-  const [escolas, setEscolas] = useState<any[]>([])
-  const [turmas, setTurmas] = useState<any[]>([])
+  const [polos, setPolos] = useState<PoloSimples[]>([])
+  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
+  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [buscaDebounced, setBuscaDebounced] = useState('')

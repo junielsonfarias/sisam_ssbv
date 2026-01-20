@@ -18,6 +18,7 @@ const ResponsiveContainer = dynamic(() => import('recharts').then(mod => ({ defa
 import { Bar, Line, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Scatter, ReferenceLine } from 'recharts'
 import { isAnosIniciais, isAnosFinais, DISCIPLINAS_OPTIONS_ANOS_INICIAIS, DISCIPLINAS_OPTIONS_ANOS_FINAIS } from '@/lib/disciplinas-mapping'
 import { useUserType } from '@/lib/hooks/useUserType'
+import { PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 
@@ -43,9 +44,9 @@ interface FiltrosGraficos {
 export default function GraficosPage() {
   const { tipoUsuario } = useUserType()
   const [filtros, setFiltros] = useState<FiltrosGraficos>({})
-  const [polos, setPolos] = useState<any[]>([])
-  const [escolas, setEscolas] = useState<any[]>([])
-  const [turmas, setTurmas] = useState<any[]>([])
+  const [polos, setPolos] = useState<PoloSimples[]>([])
+  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
+  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [series, setSeries] = useState<string[]>([])
   const [dados, setDados] = useState<any>(null)
   const [carregando, setCarregando] = useState(false)

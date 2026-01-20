@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Search, School, X } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { useUserType } from '@/lib/hooks/useUserType'
+import { PoloSimples } from '@/lib/dados/types'
 
 interface Escola {
   id: string
@@ -19,7 +20,7 @@ export default function EscolasPage() {
   const toast = useToast()
   const { tipoUsuario } = useUserType()
   const [escolas, setEscolas] = useState<Escola[]>([])
-  const [polos, setPolos] = useState<any[]>([])
+  const [polos, setPolos] = useState<PoloSimples[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [mostrarModal, setMostrarModal] = useState(false)

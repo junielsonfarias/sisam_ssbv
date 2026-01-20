@@ -19,7 +19,8 @@ import {
   isDisciplinaAplicavel
 } from '@/lib/dados/utils'
 import { NivelBadge } from '@/components/dados'
-import { Paginacao } from '@/lib/dados/types'
+import { Paginacao, PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
+import { useUserType } from '@/lib/hooks/useUserType'
 
 interface SerieConfig {
   serie: string | number
@@ -79,7 +80,7 @@ interface Filtros {
 }
 
 export default function ResultadosPage() {
-  const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
+  const { tipoUsuario } = useUserType()
   const [resultados, setResultados] = useState<ResultadoConsolidado[]>([])
 
   // Estado para modo offline
@@ -118,9 +119,9 @@ export default function ResultadosPage() {
   const [carregando, setCarregando] = useState(false)
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<Filtros>({})
-  const [polos, setPolos] = useState<any[]>([])
-  const [escolas, setEscolas] = useState<any[]>([])
-  const [turmas, setTurmas] = useState<any[]>([])
+  const [polos, setPolos] = useState<PoloSimples[]>([])
+  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
+  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [series, setSeries] = useState<string[]>([])
   const [anosLetivos, setAnosLetivos] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
@@ -179,35 +180,6 @@ export default function ResultadosPage() {
   }
 
   useEffect(() => {
-    const carregarTipoUsuario = async () => {
-      // Se offline, usar usuário do localStorage
-      if (!offlineStorage.isOnline()) {
-        const offlineUser = offlineStorage.getUser()
-        if (offlineUser) {
-          const tipo = offlineUser.tipo_usuario === 'administrador' ? 'admin' : offlineUser.tipo_usuario
-          setTipoUsuario(tipo)
-        }
-        return
-      }
-
-      try {
-        const response = await fetch('/api/auth/verificar')
-        const data = await response.json()
-        if (data.usuario) {
-          const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-          setTipoUsuario(tipo)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar tipo de usuário:', error)
-        // Fallback para usuário offline
-        const offlineUser = offlineStorage.getUser()
-        if (offlineUser) {
-          const tipo = offlineUser.tipo_usuario === 'administrador' ? 'admin' : offlineUser.tipo_usuario
-          setTipoUsuario(tipo)
-        }
-      }
-    }
-    carregarTipoUsuario()
     carregarDadosIniciais()
   }, [])
 
