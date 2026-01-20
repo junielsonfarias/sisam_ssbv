@@ -1402,6 +1402,7 @@ export default function DadosPage() {
         escola_id: string
         escola: string
         polo: string
+        turmas_ids: Set<string>
         total_alunos: number
         presentes: number
         faltantes: number
@@ -1441,6 +1442,7 @@ export default function DadosPage() {
             escola_id: escolaId,
             escola: dados?.escola || '',
             polo: dados?.polo || '',
+            turmas_ids: new Set<string>(),
             total_alunos: 0,
             presentes: 0,
             faltantes: 0,
@@ -1460,6 +1462,10 @@ export default function DadosPage() {
         }
 
         const acc = escolasMap.get(escolaId)!
+        // Adicionar turma_id ao Set para contar turmas distintas
+        if (aluno.turma_id) {
+          acc.turmas_ids.add(String(aluno.turma_id))
+        }
         acc.total_alunos++
 
         if (isPresente) {
@@ -1505,7 +1511,7 @@ export default function DadosPage() {
         escola_id: acc.escola_id,
         escola: acc.escola,
         polo: acc.polo,
-        total_turmas: 0, // Recalculado dinamicamente, não disponível no cache
+        total_turmas: acc.turmas_ids.size,
         total_alunos: acc.total_alunos,
         media_geral: calcMediaArredondada(acc.soma_geral, acc.count_geral),
         media_lp: calcMediaArredondada(acc.soma_lp, acc.count_lp),
