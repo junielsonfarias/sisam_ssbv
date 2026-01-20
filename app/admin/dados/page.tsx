@@ -24,7 +24,18 @@ import {
 import { useDebouncedCallback } from '@/lib/hooks/useDebounce'
 
 // Imports dos componentes e utilitarios refatorados
-import { MetricCard, DisciplinaCard, NivelBadge, TabelaPaginada } from '@/components/dados'
+import {
+  MetricCard,
+  DisciplinaCard,
+  NivelBadge,
+  TabelaPaginada,
+  CustomTooltip,
+  StatusIndicators,
+  LoadingSpinner,
+  AbaNavegacao,
+  SeriesChips,
+  type AbaConfig
+} from '@/components/dados'
 import type { DashboardData, AlunoSelecionado } from '@/lib/dados/types'
 import {
   COLORS,
@@ -50,35 +61,6 @@ export default function DadosPage() {
   const [usandoDadosOffline, setUsandoDadosOffline] = useState(false)
   const [modoOffline, setModoOffline] = useState(false)
   const [usandoCache, setUsandoCache] = useState(false) // Indica se está usando dados do cache local
-
-  // Componente auxiliar para tooltip customizado
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      // Filtrar valores null/undefined para não mostrar disciplinas não aplicáveis
-      const filteredPayload = payload.filter((entry: any) => entry.value !== null && entry.value !== undefined)
-      if (filteredPayload.length === 0) return null
-
-      return (
-        <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 text-sm">
-          <p className="font-semibold text-gray-900 dark:text-white mb-1">{label}</p>
-          {filteredPayload.map((entry: any, index: number) => {
-            // Formatar valor: inteiro para contagens, decimal para médias/notas
-            const isContagem = entry.name === 'Alunos' || entry.dataKey === 'quantidade' || entry.dataKey === 'total_alunos'
-            const valorFormatado = typeof entry.value === 'number'
-              ? (isContagem ? Math.round(entry.value).toLocaleString('pt-BR') : entry.value.toFixed(2))
-              : entry.value
-            return (
-              <p key={index} style={{ color: entry.color }} className="flex justify-between gap-4">
-                <span>{entry.name}:</span>
-                <span className="font-medium">{valorFormatado}</span>
-              </p>
-            )
-          })}
-        </div>
-      )
-    }
-    return null
-  }
 
   const [dados, setDados] = useState<DashboardData | null>(null)
   const [dadosCache, setDadosCache] = useState<DashboardData | null>(null) // Cache dos dados completos para filtragem local
@@ -1933,24 +1915,12 @@ export default function DadosPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
         <div className="max-w-full">
-          {/* Indicador de modo offline */}
-          {(usandoDadosOffline || modoOffline) && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
-              <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-orange-800">Modo Offline</p>
-                <p className="text-xs text-orange-600">Exibindo dados sincronizados. Conecte-se para atualizar.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Indicador de cache ativo */}
-          {usandoCache && !usandoDadosOffline && !modoOffline && (
-            <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-2 flex items-center gap-2 mb-2">
-              <Zap className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-              <p className="text-xs font-medium text-green-700 dark:text-green-300">Carregamento instantâneo (usando cache local)</p>
-            </div>
-          )}
+          {/* Indicadores de status (offline/cache) */}
+          <StatusIndicators
+            modoOffline={modoOffline}
+            usandoDadosOffline={usandoDadosOffline}
+            usandoCache={usandoCache}
+          />
 
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mt-4">
@@ -2239,12 +2209,7 @@ export default function DadosPage() {
           )}
 
           {carregando ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 mx-auto"></div>
-                <p className="text-gray-500 dark:text-gray-400 mt-4 text-lg">Carregando dados...</p>
-              </div>
-            </div>
+            <LoadingSpinner mensagem="Carregando dados..." />
           ) : dados ? (
             <>
               {/* KPIs */}
