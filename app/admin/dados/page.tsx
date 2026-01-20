@@ -49,7 +49,7 @@ interface DashboardData {
   niveis: { nivel: string; quantidade: number }[]
   mediasPorSerie: { serie: string; total_alunos: number; presentes: number; media_geral: number; media_lp: number; media_mat: number; media_ch: number | null; media_cn: number | null; media_prod: number | null }[]
   mediasPorPolo: { polo_id: string; polo: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; presentes: number; faltantes: number }[]
-  mediasPorEscola: { escola_id: string; escola: string; polo: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; media_prod: number; media_ch: number; media_cn: number; presentes: number; faltantes: number }[]
+  mediasPorEscola: { escola_id: string; escola: string; polo: string; total_turmas: number; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; media_prod: number; media_ch: number; media_cn: number; presentes: number; faltantes: number }[]
   mediasPorTurma: { turma_id: string; turma: string; escola: string; serie: string; total_alunos: number; media_geral: number; media_lp: number; media_mat: number; media_prod: number; media_ch: number; media_cn: number; presentes: number; faltantes: number }[]
   faixasNota: { faixa: string; quantidade: number }[]
   presenca: { status: string; quantidade: number }[]
@@ -769,6 +769,7 @@ export default function DadosPage() {
             escola_id: e.id.toString(),
             escola: e.nome,
             polo: poloNomes.get(String(e.polo_id)) || '',
+            total_turmas: 0, // Não disponível offline
             total_alunos: acc.total,
             media_geral: calcMedia(acc.soma_geral, acc.count_geral),
             media_lp: calcMedia(acc.soma_lp, acc.count_lp),
@@ -1504,6 +1505,7 @@ export default function DadosPage() {
         escola_id: acc.escola_id,
         escola: acc.escola,
         polo: acc.polo,
+        total_turmas: 0, // Recalculado dinamicamente, não disponível no cache
         total_alunos: acc.total_alunos,
         media_geral: calcMediaArredondada(acc.soma_geral, acc.count_geral),
         media_lp: calcMediaArredondada(acc.soma_lp, acc.count_lp),
@@ -3015,6 +3017,7 @@ export default function DadosPage() {
                         const colunas: any[] = [
                           { key: 'escola', label: 'Escola', align: 'left' },
                           { key: 'polo', label: 'Polo', align: 'left' },
+                          { key: 'total_turmas', label: 'Turmas', align: 'center', format: 'badge_turmas' },
                           { key: 'total_alunos', label: 'Alunos', align: 'center' },
                           { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
                         ]
@@ -4169,6 +4172,14 @@ function TabelaPaginada({ dados, colunas, ordenacao, onOrdenar, paginaAtual, tot
         }
         const numero = numeroMatch[1]
         return <span className="text-sm text-gray-700 dark:text-gray-300">{numero}º Ano</span>
+      case 'badge_turmas':
+        // Badge para número de turmas
+        const numTurmas = parseInt(valor) || 0
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-bold text-sm">
+            {numTurmas}
+          </span>
+        )
       default:
         return <span className="text-sm text-gray-700 dark:text-gray-300">{valor}</span>
     }
