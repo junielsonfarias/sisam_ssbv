@@ -497,7 +497,7 @@ export async function GET(request: NextRequest) {
         e.id as escola_id,
         e.nome as escola,
         p.nome as polo,
-        COUNT(DISTINCT t.id) as total_turmas,
+        COUNT(DISTINCT rc.turma_id) as total_turmas,
         COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
         -- Média CORRIGIDA: considera nota_producao para anos iniciais
         ROUND(AVG(CASE
@@ -542,7 +542,6 @@ export async function GET(request: NextRequest) {
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN polos p ON e.polo_id = p.id
-      LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = REGEXP_REPLACE('${serie.trim()}'::text, '[^0-9]', '', 'g')` : ''}
       ${joinNivelAprendizagem}
       ${whereClauseBase}
       GROUP BY e.id, e.nome, p.nome
