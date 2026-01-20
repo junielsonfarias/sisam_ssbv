@@ -230,34 +230,54 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Mapeamento de disciplinas para seus campos correspondentes
+    const disciplinaMap: Record<string, { campo: string; usarTabela: boolean }> = {
+      'LP': { campo: 'nota_lp', usarTabela: false },
+      'MAT': { campo: 'nota_mat', usarTabela: false },
+      'CH': { campo: 'nota_ch', usarTabela: false },
+      'CN': { campo: 'nota_cn', usarTabela: false },
+      'PT': { campo: 'nota_producao', usarTabela: true }
+    }
+
     if (faixaMedia) {
       const [min, max] = faixaMedia.split('-').map(Number)
       if (!isNaN(min) && !isNaN(max)) {
-        // CORREÇÃO: Usar a mesma fórmula de cálculo de média que é usada na query de alunos detalhados
-        // A média é calculada dinamicamente baseada na série do aluno
-        // IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
-        const mediaCalculada = `
-          CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              ROUND(
-                (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
-                NULLIF(
-                  CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
-            ELSE
-              ROUND(
-                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
-                NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
-          END
-        `
-        whereConditions.push(`(${mediaCalculada}) >= $${paramIndex} AND (${mediaCalculada}) < $${paramIndex + 1}`)
-        params.push(min, max === 10 ? 10.01 : max)
-        paramIndex += 2
+        // Se uma disciplina específica foi selecionada, filtrar pela nota DESSA disciplina
+        // Caso contrário, filtrar pela média geral
+        if (disciplina) {
+          const infoDisciplina = disciplinaMap[disciplina.toUpperCase()]
+          if (infoDisciplina) {
+            const prefixo = infoDisciplina.usarTabela ? 'rc_table' : 'rc'
+            const campoNota = `COALESCE(CAST(${prefixo}.${infoDisciplina.campo} AS DECIMAL), 0)`
+            whereConditions.push(`${campoNota} >= $${paramIndex} AND ${campoNota} < $${paramIndex + 1}`)
+            params.push(min, max === 10 ? 10.01 : max)
+            paramIndex += 2
+          }
+        } else {
+          // Sem disciplina selecionada: filtrar pela média geral
+          const mediaCalculada = `
+            CASE
+              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                ROUND(
+                  (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
+                  NULLIF(
+                    CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+              ELSE
+                ROUND(
+                  (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
+                  NULLIF(
+                    CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                    CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+            END
+          `
+          whereConditions.push(`(${mediaCalculada}) >= $${paramIndex} AND (${mediaCalculada}) < $${paramIndex + 1}`)
+          params.push(min, max === 10 ? 10.01 : max)
+          paramIndex += 2
+        }
       }
     }
 
@@ -271,20 +291,15 @@ export async function GET(request: NextRequest) {
     const paramIndexBase = paramIndex
 
     if (disciplina) {
-      // Filtrar por disciplina específica - apenas para análises de notas/acertos
-      // NÃO adiciona ao whereConditions para não afetar contagem de alunos
-      const disciplinaMap: Record<string, { campo: string; usarTabela: boolean }> = {
-        'LP': { campo: 'nota_lp', usarTabela: false },
-        'MAT': { campo: 'nota_mat', usarTabela: false },
-        'CH': { campo: 'nota_ch', usarTabela: false },
-        'CN': { campo: 'nota_cn', usarTabela: false },
-        'PT': { campo: 'nota_producao', usarTabela: true }
-      }
+      // Filtrar por disciplina específica - apenas para garantir que tem nota na disciplina
+      // (Se faixaMedia já foi aplicado com disciplina, essa condição complementa)
       const infoDisciplina = disciplinaMap[disciplina.toUpperCase()]
       if (infoDisciplina) {
-        // Usar parâmetros para evitar SQL injection
         const prefixo = infoDisciplina.usarTabela ? 'rc_table' : 'rc'
-        whereConditions.push(`${prefixo}.${infoDisciplina.campo} IS NOT NULL AND CAST(${prefixo}.${infoDisciplina.campo} AS DECIMAL) > 0`)
+        // Só adicionar se ainda não tiver filtro de faixa (para não duplicar)
+        if (!faixaMedia) {
+          whereConditions.push(`${prefixo}.${infoDisciplina.campo} IS NOT NULL AND CAST(${prefixo}.${infoDisciplina.campo} AS DECIMAL) > 0`)
+        }
       }
     }
 

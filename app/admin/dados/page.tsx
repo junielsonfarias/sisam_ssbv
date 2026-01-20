@@ -3284,7 +3284,9 @@ export default function DadosPage() {
                               Presença
                             </th>
                             {disciplinasExibir.map((disciplina) => {
-                              const isDestaque = filtroDisciplina === disciplina.codigo
+                              // Mapear PT -> PROD para comparação (filtro usa PT, disciplina usa PROD)
+                              const isDestaque = filtroDisciplina === disciplina.codigo ||
+                                (filtroDisciplina === 'PT' && disciplina.codigo === 'PROD')
                               return (
                                 <th key={disciplina.codigo} className={`text-center py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b w-14 md:w-16 lg:w-18 ${isDestaque ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-100 border-indigo-400 dark:border-indigo-600 ring-2 ring-indigo-400' : 'text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-700'}`}>
                                   {disciplina.codigo}
@@ -3376,7 +3378,9 @@ export default function DadosPage() {
                                     const nota = disciplinaAplicavel ? getNotaNumero((resultado as any)[disciplina.campo_nota]) : null
                                     const acertos = disciplinaAplicavel && disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
                                     const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
-                                    const isDestaqueDisciplina = filtroDisciplina === disciplina.codigo
+                                    // Mapear PT -> PROD para comparação (filtro usa PT, disciplina usa PROD)
+                                    const isDestaqueDisciplina = filtroDisciplina === disciplina.codigo ||
+                                      (filtroDisciplina === 'PT' && disciplina.codigo === 'PROD')
                                     const getNivelColor = (nivel: string | undefined | null): string => {
                                       if (!nivel) return 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200'
                                       const nivelLower = nivel.toLowerCase()
