@@ -495,9 +495,9 @@ async function buscarMediaEAprovacao(
 
 /**
  * Busca médias por tipo de ensino (anos iniciais e finais)
- * Anos Iniciais: 2º, 3º, 5º (séries 2, 3, 5)
- * Anos Finais: 6º, 7º, 8º, 9º (séries 6, 7, 8, 9)
- * Usa lógica direta sem depender de configuracao_series para maior robustez
+ * Anos Iniciais: 2º, 3º, 5º (séries 2, 3, 5) - disciplinas: LP, MAT, PROD
+ * Anos Finais: 6º, 7º, 8º, 9º (séries 6, 7, 8, 9) - disciplinas: LP, MAT, CH, CN
+ * Calcula a média dinamicamente a partir das notas individuais quando media_aluno não está disponível
  */
 async function buscarMediasPorTipoEnsino(
   escopo: EscopoEstatisticas,
@@ -511,9 +511,7 @@ async function buscarMediasPorTipoEnsino(
   const params: (string | null)[] = []
   let paramIndex = 1
   let whereConditions: string[] = [
-    `rc.presenca IN ('P', 'p')`,
-    `rc.media_aluno IS NOT NULL`,
-    `CAST(rc.media_aluno AS DECIMAL) > 0`
+    `rc.presenca IN ('P', 'p')`
   ]
 
   // Construir condições WHERE
@@ -537,8 +535,11 @@ async function buscarMediasPorTipoEnsino(
   const whereClause = `WHERE ${whereConditions.join(' AND ')}`
   const needsJoin = escopo === 'polo' && filtros.poloId
 
-  // Query usando CASE para determinar tipo de ensino diretamente da série
-  // Usa LEFT() para pegar o primeiro caractere (ex: "8º Ano" -> "8")
+  // Query que calcula a média dinamicamente:
+  // - Se media_aluno está disponível, usa ela
+  // - Senão, calcula a partir das notas individuais baseado no tipo de ensino
+  // Anos Iniciais: (LP + MAT + PROD) / 3
+  // Anos Finais: (LP + MAT + CH + CN) / 4
   const query = `
     SELECT
       CASE
@@ -546,7 +547,31 @@ async function buscarMediasPorTipoEnsino(
         WHEN LEFT(rc.serie, 1) IN ('6', '7', '8', '9') THEN 'anos_finais'
         ELSE 'outro'
       END as tipo_ensino,
-      ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media,
+      ROUND(AVG(
+        COALESCE(
+          NULLIF(CAST(rc.media_aluno AS DECIMAL), 0),
+          CASE
+            WHEN LEFT(rc.serie, 1) IN ('2', '3', '5') THEN
+              (COALESCE(NULLIF(CAST(rc.nota_lp AS DECIMAL), 0), 0) +
+               COALESCE(NULLIF(CAST(rc.nota_mat AS DECIMAL), 0), 0) +
+               COALESCE(NULLIF(CAST(rc.nota_producao AS DECIMAL), 0), 0)) /
+              NULLIF(
+                (CASE WHEN COALESCE(NULLIF(CAST(rc.nota_lp AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
+                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_mat AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
+                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_producao AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END), 0)
+            ELSE
+              (COALESCE(NULLIF(CAST(rc.nota_lp AS DECIMAL), 0), 0) +
+               COALESCE(NULLIF(CAST(rc.nota_mat AS DECIMAL), 0), 0) +
+               COALESCE(NULLIF(CAST(rc.nota_ch AS DECIMAL), 0), 0) +
+               COALESCE(NULLIF(CAST(rc.nota_cn AS DECIMAL), 0), 0)) /
+              NULLIF(
+                (CASE WHEN COALESCE(NULLIF(CAST(rc.nota_lp AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
+                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_mat AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
+                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_ch AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
+                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_cn AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END), 0)
+          END
+        )
+      ), 2) as media,
       COUNT(DISTINCT rc.aluno_id) as total
     FROM resultados_consolidados_unificada rc
     ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
