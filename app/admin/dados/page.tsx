@@ -782,8 +782,29 @@ export default function DadosPage() {
       taxa_erro: d.total_respostas > 0 ? (d.total_erros / d.total_respostas) * 100 : 0
     }))
 
+    // Agregar questões por código (somar totais de diferentes variações de série)
+    const questoesAgregadas = questoesFiltradas.reduce((acc, q) => {
+      const key = q.questao_codigo
+      if (!acc[key]) {
+        acc[key] = {
+          questao_codigo: q.questao_codigo,
+          questao_descricao: q.questao_descricao,
+          disciplina: q.disciplina,
+          total_respostas: 0,
+          total_acertos: 0,
+          total_erros: 0
+        }
+      }
+      acc[key].total_respostas += q.total_respostas
+      acc[key].total_acertos += q.total_acertos
+      acc[key].total_erros += q.total_erros
+      return acc
+    }, {} as Record<string, { questao_codigo: string; questao_descricao: string; disciplina: string; total_respostas: number; total_acertos: number; total_erros: number }>)
+
+    const questoesAgregadasArray = Object.values(questoesAgregadas)
+
     // Questões com mais erros (ordenar por taxa de erro decrescente)
-    const questoesComMaisErros = questoesFiltradas
+    const questoesComMaisErros = questoesAgregadasArray
       .map(q => ({
         questao_codigo: q.questao_codigo,
         questao_descricao: q.questao_descricao,
@@ -798,7 +819,7 @@ export default function DadosPage() {
       .slice(0, 20)
 
     // Questões com mais acertos (ordenar por taxa de acerto decrescente)
-    const questoesComMaisAcertos = questoesFiltradas
+    const questoesComMaisAcertos = questoesAgregadasArray
       .map(q => ({
         questao_codigo: q.questao_codigo,
         questao_descricao: q.questao_descricao,
