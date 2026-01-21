@@ -120,7 +120,7 @@ export default function PainelDados({
   // Listas para filtros
   const [listaEscolas, setListaEscolas] = useState<OpcaoSelect[]>([])
   const [listaTurmas, setListaTurmas] = useState<OpcaoSelect[]>([])
-  const [listaSeries, setListaSeries] = useState<string[]>(['2º Ano', '3º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'])
+  const [listaSeries, setListaSeries] = useState<string[]>([])
 
   // Controle de carregamento
   const [filtrosCarregados, setFiltrosCarregados] = useState(false)
@@ -171,6 +171,11 @@ export default function PainelDados({
           nomeEscola: data.nomeEscola || '',
           nomePolo: data.nomePolo || '',
         })
+
+        // Atualizar lista de séries disponíveis (apenas na primeira carga, sem filtro de série)
+        if (!serieParam && data.seriesDisponiveis && data.seriesDisponiveis.length > 0) {
+          setListaSeries(data.seriesDisponiveis)
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error)

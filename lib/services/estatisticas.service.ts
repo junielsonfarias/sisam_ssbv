@@ -73,6 +73,9 @@ export interface EstatisticasGerais {
   mediaAnosFinais: number
   totalAnosIniciais: number
   totalAnosFinais: number
+
+  // Séries disponíveis (com dados)
+  seriesDisponiveis?: string[]
 }
 
 /**
@@ -571,6 +574,57 @@ async function buscarMediasPorTipoEnsino(
   return { mediaAnosIniciais, mediaAnosFinais, totalAnosIniciais, totalAnosFinais }
 }
 
+/**
+ * Busca séries disponíveis (que têm dados)
+ * Retorna apenas as séries que têm resultados cadastrados
+ */
+async function buscarSeriesDisponiveis(
+  escopo: EscopoEstatisticas,
+  filtros: FiltrosEstatisticas
+): Promise<string[]> {
+  const params: (string | null)[] = []
+  let paramIndex = 1
+  let whereConditions: string[] = [
+    `rc.serie IS NOT NULL`,
+    `rc.serie != ''`
+  ]
+
+  // Construir condições WHERE baseadas no escopo
+  if (escopo === 'polo' && filtros.poloId) {
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
+    params.push(filtros.poloId)
+    paramIndex++
+  } else if (escopo === 'escola' && filtros.escolaId) {
+    whereConditions.push(`rc.escola_id = $${paramIndex}`)
+    params.push(filtros.escolaId)
+    paramIndex++
+  }
+
+  const whereClause = `WHERE ${whereConditions.join(' AND ')}`
+  const needsJoin = escopo === 'polo' && filtros.poloId
+
+  const query = `
+    SELECT DISTINCT rc.serie
+    FROM resultados_consolidados_unificada rc
+    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    ${whereClause}
+    ORDER BY rc.serie
+  `
+
+  const result = await pool.query(query, params)
+
+  // Ordenar séries: Anos Iniciais (2, 3, 5) primeiro, depois Anos Finais (6, 7, 8, 9)
+  const seriesOrdenadas = result.rows
+    .map((row: any) => row.serie as string)
+    .sort((a: string, b: string) => {
+      const numA = parseInt(a.replace(/[^0-9]/g, '')) || 0
+      const numB = parseInt(b.replace(/[^0-9]/g, '')) || 0
+      return numA - numB
+    })
+
+  return seriesOrdenadas
+}
+
 // ============================================================================
 // FUNÇÃO PRINCIPAL DO SERVIÇO
 // ============================================================================
@@ -669,7 +723,8 @@ export async function getEstatisticas(
     resultadosQuery,
     presencaQuery,
     mediaQuery,
-    tipoEnsinoQuery
+    tipoEnsinoQuery,
+    seriesQuery
   ] = await Promise.all([
     executarQuerySegura(() => buscarTotalEscolas(escopo, filtros), 'buscar total de escolas'),
     executarQuerySegura(() => buscarTotalTurmas(escopo, filtros), 'buscar total de turmas'),
@@ -677,7 +732,8 @@ export async function getEstatisticas(
     executarQuerySegura(() => buscarTotalResultados(escopo, filtros), 'buscar total de resultados'),
     executarQuerySegura(() => buscarPresenca(escopo, filtros), 'buscar presença'),
     executarQuerySegura(() => buscarMediaEAprovacao(escopo, filtros), 'buscar média e aprovação'),
-    executarQuerySegura(() => buscarMediasPorTipoEnsino(escopo, filtros), 'buscar médias por tipo de ensino')
+    executarQuerySegura(() => buscarMediasPorTipoEnsino(escopo, filtros), 'buscar médias por tipo de ensino'),
+    executarQuerySegura(() => buscarSeriesDisponiveis(escopo, filtros), 'buscar séries disponíveis')
   ])
 
   // Preencher resultado com dados das queries
@@ -702,6 +758,10 @@ export async function getEstatisticas(
     resultado.mediaAnosFinais = tipoEnsinoQuery.dados.mediaAnosFinais
     resultado.totalAnosIniciais = tipoEnsinoQuery.dados.totalAnosIniciais
     resultado.totalAnosFinais = tipoEnsinoQuery.dados.totalAnosFinais
+  }
+
+  if (seriesQuery.sucesso && seriesQuery.dados) {
+    resultado.seriesDisponiveis = seriesQuery.dados
   }
 
   // Buscar taxa de acertos (apenas para escola)
