@@ -332,16 +332,14 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
                 <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
 
-              {/* Logo do Sistema */}
-              {personalizacao.logo_url && (
-                <div className="flex-shrink-0 hidden sm:block">
-                  <img
-                    src={personalizacao.logo_url}
-                    alt="Logo do Sistema"
-                    className="h-8 sm:h-9 lg:h-10 w-auto object-contain rounded"
-                  />
-                </div>
-              )}
+              {/* Logo do Sistema - Usa logo estática para evitar problemas com banco de dados */}
+              <div className="flex-shrink-0 hidden sm:block">
+                <img
+                  src="/logo.png"
+                  alt="Logo do Sistema"
+                  className="h-8 sm:h-9 lg:h-10 w-auto object-contain rounded"
+                />
+              </div>
 
               {/* Nome do Sistema */}
               <div className="flex flex-col min-w-0">

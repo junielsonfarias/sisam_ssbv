@@ -244,17 +244,11 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-lg shadow-xl dark:shadow-slate-900/50 w-full max-w-md border border-gray-200 dark:border-slate-700 transition-colors duration-300">
           <div className="flex items-center justify-center mb-6">
-            {personalizacao.imagem_url ? (
-              <img
-                src={personalizacao.imagem_url}
-                alt="Logo"
-                className="max-h-20 max-w-full object-contain dark:brightness-110"
-              />
-            ) : (
-              <div className="p-3 rounded-full" style={{ backgroundColor: personalizacao.cor_primaria }}>
-                <LogIn className="w-8 h-8 text-white" />
-              </div>
-            )}
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="max-h-20 max-w-full object-contain dark:brightness-110"
+            />
           </div>
 
           <h1 className="text-2xl font-bold text-center mb-2 dark:text-white" style={{ color: personalizacao.cor_primaria }}>
