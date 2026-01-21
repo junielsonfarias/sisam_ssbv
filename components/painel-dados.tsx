@@ -41,7 +41,14 @@ import {
   isDisciplinaAplicavel,
   formatarNota
 } from '@/lib/dados/utils'
-import { NivelBadge, SeriesChips, PaginationControls } from '@/components/dados'
+import {
+  NivelBadge,
+  SeriesChips,
+  PaginationControls,
+  BarraBuscaPesquisar,
+  TabelaCarregando,
+  EstadoBuscaInicial
+} from '@/components/dados'
 
 // Aliases para compatibilidade
 type ResultadoConsolidado = ResultadoConsolidadoPainel
@@ -808,65 +815,23 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
   return (
     <div className="space-y-4">
       {/* Busca e Botão Pesquisar */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Buscar escola por nome..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onPesquisar()}
-              className="w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white dark:bg-slate-700"
-            />
-          </div>
-          <button
-            onClick={onPesquisar}
-            disabled={carregando}
-            className="px-4 sm:px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[100px] sm:min-w-[140px]"
-          >
-            {carregando ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                <span className="hidden sm:inline">Buscando...</span>
-                <span className="sm:hidden">...</span>
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4" />
-                <span>Pesquisar</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      <BarraBuscaPesquisar
+        placeholder="Buscar escola por nome..."
+        busca={busca}
+        setBusca={setBusca}
+        onPesquisar={onPesquisar}
+        carregando={carregando}
+      />
 
       {/* Lista de Escolas */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
         {carregando ? (
-          <div className="text-center py-16">
-            <div className="relative mx-auto w-16 h-16 mb-4">
-              <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-slate-700"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 dark:border-t-indigo-400 animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <School className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-            <p className="text-gray-600 dark:text-gray-300 font-medium">Carregando escolas...</p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Aguarde um momento</p>
-          </div>
+          <TabelaCarregando Icone={School} mensagem="Carregando escolas..." />
         ) : !pesquisou ? (
-          <div className="text-center py-16">
-            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-              <Search className="w-10 h-10 text-indigo-400" />
-            </div>
-            <p className="text-gray-700 dark:text-gray-200 font-semibold text-lg">Pesquise as escolas</p>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-md mx-auto">
-              Clique no botão <strong className="text-indigo-600">Pesquisar</strong> para carregar a lista de escolas.
-              Use o campo de busca para filtrar por nome.
-            </p>
-          </div>
+          <EstadoBuscaInicial
+            titulo="Pesquise as escolas"
+            mensagem="Clique no botão Pesquisar para carregar a lista de escolas. Use o campo de busca para filtrar por nome."
+          />
         ) : escolas.length === 0 ? (
           <div className="text-center py-12">
             <School className="w-12 h-12 mx-auto text-gray-300 mb-3" />
@@ -1030,65 +995,23 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
   return (
     <div className="space-y-4">
       {/* Busca e Botão Pesquisar */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Buscar turma por código ou escola..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onPesquisar()}
-              className="w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white dark:bg-slate-700"
-            />
-          </div>
-          <button
-            onClick={onPesquisar}
-            disabled={carregando}
-            className="px-4 sm:px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[100px] sm:min-w-[140px]"
-          >
-            {carregando ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                <span className="hidden sm:inline">Buscando...</span>
-                <span className="sm:hidden">...</span>
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4" />
-                <span>Pesquisar</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      <BarraBuscaPesquisar
+        placeholder="Buscar turma por código ou escola..."
+        busca={busca}
+        setBusca={setBusca}
+        onPesquisar={onPesquisar}
+        carregando={carregando}
+      />
 
       {/* Lista de Turmas */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
         {carregando ? (
-          <div className="text-center py-16">
-            <div className="relative mx-auto w-16 h-16 mb-4">
-              <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-slate-700"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 dark:border-t-indigo-400 animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-            <p className="text-gray-600 dark:text-gray-300 font-medium">Carregando turmas...</p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Aguarde um momento</p>
-          </div>
+          <TabelaCarregando Icone={BookOpen} mensagem="Carregando turmas..." />
         ) : !pesquisou ? (
-          <div className="text-center py-16">
-            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-              <Search className="w-10 h-10 text-indigo-400" />
-            </div>
-            <p className="text-gray-700 dark:text-gray-200 font-semibold text-lg">Pesquise as turmas</p>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-md mx-auto">
-              Clique no botão <strong className="text-indigo-600">Pesquisar</strong> para carregar a lista de turmas.
-              Use o campo de busca para filtrar por código ou escola.
-            </p>
-          </div>
+          <EstadoBuscaInicial
+            titulo="Pesquise as turmas"
+            mensagem="Clique no botão Pesquisar para carregar a lista de turmas. Use o campo de busca para filtrar por código ou escola."
+          />
         ) : turmas.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="w-12 h-12 mx-auto text-gray-300 mb-3" />
@@ -1546,27 +1469,13 @@ function AbaAlunos({
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-450px)] min-h-[300px]">
           {carregando ? (
-            <div className="text-center py-16">
-              <div className="relative mx-auto w-16 h-16 mb-4">
-                <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-slate-700"></div>
-                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 dark:border-t-indigo-400 animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <GraduationCap className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 font-medium">Carregando alunos...</p>
-              <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Aguarde um momento</p>
-            </div>
+            <TabelaCarregando Icone={GraduationCap} mensagem="Carregando alunos..." />
           ) : resultados.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                <Search className="w-10 h-10 text-indigo-400" />
-              </div>
-              <p className="text-gray-700 dark:text-gray-200 font-semibold text-lg">Pesquise os alunos</p>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-md mx-auto">
-                Utilize os filtros acima para refinar sua busca e clique em <strong className="text-indigo-600">Pesquisar Alunos</strong> para carregar os resultados.
-              </p>
-            </div>
+            <EstadoBuscaInicial
+              titulo="Pesquise os alunos"
+              mensagem="Utilize os filtros acima para refinar sua busca e clique em Pesquisar Alunos para carregar os resultados."
+              textoBotao="Pesquisar Alunos"
+            />
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full min-w-[400px] sm:min-w-[600px] md:min-w-[750px] lg:min-w-[900px]">

@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, comparePassword } from '@/lib/auth'
 import pool from '@/database/connection'
 import { isValidEmail } from '@/lib/validation'
+import { checkRateLimit, resetRateLimit } from '@/lib/rate-limiter'
 
 export const dynamic = 'force-dynamic'
+
+// Constantes de rate limiting para alteração de email
+const EMAIL_CHANGE_MAX_ATTEMPTS = 3
+const EMAIL_CHANGE_WINDOW_MS = 60 * 60 * 1000 // 1 hora
 
 // PUT - Alterar email do usuário
 export async function PUT(request: NextRequest) {
@@ -14,6 +19,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { mensagem: 'Não autorizado' },
         { status: 401 }
+      )
+    }
+
+    // Rate limiting: 3 tentativas por hora por usuário
+    const rateLimitKey = `email-change:${usuario.id}`
+    const rateLimit = checkRateLimit(rateLimitKey, EMAIL_CHANGE_MAX_ATTEMPTS, EMAIL_CHANGE_WINDOW_MS)
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { mensagem: rateLimit.message || 'Muitas tentativas de alteração de email. Tente novamente mais tarde.' },
+        { status: 429 }
       )
     }
 
@@ -90,6 +106,9 @@ export async function PUT(request: NextRequest) {
        WHERE id = $2`,
       [novoEmail.trim(), usuario.id]
     )
+
+    // Reset do rate limit após sucesso
+    resetRateLimit(rateLimitKey)
 
     return NextResponse.json({
       mensagem: 'Email alterado com sucesso',

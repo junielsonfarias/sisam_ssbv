@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, hashPassword, comparePassword } from '@/lib/auth'
 import pool from '@/database/connection'
 import { validatePassword } from '@/lib/validation'
+import { checkRateLimit, getClientIP, resetRateLimit } from '@/lib/rate-limiter'
 
 export const dynamic = 'force-dynamic'
+
+// Constantes de rate limiting para alteração de senha
+const PASSWORD_CHANGE_MAX_ATTEMPTS = 5
+const PASSWORD_CHANGE_WINDOW_MS = 60 * 60 * 1000 // 1 hora
 
 // PUT - Alterar senha do usuário
 export async function PUT(request: NextRequest) {
@@ -14,6 +19,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { mensagem: 'Não autorizado' },
         { status: 401 }
+      )
+    }
+
+    // Rate limiting: 5 tentativas por hora por usuário
+    const rateLimitKey = `password-change:${usuario.id}`
+    const rateLimit = checkRateLimit(rateLimitKey, PASSWORD_CHANGE_MAX_ATTEMPTS, PASSWORD_CHANGE_WINDOW_MS)
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { mensagem: rateLimit.message || 'Muitas tentativas de alteração de senha. Tente novamente mais tarde.' },
+        { status: 429 }
       )
     }
 
@@ -79,6 +95,9 @@ export async function PUT(request: NextRequest) {
        WHERE id = $2`,
       [novaSenhaHash, usuario.id]
     )
+
+    // Reset do rate limit após sucesso
+    resetRateLimit(rateLimitKey)
 
     return NextResponse.json({
       mensagem: 'Senha alterada com sucesso'
