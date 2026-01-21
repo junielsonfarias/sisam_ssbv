@@ -3210,8 +3210,26 @@ export default function DadosPage() {
                         </div>
                       )}
 
-                      {/* Questões com Mais Erros */}
-                      {dados.analiseAcertosErros?.questoesComMaisErros && dados.analiseAcertosErros?.questoesComMaisErros.length > 0 && (
+                      {/* Aviso quando "Todas" as séries está selecionado */}
+                      {!filtroSerie && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                          <div className="flex items-start gap-3">
+                            <Search className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                Visão Geral - Todas as Séries
+                              </h4>
+                              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                                Para visualizar a análise detalhada de <strong>Questões com mais erros</strong> e <strong>Questões com mais acertos</strong>,
+                                selecione uma série específica no filtro acima.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Questões com Mais Erros - só exibe quando uma série específica está selecionada */}
+                      {filtroSerie && dados.analiseAcertosErros?.questoesComMaisErros && dados.analiseAcertosErros?.questoesComMaisErros.length > 0 && (
                         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 overflow-hidden">
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Erros</h3>
                           <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -3298,8 +3316,8 @@ export default function DadosPage() {
                         </div>
                       )}
 
-                      {/* Questões com Mais Acertos */}
-                      {dados.analiseAcertosErros?.questoesComMaisAcertos && dados.analiseAcertosErros?.questoesComMaisAcertos.length > 0 && (
+                      {/* Questões com Mais Acertos - só exibe quando uma série específica está selecionada */}
+                      {filtroSerie && dados.analiseAcertosErros?.questoesComMaisAcertos && dados.analiseAcertosErros?.questoesComMaisAcertos.length > 0 && (
                         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 overflow-hidden">
                           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Questões com Mais Acertos</h3>
                           <div className="overflow-x-auto -mx-4 sm:mx-0">
