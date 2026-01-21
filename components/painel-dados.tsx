@@ -279,17 +279,18 @@ export default function PainelDados({
 
   // Recarregar escolas e turmas automaticamente quando série mudar (se já pesquisou)
   useEffect(() => {
-    // Só recarregar se já pesquisou antes E está na aba correspondente
-    if (pesquisouEscolas && abaAtiva === 'escolas') {
+    // Recarregar sempre que a série mudar e já tiver pesquisado antes
+    // (não depende mais da aba ativa para evitar dados desatualizados)
+    if (pesquisouEscolas) {
       console.log('[PainelDados] Série mudou, recarregando escolas:', filtrosAlunos.serie || 'todas')
       carregarEscolas(filtrosAlunos.serie)
     }
-    if (pesquisouTurmas && abaAtiva === 'turmas') {
+    if (pesquisouTurmas) {
       console.log('[PainelDados] Série mudou, recarregando turmas:', filtrosAlunos.serie || 'todas')
       carregarTurmas(filtrosAlunos.serie)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtrosAlunos.serie, abaAtiva])
+  }, [filtrosAlunos.serie])
 
   // NÃO carregar alunos automaticamente - apenas quando clicar em Pesquisar
 
@@ -486,14 +487,9 @@ export default function PainelDados({
           serieSelecionada={filtrosAlunos.serie || ''}
           onChange={(serie) => {
             if (!serie) {
-              // "Todas" selecionado - limpar filtro de série e forçar recarregamento
+              // "Todas" selecionado - limpar filtro de série
+              // O useEffect vai recarregar automaticamente quando o estado mudar
               setFiltrosAlunos(prev => ({ ...prev, serie: undefined, etapa_ensino: undefined }))
-              // Forçar recarregamento passando string vazia explicitamente
-              // (evita que as funções usem o estado antigo devido à natureza assíncrona do setState)
-              carregarEstatisticas('')
-              // Recarregar escolas e turmas se já foram pesquisadas
-              if (pesquisouEscolas) carregarEscolas('')
-              if (pesquisouTurmas) carregarTurmas('')
             } else {
               const etapa = getEtapaFromSerie(serie)
               setFiltrosAlunos(prev => ({ ...prev, serie, etapa_ensino: etapa }))
