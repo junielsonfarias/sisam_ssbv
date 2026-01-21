@@ -486,7 +486,13 @@ export default function PainelDados({
           serieSelecionada={filtrosAlunos.serie || ''}
           onChange={(serie) => {
             if (!serie) {
+              // "Todas" selecionado - limpar filtro de série e forçar recarregamento
               setFiltrosAlunos(prev => ({ ...prev, serie: undefined, etapa_ensino: undefined }))
+              // Forçar recarregamento de estatísticas para mostrar todos os dados
+              carregarEstatisticas()
+              // Recarregar escolas e turmas se já foram pesquisadas
+              if (pesquisouEscolas) carregarEscolas()
+              if (pesquisouTurmas) carregarTurmas()
             } else {
               const etapa = getEtapaFromSerie(serie)
               setFiltrosAlunos(prev => ({ ...prev, serie, etapa_ensino: etapa }))
