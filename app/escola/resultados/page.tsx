@@ -11,8 +11,10 @@ import {
   formatarNota,
   getNotaNumero,
   getNotaColor,
-  getNotaBgColor
+  getNotaBgColor,
+  isAnosIniciais
 } from '@/lib/dados/utils'
+import { NivelBadge } from '@/components/dados'
 
 interface ResultadoConsolidado {
   id: string
@@ -41,6 +43,11 @@ interface ResultadoConsolidado {
   qtd_questoes_mat?: number | null
   qtd_questoes_ch?: number | null
   qtd_questoes_cn?: number | null
+  // Níveis por disciplina (Anos Iniciais)
+  nivel_lp?: string | null
+  nivel_mat?: string | null
+  nivel_prod?: string | null
+  nivel_aluno?: string | null
 }
 
 interface Filtros {
@@ -72,6 +79,12 @@ export default function ResultadosEscolaPage() {
       nota_ch?: number | string | null;
       nota_mat?: number | string | null;
       nota_cn?: number | string | null;
+    };
+    niveisDisciplinas?: {
+      nivel_lp?: string | null;
+      nivel_mat?: string | null;
+      nivel_prod?: string | null;
+      nivel_aluno?: string | null;
     };
   } | null>(null)
 
@@ -429,6 +442,12 @@ export default function ResultadosEscolaPage() {
         nota_ch: aluno.nota_ch,
         nota_mat: aluno.nota_mat,
         nota_cn: aluno.nota_cn,
+      },
+      niveisDisciplinas: {
+        nivel_lp: aluno.nivel_lp,
+        nivel_mat: aluno.nivel_mat,
+        nivel_prod: aluno.nivel_prod,
+        nivel_aluno: aluno.nivel_aluno,
       },
     })
     setModalAberto(true)
@@ -885,6 +904,10 @@ export default function ResultadosEscolaPage() {
                             const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                             const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
                             const aplicavel = isDisciplinaAplicavel(disciplina.codigo, resultado.serie)
+                            // Obter nível da disciplina (Anos Iniciais)
+                            const nivelDisciplina = disciplina.codigo === 'LP' ? resultado.nivel_lp :
+                                                   disciplina.codigo === 'MAT' ? resultado.nivel_mat :
+                                                   disciplina.codigo === 'PROD' ? resultado.nivel_prod : null
 
                             return (
                               <div key={disciplina.codigo} className={`p-2 rounded-lg ${!aplicavel ? 'bg-gray-100 dark:bg-slate-700' : getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
@@ -913,6 +936,12 @@ export default function ResultadosEscolaPage() {
                                         ></div>
                                       </div>
                                     )}
+                                    {/* Badge de nível (Anos Iniciais) */}
+                                    {isAnosIniciais(resultado.serie) && nivelDisciplina && (
+                                      <div className="mt-1">
+                                        <NivelBadge nivel={nivelDisciplina} />
+                                      </div>
+                                    )}
                                   </>
                                 )}
                               </div>
@@ -931,6 +960,10 @@ export default function ResultadosEscolaPage() {
                             <div className={`text-xl font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
                               {formatarNota(resultado.media_aluno, resultado.presenca, resultado.media_aluno)}
                             </div>
+                            {/* Nível geral do aluno (Anos Iniciais) */}
+                            {isAnosIniciais(resultado.serie) && resultado.nivel_aluno && (
+                              <NivelBadge nivel={resultado.nivel_aluno} className="mt-1 font-extrabold" />
+                            )}
                           </div>
                           <button
                             onClick={() => handleVisualizarQuestoes(resultado)}
@@ -1056,6 +1089,10 @@ export default function ResultadosEscolaPage() {
                               const nota = getNotaNumero(resultado[disciplina.campo_nota as keyof ResultadoConsolidado] as any)
                               const acertos = disciplina.campo_acertos ? resultado[disciplina.campo_acertos as keyof ResultadoConsolidado] as number | string : null
                               const aplicavel = isDisciplinaAplicavel(disciplina.codigo, resultado.serie)
+                              // Obter nível da disciplina (Anos Iniciais)
+                              const nivelDisciplina = disciplina.codigo === 'LP' ? resultado.nivel_lp :
+                                                     disciplina.codigo === 'MAT' ? resultado.nivel_mat :
+                                                     disciplina.codigo === 'PROD' ? resultado.nivel_prod : null
 
                               return (
                                 <td key={disciplina.codigo} className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
@@ -1081,6 +1118,12 @@ export default function ResultadosEscolaPage() {
                                           ></div>
                                         </div>
                                       )}
+                                      {/* Badge de nível (Anos Iniciais) */}
+                                      {isAnosIniciais(resultado.serie) && nivelDisciplina && (
+                                        <div className="mt-0.5">
+                                          <NivelBadge nivel={nivelDisciplina} />
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </td>
@@ -1088,8 +1131,8 @@ export default function ResultadosEscolaPage() {
                             })}
                             <td className="py-1 px-0 sm:py-1.5 sm:px-0.5 md:py-2 md:px-1 lg:py-3 lg:px-2 text-center">
                               <div className={`inline-flex flex-col items-center justify-center px-0.5 sm:px-1 md:px-1.5 lg:px-2 py-0.5 sm:py-1 md:py-1.5 lg:py-2 rounded-xl ${getNotaBgColor(resultado.media_aluno)} border-2 ${
-                                mediaNum !== null && mediaNum >= 7 ? 'border-green-500' : 
-                                mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' : 
+                                mediaNum !== null && mediaNum >= 7 ? 'border-green-500' :
+                                mediaNum !== null && mediaNum >= 5 ? 'border-yellow-500' :
                                 'border-red-500'
                               } w-full max-w-[50px] sm:max-w-[55px] md:max-w-[60px] lg:max-w-[70px]`}>
                                 <div className={`text-[10px] sm:text-xs md:text-sm lg:text-base xl:text-lg font-extrabold ${getNotaColor(resultado.media_aluno)}`}>
@@ -1099,6 +1142,10 @@ export default function ResultadosEscolaPage() {
                                   <div className="mt-0.5 text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 dark:text-gray-400">
                                     Média
                                   </div>
+                                )}
+                                {/* Nível geral do aluno (Anos Iniciais) */}
+                                {isAnosIniciais(resultado.serie) && resultado.nivel_aluno && (
+                                  <NivelBadge nivel={resultado.nivel_aluno} className="mt-0.5 font-extrabold" />
                                 )}
                               </div>
                             </td>
@@ -1224,6 +1271,7 @@ export default function ResultadosEscolaPage() {
               anoLetivo={alunoSelecionado.anoLetivo}
               mediaAluno={alunoSelecionado.mediaAluno}
               notasDisciplinas={alunoSelecionado.notasDisciplinas}
+              niveisDisciplinas={alunoSelecionado.niveisDisciplinas}
               isOpen={modalAberto}
               onClose={handleFecharModal}
             />

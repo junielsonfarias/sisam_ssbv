@@ -3,6 +3,13 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
 import { limparTodosOsCaches } from '@/lib/cache-dashboard'
+import {
+  calcularNivelPorAcertos,
+  converterNivelProducao,
+  calcularNivelAluno,
+  isAnosIniciais,
+  extrairNumeroSerie,
+} from '@/lib/config-series'
 
 export const dynamic = 'force-dynamic';
 
@@ -647,6 +654,26 @@ export async function POST(request: NextRequest) {
           // Determinar tipo de avaliação
           const tipoAvaliacao = serieNum >= 1 && serieNum <= 5 ? 'anos_iniciais' : 'anos_finais'
 
+          // Calcular níveis por disciplina (apenas para Anos Iniciais: 2º, 3º e 5º)
+          let nivelLp: string | null = null
+          let nivelMat: string | null = null
+          let nivelProd: string | null = null
+          let nivelAlunoCalc: string | null = null
+
+          if (isAnosIniciais(serie) && !alunoFaltou && !semDados) {
+            // Calcular nível de LP baseado em acertos
+            nivelLp = calcularNivelPorAcertos(acertosLP, serie, 'LP')
+
+            // Calcular nível de MAT baseado em acertos
+            nivelMat = calcularNivelPorAcertos(acertosMAT, serie, 'MAT')
+
+            // Converter nível de produção textual
+            nivelProd = converterNivelProducao(nivelProducao)
+
+            // Calcular nível geral do aluno (média dos 3 níveis)
+            nivelAlunoCalc = calcularNivelAluno(nivelLp, nivelMat, nivelProd)
+          }
+
           // Upsert em resultados_consolidados
           await pool.query(`
             INSERT INTO resultados_consolidados (
@@ -656,14 +683,16 @@ export async function POST(request: NextRequest) {
               nota_producao, nivel_aprendizagem,
               item_producao_1, item_producao_2, item_producao_3, item_producao_4,
               item_producao_5, item_producao_6, item_producao_7, item_producao_8,
-              total_questoes_respondidas, total_questoes_esperadas, tipo_avaliacao
+              total_questoes_respondidas, total_questoes_esperadas, tipo_avaliacao,
+              nivel_lp, nivel_mat, nivel_prod, nivel_aluno
             ) VALUES (
               $1, $2, $3, $4, $5, $6,
               $7, $8, $9, $10,
               $11, $12, $13, $14, $15,
               $16, $17,
               $18, $19, $20, $21, $22, $23, $24, $25,
-              $26, $27, $28
+              $26, $27, $28,
+              $29, $30, $31, $32
             )
             ON CONFLICT (aluno_id, ano_letivo)
             DO UPDATE SET
@@ -693,6 +722,10 @@ export async function POST(request: NextRequest) {
               total_questoes_respondidas = EXCLUDED.total_questoes_respondidas,
               total_questoes_esperadas = EXCLUDED.total_questoes_esperadas,
               tipo_avaliacao = EXCLUDED.tipo_avaliacao,
+              nivel_lp = EXCLUDED.nivel_lp,
+              nivel_mat = EXCLUDED.nivel_mat,
+              nivel_prod = EXCLUDED.nivel_prod,
+              nivel_aluno = EXCLUDED.nivel_aluno,
               atualizado_em = CURRENT_TIMESTAMP
           `, [
             alunoId, escolaId, turmaId, anoLetivo, serie, presencaFinal,
@@ -708,7 +741,8 @@ export async function POST(request: NextRequest) {
             (alunoFaltou || semDados) ? null : (itensProducao[5] ?? null),
             (alunoFaltou || semDados) ? null : (itensProducao[6] ?? null),
             (alunoFaltou || semDados) ? null : (itensProducao[7] ?? null),
-            questoesRespondidas, totalQuestoesEsperadas, tipoAvaliacao
+            questoesRespondidas, totalQuestoesEsperadas, tipoAvaliacao,
+            nivelLp, nivelMat, nivelProd, nivelAlunoCalc
           ])
         }
 

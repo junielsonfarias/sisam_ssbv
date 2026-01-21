@@ -1331,6 +1331,12 @@ export default function ResultadosPage() {
                                   nota_mat: resultado.nota_mat,
                                   nota_cn: resultado.nota_cn,
                                 },
+                                niveisDisciplinas: {
+                                  nivel_lp: resultado.nivel_lp,
+                                  nivel_mat: resultado.nivel_mat,
+                                  nivel_prod: resultado.nivel_prod,
+                                  nivel_aluno: resultado.nivel_aluno,
+                                },
                               })
                               setModalAberto(true)
                             }}
@@ -1538,6 +1544,12 @@ export default function ResultadosPage() {
                                         nota_ch: resultado.nota_ch,
                                         nota_mat: resultado.nota_mat,
                                         nota_cn: resultado.nota_cn,
+                                      },
+                                      niveisDisciplinas: {
+                                        nivel_lp: resultado.nivel_lp,
+                                        nivel_mat: resultado.nivel_mat,
+                                        nivel_prod: resultado.nivel_prod,
+                                        nivel_aluno: resultado.nivel_aluno,
                                       },
                                     })
                                     setModalAberto(true)
