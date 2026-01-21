@@ -19,10 +19,7 @@ export default function SeriesChips({
   onChange,
   carregando = false
 }: SeriesChipsProps) {
-  if (!series || series.length === 0) {
-    return null
-  }
-
+  // Sempre renderizar o componente com o botão "Todas", mesmo se não houver séries carregadas ainda
   return (
     <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-2">
       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase self-center mr-2 flex items-center gap-2">
@@ -42,7 +39,7 @@ export default function SeriesChips({
       >
         Todas
       </button>
-      {series.map((serie) => (
+      {series && series.length > 0 && series.map((serie) => (
         <button
           key={serie}
           onClick={() => onChange(serie)}
