@@ -1336,9 +1336,15 @@ export default function GraficosPage() {
                           {dados.ranking[0]?.media_lp !== undefined && (
                             <>
                               <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">LP</th>
-                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">CH</th>
                               <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">MAT</th>
-                              <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">CN</th>
+                              {isAnosIniciais(filtros.serie) ? (
+                                <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">PROD</th>
+                              ) : (
+                                <>
+                                  <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">CH</th>
+                                  <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base">CN</th>
+                                </>
+                              )}
                             </>
                           )}
                           <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-gray-900 dark:text-white text-base sm:text-lg">Média Geral</th>
@@ -1355,10 +1361,16 @@ export default function GraficosPage() {
                             <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.total_alunos}</td>
                             {item.media_lp !== undefined && (
                               <>
-                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_lp.toFixed(2)}</td>
-                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_ch.toFixed(2)}</td>
-                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_mat.toFixed(2)}</td>
-                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_cn.toFixed(2)}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_lp?.toFixed(2) ?? 'N/A'}</td>
+                                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_mat?.toFixed(2) ?? 'N/A'}</td>
+                                {isAnosIniciais(filtros.serie) ? (
+                                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_producao?.toFixed(2) ?? 'N/A'}</td>
+                                ) : (
+                                  <>
+                                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_ch?.toFixed(2) ?? 'N/A'}</td>
+                                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-300">{item.media_cn?.toFixed(2) ?? 'N/A'}</td>
+                                  </>
+                                )}
                               </>
                             )}
                             <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-base sm:text-lg text-indigo-600 dark:text-indigo-400">{item.media_geral.toFixed(2)}</td>

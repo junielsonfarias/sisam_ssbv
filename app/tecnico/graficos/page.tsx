@@ -938,9 +938,15 @@ export default function GraficosTecnicoPage() {
                           {dados.ranking[0]?.media_lp !== undefined && (
                             <>
                               <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">LP</th>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">CH</th>
                               <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">MAT</th>
-                              <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">CN</th>
+                              {isAnosIniciais(filtros.serie) ? (
+                                <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">PROD</th>
+                              ) : (
+                                <>
+                                  <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">CH</th>
+                                  <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">CN</th>
+                                </>
+                              )}
                             </>
                           )}
                           <th className="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">Média Geral</th>
@@ -957,10 +963,16 @@ export default function GraficosTecnicoPage() {
                             <td className="px-4 py-2 text-center">{item.total_alunos}</td>
                             {item.media_lp !== undefined && (
                               <>
-                                <td className="px-4 py-2 text-center">{item.media_lp.toFixed(2)}</td>
-                                <td className="px-4 py-2 text-center">{item.media_ch.toFixed(2)}</td>
-                                <td className="px-4 py-2 text-center">{item.media_mat.toFixed(2)}</td>
-                                <td className="px-4 py-2 text-center">{item.media_cn.toFixed(2)}</td>
+                                <td className="px-4 py-2 text-center">{item.media_lp?.toFixed(2) ?? 'N/A'}</td>
+                                <td className="px-4 py-2 text-center">{item.media_mat?.toFixed(2) ?? 'N/A'}</td>
+                                {isAnosIniciais(filtros.serie) ? (
+                                  <td className="px-4 py-2 text-center">{item.media_producao?.toFixed(2) ?? 'N/A'}</td>
+                                ) : (
+                                  <>
+                                    <td className="px-4 py-2 text-center">{item.media_ch?.toFixed(2) ?? 'N/A'}</td>
+                                    <td className="px-4 py-2 text-center">{item.media_cn?.toFixed(2) ?? 'N/A'}</td>
+                                  </>
+                                )}
                               </>
                             )}
                             <td className="px-4 py-2 text-center font-bold text-indigo-600 dark:text-indigo-400">{item.media_geral.toFixed(2)}</td>
