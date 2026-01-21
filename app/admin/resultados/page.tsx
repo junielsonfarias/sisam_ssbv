@@ -870,10 +870,10 @@ export default function ResultadosPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-4 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4 mb-4">
               {/* 1. Ano Letivo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Ano Letivo
                 </label>
                 <select
@@ -1044,41 +1044,41 @@ export default function ResultadosPage() {
 
           {/* Cards de Estatísticas */}
           {(estatisticas.total > 0 || carregando) && (
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${carregando ? 'opacity-50' : ''}`}>
-              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between mb-2">
-                  <Users className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.total}</span>
+            <div className={`grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 ${carregando ? 'opacity-50' : ''}`}>
+              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-3 sm:p-4 md:p-5 text-white">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <Users className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 opacity-90" />
+                  <span className="text-xl sm:text-2xl md:text-3xl font-bold">{estatisticas.total}</span>
                 </div>
-                <p className="text-sm opacity-90">Total de Alunos</p>
+                <p className="text-[10px] sm:text-xs md:text-sm opacity-90">Total de Alunos</p>
               </div>
 
-              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between mb-2">
-                  <Target className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.mediaGeral.toFixed(2)}</span>
+              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-3 sm:p-4 md:p-5 text-white">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <Target className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 opacity-90" />
+                  <span className="text-xl sm:text-2xl md:text-3xl font-bold">{estatisticas.mediaGeral.toFixed(2)}</span>
                 </div>
-                <p className="text-sm opacity-90">Média Geral</p>
+                <p className="text-[10px] sm:text-xs md:text-sm opacity-90">Média Geral</p>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between mb-2">
-                  <CheckCircle2 className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.presentes}</span>
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-3 sm:p-4 md:p-5 text-white">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 opacity-90" />
+                  <span className="text-xl sm:text-2xl md:text-3xl font-bold">{estatisticas.presentes}</span>
                 </div>
-                <p className="text-sm opacity-90">Presentes</p>
-                <p className="text-xs opacity-75 mt-1">
+                <p className="text-[10px] sm:text-xs md:text-sm opacity-90">Presentes</p>
+                <p className="text-[9px] sm:text-[10px] md:text-xs opacity-75 mt-0.5 sm:mt-1">
                   {estatisticas.total > 0 ? ((estatisticas.presentes / (estatisticas.presentes + estatisticas.faltas)) * 100).toFixed(1) : 0}%
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between mb-2">
-                  <X className="w-8 h-8 opacity-90" />
-                  <span className="text-3xl font-bold">{estatisticas.faltas}</span>
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-3 sm:p-4 md:p-5 text-white">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <X className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 opacity-90" />
+                  <span className="text-xl sm:text-2xl md:text-3xl font-bold">{estatisticas.faltas}</span>
                 </div>
-                <p className="text-sm opacity-90">Faltas</p>
-                <p className="text-xs opacity-75 mt-1">
+                <p className="text-[10px] sm:text-xs md:text-sm opacity-90">Faltas</p>
+                <p className="text-[9px] sm:text-[10px] md:text-xs opacity-75 mt-0.5 sm:mt-1">
                   {estatisticas.presentes + estatisticas.faltas > 0 ? ((estatisticas.faltas / (estatisticas.presentes + estatisticas.faltas)) * 100).toFixed(1) : 0}%
                 </p>
               </div>
@@ -1174,21 +1174,21 @@ export default function ResultadosPage() {
 
           {/* Médias por Área - Filtradas por tipo de ensino */}
           {(estatisticas.total > 0 || carregando) && (
-            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
+            <div className={`grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6 ${carregando ? 'opacity-50' : ''}`}>
               {/* Card Língua Portuguesa - Sempre visível */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 md:p-5">
+                <div className="flex items-center justify-between mb-1 sm:mb-2 md:mb-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 truncate">Língua Portuguesa</p>
-                    <p className={`text-xl sm:text-2xl font-bold ${getNotaColor(estatisticas.mediaLP)}`}>
+                    <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300 mb-0.5 sm:mb-1 truncate">Língua Portuguesa</p>
+                    <p className={`text-lg sm:text-xl md:text-2xl font-bold ${getNotaColor(estatisticas.mediaLP)}`}>
                       {estatisticas.mediaLP.toFixed(2)}
                     </p>
                   </div>
-                  <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400 flex-shrink-0 ml-2" />
+                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-indigo-400 flex-shrink-0 ml-1 sm:ml-2" />
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 sm:h-3">
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 sm:h-2 md:h-3">
                   <div
-                    className={`h-2 sm:h-3 rounded-full ${
+                    className={`h-1.5 sm:h-2 md:h-3 rounded-full ${
                       estatisticas.mediaLP >= 7 ? 'bg-green-500' : estatisticas.mediaLP >= 5 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
                     style={{ width: `${Math.min((estatisticas.mediaLP / 10) * 100, 100)}%`, minWidth: '2px' }}

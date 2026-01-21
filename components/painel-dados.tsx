@@ -604,108 +604,108 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
         </div>
       )}
       {/* Cards principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
         {tipoUsuario !== 'escola' && (
-          <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-green-500">
+          <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border-l-4 border-green-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total de Escolas</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-1">{estatisticas.totalEscolas}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs md:text-sm">Total de Escolas</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mt-1">{estatisticas.totalEscolas}</p>
               </div>
-              <School className="w-10 h-10 sm:w-12 sm:h-12 text-green-600 dark:text-green-400" />
+              <School className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-green-600 dark:text-green-400" />
             </div>
           </div>
         )}
 
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-cyan-500">
+        <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border-l-4 border-cyan-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs md:text-sm">
                 {serieSelecionada ? `Alunos do ${serieSelecionada}` : 'Total de Alunos'}
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-1">
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mt-1">
                 {estatisticas.totalAlunos.toLocaleString('pt-BR')}
               </p>
               {estatisticas.totalAlunosAvaliados > 0 && estatisticas.totalAlunosAvaliados !== estatisticas.totalAlunos && (
-                <p className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
+                <p className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 mt-1">
                   {estatisticas.totalAlunosAvaliados.toLocaleString('pt-BR')} avaliados
                 </p>
               )}
             </div>
-            <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 text-cyan-600 dark:text-cyan-400" />
+            <GraduationCap className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-cyan-600 dark:text-cyan-400" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-orange-500">
+        <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs md:text-sm">
                 {serieSelecionada ? `Turmas do ${serieSelecionada}` : 'Total de Turmas'}
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-1">{estatisticas.totalTurmas}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mt-1">{estatisticas.totalTurmas}</p>
               {serieSelecionada && (
-                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                <p className="text-[10px] sm:text-xs text-orange-600 dark:text-orange-400 mt-1">
                   {estatisticas.totalTurmas === 1 ? '1 turma' : `${estatisticas.totalTurmas} turmas`} desta série
                 </p>
               )}
             </div>
-            <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-orange-600 dark:text-orange-400" />
+            <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-orange-600 dark:text-orange-400" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-indigo-500">
+        <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border-l-4 border-indigo-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs md:text-sm">
                 {serieSelecionada ? `Provas do ${serieSelecionada}` : 'Resultados de Provas'}
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-1">
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mt-1">
                 {estatisticas.totalResultados.toLocaleString('pt-BR')}
               </p>
             </div>
-            <BarChart3 className="w-10 h-10 sm:w-12 sm:h-12 text-indigo-600 dark:text-indigo-400" />
+            <BarChart3 className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-indigo-600 dark:text-indigo-400" />
           </div>
         </div>
       </div>
 
       {/* Cards de Presenca e Media */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-900/40 p-4 sm:p-6 rounded-lg shadow-md border border-green-200 dark:border-green-800">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium">Alunos Presentes</p>
-            <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-900/40 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border border-green-200 dark:border-green-800">
+          <div className="flex items-center justify-between mb-1 sm:mb-2">
+            <p className="text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs md:text-sm font-medium">Presentes</p>
+            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-green-700 dark:text-green-400">{estatisticas.totalAlunosPresentes.toLocaleString('pt-BR')}</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-700 dark:text-green-400">{estatisticas.totalAlunosPresentes.toLocaleString('pt-BR')}</p>
           {basePercentual > 0 && (
-            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-              {((estatisticas.totalAlunosPresentes / basePercentual) * 100).toFixed(1)}% dos avaliados
+            <p className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 mt-1">
+              {((estatisticas.totalAlunosPresentes / basePercentual) * 100).toFixed(1)}%
             </p>
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-900/40 p-4 sm:p-6 rounded-lg shadow-md border border-red-200 dark:border-red-800">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium">Alunos Faltantes</p>
-            <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
+        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-900/40 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border border-red-200 dark:border-red-800">
+          <div className="flex items-center justify-between mb-1 sm:mb-2">
+            <p className="text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs md:text-sm font-medium">Faltantes</p>
+            <XCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-600 dark:text-red-400" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-red-700 dark:text-red-400">{estatisticas.totalAlunosFaltantes.toLocaleString('pt-BR')}</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-700 dark:text-red-400">{estatisticas.totalAlunosFaltantes.toLocaleString('pt-BR')}</p>
           {basePercentual > 0 && (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-              {((estatisticas.totalAlunosFaltantes / basePercentual) * 100).toFixed(1)}% dos avaliados
+            <p className="text-[10px] sm:text-xs text-red-600 dark:text-red-400 mt-1">
+              {((estatisticas.totalAlunosFaltantes / basePercentual) * 100).toFixed(1)}%
             </p>
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/40 p-4 sm:p-6 rounded-lg shadow-md border border-blue-200 dark:border-blue-800 col-span-1 sm:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium">Media Geral</p>
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/40 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border border-blue-200 dark:border-blue-800 col-span-2 md:col-span-2">
+          <div className="flex items-center justify-between mb-1 sm:mb-2">
+            <p className="text-gray-700 dark:text-gray-300 text-[10px] sm:text-xs md:text-sm font-medium">Media Geral</p>
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-blue-700 dark:text-blue-400">
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-700 dark:text-blue-400">
             {estatisticas.mediaGeral > 0 ? estatisticas.mediaGeral.toFixed(2) : '-'}
           </p>
           {estatisticas.mediaGeral > 0 && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+            <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 mt-1">
               {estatisticas.mediaGeral >= 7 ? 'Excelente' : estatisticas.mediaGeral >= 5 ? 'Bom' : 'Abaixo da media'}
             </p>
           )}
@@ -713,29 +713,29 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
       </div>
 
       {/* Cards Anos Iniciais e Finais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-900/40 p-4 sm:p-6 rounded-lg shadow-md border border-emerald-200 dark:border-emerald-800">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 bg-emerald-500 rounded-lg">
-              <Users className="w-5 h-5 text-white" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-900/40 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border border-emerald-200 dark:border-emerald-800">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <div className="p-1.5 sm:p-2 bg-emerald-500 rounded-lg">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
-              <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold">Anos Iniciais</p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400">1 ao 5 Ano</p>
+              <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-semibold">Anos Iniciais</p>
+              <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400">1º ao 5º Ano</p>
             </div>
           </div>
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-3xl sm:text-4xl font-bold text-emerald-700 dark:text-emerald-400">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-emerald-700 dark:text-emerald-400">
                 {estatisticas.mediaAnosIniciais > 0 ? estatisticas.mediaAnosIniciais.toFixed(2) : '-'}
               </p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Media de desempenho</p>
+              <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 mt-1">Média</p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+              <p className="text-base sm:text-lg font-semibold text-emerald-600 dark:text-emerald-400">
                 {estatisticas.totalAnosIniciais.toLocaleString('pt-BR')}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">alunos avaliados</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">alunos</p>
             </div>
           </div>
           {estatisticas.mediaAnosIniciais > 0 && (
@@ -750,28 +750,28 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-900/30 dark:to-violet-900/40 p-4 sm:p-6 rounded-lg shadow-md border border-violet-200 dark:border-violet-800">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 bg-violet-500 rounded-lg">
-              <Users className="w-5 h-5 text-white" />
+        <div className="bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-900/30 dark:to-violet-900/40 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border border-violet-200 dark:border-violet-800">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <div className="p-1.5 sm:p-2 bg-violet-500 rounded-lg">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
-              <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold">Anos Finais</p>
-              <p className="text-xs text-violet-600 dark:text-violet-400">6 ao 9 Ano</p>
+              <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-semibold">Anos Finais</p>
+              <p className="text-[10px] sm:text-xs text-violet-600 dark:text-violet-400">6º ao 9º Ano</p>
             </div>
           </div>
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-3xl sm:text-4xl font-bold text-violet-700 dark:text-violet-400">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-violet-700 dark:text-violet-400">
                 {estatisticas.mediaAnosFinais > 0 ? estatisticas.mediaAnosFinais.toFixed(2) : '-'}
               </p>
-              <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">Media de desempenho</p>
+              <p className="text-[10px] sm:text-xs text-violet-600 dark:text-violet-400 mt-1">Média</p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-semibold text-violet-600 dark:text-violet-400">
+              <p className="text-base sm:text-lg font-semibold text-violet-600 dark:text-violet-400">
                 {estatisticas.totalAnosFinais.toLocaleString('pt-BR')}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">alunos avaliados</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">alunos</p>
             </div>
           </div>
           {estatisticas.mediaAnosFinais > 0 && (
@@ -1429,10 +1429,10 @@ function AbaAlunos({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           {tipoUsuario !== 'escola' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Escola</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Escola</label>
               <select
                 value={filtros.escola_id || ''}
                 onChange={(e) => handleEscolaChange(e.target.value)}
@@ -1569,7 +1569,7 @@ function AbaAlunos({
             </div>
           ) : (
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] sm:min-w-[700px] lg:min-w-[900px]">
+            <table className="w-full min-w-[400px] sm:min-w-[600px] md:min-w-[750px] lg:min-w-[900px]">
               <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
                 <tr>
                   <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase">#</th>
