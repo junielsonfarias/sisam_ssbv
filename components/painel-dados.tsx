@@ -874,78 +874,78 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
           </div>
         ) : (
           <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
-            <table className="w-full">
+            <table className="w-full min-w-[800px] lg:min-w-[1000px]">
               <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
                 <tr>
-                  <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Escola</th>
-                  <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Polo</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Turmas</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Alunos</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Media</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">LP</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">MAT</th>
+                  <th className="text-left py-2 px-2 lg:px-3 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase min-w-[180px]">Escola</th>
+                  <th className="text-left py-2 px-2 lg:px-3 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase min-w-[100px]">Polo</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Turmas</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Alunos</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Média</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">LP</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">MAT</th>
                   {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
                   {(!temFiltroSerie || isAnosIniciaisSerie) && (
-                    <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">PROD</th>
+                    <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">PROD</th>
                   )}
                   {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
                   {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                     <>
-                      <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CH</th>
-                      <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CN</th>
+                      <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">CH</th>
+                      <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">CN</th>
                     </>
                   )}
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Pres.</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Falt.</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Pres.</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Falt.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                 {escolas.map((escola) => (
                   <tr key={escola.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-gray-900 dark:text-white text-sm">{escola.nome}</div>
+                    <td className="py-2 px-2 lg:px-3">
+                      <div className="font-medium text-gray-900 dark:text-white text-xs lg:text-sm truncate max-w-[200px]" title={escola.nome}>{escola.nome}</div>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{escola.polo_nome || '-'}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-bold text-sm">
+                    <td className="py-2 px-2 lg:px-3 text-xs lg:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[120px]" title={escola.polo_nome || '-'}>{escola.polo_nome || '-'}</td>
+                    <td className="py-2 px-1 lg:px-2 text-center">
+                      <span className="inline-flex items-center px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-bold text-xs lg:text-sm">
                         {escola.total_turmas || 0}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{escola.total_alunos || 0}</td>
+                    <td className="py-2 px-1 lg:px-2 text-center text-xs lg:text-sm font-medium text-gray-900 dark:text-white">{escola.total_alunos || 0}</td>
                     {/* Média Geral + Nível */}
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-2 px-1 lg:px-2 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className={`font-bold text-sm ${getNotaColor(escola.media_geral)}`}>
+                        <span className={`font-bold text-xs lg:text-sm ${getNotaColor(escola.media_geral)}`}>
                           {escola.media_geral != null ? escola.media_geral.toFixed(2) : '-'}
                         </span>
                         {escola.media_geral != null && calcularNivel(escola.media_geral) && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_geral))}`}>
+                          <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_geral))}`}>
                             {calcularNivel(escola.media_geral)}
                           </span>
                         )}
                       </div>
                     </td>
                     {/* LP */}
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-2 px-1 lg:px-2 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className={`text-sm font-medium ${getNotaColor(escola.media_lp)}`}>
+                        <span className={`text-xs lg:text-sm font-medium ${getNotaColor(escola.media_lp)}`}>
                           {escola.media_lp != null ? escola.media_lp.toFixed(2) : '-'}
                         </span>
                         {escola.media_lp != null && calcularNivel(escola.media_lp) && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_lp))}`}>
+                          <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_lp))}`}>
                             {calcularNivel(escola.media_lp)}
                           </span>
                         )}
                       </div>
                     </td>
                     {/* MAT */}
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-2 px-1 lg:px-2 text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className={`text-sm font-medium ${getNotaColor(escola.media_mat)}`}>
+                        <span className={`text-xs lg:text-sm font-medium ${getNotaColor(escola.media_mat)}`}>
                           {escola.media_mat != null ? escola.media_mat.toFixed(2) : '-'}
                         </span>
                         {escola.media_mat != null && calcularNivel(escola.media_mat) && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_mat))}`}>
+                          <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_mat))}`}>
                             {calcularNivel(escola.media_mat)}
                           </span>
                         )}
@@ -953,13 +953,13 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                     </td>
                     {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
                     {(!temFiltroSerie || isAnosIniciaisSerie) && (
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2 px-1 lg:px-2 text-center">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className={`text-sm font-medium ${getNotaColor(escola.media_prod)}`}>
+                          <span className={`text-xs lg:text-sm font-medium ${getNotaColor(escola.media_prod)}`}>
                             {escola.media_prod != null ? escola.media_prod.toFixed(2) : '-'}
                           </span>
                           {escola.media_prod != null && calcularNivel(escola.media_prod) && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_prod))}`}>
+                            <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_prod))}`}>
                               {calcularNivel(escola.media_prod)}
                             </span>
                           )}
@@ -969,25 +969,25 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                     {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
                     {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                       <>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-2 px-1 lg:px-2 text-center">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className={`text-sm font-medium ${getNotaColor(escola.media_ch)}`}>
+                            <span className={`text-xs lg:text-sm font-medium ${getNotaColor(escola.media_ch)}`}>
                               {escola.media_ch != null ? escola.media_ch.toFixed(2) : '-'}
                             </span>
                             {escola.media_ch != null && calcularNivel(escola.media_ch) && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_ch))}`}>
+                              <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_ch))}`}>
                                 {calcularNivel(escola.media_ch)}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-2 px-1 lg:px-2 text-center">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className={`text-sm font-medium ${getNotaColor(escola.media_cn)}`}>
+                            <span className={`text-xs lg:text-sm font-medium ${getNotaColor(escola.media_cn)}`}>
                               {escola.media_cn != null ? escola.media_cn.toFixed(2) : '-'}
                             </span>
                             {escola.media_cn != null && calcularNivel(escola.media_cn) && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_cn))}`}>
+                              <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(escola.media_cn))}`}>
                                 {calcularNivel(escola.media_cn)}
                               </span>
                             )}
@@ -995,11 +995,11 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                         </td>
                       </>
                     )}
-                    <td className="py-3 px-4 text-center">
-                      <span className="text-sm text-green-600 dark:text-green-400 font-medium">{escola.presentes || 0}</span>
+                    <td className="py-2 px-1 lg:px-2 text-center">
+                      <span className="text-xs lg:text-sm text-green-600 dark:text-green-400 font-medium">{escola.presentes || 0}</span>
                     </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="text-sm text-red-600 dark:text-red-400 font-medium">{escola.faltantes || 0}</span>
+                    <td className="py-2 px-1 lg:px-2 text-center">
+                      <span className="text-xs lg:text-sm text-red-600 dark:text-red-400 font-medium">{escola.faltantes || 0}</span>
                     </td>
                   </tr>
                 ))}
@@ -1096,74 +1096,74 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
           </div>
         ) : (
           <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
-            <table className="w-full">
+            <table className="w-full min-w-[800px] lg:min-w-[1000px]">
               <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
                 <tr>
-                  <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Turma</th>
-                  <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Escola</th>
-                  <th className="text-left py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Serie</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Alunos</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Media</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">LP</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">MAT</th>
+                  <th className="text-left py-2 px-2 lg:px-3 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase min-w-[100px]">Turma</th>
+                  <th className="text-left py-2 px-2 lg:px-3 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase min-w-[150px]">Escola</th>
+                  <th className="text-left py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Série</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Alunos</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Média</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">LP</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">MAT</th>
                   {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
                   {(!temFiltroSerie || isAnosIniciaisSerie) && (
-                    <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">PROD</th>
+                    <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">PROD</th>
                   )}
                   {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
                   {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                     <>
-                      <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CH</th>
-                      <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">CN</th>
+                      <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">CH</th>
+                      <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">CN</th>
                     </>
                   )}
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Pres.</th>
-                  <th className="text-center py-3 px-4 font-bold text-indigo-900 dark:text-white text-xs uppercase">Falt.</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Pres.</th>
+                  <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Falt.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                 {turmas.map((turma) => (
                     <tr key={turma.id} className="hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900 dark:text-white text-sm">{turma.codigo || turma.nome || '-'}</div>
+                      <td className="py-2 px-2 lg:px-3">
+                        <div className="font-medium text-gray-900 dark:text-white text-xs lg:text-sm">{turma.codigo || turma.nome || '-'}</div>
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{turma.escola_nome || '-'}</td>
-                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{turma.serie || '-'}</td>
-                      <td className="py-3 px-4 text-center text-sm font-medium text-gray-900 dark:text-white">{turma.total_alunos || 0}</td>
+                      <td className="py-2 px-2 lg:px-3 text-xs lg:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[180px]" title={turma.escola_nome || '-'}>{turma.escola_nome || '-'}</td>
+                      <td className="py-2 px-1 lg:px-2 text-xs lg:text-sm text-gray-600 dark:text-gray-400">{turma.serie || '-'}</td>
+                      <td className="py-2 px-1 lg:px-2 text-center text-xs lg:text-sm font-medium text-gray-900 dark:text-white">{turma.total_alunos || 0}</td>
                       {/* Média Geral + Nível */}
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2 px-1 lg:px-2 text-center">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className={`font-bold text-sm ${getNotaColor(turma.media_geral)}`}>
+                          <span className={`font-bold text-xs lg:text-sm ${getNotaColor(turma.media_geral)}`}>
                             {turma.media_geral != null ? turma.media_geral.toFixed(2) : '-'}
                           </span>
                           {turma.media_geral != null && calcularNivel(turma.media_geral) && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_geral))}`}>
+                            <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_geral))}`}>
                               {calcularNivel(turma.media_geral)}
                             </span>
                           )}
                         </div>
                       </td>
                       {/* LP */}
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2 px-1 lg:px-2 text-center">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className={`text-sm font-medium ${getNotaColor(turma.media_lp)}`}>
+                          <span className={`text-xs lg:text-sm font-medium ${getNotaColor(turma.media_lp)}`}>
                             {turma.media_lp != null ? turma.media_lp.toFixed(2) : '-'}
                           </span>
                           {turma.media_lp != null && calcularNivel(turma.media_lp) && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_lp))}`}>
+                            <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_lp))}`}>
                               {calcularNivel(turma.media_lp)}
                             </span>
                           )}
                         </div>
                       </td>
                       {/* MAT */}
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2 px-1 lg:px-2 text-center">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className={`text-sm font-medium ${getNotaColor(turma.media_mat)}`}>
+                          <span className={`text-xs lg:text-sm font-medium ${getNotaColor(turma.media_mat)}`}>
                             {turma.media_mat != null ? turma.media_mat.toFixed(2) : '-'}
                           </span>
                           {turma.media_mat != null && calcularNivel(turma.media_mat) && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_mat))}`}>
+                            <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_mat))}`}>
                               {calcularNivel(turma.media_mat)}
                             </span>
                           )}
@@ -1171,13 +1171,13 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                       </td>
                       {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
                       {(!temFiltroSerie || isAnosIniciaisSerie) && (
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-2 px-1 lg:px-2 text-center">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className={`text-sm font-medium ${getNotaColor(turma.media_prod)}`}>
+                            <span className={`text-xs lg:text-sm font-medium ${getNotaColor(turma.media_prod)}`}>
                               {turma.media_prod != null ? turma.media_prod.toFixed(2) : '-'}
                             </span>
                             {turma.media_prod != null && calcularNivel(turma.media_prod) && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_prod))}`}>
+                              <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_prod))}`}>
                                 {calcularNivel(turma.media_prod)}
                               </span>
                             )}
@@ -1187,25 +1187,25 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                       {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
                       {(!temFiltroSerie || !isAnosIniciaisSerie) && (
                         <>
-                          <td className="py-3 px-4 text-center">
+                          <td className="py-2 px-1 lg:px-2 text-center">
                             <div className="flex flex-col items-center gap-0.5">
-                              <span className={`text-sm font-medium ${getNotaColor(turma.media_ch)}`}>
+                              <span className={`text-xs lg:text-sm font-medium ${getNotaColor(turma.media_ch)}`}>
                                 {turma.media_ch != null ? turma.media_ch.toFixed(2) : '-'}
                               </span>
                               {turma.media_ch != null && calcularNivel(turma.media_ch) && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_ch))}`}>
+                                <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_ch))}`}>
                                   {calcularNivel(turma.media_ch)}
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-center">
+                          <td className="py-2 px-1 lg:px-2 text-center">
                             <div className="flex flex-col items-center gap-0.5">
-                              <span className={`text-sm font-medium ${getNotaColor(turma.media_cn)}`}>
+                              <span className={`text-xs lg:text-sm font-medium ${getNotaColor(turma.media_cn)}`}>
                                 {turma.media_cn != null ? turma.media_cn.toFixed(2) : '-'}
                               </span>
                               {turma.media_cn != null && calcularNivel(turma.media_cn) && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_cn))}`}>
+                                <span className={`text-[9px] lg:text-[10px] font-bold px-1 py-0.5 rounded ${getNivelBadgeClass(calcularNivel(turma.media_cn))}`}>
                                   {calcularNivel(turma.media_cn)}
                                 </span>
                               )}
@@ -1213,11 +1213,11 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                           </td>
                         </>
                       )}
-                      <td className="py-3 px-4 text-center">
-                        <span className="text-sm text-green-600 dark:text-green-400 font-medium">{turma.presentes || 0}</span>
+                      <td className="py-2 px-1 lg:px-2 text-center">
+                        <span className="text-xs lg:text-sm text-green-600 dark:text-green-400 font-medium">{turma.presentes || 0}</span>
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="text-sm text-red-600 dark:text-red-400 font-medium">{turma.faltantes || 0}</span>
+                      <td className="py-2 px-1 lg:px-2 text-center">
+                        <span className="text-xs lg:text-sm text-red-600 dark:text-red-400 font-medium">{turma.faltantes || 0}</span>
                       </td>
                     </tr>
                 ))}
