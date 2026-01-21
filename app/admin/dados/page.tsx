@@ -1709,12 +1709,21 @@ export default function DadosPage() {
     const escolasPagina = escolasOrdenadas.slice(inicio, inicio + itensPorPagina)
 
     // Adicionar médias por etapa de ensino aos dados
+    // Se a escola não tem Anos Finais (media_af é null), CH e CN devem mostrar N/A
+    // Se a escola não tem Anos Iniciais (media_ai é null), PROD deve mostrar N/A
     return escolasPagina.map(escola => {
       const mediaEtapa = mediasPorEtapaEscola.get(escola.escola_id)
+      const temAnosFinais = mediaEtapa?.media_af !== null && mediaEtapa?.media_af !== undefined
+      const temAnosIniciais = mediaEtapa?.media_ai !== null && mediaEtapa?.media_ai !== undefined
       return {
         ...escola,
         media_ai: mediaEtapa?.media_ai ?? null,
-        media_af: mediaEtapa?.media_af ?? null
+        media_af: mediaEtapa?.media_af ?? null,
+        // CH e CN só existem para Anos Finais
+        media_ch: temAnosFinais ? escola.media_ch : null,
+        media_cn: temAnosFinais ? escola.media_cn : null,
+        // PROD só existe para Anos Iniciais
+        media_prod: temAnosIniciais ? escola.media_prod : null
       }
     })
   }, [escolasOrdenadas, paginaAtual, itensPorPagina, mediasPorEtapaEscola])
@@ -1739,7 +1748,22 @@ export default function DadosPage() {
 
   const turmasPaginadas = useMemo(() => {
     const inicio = (paginaAtual - 1) * itensPorPagina
-    return turmasOrdenadas.slice(inicio, inicio + itensPorPagina)
+    const turmasPagina = turmasOrdenadas.slice(inicio, inicio + itensPorPagina)
+
+    // Ajustar CH/CN e PROD baseado na série da turma
+    return turmasPagina.map(turma => {
+      const numSerie = turma.serie?.toString().replace(/[^0-9]/g, '') || ''
+      const isAnosIniciais = ['2', '3', '5'].includes(numSerie)
+      const isAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
+      return {
+        ...turma,
+        // CH e CN só existem para Anos Finais
+        media_ch: isAnosFinais ? turma.media_ch : null,
+        media_cn: isAnosFinais ? turma.media_cn : null,
+        // PROD só existe para Anos Iniciais
+        media_prod: isAnosIniciais ? turma.media_prod : null
+      }
+    })
   }, [turmasOrdenadas, paginaAtual, itensPorPagina])
 
   // Ordenação e paginação de alunos
@@ -1762,7 +1786,22 @@ export default function DadosPage() {
 
   const alunosPaginados = useMemo(() => {
     const inicio = (paginaAtual - 1) * itensPorPagina
-    return alunosOrdenados.slice(inicio, inicio + itensPorPagina)
+    const alunosPagina = alunosOrdenados.slice(inicio, inicio + itensPorPagina)
+
+    // Ajustar CH/CN e PROD baseado na série do aluno
+    return alunosPagina.map(aluno => {
+      const numSerie = aluno.serie?.toString().replace(/[^0-9]/g, '') || ''
+      const isAnosIniciais = ['2', '3', '5'].includes(numSerie)
+      const isAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
+      return {
+        ...aluno,
+        // CH e CN só existem para Anos Finais
+        nota_ch: isAnosFinais ? aluno.nota_ch : null,
+        nota_cn: isAnosFinais ? aluno.nota_cn : null,
+        // PROD só existe para Anos Iniciais
+        nota_producao: isAnosIniciais ? aluno.nota_producao : null
+      }
+    })
   }, [alunosOrdenados, paginaAtual, itensPorPagina])
 
   const totalPaginas = useMemo(() => {

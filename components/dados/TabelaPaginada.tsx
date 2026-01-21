@@ -56,10 +56,18 @@ export default function TabelaPaginada({
         )
       case 'decimal':
       case 'decimal_com_nivel':
+        // N/A apenas quando valor é null/undefined (disciplina não se aplica)
+        if (valor === null || valor === undefined) {
+          return <span className="text-gray-400 dark:text-gray-500 italic text-sm">N/A</span>
+        }
         const decimal = parseFloat(valor)
+        if (isNaN(decimal)) {
+          return <span className="text-gray-400 dark:text-gray-500 italic text-sm">N/A</span>
+        }
+        // Valor 0 é válido - significa que a escola tem a disciplina mas tirou nota 0
         const corDecimal = getDecimalColor(decimal)
-        const isCriticoDecimal = decimal > 0 && decimal < 3
-        const nivelDecimal = calcularCodigoNivel(decimal)
+        const isCriticoDecimal = decimal >= 0 && decimal < 3
+        const nivelDecimal = decimal > 0 ? calcularCodigoNivel(decimal) : null
         return (
           <div className="flex flex-col items-center gap-0.5">
             <span className={`text-sm font-semibold ${corDecimal} ${isCriticoDecimal ? 'animate-pulse' : ''}`}>
@@ -83,11 +91,19 @@ export default function TabelaPaginada({
         }
         const corEtapa = getDecimalColor(mediaEtapa)
         const isCriticoEtapa = mediaEtapa < 3
+        const nivelEtapa = calcularCodigoNivel(mediaEtapa)
         return (
-          <span className={`text-sm font-semibold ${corEtapa} ${isCriticoEtapa ? 'animate-pulse' : ''}`}>
-            {isCriticoEtapa && <span className="mr-0.5">⚠</span>}
-            {mediaEtapa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className={`text-sm font-semibold ${corEtapa} ${isCriticoEtapa ? 'animate-pulse' : ''}`}>
+              {isCriticoEtapa && <span className="mr-0.5">⚠</span>}
+              {mediaEtapa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            {nivelEtapa && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${CORES_NIVEL_BADGE[nivelEtapa] || ''}`}>
+                {nivelEtapa}
+              </span>
+            )}
+          </div>
         )
       case 'presenca':
         return valor === 'P' ? (
