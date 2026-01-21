@@ -131,35 +131,10 @@ export default function PainelDados({
   const [pesquisouTurmas, setPesquisouTurmas] = useState(false)
   const [pesquisouAlunos, setPesquisouAlunos] = useState(false)
 
-  // Carregar estatísticas da aba Geral AUTOMATICAMENTE (do cache ou API)
+  // Carregar estatísticas da aba Geral AUTOMATICAMENTE (sempre da API para garantir dados atualizados)
   // Função para carregar estatísticas com filtro de série opcional
   const carregarEstatisticas = useCallback(async (serieParam?: string) => {
-    // Usar cache apenas se não houver filtro de série
-    if (!serieParam && isCacheValid()) {
-      const cachedStats = getCachedEstatisticas()
-      if (cachedStats) {
-        console.log('[PainelDados] Usando estatísticas do cache local')
-        setEstatisticas({
-          totalEscolas: Number(cachedStats.totalEscolas) || 0,
-          totalPolos: Number(cachedStats.totalPolos) || 0,
-          totalResultados: Number(cachedStats.totalResultados) || 0,
-          totalAlunos: Number(cachedStats.totalAlunos) || 0,
-          totalAlunosAvaliados: Number(cachedStats.totalAlunosAvaliados) || 0,
-          totalTurmas: Number(cachedStats.totalTurmas) || 0,
-          totalAlunosPresentes: Number(cachedStats.totalAlunosPresentes) || 0,
-          totalAlunosFaltantes: Number(cachedStats.totalAlunosFaltantes) || 0,
-          mediaGeral: Number(cachedStats.mediaGeral) || 0,
-          mediaAnosIniciais: Number(cachedStats.mediaAnosIniciais) || 0,
-          mediaAnosFinais: Number(cachedStats.mediaAnosFinais) || 0,
-          totalAnosIniciais: Number(cachedStats.totalAnosIniciais) || 0,
-          totalAnosFinais: Number(cachedStats.totalAnosFinais) || 0,
-          nomeEscola: cachedStats.nomeEscola || '',
-          nomePolo: cachedStats.nomePolo || '',
-        })
-        setCarregando(false)
-        return
-      }
-    }
+    // Sempre buscar da API para garantir dados atualizados (não usar cache para estatísticas)
 
     // Buscar da API (com ou sem filtro de série)
     try {
