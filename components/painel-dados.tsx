@@ -824,12 +824,13 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
           <button
             onClick={onPesquisar}
             disabled={carregando}
-            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[140px]"
+            className="px-4 sm:px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[100px] sm:min-w-[140px]"
           >
             {carregando ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                <span>Buscando...</span>
+                <span className="hidden sm:inline">Buscando...</span>
+                <span className="sm:hidden">...</span>
               </>
             ) : (
               <>
@@ -1045,12 +1046,13 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
           <button
             onClick={onPesquisar}
             disabled={carregando}
-            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[140px]"
+            className="px-4 sm:px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[100px] sm:min-w-[140px]"
           >
             {carregando ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                <span>Buscando...</span>
+                <span className="hidden sm:inline">Buscando...</span>
+                <span className="sm:hidden">...</span>
               </>
             ) : (
               <>
@@ -1521,17 +1523,19 @@ function AbaAlunos({
           <button
             onClick={handlePesquisar}
             disabled={carregando}
-            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[160px]"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg sm:min-w-[160px]"
           >
             {carregando ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                <span>Pesquisando...</span>
+                <span className="hidden sm:inline">Pesquisando...</span>
+                <span className="sm:hidden">...</span>
               </>
             ) : (
               <>
                 <Search className="w-4 h-4" />
-                <span>Pesquisar Alunos</span>
+                <span className="hidden sm:inline">Pesquisar Alunos</span>
+                <span className="sm:hidden">Pesquisar</span>
               </>
             )}
           </button>

@@ -361,7 +361,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
                 </span>
                 {/* Contexto do usuário (polo/escola) */}
                 {contextoUsuario && (
-                  <span className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[150px] lg:max-w-[200px]" title={contextoUsuario}>
+                  <span className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[150px] md:max-w-[180px] lg:max-w-[200px]" title={contextoUsuario}>
                     {contextoUsuario}
                   </span>
                 )}

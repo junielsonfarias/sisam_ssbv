@@ -43,7 +43,7 @@ export default function TabelaPaginada({
         const nivelNota = calcularCodigoNivel(nota)
         return (
           <div className="flex flex-col items-center gap-0.5">
-            <span className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-sm font-bold border-2 ${corNota} min-w-[60px] ${isCritico ? 'animate-pulse' : ''}`}>
+            <span className={`inline-flex items-center justify-center px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border-2 ${corNota} min-w-[50px] sm:min-w-[60px] ${isCritico ? 'animate-pulse' : ''}`}>
               {isCritico && <span className="mr-1">⚠</span>}
               {nota.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
@@ -197,7 +197,7 @@ export default function TabelaPaginada({
 
       {/* Visualizacao Desktop - Tabela */}
       <div className="hidden md:block">
-        <table className="w-full min-w-[500px] lg:min-w-[800px]">
+        <table className="w-full min-w-[400px] md:min-w-[600px] lg:min-w-[800px]">
           <thead className={`bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600 ${stickyHeader ? 'sticky top-[180px] sm:top-[190px] z-30' : ''}`}>
             <tr>
               {colunas.map((col: ColunaTabela) => (

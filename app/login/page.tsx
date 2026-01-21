@@ -190,7 +190,7 @@ export default function LoginPage() {
   if (sincronizando) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
-        <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-xl dark:shadow-slate-900/50 max-w-md w-full mx-4 border border-gray-200 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-xl dark:shadow-slate-900/50 max-w-md w-full mx-4 border border-gray-200 dark:border-slate-700">
           <div className="text-center">
             {/* Ícone animado */}
             <div className="relative mx-auto w-20 h-20 mb-6">

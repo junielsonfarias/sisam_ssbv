@@ -17,11 +17,11 @@ interface ModalBaseProps {
 }
 
 const larguraClasses = {
-  sm: 'sm:max-w-sm',
-  md: 'sm:max-w-md',
-  lg: 'sm:max-w-lg',
-  xl: 'sm:max-w-xl',
-  '2xl': 'sm:max-w-2xl',
+  sm: 'max-w-[calc(100vw-2rem)] sm:max-w-sm',
+  md: 'max-w-[calc(100vw-2rem)] sm:max-w-md',
+  lg: 'max-w-[calc(100vw-2rem)] sm:max-w-lg',
+  xl: 'max-w-[calc(100vw-2rem)] sm:max-w-xl',
+  '2xl': 'max-w-[calc(100vw-2rem)] sm:max-w-2xl',
 }
 
 /**
@@ -56,12 +56,12 @@ export function ModalBase({
 
         {/* Modal */}
         <div
-          className={`inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full ${larguraClasses[largura]}`}
+          className={`inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all my-4 sm:my-8 sm:align-middle w-full ${larguraClasses[largura]}`}
         >
           {/* Header */}
-          <div className="bg-white dark:bg-slate-800 px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="bg-white dark:bg-slate-800 px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                 {titulo}
               </h3>
               <button
@@ -111,11 +111,11 @@ export function ModalFooter({
   textoSalvando = 'Salvando...',
 }: ModalFooterProps) {
   return (
-    <div className="flex justify-end gap-3 pt-4">
+    <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
       <button
         type="button"
         onClick={onFechar}
-        className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
+        className="w-full sm:w-auto px-4 py-2.5 sm:py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 text-sm sm:text-base"
       >
         {textoCancelar}
       </button>
@@ -123,7 +123,7 @@ export function ModalFooter({
         type="button"
         onClick={onSalvar}
         disabled={salvando || desabilitado}
-        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
       >
         {salvando ? textoSalvando : textoSalvar}
       </button>
