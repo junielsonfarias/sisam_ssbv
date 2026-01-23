@@ -36,63 +36,27 @@ const FILTROS_INICIAIS: FiltrosDadosState = {
 
 /**
  * Hook para gerenciar estado de filtros do painel de dados
- * Suporta persistencia no localStorage
+ * Por padrão, NÃO persiste filtros entre navegações (sempre inicia limpo)
  */
 export function useFiltrosDados(options: UseFiltrosDadosOptions = {}) {
-  const { persistir = true, storageKey = FILTROS_STORAGE_KEY } = options
+  const { persistir = false, storageKey = FILTROS_STORAGE_KEY } = options
 
   const [filtros, setFiltros] = useState<FiltrosDadosState>(FILTROS_INICIAIS)
   const [abaAtiva, setAbaAtiva] = useState<string>('visao_geral')
   const [filtrosCarregados, setFiltrosCarregados] = useState(false)
 
-  // Carregar filtros do localStorage ao iniciar
+  // Limpar filtros do localStorage ao iniciar (sempre começar com filtros limpos)
   useEffect(() => {
-    if (typeof window !== 'undefined' && persistir && !filtrosCarregados) {
+    if (typeof window !== 'undefined' && !filtrosCarregados) {
       try {
-        const filtrosSalvos = localStorage.getItem(storageKey)
-        if (filtrosSalvos) {
-          const parsed = JSON.parse(filtrosSalvos)
-          setFiltros(prev => ({
-            ...prev,
-            serie: parsed.serie || '',
-            anoLetivo: parsed.anoLetivo || '',
-            presenca: parsed.presenca || '',
-            nivel: parsed.nivel || '',
-            faixaMedia: parsed.faixaMedia || '',
-            disciplina: parsed.disciplina || '',
-            tipoEnsino: parsed.tipoEnsino || ''
-          }))
-          if (parsed.abaAtiva) {
-            setAbaAtiva(parsed.abaAtiva)
-          }
-        }
+        // Sempre limpar filtros persistidos para garantir estado inicial limpo
+        localStorage.removeItem(storageKey)
       } catch (e) {
-        console.warn('Erro ao carregar filtros do localStorage:', e)
+        console.warn('Erro ao limpar filtros do localStorage:', e)
       }
       setFiltrosCarregados(true)
     }
-  }, [persistir, storageKey, filtrosCarregados])
-
-  // Salvar filtros no localStorage quando mudarem
-  useEffect(() => {
-    if (typeof window !== 'undefined' && persistir && filtrosCarregados) {
-      try {
-        const dadosParaSalvar = {
-          serie: filtros.serie,
-          anoLetivo: filtros.anoLetivo,
-          presenca: filtros.presenca,
-          nivel: filtros.nivel,
-          faixaMedia: filtros.faixaMedia,
-          disciplina: filtros.disciplina,
-          tipoEnsino: filtros.tipoEnsino,
-          abaAtiva: abaAtiva
-        }
-        localStorage.setItem(storageKey, JSON.stringify(dadosParaSalvar))
-      } catch (e) {
-        console.warn('Erro ao salvar filtros no localStorage:', e)
-      }
-    }
-  }, [filtros, abaAtiva, persistir, storageKey, filtrosCarregados])
+  }, [storageKey, filtrosCarregados])
 
   // Atualizar um filtro especifico
   const setFiltro = useCallback(<K extends keyof FiltrosDadosState>(

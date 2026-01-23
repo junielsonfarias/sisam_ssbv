@@ -97,53 +97,21 @@ export default function DadosPage() {
   // Visualização
   const [abaAtiva, setAbaAtiva] = useState<'visao_geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'>('visao_geral')
 
-  // Flag para controlar se os filtros foram carregados do localStorage
+  // Flag para controlar se os filtros foram inicializados
   const [filtrosCarregados, setFiltrosCarregados] = useState(false)
 
-  // Carregar filtros do localStorage ao iniciar
+  // Limpar filtros do localStorage ao iniciar (sempre começar com filtros limpos)
   useEffect(() => {
     if (typeof window !== 'undefined' && !filtrosCarregados) {
       try {
-        const filtrosSalvos = localStorage.getItem(FILTROS_STORAGE_KEY)
-        if (filtrosSalvos) {
-          const filtros = JSON.parse(filtrosSalvos)
-          // Restaurar filtros (exceto polo e escola para usuários restritos)
-          if (filtros.serie) setFiltroSerie(filtros.serie)
-          if (filtros.anoLetivo) setFiltroAnoLetivo(filtros.anoLetivo)
-          if (filtros.presenca) setFiltroPresenca(filtros.presenca)
-          if (filtros.nivel) setFiltroNivel(filtros.nivel)
-          if (filtros.faixaMedia) setFiltroFaixaMedia(filtros.faixaMedia)
-          if (filtros.disciplina) setFiltroDisciplina(filtros.disciplina)
-          if (filtros.tipoEnsino) setFiltroTipoEnsino(filtros.tipoEnsino)
-          if (filtros.abaAtiva) setAbaAtiva(filtros.abaAtiva)
-        }
+        // Limpar filtros persistidos para garantir estado inicial limpo
+        localStorage.removeItem(FILTROS_STORAGE_KEY)
       } catch (e) {
-        console.warn('Erro ao carregar filtros do localStorage:', e)
+        console.warn('Erro ao limpar filtros do localStorage:', e)
       }
       setFiltrosCarregados(true)
     }
   }, [filtrosCarregados])
-
-  // Salvar filtros no localStorage quando mudarem
-  useEffect(() => {
-    if (typeof window !== 'undefined' && filtrosCarregados) {
-      try {
-        const filtros = {
-          serie: filtroSerie,
-          anoLetivo: filtroAnoLetivo,
-          presenca: filtroPresenca,
-          nivel: filtroNivel,
-          faixaMedia: filtroFaixaMedia,
-          disciplina: filtroDisciplina,
-          tipoEnsino: filtroTipoEnsino,
-          abaAtiva: abaAtiva,
-        }
-        localStorage.setItem(FILTROS_STORAGE_KEY, JSON.stringify(filtros))
-      } catch (e) {
-        console.warn('Erro ao salvar filtros no localStorage:', e)
-      }
-    }
-  }, [filtroSerie, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, abaAtiva, filtrosCarregados])
   const [ordenacao, setOrdenacao] = useState<{ coluna: string; direcao: 'asc' | 'desc' }>({ coluna: 'media_geral', direcao: 'desc' })
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina] = useState(50)
