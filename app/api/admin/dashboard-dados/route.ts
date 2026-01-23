@@ -551,12 +551,13 @@ export async function GET(request: NextRequest) {
     // ========== MÉDIAS POR TURMA ==========
     // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
     // CORREÇÃO 2: Para anos iniciais (2,3,5), a média deve incluir nota_producao: (LP + MAT + PROD) / 3
+    // CORREÇÃO 3: Usar t.serie (série da turma) em vez de rc.serie para evitar duplicação de linhas
     const mediasPorTurmaQuery = `
       SELECT
         t.id as turma_id,
         t.codigo as turma,
         e.nome as escola,
-        rc.serie,
+        t.serie,
         COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
         -- Média usando campo media_aluno pré-calculado (consistente com escola e alunos)
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
@@ -572,7 +573,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN turmas t ON rc.turma_id = t.id
       ${joinNivelAprendizagem}
       ${whereClauseBase}
-      GROUP BY t.id, t.codigo, e.nome, rc.serie
+      GROUP BY t.id, t.codigo, t.nome, e.id, e.nome, t.serie
       HAVING t.id IS NOT NULL
       ORDER BY media_geral DESC NULLS LAST
     `

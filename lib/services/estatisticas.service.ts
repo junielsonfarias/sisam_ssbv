@@ -226,8 +226,8 @@ async function buscarContadoresGlobais(): Promise<{
 }
 
 /**
- * Busca total de escolas
- * Quando há filtro de série, conta apenas escolas que têm alunos naquela série
+ * Busca total de escolas com dados de avaliação
+ * Usa resultados_consolidados_unificada para garantir consistência com a página de Dados
  */
 async function buscarTotalEscolas(
   escopo: EscopoEstatisticas,
@@ -235,74 +235,79 @@ async function buscarTotalEscolas(
 ): Promise<number> {
   const params: (string | null)[] = []
   let paramIndex = 1
+  const whereConditions: string[] = []
 
-  // Se há filtro de série, contar escolas que têm alunos naquela série
-  if (filtros.serie) {
-    let query = `
-      SELECT COUNT(DISTINCT a.escola_id) as total
-      FROM alunos a
-      INNER JOIN escolas e ON a.escola_id = e.id AND e.ativo = true
-      WHERE a.ativo = true AND a.serie = $${paramIndex}
-    `
-    params.push(filtros.serie)
-    paramIndex++
-
-    if (escopo === 'polo' && filtros.poloId) {
-      query += ` AND e.polo_id = $${paramIndex}`
-      params.push(filtros.poloId)
-    } else if (escopo === 'escola' && filtros.escolaId) {
-      query += ` AND a.escola_id = $${paramIndex}`
-      params.push(filtros.escolaId)
-    }
-
-    const result = await pool.query(query, params)
-    return parseDbInt(result.rows[0]?.total)
-  }
-
-  // Sem filtro de série, contar todas as escolas ativas
-  let query = 'SELECT COUNT(*) as total FROM escolas WHERE ativo = true'
-
+  // Filtro de escopo
   if (escopo === 'polo' && filtros.poloId) {
-    query += ' AND polo_id = $1'
-    params.push(filtros.poloId)
-  } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ' AND id = $1'
-    params.push(filtros.escolaId)
-  }
-
-  const result = await pool.query(query, params)
-  return parseDbInt(result.rows[0]?.total)
-}
-
-/**
- * Busca total de turmas
- */
-async function buscarTotalTurmas(
-  escopo: EscopoEstatisticas,
-  filtros: FiltrosEstatisticas
-): Promise<number> {
-  let query = 'SELECT COUNT(*) as total FROM turmas t WHERE t.ativo = true'
-  const params: (string | null)[] = []
-  let paramIndex = 1
-
-  if (escopo === 'polo' && filtros.poloId) {
-    query = `SELECT COUNT(*) as total FROM turmas t
-             INNER JOIN escolas e ON t.escola_id = e.id
-             WHERE t.ativo = true AND e.polo_id = $${paramIndex}`
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
     params.push(filtros.poloId)
     paramIndex++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ` AND t.escola_id = $${paramIndex}`
+    whereConditions.push(`rc.escola_id = $${paramIndex}`)
     params.push(filtros.escolaId)
     paramIndex++
   }
 
   // Filtro de série
   if (filtros.serie) {
-    query += ` AND t.serie = $${paramIndex}`
+    whereConditions.push(`rc.serie = $${paramIndex}`)
     params.push(filtros.serie)
     paramIndex++
   }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+  const needsJoin = escopo === 'polo' && filtros.poloId
+
+  const query = `
+    SELECT COUNT(DISTINCT rc.escola_id) as total
+    FROM resultados_consolidados_unificada rc
+    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    ${whereClause}
+  `
+
+  const result = await pool.query(query, params)
+  return parseDbInt(result.rows[0]?.total)
+}
+
+/**
+ * Busca total de turmas com dados de avaliação
+ * Usa resultados_consolidados_unificada para garantir consistência com a página de Dados
+ */
+async function buscarTotalTurmas(
+  escopo: EscopoEstatisticas,
+  filtros: FiltrosEstatisticas
+): Promise<number> {
+  const params: (string | null)[] = []
+  let paramIndex = 1
+  const whereConditions: string[] = []
+
+  // Filtro de escopo
+  if (escopo === 'polo' && filtros.poloId) {
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
+    params.push(filtros.poloId)
+    paramIndex++
+  } else if (escopo === 'escola' && filtros.escolaId) {
+    whereConditions.push(`rc.escola_id = $${paramIndex}`)
+    params.push(filtros.escolaId)
+    paramIndex++
+  }
+
+  // Filtro de série
+  if (filtros.serie) {
+    whereConditions.push(`rc.serie = $${paramIndex}`)
+    params.push(filtros.serie)
+    paramIndex++
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+  const needsJoin = escopo === 'polo' && filtros.poloId
+
+  const query = `
+    SELECT COUNT(DISTINCT rc.turma_id) as total
+    FROM resultados_consolidados_unificada rc
+    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    ${whereClause}
+  `
 
   const result = await pool.query(query, params)
   return parseDbInt(result.rows[0]?.total)

@@ -66,12 +66,13 @@ export async function GET(request: NextRequest) {
     // Query com cálculo de médias correto
     // Anos iniciais (2, 3, 5): média = (LP + MAT + PROD) / 3
     // Anos finais (6, 7, 8, 9): média = (LP + CH + MAT + CN) / 4
+    // CORREÇÃO: Usar t.serie (série da turma) em vez de rc.serie para evitar duplicação de linhas
     const query = `
       SELECT
         t.id,
         t.codigo,
         t.nome,
-        rc.serie,
+        t.serie,
         t.escola_id,
         e.nome as escola_nome,
         COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) as total_alunos,
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
             CASE
               -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD
-              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              WHEN REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
@@ -120,9 +121,9 @@ export async function GET(request: NextRequest) {
       INNER JOIN resultados_consolidados_unificada rc ON rc.turma_id = t.id
         AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
       ${whereClause}
-      GROUP BY t.id, t.codigo, t.nome, rc.serie, t.escola_id, e.nome
+      GROUP BY t.id, t.codigo, t.nome, t.serie, t.escola_id, e.nome
       HAVING COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) > 0
-      ORDER BY rc.serie, t.codigo, e.nome
+      ORDER BY t.serie, t.codigo, e.nome
     `
 
     const result = await pool.query(query, params)

@@ -2066,7 +2066,8 @@ export default function DadosPage() {
                 label="Disciplina"
                 value={filtroDisciplina}
                 onChange={(v) => { setFiltroDisciplina(v); setPaginaAtual(1); }}
-                opcoes={disciplinasDisponiveis}
+                opcoes={disciplinasDisponiveis.filter(d => d.value !== '')}
+                placeholder="Todas as disciplinas"
               />
 
               {/* Presenca */}
@@ -2151,15 +2152,37 @@ export default function DadosPage() {
               </div>
 
               {/* Medias por Disciplina - MELHORIA: Destaque na disciplina selecionada */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-                <DisciplinaCard titulo="Lingua Portuguesa" media={dados.metricas.media_lp} cor="blue" sigla="LP" destaque={filtroDisciplina === 'LP'} />
-                <DisciplinaCard titulo="Matematica" media={dados.metricas.media_mat} cor="purple" sigla="MAT" destaque={filtroDisciplina === 'MAT'} />
-                <DisciplinaCard titulo="Ciencias Humanas" media={dados.metricas.media_ch} cor="green" sigla="CH" destaque={filtroDisciplina === 'CH'} />
-                <DisciplinaCard titulo="Ciencias da Natureza" media={dados.metricas.media_cn} cor="amber" sigla="CN" destaque={filtroDisciplina === 'CN'} />
-                {dados.metricas.media_producao > 0 && (
-                  <DisciplinaCard titulo="Producao Textual" media={dados.metricas.media_producao} cor="rose" sigla="PT" destaque={filtroDisciplina === 'PT'} />
-                )}
-              </div>
+              {/* CORREÇÃO: Ocultar cards de disciplinas não aplicáveis à etapa de ensino */}
+              {(() => {
+                // Verificar se é anos iniciais ou finais baseado no filtro
+                const isAnosIniciaisFiltro = filtroTipoEnsino === 'anos_iniciais' ||
+                  (filtroSerie && isAnosIniciaisLib(filtroSerie))
+                const isAnosFinaisFiltro = filtroTipoEnsino === 'anos_finais' ||
+                  (filtroSerie && !isAnosIniciaisLib(filtroSerie) && filtroSerie.match(/\d+/)?.[0] &&
+                    ['6', '7', '8', '9'].includes(filtroSerie.match(/\d+/)![0]))
+
+                // Anos Iniciais: não tem CH e CN
+                // Anos Finais: não tem PROD.T
+                const mostrarCH = !isAnosIniciaisFiltro
+                const mostrarCN = !isAnosIniciaisFiltro
+                const mostrarPT = !isAnosFinaisFiltro
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
+                    <DisciplinaCard titulo="Lingua Portuguesa" media={dados.metricas.media_lp} cor="blue" sigla="LP" destaque={filtroDisciplina === 'LP'} />
+                    <DisciplinaCard titulo="Matematica" media={dados.metricas.media_mat} cor="purple" sigla="MAT" destaque={filtroDisciplina === 'MAT'} />
+                    {mostrarCH && (
+                      <DisciplinaCard titulo="Ciencias Humanas" media={dados.metricas.media_ch} cor="amber" sigla="CH" destaque={filtroDisciplina === 'CH'} />
+                    )}
+                    {mostrarCN && (
+                      <DisciplinaCard titulo="Ciencias da Natureza" media={dados.metricas.media_cn} cor="green" sigla="CN" destaque={filtroDisciplina === 'CN'} />
+                    )}
+                    {mostrarPT && (
+                      <DisciplinaCard titulo="Producao Textual" media={dados.metricas.media_producao} cor="rose" sigla="PROD.T" destaque={filtroDisciplina === 'PT'} />
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Container Sticky para Abas + Serie - Fixo abaixo do header */}
               <div className="sticky top-14 sm:top-16 z-40 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-4 pb-2 bg-gray-50 dark:bg-slate-900 space-y-2 shadow-md" style={{ marginTop: '1rem' }}>
@@ -2237,10 +2260,10 @@ export default function DadosPage() {
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Media por Serie</h3>
                       <div className="space-y-4">
-                        {/* Anos Iniciais: LP, MAT, PROD */}
+                        {/* Anos Iniciais: LP, MAT, PROD.T */}
                         {anosIniciais.length > 0 && (
                           <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Anos Iniciais (2º, 3º, 5º) - LP, MAT, PROD</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Anos Iniciais (2º, 3º, 5º) - LP, MAT, PROD.T</p>
                             <div className="h-[120px]">
                               <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={anosIniciais} barCategoryGap="20%">
@@ -2250,7 +2273,7 @@ export default function DadosPage() {
                                   <Tooltip content={<CustomTooltip />} />
                                   <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} />
                                   <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} />
-                                  <Bar dataKey="media_prod" name="PROD" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} />
+                                  <Bar dataKey="media_prod" name="PROD.T" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} />
                                 </BarChart>
                               </ResponsiveContainer>
                             </div>
@@ -2303,7 +2326,7 @@ export default function DadosPage() {
                           {anosIniciais.length > 0 && (
                             <div className="flex items-center gap-1.5 text-xs">
                               <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.prod }}></div>
-                              <span>PROD</span>
+                              <span>PROD.T</span>
                             </div>
                           )}
                         </div>
@@ -2518,7 +2541,10 @@ export default function DadosPage() {
                     </div>
                   ) : (
                     <TabelaPaginada
-                      dados={escolasPaginadas}
+                      dados={escolasPaginadas.map((escola, index) => ({
+                        ...escola,
+                        posicao: (paginaAtual - 1) * itensPorPagina + index + 1
+                      }))}
                       colunas={(() => {
                         // Determinar se é anos iniciais ou finais baseado no filtro de série
                         const numSerie = filtroSerie?.replace(/[^0-9]/g, '') || ''
@@ -2527,6 +2553,7 @@ export default function DadosPage() {
                         const temFiltro = !!filtroSerie && filtroSerie.trim() !== ''
 
                         const colunas: ColunaTabela[] = [
+                          { key: 'posicao', label: 'Nº', align: 'center', format: 'posicao' },
                           { key: 'escola', label: 'Escola', align: 'left' },
                           { key: 'polo', label: 'Polo', align: 'left' },
                           { key: 'total_turmas', label: 'Turmas', align: 'center', format: 'badge_turmas' },
@@ -2545,7 +2572,7 @@ export default function DadosPage() {
 
                         // PROD: mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro
                         if (!temFiltro || isAnosIniciais) {
-                          colunas.push({ key: 'media_prod', label: 'PROD', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'PT' })
+                          colunas.push({ key: 'media_prod', label: 'PROD.T', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'PT' })
                         }
 
                         // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro
@@ -2582,8 +2609,9 @@ export default function DadosPage() {
                     </div>
                   ) : dados.mediasPorTurma ? (
                     <TabelaPaginada
-                      dados={turmasPaginadas.map(turma => ({
+                      dados={turmasPaginadas.map((turma, index) => ({
                         ...turma,
+                        posicao: (paginaAtual - 1) * itensPorPagina + index + 1,
                         nivel_turma: calcularNivelPorMedia(turma.media_geral).codigo
                       }))}
                       colunas={(() => {
@@ -2594,6 +2622,7 @@ export default function DadosPage() {
                         const temFiltro = !!filtroSerie && filtroSerie.trim() !== ''
 
                         const colunas: ColunaTabela[] = [
+                          { key: 'posicao', label: 'Nº', align: 'center', format: 'posicao' },
                           { key: 'turma', label: 'Turma', align: 'left' },
                           { key: 'escola', label: 'Escola', align: 'left' },
                           { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
@@ -2605,7 +2634,7 @@ export default function DadosPage() {
 
                         // PROD: mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro
                         if (!temFiltro || isAnosIniciais) {
-                          colunas.push({ key: 'media_prod', label: 'PROD', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'PT' })
+                          colunas.push({ key: 'media_prod', label: 'PROD.T', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'PT' })
                         }
 
                         // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro

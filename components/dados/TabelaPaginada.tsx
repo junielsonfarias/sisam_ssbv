@@ -142,6 +142,21 @@ export default function TabelaPaginada({
             {numTurmas}
           </span>
         )
+      case 'posicao':
+        const posicao = parseInt(valor) || 0
+        // Badge colorido baseado na posição (top 3 destaque especial)
+        const posicaoClass = posicao === 1
+          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-400'
+          : posicao === 2
+            ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 border-gray-400'
+            : posicao === 3
+              ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-400'
+              : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-300'
+        return (
+          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm border-2 ${posicaoClass}`}>
+            {posicao}º
+          </span>
+        )
       default:
         return <span className="text-sm text-gray-700 dark:text-gray-300">{valor}</span>
     }

@@ -12,16 +12,20 @@ interface DisciplinaCardProps {
 
 export default function DisciplinaCard({ titulo, media, cor, sigla, destaque = false }: DisciplinaCardProps) {
   const c = CORES_DISCIPLINA_CARD[cor] || CORES_DISCIPLINA_CARD.blue
-  const porcentagem = Math.min((media / 10) * 100, 100)
+  // Garantir que media seja um número válido (tratar null, undefined, NaN)
+  const mediaValida = typeof media === 'number' && !isNaN(media) ? media : 0
+  const porcentagem = Math.min(Math.max((mediaValida / 10) * 100, 0), 100)
+  const temMedia = mediaValida > 0
 
   return (
     <div className={`${c.bg} rounded-xl p-4 border-2 ${c.border} hover:shadow-md transition-shadow ${destaque ? `ring-2 ${c.ring} shadow-lg scale-105` : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{sigla}</span>
         <span className={`text-xl font-bold ${c.text}`}>
-          {media > 0 ? media.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
+          {temMedia ? mediaValida.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
         </span>
       </div>
+      {/* Barra de progresso - sempre visível */}
       <div className="w-full bg-white dark:bg-slate-800 rounded-full h-2.5 mb-2 shadow-inner">
         <div
           className={`h-2.5 rounded-full ${c.bar} transition-all duration-500 shadow-sm`}
@@ -29,9 +33,9 @@ export default function DisciplinaCard({ titulo, media, cor, sigla, destaque = f
         ></div>
       </div>
       <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">{titulo}</p>
-      {media > 0 && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{porcentagem.toFixed(1)}% da nota máxima</p>
-      )}
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        {temMedia ? `${porcentagem.toFixed(1)}% da nota máxima` : 'Sem dados'}
+      </p>
     </div>
   )
 }
