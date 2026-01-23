@@ -44,7 +44,17 @@ export async function GET(request: NextRequest) {
         ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nota_ch IS NOT NULL THEN rc.nota_ch END)::numeric, 2) as media_ch,
         ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nota_cn IS NOT NULL THEN rc.nota_cn END)::numeric, 2) as media_cn,
         ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nota_producao IS NOT NULL THEN rc.nota_producao END)::numeric, 2) as media_producao,
-        ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.media_aluno IS NOT NULL THEN rc.media_aluno END)::numeric, 2) as media_geral,
+        -- Média geral com divisor fixo: Anos Iniciais (2,3,5) = 3 disciplinas, Anos Finais (6,7,8,9) = 4 disciplinas
+        ROUND(AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P' THEN
+            CASE
+              WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0
+              ELSE
+                (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_ch, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_cn, 0)) / 4.0
+            END
+          ELSE NULL
+        END)::numeric, 2) as media_geral,
 
         -- Distribuição por nível de aprendizagem
         COUNT(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nivel_aprendizagem ILIKE '%insuficiente%' THEN 1 END) as qtd_insuficiente,

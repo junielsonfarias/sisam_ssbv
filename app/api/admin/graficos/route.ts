@@ -69,8 +69,21 @@ function getQuestaoRangeFilter(serie: string | null, disciplina: string | null, 
   return null
 }
 
+// Helper para calcular média geral com divisor fixo
+// Anos Iniciais (2,3,5): (LP + MAT + PROD) / 3
+// Anos Finais (6,7,8,9): (LP + CH + MAT + CN) / 4
+function getMediaGeralSQL(campoSerie: string = 'rc.serie'): string {
+  const numeroSerie = `REGEXP_REPLACE(${campoSerie}::text, '[^0-9]', '', 'g')`
+  return `CASE
+    WHEN ${numeroSerie} IN ('2', '3', '5') THEN
+      (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0
+    ELSE
+      (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_ch, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_cn, 0)) / 4.0
+  END`
+}
+
 // Helper para determinar campo de nota baseado na disciplina selecionada
-function getCampoNota(disciplina: string | null): { campo: string, label: string, totalQuestoes: number } {
+function getCampoNota(disciplina: string | null): { campo: string, label: string, totalQuestoes: number, isCalculated?: boolean } {
   switch (disciplina) {
     case 'LP':
       return { campo: 'rc.nota_lp', label: 'Língua Portuguesa', totalQuestoes: 20 }
@@ -83,7 +96,8 @@ function getCampoNota(disciplina: string | null): { campo: string, label: string
     case 'PT':
       return { campo: 'rc.nota_producao', label: 'Produção Textual', totalQuestoes: 1 }
     default:
-      return { campo: 'rc.media_aluno', label: 'Média Geral', totalQuestoes: 60 }
+      // Para média geral, retorna expressão calculada com divisor fixo
+      return { campo: getMediaGeralSQL(), label: 'Média Geral', totalQuestoes: 60, isCalculated: true }
   }
 }
 
@@ -245,11 +259,10 @@ export async function GET(request: NextRequest) {
       paramSeriesIndex++
     }
     
-    // Filtrar apenas séries que têm alunos com resultados válidos (presença P/F e média > 0)
+    // Filtrar apenas séries que têm alunos com resultados válidos (presença P/F e tem nota LP)
     const baseSeriesCondition = `rc.serie IS NOT NULL AND rc.serie != ''
       AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
-      AND rc.media_aluno IS NOT NULL
-      AND CAST(rc.media_aluno AS DECIMAL) > 0`
+      AND rc.nota_lp IS NOT NULL`
 
     const whereSeriesClause = whereSeriesConditions.length > 0
       ? `WHERE ${whereSeriesConditions.join(' AND ')} AND ${baseSeriesCondition}`
@@ -376,7 +389,7 @@ export async function GET(request: NextRequest) {
             ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as desvio_mat,
             ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as desvio_cn,
             ROUND(STDDEV(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as desvio_pt,
-            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN 1 END) as total_alunos,
             COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN 1 END) as total_alunos_pt,
             SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_lp AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_lp,
             SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND CAST(rc.nota_ch AS DECIMAL) >= 6.0 THEN 1 ELSE 0 END) as aprovados_ch,
@@ -535,38 +548,48 @@ export async function GET(request: NextRequest) {
     // Distribuição de Notas
     if (tipoGrafico === 'geral' || tipoGrafico === 'distribuicao') {
       // Determinar qual campo de nota usar baseado no filtro de disciplina
-      let campoNota = 'rc.media_aluno'
+      let campoNota = getMediaGeralSQL() // Usar cálculo com divisor fixo para média geral
       let labelDisciplina = 'Geral'
+      let usandoMediaGeral = true
 
       if (disciplina === 'LP') {
         campoNota = 'rc.nota_lp'
         labelDisciplina = 'Língua Portuguesa'
+        usandoMediaGeral = false
       } else if (disciplina === 'CH') {
         campoNota = 'rc.nota_ch'
         labelDisciplina = 'Ciências Humanas'
+        usandoMediaGeral = false
       } else if (disciplina === 'MAT') {
         campoNota = 'rc.nota_mat'
         labelDisciplina = 'Matemática'
+        usandoMediaGeral = false
       } else if (disciplina === 'CN') {
         campoNota = 'rc.nota_cn'
         labelDisciplina = 'Ciências da Natureza'
+        usandoMediaGeral = false
       }
 
-      // Adicionar condição para filtrar apenas notas válidas da disciplina selecionada
-      const whereDistribuicao = disciplina
+      // Adicionar condição para filtrar apenas notas válidas
+      // Para média geral, verificar se tem nota_lp (presente em todas as séries)
+      const condicaoValida = usandoMediaGeral
+        ? 'rc.nota_lp IS NOT NULL'
+        : `${campoNota} IS NOT NULL AND CAST(${campoNota} AS DECIMAL) > 0`
+
+      const whereDistribuicao = disciplina || usandoMediaGeral
         ? (whereClause
-            ? `${whereClause} AND ${campoNota} IS NOT NULL AND CAST(${campoNota} AS DECIMAL) > 0`
-            : `WHERE ${campoNota} IS NOT NULL AND CAST(${campoNota} AS DECIMAL) > 0`)
+            ? `${whereClause} AND ${condicaoValida}`
+            : `WHERE ${condicaoValida}`)
         : whereClause
 
       const queryDistribuicao = `
         SELECT
           CASE
-            WHEN CAST(${campoNota} AS DECIMAL) >= 9 THEN '9.0 - 10.0'
-            WHEN CAST(${campoNota} AS DECIMAL) >= 8 THEN '8.0 - 8.9'
-            WHEN CAST(${campoNota} AS DECIMAL) >= 7 THEN '7.0 - 7.9'
-            WHEN CAST(${campoNota} AS DECIMAL) >= 6 THEN '6.0 - 6.9'
-            WHEN CAST(${campoNota} AS DECIMAL) >= 5 THEN '5.0 - 5.9'
+            WHEN (${campoNota}) >= 9 THEN '9.0 - 10.0'
+            WHEN (${campoNota}) >= 8 THEN '8.0 - 8.9'
+            WHEN (${campoNota}) >= 7 THEN '7.0 - 7.9'
+            WHEN (${campoNota}) >= 6 THEN '6.0 - 6.9'
+            WHEN (${campoNota}) >= 5 THEN '5.0 - 5.9'
             ELSE '0.0 - 4.9'
           END as faixa,
           COUNT(*) as quantidade
@@ -610,29 +633,31 @@ export async function GET(request: NextRequest) {
     // Inclui PT (Produção Textual) para Anos Iniciais
     if (tipoGrafico === 'comparativo_escolas') {
       const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+      const mediaGeralCalc = getMediaGeralSQL()
 
       const queryComparativo = `
         WITH ranking_escolas AS (
           SELECT
             e.nome as escola,
-            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+            -- Média geral com divisor fixo
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN (${mediaGeralCalc}) ELSE NULL END), 2) as media_geral,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
             -- PT (Produção Textual) - apenas para Anos Iniciais
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_pt,
-            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) as total_alunos,
+            COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN 1 END) as total_alunos,
             -- Contadores para determinar tipo de dados
             COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) as count_anos_iniciais,
             COUNT(CASE WHEN ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END) as count_anos_finais,
-            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC NULLS LAST) as rank_desc,
-            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) ASC NULLS LAST) as rank_asc
+            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN (${mediaGeralCalc}) ELSE NULL END) DESC NULLS LAST) as rank_desc,
+            ROW_NUMBER() OVER (ORDER BY AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN (${mediaGeralCalc}) ELSE NULL END) ASC NULLS LAST) as rank_asc
           FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
           GROUP BY e.id, e.nome
-          HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) > 0
+          HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN 1 END) > 0
         )
         SELECT * FROM ranking_escolas
         ${deveRemoverLimites ? '' : 'WHERE rank_desc <= 5 OR rank_asc <= 5'}
@@ -944,6 +969,7 @@ export async function GET(request: NextRequest) {
     // Anos Finais: LP, CH, MAT, CN, Geral
     if (tipoGrafico === 'heatmap') {
       const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+      const mediaGeralCalc = getMediaGeralSQL()
 
       const queryHeatmap = `
         SELECT
@@ -960,12 +986,13 @@ export async function GET(request: NextRequest) {
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
           -- PT (Produção Textual) só para anos iniciais
           ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_pt,
-          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral
+          -- Média geral com divisor fixo
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN (${mediaGeralCalc}) ELSE NULL END), 2) as media_geral
         FROM resultados_consolidados_unificada rc
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY e.id, e.nome
-        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) > 0
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN 1 END) > 0
         ORDER BY e.nome
         ${deveRemoverLimites ? '' : 'LIMIT 50'}
       `
@@ -1009,7 +1036,7 @@ export async function GET(request: NextRequest) {
         INNER JOIN escolas e ON rc.escola_id = e.id
         ${whereClause}
         GROUP BY e.id, e.nome
-        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN 1 END) > 0
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN 1 END) > 0
         ORDER BY e.nome
         ${deveRemoverLimites ? '' : 'LIMIT 10'}
       `

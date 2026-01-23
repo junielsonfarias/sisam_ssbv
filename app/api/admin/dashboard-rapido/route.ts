@@ -169,7 +169,14 @@ export async function GET(request: NextRequest) {
     if (faixaMedia) {
       const [min, max] = faixaMedia.split('-').map(Number)
       if (!isNaN(min) && !isNaN(max)) {
-        whereConditions.push(`rc.media_aluno >= $${paramIndex} AND rc.media_aluno < $${paramIndex + 1}`)
+        // Usar cálculo de média com divisor fixo para filtro de faixa
+        const mediaCalc = `CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0
+          ELSE
+            (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_ch, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_cn, 0)) / 4.0
+        END`
+        whereConditions.push(`(${mediaCalc}) >= $${paramIndex} AND (${mediaCalc}) < $${paramIndex + 1}`)
         params.push(min, max === 10 ? 10.01 : max)
         paramIndex += 2
       }
@@ -187,11 +194,18 @@ export async function GET(request: NextRequest) {
           rc.turma_id,
           rc.serie,
           rc.presenca,
-          rc.media_aluno,
+          -- Média calculada com divisor fixo
+          CASE
+            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0
+            ELSE
+              (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_ch, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_cn, 0)) / 4.0
+          END as media_calculada,
           rc.nota_lp,
           rc.nota_mat,
           rc.nota_ch,
           rc.nota_cn,
+          rc.nota_producao,
           e.polo_id,
           COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado') as nivel_aprendizagem
         FROM resultados_consolidados_unificada rc
@@ -207,7 +221,17 @@ export async function GET(request: NextRequest) {
           COUNT(DISTINCT polo_id) as total_polos,
           COUNT(CASE WHEN (presenca = 'P' OR presenca = 'p') THEN 1 END) as total_presentes,
           COUNT(CASE WHEN (presenca = 'F' OR presenca = 'f') THEN 1 END) as total_faltantes,
-          ROUND(AVG(CASE WHEN (presenca = 'P' OR presenca = 'p') AND media_aluno IS NOT NULL AND media_aluno > 0 THEN media_aluno ELSE NULL END), 2) as media_geral,
+          -- Média geral com divisor fixo: Anos Iniciais (2,3,5) = 3 disciplinas, Anos Finais (6,7,8,9) = 4 disciplinas
+          ROUND(AVG(CASE
+            WHEN (presenca = 'P' OR presenca = 'p') THEN
+              CASE
+                WHEN REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                  (COALESCE(nota_lp, 0) + COALESCE(nota_mat, 0) + COALESCE(nota_producao, 0)) / 3.0
+                ELSE
+                  (COALESCE(nota_lp, 0) + COALESCE(nota_ch, 0) + COALESCE(nota_mat, 0) + COALESCE(nota_cn, 0)) / 4.0
+              END
+            ELSE NULL
+          END), 2) as media_geral,
           ROUND(AVG(CASE WHEN (presenca = 'P' OR presenca = 'p') AND nota_lp IS NOT NULL AND nota_lp > 0 THEN nota_lp ELSE NULL END), 2) as media_lp,
           ROUND(AVG(CASE WHEN (presenca = 'P' OR presenca = 'p') AND nota_mat IS NOT NULL AND nota_mat > 0 THEN nota_mat ELSE NULL END), 2) as media_mat,
           ROUND(AVG(CASE WHEN (presenca = 'P' OR presenca = 'p') AND nota_ch IS NOT NULL AND nota_ch > 0 THEN nota_ch ELSE NULL END), 2) as media_ch,
@@ -222,16 +246,16 @@ export async function GET(request: NextRequest) {
       faixas AS (
         SELECT
           CASE
-            WHEN media_aluno >= 0 AND media_aluno < 2 THEN '0-2'
-            WHEN media_aluno >= 2 AND media_aluno < 4 THEN '2-4'
-            WHEN media_aluno >= 4 AND media_aluno < 6 THEN '4-6'
-            WHEN media_aluno >= 6 AND media_aluno < 8 THEN '6-8'
-            WHEN media_aluno >= 8 AND media_aluno <= 10 THEN '8-10'
+            WHEN media_calculada >= 0 AND media_calculada < 2 THEN '0-2'
+            WHEN media_calculada >= 2 AND media_calculada < 4 THEN '2-4'
+            WHEN media_calculada >= 4 AND media_calculada < 6 THEN '4-6'
+            WHEN media_calculada >= 6 AND media_calculada < 8 THEN '6-8'
+            WHEN media_calculada >= 8 AND media_calculada <= 10 THEN '8-10'
             ELSE 'N/A'
           END as faixa,
           COUNT(*) as quantidade
         FROM dados_base
-        WHERE (presenca = 'P' OR presenca = 'p') AND media_aluno IS NOT NULL AND media_aluno > 0
+        WHERE (presenca = 'P' OR presenca = 'p') AND nota_lp IS NOT NULL
         GROUP BY faixa
       ),
       presenca_dist AS (

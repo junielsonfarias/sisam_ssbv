@@ -38,7 +38,15 @@ export async function GET(request: NextRequest) {
         ano_letivo,
         COUNT(DISTINCT aluno_id) as alunos,
         COUNT(DISTINCT turma_id) as turmas,
-        ROUND(AVG(media_aluno)::numeric, 2) as media_geral,
+        -- Média geral com divisor fixo: Anos Iniciais (2,3,5) = 3 disciplinas, Anos Finais (6,7,8,9) = 4 disciplinas
+        ROUND(AVG(
+          CASE
+            WHEN REGEXP_REPLACE(serie, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              (COALESCE(nota_lp, 0) + COALESCE(nota_mat, 0) + COALESCE(nota_producao, 0)) / 3.0
+            ELSE
+              (COALESCE(nota_lp, 0) + COALESCE(nota_ch, 0) + COALESCE(nota_mat, 0) + COALESCE(nota_cn, 0)) / 4.0
+          END
+        )::numeric, 2) as media_geral,
         COUNT(*) as registros
       FROM resultados_consolidados
       WHERE escola_id = $1
@@ -77,7 +85,15 @@ export async function GET(request: NextRequest) {
           ROUND(AVG(rc.nota_mat)::numeric, 2) as media_mat,
           ROUND(AVG(rc.nota_ch)::numeric, 2) as media_ch,
           ROUND(AVG(rc.nota_cn)::numeric, 2) as media_cn,
-          ROUND(AVG(rc.media_aluno)::numeric, 2) as media_geral
+          -- Média geral com divisor fixo
+          ROUND(AVG(
+            CASE
+              WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0
+              ELSE
+                (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_ch, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_cn, 0)) / 4.0
+            END
+          )::numeric, 2) as media_geral
         FROM resultados_consolidados rc
         WHERE rc.escola_id = $1 AND rc.ano_letivo = $2
         GROUP BY rc.serie
