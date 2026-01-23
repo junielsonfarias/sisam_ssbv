@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
-import { limparTodosOsCaches } from '@/lib/cache-dashboard'
+import { limparTodosOsCaches } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {

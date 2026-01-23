@@ -24,7 +24,6 @@ export { default as BarraBuscaPesquisar } from './BarraBuscaPesquisar'
 
 // Componentes de status e feedback
 export { default as StatusIndicators } from './StatusIndicators'
-export { default as LoadingSpinner } from './LoadingSpinner'
 export { default as EmptyState, TableEmptyState } from './EmptyState'
 export { default as EstadoBuscaInicial } from './EstadoBuscaInicial'
 

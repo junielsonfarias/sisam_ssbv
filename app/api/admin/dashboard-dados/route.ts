@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
-import { verificarCache, carregarCache, salvarCache } from '@/lib/cache-dashboard'
 import {
+  verificarCache,
+  carregarCache,
+  salvarCache,
   memoryCache,
   CACHE_TTL,
   getCacheKeyDashboard,
   getCacheKeyFiltros
-} from '@/lib/cache-memoria'
+} from '@/lib/cache'
 import { NOTAS, LIMITES } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
@@ -1749,7 +1751,7 @@ export async function GET(request: NextRequest) {
 
     // Salvar também no cache em arquivo (backup/persistência)
     try {
-      const { limparCachesExpirados } = await import('@/lib/cache-dashboard')
+      const { limparCachesExpirados } = await import('@/lib/cache')
       limparCachesExpirados()
       salvarCache(cacheOptions, dadosResposta, 'dashboard')
     } catch (cacheError) {

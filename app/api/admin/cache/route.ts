@@ -4,13 +4,11 @@ import {
   limparTodosOsCaches,
   limparCachesExpirados,
   obterInfoCaches,
-  obterInfoCache
-} from '@/lib/cache-dashboard'
-import {
+  obterInfoCache,
   memoryCache,
   invalidateDashboardCache,
   invalidateFiltrosCache
-} from '@/lib/cache-memoria'
+} from '@/lib/cache'
 import { getPoolStats } from '@/database/connection'
 
 export const dynamic = 'force-dynamic'

@@ -7,7 +7,7 @@ import {
   getCacheKeyDashboard,
   getCacheKeyFiltros,
   getCacheKeyMetricas
-} from '@/lib/cache-memoria'
+} from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 

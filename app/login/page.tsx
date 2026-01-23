@@ -8,7 +8,7 @@ import { getPersonalizacaoLogin } from '@/lib/personalizacao'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from '@/components/theme-toggle'
 import { useTheme } from '@/lib/theme-provider'
-import { syncDashboardData, clearCache } from '@/lib/dashboard-cache'
+import { syncDashboardData, clearCache } from '@/lib/cache'
 
 export default function LoginPage() {
   const router = useRouter()

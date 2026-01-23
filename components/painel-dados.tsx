@@ -14,7 +14,7 @@ import {
   getCachedEscolas,
   getCachedTurmas,
   getCachedSeries
-} from '@/lib/dashboard-cache'
+} from '@/lib/cache'
 
 // Tipos e utilitários compartilhados
 import {

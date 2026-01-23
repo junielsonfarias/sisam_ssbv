@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
-import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache-dashboard'
+import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {

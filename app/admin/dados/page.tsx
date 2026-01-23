@@ -29,9 +29,9 @@ import {
   DisciplinaCard,
   NivelBadge,
   TabelaPaginada,
+  TabelaCarregando,
   CustomTooltip,
   StatusIndicators,
-  LoadingSpinner,
   AbaNavegacao,
   SeriesChips,
   FiltroSelect,
@@ -2091,7 +2091,7 @@ export default function DadosPage() {
           )}
 
           {carregando ? (
-            <LoadingSpinner mensagem="Carregando dados..." />
+            <TabelaCarregando mensagem="Carregando dados..." />
           ) : dados ? (
             <>
               {/* KPIs */}

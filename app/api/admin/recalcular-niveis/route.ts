@@ -7,7 +7,7 @@ import {
   calcularNivelAluno,
   isAnosIniciais,
 } from '@/lib/config-series'
-import { limparTodosOsCaches } from '@/lib/cache-dashboard'
+import { limparTodosOsCaches } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 

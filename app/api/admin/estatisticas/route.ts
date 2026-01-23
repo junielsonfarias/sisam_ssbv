@@ -12,7 +12,7 @@ import { NextRequest } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { getEstatisticas, getEstatisticasPadrao } from '@/lib/services/estatisticas.service'
 import { forbidden, okComCache, okComFallback } from '@/lib/api-utils'
-import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache-dashboard'
+import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
