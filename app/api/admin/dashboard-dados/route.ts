@@ -448,12 +448,35 @@ export async function GET(request: NextRequest) {
 
     // ========== MÉDIAS POR SÉRIE ==========
     // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
+    // ========== MÉDIAS POR SÉRIE ==========
+    // PADRONIZADO: Usar divisor fixo para consistência com métricas gerais
     const mediasPorSerieQuery = `
       SELECT
         rc.serie,
         COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+        -- Média com DIVISOR FIXO: anos iniciais LP+MAT+PROD/3, anos finais LP+CH+MAT+CN/4
+        ROUND(AVG(CASE
+          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+            CASE
+              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD (divisor fixo 3)
+              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+                ) / 3.0
+              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN (divisor fixo 4)
+              ELSE
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+                ) / 4.0
+            END
+          ELSE NULL
+        END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
@@ -469,13 +492,23 @@ export async function GET(request: NextRequest) {
     `
 
     // ========== MÉDIAS POR POLO ==========
-    // CORREÇÃO: Usar whereClauseBase para que contagens não sejam afetadas pelo filtro de disciplina
+    // PADRONIZADO: Usar divisor fixo para consistência com métricas gerais
     const mediasPorPoloQuery = `
       SELECT
         p.id as polo_id,
         p.nome as polo,
         COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+        -- Média com DIVISOR FIXO: anos iniciais LP+MAT+PROD/3, anos finais LP+CH+MAT+CN/4
+        ROUND(AVG(CASE
+          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+            CASE
+              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
+              ELSE
+                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
+            END
+          ELSE NULL
+        END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
@@ -499,36 +532,26 @@ export async function GET(request: NextRequest) {
         p.nome as polo,
         COUNT(DISTINCT rc.turma_id) as total_turmas,
         COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
-        -- Média CORRIGIDA: considera nota_producao para anos iniciais
+        -- Média com DIVISOR FIXO: anos iniciais LP+MAT+PROD/3, anos finais LP+CH+MAT+CN/4
+        -- PADRONIZADO para ser consistente com métricas gerais
         ROUND(AVG(CASE
           WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
             CASE
-              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD
+              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD (divisor fixo 3)
               WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                  0
-                )
-              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN
+                ) / 3.0
+              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN (divisor fixo 4)
               ELSE
                 (
                   COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
                   COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-                ) / NULLIF(
-                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                  0
-                )
+                ) / 4.0
             END
           ELSE NULL
         END), 2) as media_geral,
@@ -559,8 +582,29 @@ export async function GET(request: NextRequest) {
         e.nome as escola,
         t.serie,
         COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
-        -- Média usando campo media_aluno pré-calculado (consistente com escola e alunos)
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END), 2) as media_geral,
+        -- Média com DIVISOR FIXO: anos iniciais LP+MAT+PROD/3, anos finais LP+CH+MAT+CN/4
+        -- PADRONIZADO para ser consistente com métricas gerais e escolas
+        ROUND(AVG(CASE
+          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+            CASE
+              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD (divisor fixo 3)
+              WHEN REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+                ) / 3.0
+              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN (divisor fixo 4)
+              ELSE
+                (
+                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+                ) / 4.0
+            END
+          ELSE NULL
+        END), 2) as media_geral,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
