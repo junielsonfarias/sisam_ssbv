@@ -318,6 +318,12 @@ export interface EstatisticasPainel {
   totalAnosFinais: number
   nomeEscola?: string
   nomePolo?: string
+  // Médias por disciplina
+  mediaLp?: number
+  mediaMat?: number
+  mediaProd?: number
+  mediaCh?: number
+  mediaCn?: number
 }
 
 export interface PainelDadosProps {

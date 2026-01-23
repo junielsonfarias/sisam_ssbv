@@ -94,6 +94,11 @@ export default function PainelDados({
     mediaAnosFinais: 0,
     totalAnosIniciais: 0,
     totalAnosFinais: 0,
+    mediaLp: 0,
+    mediaMat: 0,
+    mediaProd: 0,
+    mediaCh: 0,
+    mediaCn: 0,
   })
   const [carregando, setCarregando] = useState(true)
 
@@ -177,6 +182,11 @@ export default function PainelDados({
           totalAnosFinais: Number(data.totalAnosFinais) || 0,
           nomeEscola: data.nomeEscola || '',
           nomePolo: data.nomePolo || '',
+          mediaLp: Number(data.mediaLp) || 0,
+          mediaMat: Number(data.mediaMat) || 0,
+          mediaProd: Number(data.mediaProd) || 0,
+          mediaCh: Number(data.mediaCh) || 0,
+          mediaCn: Number(data.mediaCn) || 0,
         })
 
         // Atualizar lista de séries disponíveis (apenas na primeira carga, sem filtro de série)
@@ -792,6 +802,128 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Cards de Médias por Disciplina */}
+      <CardsDisciplinasDashboard
+        estatisticas={estatisticas}
+        serieSelecionada={serieSelecionada}
+      />
+    </div>
+  )
+}
+
+// Componente para cards de disciplinas do Dashboard
+function CardsDisciplinasDashboard({ estatisticas, serieSelecionada }: {
+  estatisticas: Estatisticas;
+  serieSelecionada?: string;
+}) {
+  // Determinar quais disciplinas mostrar baseado na série selecionada
+  const numSerie = serieSelecionada?.replace(/[^0-9]/g, '') || ''
+  const serieIsAnosIniciais = ['2', '3', '5'].includes(numSerie)
+  const serieIsAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
+  const temFiltroSerie = !!serieSelecionada && serieSelecionada.trim() !== ''
+
+  // Se não há filtro de série, mostrar todas
+  // Se anos iniciais: LP, MAT, PROD.T
+  // Se anos finais: LP, MAT, CH, CN
+  const mostrarProd = !temFiltroSerie || serieIsAnosIniciais
+  const mostrarChCn = !temFiltroSerie || serieIsAnosFinais
+
+  // Helper para renderizar card de disciplina
+  const DisciplinaCardDash = ({ sigla, titulo, media, bgColor, textColor, barColor }: {
+    sigla: string;
+    titulo: string;
+    media: number;
+    bgColor: string;
+    textColor: string;
+    barColor: string;
+  }) => {
+    const porcentagem = Math.min(Math.max((media / 10) * 100, 0), 100)
+    const temMedia = media > 0
+
+    return (
+      <div className={`${bgColor} rounded-xl p-4 border-2 hover:shadow-md transition-shadow`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{sigla}</span>
+          <span className={`text-xl font-bold ${textColor}`}>
+            {temMedia ? media.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
+          </span>
+        </div>
+        <div className="w-full bg-white dark:bg-slate-800 rounded-full h-2.5 mb-2 shadow-inner">
+          <div
+            className="h-2.5 rounded-full transition-all duration-500 shadow-sm"
+            style={{
+              width: `${porcentagem}%`,
+              backgroundColor: barColor
+            }}
+          ></div>
+        </div>
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">{titulo}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {temMedia ? `${porcentagem.toFixed(1)}% da nota máxima` : 'Sem dados'}
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+        Médias por Disciplina {serieSelecionada ? `- ${serieSelecionada}` : ''}
+      </h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        {/* LP - sempre visível */}
+        <DisciplinaCardDash
+          sigla="LP"
+          titulo="Língua Portuguesa"
+          media={estatisticas.mediaLp || 0}
+          bgColor="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800"
+          textColor="text-blue-700 dark:text-blue-300"
+          barColor="#3B82F6"
+        />
+        {/* MAT - sempre visível */}
+        <DisciplinaCardDash
+          sigla="MAT"
+          titulo="Matemática"
+          media={estatisticas.mediaMat || 0}
+          bgColor="bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800"
+          textColor="text-purple-700 dark:text-purple-300"
+          barColor="#A855F7"
+        />
+        {/* PROD.T - apenas anos iniciais ou sem filtro */}
+        {mostrarProd && (
+          <DisciplinaCardDash
+            sigla="PROD.T"
+            titulo="Produção Textual"
+            media={estatisticas.mediaProd || 0}
+            bgColor="bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800"
+            textColor="text-rose-700 dark:text-rose-300"
+            barColor="#F43F5E"
+          />
+        )}
+        {/* CH - apenas anos finais ou sem filtro */}
+        {mostrarChCn && (
+          <DisciplinaCardDash
+            sigla="CH"
+            titulo="Ciências Humanas"
+            media={estatisticas.mediaCh || 0}
+            bgColor="bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800"
+            textColor="text-amber-700 dark:text-amber-300"
+            barColor="#F59E0B"
+          />
+        )}
+        {/* CN - apenas anos finais ou sem filtro */}
+        {mostrarChCn && (
+          <DisciplinaCardDash
+            sigla="CN"
+            titulo="Ciências da Natureza"
+            media={estatisticas.mediaCn || 0}
+            bgColor="bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
+            textColor="text-green-700 dark:text-green-300"
+            barColor="#22C55E"
+          />
+        )}
       </div>
     </div>
   )

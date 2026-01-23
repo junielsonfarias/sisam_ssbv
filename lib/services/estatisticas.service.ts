@@ -74,6 +74,13 @@ export interface EstatisticasGerais {
   totalAnosIniciais: number
   totalAnosFinais: number
 
+  // Médias por disciplina
+  mediaLp: number
+  mediaMat: number
+  mediaProd: number
+  mediaCh: number
+  mediaCn: number
+
   // Séries disponíveis (com dados)
   seriesDisponiveis?: string[]
 }
@@ -445,6 +452,9 @@ async function buscarPresenca(
 
 /**
  * Busca média geral e taxa de aprovação
+ * PADRONIZADO: Usa divisor fixo para consistência com dashboard-dados
+ * Anos Iniciais (2, 3, 5): (LP + MAT + PROD) / 3
+ * Anos Finais (6, 7, 8, 9): (LP + CH + MAT + CN) / 4
  */
 async function buscarMediaEAprovacao(
   escopo: EscopoEstatisticas,
@@ -453,9 +463,7 @@ async function buscarMediaEAprovacao(
   const params: (string | null)[] = []
   let paramIndex = 1
   let whereConditions: string[] = [
-    `(rc.presenca IN ('P', 'p'))`,
-    `rc.media_aluno IS NOT NULL`,
-    `CAST(rc.media_aluno AS DECIMAL) > 0`
+    `(rc.presenca IN ('P', 'p'))`
   ]
 
   // Construir condições WHERE
@@ -479,10 +487,35 @@ async function buscarMediaEAprovacao(
   const whereClause = `WHERE ${whereConditions.join(' AND ')}`
   const needsJoin = escopo === 'polo' && filtros.poloId
 
+  // Query com média calculada usando DIVISOR FIXO para consistência
   const query = `
     SELECT
-      ROUND(AVG(CAST(rc.media_aluno AS DECIMAL)), 2) as media_geral,
-      COUNT(CASE WHEN CAST(rc.media_aluno AS DECIMAL) >= ${NOTAS.APROVACAO} THEN 1 END) as aprovados,
+      ROUND(AVG(
+        CASE
+          -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD (divisor fixo 3)
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            (
+              COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+            ) / 3.0
+          -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN (divisor fixo 4)
+          ELSE
+            (
+              COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+            ) / 4.0
+        END
+      ), 2) as media_geral,
+      COUNT(CASE WHEN
+        CASE
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
+          ELSE
+            (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
+        END >= ${NOTAS.APROVACAO} THEN 1 END) as aprovados,
       COUNT(*) as total_presentes
     FROM resultados_consolidados_unificada rc
     ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
@@ -502,7 +535,7 @@ async function buscarMediaEAprovacao(
  * Busca médias por tipo de ensino (anos iniciais e finais)
  * Anos Iniciais: 2º, 3º, 5º (séries 2, 3, 5) - disciplinas: LP, MAT, PROD
  * Anos Finais: 6º, 7º, 8º, 9º (séries 6, 7, 8, 9) - disciplinas: LP, MAT, CH, CN
- * Calcula a média dinamicamente a partir das notas individuais quando media_aluno não está disponível
+ * PADRONIZADO: Usa divisor fixo para consistência com dashboard-dados
  */
 async function buscarMediasPorTipoEnsino(
   escopo: EscopoEstatisticas,
@@ -540,42 +573,34 @@ async function buscarMediasPorTipoEnsino(
   const whereClause = `WHERE ${whereConditions.join(' AND ')}`
   const needsJoin = escopo === 'polo' && filtros.poloId
 
-  // Query que calcula a média dinamicamente:
-  // - Se media_aluno está disponível, usa ela
-  // - Senão, calcula a partir das notas individuais baseado no tipo de ensino
+  // Query com DIVISOR FIXO para consistência com dashboard-dados
   // Anos Iniciais: (LP + MAT + PROD) / 3
-  // Anos Finais: (LP + MAT + CH + CN) / 4
+  // Anos Finais: (LP + CH + MAT + CN) / 4
   const query = `
     SELECT
       CASE
-        WHEN LEFT(rc.serie, 1) IN ('2', '3', '5') THEN 'anos_iniciais'
-        WHEN LEFT(rc.serie, 1) IN ('6', '7', '8', '9') THEN 'anos_finais'
+        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
+        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9') THEN 'anos_finais'
         ELSE 'outro'
       END as tipo_ensino,
       ROUND(AVG(
-        COALESCE(
-          NULLIF(CAST(rc.media_aluno AS DECIMAL), 0),
-          CASE
-            WHEN LEFT(rc.serie, 1) IN ('2', '3', '5') THEN
-              (COALESCE(NULLIF(CAST(rc.nota_lp AS DECIMAL), 0), 0) +
-               COALESCE(NULLIF(CAST(rc.nota_mat AS DECIMAL), 0), 0) +
-               COALESCE(NULLIF(CAST(rc.nota_producao AS DECIMAL), 0), 0)) /
-              NULLIF(
-                (CASE WHEN COALESCE(NULLIF(CAST(rc.nota_lp AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
-                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_mat AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
-                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_producao AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END), 0)
-            ELSE
-              (COALESCE(NULLIF(CAST(rc.nota_lp AS DECIMAL), 0), 0) +
-               COALESCE(NULLIF(CAST(rc.nota_mat AS DECIMAL), 0), 0) +
-               COALESCE(NULLIF(CAST(rc.nota_ch AS DECIMAL), 0), 0) +
-               COALESCE(NULLIF(CAST(rc.nota_cn AS DECIMAL), 0), 0)) /
-              NULLIF(
-                (CASE WHEN COALESCE(NULLIF(CAST(rc.nota_lp AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
-                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_mat AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
-                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_ch AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END +
-                 CASE WHEN COALESCE(NULLIF(CAST(rc.nota_cn AS DECIMAL), 0), 0) > 0 THEN 1 ELSE 0 END), 0)
-          END
-        )
+        CASE
+          -- Anos iniciais: divisor fixo 3
+          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            (
+              COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+            ) / 3.0
+          -- Anos finais: divisor fixo 4
+          ELSE
+            (
+              COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+              COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+            ) / 4.0
+        END
       ), 2) as media,
       COUNT(DISTINCT rc.aluno_id) as total
     FROM resultados_consolidados_unificada rc
@@ -602,6 +627,73 @@ async function buscarMediasPorTipoEnsino(
   }
 
   return { mediaAnosIniciais, mediaAnosFinais, totalAnosIniciais, totalAnosFinais }
+}
+
+/**
+ * Busca médias por disciplina
+ * Usa o mesmo cálculo do dashboard-dados para garantir consistência
+ * Anos Iniciais (2, 3, 5): LP, MAT, PROD
+ * Anos Finais (6, 7, 8, 9): LP, MAT, CH, CN
+ */
+async function buscarMediasPorDisciplina(
+  escopo: EscopoEstatisticas,
+  filtros: FiltrosEstatisticas
+): Promise<{
+  mediaLp: number
+  mediaMat: number
+  mediaProd: number
+  mediaCh: number
+  mediaCn: number
+}> {
+  const params: (string | null)[] = []
+  let paramIndex = 1
+  let whereConditions: string[] = [
+    `rc.presenca IN ('P', 'p')`
+  ]
+
+  // Construir condições WHERE
+  if (escopo === 'polo' && filtros.poloId) {
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
+    params.push(filtros.poloId)
+    paramIndex++
+  } else if (escopo === 'escola' && filtros.escolaId) {
+    whereConditions.push(`rc.escola_id = $${paramIndex}`)
+    params.push(filtros.escolaId)
+    paramIndex++
+  }
+
+  // Filtro de série
+  if (filtros.serie) {
+    whereConditions.push(`rc.serie = $${paramIndex}`)
+    params.push(filtros.serie)
+    paramIndex++
+  }
+
+  const whereClause = `WHERE ${whereConditions.join(' AND ')}`
+  const needsJoin = escopo === 'polo' && filtros.poloId
+
+  // Query para médias por disciplina - usando AVG apenas quando nota > 0
+  const query = `
+    SELECT
+      ROUND(AVG(CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
+      ROUND(AVG(CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+      ROUND(AVG(CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod,
+      ROUND(AVG(CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+      ROUND(AVG(CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn
+    FROM resultados_consolidados_unificada rc
+    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    ${whereClause}
+  `
+
+  const result = await pool.query(query, params)
+
+  return {
+    mediaLp: parseDbNumber(result.rows[0]?.media_lp),
+    mediaMat: parseDbNumber(result.rows[0]?.media_mat),
+    mediaProd: parseDbNumber(result.rows[0]?.media_prod),
+    mediaCh: parseDbNumber(result.rows[0]?.media_ch),
+    mediaCn: parseDbNumber(result.rows[0]?.media_cn)
+  }
 }
 
 /**
@@ -709,7 +801,12 @@ export async function getEstatisticas(
     mediaAnosIniciais: 0,
     mediaAnosFinais: 0,
     totalAnosIniciais: 0,
-    totalAnosFinais: 0
+    totalAnosFinais: 0,
+    mediaLp: 0,
+    mediaMat: 0,
+    mediaProd: 0,
+    mediaCh: 0,
+    mediaCn: 0
   }
 
   // Buscar identificação (nome polo/escola)
@@ -754,7 +851,8 @@ export async function getEstatisticas(
     presencaQuery,
     mediaQuery,
     tipoEnsinoQuery,
-    seriesQuery
+    seriesQuery,
+    disciplinasQuery
   ] = await Promise.all([
     executarQuerySegura(() => buscarTotalEscolas(escopo, filtros), 'buscar total de escolas'),
     executarQuerySegura(() => buscarTotalTurmas(escopo, filtros), 'buscar total de turmas'),
@@ -763,7 +861,8 @@ export async function getEstatisticas(
     executarQuerySegura(() => buscarPresenca(escopo, filtros), 'buscar presença'),
     executarQuerySegura(() => buscarMediaEAprovacao(escopo, filtros), 'buscar média e aprovação'),
     executarQuerySegura(() => buscarMediasPorTipoEnsino(escopo, filtros), 'buscar médias por tipo de ensino'),
-    executarQuerySegura(() => buscarSeriesDisponiveis(escopo, filtros), 'buscar séries disponíveis')
+    executarQuerySegura(() => buscarSeriesDisponiveis(escopo, filtros), 'buscar séries disponíveis'),
+    executarQuerySegura(() => buscarMediasPorDisciplina(escopo, filtros), 'buscar médias por disciplina')
   ])
 
   // Preencher resultado com dados das queries
@@ -792,6 +891,14 @@ export async function getEstatisticas(
 
   if (seriesQuery.sucesso && seriesQuery.dados) {
     resultado.seriesDisponiveis = seriesQuery.dados
+  }
+
+  if (disciplinasQuery.sucesso && disciplinasQuery.dados) {
+    resultado.mediaLp = disciplinasQuery.dados.mediaLp
+    resultado.mediaMat = disciplinasQuery.dados.mediaMat
+    resultado.mediaProd = disciplinasQuery.dados.mediaProd
+    resultado.mediaCh = disciplinasQuery.dados.mediaCh
+    resultado.mediaCn = disciplinasQuery.dados.mediaCn
   }
 
   // Buscar taxa de acertos (apenas para escola)
@@ -829,6 +936,11 @@ export function getEstatisticasPadrao(): EstatisticasGerais {
     mediaAnosIniciais: 0,
     mediaAnosFinais: 0,
     totalAnosIniciais: 0,
-    totalAnosFinais: 0
+    totalAnosFinais: 0,
+    mediaLp: 0,
+    mediaMat: 0,
+    mediaProd: 0,
+    mediaCh: 0,
+    mediaCn: 0
   }
 }
