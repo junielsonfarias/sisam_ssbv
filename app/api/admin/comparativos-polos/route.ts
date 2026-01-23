@@ -214,10 +214,10 @@ export async function GET(request: NextRequest) {
     }
 
     queryAgregado += `
-      GROUP BY 
+      GROUP BY
         p.id, p.nome, rc.serie
-      ORDER BY 
-        rc.serie, AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC NULLS LAST
+      ORDER BY
+        rc.serie, media_geral DESC NULLS LAST
     `
 
     const resultAgregado = await pool.query(queryAgregado, paramsAgregado)
@@ -254,7 +254,17 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p', 'F', 'f') THEN rc.aluno_id END) as total_alunos,
         COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as alunos_presentes,
         COUNT(DISTINCT t.id) as total_turmas,
-        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) as media_geral,
+        -- Média geral calculada corretamente por série (divisor FIXO - disciplinas obrigatórias)
+        AVG(CASE
+          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+            CASE
+              WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN
+                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
+              ELSE
+                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
+            END
+          ELSE NULL
+        END) as media_geral,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END) as media_lp,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END) as media_ch,
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END) as media_mat,
@@ -301,10 +311,10 @@ export async function GET(request: NextRequest) {
     }
 
     queryEscolas += `
-      GROUP BY 
+      GROUP BY
         p.id, p.nome, e.id, e.nome, rc.serie
-      ORDER BY 
-        p.id, rc.serie, AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0) THEN CAST(rc.media_aluno AS DECIMAL) ELSE NULL END) DESC NULLS LAST
+      ORDER BY
+        p.id, rc.serie, media_geral DESC NULLS LAST
     `
 
     const resultEscolas = await pool.query(queryEscolas, paramsEscolas)
