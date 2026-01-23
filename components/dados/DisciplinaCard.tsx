@@ -25,11 +25,14 @@ export default function DisciplinaCard({ titulo, media, cor, sigla, destaque = f
           {temMedia ? mediaValida.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
         </span>
       </div>
-      {/* Barra de progresso - sempre visível */}
+      {/* Barra de progresso - sempre visível com cor inline para garantir renderização */}
       <div className="w-full bg-white dark:bg-slate-800 rounded-full h-2.5 mb-2 shadow-inner">
         <div
-          className={`h-2.5 rounded-full ${c.bar} transition-all duration-500 shadow-sm`}
-          style={{ width: `${porcentagem}%` }}
+          className="h-2.5 rounded-full transition-all duration-500 shadow-sm"
+          style={{
+            width: `${porcentagem}%`,
+            backgroundColor: c.barColor || '#3B82F6'
+          }}
         ></div>
       </div>
       <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">{titulo}</p>

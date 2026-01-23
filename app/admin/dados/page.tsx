@@ -2546,11 +2546,17 @@ export default function DadosPage() {
                         posicao: (paginaAtual - 1) * itensPorPagina + index + 1
                       }))}
                       colunas={(() => {
-                        // Determinar se é anos iniciais ou finais baseado no filtro de série
+                        // Determinar se é anos iniciais ou finais baseado no filtro de série OU etapa de ensino
                         const numSerie = filtroSerie?.replace(/[^0-9]/g, '') || ''
-                        const isAnosIniciais = ['2', '3', '5'].includes(numSerie)
-                        const isAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
-                        const temFiltro = !!filtroSerie && filtroSerie.trim() !== ''
+                        const isAnosIniciaisSerie = ['2', '3', '5'].includes(numSerie)
+                        const isAnosFinaisSerie = ['6', '7', '8', '9'].includes(numSerie)
+
+                        // Considerar filtro de etapa de ensino
+                        const isAnosIniciais = filtroTipoEnsino === 'anos_iniciais' || isAnosIniciaisSerie
+                        const isAnosFinais = filtroTipoEnsino === 'anos_finais' || isAnosFinaisSerie
+
+                        // Tem filtro se tiver série OU etapa de ensino selecionada
+                        const temFiltro = (!!filtroSerie && filtroSerie.trim() !== '') || !!filtroTipoEnsino
 
                         const colunas: ColunaTabela[] = [
                           { key: 'posicao', label: 'Nº', align: 'center', format: 'posicao' },
@@ -2561,21 +2567,25 @@ export default function DadosPage() {
                           { key: 'media_geral', label: 'Media', align: 'center', format: 'nota', destaque: !filtroDisciplina },
                         ]
 
-                        // Média por etapa de ensino: mostrar apenas quando sem filtro de série (Todos)
-                        if (!temFiltro) {
+                        // Média AI: mostrar quando sem filtro OU quando é anos iniciais
+                        if (!temFiltro || isAnosIniciais) {
                           colunas.push({ key: 'media_ai', label: 'Média AI', align: 'center', format: 'media_etapa' })
+                        }
+
+                        // Média AF: mostrar quando sem filtro OU quando é anos finais
+                        if (!temFiltro || isAnosFinais) {
                           colunas.push({ key: 'media_af', label: 'Média AF', align: 'center', format: 'media_etapa' })
                         }
 
                         colunas.push({ key: 'media_lp', label: 'LP', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'LP' })
                         colunas.push({ key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'MAT' })
 
-                        // PROD: mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro
+                        // PROD.T: mostrar apenas para anos iniciais ou quando sem filtro
                         if (!temFiltro || isAnosIniciais) {
                           colunas.push({ key: 'media_prod', label: 'PROD.T', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'PT' })
                         }
 
-                        // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro
+                        // CH/CN: mostrar apenas para anos finais ou quando sem filtro
                         if (!temFiltro || isAnosFinais) {
                           colunas.push({ key: 'media_ch', label: 'CH', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'CH' })
                           colunas.push({ key: 'media_cn', label: 'CN', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'CN' })
@@ -2615,11 +2625,17 @@ export default function DadosPage() {
                         nivel_turma: calcularNivelPorMedia(turma.media_geral).codigo
                       }))}
                       colunas={(() => {
-                        // Determinar se é anos iniciais ou finais baseado no filtro de série
+                        // Determinar se é anos iniciais ou finais baseado no filtro de série OU etapa de ensino
                         const numSerie = filtroSerie?.replace(/[^0-9]/g, '') || ''
-                        const isAnosIniciais = ['2', '3', '5'].includes(numSerie)
-                        const isAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
-                        const temFiltro = !!filtroSerie && filtroSerie.trim() !== ''
+                        const isAnosIniciaisSerie = ['2', '3', '5'].includes(numSerie)
+                        const isAnosFinaisSerie = ['6', '7', '8', '9'].includes(numSerie)
+
+                        // Considerar filtro de etapa de ensino
+                        const isAnosIniciais = filtroTipoEnsino === 'anos_iniciais' || isAnosIniciaisSerie
+                        const isAnosFinais = filtroTipoEnsino === 'anos_finais' || isAnosFinaisSerie
+
+                        // Tem filtro se tiver série OU etapa de ensino selecionada
+                        const temFiltro = (!!filtroSerie && filtroSerie.trim() !== '') || !!filtroTipoEnsino
 
                         const colunas: ColunaTabela[] = [
                           { key: 'posicao', label: 'Nº', align: 'center', format: 'posicao' },
@@ -2632,12 +2648,12 @@ export default function DadosPage() {
                           { key: 'media_mat', label: 'MAT', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'MAT' },
                         ]
 
-                        // PROD: mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro
+                        // PROD.T: mostrar apenas para anos iniciais ou quando sem filtro
                         if (!temFiltro || isAnosIniciais) {
                           colunas.push({ key: 'media_prod', label: 'PROD.T', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'PT' })
                         }
 
-                        // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro
+                        // CH/CN: mostrar apenas para anos finais ou quando sem filtro
                         if (!temFiltro || isAnosFinais) {
                           colunas.push({ key: 'media_ch', label: 'CH', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'CH' })
                           colunas.push({ key: 'media_cn', label: 'CN', align: 'center', format: 'decimal_com_nivel', destaque: filtroDisciplina === 'CN' })

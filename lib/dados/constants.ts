@@ -104,12 +104,12 @@ export const CORES_METRIC_CARD: Record<string, { bg: string; text: string; borde
   emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', iconBg: 'bg-emerald-100' },
 }
 
-export const CORES_DISCIPLINA_CARD: Record<string, { bg: string; bar: string; text: string; border: string; ring: string }> = {
-  blue: { bg: 'bg-blue-50 dark:bg-blue-900/30', bar: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800', ring: 'ring-blue-500' },
-  purple: { bg: 'bg-purple-50 dark:bg-purple-900/30', bar: 'bg-purple-500', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800', ring: 'ring-purple-500' },
-  green: { bg: 'bg-green-50 dark:bg-green-900/30', bar: 'bg-green-500', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-800', ring: 'ring-green-500' },
-  amber: { bg: 'bg-amber-50 dark:bg-amber-900/30', bar: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800', ring: 'ring-amber-500' },
-  rose: { bg: 'bg-rose-50 dark:bg-rose-900/30', bar: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800', ring: 'ring-rose-500' },
+export const CORES_DISCIPLINA_CARD: Record<string, { bg: string; bar: string; barColor: string; text: string; border: string; ring: string }> = {
+  blue: { bg: 'bg-blue-50 dark:bg-blue-900/30', bar: 'bg-blue-500', barColor: '#3B82F6', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800', ring: 'ring-blue-500' },
+  purple: { bg: 'bg-purple-50 dark:bg-purple-900/30', bar: 'bg-purple-500', barColor: '#A855F7', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800', ring: 'ring-purple-500' },
+  green: { bg: 'bg-green-50 dark:bg-green-900/30', bar: 'bg-green-500', barColor: '#22C55E', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-800', ring: 'ring-green-500' },
+  amber: { bg: 'bg-amber-50 dark:bg-amber-900/30', bar: 'bg-amber-500', barColor: '#F59E0B', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800', ring: 'ring-amber-500' },
+  rose: { bg: 'bg-rose-50 dark:bg-rose-900/30', bar: 'bg-rose-500', barColor: '#F43F5E', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800', ring: 'ring-rose-500' },
 }
 
 export const CORES_NIVEL_BADGE: Record<string, string> = {
