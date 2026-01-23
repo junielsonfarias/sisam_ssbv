@@ -343,83 +343,82 @@ export async function GET(request: NextRequest) {
     params.push(limite, offset)
 
     // Query para estatísticas gerais (SEM paginação - calcula sobre TODOS os alunos)
+    // PADRONIZADO: Usa divisor fixo para consistência com dashboard-dados e estatisticas.service
+    // Anos Iniciais (2, 3, 5): (LP + MAT + PROD) / 3
+    // Anos Finais (6, 7, 8, 9): (LP + CH + MAT + CN) / 4
     let estatisticasQuery = `
       SELECT
         COUNT(*) as total_alunos,
         COUNT(CASE WHEN UPPER(rc.presenca) = 'P' THEN 1 END) as total_presentes,
         COUNT(CASE WHEN UPPER(rc.presenca) IN ('F', 'FALTA', 'FALTOU', 'AUSENTE') THEN 1 END) as total_faltas,
-        AVG(CASE
-          WHEN UPPER(rc.presenca) = 'P'
-          AND rc.media_aluno IS NOT NULL
-          AND CAST(rc.media_aluno AS DECIMAL) > 0
-          THEN CAST(rc.media_aluno AS DECIMAL)
+        -- Média geral calculada com DIVISOR FIXO
+        ROUND(AVG(CASE
+          WHEN UPPER(rc.presenca) = 'P' THEN
+            CASE
+              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
+              ELSE
+                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
+            END
           ELSE NULL
-        END) as media_geral,
-        AVG(CASE
+        END), 2) as media_geral,
+        ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P'
           AND rc.nota_lp IS NOT NULL
           AND CAST(rc.nota_lp AS DECIMAL) > 0
           THEN CAST(rc.nota_lp AS DECIMAL)
           ELSE NULL
-        END) as media_lp,
-        AVG(CASE
+        END), 2) as media_lp,
+        ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P'
           AND rc.nota_ch IS NOT NULL
           AND CAST(rc.nota_ch AS DECIMAL) > 0
           THEN CAST(rc.nota_ch AS DECIMAL)
           ELSE NULL
-        END) as media_ch,
-        AVG(CASE
+        END), 2) as media_ch,
+        ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P'
           AND rc.nota_mat IS NOT NULL
           AND CAST(rc.nota_mat AS DECIMAL) > 0
           THEN CAST(rc.nota_mat AS DECIMAL)
           ELSE NULL
-        END) as media_mat,
-        AVG(CASE
+        END), 2) as media_mat,
+        ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P'
           AND rc.nota_cn IS NOT NULL
           AND CAST(rc.nota_cn AS DECIMAL) > 0
           THEN CAST(rc.nota_cn AS DECIMAL)
           ELSE NULL
-        END) as media_cn,
-        AVG(CASE
+        END), 2) as media_cn,
+        ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P'
           AND rc.nota_producao IS NOT NULL
           AND CAST(rc.nota_producao AS DECIMAL) > 0
           THEN CAST(rc.nota_producao AS DECIMAL)
           ELSE NULL
-        END) as media_producao,
-        -- Estatísticas por tipo de ensino
-        AVG(CASE
+        END), 2) as media_producao,
+        -- Estatísticas por tipo de ensino com DIVISOR FIXO
+        ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P'
-          AND rc.media_aluno IS NOT NULL
-          AND CAST(rc.media_aluno AS DECIMAL) > 0
-          AND cs.tipo_ensino = 'anos_iniciais'
-          THEN CAST(rc.media_aluno AS DECIMAL)
+          AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+          THEN (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
           ELSE NULL
-        END) as media_anos_iniciais,
+        END), 2) as media_anos_iniciais,
         COUNT(CASE
           WHEN UPPER(rc.presenca) = 'P'
-          AND rc.media_aluno IS NOT NULL
-          AND CAST(rc.media_aluno AS DECIMAL) > 0
-          AND cs.tipo_ensino = 'anos_iniciais'
+          AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
           THEN 1
           ELSE NULL
         END) as total_anos_iniciais,
-        AVG(CASE
+        ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P'
-          AND rc.media_aluno IS NOT NULL
-          AND CAST(rc.media_aluno AS DECIMAL) > 0
-          AND cs.tipo_ensino = 'anos_finais'
-          THEN CAST(rc.media_aluno AS DECIMAL)
+          AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')
+          THEN (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
           ELSE NULL
-        END) as media_anos_finais,
+        END), 2) as media_anos_finais,
         COUNT(CASE
           WHEN UPPER(rc.presenca) = 'P'
-          AND rc.media_aluno IS NOT NULL
-          AND CAST(rc.media_aluno AS DECIMAL) > 0
-          AND cs.tipo_ensino = 'anos_finais'
+          AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')
           THEN 1
           ELSE NULL
         END) as total_anos_finais
