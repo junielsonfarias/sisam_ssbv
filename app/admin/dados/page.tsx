@@ -2390,30 +2390,31 @@ export default function DadosPage() {
                       return num === '6' || num === '7' || num === '8' || num === '9'
                     })
 
-                    // Calcular médias gerais para cada etapa
-                    const calcularMediaEtapa = (etapaDados: typeof dados.mediasPorSerie, disciplinas: string[]) => {
+                    // Calcular médias gerais para cada etapa usando media_geral da API
+                    // A API já calcula corretamente: Anos Iniciais (LP+MAT+PROD)/3, Anos Finais (LP+CH+MAT+CN)/4
+                    const calcularMediaEtapa = (etapaDados: typeof dados.mediasPorSerie) => {
                       if (etapaDados.length === 0) return { media_geral: 0, total_alunos: 0 }
-                      let somaTotal = 0
-                      let countTotal = 0
+                      let somaPonderada = 0
                       let totalAlunos = 0
+
                       etapaDados.forEach(item => {
-                        totalAlunos += item.total_alunos || 0
-                        disciplinas.forEach(disc => {
-                          const valor = (item as any)[`media_${disc}`]
-                          if (valor && valor > 0) {
-                            somaTotal += valor * (item.total_alunos || 1)
-                            countTotal += item.total_alunos || 1
-                          }
-                        })
+                        // Usar presentes para ponderação (alunos que fizeram a prova)
+                        const alunos = item.presentes || item.total_alunos || 0
+                        // Usar media_geral que já vem calculada corretamente da API
+                        if (item.media_geral && item.media_geral > 0 && alunos > 0) {
+                          somaPonderada += item.media_geral * alunos
+                          totalAlunos += alunos
+                        }
                       })
+
                       return {
-                        media_geral: countTotal > 0 ? Math.round((somaTotal / countTotal) * 100) / 100 : 0,
+                        media_geral: totalAlunos > 0 ? Math.round((somaPonderada / totalAlunos) * 100) / 100 : 0,
                         total_alunos: totalAlunos
                       }
                     }
 
-                    const mediaAI = calcularMediaEtapa(anosIniciaisDados, ['lp', 'mat', 'prod'])
-                    const mediaAF = calcularMediaEtapa(anosFinaisDados, ['lp', 'mat', 'ch', 'cn'])
+                    const mediaAI = calcularMediaEtapa(anosIniciaisDados)
+                    const mediaAF = calcularMediaEtapa(anosFinaisDados)
 
                     // Dados para o gráfico
                     const dadosComparativo = [
