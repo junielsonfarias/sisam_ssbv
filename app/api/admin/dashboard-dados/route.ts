@@ -257,23 +257,15 @@ export async function GET(request: NextRequest) {
           }
         } else {
           // Sem disciplina selecionada: filtrar pela média geral
+          // CORRIGIDO: Usar divisor FIXO para consistência com API de gráficos
+          // Anos Iniciais (2,3,5): (LP + MAT + PROD) / 3
+          // Anos Finais (6-9): (LP + CH + MAT + CN) / 4
           const mediaCalculada = `
             CASE
               WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-                ROUND(
-                  (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
-                  NULLIF(
-                    CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+                ROUND((COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) / 3.0, 2)
               ELSE
-                ROUND(
-                  (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
-                  NULLIF(
-                    CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+                ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0, 2)
             END
           `
           whereConditions.push(`(${mediaCalculada}) >= $${paramIndex} AND (${mediaCalculada}) < $${paramIndex + 1}`)
@@ -310,25 +302,15 @@ export async function GET(request: NextRequest) {
 
     // Filtro de taxa de acerto mínima/máxima
     if (taxaAcertoMin || taxaAcertoMax) {
-      // CORREÇÃO: Usar a mesma fórmula de cálculo de média que é usada na query de alunos detalhados
-      // IMPORTANTE: Para Anos Iniciais, usar rc_table que tem valores corretos
+      // CORRIGIDO: Usar divisor FIXO para consistência com API de gráficos
+      // Anos Iniciais (2,3,5): (LP + MAT + PROD) / 3
+      // Anos Finais (6-9): (LP + CH + MAT + CN) / 4
       const mediaCalculadaTaxa = `
         CASE
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            ROUND(
-              (COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) /
-              NULLIF(
-                CASE WHEN rc_table.nota_lp IS NOT NULL AND CAST(rc_table.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc_table.nota_mat IS NOT NULL AND CAST(rc_table.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc_table.nota_producao IS NOT NULL AND CAST(rc_table.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+            ROUND((COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) / 3.0, 2)
           ELSE
-            ROUND(
-              (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 2)
+            ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0, 2)
         END
       `
       // Taxa = (total_acertos / total_questoes) * 100

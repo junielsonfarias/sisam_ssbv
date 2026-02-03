@@ -1192,10 +1192,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 6. Ranking Interativo
+    // 6. Ranking Interativo - CORRIGIDO para incluir media_producao e médias por etapa
     if (tipoGrafico === 'ranking') {
       const tipoRanking = searchParams.get('tipo_ranking') || 'escolas' // escolas, turmas, polos
       const notaConfigRanking = getCampoNota(disciplina)
+      const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
 
       if (tipoRanking === 'escolas') {
         const queryRanking = `
@@ -1207,7 +1208,20 @@ export async function GET(request: NextRequest) {
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
             ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
-            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+            -- Produção Textual (apenas Anos Iniciais)
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_producao,
+            -- Média Anos Iniciais (LP + MAT + PROD) / 3
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') THEN
+              (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
+            ELSE NULL END), 2) as media_ai,
+            -- Média Anos Finais (LP + CH + MAT + CN) / 4
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN
+              (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
+            ELSE NULL END), 2) as media_af,
+            -- Contadores por etapa
+            COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) as count_anos_iniciais,
+            COUNT(CASE WHEN ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END) as count_anos_finais
           FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
@@ -1217,6 +1231,9 @@ export async function GET(request: NextRequest) {
           ${deveRemoverLimites ? '' : 'LIMIT 50'}
         `
         const resRanking = await pool.query(queryRanking, params)
+        const totalAnosIniciais = resRanking.rows.reduce((acc: number, r: any) => acc + (parseInt(r.count_anos_iniciais) || 0), 0)
+        const totalAnosFinais = resRanking.rows.reduce((acc: number, r: any) => acc + (parseInt(r.count_anos_finais) || 0), 0)
+
         resultado.ranking = resRanking.rows.length > 0
           ? resRanking.rows.map((r: any, index: number) => ({
               posicao: index + 1,
@@ -1227,10 +1244,17 @@ export async function GET(request: NextRequest) {
               media_lp: parseFloat(r.media_lp) || 0,
               media_ch: parseFloat(r.media_ch) || 0,
               media_mat: parseFloat(r.media_mat) || 0,
-              media_cn: parseFloat(r.media_cn) || 0
+              media_cn: parseFloat(r.media_cn) || 0,
+              media_producao: parseFloat(r.media_producao) || 0,
+              media_ai: parseFloat(r.media_ai) || 0,
+              media_af: parseFloat(r.media_af) || 0
             }))
           : []
         resultado.ranking_disciplina = notaConfigRanking.label
+        resultado.ranking_meta = {
+          tem_anos_iniciais: totalAnosIniciais > 0,
+          tem_anos_finais: totalAnosFinais > 0
+        }
       } else if (tipoRanking === 'turmas') {
         // Adicionar filtro para garantir que há turma_id
         const whereRankingTurmas = whereClause
@@ -1242,14 +1266,22 @@ export async function GET(request: NextRequest) {
             t.id,
             t.codigo,
             t.nome,
+            t.serie as turma_serie,
             e.nome as escola_nome,
             COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN rc.aluno_id END) as total_alunos,
-            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN CAST(${notaConfigRanking.campo} AS DECIMAL) ELSE NULL END), 2) as media_geral
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN CAST(${notaConfigRanking.campo} AS DECIMAL) ELSE NULL END), 2) as media_geral,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+            ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_producao,
+            -- Determinar se é anos iniciais ou finais
+            CASE WHEN COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) > 0 THEN true ELSE false END as anos_iniciais
           FROM resultados_consolidados_unificada rc
           INNER JOIN turmas t ON rc.turma_id = t.id
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereRankingTurmas}
-          GROUP BY t.id, t.codigo, t.nome, e.nome
+          GROUP BY t.id, t.codigo, t.nome, t.serie, e.nome
           HAVING COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (${notaConfigRanking.campo} IS NOT NULL AND CAST(${notaConfigRanking.campo} AS DECIMAL) > 0) THEN rc.aluno_id END) > 0
           ORDER BY media_geral DESC NULLS LAST
           ${deveRemoverLimites ? '' : 'LIMIT 50'}
@@ -1259,9 +1291,16 @@ export async function GET(request: NextRequest) {
           posicao: index + 1,
           id: r.id,
           nome: r.codigo || r.nome || 'Turma',
+          serie: r.turma_serie,
           escola: r.escola_nome,
           total_alunos: parseInt(r.total_alunos) || 0,
-          media_geral: parseFloat(r.media_geral) || 0
+          media_geral: parseFloat(r.media_geral) || 0,
+          media_lp: parseFloat(r.media_lp) || 0,
+          media_mat: parseFloat(r.media_mat) || 0,
+          media_ch: parseFloat(r.media_ch) || 0,
+          media_cn: parseFloat(r.media_cn) || 0,
+          media_producao: parseFloat(r.media_producao) || 0,
+          anos_iniciais: r.anos_iniciais
         }))
         resultado.ranking_disciplina = notaConfigRanking.label
       } else {
@@ -1348,6 +1387,189 @@ export async function GET(request: NextRequest) {
           }))
         : []
       resultado.gaps_disciplina = notaConfigGaps.label
+    }
+
+    // 9. Distribuição de Níveis por Disciplina (N1, N2, N3, N4)
+    if (tipoGrafico === 'niveis_disciplina') {
+      const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
+      const queryNiveis = `
+        SELECT
+          -- Níveis de LP
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_lp = 'N1' THEN 1 END) as lp_n1,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_lp = 'N2' THEN 1 END) as lp_n2,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_lp = 'N3' THEN 1 END) as lp_n3,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_lp = 'N4' THEN 1 END) as lp_n4,
+          -- Níveis de MAT
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_mat = 'N1' THEN 1 END) as mat_n1,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_mat = 'N2' THEN 1 END) as mat_n2,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_mat = 'N3' THEN 1 END) as mat_n3,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_mat = 'N4' THEN 1 END) as mat_n4,
+          -- Níveis de PROD (apenas Anos Iniciais)
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nivel_prod = 'N1' THEN 1 END) as prod_n1,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nivel_prod = 'N2' THEN 1 END) as prod_n2,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nivel_prod = 'N3' THEN 1 END) as prod_n3,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nivel_prod = 'N4' THEN 1 END) as prod_n4,
+          -- Níveis do Aluno (geral)
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_aluno = 'N1' THEN 1 END) as aluno_n1,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_aluno = 'N2' THEN 1 END) as aluno_n2,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_aluno = 'N3' THEN 1 END) as aluno_n3,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_aluno = 'N4' THEN 1 END) as aluno_n4,
+          -- Totais
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as total_presentes,
+          COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) as count_anos_iniciais,
+          COUNT(CASE WHEN ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END) as count_anos_finais
+        FROM resultados_consolidados_unificada rc
+        INNER JOIN escolas e ON rc.escola_id = e.id
+        ${whereClause}
+      `
+      const resNiveis = await pool.query(queryNiveis, params)
+
+      if (resNiveis.rows.length > 0) {
+        const row = resNiveis.rows[0]
+        resultado.niveis_disciplina = {
+          LP: {
+            N1: parseInt(row.lp_n1) || 0,
+            N2: parseInt(row.lp_n2) || 0,
+            N3: parseInt(row.lp_n3) || 0,
+            N4: parseInt(row.lp_n4) || 0
+          },
+          MAT: {
+            N1: parseInt(row.mat_n1) || 0,
+            N2: parseInt(row.mat_n2) || 0,
+            N3: parseInt(row.mat_n3) || 0,
+            N4: parseInt(row.mat_n4) || 0
+          },
+          PROD: {
+            N1: parseInt(row.prod_n1) || 0,
+            N2: parseInt(row.prod_n2) || 0,
+            N3: parseInt(row.prod_n3) || 0,
+            N4: parseInt(row.prod_n4) || 0
+          },
+          GERAL: {
+            N1: parseInt(row.aluno_n1) || 0,
+            N2: parseInt(row.aluno_n2) || 0,
+            N3: parseInt(row.aluno_n3) || 0,
+            N4: parseInt(row.aluno_n4) || 0
+          },
+          total_presentes: parseInt(row.total_presentes) || 0,
+          tem_anos_iniciais: (parseInt(row.count_anos_iniciais) || 0) > 0,
+          tem_anos_finais: (parseInt(row.count_anos_finais) || 0) > 0
+        }
+      }
+    }
+
+    // 10. Médias por Etapa de Ensino (Anos Iniciais vs Anos Finais)
+    if (tipoGrafico === 'medias_etapa') {
+      const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
+      const queryMediasEtapa = `
+        SELECT
+          COALESCE(e.nome, 'Geral') as escola,
+          e.id as escola_id,
+          -- Média Anos Iniciais (LP + MAT + PROD) / 3
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') THEN
+            (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
+          ELSE NULL END), 2) as media_ai,
+          -- Média Anos Finais (LP + CH + MAT + CN) / 4
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN
+            (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
+          ELSE NULL END), 2) as media_af,
+          -- Média Geral
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN (${getMediaGeralSQL()}) ELSE NULL END), 2) as media_geral,
+          -- Contadores
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) as total_ai,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END) as total_af,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as total_alunos
+        FROM resultados_consolidados_unificada rc
+        INNER JOIN escolas e ON rc.escola_id = e.id
+        ${whereClause}
+        GROUP BY e.id, e.nome
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN 1 END) > 0
+        ORDER BY media_geral DESC NULLS LAST
+        ${deveRemoverLimites ? '' : 'LIMIT 30'}
+      `
+      const resMediasEtapa = await pool.query(queryMediasEtapa, params)
+
+      resultado.medias_etapa = resMediasEtapa.rows.length > 0
+        ? resMediasEtapa.rows.map((r: any) => ({
+            escola: r.escola,
+            escola_id: r.escola_id,
+            media_ai: parseFloat(r.media_ai) || null,
+            media_af: parseFloat(r.media_af) || null,
+            media_geral: parseFloat(r.media_geral) || 0,
+            total_ai: parseInt(r.total_ai) || 0,
+            total_af: parseInt(r.total_af) || 0,
+            total_alunos: parseInt(r.total_alunos) || 0
+          }))
+        : []
+
+      // Calcular totais gerais
+      const totaisGerais = resMediasEtapa.rows.reduce((acc: any, r: any) => ({
+        total_ai: acc.total_ai + (parseInt(r.total_ai) || 0),
+        total_af: acc.total_af + (parseInt(r.total_af) || 0),
+        total_alunos: acc.total_alunos + (parseInt(r.total_alunos) || 0)
+      }), { total_ai: 0, total_af: 0, total_alunos: 0 })
+
+      resultado.medias_etapa_totais = totaisGerais
+    }
+
+    // 11. Distribuição de Níveis por Turma
+    if (tipoGrafico === 'niveis_turma') {
+      const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
+      const queryNiveisTurma = `
+        SELECT
+          t.id as turma_id,
+          t.codigo as turma_codigo,
+          t.nome as turma_nome,
+          t.serie as turma_serie,
+          e.nome as escola_nome,
+          -- Determinar etapa
+          CASE WHEN COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) > 0 THEN true ELSE false END as anos_iniciais,
+          -- Níveis do Aluno (geral)
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_aluno = 'N1' THEN 1 END) as n1,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_aluno = 'N2' THEN 1 END) as n2,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_aluno = 'N3' THEN 1 END) as n3,
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nivel_aluno = 'N4' THEN 1 END) as n4,
+          -- Média da turma
+          ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN (${getMediaGeralSQL()}) ELSE NULL END), 2) as media_turma,
+          -- Total de alunos presentes
+          COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as total_alunos
+        FROM resultados_consolidados_unificada rc
+        INNER JOIN turmas t ON rc.turma_id = t.id
+        INNER JOIN escolas e ON rc.escola_id = e.id
+        ${whereClause ? `${whereClause} AND rc.turma_id IS NOT NULL` : 'WHERE rc.turma_id IS NOT NULL'}
+        GROUP BY t.id, t.codigo, t.nome, t.serie, e.nome
+        HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) > 0
+        ORDER BY media_turma DESC NULLS LAST
+        ${deveRemoverLimites ? '' : 'LIMIT 50'}
+      `
+      const resNiveisTurma = await pool.query(queryNiveisTurma, params)
+
+      resultado.niveis_turma = resNiveisTurma.rows.length > 0
+        ? resNiveisTurma.rows.map((r: any) => ({
+            turma_id: r.turma_id,
+            turma: r.turma_codigo || r.turma_nome || 'Turma',
+            serie: r.turma_serie,
+            escola: r.escola_nome,
+            anos_iniciais: r.anos_iniciais,
+            niveis: {
+              N1: parseInt(r.n1) || 0,
+              N2: parseInt(r.n2) || 0,
+              N3: parseInt(r.n3) || 0,
+              N4: parseInt(r.n4) || 0
+            },
+            media_turma: parseFloat(r.media_turma) || 0,
+            total_alunos: parseInt(r.total_alunos) || 0,
+            // Calcular nível predominante
+            nivel_predominante: (() => {
+              const niveis = { N1: parseInt(r.n1) || 0, N2: parseInt(r.n2) || 0, N3: parseInt(r.n3) || 0, N4: parseInt(r.n4) || 0 }
+              const maxNivel = Object.entries(niveis).reduce((a, b) => b[1] > a[1] ? b : a)
+              return maxNivel[0]
+            })()
+          }))
+        : []
     }
 
     // Salvar no cache (expira em 1 hora)
