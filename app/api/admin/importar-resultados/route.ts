@@ -72,7 +72,21 @@ export async function POST(request: NextRequest) {
     const normalizarSerie = (serie: string): string => {
       if (!serie) return ''
       // Extrair apenas dígitos da série (ex: "5º Ano" -> "5", "2º" -> "2")
-      return serie.toString().replace(/[^\d]/g, '').trim()
+      const apenasDigitos = serie.toString().replace(/[^\d]/g, '').trim()
+      // Se parece com ano letivo (2000-2100), retornar vazio para forçar inferência
+      const numero = parseInt(apenasDigitos, 10)
+      if (numero >= 2000 && numero <= 2100) {
+        console.warn(`[Importação] Valor "${serie}" parece ano letivo, não série escolar. Ignorando.`)
+        return '' // Provavelmente é ano letivo, não série
+      }
+      return apenasDigitos
+    }
+
+    // Função para padronizar série para formato consistente (ex: "5º" -> "5º Ano", "2" -> "2º Ano")
+    const padronizarSerie = (serie: string): string => {
+      const numero = normalizarSerie(serie)
+      if (!numero) return ''
+      return `${numero}º Ano`
     }
 
     // Função para inferir série da turma (ex: "2A", "2º A", "T2A" -> "2")
@@ -311,11 +325,13 @@ export async function POST(request: NextRequest) {
         const turmaCodigo = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
 
         // Ler série com múltiplas variações de nome de coluna
+        // IMPORTANTE: NÃO incluir 'Ano', 'ANO', 'ano' pois estas colunas geralmente contêm
+        // o ano letivo (2025) e não a série do aluno (2º, 3º, etc.)
         let serieOriginal = (
           linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['SÉRIE'] ||
-          linha['serie'] || linha['Serie'] || linha['Ano'] || linha['ANO'] || linha['ano'] ||
-          linha['ANO_SERIE'] || linha['Ano_Serie'] || linha['SERIE'] || linha['Serie'] ||
-          linha['YEAR'] || linha['Year'] || linha['year'] || linha['Grade'] || linha['GRADE'] ||
+          linha['serie'] || linha['Serie'] ||
+          linha['ANO_SERIE'] || linha['Ano_Serie'] || linha['SERIE'] ||
+          linha['Grade'] || linha['GRADE'] ||
           ''
         ).toString().trim()
 
@@ -337,7 +353,8 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const serie = serieOriginal
+        // Padronizar série para formato consistente (evita duplicações como "5º" vs "5º Ano")
+        const serie = padronizarSerie(serieOriginal)
 
         // Tratamento da presenca/falta (suporta P/F, FALTA, PRESENÇA)
         let presenca: string | null = null

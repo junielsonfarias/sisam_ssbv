@@ -517,16 +517,14 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           />
         )}
 
-        {/* Main Content - Com margem para compensar sidebar fixo em telas grandes */}
-        <main className={`flex-1 p-2 sm:p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-slate-900 transition-all duration-300 ${menuDesktopOculto ? '' : 'lg:ml-64'}`}>
+        {/* Main Content - Sem margem, menu funciona como drawer sobrepondo */}
+        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-slate-900">
           {children}
         </main>
       </div>
 
-      {/* Rodape - Com margem para compensar sidebar fixo em telas grandes */}
-      <div className={`transition-all duration-300 ${menuDesktopOculto ? '' : 'lg:ml-64'}`}>
-        <Rodape />
-      </div>
+      {/* Rodape - Sem margem */}
+      <Rodape />
     </div>
   )
 }
