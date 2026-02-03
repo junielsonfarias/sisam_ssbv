@@ -1410,20 +1410,19 @@ export default function GraficosPage() {
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
                   <div className="w-full overflow-x-auto">
-                  <ResponsiveContainer width="100%" height={Math.max(400, Math.min(700, dados.acertos_erros.length * 28))}>
-                    <BarChart data={dados.acertos_erros} margin={{ top: 25, right: 20, left: 10, bottom: dados.acertos_erros.length > 8 ? 80 : 60 }}>
+                  <ResponsiveContainer width="100%" height={Math.max(300, Math.min(600, dados.acertos_erros.length * 60))}>
+                    <BarChart data={dados.acertos_erros} layout="vertical" margin={{ left: 10, right: 70, top: 10, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
-                        dataKey="nome"
+                        type="number"
                         tick={{ fontSize: 11, fontWeight: 500 }}
-                        interval={0}
-                        angle={dados.acertos_erros.length > 8 ? -35 : -20}
-                        textAnchor="end"
-                        height={Math.max(60, Math.min(100, dados.acertos_erros.length * 8))}
+                        label={{ value: 'Quantidade', position: 'insideBottom', offset: -5, fontSize: 12, fontWeight: 600 }}
                       />
                       <YAxis
-                        tick={{ fontSize: 13, fontWeight: 500 }}
-                        label={{ value: 'Quantidade', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                        type="category"
+                        dataKey="nome"
+                        width={Math.min(200, Math.max(80, dados.acertos_erros.reduce((max: number, item: any) => Math.max(max, (item.nome?.length || 0) * 6), 80)))}
+                        tick={{ fontSize: 10, fontWeight: 500 }}
                       />
                       <Tooltip
                         content={({ active, payload, label }) => {
@@ -1450,21 +1449,21 @@ export default function GraficosPage() {
                           return null
                         }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 13, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
-                      <Bar dataKey="acertos" name="Acertos" fill="#10B981" stackId="stack" radius={[0, 0, 0, 0]}>
+                      <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
+                      <Bar dataKey="acertos" name="Acertos" fill="#10B981" radius={[0, 4, 4, 0]}>
                         <LabelList
                           dataKey="acertos"
-                          position="center"
+                          position="right"
                           formatter={(value: number) => value.toLocaleString()}
-                          style={{ fontSize: 12, fontWeight: 700, fill: '#ffffff' }}
+                          style={{ fontSize: 11, fontWeight: 600, fill: '#059669' }}
                         />
                       </Bar>
-                      <Bar dataKey="erros" name="Erros" fill="#EF4444" stackId="stack" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="erros" name="Erros" fill="#EF4444" radius={[0, 4, 4, 0]}>
                         <LabelList
                           dataKey="erros"
-                          position="center"
+                          position="right"
                           formatter={(value: number) => value.toLocaleString()}
-                          style={{ fontSize: 12, fontWeight: 700, fill: '#ffffff' }}
+                          style={{ fontSize: 11, fontWeight: 600, fill: '#DC2626' }}
                         />
                       </Bar>
                     </BarChart>
