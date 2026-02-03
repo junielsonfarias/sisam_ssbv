@@ -1328,29 +1328,30 @@ export default function GraficosPage() {
                       <span className="text-gray-600 dark:text-gray-400 font-semibold">Média Geral</span>
                     </div>
                   </div>
-                  <div>
-                  <ResponsiveContainer width="100%" height={Math.max(450, dados.comparativo_escolas.escolas.length * 45)}>
-                    <BarChart data={prepararDadosComparativo()} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(450, Math.min(600, dados.comparativo_escolas.escolas.length * 50))}>
+                    <BarChart data={prepararDadosComparativo()} margin={{ top: 25, right: 20, left: 15, bottom: dados.comparativo_escolas.escolas.length > 6 ? 100 : 80 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="escola"
                         tick={{ fontSize: 11, fontWeight: 500 }}
                         interval={0}
-                        angle={-25}
+                        angle={dados.comparativo_escolas.escolas.length > 6 ? -45 : -25}
                         textAnchor="end"
-                        height={Math.min(150, dados.comparativo_escolas.escolas.length * 10)}
+                        height={Math.max(80, Math.min(120, dados.comparativo_escolas.escolas.length * 12))}
                       />
                       <YAxis
                         domain={[0, 10]}
-                        tick={{ fontSize: 13, fontWeight: 500 }}
-                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600 }}
+                        tickCount={6}
                       />
                       <Tooltip
                         content={({ active, payload, label }) => {
                           if (active && payload && payload.length) {
                             return (
-                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 min-w-[180px]">
-                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-2 border-b pb-1">{label}</p>
+                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 min-w-[180px] max-w-[280px]">
+                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-2 border-b pb-1 break-words">{label}</p>
                                 {payload.map((entry: any, index: number) => (
                                   <p key={index} className="text-sm flex justify-between" style={{ color: entry.color }}>
                                     <span className="font-medium">{entry.name}:</span>
@@ -1363,26 +1364,26 @@ export default function GraficosPage() {
                           return null
                         }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 13, fontWeight: 500, paddingTop: 10 }} />
-                      <Bar dataKey="LP" name="LP" fill="#4F46E5" radius={[2, 2, 0, 0]} />
+                      <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
+                      <Bar dataKey="LP" name="LP" fill="#4F46E5" radius={[3, 3, 0, 0]} />
                       {/* CH e CN apenas para Anos Finais */}
                       {dados.comparativo_escolas.temAnosFinais && (
-                        <Bar dataKey="CH" name="CH" fill="#10B981" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="CH" name="CH" fill="#10B981" radius={[3, 3, 0, 0]} />
                       )}
-                      <Bar dataKey="MAT" name="MAT" fill="#F59E0B" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="MAT" name="MAT" fill="#F59E0B" radius={[3, 3, 0, 0]} />
                       {dados.comparativo_escolas.temAnosFinais && (
-                        <Bar dataKey="CN" name="CN" fill="#EF4444" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="CN" name="CN" fill="#EF4444" radius={[3, 3, 0, 0]} />
                       )}
                       {/* PT apenas para Anos Iniciais */}
                       {dados.comparativo_escolas.temAnosIniciais && (
-                        <Bar dataKey="PT" name="PT" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="PT" name="PT" fill="#8B5CF6" radius={[3, 3, 0, 0]} />
                       )}
-                      <Bar dataKey="Média" name="Média Geral" fill="#374151" radius={[2, 2, 0, 0]}>
+                      <Bar dataKey="Média" name="Média Geral" fill="#374151" radius={[3, 3, 0, 0]}>
                         <LabelList
                           dataKey="Média"
                           position="top"
                           formatter={(value: number) => value.toFixed(1)}
-                          style={{ fontSize: 10, fontWeight: 700, fill: '#1F2937' }}
+                          style={{ fontSize: 11, fontWeight: 700, fill: '#1F2937' }}
                         />
                       </Bar>
                     </BarChart>
