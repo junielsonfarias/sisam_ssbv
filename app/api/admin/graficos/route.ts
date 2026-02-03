@@ -1037,12 +1037,16 @@ export async function GET(request: NextRequest) {
         console.log('[Graficos] Filtro de range de questões aplicado:', questaoRangeFilter)
       }
 
+      // CORRIGIDO: Adicionar filtro de presença para considerar apenas alunos presentes
+      whereQuestoes.push(`(rp.presenca = 'P' OR rp.presenca = 'p')`)
+
       const whereClauseQuestoes = whereQuestoes.length > 0 ? `WHERE ${whereQuestoes.join(' AND ')} AND rp.questao_codigo IS NOT NULL` : 'WHERE rp.questao_codigo IS NOT NULL'
 
       // Debug: verificar disciplinas disponíveis na tabela
       const debugQuery = await pool.query(`
         SELECT DISTINCT rp.disciplina, rp.serie, COUNT(*) as qtd
         FROM resultados_provas rp
+        WHERE (rp.presenca = 'P' OR rp.presenca = 'p')
         GROUP BY rp.disciplina, rp.serie
         ORDER BY rp.disciplina, rp.serie
       `)
@@ -1245,15 +1249,15 @@ export async function GET(request: NextRequest) {
     if (tipoGrafico === 'correlacao') {
       const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
 
-      // Buscar dados para anos finais (LP, CH, MAT, CN)
+      // Buscar dados para anos finais (LP, CH, MAT, CN) - CORRIGIDO: filtrar apenas presentes
       const whereCorrelacaoFinais = whereClause
-        ? `${whereClause} AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL`
-        : `WHERE ${numeroSerieSQL} NOT IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL`
+        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL`
+        : `WHERE (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL`
 
-      // Buscar dados para anos iniciais (LP, MAT, PT)
+      // Buscar dados para anos iniciais (LP, MAT, PT) - CORRIGIDO: filtrar apenas presentes
       const whereCorrelacaoIniciais = whereClause
-        ? `${whereClause} AND ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_mat IS NOT NULL`
-        : `WHERE ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_mat IS NOT NULL`
+        ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_mat IS NOT NULL`
+        : `WHERE (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_mat IS NOT NULL`
 
       const queryCorrelacaoFinais = `
         SELECT
