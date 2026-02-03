@@ -788,26 +788,27 @@ export default function GraficosPage() {
                     <ChartDownloadButton chartId="chart-disciplinas" fileName="medias-disciplinas" title="Baixar gráfico de disciplinas" />
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
-                  <div>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={prepararDadosDisciplinas(dados.disciplinas.labels, dados.disciplinas.dados)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={380}>
+                    <BarChart data={prepararDadosDisciplinas(dados.disciplinas.labels, dados.disciplinas.dados)} margin={{ top: 25, right: 20, left: 15, bottom: 70 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="name"
-                        tick={{ fontSize: 14, fontWeight: 500 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
                         interval={0}
-                        angle={-15}
+                        angle={-20}
                         textAnchor="end"
-                        height={100}
+                        height={90}
                       />
                       <YAxis
                         domain={[0, 10]}
-                        tick={{ fontSize: 14, fontWeight: 500 }}
-                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600 }}
+                        tickCount={6}
                       />
                       <Tooltip
-                        contentStyle={{ fontSize: 14, fontWeight: 500 }}
-                        labelStyle={{ fontSize: 14, fontWeight: 600 }}
+                        contentStyle={{ fontSize: 13, fontWeight: 500, maxWidth: 280 }}
+                        labelStyle={{ fontSize: 13, fontWeight: 600 }}
                       />
                       <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
                       <Bar dataKey="value" name="Média" radius={[4, 4, 0, 0]}>
@@ -892,33 +893,34 @@ export default function GraficosPage() {
                       <span className="text-gray-600 dark:text-gray-400">Baixo (&lt;5.0)</span>
                     </div>
                   </div>
-                  <div>
-                  <ResponsiveContainer width="100%" height={Math.max(500, Math.min(900, dados.escolas.labels.length * 45))}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(450, Math.min(800, dados.escolas.labels.length * 40))}>
                     <BarChart
                       data={prepararDadosEscolas(dados.escolas.labels, dados.escolas.dados, dados.escolas.totais)}
                       layout="vertical"
-                      margin={{ left: 15, right: 80, top: 10, bottom: 10 }}
+                      margin={{ left: 15, right: 70, top: 10, bottom: 10 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         type="number"
                         domain={[0, 10]}
-                        tick={{ fontSize: 13, fontWeight: 500 }}
-                        label={{ value: 'Média', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 600 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        label={{ value: 'Média', position: 'insideBottom', offset: -5, fontSize: 13, fontWeight: 600 }}
+                        tickCount={6}
                       />
                       <YAxis
                         type="category"
                         dataKey="name"
-                        width={Math.min(300, Math.max(180, dados.escolas.labels.reduce((max: number, label: string) => Math.max(max, label.length * 7.5), 180)))}
-                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        width={Math.min(280, Math.max(160, dados.escolas.labels.reduce((max: number, label: string) => Math.max(max, label.length * 7), 160)))}
+                        tick={{ fontSize: 11, fontWeight: 500 }}
                       />
                       <Tooltip
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload
                             return (
-                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3">
-                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1">{data.name}</p>
+                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 max-w-[280px]">
+                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1 break-words">{data.name}</p>
                                 <p className="text-gray-600 dark:text-gray-300 text-sm">
                                   <span className="font-medium">Média:</span> {data.value.toFixed(2)}
                                 </p>
@@ -968,26 +970,27 @@ export default function GraficosPage() {
                     </div>
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
-                  <div>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <LineChart data={prepararDadosEscolas(dados.series.labels, dados.series.dados, dados.series.totais)} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={380}>
+                    <LineChart data={prepararDadosEscolas(dados.series.labels, dados.series.dados, dados.series.totais)} margin={{ top: 25, right: 25, left: 15, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="name"
-                        tick={{ fontSize: 14, fontWeight: 500 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
                       />
                       <YAxis
                         domain={[0, 10]}
-                        tick={{ fontSize: 14, fontWeight: 500 }}
-                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600 }}
+                        tickCount={6}
                       />
                       <Tooltip
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload
                             return (
-                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3">
-                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1">{data.name}</p>
+                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 max-w-[280px]">
+                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1 break-words">{data.name}</p>
                                 <p className="text-gray-600 dark:text-gray-300 text-sm">
                                   <span className="font-medium">Média:</span> {data.value.toFixed(2)}
                                 </p>
@@ -1051,30 +1054,31 @@ export default function GraficosPage() {
                       <span className="text-gray-600 dark:text-gray-400">Baixo (&lt;5.0)</span>
                     </div>
                   </div>
-                  <div>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={prepararDadosEscolas(dados.polos.labels, dados.polos.dados, dados.polos.totais)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(400, Math.min(550, prepararDadosEscolas(dados.polos.labels, dados.polos.dados, dados.polos.totais).length * 50))}>
+                    <BarChart data={prepararDadosEscolas(dados.polos.labels, dados.polos.dados, dados.polos.totais)} margin={{ top: 25, right: 20, left: 15, bottom: 70 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="name"
-                        tick={{ fontSize: 13, fontWeight: 500 }}
+                        tick={{ fontSize: 11, fontWeight: 500 }}
                         interval={0}
-                        angle={-20}
+                        angle={dados.polos.labels.length > 6 ? -35 : -20}
                         textAnchor="end"
-                        height={80}
+                        height={Math.max(70, Math.min(100, dados.polos.labels.length * 10))}
                       />
                       <YAxis
                         domain={[0, 10]}
-                        tick={{ fontSize: 14, fontWeight: 500 }}
-                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600 }}
+                        tickCount={6}
                       />
                       <Tooltip
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload
                             return (
-                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3">
-                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1">{data.name}</p>
+                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 max-w-[280px]">
+                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1 break-words">{data.name}</p>
                                 <p className="text-gray-600 dark:text-gray-300 text-sm">
                                   <span className="font-medium">Média:</span> {data.value.toFixed(2)}
                                 </p>
@@ -1122,12 +1126,12 @@ export default function GraficosPage() {
                     </div>
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
-                  <div>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={prepararDadosBarras(dados.distribuicao.labels, dados.distribuicao.dados, 'Alunos')} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={380}>
+                    <BarChart data={prepararDadosBarras(dados.distribuicao.labels, dados.distribuicao.dados, 'Alunos')} margin={{ top: 25, right: 20, left: 15, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tick={{ fontSize: 13, fontWeight: 500 }} />
-                      <YAxis tick={{ fontSize: 13, fontWeight: 500 }} label={{ value: 'Alunos', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }} />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fontWeight: 500 }} />
+                      <YAxis tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Alunos', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600 }} />
                       <Tooltip
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
@@ -1135,8 +1139,8 @@ export default function GraficosPage() {
                             const total = dados.distribuicao.dados.reduce((a: number, b: number) => a + b, 0)
                             const percentual = total > 0 ? ((data.value / total) * 100).toFixed(1) : '0'
                             return (
-                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3">
-                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1">Faixa: {data.name}</p>
+                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 max-w-[280px]">
+                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1 break-words">Faixa: {data.name}</p>
                                 <p className="text-gray-600 dark:text-gray-300 text-sm">
                                   <span className="font-medium">Alunos:</span> {data.value.toLocaleString()}
                                 </p>
@@ -1506,24 +1510,24 @@ export default function GraficosPage() {
                       <span className="text-gray-600 dark:text-gray-400">Excelente (&gt;70%)</span>
                     </div>
                   </div>
-                  <div>
-                  <ResponsiveContainer width="100%" height={Math.max(400, dados.questoes.length * 28)}>
-                    <BarChart data={dados.questoes} layout="vertical" margin={{ left: 10, right: 60, top: 10, bottom: 10 }}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(400, Math.min(700, dados.questoes.length * 26))}>
+                    <BarChart data={dados.questoes} layout="vertical" margin={{ left: 10, right: 55, top: 10, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12, fontWeight: 500 }} label={{ value: 'Taxa de Acerto (%)', position: 'insideBottom', offset: -5, fontSize: 13, fontWeight: 600 }} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fontWeight: 500 }} label={{ value: 'Taxa de Acerto (%)', position: 'insideBottom', offset: -5, fontSize: 12, fontWeight: 600 }} tickCount={6} />
                       <YAxis
                         type="category"
                         dataKey="codigo"
-                        width={70}
-                        tick={{ fontSize: 11, fontWeight: 500 }}
+                        width={65}
+                        tick={{ fontSize: 10, fontWeight: 500 }}
                       />
                       <Tooltip
                         content={({ active, payload, label }) => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload
                             return (
-                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3">
-                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1">Questão {label}</p>
+                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 max-w-[280px]">
+                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1 break-words">Questão {label}</p>
                                 <p className="text-gray-600 dark:text-gray-300 text-sm">
                                   <span className="font-medium">Taxa de Acerto:</span> {data.taxa_acerto}%
                                 </p>
@@ -1730,28 +1734,29 @@ export default function GraficosPage() {
                       </tbody>
                     </table>
                   </div>
-                  <div>
-                  <ResponsiveContainer width="100%" height={Math.max(400, dados.boxplot.length * 55)}>
-                    <BarChart data={dados.boxplot} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(420, Math.min(600, dados.boxplot.length * 50))}>
+                    <BarChart data={dados.boxplot} margin={{ top: 25, right: 20, left: 15, bottom: dados.boxplot.length > 5 ? 80 : 60 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="categoria"
-                        tick={{ fontSize: 12, fontWeight: 500 }}
-                        angle={-20}
+                        tick={{ fontSize: 11, fontWeight: 500 }}
+                        angle={dados.boxplot.length > 5 ? -35 : -20}
                         textAnchor="end"
-                        height={Math.min(120, dados.boxplot.length * 12)}
+                        height={Math.max(70, Math.min(100, dados.boxplot.length * 10))}
                       />
                       <YAxis
                         domain={[0, 10]}
-                        tick={{ fontSize: 13, fontWeight: 500 }}
-                        label={{ value: 'Nota', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        label={{ value: 'Nota', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600 }}
+                        tickCount={6}
                       />
                       <Tooltip
                         content={({ active, payload, label }) => {
                           if (active && payload && payload.length) {
                             return (
-                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3">
-                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-2">{label}</p>
+                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 max-w-[280px]">
+                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-2 break-words">{label}</p>
                                 {payload.map((entry: any, index: number) => (
                                   <p key={index} className="text-sm" style={{ color: entry.color }}>
                                     <span className="font-medium">{entry.name}:</span> {Number(entry.value).toFixed(2)}
@@ -1763,16 +1768,16 @@ export default function GraficosPage() {
                           return null
                         }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 13, fontWeight: 500, paddingTop: 10 }} />
-                      <Bar dataKey="min" name="Mínimo" fill="#EF4444" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="q1" name="Q1 (25%)" fill="#F59E0B" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="mediana" name="Mediana" fill="#10B981" radius={[2, 2, 0, 0]}>
-                        <LabelList dataKey="mediana" position="top" formatter={(value: number) => value?.toFixed(1)} style={{ fontSize: 10, fontWeight: 600, fill: '#059669' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
+                      <Bar dataKey="min" name="Mínimo" fill="#EF4444" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="q1" name="Q1 (25%)" fill="#F59E0B" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="mediana" name="Mediana" fill="#10B981" radius={[3, 3, 0, 0]}>
+                        <LabelList dataKey="mediana" position="top" formatter={(value: number) => value?.toFixed(1)} style={{ fontSize: 11, fontWeight: 600, fill: '#059669' }} />
                       </Bar>
-                      <Bar dataKey="q3" name="Q3 (75%)" fill="#3B82F6" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="max" name="Máximo" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="media" name="Média" fill="#EC4899" radius={[2, 2, 0, 0]}>
-                        <LabelList dataKey="media" position="top" formatter={(value: number) => value?.toFixed(1)} style={{ fontSize: 10, fontWeight: 700, fill: '#DB2777' }} />
+                      <Bar dataKey="q3" name="Q3 (75%)" fill="#3B82F6" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="max" name="Máximo" fill="#8B5CF6" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="media" name="Média" fill="#EC4899" radius={[3, 3, 0, 0]}>
+                        <LabelList dataKey="media" position="top" formatter={(value: number) => value?.toFixed(1)} style={{ fontSize: 11, fontWeight: 700, fill: '#DB2777' }} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -2027,31 +2032,32 @@ export default function GraficosPage() {
                     <ChartDownloadButton chartId="chart-aprovacao" fileName="taxa-aprovacao" />
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
-                  <div>
-                  <ResponsiveContainer width="100%" height={Math.max(400, dados.aprovacao.length * 50)}>
-                    <BarChart data={dados.aprovacao}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(400, Math.min(550, dados.aprovacao.length * 45))}>
+                    <BarChart data={dados.aprovacao} margin={{ top: 25, right: 20, left: 15, bottom: dados.aprovacao.length > 5 ? 80 : 60 }}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="categoria" 
-                        tick={{ fontSize: 13, fontWeight: 500 }}
-                        angle={-15}
+                      <XAxis
+                        dataKey="categoria"
+                        tick={{ fontSize: 11, fontWeight: 500 }}
+                        angle={dados.aprovacao.length > 5 ? -35 : -15}
                         textAnchor="end"
-                        height={Math.min(120, dados.aprovacao.length * 10)}
+                        height={Math.max(60, Math.min(100, dados.aprovacao.length * 10))}
                       />
-                      <YAxis 
-                        domain={[0, 100]} 
-                        tick={{ fontSize: 13, fontWeight: 500 }}
-                        label={{ value: 'Taxa de Aprovação (%)', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        label={{ value: 'Taxa de Aprovação (%)', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600 }}
+                        tickCount={6}
                       />
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value: any) => [`${value.toFixed(2)}%`, 'Taxa']}
-                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
+                        contentStyle={{ fontSize: 13, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px', maxWidth: 280 }}
+                        labelStyle={{ fontSize: 13, fontWeight: 600, marginBottom: '4px' }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
-                      <Bar dataKey="taxa_6" name="≥ 6.0" fill="#10B981" />
-                      <Bar dataKey="taxa_7" name="≥ 7.0" fill="#3B82F6" />
-                      <Bar dataKey="taxa_8" name="≥ 8.0" fill="#8B5CF6" />
+                      <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
+                      <Bar dataKey="taxa_6" name="≥ 6.0" fill="#10B981" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="taxa_7" name="≥ 7.0" fill="#3B82F6" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="taxa_8" name="≥ 8.0" fill="#8B5CF6" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                   </div>
@@ -2072,31 +2078,32 @@ export default function GraficosPage() {
                     <ChartDownloadButton chartId="chart-gaps" fileName="analise-gaps" />
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
-                  <div>
-                  <ResponsiveContainer width="100%" height={Math.max(400, dados.gaps.length * 50)}>
-                    <BarChart data={dados.gaps}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(400, Math.min(550, dados.gaps.length * 45))}>
+                    <BarChart data={dados.gaps} margin={{ top: 25, right: 20, left: 15, bottom: dados.gaps.length > 5 ? 80 : 60 }}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="categoria" 
-                        tick={{ fontSize: 13, fontWeight: 500 }}
-                        angle={-15}
+                      <XAxis
+                        dataKey="categoria"
+                        tick={{ fontSize: 11, fontWeight: 500 }}
+                        angle={dados.gaps.length > 5 ? -35 : -15}
                         textAnchor="end"
-                        height={Math.min(120, dados.gaps.length * 10)}
+                        height={Math.max(60, Math.min(100, dados.gaps.length * 10))}
                       />
-                      <YAxis 
-                        domain={[0, 10]} 
-                        tick={{ fontSize: 13, fontWeight: 500 }}
-                        label={{ value: 'Nota', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }}
+                      <YAxis
+                        domain={[0, 10]}
+                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        label={{ value: 'Nota', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600 }}
+                        tickCount={6}
                       />
-                      <Tooltip 
-                        contentStyle={{ fontSize: 14, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                        labelStyle={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}
+                      <Tooltip
+                        contentStyle={{ fontSize: 13, fontWeight: 500, backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px', maxWidth: 280 }}
+                        labelStyle={{ fontSize: 13, fontWeight: 600, marginBottom: '4px' }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
-                      <Bar dataKey="melhor_media" name="Melhor Média" fill="#10B981" />
-                      <Bar dataKey="media_geral" name="Média Geral" fill="#3B82F6" />
-                      <Bar dataKey="pior_media" name="Pior Média" fill="#EF4444" />
-                      <Bar dataKey="gap" name="Gap (Diferença)" fill="#F59E0B" />
+                      <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
+                      <Bar dataKey="melhor_media" name="Melhor Média" fill="#10B981" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="media_geral" name="Média Geral" fill="#3B82F6" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="pior_media" name="Pior Média" fill="#EF4444" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="gap" name="Gap (Diferença)" fill="#F59E0B" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                   </div>
@@ -2126,18 +2133,18 @@ export default function GraficosPage() {
                     {/* LP */}
                     <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                       <h4 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mb-3">Língua Portuguesa</h4>
-                      <ResponsiveContainer width="100%" height={200}>
+                      <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={[
                           { nivel: 'N1', quantidade: dados.niveis_disciplina.LP.N1, fill: '#EF4444' },
                           { nivel: 'N2', quantidade: dados.niveis_disciplina.LP.N2, fill: '#F59E0B' },
                           { nivel: 'N3', quantidade: dados.niveis_disciplina.LP.N3, fill: '#3B82F6' },
                           { nivel: 'N4', quantidade: dados.niveis_disciplina.LP.N4, fill: '#10B981' }
-                        ]}>
+                        ]} margin={{ top: 15, right: 10, left: 5, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="nivel" tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} />
-                          <Tooltip />
-                          <Bar dataKey="quantidade" name="Alunos">
+                          <XAxis dataKey="nivel" tick={{ fontSize: 11, fontWeight: 500 }} />
+                          <YAxis tick={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ fontSize: 12, maxWidth: 200 }} />
+                          <Bar dataKey="quantidade" name="Alunos" radius={[3, 3, 0, 0]}>
                             {[
                               { nivel: 'N1', quantidade: dados.niveis_disciplina.LP.N1, fill: '#EF4444' },
                               { nivel: 'N2', quantidade: dados.niveis_disciplina.LP.N2, fill: '#F59E0B' },
@@ -2153,18 +2160,18 @@ export default function GraficosPage() {
                     {/* MAT */}
                     <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                       <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">Matemática</h4>
-                      <ResponsiveContainer width="100%" height={200}>
+                      <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={[
                           { nivel: 'N1', quantidade: dados.niveis_disciplina.MAT.N1, fill: '#EF4444' },
                           { nivel: 'N2', quantidade: dados.niveis_disciplina.MAT.N2, fill: '#F59E0B' },
                           { nivel: 'N3', quantidade: dados.niveis_disciplina.MAT.N3, fill: '#3B82F6' },
                           { nivel: 'N4', quantidade: dados.niveis_disciplina.MAT.N4, fill: '#10B981' }
-                        ]}>
+                        ]} margin={{ top: 15, right: 10, left: 5, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="nivel" tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} />
-                          <Tooltip />
-                          <Bar dataKey="quantidade" name="Alunos">
+                          <XAxis dataKey="nivel" tick={{ fontSize: 11, fontWeight: 500 }} />
+                          <YAxis tick={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ fontSize: 12, maxWidth: 200 }} />
+                          <Bar dataKey="quantidade" name="Alunos" radius={[3, 3, 0, 0]}>
                             {[
                               { nivel: 'N1', quantidade: dados.niveis_disciplina.MAT.N1, fill: '#EF4444' },
                               { nivel: 'N2', quantidade: dados.niveis_disciplina.MAT.N2, fill: '#F59E0B' },
@@ -2181,18 +2188,18 @@ export default function GraficosPage() {
                     {dados.niveis_disciplina.tem_anos_iniciais && (
                       <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                         <h4 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-3">Produção Textual (Anos Iniciais)</h4>
-                        <ResponsiveContainer width="100%" height={200}>
+                        <ResponsiveContainer width="100%" height={220}>
                           <BarChart data={[
                             { nivel: 'N1', quantidade: dados.niveis_disciplina.PROD.N1, fill: '#EF4444' },
                             { nivel: 'N2', quantidade: dados.niveis_disciplina.PROD.N2, fill: '#F59E0B' },
                             { nivel: 'N3', quantidade: dados.niveis_disciplina.PROD.N3, fill: '#3B82F6' },
                             { nivel: 'N4', quantidade: dados.niveis_disciplina.PROD.N4, fill: '#10B981' }
-                          ]}>
+                          ]} margin={{ top: 15, right: 10, left: 5, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="nivel" tick={{ fontSize: 12 }} />
-                            <YAxis tick={{ fontSize: 12 }} />
-                            <Tooltip />
-                            <Bar dataKey="quantidade" name="Alunos">
+                            <XAxis dataKey="nivel" tick={{ fontSize: 11, fontWeight: 500 }} />
+                            <YAxis tick={{ fontSize: 11 }} />
+                            <Tooltip contentStyle={{ fontSize: 12, maxWidth: 200 }} />
+                            <Bar dataKey="quantidade" name="Alunos" radius={[3, 3, 0, 0]}>
                               {[
                                 { nivel: 'N1', quantidade: dados.niveis_disciplina.PROD.N1, fill: '#EF4444' },
                                 { nivel: 'N2', quantidade: dados.niveis_disciplina.PROD.N2, fill: '#F59E0B' },
@@ -2209,18 +2216,18 @@ export default function GraficosPage() {
                     {/* GERAL */}
                     <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                       <h4 className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-3">Nível Geral do Aluno</h4>
-                      <ResponsiveContainer width="100%" height={200}>
+                      <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={[
                           { nivel: 'N1', quantidade: dados.niveis_disciplina.GERAL.N1, fill: '#EF4444' },
                           { nivel: 'N2', quantidade: dados.niveis_disciplina.GERAL.N2, fill: '#F59E0B' },
                           { nivel: 'N3', quantidade: dados.niveis_disciplina.GERAL.N3, fill: '#3B82F6' },
                           { nivel: 'N4', quantidade: dados.niveis_disciplina.GERAL.N4, fill: '#10B981' }
-                        ]}>
+                        ]} margin={{ top: 15, right: 10, left: 5, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="nivel" tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} />
-                          <Tooltip />
-                          <Bar dataKey="quantidade" name="Alunos">
+                          <XAxis dataKey="nivel" tick={{ fontSize: 11, fontWeight: 500 }} />
+                          <YAxis tick={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ fontSize: 12, maxWidth: 200 }} />
+                          <Bar dataKey="quantidade" name="Alunos" radius={[3, 3, 0, 0]}>
                             {[
                               { nivel: 'N1', quantidade: dados.niveis_disciplina.GERAL.N1, fill: '#EF4444' },
                               { nivel: 'N2', quantidade: dados.niveis_disciplina.GERAL.N2, fill: '#F59E0B' },
@@ -2263,25 +2270,25 @@ export default function GraficosPage() {
                     </div>
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
-                  <div>
-                  <ResponsiveContainer width="100%" height={Math.max(400, dados.medias_etapa.length * 50)}>
-                    <BarChart data={dados.medias_etapa} layout="vertical">
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(400, Math.min(650, dados.medias_etapa.length * 45))}>
+                    <BarChart data={dados.medias_etapa} layout="vertical" margin={{ left: 10, right: 20, top: 10, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 12 }} />
+                      <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11, fontWeight: 500 }} tickCount={6} />
                       <YAxis
                         type="category"
                         dataKey="escola"
-                        width={Math.min(250, Math.max(150, dados.medias_etapa.reduce((max: number, item: any) => Math.max(max, (item.escola?.length || 0) * 7), 150)))}
-                        tick={{ fontSize: 11 }}
+                        width={Math.min(220, Math.max(140, dados.medias_etapa.reduce((max: number, item: any) => Math.max(max, (item.escola?.length || 0) * 6.5), 140)))}
+                        tick={{ fontSize: 10, fontWeight: 500 }}
                       />
                       <Tooltip
                         formatter={(value: any, name: string) => [value ? value.toFixed(2) : '-', name]}
-                        contentStyle={{ fontSize: 13 }}
+                        contentStyle={{ fontSize: 12, maxWidth: 280 }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 13, paddingTop: 10 }} />
-                      <Bar dataKey="media_ai" name="Anos Iniciais (AI)" fill="#10B981" />
-                      <Bar dataKey="media_af" name="Anos Finais (AF)" fill="#3B82F6" />
-                      <Bar dataKey="media_geral" name="Média Geral" fill="#6B7280" />
+                      <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
+                      <Bar dataKey="media_ai" name="Anos Iniciais (AI)" fill="#10B981" radius={[0, 3, 3, 0]} />
+                      <Bar dataKey="media_af" name="Anos Finais (AF)" fill="#3B82F6" radius={[0, 3, 3, 0]} />
+                      <Bar dataKey="media_geral" name="Média Geral" fill="#6B7280" radius={[0, 3, 3, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                   </div>
