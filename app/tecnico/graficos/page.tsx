@@ -719,31 +719,120 @@ export default function GraficosTecnicoPage() {
                   <div className="flex items-center mb-4">
                     <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-                      Acertos e Erros {filtros.disciplina ? `- ${filtros.disciplina === 'LP' ? 'Língua Portuguesa' : filtros.disciplina === 'CH' ? 'Ciências Humanas' : filtros.disciplina === 'MAT' ? 'Matemática' : 'Ciências da Natureza'}` : '(Geral)'}
+                      Acertos e Erros {filtros.disciplina ? `- ${filtros.disciplina === 'LP' ? 'Língua Portuguesa' : filtros.disciplina === 'CH' ? 'Ciências Humanas' : filtros.disciplina === 'MAT' ? 'Matemática' : filtros.disciplina === 'CN' ? 'Ciências da Natureza' : filtros.disciplina}` : '(Geral)'}
                     </h3>
+                    {dados.acertos_erros_meta?.tipo === 'por_questao' && (
+                      <span className="ml-auto text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                        {dados.acertos_erros_meta.total_questoes} questões
+                      </span>
+                    )}
                   </div>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={dados.acertos_erros}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="nome" 
-                        tick={{ fontSize: 11 }}
-                        interval={0}
-                        angle={-15}
-                        textAnchor="end"
-                        height={80}
-                      />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="acertos" name="Acertos" fill="#10B981" />
-                      <Bar dataKey="erros" name="Erros" fill="#EF4444" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                  {dados.acertos_erros[0]?.total_alunos && (
-                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                      <p>Total de alunos analisados: {dados.acertos_erros.reduce((acc: number, item: any) => acc + (item.total_alunos || 0), 0)}</p>
-                    </div>
+
+                  {/* Se são dados por questão (disciplina selecionada), usar layout horizontal */}
+                  {dados.acertos_erros_meta?.tipo === 'por_questao' ? (
+                    <>
+                      {/* Informação de presença */}
+                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex flex-wrap items-center gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-blue-600" />
+                            <span className="text-blue-700 dark:text-blue-300">
+                              <strong>Total de alunos:</strong> {dados.acertos_erros_meta?.total_alunos_cadastrados || 0}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span className="text-green-700 dark:text-green-300">
+                              <strong>Presentes:</strong> {dados.acertos_erros_meta?.total_presentes || 0}
+                            </span>
+                          </div>
+                          {dados.acertos_erros_meta?.total_faltantes > 0 && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                              <span className="text-orange-700 dark:text-orange-300">
+                                <strong>Faltantes:</strong> {dados.acertos_erros_meta?.total_faltantes || 0}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {dados.acertos_erros_meta?.total_faltantes > 0 && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
+                            ⚠️ Os dados de acertos/erros consideram apenas os {dados.acertos_erros_meta?.total_presentes} alunos presentes.
+                          </p>
+                        )}
+                      </div>
+
+                      <ResponsiveContainer width="100%" height={Math.max(400, dados.acertos_erros.length * 40)}>
+                        <BarChart data={dados.acertos_erros} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            type="number"
+                            label={{ value: 'Número de Alunos (Presentes)', position: 'insideBottom', offset: -5 }}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="nome"
+                            width={60}
+                            tick={{ fontSize: 12, fontWeight: 500 }}
+                          />
+                          <Tooltip
+                            formatter={(value: any, name: string) => [
+                              `${value} alunos`,
+                              name === 'acertos' ? 'Acertaram' : 'Erraram'
+                            ]}
+                            labelFormatter={(label) => `Questão ${label.replace('Q', '')}`}
+                            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                          />
+                          <Legend
+                            formatter={(value) => value === 'acertos' ? 'Acertos (alunos)' : 'Erros (alunos)'}
+                          />
+                          <Bar dataKey="acertos" name="acertos" fill="#10B981" stackId="a" />
+                          <Bar dataKey="erros" name="erros" fill="#EF4444" stackId="a" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <div className="mt-4 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          <strong>Resumo por Questão:</strong> {dados.acertos_erros_meta?.total_presentes || 0} alunos presentes
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs">
+                          {dados.acertos_erros.map((item: any) => (
+                            <div key={item.nome} className="flex justify-between bg-white dark:bg-slate-800 p-2 rounded border">
+                              <span className="font-medium">{item.nome}:</span>
+                              <span>
+                                <span className="text-green-600">{item.acertos}</span>
+                                {' / '}
+                                <span className="text-red-600">{item.erros}</span>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* Layout original para dados agrupados por escola/turma */
+                    <>
+                      <ResponsiveContainer width="100%" height={400}>
+                        <BarChart data={dados.acertos_erros} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis
+                            type="category"
+                            dataKey="nome"
+                            tick={{ fontSize: 11 }}
+                            width={150}
+                          />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="acertos" name="Acertos" fill="#10B981" stackId="a" />
+                          <Bar dataKey="erros" name="Erros" fill="#EF4444" stackId="a" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      {dados.acertos_erros[0]?.total_alunos && (
+                        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                          <p>Total de alunos analisados: {dados.acertos_erros.reduce((acc: number, item: any) => acc + (item.total_alunos || 0), 0)}</p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}

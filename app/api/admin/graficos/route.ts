@@ -690,145 +690,271 @@ export async function GET(request: NextRequest) {
     // Anos Iniciais (5º): LP=14, MAT=20, Total=34
     // Anos Finais (6º-9º): LP=20, CH=10, MAT=20, CN=10, Total=60
     if (tipoGrafico === 'acertos_erros') {
-      // Helper para calcular total de questões baseado na série e disciplina
-      const getQuestoesSQL = (disc: string | null, campoSerie: string = 'rc.serie') => {
-        const numeroSerie = `REGEXP_REPLACE(${campoSerie}::text, '[^0-9]', '', 'g')`
+      // SE DISCIPLINA ESPECÍFICA FOI SELECIONADA: Mostrar acertos/erros POR QUESTÃO
+      // Isso permite ver quantos alunos acertaram/erraram cada questão da disciplina
+      if (disciplina) {
+        // Construir WHERE clause para resultados_provas (tabela com respostas individuais)
+        const whereAcertosQuestao: string[] = []
+        const paramsAcertosQuestao: any[] = []
+        let paramIndexAcertos = 1
 
-        if (disc === 'LP') {
-          // LP: 14 questões para anos iniciais, 20 para anos finais
-          return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 14 ELSE 20 END`
-        } else if (disc === 'CH') {
-          // CH: não existe para anos iniciais, 10 para anos finais
-          return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE 10 END`
-        } else if (disc === 'MAT') {
-          // MAT: 14 para 2º/3º, 20 para 5º e anos finais
-          return `CASE WHEN ${numeroSerie} IN ('2', '3') THEN 14 ELSE 20 END`
-        } else if (disc === 'CN') {
-          // CN: não existe para anos iniciais, 10 para anos finais
-          return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE 10 END`
-        } else {
-          // Geral: soma de todas as disciplinas válidas por série
-          return `CASE
-            WHEN ${numeroSerie} IN ('2', '3') THEN 28
-            WHEN ${numeroSerie} = '5' THEN 34
-            ELSE 60
-          END`
+        // Restrições de permissão do usuário
+        if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+          whereAcertosQuestao.push(`rp.escola_id = $${paramIndexAcertos}`)
+          paramsAcertosQuestao.push(usuario.escola_id)
+          paramIndexAcertos++
+        } else if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+          whereAcertosQuestao.push(`e.polo_id = $${paramIndexAcertos}`)
+          paramsAcertosQuestao.push(usuario.polo_id)
+          paramIndexAcertos++
         }
-      }
 
-      // Helper para calcular acertos baseado na disciplina
-      const getAcertosSQL = (disc: string | null) => {
-        const numeroSerie = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
-
-        if (disc === 'LP') {
-          return `SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0))`
-        } else if (disc === 'CH') {
-          // CH só existe para anos finais
-          return `SUM(CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) END)`
-        } else if (disc === 'MAT') {
-          return `SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0))`
-        } else if (disc === 'CN') {
-          // CN só existe para anos finais
-          return `SUM(CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0) END)`
-        } else {
-          // Geral: soma apenas disciplinas válidas por série
-          return `SUM(
-            COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) +
-            COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) +
-            CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) END +
-            CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0) END
-          )`
+        if (anoLetivo) {
+          whereAcertosQuestao.push(`rp.ano_letivo = $${paramIndexAcertos}`)
+          paramsAcertosQuestao.push(anoLetivo)
+          paramIndexAcertos++
         }
-      }
 
-      // Se escola selecionada (e não é "Todas"), agrupar por série e turma
-      if (escolaId && escolaId !== 'undefined' && escolaId !== '' && escolaId.toLowerCase() !== 'todas') {
-        const queryAcertosErros = `
+        if ((usuario.tipo_usuario === 'administrador' || usuario.tipo_usuario === 'tecnico') && poloId) {
+          whereAcertosQuestao.push(`e.polo_id = $${paramIndexAcertos}`)
+          paramsAcertosQuestao.push(poloId)
+          paramIndexAcertos++
+        }
+
+        if ((usuario.tipo_usuario === 'administrador' || usuario.tipo_usuario === 'tecnico' || usuario.tipo_usuario === 'polo') &&
+            escolaId && escolaId !== '' && escolaId !== 'undefined' && escolaId.toLowerCase() !== 'todas') {
+          whereAcertosQuestao.push(`rp.escola_id = $${paramIndexAcertos}`)
+          paramsAcertosQuestao.push(escolaId)
+          paramIndexAcertos++
+        }
+
+        if (serie) {
+          whereAcertosQuestao.push(`rp.serie = $${paramIndexAcertos}`)
+          paramsAcertosQuestao.push(serie)
+          paramIndexAcertos++
+        }
+
+        if (turmaId) {
+          whereAcertosQuestao.push(`rp.turma_id = $${paramIndexAcertos}`)
+          paramsAcertosQuestao.push(turmaId)
+          paramIndexAcertos++
+        }
+
+        // Filtro de range de questões baseado na série e disciplina
+        const questaoRangeFilter = getQuestaoRangeFilter(serie, disciplina, tipoEnsino)
+        if (questaoRangeFilter) {
+          whereAcertosQuestao.push(questaoRangeFilter)
+        }
+
+        // Filtro de tipo de ensino
+        if (tipoEnsino === 'anos_iniciais') {
+          whereAcertosQuestao.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`)
+        } else if (tipoEnsino === 'anos_finais') {
+          whereAcertosQuestao.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`)
+        }
+
+        const whereClauseAcertosQuestao = whereAcertosQuestao.length > 0
+          ? `WHERE ${whereAcertosQuestao.join(' AND ')} AND rp.questao_codigo IS NOT NULL`
+          : 'WHERE rp.questao_codigo IS NOT NULL'
+
+        // PRIMEIRO: Buscar total de alunos (presentes e faltantes) usando resultados_consolidados_unificada
+        // Isso garante consistência com o painel de dados
+        const queryTotaisAlunos = `
           SELECT
-            COALESCE(t.codigo, CONCAT('Série ', rc.serie)) as nome,
-            rc.serie,
-            t.codigo as turma_codigo,
-            ${getAcertosSQL(disciplina)} as total_acertos,
-            SUM(${getQuestoesSQL(disciplina)}) - ${getAcertosSQL(disciplina)} as total_erros,
-            COUNT(*) as total_alunos,
-            SUM(${getQuestoesSQL(disciplina)}) as total_questoes
-          FROM resultados_consolidados_unificada rc
-          INNER JOIN escolas e ON rc.escola_id = e.id
-          LEFT JOIN turmas t ON rc.turma_id = t.id
-          ${whereClause}
-          GROUP BY rc.serie, t.codigo, t.id
-          ORDER BY rc.serie, t.codigo
-        `
-        const resAcertosErros = await pool.query(queryAcertosErros, params)
-        if (resAcertosErros.rows.length > 0) {
-          resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
-            nome: r.nome || `Série ${r.serie}`,
-            serie: r.serie,
-            turma: r.turma_codigo || null,
-            acertos: parseInt(r.total_acertos) || 0,
-            erros: Math.max(0, parseInt(r.total_erros) || 0),
-            total_alunos: parseInt(r.total_alunos) || 0,
-            total_questoes: parseInt(r.total_questoes) || 0
-          }))
-        } else {
-          resultado.acertos_erros = []
-        }
-      } else if (serie || (poloId && (!escolaId || escolaId === '' || escolaId === 'undefined' || escolaId.toLowerCase() === 'todas'))) {
-        // Se série selecionada mas não escola, OU se há polo mas não escola, agrupar por escola
-        const queryAcertosErros = `
-          SELECT
-            e.nome as nome,
-            ${getAcertosSQL(disciplina)} as total_acertos,
-            SUM(${getQuestoesSQL(disciplina)}) - ${getAcertosSQL(disciplina)} as total_erros,
-            COUNT(*) as total_alunos,
-            SUM(${getQuestoesSQL(disciplina)}) as total_questoes
+            COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) as total_presentes,
+            COUNT(DISTINCT CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_faltantes,
+            COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos
           FROM resultados_consolidados_unificada rc
           INNER JOIN escolas e ON rc.escola_id = e.id
           ${whereClause}
-          GROUP BY e.id, e.nome
-          ORDER BY e.nome
-          ${deveRemoverLimites ? '' : 'LIMIT 30'}
         `
-        const resAcertosErros = await pool.query(queryAcertosErros, params)
-        if (resAcertosErros.rows.length > 0) {
-          resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
-            nome: r.nome,
-            escola: r.nome,
-            acertos: parseInt(r.total_acertos) || 0,
-            erros: Math.max(0, parseInt(r.total_erros) || 0),
-            total_alunos: parseInt(r.total_alunos) || 0,
-            total_questoes: parseInt(r.total_questoes) || 0
+        const resTotaisAlunos = await pool.query(queryTotaisAlunos, params)
+        const totaisAlunos = resTotaisAlunos.rows[0] || { total_presentes: 0, total_faltantes: 0, total_alunos: 0 }
+
+        // Query para buscar acertos/erros por questão individual (APENAS ALUNOS PRESENTES)
+        const queryAcertosPorQuestao = `
+          SELECT
+            rp.questao_codigo as questao,
+            COUNT(DISTINCT CASE WHEN (rp.presenca = 'P' OR rp.presenca = 'p') THEN rp.aluno_id END) as total_presentes,
+            SUM(CASE WHEN (rp.presenca = 'P' OR rp.presenca = 'p') AND rp.acertou = true THEN 1 ELSE 0 END) as acertos,
+            SUM(CASE WHEN (rp.presenca = 'P' OR rp.presenca = 'p') AND (rp.acertou = false OR rp.acertou IS NULL) THEN 1 ELSE 0 END) as erros
+          FROM resultados_provas rp
+          INNER JOIN escolas e ON rp.escola_id = e.id
+          ${whereClauseAcertosQuestao}
+          GROUP BY rp.questao_codigo
+          ORDER BY CAST(REGEXP_REPLACE(rp.questao_codigo, '[^0-9]', '', 'g') AS INTEGER)
+        `
+
+        const resAcertosPorQuestao = await pool.query(queryAcertosPorQuestao, paramsAcertosQuestao)
+
+        if (resAcertosPorQuestao.rows.length > 0) {
+          // Usar totais do resultados_consolidados_unificada (consistente com painel de dados)
+          const totalPresentes = parseInt(totaisAlunos.total_presentes) || 0
+          const totalFaltantes = parseInt(totaisAlunos.total_faltantes) || 0
+          const totalAlunos = parseInt(totaisAlunos.total_alunos) || 0
+
+          resultado.acertos_erros = resAcertosPorQuestao.rows.map((r: any) => ({
+            nome: `Q${r.questao.replace(/[^0-9]/g, '')}`,
+            questao: r.questao,
+            acertos: parseInt(r.acertos) || 0,
+            erros: parseInt(r.erros) || 0,
+            total_alunos: parseInt(r.total_presentes) || 0, // Presentes que responderam esta questão
+            tipo: 'questao' // Marcador para o frontend saber que são dados por questão
           }))
+          // Adicionar metadados incluindo informação de presença (do resultados_consolidados)
+          resultado.acertos_erros_meta = {
+            tipo: 'por_questao',
+            disciplina: disciplina,
+            total_questoes: resAcertosPorQuestao.rows.length,
+            total_alunos_cadastrados: totalAlunos,
+            total_presentes: totalPresentes,
+            total_faltantes: totalFaltantes
+          }
         } else {
           resultado.acertos_erros = []
         }
       } else {
-        // Se não há escola nem série, agrupar por escola
-        const queryAcertosErros = `
-          SELECT
-            e.nome as nome,
-            ${getAcertosSQL(disciplina)} as total_acertos,
-            SUM(${getQuestoesSQL(disciplina)}) - ${getAcertosSQL(disciplina)} as total_erros,
-            COUNT(*) as total_alunos,
-            SUM(${getQuestoesSQL(disciplina)}) as total_questoes
-          FROM resultados_consolidados_unificada rc
-          INNER JOIN escolas e ON rc.escola_id = e.id
-          ${whereClause}
-          GROUP BY e.id, e.nome
-          ORDER BY e.nome
-          ${deveRemoverLimites ? '' : 'LIMIT 30'}
-        `
-        const resAcertosErros = await pool.query(queryAcertosErros, params)
-        if (resAcertosErros.rows.length > 0) {
-          resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
-            nome: r.nome,
-            acertos: parseInt(r.total_acertos) || 0,
-            erros: Math.max(0, parseInt(r.total_erros) || 0),
-            total_alunos: parseInt(r.total_alunos) || 0,
-            total_questoes: parseInt(r.total_questoes) || 0
-          }))
+        // SEM DISCIPLINA ESPECÍFICA: Comportamento original (agrupado por escola/turma)
+        // Helper para calcular total de questões baseado na série e disciplina
+        const getQuestoesSQL = (disc: string | null, campoSerie: string = 'rc.serie') => {
+          const numeroSerie = `REGEXP_REPLACE(${campoSerie}::text, '[^0-9]', '', 'g')`
+
+          if (disc === 'LP') {
+            // LP: 14 questões para anos iniciais, 20 para anos finais
+            return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 14 ELSE 20 END`
+          } else if (disc === 'CH') {
+            // CH: não existe para anos iniciais, 10 para anos finais
+            return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE 10 END`
+          } else if (disc === 'MAT') {
+            // MAT: 14 para 2º/3º, 20 para 5º e anos finais
+            return `CASE WHEN ${numeroSerie} IN ('2', '3') THEN 14 ELSE 20 END`
+          } else if (disc === 'CN') {
+            // CN: não existe para anos iniciais, 10 para anos finais
+            return `CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE 10 END`
+          } else {
+            // Geral: soma de todas as disciplinas válidas por série
+            return `CASE
+              WHEN ${numeroSerie} IN ('2', '3') THEN 28
+              WHEN ${numeroSerie} = '5' THEN 34
+              ELSE 60
+            END`
+          }
+        }
+
+        // Helper para calcular acertos baseado na disciplina
+        const getAcertosSQL = (disc: string | null) => {
+          const numeroSerie = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+
+          if (disc === 'LP') {
+            return `SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0))`
+          } else if (disc === 'CH') {
+            // CH só existe para anos finais
+            return `SUM(CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) END)`
+          } else if (disc === 'MAT') {
+            return `SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0))`
+          } else if (disc === 'CN') {
+            // CN só existe para anos finais
+            return `SUM(CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0) END)`
+          } else {
+            // Geral: soma apenas disciplinas válidas por série
+            return `SUM(
+              COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0) +
+              COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0) +
+              CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) END +
+              CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_cn AS INTEGER), 0) END
+            )`
+          }
+        }
+
+        // Se escola selecionada (e não é "Todas"), agrupar por série e turma
+        if (escolaId && escolaId !== 'undefined' && escolaId !== '' && escolaId.toLowerCase() !== 'todas') {
+          const queryAcertosErros = `
+            SELECT
+              COALESCE(t.codigo, CONCAT('Série ', rc.serie)) as nome,
+              rc.serie,
+              t.codigo as turma_codigo,
+              ${getAcertosSQL(null)} as total_acertos,
+              SUM(${getQuestoesSQL(null)}) - ${getAcertosSQL(null)} as total_erros,
+              COUNT(*) as total_alunos,
+              SUM(${getQuestoesSQL(null)}) as total_questoes
+            FROM resultados_consolidados_unificada rc
+            INNER JOIN escolas e ON rc.escola_id = e.id
+            LEFT JOIN turmas t ON rc.turma_id = t.id
+            ${whereClause}
+            GROUP BY rc.serie, t.codigo, t.id
+            ORDER BY rc.serie, t.codigo
+          `
+          const resAcertosErros = await pool.query(queryAcertosErros, params)
+          if (resAcertosErros.rows.length > 0) {
+            resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
+              nome: r.nome || `Série ${r.serie}`,
+              serie: r.serie,
+              turma: r.turma_codigo || null,
+              acertos: parseInt(r.total_acertos) || 0,
+              erros: Math.max(0, parseInt(r.total_erros) || 0),
+              total_alunos: parseInt(r.total_alunos) || 0,
+              total_questoes: parseInt(r.total_questoes) || 0
+            }))
+          } else {
+            resultado.acertos_erros = []
+          }
+        } else if (serie || (poloId && (!escolaId || escolaId === '' || escolaId === 'undefined' || escolaId.toLowerCase() === 'todas'))) {
+          // Se série selecionada mas não escola, OU se há polo mas não escola, agrupar por escola
+          const queryAcertosErros = `
+            SELECT
+              e.nome as nome,
+              ${getAcertosSQL(null)} as total_acertos,
+              SUM(${getQuestoesSQL(null)}) - ${getAcertosSQL(null)} as total_erros,
+              COUNT(*) as total_alunos,
+              SUM(${getQuestoesSQL(null)}) as total_questoes
+            FROM resultados_consolidados_unificada rc
+            INNER JOIN escolas e ON rc.escola_id = e.id
+            ${whereClause}
+            GROUP BY e.id, e.nome
+            ORDER BY e.nome
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
+          `
+          const resAcertosErros = await pool.query(queryAcertosErros, params)
+          if (resAcertosErros.rows.length > 0) {
+            resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
+              nome: r.nome,
+              escola: r.nome,
+              acertos: parseInt(r.total_acertos) || 0,
+              erros: Math.max(0, parseInt(r.total_erros) || 0),
+              total_alunos: parseInt(r.total_alunos) || 0,
+              total_questoes: parseInt(r.total_questoes) || 0
+            }))
+          } else {
+            resultado.acertos_erros = []
+          }
         } else {
-          resultado.acertos_erros = []
+          // Se não há escola nem série, agrupar por escola
+          const queryAcertosErros = `
+            SELECT
+              e.nome as nome,
+              ${getAcertosSQL(null)} as total_acertos,
+              SUM(${getQuestoesSQL(null)}) - ${getAcertosSQL(null)} as total_erros,
+              COUNT(*) as total_alunos,
+              SUM(${getQuestoesSQL(null)}) as total_questoes
+            FROM resultados_consolidados_unificada rc
+            INNER JOIN escolas e ON rc.escola_id = e.id
+            ${whereClause}
+            GROUP BY e.id, e.nome
+            ORDER BY e.nome
+            ${deveRemoverLimites ? '' : 'LIMIT 30'}
+          `
+          const resAcertosErros = await pool.query(queryAcertosErros, params)
+          if (resAcertosErros.rows.length > 0) {
+            resultado.acertos_erros = resAcertosErros.rows.map((r: any) => ({
+              nome: r.nome,
+              acertos: parseInt(r.total_acertos) || 0,
+              erros: Math.max(0, parseInt(r.total_erros) || 0),
+              total_alunos: parseInt(r.total_alunos) || 0,
+              total_questoes: parseInt(r.total_questoes) || 0
+            }))
+          } else {
+            resultado.acertos_erros = []
+          }
         }
       }
     }
