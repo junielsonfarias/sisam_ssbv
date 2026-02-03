@@ -1404,17 +1404,17 @@ export default function GraficosPage() {
                     <ChartDownloadButton chartId="chart-acertos-erros" fileName="acertos-erros" />
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
-                  <div>
-                  <ResponsiveContainer width="100%" height={Math.max(400, dados.acertos_erros.length * 40)}>
-                    <BarChart data={dados.acertos_erros} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <div className="w-full overflow-x-auto">
+                  <ResponsiveContainer width="100%" height={Math.max(400, Math.min(700, dados.acertos_erros.length * 28))}>
+                    <BarChart data={dados.acertos_erros} margin={{ top: 25, right: 20, left: 10, bottom: dados.acertos_erros.length > 8 ? 80 : 60 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="nome"
-                        tick={{ fontSize: 12, fontWeight: 500 }}
+                        tick={{ fontSize: 11, fontWeight: 500 }}
                         interval={0}
-                        angle={-20}
+                        angle={dados.acertos_erros.length > 8 ? -35 : -20}
                         textAnchor="end"
-                        height={Math.min(120, dados.acertos_erros.length * 10)}
+                        height={Math.max(60, Math.min(100, dados.acertos_erros.length * 8))}
                       />
                       <YAxis
                         tick={{ fontSize: 13, fontWeight: 500 }}
@@ -1428,8 +1428,8 @@ export default function GraficosPage() {
                             const total = Number(acertos) + Number(erros)
                             const taxaAcerto = total > 0 ? ((Number(acertos) / total) * 100).toFixed(1) : '0'
                             return (
-                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3">
-                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-2">{label}</p>
+                              <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg p-3 max-w-[280px]">
+                                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-2 break-words">{label}</p>
                                 <p className="text-green-600 dark:text-green-400 text-sm">
                                   <span className="font-medium">Acertos:</span> {Number(acertos).toLocaleString()}
                                 </p>
@@ -1445,13 +1445,13 @@ export default function GraficosPage() {
                           return null
                         }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
+                      <Legend wrapperStyle={{ fontSize: 13, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
                       <Bar dataKey="acertos" name="Acertos" fill="#10B981" radius={[4, 4, 0, 0]}>
                         <LabelList
                           dataKey="acertos"
                           position="top"
                           formatter={(value: number) => value.toLocaleString()}
-                          style={{ fontSize: 10, fontWeight: 600, fill: '#059669' }}
+                          style={{ fontSize: 12, fontWeight: 600, fill: '#059669' }}
                         />
                       </Bar>
                       <Bar dataKey="erros" name="Erros" fill="#EF4444" radius={[4, 4, 0, 0]}>
@@ -1459,7 +1459,7 @@ export default function GraficosPage() {
                           dataKey="erros"
                           position="top"
                           formatter={(value: number) => value.toLocaleString()}
-                          style={{ fontSize: 10, fontWeight: 600, fill: '#DC2626' }}
+                          style={{ fontSize: 12, fontWeight: 600, fill: '#DC2626' }}
                         />
                       </Bar>
                     </BarChart>
