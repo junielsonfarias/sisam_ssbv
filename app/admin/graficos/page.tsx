@@ -1191,6 +1191,17 @@ export default function GraficosPage() {
                     </div>
                   </div>
                   <FiltrosAtivosTag className="mb-4" />
+                  {/* Legenda de cores */}
+                  <div className="flex items-center gap-4 mb-4 text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                      <span className="text-gray-600 dark:text-gray-400">Presentes</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-4 h-4 rounded-full bg-red-500"></div>
+                      <span className="text-gray-600 dark:text-gray-400">Faltantes</span>
+                    </div>
+                  </div>
                   <div className="flex flex-col md:flex-row items-center gap-4">
                     <div className="w-full md:w-1/2">
                       <ResponsiveContainer width="100%" height={300}>
@@ -1208,11 +1219,11 @@ export default function GraficosPage() {
                             paddingAngle={2}
                           >
                             {prepararDadosPizza(dados.presenca.labels, dados.presenca.dados).map((entry, index) => {
-                              // Cores específicas: verde para presentes, vermelho para ausentes
-                              const cor = entry.name.toLowerCase().includes('present') || entry.name.toLowerCase().includes('p')
-                                ? '#10B981'
-                                : '#EF4444'
-                              return <Cell key={`cell-presenca-${index}`} fill={index === 0 ? '#10B981' : '#EF4444'} />
+                              // Cores específicas: verde para presentes, vermelho para faltantes
+                              const nomeNormalizado = entry.name.toLowerCase()
+                              const isPresente = nomeNormalizado.includes('present') || nomeNormalizado === 'p'
+                              const cor = isPresente ? '#22C55E' : '#EF4444' // verde-500 / vermelho-500
+                              return <Cell key={`cell-presenca-${index}`} fill={cor} />
                             })}
                           </Pie>
                           <Tooltip
@@ -1245,7 +1256,8 @@ export default function GraficosPage() {
                       {prepararDadosPizza(dados.presenca.labels, dados.presenca.dados).map((item, index) => {
                         const total = dados.presenca.dados.reduce((a: number, b: number) => a + b, 0)
                         const percentual = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0'
-                        const isPresente = index === 0
+                        const nomeNormalizado = item.name.toLowerCase()
+                        const isPresente = nomeNormalizado.includes('present') || nomeNormalizado === 'p'
                         return (
                           <div key={index} className={`p-4 rounded-lg ${isPresente ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
                             <p className={`text-sm font-medium ${isPresente ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
