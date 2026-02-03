@@ -1451,20 +1451,20 @@ export default function GraficosPage() {
                         }}
                       />
                       <Legend wrapperStyle={{ fontSize: 13, fontWeight: 500, paddingTop: 8, paddingBottom: 4 }} />
-                      <Bar dataKey="acertos" name="Acertos" fill="#10B981" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="acertos" name="Acertos" fill="#10B981" stackId="stack" radius={[0, 0, 0, 0]}>
                         <LabelList
                           dataKey="acertos"
-                          position="top"
+                          position="center"
                           formatter={(value: number) => value.toLocaleString()}
-                          style={{ fontSize: 12, fontWeight: 600, fill: '#059669' }}
+                          style={{ fontSize: 12, fontWeight: 700, fill: '#ffffff' }}
                         />
                       </Bar>
-                      <Bar dataKey="erros" name="Erros" fill="#EF4444" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="erros" name="Erros" fill="#EF4444" stackId="stack" radius={[4, 4, 0, 0]}>
                         <LabelList
                           dataKey="erros"
-                          position="top"
+                          position="center"
                           formatter={(value: number) => value.toLocaleString()}
-                          style={{ fontSize: 12, fontWeight: 600, fill: '#DC2626' }}
+                          style={{ fontSize: 12, fontWeight: 700, fill: '#ffffff' }}
                         />
                       </Bar>
                     </BarChart>
