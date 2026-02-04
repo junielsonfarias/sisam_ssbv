@@ -161,9 +161,24 @@ export default function PainelAnalise({
         promises.push(Promise.resolve([]))
       }
 
-      const [escolasData, polosData] = await Promise.all(promises)
+      // Carregar séries da configuração (disponível para todos os usuários)
+      promises.push(fetch('/api/admin/configuracao-series').then(r => r.json()).catch(() => ({ series: [] })))
+
+      const [escolasData, polosData, seriesData] = await Promise.all(promises)
       setEscolas(Array.isArray(escolasData) ? escolasData : [])
       setPolos(Array.isArray(polosData) ? polosData : [])
+
+      // Carregar séries da configuração
+      if (seriesData?.series && Array.isArray(seriesData.series)) {
+        const seriesFormatadas = seriesData.series
+          .map((s: { serie: string; nome_serie?: string }) => s.nome_serie || `${s.serie}º Ano`)
+          .sort((a: string, b: string) => {
+            const numA = parseInt(a.match(/\d+/)?.[0] || '0')
+            const numB = parseInt(b.match(/\d+/)?.[0] || '0')
+            return numA - numB
+          })
+        setSeries(seriesFormatadas)
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     }
@@ -236,7 +251,8 @@ export default function PainelAnalise({
       if (data.resultados && Array.isArray(data.resultados)) {
         setResultados(data.resultados)
 
-        if (pagina === 1) {
+        // Fallback: carregar séries dos resultados apenas se não foram pré-carregadas
+        if (pagina === 1 && series.length === 0) {
           const seriesUnicas = [...new Set(data.resultados.map((r: ResultadoConsolidadoAnalise) => r.serie).filter(Boolean))] as string[]
           setSeries(seriesUnicas.sort())
         }
@@ -266,16 +282,17 @@ export default function PainelAnalise({
         }
       } else if (Array.isArray(data)) {
         setResultados(data)
-        const seriesUnicas = [...new Set(data.map((r: ResultadoConsolidadoAnalise) => r.serie).filter(Boolean))] as string[]
-        setSeries(seriesUnicas.sort())
+        // Fallback: carregar séries dos resultados apenas se não foram pré-carregadas
+        if (series.length === 0) {
+          const seriesUnicas = [...new Set(data.map((r: ResultadoConsolidadoAnalise) => r.serie).filter(Boolean))] as string[]
+          setSeries(seriesUnicas.sort())
+        }
       } else {
         setResultados([])
-        setSeries([])
       }
     } catch (error) {
       console.error('Erro ao carregar resultados:', error)
       setResultados([])
-      setSeries([])
     } finally {
       setCarregando(false)
     }
@@ -707,6 +724,9 @@ export default function PainelAnalise({
           <table className="w-full min-w-[800px]">
             <thead className="bg-gray-50 dark:bg-slate-700">
               <tr>
+                <th className="px-2 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-12">
+                  #
+                </th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   Aluno
                 </th>
@@ -754,22 +774,29 @@ export default function PainelAnalise({
             <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
               {carregando ? (
                 <TableEmptyState
-                  colSpan={12}
+                  colSpan={13}
                   tipo="carregando"
                   titulo="Carregando..."
                 />
               ) : resultadosFiltrados.length === 0 ? (
                 <TableEmptyState
-                  colSpan={12}
+                  colSpan={13}
                   tipo="nao-pesquisado"
                   titulo="Nenhum resultado encontrado"
                   mensagem="Clique em Pesquisar para carregar os dados"
                 />
               ) : (
-                resultadosFiltrados.map((resultado) => {
+                resultadosFiltrados.map((resultado, index) => {
                   const anosIniciais = isAnosIniciais(resultado.serie)
+                  // Calcular número de ordem considerando paginação
+                  const numeroOrdem = (paginaAtual - 1) * paginacao.limite + index + 1
                   return (
                     <tr key={resultado.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                      <td className="px-2 py-2 text-center">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs">
+                          {numeroOrdem}
+                        </span>
+                      </td>
                       <td className="px-3 py-2 text-sm text-gray-900 dark:text-white font-medium">
                         {resultado.aluno_nome}
                       </td>
