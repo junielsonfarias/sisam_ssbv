@@ -189,15 +189,20 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     }
   }, [router])
 
-  const handleLogout = async () => {
-    // Limpar dados offline do localStorage
+  const handleLogout = () => {
+    // Limpar usuario imediatamente (essencial)
     offlineStorage.clearUser()
-    offlineStorage.clearAllOfflineData()
-    // Fazer logout no servidor (se online)
-    if (offlineStorage.isOnline()) {
-      await fetch('/api/auth/logout', { method: 'POST' })
-    }
+
+    // Redirecionar imediatamente para o login
     router.push('/login')
+
+    // Fazer logout no servidor em background (não bloqueia)
+    if (offlineStorage.isOnline()) {
+      fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    }
+
+    // Limpar demais dados offline em background (não bloqueia)
+    offlineStorage.clearAllOfflineData()
   }
 
   // Mapear tipoUsuario para o caminho correto
