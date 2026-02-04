@@ -3,6 +3,22 @@
 import { formatarNota, getNotaBgColor, getNotaColor } from '@/lib/dados/utils'
 import NivelBadge from './NivelBadge'
 
+/**
+ * Calcula o nível baseado na nota (fallback quando nivel não é fornecido)
+ * Faixas: 0-4 = N1, 4-6 = N2, 6-8 = N3, 8-10 = N4
+ */
+function calcularNivelPorNota(nota: number | string | null | undefined): string | null {
+  if (nota === null || nota === undefined) return null
+
+  const notaNum = typeof nota === 'string' ? parseFloat(nota) : nota
+  if (isNaN(notaNum) || notaNum <= 0) return null
+
+  if (notaNum < 4) return 'N1'
+  if (notaNum < 6) return 'N2'
+  if (notaNum < 8) return 'N3'
+  return 'N4'
+}
+
 type TamanhoCelula = 'sm' | 'md'
 
 interface CelulaNotaComNivelProps {
@@ -55,6 +71,9 @@ export default function CelulaNotaComNivel({
   const notaNum = typeof nota === 'string' ? parseFloat(nota) || 0 : (nota || 0)
   const temAcertos = totalQuestoes && acertos !== null && acertos !== undefined
 
+  // Usa o nível fornecido ou calcula baseado na nota como fallback
+  const nivelExibir = nivel || calcularNivelPorNota(nota)
+
   return (
     <div className={`inline-flex flex-col items-center rounded-lg ${getNotaBgColor(notaNum)} border ${classes.container} ${className}`}>
       {/* Acertos/Total */}
@@ -69,9 +88,9 @@ export default function CelulaNotaComNivel({
         {formatarNota(nota, presenca)}
       </div>
 
-      {/* Badge de nivel */}
-      {nivel && (
-        <NivelBadge nivel={nivel} className="mt-1" />
+      {/* Badge de nivel - usa nível fornecido ou calculado */}
+      {nivelExibir && (
+        <NivelBadge nivel={nivelExibir} className="mt-1" />
       )}
     </div>
   )

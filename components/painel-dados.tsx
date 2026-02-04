@@ -57,6 +57,22 @@ type Turma = TurmaPainel
 type Estatisticas = EstatisticasPainel
 type AbaAtiva = 'geral' | 'escolas' | 'turmas' | 'alunos' | 'analises'
 
+/**
+ * Calcula o nível baseado na nota (fallback quando nivel_prod não está no banco)
+ * Faixas: 0-4 = N1, 4-6 = N2, 6-8 = N3, 8-10 = N4
+ */
+function calcularNivelPorNota(nota: number | string | null | undefined): string | null {
+  if (nota === null || nota === undefined) return null
+
+  const notaNum = typeof nota === 'string' ? parseFloat(nota) : nota
+  if (isNaN(notaNum)) return null
+
+  if (notaNum < 4) return 'N1'
+  if (notaNum < 6) return 'N2'
+  if (notaNum < 8) return 'N3'
+  return 'N4'
+}
+
 // Função wrapper para calcularNivel (mantém compatibilidade)
 const calcularNivel = calcularCodigoNivel
 
@@ -1674,9 +1690,10 @@ function AbaAlunos({
                       const totalQuestoes = getTotalQuestoesPorSerie(resultado, disciplina.codigo)
                       const aplicavel = isDisciplinaAplicavel(disciplina.codigo, resultado.serie)
                       // Obter nível correspondente à disciplina
+                      // Para PROD, usa nivel_prod do banco ou calcula baseado na nota_producao como fallback
                       const nivelDisciplina = disciplina.codigo === 'LP' ? resultado.nivel_lp :
                                              disciplina.codigo === 'MAT' ? resultado.nivel_mat :
-                                             disciplina.codigo === 'PROD' ? resultado.nivel_prod : null
+                                             disciplina.codigo === 'PROD' ? (resultado.nivel_prod || calcularNivelPorNota(resultado.nota_producao)) : null
 
                       return (
                         <td key={disciplina.codigo} className="text-center py-1 px-0.5 sm:py-2 sm:px-1">

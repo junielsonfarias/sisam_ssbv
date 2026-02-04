@@ -80,6 +80,22 @@ interface ModalQuestoesAlunoProps {
   onClose: () => void
 }
 
+/**
+ * Calcula o nível de produção baseado na nota
+ * Faixas: 0-4 = N1, 4-6 = N2, 6-8 = N3, 8-10 = N4
+ */
+function calcularNivelPorNota(nota: number | null | undefined): string | null {
+  if (nota === null || nota === undefined) return null
+
+  const notaNum = Number(nota)
+  if (isNaN(notaNum)) return null
+
+  if (notaNum < 4) return 'N1'
+  if (notaNum < 6) return 'N2'
+  if (notaNum < 8) return 'N3'
+  return 'N4'
+}
+
 function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, niveisDisciplinas, isOpen, onClose }: ModalQuestoesAlunoProps) {
   const [dados, setDados] = useState<DadosAluno | null>(null)
   const [carregando, setCarregando] = useState(false)
@@ -316,68 +332,83 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                 </div>
 
                 {/* Níveis por Disciplina (Anos Iniciais) */}
-                {niveisDisciplinas && (niveisDisciplinas.nivel_lp || niveisDisciplinas.nivel_mat || niveisDisciplinas.nivel_prod || niveisDisciplinas.nivel_aluno) && (
-                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Award className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                      <h4 className="font-semibold text-indigo-800 dark:text-indigo-200">Níveis por Disciplina</h4>
+                {(() => {
+                  // Calcular nível de produção como fallback se não vier do banco
+                  const nivelProdCalculado = niveisDisciplinas?.nivel_prod || calcularNivelPorNota(dados.estatisticas.nota_producao)
+
+                  // Verificar se há níveis para exibir
+                  const temNiveisParaExibir = niveisDisciplinas && (
+                    niveisDisciplinas.nivel_lp ||
+                    niveisDisciplinas.nivel_mat ||
+                    nivelProdCalculado ||
+                    niveisDisciplinas.nivel_aluno
+                  )
+
+                  if (!temNiveisParaExibir) return null
+
+                  return (
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Award className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                        <h4 className="font-semibold text-indigo-800 dark:text-indigo-200">Níveis por Disciplina</h4>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {/* Nível LP */}
+                        <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Língua Portuguesa</p>
+                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
+                            niveisDisciplinas.nivel_lp === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            niveisDisciplinas.nivel_lp === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            niveisDisciplinas.nivel_lp === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                            niveisDisciplinas.nivel_lp === 'N1' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                          }`}>
+                            {niveisDisciplinas.nivel_lp || '-'}
+                          </span>
+                        </div>
+                        {/* Nível MAT */}
+                        <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Matemática</p>
+                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
+                            niveisDisciplinas.nivel_mat === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            niveisDisciplinas.nivel_mat === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            niveisDisciplinas.nivel_mat === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                            niveisDisciplinas.nivel_mat === 'N1' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                          }`}>
+                            {niveisDisciplinas.nivel_mat || '-'}
+                          </span>
+                        </div>
+                        {/* Nível PROD - usa nível calculado como fallback */}
+                        <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Produção Textual</p>
+                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
+                            nivelProdCalculado === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            nivelProdCalculado === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            nivelProdCalculado === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                            nivelProdCalculado === 'N1' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                          }`}>
+                            {nivelProdCalculado || '-'}
+                          </span>
+                        </div>
+                        {/* Nível Geral do Aluno */}
+                        <div className="text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-800/50 dark:to-purple-800/50 rounded-lg p-3 border-2 border-indigo-300 dark:border-indigo-600">
+                          <p className="text-xs text-indigo-600 dark:text-indigo-300 mb-1 font-semibold">Nível Geral</p>
+                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-extrabold ${
+                            niveisDisciplinas.nivel_aluno === 'N4' ? 'bg-green-500 text-white' :
+                            niveisDisciplinas.nivel_aluno === 'N3' ? 'bg-blue-500 text-white' :
+                            niveisDisciplinas.nivel_aluno === 'N2' ? 'bg-yellow-500 text-white' :
+                            niveisDisciplinas.nivel_aluno === 'N1' ? 'bg-red-500 text-white' :
+                            'bg-gray-400 text-white'
+                          }`}>
+                            {niveisDisciplinas.nivel_aluno || '-'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {/* Nível LP */}
-                      <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Língua Portuguesa</p>
-                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
-                          niveisDisciplinas.nivel_lp === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          niveisDisciplinas.nivel_lp === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                          niveisDisciplinas.nivel_lp === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          niveisDisciplinas.nivel_lp === 'N1' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                        }`}>
-                          {niveisDisciplinas.nivel_lp || '-'}
-                        </span>
-                      </div>
-                      {/* Nível MAT */}
-                      <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Matemática</p>
-                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
-                          niveisDisciplinas.nivel_mat === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          niveisDisciplinas.nivel_mat === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                          niveisDisciplinas.nivel_mat === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          niveisDisciplinas.nivel_mat === 'N1' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                        }`}>
-                          {niveisDisciplinas.nivel_mat || '-'}
-                        </span>
-                      </div>
-                      {/* Nível PROD */}
-                      <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Produção Textual</p>
-                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
-                          niveisDisciplinas.nivel_prod === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          niveisDisciplinas.nivel_prod === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                          niveisDisciplinas.nivel_prod === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          niveisDisciplinas.nivel_prod === 'N1' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                        }`}>
-                          {niveisDisciplinas.nivel_prod || '-'}
-                        </span>
-                      </div>
-                      {/* Nível Geral do Aluno */}
-                      <div className="text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-800/50 dark:to-purple-800/50 rounded-lg p-3 border-2 border-indigo-300 dark:border-indigo-600">
-                        <p className="text-xs text-indigo-600 dark:text-indigo-300 mb-1 font-semibold">Nível Geral</p>
-                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-extrabold ${
-                          niveisDisciplinas.nivel_aluno === 'N4' ? 'bg-green-500 text-white' :
-                          niveisDisciplinas.nivel_aluno === 'N3' ? 'bg-blue-500 text-white' :
-                          niveisDisciplinas.nivel_aluno === 'N2' ? 'bg-yellow-500 text-white' :
-                          niveisDisciplinas.nivel_aluno === 'N1' ? 'bg-red-500 text-white' :
-                          'bg-gray-400 text-white'
-                        }`}>
-                          {niveisDisciplinas.nivel_aluno || '-'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  )
+                })()}
 
                 {/* Estatísticas por Área */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
