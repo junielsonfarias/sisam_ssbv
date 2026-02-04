@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     const presenca = presencaParam && presencaParam.trim() !== '' && presencaParam.toLowerCase() !== 'todas' ? presencaParam : null
     const turmaId = searchParams.get('turma_id')
     const tipoEnsino = searchParams.get('tipo_ensino') // anos_iniciais ou anos_finais
+    const busca = searchParams.get('busca')?.trim() || null // Busca por nome do aluno ou escola
     
     // Parâmetros de paginação
     const pagina = Math.max(1, parseInt(searchParams.get('pagina') || '1'))
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
         presenca,
         turmaId,
         tipoEnsino,
+        busca,
         pagina,
         limite
       },
@@ -247,6 +249,13 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    // Filtro de busca por nome do aluno ou escola
+    if (busca) {
+      query += ` AND (a.nome ILIKE $${paramIndex} OR e.nome ILIKE $${paramIndex})`
+      params.push(`%${busca}%`)
+      paramIndex++
+    }
+
     // Ordenar pela media calculada dinamicamente (maior para menor)
     query += ' ORDER BY media_aluno DESC NULLS LAST, a.nome'
     
@@ -335,6 +344,13 @@ export async function GET(request: NextRequest) {
     if (tipoEnsino) {
       countQuery += ` AND cs.tipo_ensino = $${countParamIndex}`
       countParams.push(tipoEnsino)
+      countParamIndex++
+    }
+
+    // Filtro de busca por nome do aluno ou escola
+    if (busca) {
+      countQuery += ` AND (a.nome ILIKE $${countParamIndex} OR e.nome ILIKE $${countParamIndex})`
+      countParams.push(`%${busca}%`)
       countParamIndex++
     }
 
@@ -504,6 +520,13 @@ export async function GET(request: NextRequest) {
     if (tipoEnsino) {
       estatisticasQuery += ` AND cs.tipo_ensino = $${estatisticasParamIndex}`
       estatisticasParams.push(tipoEnsino)
+      estatisticasParamIndex++
+    }
+
+    // Filtro de busca por nome do aluno ou escola
+    if (busca) {
+      estatisticasQuery += ` AND (a.nome ILIKE $${estatisticasParamIndex} OR e.nome ILIKE $${estatisticasParamIndex})`
+      estatisticasParams.push(`%${busca}%`)
       estatisticasParamIndex++
     }
 

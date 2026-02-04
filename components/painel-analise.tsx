@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2,
-  Eye, RefreshCw
+  Eye, RefreshCw, AlertCircle
 } from 'lucide-react'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { obterDisciplinasPorSerieSync } from '@/lib/disciplinas-por-serie'
@@ -223,7 +223,7 @@ export default function PainelAnalise({
     }
   }
 
-  const carregarResultados = async (pagina: number = paginaAtual, forcarAtualizacao: boolean = false) => {
+  const carregarResultados = async (pagina: number = paginaAtual, forcarAtualizacao: boolean = false, buscaParam?: string) => {
     try {
       setCarregando(true)
 
@@ -235,6 +235,12 @@ export default function PainelAnalise({
 
       params.append('pagina', pagina.toString())
       params.append('limite', '50')
+
+      // Adicionar busca como parâmetro do servidor
+      const buscaAtual = buscaParam !== undefined ? buscaParam : busca
+      if (buscaAtual && buscaAtual.trim()) {
+        params.append('busca', buscaAtual.trim())
+      }
 
       if (forcarAtualizacao) {
         params.append('atualizar_cache', 'true')
@@ -373,19 +379,8 @@ export default function PainelAnalise({
     return filtrosAtivos.length > 0 || busca.trim() !== ''
   }, [filtros, busca, escolaIdFixo, poloIdFixo])
 
-  const resultadosFiltrados = useMemo(() => {
-    let filtrados = resultados
-
-    if (busca.trim()) {
-      const buscaLower = busca.toLowerCase()
-      filtrados = filtrados.filter((r) =>
-        r.aluno_nome.toLowerCase().includes(buscaLower) ||
-        r.escola_nome?.toLowerCase().includes(buscaLower)
-      )
-    }
-
-    return filtrados
-  }, [resultados, busca])
+  // A busca agora é feita no servidor, então apenas retorna os resultados
+  const resultadosFiltrados = resultados
 
   const escolasFiltradas = useMemo(() => {
     if (!filtros.polo_id) return escolas
@@ -599,16 +594,48 @@ export default function PainelAnalise({
           </div>
         </div>
 
-        {/* Busca */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome do aluno ou escola..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-          />
+        {/* Busca - pesquisa no servidor em todas as páginas */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setPaginaAtual(1)
+                  carregarResultados(1, true, busca)
+                }
+              }}
+              placeholder="Buscar por nome do aluno ou escola..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setPaginaAtual(1)
+              carregarResultados(1, true, busca)
+            }}
+            disabled={carregando}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            <Search className="w-4 h-4" />
+            <span className="hidden sm:inline">Buscar</span>
+          </button>
+          {busca && (
+            <button
+              onClick={() => {
+                setBusca('')
+                setPaginaAtual(1)
+                carregarResultados(1, true, '')
+              }}
+              className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg"
+              title="Limpar busca"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -722,52 +749,52 @@ export default function PainelAnalise({
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px]">
-            <thead className="bg-gray-50 dark:bg-slate-700">
+            <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-slate-700 dark:to-slate-600 sticky top-0 z-10">
               <tr>
-                <th className="px-2 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-12">
+                <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-12">
                   #
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                <th className="text-left py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 min-w-[180px]">
                   Aluno
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                <th className="text-left py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700">
                   Escola
                 </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Serie
-                </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700">
                   Turma
                 </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Pres.
+                <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700">
+                  Série
                 </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700">
+                  Presença
+                </th>
+                <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
                   LP
                 </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
                   MAT
                 </th>
                 {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_finais') && (
                   <>
-                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
                       CH
                     </th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
                       CN
                     </th>
                   </>
                 )}
                 {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_iniciais') && (
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
                     PROD
                   </th>
                 )}
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Media
+                <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
+                  Média
                 </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Acoes
+                <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-24">
+                  Ações
                 </th>
               </tr>
             </thead>
@@ -791,30 +818,51 @@ export default function PainelAnalise({
                   // Calcular número de ordem considerando paginação
                   const numeroOrdem = (paginaAtual - 1) * paginacao.limite + index + 1
                   return (
-                    <tr key={resultado.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                      <td className="px-2 py-2 text-center">
+                    <tr key={resultado.id} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-gray-100 dark:border-slate-700">
+                      <td className="text-center py-2 px-2">
                         <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs">
                           {numeroOrdem}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-white font-medium">
-                        {resultado.aluno_nome}
+                      <td className="py-2 px-2">
+                        <button
+                          onClick={() => handleVisualizarQuestoes(resultado)}
+                          className="flex items-center w-full text-left hover:opacity-80 transition-opacity"
+                          title="Clique para ver questões do aluno"
+                        >
+                          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center mr-2">
+                            <span className="text-indigo-600 dark:text-indigo-300 font-semibold text-xs">
+                              {resultado.aluno_nome.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <span className="font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 underline text-sm truncate">
+                            {resultado.aluno_nome}
+                          </span>
+                        </button>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                      <td className="py-2 px-2 text-sm text-gray-700 dark:text-gray-200">
                         {resultado.escola_nome}
                       </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-600 dark:text-gray-300">
-                        {resultado.serie}
-                      </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-600 dark:text-gray-300">
-                        {resultado.turma_codigo}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${getPresencaColor(resultado.presenca)}`}>
-                          {resultado.presenca}
+                      <td className="py-2 px-2 text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 font-mono text-xs font-medium">
+                          {resultado.turma_codigo || '-'}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="py-2 px-2 text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-xs font-medium">
+                          {resultado.serie || '-'}
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold shadow-sm ${getPresencaColor(resultado.presenca)}`}>
+                          {resultado.presenca === 'P' || resultado.presenca === 'p'
+                            ? '✓ Presente'
+                            : resultado.presenca === '-'
+                            ? '— Sem dados'
+                            : '✗ Falta'}
+                        </span>
+                      </td>
+                      <td className="py-2 px-1 text-center">
                         <CelulaNotaComNivel
                           nota={resultado.nota_lp}
                           acertos={resultado.total_acertos_lp}
@@ -824,7 +872,7 @@ export default function PainelAnalise({
                           tamanho="md"
                         />
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="py-2 px-1 text-center">
                         <CelulaNotaComNivel
                           nota={resultado.nota_mat}
                           acertos={resultado.total_acertos_mat}
@@ -836,7 +884,7 @@ export default function PainelAnalise({
                       </td>
                       {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_finais') && (
                         <>
-                          <td className="px-3 py-2 text-center">
+                          <td className="py-2 px-1 text-center">
                             <CelulaNotaComNivel
                               nota={resultado.nota_ch}
                               acertos={resultado.total_acertos_ch}
@@ -846,7 +894,7 @@ export default function PainelAnalise({
                               tamanho="md"
                             />
                           </td>
-                          <td className="px-3 py-2 text-center">
+                          <td className="py-2 px-1 text-center">
                             <CelulaNotaComNivel
                               nota={resultado.nota_cn}
                               acertos={resultado.total_acertos_cn}
@@ -859,7 +907,7 @@ export default function PainelAnalise({
                         </>
                       )}
                       {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_iniciais') && (
-                        <td className="px-3 py-2 text-center">
+                        <td className="py-2 px-1 text-center">
                           <CelulaNotaComNivel
                             nota={resultado.nota_producao}
                             nivel={resultado.nivel_prod}
@@ -869,7 +917,7 @@ export default function PainelAnalise({
                           />
                         </td>
                       )}
-                      <td className="px-3 py-2 text-center">
+                      <td className="py-2 px-2 text-center">
                         <CelulaNotaComNivel
                           nota={resultado.media_aluno}
                           nivel={anosIniciais ? resultado.nivel_aluno : undefined}
@@ -877,13 +925,15 @@ export default function PainelAnalise({
                           tamanho="md"
                         />
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="py-2 px-2 text-center">
                         <button
                           onClick={() => handleVisualizarQuestoes(resultado)}
-                          className="inline-flex items-center justify-center p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                          title="Ver questoes do aluno"
+                          className="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium shadow-sm"
+                          title="Ver questões do aluno"
                         >
-                          <Eye className="w-5 h-5" />
+                          <Eye className="w-4 h-4 mr-1" />
+                          <span className="hidden sm:inline">Ver Questões</span>
+                          <span className="sm:hidden">Ver</span>
                         </button>
                       </td>
                     </tr>
@@ -903,6 +953,28 @@ export default function PainelAnalise({
           onProxima={proximaPagina}
           onAnterior={paginaAnterior}
         />
+
+        {/* Rodapé com legenda */}
+        <div className="p-4 border-t border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <Users className="w-4 h-4" />
+            <span>Mostrando {resultadosFiltrados.length} de {paginacao.total} resultados</span>
+          </div>
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-green-500"></span>
+              <span className="text-gray-600 dark:text-gray-300">Bom (≥7.0)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+              <span className="text-gray-600 dark:text-gray-300">Médio (5.0-6.9)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-red-500"></span>
+              <span className="text-gray-600 dark:text-gray-300">Abaixo (&lt;5.0)</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Modal */}
