@@ -1230,9 +1230,11 @@ export async function buscarDadosSegmento(
 
     return {
       nome_segmento: nomeSegmento,
-      series: series.filter(s =>
-        segmento === 'finais' || s !== '6º Ano' && s !== '7º Ano'
-      ),
+      // Filtrar séries: Anos Finais incluem todas, Anos Iniciais excluem 6º e 7º
+      series: series.filter(s => {
+        if (segmento === 'finais') return true;
+        return s !== '6º Ano' && s !== '7º Ano';
+      }),
       estatisticas: {
         total_alunos: parseInt(estatisticas.total_alunos) || 0,
         total_turmas: parseInt(estatisticas.total_turmas) || 0,

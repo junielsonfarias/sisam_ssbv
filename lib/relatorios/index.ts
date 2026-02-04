@@ -39,6 +39,7 @@ export {
   type DadosGraficos,
   type DadosRelatorioEscola,
   type DadosRelatorioPolo,
+  type DadosSegmento,
   type EscolaComparativo,
   type ComparativoEscola,
   type GraficosBuffer,
@@ -72,7 +73,8 @@ export {
 // Consultas SQL
 export {
   buscarDadosRelatorioEscola,
-  buscarDadosRelatorioPolo
+  buscarDadosRelatorioPolo,
+  buscarDadosSegmento
 } from './consultas-relatorio';
 
 // Cálculos e Projeções

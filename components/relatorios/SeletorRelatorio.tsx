@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   FileText,
   Download,
@@ -9,7 +10,8 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  Calendar
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 
 interface Polo {
@@ -44,6 +46,7 @@ export function SeletorRelatorio({
   poloIdUsuario,
   escolaIdUsuario
 }: Props) {
+  const router = useRouter();
   const [tipo, setTipo] = useState<TipoRelatorio>('escola');
   const [poloSelecionado, setPoloSelecionado] = useState<string>('');
   const [escolaSelecionada, setEscolaSelecionada] = useState<string>('');
@@ -90,6 +93,24 @@ export function SeletorRelatorio({
     tipoUsuario === 'tecnico' ||
     tipoUsuario === 'polo';
 
+  // Abrir relatório web (nova abordagem otimizada)
+  const handleVisualizarRelatorio = () => {
+    const id = tipo === 'escola' ? escolaSelecionada : poloSelecionado;
+    if (!id) {
+      setMensagem({ tipo: 'erro', texto: 'Selecione uma escola ou polo' });
+      return;
+    }
+
+    const params = new URLSearchParams({
+      ano_letivo: anoLetivo,
+      ...(serie && { serie })
+    });
+
+    // Redireciona para a página de visualização do relatório
+    router.push(`/admin/relatorios/${tipo}/${id}?${params}`);
+  };
+
+  // Gerar PDF via servidor (método legado, pode causar timeout)
   const handleGerarRelatorio = async () => {
     const id = tipo === 'escola' ? escolaSelecionada : poloSelecionado;
     if (!id) {
@@ -100,17 +121,11 @@ export function SeletorRelatorio({
     setGerando(true);
     setMensagem(null);
 
-    // Debug: verificar ano selecionado
-    console.log('Gerando relatório com ano:', anoLetivo);
-
     try {
       const params = new URLSearchParams({
         ano_letivo: anoLetivo,
         ...(serie && { serie })
       });
-
-      // Debug: verificar URL completa
-      console.log('URL da requisição:', `/api/admin/relatorios/${tipo}/${id}?${params}`);
 
       const response = await fetch(
         `/api/admin/relatorios/${tipo}/${id}?${params}`,
@@ -304,11 +319,15 @@ export function SeletorRelatorio({
                      transition-colors"
         >
           <option value="">Todas as séries</option>
-          <option value="2º Ano">2º Ano</option>
-          <option value="3º Ano">3º Ano</option>
-          <option value="5º Ano">5º Ano</option>
-          <option value="8º Ano">8º Ano</option>
-          <option value="9º Ano">9º Ano</option>
+          <optgroup label="Anos Iniciais">
+            <option value="2º Ano">2º Ano</option>
+            <option value="3º Ano">3º Ano</option>
+            <option value="5º Ano">5º Ano</option>
+          </optgroup>
+          <optgroup label="Anos Finais">
+            <option value="8º Ano">8º Ano</option>
+            <option value="9º Ano">9º Ano</option>
+          </optgroup>
         </select>
       </div>
 
@@ -328,28 +347,52 @@ export function SeletorRelatorio({
         </div>
       )}
 
-      {/* Botão Gerar */}
-      <button
-        onClick={handleGerarRelatorio}
-        disabled={gerando || !podeGerar}
-        className="w-full flex items-center justify-center gap-3 px-4 py-4
-                   bg-blue-600 hover:bg-blue-700 text-white rounded-lg
-                   font-medium transition-colors
-                   disabled:bg-gray-300 dark:disabled:bg-slate-600
-                   disabled:cursor-not-allowed disabled:text-gray-500"
-      >
-        {gerando ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Gerando Relatório...
-          </>
-        ) : (
-          <>
-            <Download className="w-5 h-5" />
-            Gerar Relatório PDF
-          </>
-        )}
-      </button>
+      {/* Botões de ação */}
+      <div className="space-y-3">
+        {/* Botão principal - Visualizar Relatório (recomendado) */}
+        <button
+          onClick={handleVisualizarRelatorio}
+          disabled={!podeGerar}
+          className="w-full flex items-center justify-center gap-3 px-4 py-4
+                     bg-blue-600 hover:bg-blue-700 text-white rounded-lg
+                     font-medium transition-colors
+                     disabled:bg-gray-300 dark:disabled:bg-slate-600
+                     disabled:cursor-not-allowed disabled:text-gray-500"
+        >
+          <ExternalLink className="w-5 h-5" />
+          Visualizar Relatório
+        </button>
+
+        {/* Botão secundário - Download PDF (legado) */}
+        <button
+          onClick={handleGerarRelatorio}
+          disabled={gerando || !podeGerar}
+          className="w-full flex items-center justify-center gap-3 px-4 py-3
+                     bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600
+                     text-gray-700 dark:text-gray-300 rounded-lg
+                     font-medium transition-colors border border-gray-300 dark:border-slate-600
+                     disabled:bg-gray-100 dark:disabled:bg-slate-700
+                     disabled:cursor-not-allowed disabled:text-gray-400"
+        >
+          {gerando ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Gerando PDF...
+            </>
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              Download PDF Direto
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Nota sobre os métodos */}
+      <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
+        Recomendamos &quot;Visualizar Relatório&quot; para melhor desempenho.
+        Use Ctrl+P para salvar como PDF.
+      </p>
 
       {/* Informações adicionais */}
       <div className="mt-6 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
