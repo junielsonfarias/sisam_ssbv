@@ -19,13 +19,14 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>()
 
 // Configurações por tipo de operação
+// Ajustado para suportar 15-20 usuários simultâneos em ambiente escolar (mesmo IP)
 const RATE_LIMITS = {
-  // APIs de escrita: 30 requisições por minuto
-  write: { maxRequests: 30, windowMs: 60 * 1000 },
-  // APIs de leitura: 100 requisições por minuto
-  read: { maxRequests: 100, windowMs: 60 * 1000 },
-  // APIs de importação: 5 requisições por minuto (operações pesadas)
-  import: { maxRequests: 5, windowMs: 60 * 1000 },
+  // APIs de escrita: 60 requisições por minuto
+  write: { maxRequests: 60, windowMs: 60 * 1000 },
+  // APIs de leitura: 300 requisições por minuto (suporta ~20 usuários no mesmo IP)
+  read: { maxRequests: 300, windowMs: 60 * 1000 },
+  // APIs de importação: 10 requisições por minuto (operações pesadas)
+  import: { maxRequests: 10, windowMs: 60 * 1000 },
 }
 
 // Endpoints excluídos do rate limiting (já têm próprio ou são públicos)

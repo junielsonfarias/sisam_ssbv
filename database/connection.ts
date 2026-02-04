@@ -45,7 +45,7 @@ let poolConfig: {
 // Fila de queries para controlar concorrência
 let queryQueue: QueryQueueItem[] = [];
 let activeQueries = 0;
-const MAX_CONCURRENT_QUERIES = 15; // Maximo de queries paralelas (ajustado para 50 usuarios)
+const MAX_CONCURRENT_QUERIES = 25; // Maximo de queries paralelas (ajustado para 20 usuarios simultaneos)
 
 // Estado de saúde da conexão
 let lastHealthCheck: number = 0;
