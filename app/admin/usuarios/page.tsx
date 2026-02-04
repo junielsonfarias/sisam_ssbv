@@ -139,6 +139,9 @@ export default function UsuariosPage() {
       const payload = {
         ...formData,
         id: usuarioEditando?.id,
+        // Converter strings vazias para null (backend espera UUID válido ou null)
+        polo_id: formData.polo_id || null,
+        escola_id: formData.escola_id || null,
       }
 
       const response = await fetch('/api/admin/usuarios', {
@@ -203,8 +206,8 @@ export default function UsuariosPage() {
           nome: usuario.nome,
           email: usuario.email,
           tipo_usuario: usuario.tipo_usuario,
-          polo_id: usuario.polo_id,
-          escola_id: usuario.escola_id,
+          polo_id: usuario.polo_id || null,
+          escola_id: usuario.escola_id || null,
           ativo: !usuario.ativo,
         }),
       })
@@ -497,7 +500,7 @@ export default function UsuariosPage() {
                           value={formData.senha}
                           onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700"
-                          placeholder={usuarioEditando ? 'Deixe vazio para manter' : 'Mínimo 6 caracteres'}
+                          placeholder={usuarioEditando ? 'Deixe vazio para manter' : 'Mínimo 12 caracteres (letra + número)'}
                         />
                       </div>
 
