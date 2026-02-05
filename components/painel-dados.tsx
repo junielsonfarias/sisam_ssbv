@@ -228,22 +228,42 @@ export default function PainelDados({
     carregarEstatisticas(filtrosAlunos.serie)
   }, [filtrosAlunos.serie, carregarEstatisticas])
 
-  // NÃO carregar NADA automaticamente - apenas quando clicar em Pesquisar
+  // Carregar séries da configuração (sempre busca da API para garantir dados atualizados)
+  useEffect(() => {
+    const carregarSeriesConfig = async () => {
+      try {
+        const response = await fetch('/api/admin/configuracao-series')
+        if (response.ok) {
+          const data = await response.json()
+          if (data?.series && Array.isArray(data.series)) {
+            const seriesFormatadas = data.series
+              .map((s: { serie: string; nome_serie?: string }) => s.nome_serie || `${s.serie}º Ano`)
+              .sort((a: string, b: string) => {
+                const numA = parseInt(a.match(/\d+/)?.[0] || '0')
+                const numB = parseInt(b.match(/\d+/)?.[0] || '0')
+                return numA - numB
+              })
+            setListaSeries(seriesFormatadas)
+          }
+        }
+      } catch (error) {
+        console.error('[PainelDados] Erro ao carregar séries:', error)
+      }
+    }
+    carregarSeriesConfig()
+  }, [])
+
   // Carregar filtros do cache de forma SÍNCRONA apenas uma vez na montagem (sem API)
   useEffect(() => {
     if (!filtrosCarregados && isCacheValid()) {
       const cachedEscolas = getCachedEscolas()
       const cachedTurmas = getCachedTurmas()
-      const cachedSeries = getCachedSeries()
 
       if (cachedEscolas && cachedEscolas.length > 0) {
         setListaEscolas(cachedEscolas)
       }
       if (cachedTurmas && cachedTurmas.length > 0) {
         setListaTurmas(cachedTurmas)
-      }
-      if (cachedSeries && cachedSeries.length > 0) {
-        setListaSeries(cachedSeries)
       }
       setFiltrosCarregados(true)
     }
@@ -393,10 +413,10 @@ export default function PainelDados({
   const carregarFiltros = async () => {
     try {
       // Tentar usar cache local primeiro (sincronizado no login)
+      // Nota: séries são carregadas da API de configuração, não do cache
       if (isCacheValid()) {
         const cachedEscolas = getCachedEscolas()
         const cachedTurmas = getCachedTurmas()
-        const cachedSeries = getCachedSeries()
 
         console.log('[PainelDados] Usando filtros do cache local')
 
@@ -405,9 +425,6 @@ export default function PainelDados({
         }
         if (cachedTurmas && cachedTurmas.length > 0) {
           setListaTurmas(cachedTurmas)
-        }
-        if (cachedSeries && cachedSeries.length > 0) {
-          setListaSeries(cachedSeries)
         }
 
         setFiltrosCarregados(true)
