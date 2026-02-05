@@ -83,7 +83,7 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
         return
       }
 
-      // Se estiver online, verificar com a API (mas já autorizamos acima se tiver offline user)
+      // Se estiver online, verificar com a API (mas já autorizamos acima se tiver offline user válido)
       if (online) {
         try {
           const response = await fetch('/api/auth/verificar', {
@@ -109,18 +109,24 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
               })
               setAutorizado(true)
               authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey }
-            } else if (!offlineUser) {
-              // Tipo não permitido e não tem fallback offline
+            } else {
+              // Tipo não permitido - redirecionar para login
+              console.log('[ProtectedRoute] Tipo de usuário não permitido:', tipoUsuarioOriginal)
               router.push('/login')
             }
-          } else if (!offlineUser) {
-            // API não retornou usuário e não tem fallback offline
-            router.push('/login')
+          } else {
+            // API não retornou usuário válido (401/403/500)
+            // Se já estava autorizado via offline user válido, manter autorização
+            // Caso contrário, redirecionar para login
+            if (!autorizado) {
+              console.log('[ProtectedRoute] API retornou erro e não há autorização offline válida')
+              router.push('/login')
+            }
           }
         } catch (error) {
-          console.log('[ProtectedRoute] Erro de rede, usando usuário offline:', error)
-          // Erro de rede - o usuário offline já foi verificado acima
-          if (!offlineUser || !verificarTipoPermitido(offlineUser.tipo_usuario)) {
+          console.log('[ProtectedRoute] Erro de rede, verificando usuário offline:', error)
+          // Erro de rede - manter autorização se offline user é válido, senão redirecionar
+          if (!autorizado) {
             router.push('/login')
           }
         }

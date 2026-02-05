@@ -256,13 +256,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
     // Menu especifico para TECNICO
     // Dashboard, Painel de Dados, Resultados Consolidados, Comparativos Escolas, Comparativos Polo,
-    // Análise Gráfica, Relatórios, Escolas (visualização), Polos (visualização), Alunos
+    // Análise Gráfica, Escolas (visualização), Polos (visualização), Alunos
     if (tipoUsuarioReal === 'tecnico') {
       items.push(
-        { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
+        { icon: FileText, label: 'Resultados Consolidados', href: '/tecnico/analise' },
         { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
         { icon: MapPin, label: 'Comparativos Polo', href: '/admin/comparativos-polos' },
-        { icon: FileBarChart, label: 'Relatorios', href: '/admin/relatorios' },
         { icon: School, label: 'Escolas', href: '/admin/escolas' },
         { icon: MapPin, label: 'Polos', href: '/admin/polos' },
         { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
@@ -311,8 +310,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
-      {/* Header - Fixo no topo com gradiente sutil */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-white via-white to-gray-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 shadow-md dark:shadow-slate-700/50 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 transition-colors duration-300">
+      {/* Header - Fixo no topo com gradiente sutil (oculto na impressão) */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-white via-white to-gray-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 shadow-md dark:shadow-slate-700/50 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 transition-colors duration-300 print:hidden">
         <div className="px-2 sm:px-4 md:px-6 lg:px-8">
           {/* Linha superior: Logo, Nome do Sistema, Data */}
           <div className="flex justify-between items-center h-14 sm:h-16 lg:h-[72px]">
@@ -455,14 +454,16 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         </div>
       </header>
 
-      {/* Alerta de Divergências Críticas */}
-      <AlertaDivergencias tipoUsuario={tipoUsuarioReal} />
+      {/* Alerta de Divergências Críticas (oculto na impressão) */}
+      <div className="print:hidden">
+        <AlertaDivergencias tipoUsuario={tipoUsuarioReal} />
+      </div>
 
-      {/* Espaçador para compensar o header fixo */}
-      <div className="h-14 sm:h-16 lg:h-[72px] flex-shrink-0" />
+      {/* Espaçador para compensar o header fixo (oculto na impressão) */}
+      <div className="h-14 sm:h-16 lg:h-[72px] flex-shrink-0 print:hidden" />
 
       <div className="flex flex-1">
-        {/* Sidebar - Fixo na lateral */}
+        {/* Sidebar - Fixo na lateral (oculto na impressão) */}
         <aside
           className={`
             fixed inset-y-0 left-0 z-40
@@ -470,6 +471,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             ${menuAberto ? 'translate-x-0' : '-translate-x-full'} ${menuDesktopOculto ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
             flex-shrink-0 overflow-y-auto
             pt-14 sm:pt-16 lg:pt-[72px]
+            print:hidden
           `}
         >
           <nav className="mt-4 sm:mt-6 px-2 sm:px-3 pb-4">
@@ -506,30 +508,32 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           </nav>
         </aside>
 
-        {/* Overlay para mobile e tablet - z-30 para ficar abaixo do sidebar (z-40) */}
+        {/* Overlay para mobile e tablet - z-30 para ficar abaixo do sidebar (z-40) (oculto na impressão) */}
         {menuAberto && (
           <div
-            className="fixed inset-0 bg-black/50 dark:bg-black/70 z-30 lg:hidden"
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 z-30 lg:hidden print:hidden"
             onClick={() => setMenuAberto(false)}
           />
         )}
 
-        {/* Overlay para desktop quando menu está visível */}
+        {/* Overlay para desktop quando menu está visível (oculto na impressão) */}
         {!menuDesktopOculto && (
           <div
-            className="hidden lg:block fixed inset-0 bg-black/30 dark:bg-black/50 z-30"
+            className="hidden lg:block fixed inset-0 bg-black/30 dark:bg-black/50 z-30 print:hidden"
             onClick={() => setMenuDesktopOculto(true)}
           />
         )}
 
         {/* Main Content - Sem margem, menu funciona como drawer sobrepondo */}
-        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-slate-900">
+        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-slate-900 print:p-0 print:bg-white">
           {children}
         </main>
       </div>
 
-      {/* Rodape - Sem margem */}
-      <Rodape />
+      {/* Rodape - Sem margem (oculto na impressão) */}
+      <div className="print:hidden">
+        <Rodape />
+      </div>
     </div>
   )
 }

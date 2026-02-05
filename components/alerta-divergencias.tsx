@@ -38,8 +38,10 @@ export default function AlertaDivergencias({ tipoUsuario }: AlertaDivergenciasPr
             setMostrar(true)
           }
         }
+        // Se retornar 401/403, simplesmente não mostra o alerta (usuário pode não ter permissão)
       } catch (error) {
-        console.error('Erro ao verificar divergências:', error)
+        // Erro de rede - não bloqueia a aplicação, apenas não mostra o alerta
+        console.warn('[AlertaDivergencias] Erro ao verificar divergências:', error)
       } finally {
         setCarregando(false)
       }
