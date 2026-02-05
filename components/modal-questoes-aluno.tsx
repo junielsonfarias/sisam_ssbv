@@ -3,6 +3,7 @@
 import { useEffect, useState, memo, useCallback } from 'react'
 import { X, CheckCircle2, XCircle, BookOpen, TrendingUp, Award, AlertCircle, WifiOff, BarChart3 } from 'lucide-react'
 import * as offlineStorage from '@/lib/offline-storage'
+import { isAnosIniciais } from '@/lib/dados/utils'
 
 interface Questao {
   codigo: string
@@ -331,8 +332,11 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                   </div>
                 </div>
 
-                {/* Níveis por Disciplina (Anos Iniciais) */}
+                {/* Níveis por Disciplina (apenas Anos Iniciais - 2º, 3º, 5º) */}
                 {(() => {
+                  // Níveis só existem para anos iniciais
+                  if (!isAnosIniciais(dados.aluno.serie)) return null
+
                   // Calcular nível de produção como fallback se não vier do banco
                   const nivelProdCalculado = niveisDisciplinas?.nivel_prod || calcularNivelPorNota(dados.estatisticas.nota_producao)
 
