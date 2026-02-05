@@ -697,54 +697,24 @@ async function buscarMediasPorDisciplina(
 }
 
 /**
- * Busca séries disponíveis (que têm dados)
- * Retorna apenas as séries que têm resultados cadastrados
+ * Busca séries disponíveis da configuração do sistema
+ * Retorna todas as séries configuradas e ativas, independente de terem resultados
  */
 async function buscarSeriesDisponiveis(
   escopo: EscopoEstatisticas,
   filtros: FiltrosEstatisticas
 ): Promise<string[]> {
-  const params: (string | null)[] = []
-  let paramIndex = 1
-  let whereConditions: string[] = [
-    `rc.serie IS NOT NULL`,
-    `rc.serie != ''`
-  ]
-
-  // Construir condições WHERE baseadas no escopo
-  if (escopo === 'polo' && filtros.poloId) {
-    whereConditions.push(`e.polo_id = $${paramIndex}`)
-    params.push(filtros.poloId)
-    paramIndex++
-  } else if (escopo === 'escola' && filtros.escolaId) {
-    whereConditions.push(`rc.escola_id = $${paramIndex}`)
-    params.push(filtros.escolaId)
-    paramIndex++
-  }
-
-  const whereClause = `WHERE ${whereConditions.join(' AND ')}`
-  const needsJoin = escopo === 'polo' && filtros.poloId
-
+  // Buscar da tabela de configuração de séries (todas as séries ativas)
   const query = `
-    SELECT DISTINCT rc.serie
-    FROM resultados_consolidados_unificada rc
-    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
-    ${whereClause}
-    ORDER BY rc.serie
+    SELECT nome_serie
+    FROM configuracao_series
+    WHERE ativo = true
+    ORDER BY serie::integer
   `
 
-  const result = await pool.query(query, params)
+  const result = await pool.query(query)
 
-  // Ordenar séries: Anos Iniciais (2, 3, 5) primeiro, depois Anos Finais (6, 7, 8, 9)
-  const seriesOrdenadas = result.rows
-    .map((row: any) => row.serie as string)
-    .sort((a: string, b: string) => {
-      const numA = parseInt(a.replace(/[^0-9]/g, '')) || 0
-      const numB = parseInt(b.replace(/[^0-9]/g, '')) || 0
-      return numA - numB
-    })
-
-  return seriesOrdenadas
+  return result.rows.map((row: any) => row.nome_serie as string)
 }
 
 // ============================================================================

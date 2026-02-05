@@ -257,12 +257,6 @@ export default function PainelAnalise({
       if (data.resultados && Array.isArray(data.resultados)) {
         setResultados(data.resultados)
 
-        // Fallback: carregar séries dos resultados apenas se não foram pré-carregadas
-        if (pagina === 1 && series.length === 0) {
-          const seriesUnicas = [...new Set(data.resultados.map((r: ResultadoConsolidadoAnalise) => r.serie).filter(Boolean))] as string[]
-          setSeries(seriesUnicas.sort())
-        }
-
         if (data.estatisticas) {
           setEstatisticasAPI({
             totalAlunos: data.estatisticas.totalAlunos || data.paginacao?.total || 0,
@@ -288,11 +282,6 @@ export default function PainelAnalise({
         }
       } else if (Array.isArray(data)) {
         setResultados(data)
-        // Fallback: carregar séries dos resultados apenas se não foram pré-carregadas
-        if (series.length === 0) {
-          const seriesUnicas = [...new Set(data.map((r: ResultadoConsolidadoAnalise) => r.serie).filter(Boolean))] as string[]
-          setSeries(seriesUnicas.sort())
-        }
       } else {
         setResultados([])
       }
