@@ -273,9 +273,49 @@ export interface TurmaRelatorio {
   nome: string;
   serie: string;
   total_alunos: number;
+  total_presentes?: number;
+  total_ausentes?: number;
   media_geral: number;
   medias_disciplinas: Record<string, number>;
   distribuicao_niveis: DistribuicaoNivel[];
+}
+
+/**
+ * Dados de faltas/ausências por série
+ */
+export interface FaltasSerie {
+  serie: string;
+  total_matriculados: number;
+  total_presentes: number;
+  total_ausentes: number;
+  taxa_participacao: number;
+}
+
+/**
+ * Item de produção textual avaliado
+ */
+export interface ItemProducaoAvaliado {
+  item_id: string;
+  item_codigo: string;
+  item_nome: string;
+  ordem: number;
+  total_alunos: number;
+  media_item: number;
+  nota_maxima: number;
+  percentual_acerto: number;
+}
+
+/**
+ * Análise de questões agrupada por série
+ */
+export interface AnaliseQuestoesSerie {
+  serie: string;
+  questoes: AnaliseQuestao[];
+  media_acerto_geral: number;
+  questoes_dificeis: AnaliseQuestao[];
+  questoes_faceis: AnaliseQuestao[];
+  /** Itens de produção textual (apenas para 2º, 3º e 5º Ano) */
+  itens_producao?: ItemProducaoAvaliado[];
 }
 
 export interface AnaliseQuestao {
@@ -314,11 +354,15 @@ export interface DadosSegmento {
     total_turmas: number;
     media_geral: number;
     taxa_participacao: number;
+    total_presentes?: number;
+    total_ausentes?: number;
   };
   desempenho_disciplinas: DesempenhoDisciplina[];
   distribuicao_niveis?: DistribuicaoNivel[];
   producao_textual?: ProducaoTextual;
   turmas: TurmaRelatorio[];
+  // Análise de questões por série dentro do segmento
+  analise_questoes_por_serie?: AnaliseQuestoesSerie[];
 }
 
 export interface DadosRelatorioEscola {
@@ -352,6 +396,10 @@ export interface DadosRelatorioEscola {
   // Dados por segmento
   anos_iniciais?: DadosSegmento;
   anos_finais?: DadosSegmento;
+  // Dados de faltas por série
+  faltas_por_serie?: FaltasSerie[];
+  // Análise de questões por série
+  analise_questoes_por_serie?: AnaliseQuestoesSerie[];
 }
 
 export interface EscolaComparativo {

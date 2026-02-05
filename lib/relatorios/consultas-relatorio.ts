@@ -22,6 +22,9 @@ import {
   DesempenhoDisciplina,
   TurmaRelatorio,
   AnaliseQuestao,
+  AnaliseQuestoesSerie,
+  ItemProducaoAvaliado,
+  FaltasSerie,
   EscolaComparativo,
   ComparativoEscola,
   DistribuicaoNivel,
@@ -103,7 +106,9 @@ export async function buscarDadosRelatorioEscola(
       COALESCE(ROUND(
         (COUNT(CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN 1 END)::decimal /
          NULLIF(COUNT(*), 0) * 100)::numeric, 1
-      ), 0) as taxa_participacao
+      ), 0) as taxa_participacao,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as total_presentes,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'F' OR rc.presenca = 'f' THEN rc.aluno_id END) as total_ausentes
     FROM resultados_consolidados_unificada rc
     WHERE rc.escola_id = $1
       AND rc.ano_letivo = $2
@@ -112,7 +117,9 @@ export async function buscarDadosRelatorioEscola(
 
   // Query 3: Desempenho por disciplina
   // CH e CN só são avaliados em 8º e 9º Ano (usando função utilitária)
+  // PROD só é avaliado em 2º, 3º e 5º Ano (Anos Iniciais)
   const incluirCHCN = serieTemCHCN(serie);
+  const incluirPROD = serieTemProducaoTextual(serie);
 
   // Query 3: Desempenho por disciplina - usando mesma lógica do dashboard
   const disciplinasQuery = `
@@ -136,6 +143,21 @@ export async function buscarDadosRelatorioEscola(
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 END) as total_registros
       FROM resultados_consolidados_unificada rc
       WHERE rc.escola_id = $1 AND rc.ano_letivo = $2 ${serieFilter}
+
+      ${incluirPROD ? `
+      UNION ALL
+
+      SELECT
+        'PROD' as disciplina,
+        'Produção Textual' as disciplina_nome,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN CAST(rc.nota_producao AS DECIMAL) END) as media,
+        0 as acertos_total,
+        COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 END) as total_registros
+      FROM resultados_consolidados_unificada rc
+      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2
+        AND rc.serie IN ('2º Ano', '3º Ano', '5º Ano')
+        ${serieFilter}
+      ` : ''}
 
       ${incluirCHCN ? `
       UNION ALL
@@ -176,6 +198,7 @@ export async function buscarDadosRelatorioEscola(
   `;
 
   // Query 4: Detalhamento por turma - usando mesma lógica do dashboard
+  // Inclui PROD para Anos Iniciais e dados de presença/ausência
   const turmasQuery = `
     SELECT
       t.id,
@@ -183,11 +206,14 @@ export async function buscarDadosRelatorioEscola(
       COALESCE(t.nome, t.codigo) as nome,
       COALESCE(t.serie, '') as serie,
       COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN rc.aluno_id END) as total_alunos,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as total_presentes,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'F' OR rc.presenca = 'f' THEN rc.aluno_id END) as total_ausentes,
       COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN CAST(rc.media_aluno AS DECIMAL) END)::numeric, 2), 0) as media_geral,
       COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN CAST(rc.nota_lp AS DECIMAL) END)::numeric, 2), 0) as media_lp,
       COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN CAST(rc.nota_mat AS DECIMAL) END)::numeric, 2), 0) as media_mat,
       COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN CAST(rc.nota_ch AS DECIMAL) END)::numeric, 2), 0) as media_ch,
-      COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN CAST(rc.nota_cn AS DECIMAL) END)::numeric, 2), 0) as media_cn
+      COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN CAST(rc.nota_cn AS DECIMAL) END)::numeric, 2), 0) as media_cn,
+      COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN CAST(rc.nota_producao AS DECIMAL) END)::numeric, 2), 0) as media_producao
     FROM turmas t
     LEFT JOIN resultados_consolidados_unificada rc ON t.id = rc.turma_id
       AND rc.ano_letivo = $2
@@ -199,19 +225,16 @@ export async function buscarDadosRelatorioEscola(
   `;
 
   // Query 5: Análise de questões
-  // Extrair número da questão do código (ex: Q15 -> 15, LP01 -> 1) ou usar numero_questao
+  // Extrair número da questão do código (ex: Q15 -> 15, LP01 -> 1)
   const questoesQuery = `
     SELECT
       q.id as questao_id,
       q.codigo as questao_codigo,
-      COALESCE(
-        q.numero_questao,
-        CASE
-          WHEN q.codigo ~ '^Q[0-9]+' THEN CAST(SUBSTRING(q.codigo FROM 2) AS INTEGER)
-          WHEN q.codigo ~ '[0-9]+' THEN CAST(REGEXP_REPLACE(q.codigo, '[^0-9]', '', 'g') AS INTEGER)
-          ELSE NULL
-        END
-      ) as numero,
+      CASE
+        WHEN q.codigo ~ '^Q[0-9]+' THEN CAST(SUBSTRING(q.codigo FROM 2) AS INTEGER)
+        WHEN q.codigo ~ '[0-9]+' THEN CAST(REGEXP_REPLACE(q.codigo, '[^0-9]', '', 'g') AS INTEGER)
+        ELSE NULL
+      END as numero,
       COALESCE(q.disciplina, '') as disciplina,
       COUNT(rp.id) as total_respostas,
       SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END) as acertos,
@@ -224,37 +247,46 @@ export async function buscarDadosRelatorioEscola(
       AND rp.escola_id = $1
       AND rp.ano_letivo = $2
     WHERE 1=1
-      ${serie ? 'AND q.serie_aplicavel = $3' : ''}
-    GROUP BY q.id, q.codigo, q.numero_questao, q.disciplina
+    GROUP BY q.id, q.codigo, q.disciplina
     HAVING COUNT(rp.id) > 0
     ORDER BY q.disciplina, numero NULLS LAST, q.codigo
     LIMIT 100
   `;
 
-  // Query 6: Distribuição por níveis de aprendizagem - usando campo nivel_aprendizagem (VARCHAR)
+  // Query 6: Distribuição por níveis de aprendizagem - calculado dinamicamente pela média
   const niveisQuery = `
+    WITH niveis_calculados AS (
+      SELECT
+        CASE
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 THEN 'Avançado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 THEN 'Adequado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 4 THEN 'Básico'
+          ELSE 'Insuficiente'
+        END as nivel
+      FROM resultados_consolidados_unificada rc
+      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2
+        AND (rc.presenca = 'P' OR rc.presenca = 'p')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
+        ${serieFilter}
+    )
     SELECT
-      COALESCE(rc.nivel_aprendizagem, 'Não classificado') as nivel,
-      CASE rc.nivel_aprendizagem
+      nivel,
+      CASE nivel
         WHEN 'Avançado' THEN '#22C55E'
         WHEN 'Adequado' THEN '#3B82F6'
         WHEN 'Básico' THEN '#F59E0B'
         WHEN 'Insuficiente' THEN '#EF4444'
-        ELSE '#6B7280'
       END as cor,
-      COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN 1 END) as quantidade
-    FROM resultados_consolidados_unificada rc
-    WHERE rc.escola_id = $1 AND rc.ano_letivo = $2
-      ${serieFilter}
-    GROUP BY rc.nivel_aprendizagem
-    HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN 1 END) > 0
+      COUNT(*) as quantidade
+    FROM niveis_calculados
+    GROUP BY nivel
     ORDER BY
-      CASE rc.nivel_aprendizagem
+      CASE nivel
         WHEN 'Avançado' THEN 1
         WHEN 'Adequado' THEN 2
         WHEN 'Básico' THEN 3
         WHEN 'Insuficiente' THEN 4
-        ELSE 5
       END
   `;
 
@@ -285,7 +317,95 @@ export async function buscarDadosRelatorioEscola(
       ${serieFilter}
   ` : null;
 
-  // Query 9: Comparativo com Polo - usando VIEW unificada e mesma lógica
+  // Query 9: Níveis de aprendizagem por turma
+  const niveisTurmasQuery = `
+    SELECT
+      turma_id,
+      nivel,
+      COUNT(*) as quantidade
+    FROM (
+      SELECT
+        rc.turma_id,
+        CASE
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 THEN 'Avançado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 THEN 'Adequado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 4 THEN 'Básico'
+          ELSE 'Insuficiente'
+        END as nivel
+      FROM resultados_consolidados_unificada rc
+      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2
+        AND (rc.presenca = 'P' OR rc.presenca = 'p')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
+        ${serieFilter}
+    ) as niveis
+    GROUP BY turma_id, nivel
+    ORDER BY turma_id, nivel
+  `;
+
+  // Query 10: Faltas por série
+  const faltasSerieQuery = `
+    SELECT
+      rc.serie,
+      COUNT(DISTINCT rc.aluno_id) as total_matriculados,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as total_presentes,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'F' OR rc.presenca = 'f' THEN rc.aluno_id END) as total_ausentes,
+      COALESCE(ROUND(
+        (COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END)::decimal /
+         NULLIF(COUNT(DISTINCT rc.aluno_id), 0) * 100)::numeric, 1
+      ), 0) as taxa_participacao
+    FROM resultados_consolidados_unificada rc
+    WHERE rc.escola_id = $1
+      AND rc.ano_letivo = $2
+      ${serieFilter}
+    GROUP BY rc.serie
+    ORDER BY rc.serie
+  `;
+
+  // Query 11: Análise de questões por série
+  // IMPORTANTE: Filtrar disciplinas conforme a série
+  // - Anos Iniciais (2º, 3º, 5º Ano): LP, MAT (questões objetivas) + PROD (produção textual com itens)
+  // - Anos Finais (8º, 9º Ano): LP, MAT, CH, CN (questões objetivas)
+  const questoesSerieQuery = `
+    SELECT
+      rp.serie,
+      q.id as questao_id,
+      q.codigo as questao_codigo,
+      CASE
+        WHEN q.codigo ~ '^Q[0-9]+' THEN CAST(SUBSTRING(q.codigo FROM 2) AS INTEGER)
+        WHEN q.codigo ~ '[0-9]+' THEN CAST(REGEXP_REPLACE(q.codigo, '[^0-9]', '', 'g') AS INTEGER)
+        ELSE NULL
+      END as numero,
+      COALESCE(q.disciplina, '') as disciplina,
+      COUNT(rp.id) as total_respostas,
+      SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END) as acertos,
+      COALESCE(ROUND(
+        (SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END)::decimal /
+         NULLIF(COUNT(rp.id), 0) * 100)::numeric, 1
+      ), 0) as percentual_acerto
+    FROM questoes q
+    INNER JOIN resultados_provas rp ON q.id = rp.questao_id
+    WHERE rp.escola_id = $1
+      AND rp.ano_letivo = $2
+      ${serie ? 'AND rp.serie = $3' : ''}
+      -- Filtrar disciplinas válidas por série
+      AND (
+        (rp.serie IN ('2º Ano', '3º Ano', '5º Ano') AND q.disciplina IN ('LP', 'MAT'))
+        OR
+        (rp.serie IN ('8º Ano', '9º Ano') AND q.disciplina IN ('LP', 'MAT', 'CH', 'CN'))
+      )
+    GROUP BY rp.serie, q.id, q.codigo, q.disciplina
+    HAVING COUNT(rp.id) > 0
+    ORDER BY rp.serie, q.disciplina, numero NULLS LAST, q.codigo
+  `;
+
+  // Query 12: Itens de Produção Textual por série (Anos Iniciais)
+  // NOTA: Esta query está desabilitada temporariamente porque os itens de produção
+  // não estão disponíveis de forma individual na view unificada.
+  // A nota de produção textual geral está disponível em rc.nota_producao
+  const itensProducaoQuery = null; // Desabilitado - estrutura de banco não suporta itens individuais
+
+  // Query 13: Comparativo com Polo - usando VIEW unificada e mesma lógica
   const comparativoPoloQuery = `
     WITH media_escola AS (
       SELECT COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN CAST(rc.media_aluno AS DECIMAL) END)::numeric, 2), 0) as media
@@ -329,7 +449,10 @@ export async function buscarDadosRelatorioEscola(
       pool.query(questoesQuery, params),
       pool.query(niveisQuery, params),
       pool.query(notasQuery, params),
-      pool.query(comparativoPoloQuery, params)
+      pool.query(comparativoPoloQuery, params),
+      pool.query(niveisTurmasQuery, params),
+      pool.query(faltasSerieQuery, params),
+      pool.query(questoesSerieQuery, params)
     ];
 
     // Adicionar query de produção textual se aplicável
@@ -347,7 +470,10 @@ export async function buscarDadosRelatorioEscola(
     const niveisResult = results[5];
     const notasResult = results[6];
     const comparativoPoloResult = results[7];
-    const producaoResult = producaoQuery ? results[8] : null;
+    const niveisTurmasResult = results[8];
+    const faltasSerieResult = results[9];
+    const questoesSerieResult = results[10];
+    const producaoResult = producaoQuery ? results[11] : null;
 
     if (escolaResult.rows.length === 0) {
       throw new ErroRelatorio(
@@ -363,7 +489,9 @@ export async function buscarDadosRelatorioEscola(
       total_turmas: 0,
       total_avaliacoes: 0,
       media_geral: 0,
-      taxa_participacao: 0
+      taxa_participacao: 0,
+      total_presentes: 0,
+      total_ausentes: 0
     };
 
     // Processar disciplinas
@@ -376,21 +504,49 @@ export async function buscarDadosRelatorioEscola(
       percentual_acerto: (parseFloat(row.media) / 10) * 100
     }));
 
-    // Processar turmas
+    // Processar níveis por turma
+    const niveisPorTurma: Record<string, DistribuicaoNivel[]> = {};
+    niveisTurmasResult.rows.forEach((row: { turma_id: string; nivel: string; quantidade: string }) => {
+      if (!niveisPorTurma[row.turma_id]) {
+        niveisPorTurma[row.turma_id] = [];
+      }
+      niveisPorTurma[row.turma_id].push({
+        nivel: row.nivel,
+        cor: row.nivel === 'Avançado' ? '#22C55E' :
+             row.nivel === 'Adequado' ? '#3B82F6' :
+             row.nivel === 'Básico' ? '#F59E0B' : '#EF4444',
+        quantidade: parseInt(row.quantidade) || 0,
+        percentual: 0 // Será calculado abaixo
+      });
+    });
+
+    // Calcular percentuais para cada turma
+    Object.keys(niveisPorTurma).forEach(turmaId => {
+      const niveis = niveisPorTurma[turmaId];
+      const total = niveis.reduce((acc, n) => acc + n.quantidade, 0);
+      niveis.forEach(n => {
+        n.percentual = total > 0 ? Math.round((n.quantidade / total) * 100) : 0;
+      });
+    });
+
+    // Processar turmas - inclui PROD para Anos Iniciais
     const turmas: TurmaRelatorio[] = turmasResult.rows.map(row => ({
       id: row.id,
       codigo: row.codigo,
       nome: row.nome,
       serie: row.serie,
       total_alunos: parseInt(row.total_alunos) || 0,
+      total_presentes: parseInt(row.total_presentes) || 0,
+      total_ausentes: parseInt(row.total_ausentes) || 0,
       media_geral: parseFloat(row.media_geral) || 0,
       medias_disciplinas: {
         LP: parseFloat(row.media_lp) || 0,
         MAT: parseFloat(row.media_mat) || 0,
         CH: parseFloat(row.media_ch) || 0,
-        CN: parseFloat(row.media_cn) || 0
+        CN: parseFloat(row.media_cn) || 0,
+        PROD: parseFloat(row.media_producao) || 0
       },
-      distribuicao_niveis: []
+      distribuicao_niveis: niveisPorTurma[row.id] || []
     }));
 
     // Processar questões - usar índice + 1 se numero for null/0
@@ -465,6 +621,57 @@ export async function buscarDadosRelatorioEscola(
       };
     }
 
+    // Processar faltas por série
+    const faltas_por_serie: FaltasSerie[] = faltasSerieResult.rows.map((row: any) => ({
+      serie: row.serie,
+      total_matriculados: parseInt(row.total_matriculados) || 0,
+      total_presentes: parseInt(row.total_presentes) || 0,
+      total_ausentes: parseInt(row.total_ausentes) || 0,
+      taxa_participacao: parseFloat(row.taxa_participacao) || 0
+    }));
+
+    // Processar questões por série - agrupar por série
+    const questoesPorSerieMap: Record<string, AnaliseQuestao[]> = {};
+    questoesSerieResult.rows.forEach((row: any) => {
+      const serieName = row.serie;
+      if (!questoesPorSerieMap[serieName]) {
+        questoesPorSerieMap[serieName] = [];
+      }
+      const percentual = parseFloat(row.percentual_acerto) || 0;
+      const numeroExtraido = parseInt(row.numero);
+      const numero = !isNaN(numeroExtraido) && numeroExtraido > 0 ? numeroExtraido : questoesPorSerieMap[serieName].length + 1;
+
+      questoesPorSerieMap[serieName].push({
+        questao_id: row.questao_id,
+        numero,
+        disciplina: row.disciplina,
+        total_respostas: parseInt(row.total_respostas) || 0,
+        acertos: parseInt(row.acertos) || 0,
+        percentual_acerto: percentual,
+        dificuldade_calculada: percentual >= 70 ? 'facil' : percentual >= 40 ? 'media' : 'dificil',
+        distribuicao_respostas: {}
+      });
+    });
+
+    // Nota: Itens de produção textual desabilitados - banco não possui colunas nota_item_1 a nota_item_8
+    // Apenas nota_producao está disponível na VIEW resultados_consolidados_unificada
+
+    // Converter para array de AnaliseQuestoesSerie
+    const analise_questoes_por_serie: AnaliseQuestoesSerie[] = Object.entries(questoesPorSerieMap).map(([serieName, questoes]) => {
+      const mediaAcerto = questoes.length > 0
+        ? questoes.reduce((acc, q) => acc + q.percentual_acerto, 0) / questoes.length
+        : 0;
+
+      return {
+        serie: serieName,
+        questoes,
+        media_acerto_geral: Math.round(mediaAcerto * 10) / 10,
+        questoes_dificeis: questoes.filter(q => q.dificuldade_calculada === 'dificil').slice(0, 5),
+        questoes_faceis: questoes.filter(q => q.dificuldade_calculada === 'facil').slice(0, 5),
+        itens_producao: undefined // Desabilitado - schema do banco não suporta
+      };
+    });
+
     // Buscar dados por segmento (apenas se não houver filtro de série)
     let anos_iniciais: DadosSegmento | undefined;
     let anos_finais: DadosSegmento | undefined;
@@ -494,7 +701,9 @@ export async function buscarDadosRelatorioEscola(
         total_turmas: parseInt(estatisticas.total_turmas) || 0,
         total_avaliacoes: parseInt(estatisticas.total_avaliacoes) || 0,
         media_geral: parseFloat(estatisticas.media_geral) || 0,
-        taxa_participacao: parseFloat(estatisticas.taxa_participacao) || 0
+        taxa_participacao: parseFloat(estatisticas.taxa_participacao) || 0,
+        total_presentes: parseInt(estatisticas.total_presentes) || 0,
+        total_ausentes: parseInt(estatisticas.total_ausentes) || 0
       },
       desempenho_disciplinas,
       turmas,
@@ -517,7 +726,9 @@ export async function buscarDadosRelatorioEscola(
       distribuicao_niveis,
       comparativo_polo,
       anos_iniciais,
-      anos_finais
+      anos_finais,
+      faltas_por_serie,
+      analise_questoes_por_serie
     };
   } catch (error) {
     // Re-lançar ErroRelatorio sem modificação
@@ -590,6 +801,7 @@ export async function buscarDadosRelatorioPolo(
 
   // Query 3: Desempenho por disciplina do polo - usando mesma lógica do dashboard
   const incluirCHCN = serieTemCHCN(serie);
+  const incluirPROD = serieTemProducaoTextual(serie);
 
   const disciplinasQuery = `
     WITH disciplinas AS (
@@ -614,6 +826,22 @@ export async function buscarDadosRelatorioPolo(
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       WHERE e.polo_id = $1 AND rc.ano_letivo = $2 ${serieFilter}
+
+      ${incluirPROD ? `
+      UNION ALL
+
+      SELECT
+        'PROD' as disciplina,
+        'Produção Textual' as disciplina_nome,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN CAST(rc.nota_producao AS DECIMAL) END) as media,
+        0 as acertos_total,
+        COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 END) as total_registros
+      FROM resultados_consolidados_unificada rc
+      INNER JOIN escolas e ON rc.escola_id = e.id
+      WHERE e.polo_id = $1 AND rc.ano_letivo = $2
+        AND rc.serie IN ('2º Ano', '3º Ano', '5º Ano')
+        ${serieFilter}
+      ` : ''}
 
       ${incluirCHCN ? `
       UNION ALL
@@ -694,19 +922,16 @@ export async function buscarDadosRelatorioPolo(
   `;
 
   // Query 6: Análise de questões do polo
-  // Extrair número da questão do código (ex: Q15 -> 15, LP01 -> 1) ou usar numero_questao
+  // Extrair número da questão do código (ex: Q15 -> 15, LP01 -> 1)
   const questoesQuery = `
     SELECT
       q.id as questao_id,
       q.codigo as questao_codigo,
-      COALESCE(
-        q.numero_questao,
-        CASE
-          WHEN q.codigo ~ '^Q[0-9]+' THEN CAST(SUBSTRING(q.codigo FROM 2) AS INTEGER)
-          WHEN q.codigo ~ '[0-9]+' THEN CAST(REGEXP_REPLACE(q.codigo, '[^0-9]', '', 'g') AS INTEGER)
-          ELSE NULL
-        END
-      ) as numero,
+      CASE
+        WHEN q.codigo ~ '^Q[0-9]+' THEN CAST(SUBSTRING(q.codigo FROM 2) AS INTEGER)
+        WHEN q.codigo ~ '[0-9]+' THEN CAST(REGEXP_REPLACE(q.codigo, '[^0-9]', '', 'g') AS INTEGER)
+        ELSE NULL
+      END as numero,
       COALESCE(q.disciplina, '') as disciplina,
       COUNT(rp.id) as total_respostas,
       SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END) as acertos,
@@ -719,8 +944,7 @@ export async function buscarDadosRelatorioPolo(
       AND rp.ano_letivo = $2
     LEFT JOIN escolas e ON rp.escola_id = e.id
     WHERE e.polo_id = $1
-      ${serie ? 'AND q.serie_aplicavel = $3' : ''}
-    GROUP BY q.id, q.codigo, q.numero_questao, q.disciplina
+    GROUP BY q.id, q.codigo, q.disciplina
     HAVING COUNT(rp.id) > 0
     ORDER BY q.disciplina, numero NULLS LAST, q.codigo
     LIMIT 100
@@ -739,31 +963,41 @@ export async function buscarDadosRelatorioPolo(
       ${serieFilter}
   `;
 
-  // Query 8: Distribuição por níveis de aprendizagem - usando campo nivel_aprendizagem (VARCHAR)
+  // Query 8: Distribuição por níveis de aprendizagem - calculado dinamicamente pela média
   const niveisQuery = `
+    WITH niveis_calculados AS (
+      SELECT
+        CASE
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 THEN 'Avançado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 THEN 'Adequado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 4 THEN 'Básico'
+          ELSE 'Insuficiente'
+        END as nivel
+      FROM resultados_consolidados_unificada rc
+      INNER JOIN escolas e ON rc.escola_id = e.id
+      WHERE e.polo_id = $1 AND rc.ano_letivo = $2
+        AND (rc.presenca = 'P' OR rc.presenca = 'p')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
+        ${serieFilter}
+    )
     SELECT
-      COALESCE(rc.nivel_aprendizagem, 'Não classificado') as nivel,
-      CASE rc.nivel_aprendizagem
+      nivel,
+      CASE nivel
         WHEN 'Avançado' THEN '#22C55E'
         WHEN 'Adequado' THEN '#3B82F6'
         WHEN 'Básico' THEN '#F59E0B'
         WHEN 'Insuficiente' THEN '#EF4444'
-        ELSE '#6B7280'
       END as cor,
-      COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN 1 END) as quantidade
-    FROM resultados_consolidados_unificada rc
-    INNER JOIN escolas e ON rc.escola_id = e.id
-    WHERE e.polo_id = $1 AND rc.ano_letivo = $2
-      ${serieFilter}
-    GROUP BY rc.nivel_aprendizagem
-    HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN 1 END) > 0
+      COUNT(*) as quantidade
+    FROM niveis_calculados
+    GROUP BY nivel
     ORDER BY
-      CASE rc.nivel_aprendizagem
+      CASE nivel
         WHEN 'Avançado' THEN 1
         WHEN 'Adequado' THEN 2
         WHEN 'Básico' THEN 3
         WHEN 'Insuficiente' THEN 4
-        ELSE 5
       END
   `;
 
@@ -997,7 +1231,7 @@ export async function buscarDadosSegmento(
   segmento: 'iniciais' | 'finais'
 ): Promise<DadosSegmento | null> {
   const seriesIniciais = ['2º Ano', '3º Ano', '5º Ano'];
-  const seriesFinais = ['6º Ano', '7º Ano', '8º Ano', '9º Ano'];
+  const seriesFinais = ['8º Ano', '9º Ano'];
   const series = segmento === 'iniciais' ? seriesIniciais : seriesFinais;
   const nomeSegmento = segmento === 'iniciais' ? 'Anos Iniciais' : 'Anos Finais';
 
@@ -1025,7 +1259,9 @@ export async function buscarDadosSegmento(
       COALESCE(ROUND(
         (COUNT(CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN 1 END)::decimal /
          NULLIF(COUNT(*), 0) * 100)::numeric, 1
-      ), 0) as taxa_participacao
+      ), 0) as taxa_participacao,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as total_presentes,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'F' OR rc.presenca = 'f' THEN rc.aluno_id END) as total_ausentes
     FROM resultados_consolidados_unificada rc
     ${poloId && !escolaId ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
     WHERE rc.ano_letivo = $1
@@ -1055,6 +1291,19 @@ export async function buscarDadosSegmento(
       FROM resultados_consolidados_unificada rc
       ${poloId && !escolaId ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
       WHERE rc.ano_letivo = $1 ${entidadeFilter} AND rc.serie IN (${seriesPlaceholder})
+
+      ${segmento === 'iniciais' ? `
+      UNION ALL
+
+      SELECT
+        'PROD' as disciplina,
+        'Produção Textual' as disciplina_nome,
+        AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN CAST(rc.nota_producao AS DECIMAL) END) as media,
+        COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 END) as total_registros
+      FROM resultados_consolidados_unificada rc
+      ${poloId && !escolaId ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+      WHERE rc.ano_letivo = $1 ${entidadeFilter} AND rc.serie IN (${seriesPlaceholder})
+      ` : ''}
 
       ${segmento === 'finais' ? `
       UNION ALL
@@ -1089,35 +1338,45 @@ export async function buscarDadosSegmento(
     WHERE total_registros > 0
   `;
 
-  // Query de níveis de aprendizagem
+  // Query de níveis de aprendizagem - calculado dinamicamente pela média
   const niveisQuery = `
+    WITH niveis_calculados AS (
+      SELECT
+        CASE
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 THEN 'Avançado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 THEN 'Adequado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 4 THEN 'Básico'
+          ELSE 'Insuficiente'
+        END as nivel
+      FROM resultados_consolidados_unificada rc
+      ${poloId && !escolaId ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+      WHERE rc.ano_letivo = $1 ${entidadeFilter}
+        AND rc.serie IN (${seriesPlaceholder})
+        AND (rc.presenca = 'P' OR rc.presenca = 'p')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
+    )
     SELECT
-      COALESCE(rc.nivel_aprendizagem, 'Não classificado') as nivel,
-      CASE rc.nivel_aprendizagem
+      nivel,
+      CASE nivel
         WHEN 'Avançado' THEN '#22C55E'
         WHEN 'Adequado' THEN '#3B82F6'
         WHEN 'Básico' THEN '#F59E0B'
         WHEN 'Insuficiente' THEN '#EF4444'
-        ELSE '#6B7280'
       END as cor,
-      COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN 1 END) as quantidade
-    FROM resultados_consolidados_unificada rc
-    ${poloId && !escolaId ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
-    WHERE rc.ano_letivo = $1 ${entidadeFilter}
-      AND rc.serie IN (${seriesPlaceholder})
-    GROUP BY rc.nivel_aprendizagem
-    HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN 1 END) > 0
+      COUNT(*) as quantidade
+    FROM niveis_calculados
+    GROUP BY nivel
     ORDER BY
-      CASE rc.nivel_aprendizagem
+      CASE nivel
         WHEN 'Avançado' THEN 1
         WHEN 'Adequado' THEN 2
         WHEN 'Básico' THEN 3
         WHEN 'Insuficiente' THEN 4
-        ELSE 5
       END
   `;
 
-  // Query de turmas
+  // Query de turmas - inclui PROD para Anos Iniciais
   const turmasQuery = `
     SELECT
       t.id,
@@ -1125,11 +1384,14 @@ export async function buscarDadosSegmento(
       COALESCE(t.nome, t.codigo) as nome,
       COALESCE(t.serie, '') as serie,
       COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN rc.aluno_id END) as total_alunos,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'P' OR rc.presenca = 'p' THEN rc.aluno_id END) as total_presentes,
+      COUNT(DISTINCT CASE WHEN rc.presenca = 'F' OR rc.presenca = 'f' THEN rc.aluno_id END) as total_ausentes,
       COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN CAST(rc.media_aluno AS DECIMAL) END)::numeric, 2), 0) as media_geral,
       COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN CAST(rc.nota_lp AS DECIMAL) END)::numeric, 2), 0) as media_lp,
       COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN CAST(rc.nota_mat AS DECIMAL) END)::numeric, 2), 0) as media_mat,
       COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN CAST(rc.nota_ch AS DECIMAL) END)::numeric, 2), 0) as media_ch,
-      COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN CAST(rc.nota_cn AS DECIMAL) END)::numeric, 2), 0) as media_cn
+      COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN CAST(rc.nota_cn AS DECIMAL) END)::numeric, 2), 0) as media_cn,
+      COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN CAST(rc.nota_producao AS DECIMAL) END)::numeric, 2), 0) as media_producao
     FROM turmas t
     LEFT JOIN resultados_consolidados_unificada rc ON t.id = rc.turma_id AND rc.ano_letivo = $1
     ${poloId && !escolaId ? 'INNER JOIN escolas e ON t.escola_id = e.id' : ''}
@@ -1152,16 +1414,90 @@ export async function buscarDadosSegmento(
       AND rc.serie IN (${seriesPlaceholder})
   ` : null;
 
+  // Query de questões por série do segmento
+  // Filtrar disciplinas corretamente:
+  // - Anos Iniciais: LP, MAT (questões objetivas)
+  // - Anos Finais: LP, MAT, CH, CN
+  // IMPORTANTE: Usar tabela resultados_provas em vez de avaliacoes/alunos_respostas
+  const disciplinasSegmento = segmento === 'iniciais' ? "('LP', 'MAT')" : "('LP', 'MAT', 'CH', 'CN')";
+
+  const questoesSerieQuery = `
+    SELECT
+      rp.serie,
+      q.id as questao_id,
+      q.codigo as questao_codigo,
+      CASE
+        WHEN q.codigo ~ '^Q[0-9]+' THEN CAST(SUBSTRING(q.codigo FROM 2) AS INTEGER)
+        WHEN q.codigo ~ '[0-9]+' THEN CAST(REGEXP_REPLACE(q.codigo, '[^0-9]', '', 'g') AS INTEGER)
+        ELSE NULL
+      END as numero,
+      COALESCE(q.disciplina, '') as disciplina,
+      COUNT(rp.id) as total_respostas,
+      SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END) as acertos,
+      COALESCE(ROUND(
+        (SUM(CASE WHEN rp.acertou = true THEN 1 ELSE 0 END)::decimal /
+         NULLIF(COUNT(rp.id), 0) * 100)::numeric, 1
+      ), 0) as percentual_acerto
+    FROM questoes q
+    INNER JOIN resultados_provas rp ON q.id = rp.questao_id
+    ${poloId && !escolaId ? 'INNER JOIN escolas e ON rp.escola_id = e.id' : ''}
+    WHERE rp.ano_letivo = $1
+      ${escolaId ? 'AND rp.escola_id = $2' : poloId ? 'AND e.polo_id = $2' : ''}
+      AND rp.serie IN (${seriesPlaceholder})
+      AND q.disciplina IN ${disciplinasSegmento}
+    GROUP BY rp.serie, q.id, q.codigo, q.disciplina
+    HAVING COUNT(rp.id) > 0
+    ORDER BY rp.serie, q.disciplina, numero NULLS LAST, q.codigo
+  `;
+
+  // Query de níveis por turma
+  const niveisTurmasQuery = `
+    SELECT
+      turma_id,
+      nivel,
+      COUNT(*) as quantidade
+    FROM (
+      SELECT
+        rc.turma_id,
+        CASE
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 8 THEN 'Avançado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 6 THEN 'Adequado'
+          WHEN CAST(rc.media_aluno AS DECIMAL) >= 4 THEN 'Básico'
+          ELSE 'Insuficiente'
+        END as nivel
+      FROM resultados_consolidados_unificada rc
+      ${poloId && !escolaId ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+      WHERE rc.ano_letivo = $1 ${entidadeFilter}
+        AND rc.serie IN (${seriesPlaceholder})
+        AND (rc.presenca = 'P' OR rc.presenca = 'p')
+        AND rc.media_aluno IS NOT NULL
+        AND CAST(rc.media_aluno AS DECIMAL) > 0
+    ) as niveis
+    GROUP BY turma_id, nivel
+    ORDER BY turma_id, nivel
+  `;
+
+  // Query de itens de produção textual por série (apenas Anos Iniciais)
+  // NOTA: Desabilitado - a estrutura do banco não suporta itens de produção individuais
+  // A nota de produção textual geral está disponível em rc.nota_producao
+  const itensProducaoQuery = null;
+
   try {
     const queries = [
       pool.query(estatisticasQuery, params),
       pool.query(disciplinasQuery, params),
       pool.query(niveisQuery, params),
-      pool.query(turmasQuery, params)
+      pool.query(turmasQuery, params),
+      pool.query(niveisTurmasQuery, params),
+      pool.query(questoesSerieQuery, params)
     ];
 
     if (producaoQuery) {
       queries.push(pool.query(producaoQuery, params));
+    }
+
+    if (itensProducaoQuery) {
+      queries.push(pool.query(itensProducaoQuery, params));
     }
 
     const results = await Promise.all(queries);
@@ -1170,7 +1506,12 @@ export async function buscarDadosSegmento(
     const disciplinasResult = results[1];
     const niveisResult = results[2];
     const turmasResult = results[3];
-    const producaoResult = producaoQuery ? results[4] : null;
+    const niveisTurmasResult = results[4];
+    const questoesSerieResult = results[5];
+
+    let resultIndex = 6;
+    const producaoResult = producaoQuery ? results[resultIndex++] : null;
+    const itensProducaoResult = itensProducaoQuery ? results[resultIndex++] : null;
 
     const estatisticas = estatisticasResult.rows[0];
 
@@ -1198,21 +1539,49 @@ export async function buscarDadosSegmento(
       percentual: totalNiveis > 0 ? Math.round((parseInt(row.quantidade) / totalNiveis) * 100) : 0
     }));
 
-    // Processar turmas
+    // Processar níveis por turma
+    const niveisPorTurma: Record<string, DistribuicaoNivel[]> = {};
+    niveisTurmasResult.rows.forEach((row: { turma_id: string; nivel: string; quantidade: string }) => {
+      if (!niveisPorTurma[row.turma_id]) {
+        niveisPorTurma[row.turma_id] = [];
+      }
+      niveisPorTurma[row.turma_id].push({
+        nivel: row.nivel,
+        cor: row.nivel === 'Avançado' ? '#22C55E' :
+             row.nivel === 'Adequado' ? '#3B82F6' :
+             row.nivel === 'Básico' ? '#F59E0B' : '#EF4444',
+        quantidade: parseInt(row.quantidade) || 0,
+        percentual: 0 // Será calculado abaixo
+      });
+    });
+
+    // Calcular percentuais para cada turma
+    Object.keys(niveisPorTurma).forEach(turmaId => {
+      const niveis = niveisPorTurma[turmaId];
+      const total = niveis.reduce((acc, n) => acc + n.quantidade, 0);
+      niveis.forEach(n => {
+        n.percentual = total > 0 ? Math.round((n.quantidade / total) * 100) : 0;
+      });
+    });
+
+    // Processar turmas - inclui PROD para Anos Iniciais
     const turmas: TurmaRelatorio[] = turmasResult.rows.map((row: any) => ({
       id: row.id,
       codigo: row.codigo,
       nome: row.nome,
       serie: row.serie,
       total_alunos: parseInt(row.total_alunos) || 0,
+      total_presentes: parseInt(row.total_presentes) || 0,
+      total_ausentes: parseInt(row.total_ausentes) || 0,
       media_geral: parseFloat(row.media_geral) || 0,
       medias_disciplinas: {
         LP: parseFloat(row.media_lp) || 0,
         MAT: parseFloat(row.media_mat) || 0,
         CH: parseFloat(row.media_ch) || 0,
-        CN: parseFloat(row.media_cn) || 0
+        CN: parseFloat(row.media_cn) || 0,
+        PROD: parseFloat(row.media_producao) || 0
       },
-      distribuicao_niveis: []
+      distribuicao_niveis: niveisPorTurma[row.id] || []
     }));
 
     // Processar produção textual
@@ -1228,6 +1597,70 @@ export async function buscarDadosSegmento(
       }
     }
 
+    // Processar análise de questões por série
+    const questoesPorSerieMap: Record<string, AnaliseQuestao[]> = {};
+    questoesSerieResult.rows.forEach((row: any) => {
+      const serieNome = row.serie;
+      if (!questoesPorSerieMap[serieNome]) {
+        questoesPorSerieMap[serieNome] = [];
+      }
+      const percentualAcerto = parseFloat(row.percentual_acerto) || 0;
+      questoesPorSerieMap[serieNome].push({
+        questao_id: row.questao_id,
+        numero: parseInt(row.numero) || 0,
+        disciplina: row.disciplina || 'LP',
+        total_respostas: parseInt(row.total_respostas) || 0,
+        acertos: parseInt(row.acertos) || 0,
+        percentual_acerto: percentualAcerto,
+        dificuldade_calculada: percentualAcerto >= 70 ? 'facil' : percentualAcerto >= 40 ? 'media' : 'dificil',
+        distribuicao_respostas: {}
+      });
+    });
+
+    // Processar itens de produção por série (apenas Anos Iniciais)
+    const itensProducaoPorSerie: Record<string, ItemProducaoAvaliado[]> = {};
+    if (itensProducaoResult) {
+      itensProducaoResult.rows.forEach((row: any) => {
+        const serieNome = row.serie;
+        if (!itensProducaoPorSerie[serieNome]) {
+          itensProducaoPorSerie[serieNome] = [];
+        }
+        const notaMaxima = parseFloat(row.nota_maxima) || 1;
+        const mediaItem = parseFloat(row.media_item) || 0;
+        const percentualAcerto = notaMaxima > 0 ? (mediaItem / notaMaxima) * 100 : 0;
+
+        itensProducaoPorSerie[serieNome].push({
+          item_id: row.item_id,
+          item_codigo: row.item_codigo,
+          item_nome: row.item_nome,
+          ordem: parseInt(row.ordem) || 0,
+          total_alunos: parseInt(row.total_alunos) || 0,
+          media_item: mediaItem,
+          nota_maxima: notaMaxima,
+          percentual_acerto: Math.round(percentualAcerto * 10) / 10
+        });
+      });
+    }
+
+    // Converter para array de AnaliseQuestoesSerie
+    const analise_questoes_por_serie: AnaliseQuestoesSerie[] = Object.entries(questoesPorSerieMap).map(([serieName, questoes]) => {
+      const mediaAcerto = questoes.length > 0
+        ? questoes.reduce((acc, q) => acc + q.percentual_acerto, 0) / questoes.length
+        : 0;
+
+      // Adicionar itens de produção para séries de Anos Iniciais
+      const itensProducao = itensProducaoPorSerie[serieName];
+
+      return {
+        serie: serieName,
+        questoes,
+        media_acerto_geral: Math.round(mediaAcerto * 10) / 10,
+        questoes_dificeis: questoes.filter(q => q.percentual_acerto < 40).sort((a, b) => a.percentual_acerto - b.percentual_acerto),
+        questoes_faceis: questoes.filter(q => q.percentual_acerto >= 70).sort((a, b) => b.percentual_acerto - a.percentual_acerto),
+        itens_producao: itensProducao
+      };
+    });
+
     return {
       nome_segmento: nomeSegmento,
       // Filtrar séries: Anos Finais incluem todas, Anos Iniciais excluem 6º e 7º
@@ -1239,12 +1672,15 @@ export async function buscarDadosSegmento(
         total_alunos: parseInt(estatisticas.total_alunos) || 0,
         total_turmas: parseInt(estatisticas.total_turmas) || 0,
         media_geral: parseFloat(estatisticas.media_geral) || 0,
-        taxa_participacao: parseFloat(estatisticas.taxa_participacao) || 0
+        taxa_participacao: parseFloat(estatisticas.taxa_participacao) || 0,
+        total_presentes: parseInt(estatisticas.total_presentes) || 0,
+        total_ausentes: parseInt(estatisticas.total_ausentes) || 0
       },
       desempenho_disciplinas,
       distribuicao_niveis,
       producao_textual,
-      turmas
+      turmas,
+      analise_questoes_por_serie
     };
   } catch (error) {
     console.error(`Erro ao buscar dados do segmento ${segmento}:`, error);
