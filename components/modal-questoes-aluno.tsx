@@ -497,8 +497,8 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                   })}
                 </div>
 
-                {/* Produção Textual (se disponível para a série) */}
-                {dados.estatisticas.nota_producao !== undefined && dados.estatisticas.nota_producao !== null && (
+                {/* Produção Textual (apenas para anos iniciais - 2º, 3º, 5º) */}
+                {isAnosIniciais(dados.aluno.serie) && dados.estatisticas.nota_producao !== undefined && dados.estatisticas.nota_producao !== null && (
                   <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
                     {/* Cabeçalho com título */}
                     <div className="flex items-center gap-3 mb-4">
@@ -625,8 +625,8 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                           </div>
                         </>
                       )}
-                      {/* Legenda para Produção Textual */}
-                      {dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null) && (
+                      {/* Legenda para Produção Textual (apenas anos iniciais) */}
+                      {isAnosIniciais(dados.aluno.serie) && dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null) && (
                         <>
                           <div className="flex items-center">
                             <CheckCircle2 className="w-5 h-5 text-green-500 mr-2" />
