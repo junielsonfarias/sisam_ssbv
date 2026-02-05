@@ -238,96 +238,90 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
   const temQuestoesDetalhadas = dados?.questoes && Object.values(dados.questoes).some(arr => arr.length > 0)
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-3 sm:px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Overlay */}
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-80"
-          onClick={onClose}
-        ></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+      {/* Overlay */}
+      <div
+        className="fixed inset-0 transition-opacity bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-80"
+        onClick={onClose}
+      ></div>
 
-        {/* Modal */}
-        <div className="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl dark:shadow-slate-900/50 transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full mx-3 sm:mx-0">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-            <div className="flex-1 min-w-0 pr-2">
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
-                {modoOffline ? 'Estatísticas do Aluno' : 'Detalhes das Questões'}
-              </h3>
-              {dados && (
-                <p className="text-indigo-100 text-xs sm:text-sm mt-1 truncate">
-                  {dados.aluno.nome} - {dados.aluno.escola_nome}
-                  {dados.aluno.turma_codigo && ` - Turma ${dados.aluno.turma_codigo}`}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="text-white hover:text-gray-200 transition-colors p-1 flex-shrink-0"
-            >
-              <X className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+      {/* Modal */}
+      <div className="relative bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl dark:shadow-slate-900/50 w-full max-w-4xl max-h-[95vh] flex flex-col">
+        {/* Header - compacto */}
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between flex-shrink-0">
+          <div className="flex-1 min-w-0 pr-2">
+            <h3 className="text-base sm:text-lg font-bold text-white truncate">
+              {modoOffline ? 'Estatísticas do Aluno' : 'Detalhes das Questões'}
+            </h3>
+            {dados && (
+              <p className="text-indigo-100 text-[10px] sm:text-xs truncate">
+                {dados.aluno.nome} - {dados.aluno.serie} - {dados.aluno.turma_codigo || dados.aluno.escola_nome}
+              </p>
+            )}
           </div>
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-200 transition-colors p-1 flex-shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          {/* Content */}
-          <div className="bg-white dark:bg-slate-800 px-3 sm:px-4 md:px-6 py-3 sm:py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+        {/* Content */}
+        <div className="bg-white dark:bg-slate-800 px-3 sm:px-4 py-2 sm:py-3 flex-1 overflow-y-auto">
             {carregando ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-                <p className="text-gray-500 dark:text-gray-400 mt-4">Carregando...</p>
+              <div className="text-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
+                <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">Carregando...</p>
               </div>
             ) : erro ? (
-              <div className="text-center py-12">
-                <XCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
-                <p className="text-red-600 dark:text-red-400 font-medium">{erro}</p>
+              <div className="text-center py-6">
+                <XCircle className="w-8 h-8 text-red-500 dark:text-red-400 mx-auto mb-2" />
+                <p className="text-red-600 dark:text-red-400 font-medium text-sm">{erro}</p>
               </div>
             ) : dados ? (
-              <div className="space-y-6">
-                {/* Indicador de modo offline */}
+              <div className="space-y-3 sm:space-y-4">
+                {/* Indicador de modo offline - Compacto */}
                 {modoOffline && (
-                  <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-center gap-3">
-                    <WifiOff className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Modo Offline</p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">Exibindo estatísticas resumidas do aluno.</p>
-                    </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded p-2 flex items-center gap-2">
+                    <WifiOff className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Modo Offline - estatísticas resumidas</p>
                   </div>
                 )}
 
-                {/* Estatísticas Gerais */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-                  <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-3 sm:p-4 border border-indigo-200 dark:border-indigo-800">
-                    <p className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 font-medium">Total de Questões</p>
-                    <p className="text-xl sm:text-2xl font-bold text-indigo-900 dark:text-indigo-100 mt-1">{dados.estatisticas.total}</p>
+                {/* Estatísticas Gerais - Compacto */}
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                  <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded p-2 border border-indigo-200 dark:border-indigo-800">
+                    <p className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 font-medium">Total</p>
+                    <p className="text-lg sm:text-xl font-bold text-indigo-900 dark:text-indigo-100">{dados.estatisticas.total}</p>
                   </div>
-                  <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 sm:p-4 border border-green-200 dark:border-green-800">
-                    <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">Acertos</p>
-                    <p className="text-xl sm:text-2xl font-bold text-green-900 dark:text-green-100 mt-1">{dados.estatisticas.acertos}</p>
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  <div className="bg-green-50 dark:bg-green-900/30 rounded p-2 border border-green-200 dark:border-green-800">
+                    <p className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 font-medium">Acertos</p>
+                    <p className="text-lg sm:text-xl font-bold text-green-900 dark:text-green-100">{dados.estatisticas.acertos}</p>
+                    <p className="text-[10px] text-green-600 dark:text-green-400">
                       {dados.estatisticas.total > 0
-                        ? ((dados.estatisticas.acertos / dados.estatisticas.total) * 100).toFixed(1)
+                        ? ((dados.estatisticas.acertos / dados.estatisticas.total) * 100).toFixed(0)
                         : 0}%
                     </p>
                   </div>
-                  <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-3 sm:p-4 border border-red-200 dark:border-red-800">
-                    <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 font-medium">Erros</p>
-                    <p className="text-xl sm:text-2xl font-bold text-red-900 dark:text-red-100 mt-1">{dados.estatisticas.erros}</p>
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                  <div className="bg-red-50 dark:bg-red-900/30 rounded p-2 border border-red-200 dark:border-red-800">
+                    <p className="text-[10px] sm:text-xs text-red-600 dark:text-red-400 font-medium">Erros</p>
+                    <p className="text-lg sm:text-xl font-bold text-red-900 dark:text-red-100">{dados.estatisticas.erros}</p>
+                    <p className="text-[10px] text-red-600 dark:text-red-400">
                       {dados.estatisticas.total > 0
-                        ? ((dados.estatisticas.erros / dados.estatisticas.total) * 100).toFixed(1)
+                        ? ((dados.estatisticas.erros / dados.estatisticas.total) * 100).toFixed(0)
                         : 0}%
                     </p>
                   </div>
-                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 sm:p-4 border border-blue-200 dark:border-blue-800">
-                    <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">Média Geral</p>
-                    <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                      {/* Prioriza a média passada diretamente do resultado consolidado */}
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded p-2 border border-blue-200 dark:border-blue-800">
+                    <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 font-medium">Média</p>
+                    <p className="text-lg sm:text-xl font-bold text-blue-900 dark:text-blue-100">
                       {mediaAluno !== undefined && mediaAluno !== null
-                        ? Number(mediaAluno).toFixed(2)
-                        : (dados.estatisticas.media_geral?.toFixed(2) || '-')}
+                        ? Number(mediaAluno).toFixed(1)
+                        : (dados.estatisticas.media_geral?.toFixed(1) || '-')}
                     </p>
                     {dados.estatisticas.nivel_aprendizagem && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{dados.estatisticas.nivel_aprendizagem}</p>
+                      <p className="text-[10px] text-blue-600 dark:text-blue-400">{dados.estatisticas.nivel_aprendizagem}</p>
                     )}
                   </div>
                 </div>
@@ -351,16 +345,16 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                   if (!temNiveisParaExibir) return null
 
                   return (
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Award className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                        <h4 className="font-semibold text-indigo-800 dark:text-indigo-200">Níveis por Disciplina</h4>
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded p-2 sm:p-3 border border-indigo-200 dark:border-indigo-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Níveis por Disciplina</h4>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                         {/* Nível LP */}
-                        <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Língua Portuguesa</p>
-                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
+                        <div className="text-center bg-white dark:bg-slate-800 rounded p-1.5 sm:p-2 border border-indigo-100 dark:border-indigo-700">
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">LP</p>
+                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold ${
                             niveisDisciplinas.nivel_lp === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                             niveisDisciplinas.nivel_lp === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                             niveisDisciplinas.nivel_lp === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
@@ -371,9 +365,9 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                           </span>
                         </div>
                         {/* Nível MAT */}
-                        <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Matemática</p>
-                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
+                        <div className="text-center bg-white dark:bg-slate-800 rounded p-1.5 sm:p-2 border border-indigo-100 dark:border-indigo-700">
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">MAT</p>
+                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold ${
                             niveisDisciplinas.nivel_mat === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                             niveisDisciplinas.nivel_mat === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                             niveisDisciplinas.nivel_mat === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
@@ -383,10 +377,10 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                             {niveisDisciplinas.nivel_mat || '-'}
                           </span>
                         </div>
-                        {/* Nível PROD - usa nível calculado como fallback */}
-                        <div className="text-center bg-white dark:bg-slate-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-700">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Produção Textual</p>
-                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
+                        {/* Nível PROD */}
+                        <div className="text-center bg-white dark:bg-slate-800 rounded p-1.5 sm:p-2 border border-indigo-100 dark:border-indigo-700">
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">PROD</p>
+                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold ${
                             nivelProdCalculado === 'N4' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                             nivelProdCalculado === 'N3' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                             nivelProdCalculado === 'N2' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
@@ -396,10 +390,10 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                             {nivelProdCalculado || '-'}
                           </span>
                         </div>
-                        {/* Nível Geral do Aluno */}
-                        <div className="text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-800/50 dark:to-purple-800/50 rounded-lg p-3 border-2 border-indigo-300 dark:border-indigo-600">
-                          <p className="text-xs text-indigo-600 dark:text-indigo-300 mb-1 font-semibold">Nível Geral</p>
-                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-extrabold ${
+                        {/* Nível Geral */}
+                        <div className="text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-800/50 dark:to-purple-800/50 rounded p-1.5 sm:p-2 border-2 border-indigo-300 dark:border-indigo-600">
+                          <p className="text-[10px] text-indigo-600 dark:text-indigo-300 mb-0.5 font-semibold">Geral</p>
+                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-extrabold ${
                             niveisDisciplinas.nivel_aluno === 'N4' ? 'bg-green-500 text-white' :
                             niveisDisciplinas.nivel_aluno === 'N3' ? 'bg-blue-500 text-white' :
                             niveisDisciplinas.nivel_aluno === 'N2' ? 'bg-yellow-500 text-white' :
@@ -414,72 +408,67 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                   )
                 })()}
 
-                {/* Estatísticas por Área */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Estatísticas por Área - Compacto */}
+                <div className="grid grid-cols-2 gap-2">
                   {areas.map((area) => {
                     const stats = dados.estatisticas.por_area[area.nome] || { total: 0, acertos: 0, erros: 0, media: 0 }
                     const questoes = dados.questoes?.[area.nome] || []
                     const Icon = area.icon
                     const taxaAcerto = stats.total > 0 ? ((stats.acertos / stats.total) * 100) : 0
-                    // Nota da disciplina passada diretamente do resultado consolidado
                     const notaDisciplina = notasDisciplinas?.[area.notaKey]
                     const notaExibir = notaDisciplina !== undefined && notaDisciplina !== null
                       ? Number(notaDisciplina)
                       : (stats.media !== undefined && stats.media > 0 ? stats.media : null)
 
                     return (
-                      <div key={area.nome} className={`${area.bgColor} dark:bg-opacity-30 rounded-lg p-4 border ${area.borderColor} dark:border-opacity-50`}>
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg bg-gradient-to-r ${area.corClasses}`}>
-                              <Icon className="w-5 h-5 text-white" />
+                      <div key={area.nome} className={`${area.bgColor} dark:bg-opacity-30 rounded p-2 border ${area.borderColor} dark:border-opacity-50`}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <div className={`p-1 rounded bg-gradient-to-r ${area.corClasses}`}>
+                              <Icon className="w-3 h-3 text-white" />
                             </div>
-                            <h4 className="font-semibold text-gray-800 dark:text-white">{area.nome}</h4>
+                            <h4 className="text-xs font-semibold text-gray-800 dark:text-white truncate">{area.nome}</h4>
                           </div>
-                          {/* Nota em destaque */}
                           {notaExibir !== null && (
-                            <div className={`px-3 py-1 rounded-lg bg-gradient-to-r ${area.corClasses} text-white`}>
-                              <span className="text-xs font-medium">Nota: </span>
-                              <span className="text-lg font-bold">{notaExibir.toFixed(2)}</span>
+                            <div className={`px-1.5 py-0.5 rounded bg-gradient-to-r ${area.corClasses} text-white`}>
+                              <span className="text-sm font-bold">{notaExibir.toFixed(1)}</span>
                             </div>
                           )}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 text-center mb-3">
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Questões</p>
-                            <p className="text-lg font-bold text-gray-800 dark:text-white">{stats.total}</p>
+                        <div className="flex justify-between text-center mb-1.5">
+                          <div className="flex-1">
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400">Q</p>
+                            <p className="text-sm font-bold text-gray-800 dark:text-white">{stats.total}</p>
                           </div>
-                          <div>
-                            <p className="text-xs text-green-600 dark:text-green-400">Acertos</p>
-                            <p className="text-lg font-bold text-green-700 dark:text-green-400">{stats.acertos}</p>
+                          <div className="flex-1">
+                            <p className="text-[10px] text-green-600 dark:text-green-400">✓</p>
+                            <p className="text-sm font-bold text-green-700 dark:text-green-400">{stats.acertos}</p>
                           </div>
-                          <div>
-                            <p className="text-xs text-red-600 dark:text-red-400">Erros</p>
-                            <p className="text-lg font-bold text-red-700 dark:text-red-400">{stats.erros}</p>
+                          <div className="flex-1">
+                            <p className="text-[10px] text-red-600 dark:text-red-400">✗</p>
+                            <p className="text-sm font-bold text-red-700 dark:text-red-400">{stats.erros}</p>
                           </div>
                         </div>
 
                         {/* Barra de progresso */}
-                        <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2.5 mb-2">
+                        <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-1.5 mb-1">
                           <div
-                            className="bg-gradient-to-r from-green-500 to-green-600 h-2.5 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-green-500 to-green-600 h-1.5 rounded-full transition-all duration-300"
                             style={{ width: `${taxaAcerto}%` }}
                           ></div>
                         </div>
 
-                        <div className="flex justify-between text-xs">
-                          <span className={area.textColor}>Taxa de Acerto: {taxaAcerto.toFixed(1)}%</span>
-                        </div>
+                        <p className={`text-[10px] ${area.textColor}`}>{taxaAcerto.toFixed(0)}% acerto</p>
 
-                        {/* Grid de questões detalhadas (apenas se disponível online) */}
+                        {/* Grid de questões detalhadas */}
                         {questoes.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-600">
-                            <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1">
+                          <div className="mt-1.5 pt-1.5 border-t border-gray-200 dark:border-slate-600">
+                            <div className="grid grid-cols-8 sm:grid-cols-10 gap-0.5">
                               {questoes.map((questao) => (
                                 <div
                                   key={questao.codigo}
-                                  className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-[10px] sm:text-xs font-bold ${
+                                  className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold ${
                                     questao.acertou
                                       ? 'bg-green-500 text-white'
                                       : 'bg-red-500 text-white'
@@ -499,142 +488,121 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
 
                 {/* Produção Textual (apenas para anos iniciais - 2º, 3º, 5º) */}
                 {isAnosIniciais(dados.aluno.serie) && dados.estatisticas.nota_producao !== undefined && dados.estatisticas.nota_producao !== null && (
-                  <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-                    {/* Cabeçalho com título */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600">
-                        <BarChart3 className="w-5 h-5 text-white" />
+                  <div className="bg-orange-50 dark:bg-orange-900/30 rounded p-2 border border-orange-200 dark:border-orange-800">
+                    {/* Cabeçalho com título e nota */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 rounded bg-gradient-to-r from-orange-500 to-orange-600">
+                          <BarChart3 className="w-3 h-3 text-white" />
+                        </div>
+                        <h4 className="text-xs font-semibold text-gray-800 dark:text-white">Produção Textual</h4>
                       </div>
-                      <h4 className="font-semibold text-gray-800 dark:text-white">Produção Textual</h4>
+                      <div className="px-2 py-0.5 rounded bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                        <span className="text-sm font-bold">{dados.estatisticas.nota_producao.toFixed(1)}</span>
+                      </div>
                     </div>
 
-                    {/* Estatísticas de Acertos/Erros e Pontuação */}
+                    {/* Estatísticas compactas */}
                     {dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null) && (() => {
                       const itensValidos = dados.estatisticas.itens_producao!.filter(item => item.nota !== null)
                       const totalItens = itensValidos.length
                       const acertos = itensValidos.filter(item => item.nota !== null && item.nota >= 1).length
                       const erros = totalItens - acertos
                       const pontuacaoTotal = itensValidos.reduce((sum, item) => sum + (item.nota || 0), 0)
-                      const mediaProducao = totalItens > 0 ? pontuacaoTotal / totalItens : 0
 
                       return (
                         <>
-                          {/* Cards de estatísticas */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                            {/* Total de Itens */}
-                            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 text-center border border-orange-200 dark:border-orange-700">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Itens</p>
-                              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{totalItens}</p>
+                          {/* Stats inline */}
+                          <div className="flex justify-between text-center mb-2 bg-white dark:bg-slate-800 rounded p-1.5">
+                            <div className="flex-1 border-r border-gray-200 dark:border-slate-600">
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400">Itens</p>
+                              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{totalItens}</p>
                             </div>
-                            {/* Acertos */}
-                            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 text-center border border-green-200 dark:border-green-700">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Acertos</p>
-                              <p className="text-xl font-bold text-green-600 dark:text-green-400">{acertos}</p>
+                            <div className="flex-1 border-r border-gray-200 dark:border-slate-600">
+                              <p className="text-[10px] text-green-600 dark:text-green-400">✓</p>
+                              <p className="text-sm font-bold text-green-600 dark:text-green-400">{acertos}</p>
                             </div>
-                            {/* Erros */}
-                            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 text-center border border-red-200 dark:border-red-700">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Erros</p>
-                              <p className="text-xl font-bold text-red-600 dark:text-red-400">{erros}</p>
+                            <div className="flex-1 border-r border-gray-200 dark:border-slate-600">
+                              <p className="text-[10px] text-red-600 dark:text-red-400">✗</p>
+                              <p className="text-sm font-bold text-red-600 dark:text-red-400">{erros}</p>
                             </div>
-                            {/* Pontuação Total */}
-                            <div className="bg-white dark:bg-slate-800 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-700">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pontuação</p>
-                              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{pontuacaoTotal}/{totalItens}</p>
+                            <div className="flex-1">
+                              <p className="text-[10px] text-blue-600 dark:text-blue-400">Pts</p>
+                              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">{pontuacaoTotal}/{totalItens}</p>
                             </div>
                           </div>
 
-                          {/* Média/Nota de Produção */}
-                          <div className="flex items-center justify-between mb-4 p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white">
-                            <span className="font-medium">Média de Produção Textual:</span>
-                            <span className="text-2xl font-bold">{dados.estatisticas.nota_producao!.toFixed(2)}</span>
-                          </div>
-
-                          {/* Itens individuais */}
-                          <div className="pt-3 border-t border-orange-200 dark:border-orange-700">
-                            <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-2">Detalhamento por Item (X=Acerto, -/0=Erro):</p>
-                            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                              {dados.estatisticas.itens_producao!.map((itemProd) => {
-                                const isAcerto = itemProd.nota !== null && itemProd.nota >= 1
-                                return (
-                                  <div
-                                    key={itemProd.item}
-                                    className={`p-2 rounded-lg text-center cursor-pointer transition-transform hover:scale-105 ${
-                                      itemProd.nota !== null
-                                        ? isAcerto
-                                          ? 'bg-green-100 dark:bg-green-900/30 border-2 border-green-400 dark:border-green-600'
-                                          : 'bg-red-100 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600'
-                                        : 'bg-gray-100 dark:bg-gray-700/30 border border-gray-300 dark:border-gray-600'
-                                    }`}
-                                    title={`Item ${itemProd.item}: ${itemProd.nota !== null ? (isAcerto ? 'ACERTO' : 'ERRO') : 'Não avaliado'}`}
-                                  >
-                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Item {itemProd.item}</p>
-                                    <div className="flex items-center justify-center gap-1">
-                                      {itemProd.nota !== null ? (
-                                        isAcerto ? (
-                                          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                        ) : (
-                                          <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                        )
+                          {/* Itens individuais - compacto */}
+                          <div className="grid grid-cols-8 sm:grid-cols-10 gap-1">
+                            {dados.estatisticas.itens_producao!.map((itemProd) => {
+                              const isAcerto = itemProd.nota !== null && itemProd.nota >= 1
+                              return (
+                                <div
+                                  key={itemProd.item}
+                                  className={`p-1 rounded text-center ${
+                                    itemProd.nota !== null
+                                      ? isAcerto
+                                        ? 'bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-600'
+                                        : 'bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600'
+                                      : 'bg-gray-100 dark:bg-gray-700/30 border border-gray-300 dark:border-gray-600'
+                                  }`}
+                                  title={`Item ${itemProd.item}: ${itemProd.nota !== null ? (isAcerto ? 'ACERTO' : 'ERRO') : 'Não avaliado'}`}
+                                >
+                                  <p className="text-[8px] text-gray-500 dark:text-gray-400">{itemProd.item}</p>
+                                  <div className="flex items-center justify-center">
+                                    {itemProd.nota !== null ? (
+                                      isAcerto ? (
+                                        <CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" />
                                       ) : (
-                                        <span className="text-gray-400">-</span>
-                                      )}
-                                    </div>
-                                    <p className={`text-xs font-bold mt-0.5 ${
-                                      itemProd.nota !== null
-                                        ? isAcerto
-                                          ? 'text-green-700 dark:text-green-400'
-                                          : 'text-red-700 dark:text-red-400'
-                                        : 'text-gray-500 dark:text-gray-400'
-                                    }`}>
-                                      {itemProd.nota !== null ? itemProd.nota : '-'}
-                                    </p>
+                                        <XCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
+                                      )
+                                    ) : (
+                                      <span className="text-[10px] text-gray-400">-</span>
+                                    )}
                                   </div>
-                                )
-                              })}
-                            </div>
+                                </div>
+                              )
+                            })}
                           </div>
                         </>
                       )
                     })()}
 
-                    {/* Fallback se não houver itens individuais mas houver nota de produção */}
+                    {/* Fallback se não houver itens individuais */}
                     {(!dados.estatisticas.itens_producao || !dados.estatisticas.itens_producao.some(item => item.nota !== null)) && (
-                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white">
-                        <span className="font-medium">Nota de Produção Textual:</span>
-                        <span className="text-2xl font-bold">{dados.estatisticas.nota_producao.toFixed(2)}</span>
+                      <div className="text-center text-sm text-orange-600 dark:text-orange-400">
+                        Nota: {dados.estatisticas.nota_producao.toFixed(2)}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Legenda */}
+                {/* Legenda - Compacta */}
                 {(temQuestoesDetalhadas || (dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null))) && (
-                  <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4 border border-gray-200 dark:border-slate-600">
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Legenda:</p>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                      {/* Legenda para Questões Objetivas */}
+                  <div className="bg-gray-50 dark:bg-slate-700 rounded p-2 border border-gray-200 dark:border-slate-600">
+                    <div className="flex flex-wrap gap-3 text-[10px] sm:text-xs items-center">
+                      <span className="text-gray-500 dark:text-gray-400 font-medium">Legenda:</span>
                       {temQuestoesDetalhadas && (
                         <>
                           <div className="flex items-center">
-                            <div className="w-5 h-5 bg-green-500 rounded mr-2"></div>
-                            <span className="text-gray-700 dark:text-gray-300">Questão acertada</span>
+                            <div className="w-3 h-3 bg-green-500 rounded mr-1"></div>
+                            <span className="text-gray-700 dark:text-gray-300">Acerto</span>
                           </div>
                           <div className="flex items-center">
-                            <div className="w-5 h-5 bg-red-500 rounded mr-2"></div>
-                            <span className="text-gray-700 dark:text-gray-300">Questão errada</span>
+                            <div className="w-3 h-3 bg-red-500 rounded mr-1"></div>
+                            <span className="text-gray-700 dark:text-gray-300">Erro</span>
                           </div>
                         </>
                       )}
-                      {/* Legenda para Produção Textual (apenas anos iniciais) */}
                       {isAnosIniciais(dados.aluno.serie) && dados.estatisticas.itens_producao && dados.estatisticas.itens_producao.some(item => item.nota !== null) && (
                         <>
                           <div className="flex items-center">
-                            <CheckCircle2 className="w-5 h-5 text-green-500 mr-2" />
-                            <span className="text-gray-700 dark:text-gray-300">Item PROD acerto (X=1pt)</span>
+                            <CheckCircle2 className="w-3 h-3 text-green-500 mr-1" />
+                            <span className="text-gray-700 dark:text-gray-300">PROD ✓</span>
                           </div>
                           <div className="flex items-center">
-                            <XCircle className="w-5 h-5 text-red-500 mr-2" />
-                            <span className="text-gray-700 dark:text-gray-300">Item PROD erro (-/0=0pt)</span>
+                            <XCircle className="w-3 h-3 text-red-500 mr-1" />
+                            <span className="text-gray-700 dark:text-gray-300">PROD ✗</span>
                           </div>
                         </>
                       )}
@@ -643,17 +611,16 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                 )}
               </div>
             ) : null}
-          </div>
+        </div>
 
-          {/* Footer */}
-          <div className="bg-gray-50 dark:bg-slate-700 px-6 py-4 flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-            >
-              Fechar
-            </button>
-          </div>
+        {/* Footer - Compacto */}
+        <div className="bg-gray-50 dark:bg-slate-700 px-3 py-2 flex justify-end flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors font-medium"
+          >
+            Fechar
+          </button>
         </div>
       </div>
     </div>
