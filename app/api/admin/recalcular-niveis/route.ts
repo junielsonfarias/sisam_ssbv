@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import {
   calcularNivelPorAcertos,
   converterNivelProducao,
+  calcularNivelPorNota,
   calcularNivelAluno,
   isAnosIniciais,
 } from '@/lib/config-series'
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
       SELECT
         id, serie, presenca,
         total_acertos_lp, total_acertos_mat,
-        nivel_aprendizagem,
+        nota_producao, nivel_aprendizagem,
         nivel_lp, nivel_mat, nivel_prod, nivel_aluno
       FROM resultados_consolidados
       WHERE (
@@ -37,9 +38,9 @@ export async function POST(request: NextRequest) {
         REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
       )
       AND (
-        -- Tem acertos mas não tem níveis calculados
-        (total_acertos_lp > 0 OR total_acertos_mat > 0)
-        AND (nivel_lp IS NULL OR nivel_mat IS NULL OR nivel_aluno IS NULL)
+        -- Tem acertos mas não tem níveis calculados, OU tem nota de produção mas sem nível
+        (total_acertos_lp > 0 OR total_acertos_mat > 0 OR (nota_producao IS NOT NULL AND CAST(nota_producao AS DECIMAL) > 0))
+        AND (nivel_lp IS NULL OR nivel_mat IS NULL OR nivel_prod IS NULL OR nivel_aluno IS NULL)
       )
       AND presenca = 'P'
     `)
@@ -59,8 +60,11 @@ export async function POST(request: NextRequest) {
         // Calcular nível de MAT baseado em acertos
         const nivelMat = calcularNivelPorAcertos(registro.total_acertos_mat, serie, 'MAT')
 
-        // Converter nível de produção textual (do nivel_aprendizagem existente)
-        const nivelProd = converterNivelProducao(registro.nivel_aprendizagem)
+        // Converter nível de produção textual (do nivel_aprendizagem existente, com fallback pela nota)
+        let nivelProd = converterNivelProducao(registro.nivel_aprendizagem)
+        if (!nivelProd && registro.nota_producao !== null && registro.nota_producao !== undefined && Number(registro.nota_producao) > 0) {
+          nivelProd = calcularNivelPorNota(Number(registro.nota_producao))
+        }
 
         // Calcular nível geral do aluno (média dos 3 níveis)
         const nivelAlunoCalc = calcularNivelAluno(nivelLp, nivelMat, nivelProd)
@@ -127,12 +131,13 @@ export async function GET(request: NextRequest) {
         COUNT(*) as total,
         COUNT(CASE WHEN nivel_lp IS NULL THEN 1 END) as sem_nivel_lp,
         COUNT(CASE WHEN nivel_mat IS NULL THEN 1 END) as sem_nivel_mat,
+        COUNT(CASE WHEN nivel_prod IS NULL THEN 1 END) as sem_nivel_prod,
         COUNT(CASE WHEN nivel_aluno IS NULL THEN 1 END) as sem_nivel_aluno
       FROM resultados_consolidados
       WHERE (
         REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
       )
-      AND (total_acertos_lp > 0 OR total_acertos_mat > 0)
+      AND (total_acertos_lp > 0 OR total_acertos_mat > 0 OR (nota_producao IS NOT NULL AND CAST(nota_producao AS DECIMAL) > 0))
       AND presenca = 'P'
     `)
 
@@ -142,8 +147,9 @@ export async function GET(request: NextRequest) {
       total_registros_anos_iniciais: parseInt(stats.total || '0'),
       sem_nivel_lp: parseInt(stats.sem_nivel_lp || '0'),
       sem_nivel_mat: parseInt(stats.sem_nivel_mat || '0'),
+      sem_nivel_prod: parseInt(stats.sem_nivel_prod || '0'),
       sem_nivel_aluno: parseInt(stats.sem_nivel_aluno || '0'),
-      necessita_recalculo: parseInt(stats.sem_nivel_aluno || '0') > 0,
+      necessita_recalculo: parseInt(stats.sem_nivel_aluno || '0') > 0 || parseInt(stats.sem_nivel_prod || '0') > 0,
     })
   } catch (error: any) {
     console.error('[Recalcular Níveis] Erro ao verificar status:', error)

@@ -18,6 +18,20 @@ import {
 import { AlunoSelecionado, OpcaoSelect } from '@/lib/dados/types'
 import { NivelBadge, CelulaNotaComNivel, PaginationControls, TableEmptyState } from '@/components/dados'
 
+/**
+ * Calcula o nível baseado na nota (fallback quando nivel_prod não está no banco)
+ * Faixas: N1: <3, N2: 3-4.99, N3: 5-7.49, N4: >=7.5
+ */
+function calcularNivelPorNota(nota: number | string | null | undefined): string | null {
+  if (nota === null || nota === undefined) return null
+  const notaNum = typeof nota === 'string' ? parseFloat(nota) : nota
+  if (isNaN(notaNum) || notaNum <= 0) return null
+  if (notaNum < 3) return 'N1'
+  if (notaNum < 5) return 'N2'
+  if (notaNum < 7.5) return 'N3'
+  return 'N4'
+}
+
 interface ResultadoConsolidadoAnalise {
   id: string
   aluno_id?: string
@@ -968,7 +982,7 @@ export default function PainelAnalise({
                           <td className="py-2 px-1 text-center">
                             <CelulaNotaComNivel
                               nota={resultado.nota_producao}
-                              nivel={resultado.nivel_prod}
+                              nivel={resultado.nivel_prod || calcularNivelPorNota(resultado.nota_producao)}
                               presenca={resultado.presenca}
                               naoAplicavel={!anosIniciais}
                               tamanho="md"

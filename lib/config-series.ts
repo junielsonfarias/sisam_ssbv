@@ -567,6 +567,27 @@ export function converterNivelProducao(nivelAtual: string | null | undefined): s
 }
 
 /**
+ * Calcula o nível de produção textual baseado na nota (0-10)
+ * Usado como fallback quando nivel_aprendizagem não está disponível
+ *
+ * Regras:
+ * - N1 (Insuficiente): 0 - 2.99
+ * - N2 (Básico): 3 - 4.99
+ * - N3 (Adequado): 5 - 7.49
+ * - N4 (Avançado): 7.5 - 10
+ */
+export function calcularNivelPorNota(nota: number | null | undefined): string | null {
+  if (nota === null || nota === undefined || nota <= 0) {
+    return null
+  }
+
+  if (nota < 3) return 'N1'
+  if (nota < 5) return 'N2'
+  if (nota < 7.5) return 'N3'
+  return 'N4'
+}
+
+/**
  * Converte um nível (N1, N2, N3, N4) para valor numérico
  */
 export function nivelParaValor(nivel: string | null | undefined): number | null {

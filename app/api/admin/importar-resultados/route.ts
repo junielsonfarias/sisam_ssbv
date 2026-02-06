@@ -6,6 +6,7 @@ import { limparTodosOsCaches } from '@/lib/cache'
 import {
   calcularNivelPorAcertos,
   converterNivelProducao,
+  calcularNivelPorNota,
   calcularNivelAluno,
   isAnosIniciais,
   extrairNumeroSerie,
@@ -684,8 +685,11 @@ export async function POST(request: NextRequest) {
             // Calcular nível de MAT baseado em acertos
             nivelMat = calcularNivelPorAcertos(acertosMAT, serie, 'MAT')
 
-            // Converter nível de produção textual
+            // Converter nível de produção textual (com fallback pela nota)
             nivelProd = converterNivelProducao(nivelProducao)
+            if (!nivelProd && notaProducaoPlanilha !== null && notaProducaoPlanilha !== undefined && Number(notaProducaoPlanilha) > 0) {
+              nivelProd = calcularNivelPorNota(Number(notaProducaoPlanilha))
+            }
 
             // Calcular nível geral do aluno (média dos 3 níveis)
             nivelAlunoCalc = calcularNivelAluno(nivelLp, nivelMat, nivelProd)

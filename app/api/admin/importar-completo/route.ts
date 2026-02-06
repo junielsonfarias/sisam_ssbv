@@ -11,6 +11,7 @@ import {
   calcularMediaProducao,
   calcularNivelPorAcertos,
   converterNivelProducao,
+  calcularNivelPorNota,
   calcularNivelAluno,
   isAnosIniciais,
 } from '@/lib/config-series'
@@ -689,8 +690,11 @@ async function processarImportacao(
           // Calcular nível de MAT baseado em acertos
           nivelMat = calcularNivelPorAcertos(totalAcertosMAT, serie, 'MAT')
 
-          // Converter nível de produção textual
+          // Converter nível de produção textual (com fallback pela nota)
           nivelProd = converterNivelProducao(nivelAprendizagem)
+          if (!nivelProd && notaProducao !== null && notaProducao !== undefined && Number(notaProducao) > 0) {
+            nivelProd = calcularNivelPorNota(Number(notaProducao))
+          }
 
           // Calcular nível geral do aluno (média dos 3 níveis)
           nivelAlunoCalc = calcularNivelAluno(nivelLp, nivelMat, nivelProd)
