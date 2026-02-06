@@ -544,12 +544,43 @@ export default function DadosPage() {
       }
 
       if (response.ok) {
-        setDados(data)
+        // Calcular níveis a partir dos alunos (API não retorna niveis calculados)
+        const niveisMap: Record<string, number> = {}
+        if (data.alunosDetalhados && Array.isArray(data.alunosDetalhados)) {
+          for (const aluno of data.alunosDetalhados) {
+            const presencaUpper = aluno.presenca?.toString().toUpperCase()
+            const isPresente = presencaUpper === 'P'
+            const isFaltante = presencaUpper === 'F'
+            const numeroSerie = aluno.serie?.toString().replace(/[^0-9]/g, '')
+            const isAnosIniciaisAluno = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+
+            if (isAnosIniciaisAluno && (isPresente || isFaltante)) {
+              const nivel = aluno.nivel_aluno || aluno.nivel_aprendizagem || 'Não classificado'
+              niveisMap[nivel] = (niveisMap[nivel] || 0) + 1
+            }
+          }
+        }
+        // Ordenar níveis
+        const ordemNiveis: Record<string, number> = {
+          'Pré-Alfabético': 1, 'N1': 1,
+          'Básico': 2, 'N2': 2,
+          'Adequado': 3, 'N3': 3,
+          'Avançado': 4, 'N4': 4,
+          'Não classificado': 5
+        }
+        const niveisArray = Object.entries(niveisMap)
+          .map(([nivel, quantidade]) => ({ nivel, quantidade }))
+          .sort((a, b) => (ordemNiveis[a.nivel] || 6) - (ordemNiveis[b.nivel] || 6))
+
+        // Adicionar niveis aos dados
+        const dadosComNiveis = { ...data, niveis: niveisArray }
+
+        setDados(dadosComNiveis)
         setUsandoDadosOffline(false)
         setUsandoCache(false) // Dados vieram da API, não do cache
         // Salvar no cache se não tem filtro de série (dados completos para filtragem local)
         if (!serieParaFiltrar) {
-          setDadosCache(data)
+          setDadosCache(dadosComNiveis)
           // Salvar os filtros usados para verificar se pode usar cache depois
           setFiltrosCache({
             polo_id: filtroPoloId,
