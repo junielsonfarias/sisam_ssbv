@@ -2188,7 +2188,7 @@ export default function DadosPage() {
               })()}
 
               {/* Container Sticky para Abas + Serie - Fixo abaixo do header */}
-              <div className="sticky top-14 sm:top-16 z-40 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-4 pb-2 bg-gray-50 dark:bg-slate-900 space-y-2 shadow-md" style={{ marginTop: '1rem' }}>
+              <div className="sticky top-14 sm:top-16 z-20 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-4 pb-2 bg-gray-50 dark:bg-slate-900 space-y-2 shadow-md" style={{ marginTop: '1rem' }}>
                 {/* Abas de Navegacao */}
                 <AbaNavegacao
                   abas={[
@@ -2244,7 +2244,8 @@ export default function DadosPage() {
                             serie: formatarSerie(item.serie),
                             media_lp: item.media_lp,
                             media_mat: item.media_mat,
-                            media_prod: item.media_prod
+                            media_prod: item.media_prod,
+                            presentes: item.presentes
                           }))
 
                         const anosFinais = dados.mediasPorSerie
@@ -2257,20 +2258,32 @@ export default function DadosPage() {
                             media_lp: item.media_lp,
                             media_mat: item.media_mat,
                             media_ch: item.media_ch,
-                            media_cn: item.media_cn
+                            media_cn: item.media_cn,
+                            presentes: item.presentes
                           }))
 
-                        // Calcular médias gerais por etapa
+                        // Calcular médias ponderadas por etapa (ponderadas pelo número de presentes)
                         const calcMedias = (arr: any[], campos: string[]) => {
                           const result: Record<string, number> = {}
                           campos.forEach(campo => {
-                            const valores = arr.map(i => i[campo]).filter(v => v && v > 0)
-                            result[campo] = valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0
+                            let somaMedia = 0
+                            let somaPresentes = 0
+                            arr.forEach(i => {
+                              if (i[campo] && i[campo] > 0 && i.presentes > 0) {
+                                somaMedia += i[campo] * i.presentes
+                                somaPresentes += i.presentes
+                              }
+                            })
+                            result[campo] = somaPresentes > 0 ? somaMedia / somaPresentes : 0
                           })
                           return result
                         }
                         const mediasAI = calcMedias(anosIniciais, ['media_lp', 'media_mat', 'media_prod'])
                         const mediasAF = calcMedias(anosFinais, ['media_lp', 'media_mat', 'media_ch', 'media_cn'])
+
+                        // Labels dinâmicos baseados nas séries com dados
+                        const labelAI = `Anos Iniciais (${anosIniciais.map(i => i.serie).join(', ')})`
+                        const labelAF = `Anos Finais (${anosFinais.map(i => i.serie).join(', ')})`
 
                         return (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
@@ -2285,7 +2298,7 @@ export default function DadosPage() {
                         {anosIniciais.length > 0 && (
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Anos Iniciais (2º, 3º, 5º)</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{labelAI}</p>
                               <div className="flex gap-3 text-[10px]">
                                 <span style={{ color: COLORS.disciplinas.lp }}>LP: <strong>{mediasAI.media_lp?.toFixed(2) || '-'}</strong></span>
                                 <span style={{ color: COLORS.disciplinas.mat }}>MAT: <strong>{mediasAI.media_mat?.toFixed(2) || '-'}</strong></span>
@@ -2312,7 +2325,7 @@ export default function DadosPage() {
                         {anosFinais.length > 0 && (
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Anos Finais (6º-9º)</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{labelAF}</p>
                               <div className="flex gap-3 text-[10px]">
                                 <span style={{ color: COLORS.disciplinas.lp }}>LP: <strong>{mediasAF.media_lp?.toFixed(2) || '-'}</strong></span>
                                 <span style={{ color: COLORS.disciplinas.mat }}>MAT: <strong>{mediasAF.media_mat?.toFixed(2) || '-'}</strong></span>
@@ -2964,7 +2977,7 @@ export default function DadosPage() {
                   {/* Visualização Tablet/Desktop - Tabela */}
                   <div className="hidden sm:block w-full">
                     <table className="w-full divide-y divide-gray-200 dark:divide-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
-                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/50 dark:to-indigo-800/50 sticky top-[180px] sm:top-[190px] z-30">
+                      <thead className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/50 dark:to-indigo-800/50 sticky top-[180px] sm:top-[190px] z-10">
                           <tr>
                             <th className="text-center py-1 px-0.5 sm:py-1.5 sm:px-1 md:py-2 md:px-1.5 lg:py-2.5 lg:px-2 font-bold text-indigo-900 dark:text-indigo-200 text-[11px] sm:text-xs md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-8 md:w-10 lg:w-12">
                               #
