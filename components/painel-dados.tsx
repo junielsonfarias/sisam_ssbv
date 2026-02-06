@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
-  BarChart3, School, Users, GraduationCap, BookOpen, TrendingUp,
+  School, Users, GraduationCap, BookOpen, TrendingUp,
   CheckCircle, XCircle, Search, Filter, X, Eye,
   Award, Target, CheckCircle2, RefreshCw
 } from 'lucide-react'
@@ -654,7 +654,7 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
         </div>
       )}
       {/* Cards principais */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
         {tipoUsuario !== 'escola' && (
           <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border-l-4 border-green-500">
             <div className="flex items-center justify-between">
@@ -700,20 +700,6 @@ function AbaGeral({ estatisticas, tipoUsuario, carregando, serieSelecionada }: {
               )}
             </div>
             <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-orange-600 dark:text-orange-400" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 md:p-5 rounded-lg shadow-md border-l-4 border-indigo-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs md:text-sm">
-                {serieSelecionada ? `Provas do ${serieSelecionada}` : 'Resultados de Provas'}
-              </p>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mt-1">
-                {estatisticas.totalResultados.toLocaleString('pt-BR')}
-              </p>
-            </div>
-            <BarChart3 className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-indigo-600 dark:text-indigo-400" />
           </div>
         </div>
       </div>
@@ -857,13 +843,14 @@ function CardsDisciplinasDashboard({ estatisticas, serieSelecionada }: {
   const serieIsAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
   const temFiltroSerie = !!serieSelecionada && serieSelecionada.trim() !== ''
 
-  // Se não há filtro de série, mostrar todas
-  // Se anos iniciais: LP, MAT, PROD.T
-  // Se anos finais: LP, MAT, CH, CN
+  // Lógica de exibição:
+  // - Sem filtro de série: mostrar TODAS as 5 disciplinas (LP, MAT, PROD.T, CH, CN)
+  // - Anos iniciais (2, 3, 5): mostrar apenas 3 disciplinas (LP, MAT, PROD.T)
+  // - Anos finais (6, 7, 8, 9): mostrar apenas 4 disciplinas (LP, MAT, CH, CN)
   const mostrarProd = !temFiltroSerie || serieIsAnosIniciais
   const mostrarChCn = !temFiltroSerie || serieIsAnosFinais
 
-  // Helper para renderizar card de disciplina
+  // Helper para renderizar card de disciplina com visual moderno
   const DisciplinaCardDash = ({ sigla, titulo, media, bgColor, textColor, barColor }: {
     sigla: string;
     titulo: string;
@@ -876,26 +863,30 @@ function CardsDisciplinasDashboard({ estatisticas, serieSelecionada }: {
     const temMedia = media > 0
 
     return (
-      <div className={`${bgColor} rounded-xl p-4 border-2 hover:shadow-md transition-shadow`}>
+      <div className={`${bgColor} rounded-xl p-3 sm:p-4 border-2 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]`}>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{sigla}</span>
-          <span className={`text-xl font-bold ${textColor}`}>
+          <span className={`text-xs sm:text-sm font-bold ${textColor} uppercase tracking-wide bg-white/50 dark:bg-slate-900/50 px-2 py-0.5 rounded-md`}>
+            {sigla}
+          </span>
+          <span className={`text-xl sm:text-2xl font-bold ${textColor}`}>
             {temMedia ? media.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
           </span>
         </div>
-        <div className="w-full bg-white dark:bg-slate-800 rounded-full h-2.5 mb-2 shadow-inner">
+        <div className="w-full bg-white/60 dark:bg-slate-800/60 rounded-full h-2 mb-2 shadow-inner overflow-hidden">
           <div
-            className="h-2.5 rounded-full transition-all duration-500 shadow-sm"
+            className="h-2 rounded-full transition-all duration-700 ease-out"
             style={{
               width: `${porcentagem}%`,
               backgroundColor: barColor
             }}
-          ></div>
+          />
         </div>
-        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">{titulo}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {temMedia ? `${porcentagem.toFixed(1)}% da nota máxima` : 'Sem dados'}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1">{titulo}</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 ml-2">
+            {temMedia ? `${porcentagem.toFixed(0)}%` : '—'}
+          </p>
+        </div>
       </div>
     )
   }
@@ -952,9 +943,9 @@ function CardsDisciplinasDashboard({ estatisticas, serieSelecionada }: {
             sigla="CN"
             titulo="Ciências da Natureza"
             media={estatisticas.mediaCn || 0}
-            bgColor="bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
-            textColor="text-green-700 dark:text-green-300"
-            barColor="#22C55E"
+            bgColor="bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700"
+            textColor="text-emerald-700 dark:text-emerald-300"
+            barColor="#10B981"
           />
         )}
       </div>
@@ -972,10 +963,20 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
   onPesquisar: () => void;
   serieSelecionada?: string;
 }) {
-  // Detectar se é anos iniciais (2, 3, 5) para mostrar PROD em vez de CH/CN
+  // Detectar tipo de série para mostrar disciplinas corretas
+  // Anos iniciais (2, 3, 5): LP, MAT, PROD
+  // Anos finais (6, 7, 8, 9): LP, MAT, CH, CN
   const numSerie = serieSelecionada?.replace(/[^0-9]/g, '') || ''
   const isAnosIniciaisSerie = ['2', '3', '5'].includes(numSerie)
+  const isAnosFinaisSerie = ['6', '7', '8', '9'].includes(numSerie)
   const temFiltroSerie = !!serieSelecionada && serieSelecionada.trim() !== ''
+
+  // Lógica de exibição:
+  // - Sem filtro: mostrar TODAS as disciplinas (LP, MAT, PROD, CH, CN)
+  // - Anos iniciais: mostrar apenas LP, MAT, PROD
+  // - Anos finais: mostrar apenas LP, MAT, CH, CN
+  const mostrarProd = !temFiltroSerie || isAnosIniciaisSerie
+  const mostrarChCn = !temFiltroSerie || isAnosFinaisSerie
 
   return (
     <div className="space-y-4">
@@ -1014,12 +1015,12 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                   <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Média</th>
                   <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">LP</th>
                   <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">MAT</th>
-                  {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
-                  {(!temFiltroSerie || isAnosIniciaisSerie) && (
+                  {/* PROD - mostrar para anos iniciais (2, 3, 5) ou quando sem filtro */}
+                  {mostrarProd && (
                     <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">PROD</th>
                   )}
-                  {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
-                  {(!temFiltroSerie || !isAnosIniciaisSerie) && (
+                  {/* CH/CN - mostrar para anos finais (6, 7, 8, 9) ou quando sem filtro */}
+                  {mostrarChCn && (
                     <>
                       <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">CH</th>
                       <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">CN</th>
@@ -1081,8 +1082,8 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                         )}
                       </div>
                     </td>
-                    {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
-                    {(!temFiltroSerie || isAnosIniciaisSerie) && (
+                    {/* PROD - mostrar para anos iniciais (2, 3, 5) ou quando sem filtro */}
+                    {mostrarProd && (
                       <td className="py-2 px-1 lg:px-2 text-center">
                         <div className="flex flex-col items-center gap-0.5">
                           <span className={`text-xs lg:text-sm font-medium ${getNotaColor(escola.media_prod)}`}>
@@ -1096,8 +1097,8 @@ function AbaEscolas({ escolas, busca, setBusca, carregando, pesquisou, onPesquis
                         </div>
                       </td>
                     )}
-                    {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
-                    {(!temFiltroSerie || !isAnosIniciaisSerie) && (
+                    {/* CH/CN - mostrar para anos finais (6, 7, 8, 9) ou quando sem filtro */}
+                    {mostrarChCn && (
                       <>
                         <td className="py-2 px-1 lg:px-2 text-center">
                           <div className="flex flex-col items-center gap-0.5">
@@ -1152,10 +1153,20 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
   onPesquisar: () => void;
   serieSelecionada?: string;
 }) {
-  // Detectar se é anos iniciais (2, 3, 5) para mostrar PROD em vez de CH/CN
+  // Detectar tipo de série para mostrar disciplinas corretas
+  // Anos iniciais (2, 3, 5): LP, MAT, PROD
+  // Anos finais (6, 7, 8, 9): LP, MAT, CH, CN
   const numSerie = serieSelecionada?.replace(/[^0-9]/g, '') || ''
   const isAnosIniciaisSerie = ['2', '3', '5'].includes(numSerie)
+  const isAnosFinaisSerie = ['6', '7', '8', '9'].includes(numSerie)
   const temFiltroSerie = !!serieSelecionada && serieSelecionada.trim() !== ''
+
+  // Lógica de exibição:
+  // - Sem filtro: mostrar TODAS as disciplinas (LP, MAT, PROD, CH, CN)
+  // - Anos iniciais: mostrar apenas LP, MAT, PROD
+  // - Anos finais: mostrar apenas LP, MAT, CH, CN
+  const mostrarProd = !temFiltroSerie || isAnosIniciaisSerie
+  const mostrarChCn = !temFiltroSerie || isAnosFinaisSerie
 
   return (
     <div className="space-y-4">
@@ -1194,12 +1205,12 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                   <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">Média</th>
                   <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">LP</th>
                   <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">MAT</th>
-                  {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
-                  {(!temFiltroSerie || isAnosIniciaisSerie) && (
+                  {/* PROD - mostrar para anos iniciais (2, 3, 5) ou quando sem filtro */}
+                  {mostrarProd && (
                     <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">PROD</th>
                   )}
-                  {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
-                  {(!temFiltroSerie || !isAnosIniciaisSerie) && (
+                  {/* CH/CN - mostrar para anos finais (6, 7, 8, 9) ou quando sem filtro */}
+                  {mostrarChCn && (
                     <>
                       <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">CH</th>
                       <th className="text-center py-2 px-1 lg:px-2 font-bold text-indigo-900 dark:text-white text-[10px] lg:text-xs uppercase">CN</th>
@@ -1257,8 +1268,8 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                           )}
                         </div>
                       </td>
-                      {/* PROD - mostrar apenas para anos iniciais (2, 3, 5) ou quando sem filtro */}
-                      {(!temFiltroSerie || isAnosIniciaisSerie) && (
+                      {/* PROD - mostrar para anos iniciais (2, 3, 5) ou quando sem filtro */}
+                      {mostrarProd && (
                         <td className="py-2 px-1 lg:px-2 text-center">
                           <div className="flex flex-col items-center gap-0.5">
                             <span className={`text-xs lg:text-sm font-medium ${getNotaColor(turma.media_prod)}`}>
@@ -1272,8 +1283,8 @@ function AbaTurmas({ turmas, busca, setBusca, carregando, pesquisou, onPesquisar
                           </div>
                         </td>
                       )}
-                      {/* CH/CN - mostrar apenas para anos finais (6, 7, 8, 9) ou quando sem filtro */}
-                      {(!temFiltroSerie || !isAnosIniciaisSerie) && (
+                      {/* CH/CN - mostrar para anos finais (6, 7, 8, 9) ou quando sem filtro */}
+                      {mostrarChCn && (
                         <>
                           <td className="py-2 px-1 lg:px-2 text-center">
                             <div className="flex flex-col items-center gap-0.5">

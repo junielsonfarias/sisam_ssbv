@@ -249,9 +249,13 @@ export default function DadosPage() {
         const isPresente = presencaUpper === 'P'
         const isFaltante = presencaUpper === 'F'
 
-        // Níveis
-        const nivel = r.nivel_aprendizagem || 'Não classificado'
-        niveisMap[nivel] = (niveisMap[nivel] || 0) + 1
+        // Níveis - apenas para anos iniciais (2º, 3º, 5º) e com presença
+        const numeroSerie = r.serie?.toString().replace(/[^0-9]/g, '')
+        const isAnosIniciaisAluno = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
+        if (isAnosIniciaisAluno && (isPresente || isFaltante)) {
+          const nivel = r.nivel_aluno || r.nivel_aprendizagem || 'Não classificado'
+          niveisMap[nivel] = (niveisMap[nivel] || 0) + 1
+        }
 
         // Valores numéricos
         const mediaAluno = toNumber(r.media_aluno)
@@ -1286,8 +1290,8 @@ export default function DadosPage() {
       if (notaProd > 0) { acc.somaProd += notaProd; acc.countProd++ }
 
       // Níveis de aprendizagem (apenas anos iniciais e com presença registrada)
-      if (isAnosIniciais && (isPresente || isFaltante)) {
-        const nivel = aluno.nivel_aprendizagem || 'Não classificado'
+      if (isAnosIniciaisAluno && (isPresente || isFaltante)) {
+        const nivel = aluno.nivel_aluno || aluno.nivel_aprendizagem || 'Não classificado'
         acc.niveis[nivel] = (acc.niveis[nivel] || 0) + 1
       }
 
@@ -2195,6 +2199,7 @@ export default function DadosPage() {
                       <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">Use os filtros acima e clique em <strong>Pesquisar</strong> para carregar os dados</p>
                     </div>
                   ) : (
+                    <div className="space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Grafico de Barras - Medias por Serie */}
                       {dados.mediasPorSerie.length > 0 && (() => {
@@ -2224,24 +2229,48 @@ export default function DadosPage() {
                             media_cn: item.media_cn
                           }))
 
+                        // Calcular médias gerais por etapa
+                        const calcMedias = (arr: any[], campos: string[]) => {
+                          const result: Record<string, number> = {}
+                          campos.forEach(campo => {
+                            const valores = arr.map(i => i[campo]).filter(v => v && v > 0)
+                            result[campo] = valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0
+                          })
+                          return result
+                        }
+                        const mediasAI = calcMedias(anosIniciais, ['media_lp', 'media_mat', 'media_prod'])
+                        const mediasAF = calcMedias(anosFinais, ['media_lp', 'media_mat', 'media_ch', 'media_cn'])
+
                         return (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Media por Serie</h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Média por Série</h3>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">
+                          {anosIniciais.length + anosFinais.length} séries
+                        </span>
+                      </div>
                       <div className="space-y-4">
                         {/* Anos Iniciais: LP, MAT, PROD.T */}
                         {anosIniciais.length > 0 && (
                           <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Anos Iniciais (2º, 3º, 5º) - LP, MAT, PROD.T</p>
-                            <div className="h-[120px]">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Anos Iniciais (2º, 3º, 5º)</p>
+                              <div className="flex gap-3 text-[10px]">
+                                <span style={{ color: COLORS.disciplinas.lp }}>LP: <strong>{mediasAI.media_lp?.toFixed(2) || '-'}</strong></span>
+                                <span style={{ color: COLORS.disciplinas.mat }}>MAT: <strong>{mediasAI.media_mat?.toFixed(2) || '-'}</strong></span>
+                                <span style={{ color: COLORS.disciplinas.prod }}>PROD: <strong>{mediasAI.media_prod?.toFixed(2) || '-'}</strong></span>
+                              </div>
+                            </div>
+                            <div className="h-[130px]">
                               <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={anosIniciais} barCategoryGap="20%">
+                                <BarChart data={anosIniciais} barCategoryGap="15%" margin={{ top: 15, right: 5, left: 0, bottom: 5 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                                   <XAxis dataKey="serie" tick={{ fill: '#6B7280', fontSize: 10 }} />
-                                  <YAxis domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 10 }} width={30} />
+                                  <YAxis domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 10 }} width={25} />
                                   <Tooltip content={<CustomTooltip />} />
-                                  <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} />
-                                  <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} />
-                                  <Bar dataKey="media_prod" name="PROD.T" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} />
+                                  <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} label={{ position: 'top', fill: COLORS.disciplinas.lp, fontSize: 9, formatter: (v: number) => v?.toFixed(1) }} />
+                                  <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} label={{ position: 'top', fill: COLORS.disciplinas.mat, fontSize: 9, formatter: (v: number) => v?.toFixed(1) }} />
+                                  <Bar dataKey="media_prod" name="PROD.T" fill={COLORS.disciplinas.prod} radius={[2, 2, 0, 0]} label={{ position: 'top', fill: COLORS.disciplinas.prod, fontSize: 9, formatter: (v: number) => v?.toFixed(1) }} />
                                 </BarChart>
                               </ResponsiveContainer>
                             </div>
@@ -2251,18 +2280,26 @@ export default function DadosPage() {
                         {/* Anos Finais: LP, MAT, CH, CN */}
                         {anosFinais.length > 0 && (
                           <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Anos Finais (6º-9º) - LP, MAT, CH, CN</p>
-                            <div className="h-[120px]">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Anos Finais (6º-9º)</p>
+                              <div className="flex gap-3 text-[10px]">
+                                <span style={{ color: COLORS.disciplinas.lp }}>LP: <strong>{mediasAF.media_lp?.toFixed(2) || '-'}</strong></span>
+                                <span style={{ color: COLORS.disciplinas.mat }}>MAT: <strong>{mediasAF.media_mat?.toFixed(2) || '-'}</strong></span>
+                                <span style={{ color: COLORS.disciplinas.ch }}>CH: <strong>{mediasAF.media_ch?.toFixed(2) || '-'}</strong></span>
+                                <span style={{ color: COLORS.disciplinas.cn }}>CN: <strong>{mediasAF.media_cn?.toFixed(2) || '-'}</strong></span>
+                              </div>
+                            </div>
+                            <div className="h-[130px]">
                               <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={anosFinais} barCategoryGap="20%">
+                                <BarChart data={anosFinais} barCategoryGap="15%" margin={{ top: 15, right: 5, left: 0, bottom: 5 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                                   <XAxis dataKey="serie" tick={{ fill: '#6B7280', fontSize: 10 }} />
-                                  <YAxis domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 10 }} width={30} />
+                                  <YAxis domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 10 }} width={25} />
                                   <Tooltip content={<CustomTooltip />} />
-                                  <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} />
-                                  <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} />
-                                  <Bar dataKey="media_ch" name="CH" fill={COLORS.disciplinas.ch} radius={[2, 2, 0, 0]} />
-                                  <Bar dataKey="media_cn" name="CN" fill={COLORS.disciplinas.cn} radius={[2, 2, 0, 0]} />
+                                  <Bar dataKey="media_lp" name="LP" fill={COLORS.disciplinas.lp} radius={[2, 2, 0, 0]} label={{ position: 'top', fill: COLORS.disciplinas.lp, fontSize: 9, formatter: (v: number) => v?.toFixed(1) }} />
+                                  <Bar dataKey="media_mat" name="MAT" fill={COLORS.disciplinas.mat} radius={[2, 2, 0, 0]} label={{ position: 'top', fill: COLORS.disciplinas.mat, fontSize: 9, formatter: (v: number) => v?.toFixed(1) }} />
+                                  <Bar dataKey="media_ch" name="CH" fill={COLORS.disciplinas.ch} radius={[2, 2, 0, 0]} label={{ position: 'top', fill: COLORS.disciplinas.ch, fontSize: 9, formatter: (v: number) => v?.toFixed(1) }} />
+                                  <Bar dataKey="media_cn" name="CN" fill={COLORS.disciplinas.cn} radius={[2, 2, 0, 0]} label={{ position: 'top', fill: COLORS.disciplinas.cn, fontSize: 9, formatter: (v: number) => v?.toFixed(1) }} />
                                 </BarChart>
                               </ResponsiveContainer>
                             </div>
@@ -2270,31 +2307,31 @@ export default function DadosPage() {
                         )}
 
                         {/* Legenda unificada */}
-                        <div className="flex flex-wrap justify-center gap-4 pt-2 border-t border-gray-200 dark:border-slate-700">
+                        <div className="flex flex-wrap justify-center gap-4 pt-3 border-t border-gray-200 dark:border-slate-700">
                           <div className="flex items-center gap-1.5 text-xs">
                             <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.lp }}></div>
-                            <span>LP</span>
+                            <span>Língua Portuguesa</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs">
                             <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.mat }}></div>
-                            <span>MAT</span>
+                            <span>Matemática</span>
                           </div>
                           {anosFinais.length > 0 && (
                             <>
                               <div className="flex items-center gap-1.5 text-xs">
                                 <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.ch }}></div>
-                                <span>CH</span>
+                                <span>Ciências Humanas</span>
                               </div>
                               <div className="flex items-center gap-1.5 text-xs">
                                 <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.cn }}></div>
-                                <span>CN</span>
+                                <span>Ciências da Natureza</span>
                               </div>
                             </>
                           )}
                           {anosIniciais.length > 0 && (
                             <div className="flex items-center gap-1.5 text-xs">
                               <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.disciplinas.prod }}></div>
-                              <span>PROD.T</span>
+                              <span>Produção Textual</span>
                             </div>
                           )}
                         </div>
@@ -2357,17 +2394,32 @@ export default function DadosPage() {
                   })()}
 
                   {/* Distribuicao por Faixa de Nota */}
-                  {dados.faixasNota.length > 0 && (
+                  {dados.faixasNota.length > 0 && (() => {
+                    const totalAlunos = dados.faixasNota.reduce((acc: number, item: any) => acc + (item.quantidade || 0), 0)
+                    const faixaLabels: Record<string, { label: string; desc: string }> = {
+                      '0 a 2': { label: 'Crítico', desc: 'Notas de 0 a 2' },
+                      '2 a 4': { label: 'Insuficiente', desc: 'Notas de 2 a 4' },
+                      '4 a 6': { label: 'Regular', desc: 'Notas de 4 a 6' },
+                      '6 a 8': { label: 'Bom', desc: 'Notas de 6 a 8' },
+                      '8 a 10': { label: 'Excelente', desc: 'Notas de 8 a 10' }
+                    }
+
+                    return (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Distribuicao por Faixa de Nota</h3>
-                      <div className="h-[280px]">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Distribuição por Faixa de Nota</h3>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-3 py-1 rounded-full">
+                          {totalAlunos.toLocaleString('pt-BR')} alunos
+                        </span>
+                      </div>
+                      <div className="h-[220px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={dados.faixasNota}>
+                          <BarChart data={dados.faixasNota} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                             <XAxis dataKey="faixa" tick={{ fill: '#6B7280', fontSize: 11 }} />
                             <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} />
                             <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="quantidade" name="Alunos" radius={[4, 4, 0, 0]}>
+                            <Bar dataKey="quantidade" name="Alunos" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: '#6B7280', fontSize: 11, fontWeight: 'bold' }}>
                               {dados.faixasNota.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS.faixas[index] || COLORS.primary} />
                               ))}
@@ -2375,8 +2427,24 @@ export default function DadosPage() {
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
+                      {/* Cards de resumo por faixa */}
+                      <div className="grid grid-cols-5 gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                        {dados.faixasNota.map((item: any, index: number) => {
+                          const pct = totalAlunos > 0 ? ((item.quantidade / totalAlunos) * 100).toFixed(1) : '0'
+                          const info = faixaLabels[item.faixa] || { label: item.faixa, desc: '' }
+                          return (
+                            <div key={item.faixa} className="text-center p-2 rounded-lg" style={{ backgroundColor: `${COLORS.faixas[index]}15` }}>
+                              <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ backgroundColor: COLORS.faixas[index] }} />
+                              <p className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{info.label}</p>
+                              <p className="text-sm font-bold" style={{ color: COLORS.faixas[index] }}>{item.quantidade}</p>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400">{pct}%</p>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  )}
+                    )
+                  })()}
 
                   {/* Gráfico Comparativo Anos Iniciais vs Anos Finais */}
                   {dados.mediasPorSerie.length > 0 && (() => {
@@ -2424,12 +2492,33 @@ export default function DadosPage() {
 
                     if (dadosComparativo.length === 0) return null
 
+                    // Calcular diferença e melhor etapa
+                    const melhorEtapa = dadosComparativo.reduce((a, b) => a.media > b.media ? a : b)
+                    const totalAlunos = dadosComparativo.reduce((acc, d) => acc + d.alunos, 0)
+                    const mediaGeral = dadosComparativo.reduce((acc, d) => acc + d.media * d.alunos, 0) / totalAlunos
+                    const diferenca = dadosComparativo.length === 2 ? Math.abs(dadosComparativo[0].media - dadosComparativo[1].media) : 0
+
                     return (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Comparativo por Etapa de Ensino</h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Comparativo por Etapa de Ensino</h3>
+                        <div className="flex flex-wrap items-center gap-3 text-xs">
+                          <span className="text-gray-500 dark:text-gray-400">
+                            Média geral: <span className="font-bold text-indigo-600 dark:text-indigo-400">{mediaGeral.toFixed(2)}</span>
+                          </span>
+                          <span className="text-gray-500 dark:text-gray-400">
+                            Total: <span className="font-bold">{totalAlunos.toLocaleString('pt-BR')}</span> alunos
+                          </span>
+                          {diferenca > 0 && (
+                            <span className="text-gray-500 dark:text-gray-400">
+                              Diferença: <span className="font-bold text-amber-600 dark:text-amber-400">{diferenca.toFixed(2)}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       <div className="h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={dadosComparativo} layout="vertical" barCategoryGap="30%">
+                          <BarChart data={dadosComparativo} layout="vertical" barCategoryGap="30%" margin={{ top: 5, right: 50, left: 10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                             <XAxis type="number" domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 11 }} />
                             <YAxis type="category" dataKey="etapa" tick={{ fill: '#6B7280', fontSize: 12 }} width={100} />
@@ -2444,7 +2533,7 @@ export default function DadosPage() {
                                         Média: <span className="font-bold">{data.media.toFixed(2)}</span>
                                       </p>
                                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        Alunos: <span className="font-bold">{data.alunos}</span>
+                                        Alunos: <span className="font-bold">{data.alunos.toLocaleString('pt-BR')}</span>
                                       </p>
                                     </div>
                                   )
@@ -2452,7 +2541,7 @@ export default function DadosPage() {
                                 return null
                               }}
                             />
-                            <Bar dataKey="media" name="Média" radius={[0, 4, 4, 0]}>
+                            <Bar dataKey="media" name="Média" radius={[0, 4, 4, 0]} label={{ position: 'right', fill: '#374151', fontSize: 11, fontWeight: 'bold', formatter: (v: number) => v?.toFixed(2) }}>
                               {dadosComparativo.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.cor} />
                               ))}
@@ -2463,10 +2552,23 @@ export default function DadosPage() {
                       {/* Cards com detalhes */}
                       <div className="grid grid-cols-2 gap-4 mt-4">
                         {dadosComparativo.map(item => (
-                          <div key={item.etapa} className="p-3 rounded-lg border" style={{ borderColor: item.cor, backgroundColor: `${item.cor}10` }}>
-                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{item.etapa}</p>
+                          <div
+                            key={item.etapa}
+                            className="p-3 rounded-lg border transition-all"
+                            style={{
+                              borderColor: item.cor,
+                              backgroundColor: `${item.cor}10`,
+                              boxShadow: item.etapa === melhorEtapa.etapa ? `0 0 0 3px ${item.cor}40` : 'none'
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{item.etapa}</p>
+                              {item.etapa === melhorEtapa.etapa && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: item.cor }}>Melhor</span>
+                              )}
+                            </div>
                             <p className="text-2xl font-bold" style={{ color: item.cor }}>{item.media.toFixed(2)}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{item.alunos} alunos</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{item.alunos.toLocaleString('pt-BR')} alunos</p>
                           </div>
                         ))}
                       </div>
@@ -2475,26 +2577,70 @@ export default function DadosPage() {
                   })()}
 
                   {/* Ranking de Polos */}
-                  {dados.mediasPorPolo.length > 0 && (
+                  {dados.mediasPorPolo.length > 0 && (() => {
+                    const polosOrdenados = [...dados.mediasPorPolo].sort((a: any, b: any) => (b.media_geral || 0) - (a.media_geral || 0)).slice(0, 8)
+                    const melhorPolo = polosOrdenados[0]
+                    const mediaGeralPolos = polosOrdenados.reduce((acc: number, p: any) => acc + (p.media_geral || 0), 0) / polosOrdenados.length
+
+                    return (
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ranking de Polos</h3>
-                      <div className="h-[280px]">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Ranking de Polos</h3>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Média geral: <span className="font-bold text-indigo-600 dark:text-indigo-400">{mediaGeralPolos.toFixed(2)}</span>
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-[240px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={dados.mediasPorPolo.slice(0, 8)} layout="vertical">
+                          <BarChart data={polosOrdenados} layout="vertical" margin={{ top: 5, right: 40, left: 10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                             <XAxis type="number" domain={[0, 10]} tick={{ fill: '#6B7280', fontSize: 11 }} />
                             <YAxis type="category" dataKey="polo" width={100} tick={{ fill: '#6B7280', fontSize: 10 }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="media_geral" name="Media" radius={[0, 4, 4, 0]}>
-                              {dados.mediasPorPolo.slice(0, 8).map((entry, index) => (
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload
+                                  return (
+                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700">
+                                      <p className="font-semibold text-gray-900 dark:text-white">{data.polo}</p>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">Média: <span className="font-bold">{(data.media_geral || 0).toFixed(2)}</span></p>
+                                      {data.total_alunos && <p className="text-sm text-gray-600 dark:text-gray-400">Alunos: <span className="font-bold">{data.total_alunos}</span></p>}
+                                    </div>
+                                  )
+                                }
+                                return null
+                              }}
+                            />
+                            <Bar dataKey="media_geral" name="Media" radius={[0, 4, 4, 0]} label={{ position: 'right', fill: '#6B7280', fontSize: 10, formatter: (v: number) => v?.toFixed(2) }}>
+                              {polosOrdenados.map((entry: any, index: number) => (
                                 <Cell key={`cell-${index}`} fill={COLORS.ranking[index % COLORS.ranking.length]} />
                               ))}
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
+                      {/* Destaque do melhor polo */}
+                      {melhorPolo && (
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-yellow-500 text-lg">🏆</span>
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Melhor desempenho</p>
+                              <p className="font-semibold text-gray-900 dark:text-white">{melhorPolo.polo}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{(melhorPolo.media_geral || 0).toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">média geral</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    )
+                  })()}
+                    </div>
                     </div>
                   )}
                 </div>

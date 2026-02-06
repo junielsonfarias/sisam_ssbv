@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
-  Search, BookOpen, Award, Filter, X, Users, Target, CheckCircle2,
+  Search, Filter, X, Users, Target, CheckCircle2,
   Eye, RefreshCw, AlertCircle
 } from 'lucide-react'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
@@ -68,6 +68,7 @@ interface EstatisticasAnalise {
   mediaCH: number
   mediaMAT: number
   mediaCN: number
+  mediaProd: number
 }
 
 interface PainelAnaliseProps {
@@ -138,7 +139,8 @@ export default function PainelAnalise({
     mediaLP: 0,
     mediaCH: 0,
     mediaMAT: 0,
-    mediaCN: 0
+    mediaCN: 0,
+    mediaProd: 0
   })
 
   useEffect(() => {
@@ -266,7 +268,8 @@ export default function PainelAnalise({
             mediaLP: parseFloat(data.estatisticas.mediaLP) || 0,
             mediaCH: parseFloat(data.estatisticas.mediaCH) || 0,
             mediaMAT: parseFloat(data.estatisticas.mediaMAT) || 0,
-            mediaCN: parseFloat(data.estatisticas.mediaCN) || 0
+            mediaCN: parseFloat(data.estatisticas.mediaCN) || 0,
+            mediaProd: parseFloat(data.estatisticas.mediaProducao || data.estatisticas.mediaProd) || 0
           })
         }
 
@@ -672,61 +675,134 @@ export default function PainelAnalise({
       )}
 
       {/* Medias por Area */}
-      {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (
-        <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Lingua Portuguesa</p>
-                <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaLP)}`}>
-                  {estatisticasAPI.mediaLP.toFixed(2)}
+      {(estatisticasAPI.totalAlunos > 0 || paginacao.total > 0 || carregando) && (() => {
+        // Determinar quais disciplinas mostrar baseado na série selecionada
+        const numSerie = filtros.serie?.replace(/[^0-9]/g, '') || ''
+        const serieIsAnosIniciais = ['2', '3', '5'].includes(numSerie)
+        const serieIsAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
+        const temFiltroSerie = !!filtros.serie && filtros.serie.trim() !== ''
+
+        // Lógica de exibição:
+        // - Sem filtro de série: mostrar TODAS as 5 disciplinas
+        // - Anos iniciais (2, 3, 5): mostrar apenas LP, MAT, PROD
+        // - Anos finais (6, 7, 8, 9): mostrar apenas LP, MAT, CH, CN
+        const mostrarProd = !temFiltroSerie || serieIsAnosIniciais
+        const mostrarChCn = !temFiltroSerie || serieIsAnosFinais
+
+        // Componente de Card de Disciplina com visual moderno
+        const CardDisciplina = ({
+          sigla,
+          titulo,
+          media,
+          bgColor,
+          borderColor,
+          textColor,
+          barColor
+        }: {
+          sigla: string
+          titulo: string
+          media: number
+          bgColor: string
+          borderColor: string
+          textColor: string
+          barColor: string
+        }) => {
+          const porcentagem = Math.min(Math.max((media / 10) * 100, 0), 100)
+          const temMedia = media > 0
+
+          return (
+            <div className={`${bgColor} rounded-xl p-3 sm:p-4 border-2 ${borderColor} hover:shadow-lg transition-all duration-300 hover:scale-[1.02]`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-xs sm:text-sm font-bold ${textColor} uppercase tracking-wide bg-white/50 dark:bg-slate-900/50 px-2 py-0.5 rounded-md`}>
+                  {sigla}
+                </span>
+                <span className={`text-xl sm:text-2xl font-bold ${textColor}`}>
+                  {temMedia ? media.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
+                </span>
+              </div>
+              <div className="w-full bg-white/60 dark:bg-slate-800/60 rounded-full h-2 mb-2 shadow-inner overflow-hidden">
+                <div
+                  className="h-2 rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${porcentagem}%`,
+                    backgroundColor: barColor
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1">{titulo}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 ml-2">
+                  {temMedia ? `${porcentagem.toFixed(0)}%` : '—'}
                 </p>
               </div>
-              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-500 opacity-50 flex-shrink-0" />
             </div>
+          )
+        }
+
+        return (
+          <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6 ${carregando ? 'opacity-50' : ''}`}>
+            {/* LP - sempre visível */}
+            <CardDisciplina
+              sigla="LP"
+              titulo="Língua Portuguesa"
+              media={estatisticasAPI.mediaLP}
+              bgColor="bg-blue-50 dark:bg-blue-900/30"
+              borderColor="border-blue-200 dark:border-blue-700"
+              textColor="text-blue-700 dark:text-blue-300"
+              barColor="#3B82F6"
+            />
+
+            {/* MAT - sempre visível */}
+            <CardDisciplina
+              sigla="MAT"
+              titulo="Matemática"
+              media={estatisticasAPI.mediaMAT}
+              bgColor="bg-purple-50 dark:bg-purple-900/30"
+              borderColor="border-purple-200 dark:border-purple-700"
+              textColor="text-purple-700 dark:text-purple-300"
+              barColor="#A855F7"
+            />
+
+            {/* PROD - mostrar para anos iniciais ou sem filtro */}
+            {mostrarProd && (
+              <CardDisciplina
+                sigla="PROD"
+                titulo="Produção Textual"
+                media={estatisticasAPI.mediaProd}
+                bgColor="bg-rose-50 dark:bg-rose-900/30"
+                borderColor="border-rose-200 dark:border-rose-700"
+                textColor="text-rose-700 dark:text-rose-300"
+                barColor="#F43F5E"
+              />
+            )}
+
+            {/* CH/CN - mostrar para anos finais ou sem filtro */}
+            {mostrarChCn && (
+              <>
+                <CardDisciplina
+                  sigla="CH"
+                  titulo="Ciências Humanas"
+                  media={estatisticasAPI.mediaCH}
+                  bgColor="bg-amber-50 dark:bg-amber-900/30"
+                  borderColor="border-amber-200 dark:border-amber-700"
+                  textColor="text-amber-700 dark:text-amber-300"
+                  barColor="#F59E0B"
+                />
+
+                <CardDisciplina
+                  sigla="CN"
+                  titulo="Ciências da Natureza"
+                  media={estatisticasAPI.mediaCN}
+                  bgColor="bg-emerald-50 dark:bg-emerald-900/30"
+                  borderColor="border-emerald-200 dark:border-emerald-700"
+                  textColor="text-emerald-700 dark:text-emerald-300"
+                  barColor="#10B981"
+                />
+              </>
+            )}
           </div>
-
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Matematica</p>
-                <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaMAT)}`}>
-                  {estatisticasAPI.mediaMAT.toFixed(2)}
-                </p>
-              </div>
-              <Award className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 opacity-50 flex-shrink-0" />
-            </div>
-          </div>
-
-          {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_finais') && (
-            <>
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciencias Humanas</p>
-                    <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCH)}`}>
-                      {estatisticasAPI.mediaCH.toFixed(2)}
-                    </p>
-                  </div>
-                  <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 opacity-50 flex-shrink-0" />
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">Ciencias da Natureza</p>
-                    <p className={`text-lg sm:text-xl font-bold ${getNotaColor(estatisticasAPI.mediaCN)}`}>
-                      {estatisticasAPI.mediaCN.toFixed(2)}
-                    </p>
-                  </div>
-                  <Award className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 opacity-50 flex-shrink-0" />
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+        )
+      })()}
 
       {/* Tabela de Resultados */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -764,21 +840,33 @@ export default function PainelAnalise({
                 <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
                   MAT
                 </th>
-                {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_finais') && (
-                  <>
+                {/* PROD - mostrar para anos iniciais ou sem filtro de série */}
+                {(() => {
+                  const numSerie = filtros.serie?.replace(/[^0-9]/g, '') || ''
+                  const serieIsAnosIniciais = ['2', '3', '5'].includes(numSerie)
+                  const temFiltroSerie = !!filtros.serie && filtros.serie.trim() !== ''
+                  return (!temFiltroSerie || serieIsAnosIniciais) && (
                     <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
-                      CH
+                      PROD
                     </th>
-                    <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
-                      CN
-                    </th>
-                  </>
-                )}
-                {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_iniciais') && (
-                  <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
-                    PROD
-                  </th>
-                )}
+                  )
+                })()}
+                {/* CH/CN - mostrar para anos finais ou sem filtro de série */}
+                {(() => {
+                  const numSerie = filtros.serie?.replace(/[^0-9]/g, '') || ''
+                  const serieIsAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
+                  const temFiltroSerie = !!filtros.serie && filtros.serie.trim() !== ''
+                  return (!temFiltroSerie || serieIsAnosFinais) && (
+                    <>
+                      <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
+                        CH
+                      </th>
+                      <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
+                        CN
+                      </th>
+                    </>
+                  )
+                })()}
                 <th className="text-center py-2 px-2 font-bold text-indigo-900 dark:text-white text-xs uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-16">
                   Média
                 </th>
@@ -871,41 +959,53 @@ export default function PainelAnalise({
                           tamanho="md"
                         />
                       </td>
-                      {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_finais') && (
-                        <>
+                      {/* PROD - mostrar para anos iniciais ou sem filtro de série */}
+                      {(() => {
+                        const numSerie = filtros.serie?.replace(/[^0-9]/g, '') || ''
+                        const serieIsAnosIniciais = ['2', '3', '5'].includes(numSerie)
+                        const temFiltroSerie = !!filtros.serie && filtros.serie.trim() !== ''
+                        return (!temFiltroSerie || serieIsAnosIniciais) && (
                           <td className="py-2 px-1 text-center">
                             <CelulaNotaComNivel
-                              nota={resultado.nota_ch}
-                              acertos={resultado.total_acertos_ch}
-                              totalQuestoes={getTotalQuestoesPorSerie(resultado, 'CH')}
+                              nota={resultado.nota_producao}
+                              nivel={resultado.nivel_prod}
                               presenca={resultado.presenca}
-                              naoAplicavel={anosIniciais}
+                              naoAplicavel={!anosIniciais}
                               tamanho="md"
                             />
                           </td>
-                          <td className="py-2 px-1 text-center">
-                            <CelulaNotaComNivel
-                              nota={resultado.nota_cn}
-                              acertos={resultado.total_acertos_cn}
-                              totalQuestoes={getTotalQuestoesPorSerie(resultado, 'CN')}
-                              presenca={resultado.presenca}
-                              naoAplicavel={anosIniciais}
-                              tamanho="md"
-                            />
-                          </td>
-                        </>
-                      )}
-                      {(!filtros.tipo_ensino || filtros.tipo_ensino === 'anos_iniciais') && (
-                        <td className="py-2 px-1 text-center">
-                          <CelulaNotaComNivel
-                            nota={resultado.nota_producao}
-                            nivel={resultado.nivel_prod}
-                            presenca={resultado.presenca}
-                            naoAplicavel={!anosIniciais}
-                            tamanho="md"
-                          />
-                        </td>
-                      )}
+                        )
+                      })()}
+                      {/* CH/CN - mostrar para anos finais ou sem filtro de série */}
+                      {(() => {
+                        const numSerie = filtros.serie?.replace(/[^0-9]/g, '') || ''
+                        const serieIsAnosFinais = ['6', '7', '8', '9'].includes(numSerie)
+                        const temFiltroSerie = !!filtros.serie && filtros.serie.trim() !== ''
+                        return (!temFiltroSerie || serieIsAnosFinais) && (
+                          <>
+                            <td className="py-2 px-1 text-center">
+                              <CelulaNotaComNivel
+                                nota={resultado.nota_ch}
+                                acertos={resultado.total_acertos_ch}
+                                totalQuestoes={getTotalQuestoesPorSerie(resultado, 'CH')}
+                                presenca={resultado.presenca}
+                                naoAplicavel={anosIniciais}
+                                tamanho="md"
+                              />
+                            </td>
+                            <td className="py-2 px-1 text-center">
+                              <CelulaNotaComNivel
+                                nota={resultado.nota_cn}
+                                acertos={resultado.total_acertos_cn}
+                                totalQuestoes={getTotalQuestoesPorSerie(resultado, 'CN')}
+                                presenca={resultado.presenca}
+                                naoAplicavel={anosIniciais}
+                                tamanho="md"
+                              />
+                            </td>
+                          </>
+                        )
+                      })()}
                       <td className="py-2 px-2 text-center">
                         <CelulaNotaComNivel
                           nota={resultado.media_aluno}
