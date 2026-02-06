@@ -1422,8 +1422,8 @@ export default function DadosPage() {
 
   // useEffect para aplicar filtro de série/disciplina após cache ser atualizado
   useEffect(() => {
-    // Se tem cache e tem filtro de série ou disciplina, aplicar filtragem local
-    if (dadosCache && (filtroSerie || filtroDisciplina) && pesquisaRealizada) {
+    // Se tem cache e pesquisa foi realizada, aplicar filtragem local (inclusive quando "Todas" é selecionada)
+    if (dadosCache && pesquisaRealizada) {
       const dadosFiltrados = filtrarDadosLocal(filtroSerie, filtroDisciplina)
       if (dadosFiltrados) {
         setDados(dadosFiltrados)
