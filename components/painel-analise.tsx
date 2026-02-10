@@ -388,6 +388,9 @@ export default function PainelAnalise({
   // A busca agora é feita no servidor, então apenas retorna os resultados
   const resultadosFiltrados = resultados
 
+  // Media Geral: usar valor calculado pelo backend (divisor fixo: /3 anos iniciais, /4 anos finais)
+  const mediaGeralCalculada = estatisticasAPI.mediaGeral
+
   const escolasFiltradas = useMemo(() => {
     if (!filtros.polo_id) return escolas
     return escolas.filter(e => e.polo_id === filtros.polo_id)
@@ -659,7 +662,7 @@ export default function PainelAnalise({
           <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-4 sm:p-6 text-white">
             <div className="flex items-center justify-between mb-2">
               <Target className="w-6 h-6 sm:w-8 sm:h-8 opacity-90" />
-              <span className="text-2xl sm:text-3xl font-bold">{estatisticasAPI.mediaGeral.toFixed(2)}</span>
+              <span className="text-2xl sm:text-3xl font-bold">{mediaGeralCalculada > 0 ? mediaGeralCalculada.toFixed(2) : '-'}</span>
             </div>
             <p className="text-xs sm:text-sm opacity-90">Media Geral</p>
           </div>

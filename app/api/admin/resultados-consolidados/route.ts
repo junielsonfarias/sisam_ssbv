@@ -378,41 +378,11 @@ export async function GET(request: NextRequest) {
             END
           ELSE NULL
         END), 2) as media_geral,
-        ROUND(AVG(CASE
-          WHEN UPPER(rc.presenca) = 'P'
-          AND rc.nota_lp IS NOT NULL
-          AND CAST(rc.nota_lp AS DECIMAL) > 0
-          THEN CAST(rc.nota_lp AS DECIMAL)
-          ELSE NULL
-        END), 2) as media_lp,
-        ROUND(AVG(CASE
-          WHEN UPPER(rc.presenca) = 'P'
-          AND rc.nota_ch IS NOT NULL
-          AND CAST(rc.nota_ch AS DECIMAL) > 0
-          THEN CAST(rc.nota_ch AS DECIMAL)
-          ELSE NULL
-        END), 2) as media_ch,
-        ROUND(AVG(CASE
-          WHEN UPPER(rc.presenca) = 'P'
-          AND rc.nota_mat IS NOT NULL
-          AND CAST(rc.nota_mat AS DECIMAL) > 0
-          THEN CAST(rc.nota_mat AS DECIMAL)
-          ELSE NULL
-        END), 2) as media_mat,
-        ROUND(AVG(CASE
-          WHEN UPPER(rc.presenca) = 'P'
-          AND rc.nota_cn IS NOT NULL
-          AND CAST(rc.nota_cn AS DECIMAL) > 0
-          THEN CAST(rc.nota_cn AS DECIMAL)
-          ELSE NULL
-        END), 2) as media_cn,
-        ROUND(AVG(CASE
-          WHEN UPPER(rc.presenca) = 'P'
-          AND rc.nota_producao IS NOT NULL
-          AND CAST(rc.nota_producao AS DECIMAL) > 0
-          THEN CAST(rc.nota_producao AS DECIMAL)
-          ELSE NULL
-        END), 2) as media_producao,
+        ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' THEN COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) ELSE NULL END), 2) as media_lp,
+        ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' THEN COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) ELSE NULL END), 2) as media_ch,
+        ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' THEN COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) ELSE NULL END), 2) as media_mat,
+        ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' THEN COALESCE(CAST(rc.nota_cn AS DECIMAL), 0) ELSE NULL END), 2) as media_cn,
+        ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' THEN COALESCE(CAST(rc.nota_producao AS DECIMAL), 0) ELSE NULL END), 2) as media_producao,
         -- Estatísticas por tipo de ensino com DIVISOR FIXO
         ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P'

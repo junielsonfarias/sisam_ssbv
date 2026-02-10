@@ -99,11 +99,11 @@ export async function GET(request: NextRequest) {
             END
           ELSE NULL
         END), 2) as media_geral,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) ELSE NULL END), 2) as media_lp,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) ELSE NULL END), 2) as media_mat,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN COALESCE(CAST(rc.nota_producao AS DECIMAL), 0) ELSE NULL END), 2) as media_prod,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) ELSE NULL END), 2) as media_ch,
+        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN COALESCE(CAST(rc.nota_cn AS DECIMAL), 0) ELSE NULL END), 2) as media_cn,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
         COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
       FROM turmas t

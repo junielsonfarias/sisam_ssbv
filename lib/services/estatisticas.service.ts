@@ -672,14 +672,14 @@ async function buscarMediasPorDisciplina(
   const whereClause = `WHERE ${whereConditions.join(' AND ')}`
   const needsJoin = escopo === 'polo' && filtros.poloId
 
-  // Query para médias por disciplina - usando AVG apenas quando nota > 0
+  // Query para médias por disciplina - nota 0 entra no cálculo como 0
   const query = `
     SELECT
-      ROUND(AVG(CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
-      ROUND(AVG(CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
-      ROUND(AVG(CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod,
-      ROUND(AVG(CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
-      ROUND(AVG(CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn
+      ROUND(AVG(COALESCE(CAST(rc.nota_lp AS DECIMAL), 0)), 2) as media_lp,
+      ROUND(AVG(COALESCE(CAST(rc.nota_mat AS DECIMAL), 0)), 2) as media_mat,
+      ROUND(AVG(COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)), 2) as media_prod,
+      ROUND(AVG(COALESCE(CAST(rc.nota_ch AS DECIMAL), 0)), 2) as media_ch,
+      ROUND(AVG(COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)), 2) as media_cn
     FROM resultados_consolidados_unificada rc
     ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
     ${whereClause}
