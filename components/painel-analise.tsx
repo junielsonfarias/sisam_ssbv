@@ -68,9 +68,16 @@ interface FiltrosAnalise {
   escola_id?: string
   turma_id?: string
   ano_letivo?: string
+  avaliacao_id?: string
   serie?: string
   presenca?: string
   tipo_ensino?: string
+}
+
+interface AvaliacaoOption {
+  id: string
+  nome: string
+  tipo: string
 }
 
 interface EstatisticasAnalise {
@@ -125,6 +132,7 @@ export default function PainelAnalise({
   const [escolas, setEscolas] = useState<OpcaoSelect[]>([])
   const [turmas, setTurmas] = useState<OpcaoSelect[]>([])
   const [series, setSeries] = useState<string[]>([])
+  const [avaliacoesOpcoes, setAvaliacoesOpcoes] = useState<AvaliacaoOption[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [alunoSelecionado, setAlunoSelecionado] = useState<AlunoSelecionado | null>(null)
 
@@ -208,6 +216,25 @@ export default function PainelAnalise({
   useEffect(() => {
     carregarTurmas()
   }, [filtros.serie, filtros.escola_id, filtros.ano_letivo])
+
+  // Carregar avaliações quando ano_letivo muda
+  useEffect(() => {
+    if (!filtros.ano_letivo || filtros.ano_letivo.length !== 4) {
+      setAvaliacoesOpcoes([])
+      return
+    }
+    fetch(`/api/admin/avaliacoes?ano_letivo=${filtros.ano_letivo}`)
+      .then(r => r.json())
+      .then(data => {
+        const avs = Array.isArray(data) ? data : []
+        setAvaliacoesOpcoes(avs)
+        // Se só tem 1 avaliação, auto-selecionar
+        if (avs.length === 1 && !filtros.avaliacao_id) {
+          handleFiltroChange('avaliacao_id', avs[0].id)
+        }
+      })
+      .catch(() => setAvaliacoesOpcoes([]))
+  }, [filtros.ano_letivo])
 
   const carregarTurmas = async () => {
     if (!filtros.serie || !turmasEndpoint) {
@@ -334,6 +361,10 @@ export default function PainelAnalise({
         novo[campo] = valor
       } else {
         delete novo[campo]
+      }
+
+      if (campo === 'ano_letivo') {
+        delete novo.avaliacao_id
       }
 
       if (campo === 'serie' && !valor) {
@@ -534,6 +565,26 @@ export default function PainelAnalise({
               placeholder="Ex: 2026"
             />
           </div>
+
+          {avaliacoesOpcoes.length > 1 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                Avaliação
+              </label>
+              <select
+                value={filtros.avaliacao_id || ''}
+                onChange={(e) => handleFiltroChange('avaliacao_id', e.target.value)}
+                className="select-custom w-full"
+              >
+                <option value="">Todas as avaliações</option>
+                {avaliacoesOpcoes.map((av) => (
+                  <option key={av.id} value={av.id}>
+                    {av.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">

@@ -341,6 +341,8 @@ export interface FiltrosAlunos {
   serie?: string
   presenca?: string
   etapa_ensino?: string
+  ano_letivo?: string
+  avaliacao_id?: string
 }
 
 // Interface para paginacao basica

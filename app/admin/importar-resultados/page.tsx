@@ -1,15 +1,33 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+
+interface AvaliacaoOpcao { id: string; nome: string; tipo: string }
 
 export default function ImportarResultadosPage() {
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [anoLetivo, setAnoLetivo] = useState<string>(new Date().getFullYear().toString())
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoOpcao[]>([])
+  const [avaliacaoId, setAvaliacaoId] = useState<string>('')
   const [carregando, setCarregando] = useState(false)
   const [resultado, setResultado] = useState<any>(null)
   const [erro, setErro] = useState('')
+
+  // Buscar avaliações quando o ano letivo mudar
+  useEffect(() => {
+    if (anoLetivo.length !== 4) { setAvaliacoes([]); setAvaliacaoId(''); return }
+    fetch(`/api/admin/avaliacoes?ano_letivo=${anoLetivo}`)
+      .then(r => r.json())
+      .then(data => {
+        const lista: AvaliacaoOpcao[] = Array.isArray(data) ? data : []
+        setAvaliacoes(lista)
+        if (lista.length === 1) setAvaliacaoId(lista[0].id)
+        else setAvaliacaoId('')
+      })
+      .catch(() => { setAvaliacoes([]); setAvaliacaoId('') })
+  }, [anoLetivo])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -39,6 +57,7 @@ export default function ImportarResultadosPage() {
       const formData = new FormData()
       formData.append('arquivo', arquivo)
       formData.append('ano_letivo', anoLetivo)
+      if (avaliacaoId) formData.append('avaliacao_id', avaliacaoId)
 
       const response = await fetch('/api/admin/importar-resultados', {
         method: 'POST',
@@ -93,6 +112,26 @@ export default function ImportarResultadosPage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">Ano letivo ao qual se referem os dados</p>
               </div>
+
+              {avaliacoes.length > 0 && (
+                <div className="mb-3 sm:mb-4">
+                  <label htmlFor="avaliacao_id" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Avaliação
+                  </label>
+                  <select
+                    id="avaliacao_id"
+                    value={avaliacaoId}
+                    onChange={(e) => setAvaliacaoId(e.target.value)}
+                    className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="">Selecione a avaliação</option>
+                    {avaliacoes.map(av => (
+                      <option key={av.id} value={av.id}>{av.nome}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Selecione para qual avaliação os dados serão importados</p>
+                </div>
+              )}
 
               <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-4 sm:p-6 md:p-8 text-center">
                 <FileSpreadsheet className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />

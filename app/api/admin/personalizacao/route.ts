@@ -20,7 +20,7 @@ const DEFAULTS = {
   login_imagem_url: null,
   login_cor_primaria: '#4f46e5',
   login_cor_secundaria: '#818cf8',
-  rodape_texto: '2026 SISAM - Todos os direitos reservados',
+  rodape_texto: 'SISAM - Todos os direitos reservados',
   rodape_link: null,
   rodape_link_texto: null,
   rodape_ativo: true,

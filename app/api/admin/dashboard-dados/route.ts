@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     const poloId = searchParams.get('polo_id')
     const escolaId = searchParams.get('escola_id')
     const anoLetivo = searchParams.get('ano_letivo')
+    const avaliacaoId = searchParams.get('avaliacao_id')
     const serie = searchParams.get('serie')
     const turmaId = searchParams.get('turma_id')
     const presenca = searchParams.get('presenca')
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
         poloId,
         escolaId,
         anoLetivo,
+        avaliacaoId,
         serie,
         turmaId,
         presenca,
@@ -178,6 +180,12 @@ export async function GET(request: NextRequest) {
     if (anoLetivo) {
       whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
       params.push(anoLetivo)
+      paramIndex++
+    }
+
+    if (avaliacaoId) {
+      whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
+      params.push(avaliacaoId)
       paramIndex++
     }
 

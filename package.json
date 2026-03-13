@@ -74,7 +74,13 @@
     "migrate-estrutura-series": "node scripts/migrate-estrutura-series.js",
     "migrate-cascade-divergencias": "node scripts/migrate-corrigir-cascade-divergencias.js",
     "backup": "bash scripts/backup-database.sh",
-    "restore": "bash scripts/restore-database.sh"
+    "restore": "bash scripts/restore-database.sh",
+    "teste-carga": "node scripts/teste-carga.js",
+    "teste-carga:10": "node scripts/teste-carga.js 10",
+    "teste-carga:15": "node scripts/teste-carga.js 15",
+    "teste-carga:stress": "node scripts/teste-carga.js stress",
+    "teste-carga:completo": "node scripts/teste-carga.js completo",
+    "monitorar-pool": "node scripts/monitorar-pool.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.0",

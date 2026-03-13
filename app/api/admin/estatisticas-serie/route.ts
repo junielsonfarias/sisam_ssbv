@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const poloId = searchParams.get('polo_id')
     const anoLetivo = searchParams.get('ano_letivo')
     const serie = searchParams.get('serie')
+    const avaliacaoId = searchParams.get('avaliacao_id')
 
     // Query base para estatísticas por série
     let baseQuery = `
@@ -106,6 +107,12 @@ export async function GET(request: NextRequest) {
     if (anoLetivo) {
       baseQuery += ` AND rc.ano_letivo = $${paramIndex}`
       params.push(anoLetivo)
+      paramIndex++
+    }
+
+    if (avaliacaoId) {
+      baseQuery += ` AND rc.avaliacao_id = $${paramIndex}`
+      params.push(avaliacaoId)
       paramIndex++
     }
 

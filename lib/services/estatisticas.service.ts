@@ -39,6 +39,8 @@ export interface FiltrosEstatisticas {
   anoLetivo?: string | null
   /** Série para filtrar (ex: '2º Ano', '8º Ano') */
   serie?: string | null
+  /** ID da avaliação para filtrar */
+  avaliacaoId?: string | null
 }
 
 /**
@@ -170,15 +172,6 @@ function montarFiltroEscopo(
   return { where, params }
 }
 
-/**
- * Gera filtro SQL para série
- * Retorna a condição SQL e se deve usar AND ou não
- */
-function gerarFiltroSerie(serie: string | null | undefined, alias: string = 'rc'): string {
-  if (!serie) return ''
-  return `${alias}.serie = '${serie}'`
-}
-
 // ============================================================================
 // QUERIES DE ESTATÍSTICAS
 // ============================================================================
@@ -255,10 +248,24 @@ async function buscarTotalEscolas(
     paramIndex++
   }
 
+  // Filtro de ano letivo
+  if (filtros.anoLetivo) {
+    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    params.push(filtros.anoLetivo)
+    paramIndex++
+  }
+
   // Filtro de série
   if (filtros.serie) {
     whereConditions.push(`rc.serie = $${paramIndex}`)
     params.push(filtros.serie)
+    paramIndex++
+  }
+
+  // Filtro de avaliação
+  if (filtros.avaliacaoId) {
+    whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
+    params.push(filtros.avaliacaoId)
     paramIndex++
   }
 
@@ -299,10 +306,24 @@ async function buscarTotalTurmas(
     paramIndex++
   }
 
+  // Filtro de ano letivo
+  if (filtros.anoLetivo) {
+    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    params.push(filtros.anoLetivo)
+    paramIndex++
+  }
+
   // Filtro de série
   if (filtros.serie) {
     whereConditions.push(`rc.serie = $${paramIndex}`)
     params.push(filtros.serie)
+    paramIndex++
+  }
+
+  // Filtro de avaliação
+  if (filtros.avaliacaoId) {
+    whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
+    params.push(filtros.avaliacaoId)
     paramIndex++
   }
 
@@ -341,6 +362,13 @@ async function buscarTotalAlunos(
     paramIndex++
   }
 
+  // Filtro de ano letivo
+  if (filtros.anoLetivo) {
+    query += ` AND ano_letivo = $${paramIndex}`
+    params.push(filtros.anoLetivo)
+    paramIndex++
+  }
+
   // Filtro de série
   if (filtros.serie) {
     query += ` AND serie = $${paramIndex}`
@@ -376,12 +404,31 @@ async function buscarTotalResultados(
     hasWhere = true
   }
 
+  // Filtro de ano letivo
+  if (filtros.anoLetivo) {
+    query += hasWhere ? ' AND' : ' WHERE'
+    query += ` ano_letivo = $${paramIndex}`
+    params.push(filtros.anoLetivo)
+    paramIndex++
+    hasWhere = true
+  }
+
   // Filtro de série
   if (filtros.serie) {
     query += hasWhere ? ' AND' : ' WHERE'
     query += ` serie = $${paramIndex}`
     params.push(filtros.serie)
     paramIndex++
+    hasWhere = true
+  }
+
+  // Filtro de avaliação
+  if (filtros.avaliacaoId) {
+    query += hasWhere ? ' AND' : ' WHERE'
+    query += ` avaliacao_id = $${paramIndex}`
+    params.push(filtros.avaliacaoId)
+    paramIndex++
+    hasWhere = true
   }
 
   const result = await pool.query(query, params)
@@ -422,10 +469,24 @@ async function buscarPresenca(
     paramIndex++
   }
 
+  // Filtro de ano letivo
+  if (filtros.anoLetivo) {
+    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    params.push(filtros.anoLetivo)
+    paramIndex++
+  }
+
   // Filtro de série
   if (filtros.serie) {
     whereConditions.push(`rc.serie = $${paramIndex}`)
     params.push(filtros.serie)
+    paramIndex++
+  }
+
+  // Filtro de avaliação
+  if (filtros.avaliacaoId) {
+    whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
+    params.push(filtros.avaliacaoId)
     paramIndex++
   }
 
@@ -477,10 +538,24 @@ async function buscarMediaEAprovacao(
     paramIndex++
   }
 
+  // Filtro de ano letivo
+  if (filtros.anoLetivo) {
+    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    params.push(filtros.anoLetivo)
+    paramIndex++
+  }
+
   // Filtro de série
   if (filtros.serie) {
     whereConditions.push(`rc.serie = $${paramIndex}`)
     params.push(filtros.serie)
+    paramIndex++
+  }
+
+  // Filtro de avaliação
+  if (filtros.avaliacaoId) {
+    whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
+    params.push(filtros.avaliacaoId)
     paramIndex++
   }
 
@@ -563,10 +638,24 @@ async function buscarMediasPorTipoEnsino(
     paramIndex++
   }
 
+  // Filtro de ano letivo
+  if (filtros.anoLetivo) {
+    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    params.push(filtros.anoLetivo)
+    paramIndex++
+  }
+
   // Filtro de série
   if (filtros.serie) {
     whereConditions.push(`rc.serie = $${paramIndex}`)
     params.push(filtros.serie)
+    paramIndex++
+  }
+
+  // Filtro de avaliação
+  if (filtros.avaliacaoId) {
+    whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
+    params.push(filtros.avaliacaoId)
     paramIndex++
   }
 
@@ -662,10 +751,24 @@ async function buscarMediasPorDisciplina(
     paramIndex++
   }
 
+  // Filtro de ano letivo
+  if (filtros.anoLetivo) {
+    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    params.push(filtros.anoLetivo)
+    paramIndex++
+  }
+
   // Filtro de série
   if (filtros.serie) {
     whereConditions.push(`rc.serie = $${paramIndex}`)
     params.push(filtros.serie)
+    paramIndex++
+  }
+
+  // Filtro de avaliação
+  if (filtros.avaliacaoId) {
+    whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
+    params.push(filtros.avaliacaoId)
     paramIndex++
   }
 
@@ -754,7 +857,8 @@ export async function getEstatisticas(
     poloId: escopo === 'polo' ? usuario.polo_id : filtrosAdicionais?.poloId,
     escolaId: escopo === 'escola' ? usuario.escola_id : filtrosAdicionais?.escolaId,
     anoLetivo: filtrosAdicionais?.anoLetivo,
-    serie: filtrosAdicionais?.serie
+    serie: filtrosAdicionais?.serie,
+    avaliacaoId: filtrosAdicionais?.avaliacaoId
   }
 
   // Inicializar resultado com valores padrão

@@ -36,14 +36,27 @@ export const nomeSchema = z
   .max(255, 'Nome muito longo')
   .transform(val => val.trim())
 
-/** Série escolar */
+/** Série escolar (aceita qualquer série com número) */
 export const serieSchema = z
   .string()
+  .min(1, 'Série é obrigatória')
+  .max(50, 'Série muito longa')
+
+/** CPF (11 dígitos ou formato XXX.XXX.XXX-XX, opcional) */
+export const cpfSchema = z
+  .string()
   .refine(val => {
-    const numero = val.match(/(\d+)/)?.[1]
-    if (!numero) return false
-    return ['2', '3', '5', '6', '7', '8', '9'].includes(numero)
-  }, 'Série inválida')
+    if (!val) return true
+    const limpo = val.replace(/\D/g, '')
+    return limpo.length === 11
+  }, 'CPF deve ter 11 dígitos')
+  .transform(val => {
+    if (!val) return null
+    const limpo = val.replace(/\D/g, '')
+    return limpo.length > 0 ? limpo : null
+  })
+  .nullable()
+  .optional()
 
 /** Ano letivo (YYYY) */
 export const anoLetivoSchema = z
@@ -96,6 +109,25 @@ export const alunoSchema = z.object({
   turma_id: uuidSchema.optional().nullable(),
   serie: z.string().max(50).optional().nullable(),
   ano_letivo: anoLetivoSchema.optional(),
+  cpf: cpfSchema,
+  data_nascimento: z.string().optional().nullable(),
+  pcd: z.boolean().default(false).optional(),
+})
+
+/** Schema para matrícula em lote */
+export const matriculaBatchSchema = z.object({
+  escola_id: uuidSchema,
+  turma_id: uuidSchema,
+  serie: z.string().max(50),
+  ano_letivo: anoLetivoSchema,
+  alunos: z.array(z.object({
+    id: uuidSchema.optional(),
+    nome: nomeSchema,
+    codigo: z.string().max(100).optional().nullable(),
+    cpf: cpfSchema,
+    data_nascimento: z.string().optional().nullable(),
+    pcd: z.boolean().default(false).optional(),
+  })).min(1, 'Informe pelo menos um aluno'),
 })
 
 /** Schema para criar/atualizar usuário */
@@ -181,6 +213,21 @@ export const alterarSenhaSchema = z.object({
   nova_senha: senhaSchema,
 })
 
+/** Tipo de avaliação */
+export const tipoAvaliacaoSchema = z.enum(['diagnostica', 'final', 'unica'])
+
+/** Schema para criar/atualizar avaliação */
+export const avaliacaoSchema = z.object({
+  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(255),
+  descricao: z.string().max(1000).optional().nullable(),
+  ano_letivo: anoLetivoSchema,
+  tipo: tipoAvaliacaoSchema,
+  ordem: z.number().int().min(1).max(10).default(1),
+  data_inicio: z.string().optional().nullable(),
+  data_fim: z.string().optional().nullable(),
+  ativo: z.boolean().default(true),
+})
+
 /** Schema para filtros de busca */
 export const filtrosSchema = z.object({
   serie: z.string().optional(),
@@ -188,6 +235,7 @@ export const filtrosSchema = z.object({
   escola_id: uuidSchema.optional(),
   turma_id: uuidSchema.optional(),
   ano_letivo: anoLetivoSchema.optional(),
+  avaliacao_id: uuidSchema.optional(),
   presenca: presencaSchema.optional(),
   busca: z.string().max(200).optional(),
 }).partial()

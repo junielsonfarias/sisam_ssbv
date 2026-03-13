@@ -80,6 +80,13 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    const avaliacaoId = searchParams.get('avaliacao_id')
+    if (avaliacaoId) {
+      query += ` AND avaliacao_id = $${paramIndex}`
+      params.push(avaliacaoId)
+      paramIndex++
+    }
+
     if (filtros.serie) {
       query += ` AND serie = $${paramIndex}`
       params.push(filtros.serie)

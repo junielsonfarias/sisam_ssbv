@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     // 8. Recomendação
     if (!resultado.ultimo_ano_com_dados) {
       resultado.recomendacao = 'Nenhum dado encontrado em resultados_consolidados para esta escola. Verifique se os dados foram importados corretamente.';
-    } else if (resultado.ultimo_ano_com_dados !== '2026') {
+    } else if (resultado.ultimo_ano_com_dados !== new Date().getFullYear().toString()) {
       resultado.recomendacao = `Use ano_letivo=${resultado.ultimo_ano_com_dados} ao gerar o relatório, pois é o último ano com dados.`;
     }
 

@@ -188,6 +188,8 @@ export interface ResultadoProva {
   area_conhecimento?: string | null;
   /** Status de presença (P=presente, F=faltou) */
   presenca?: string | null;
+  /** ID da avaliação */
+  avaliacao_id?: string | null;
   /** Data de criação do registro */
   criado_em: Date;
   /** Data da última atualização */
@@ -254,6 +256,12 @@ export interface ResultadoConsolidado {
   nivel_mat?: string | null;
   nivel_prod?: string | null;
   nivel_aluno?: string | null;
+  /** ID da avaliação */
+  avaliacao_id?: string | null;
+  /** Nome da avaliação (via JOIN) */
+  avaliacao_nome?: string | null;
+  /** Tipo da avaliação (diagnostica, final, unica) */
+  avaliacao_tipo?: string | null;
   criado_em: Date;
   atualizado_em: Date;
 }
@@ -271,10 +279,25 @@ export interface Importacao {
   concluido_em?: Date | null;
 }
 
+export interface Avaliacao {
+  id: string;
+  nome: string;
+  descricao?: string | null;
+  ano_letivo: string;
+  tipo: 'diagnostica' | 'final' | 'unica';
+  ordem: number;
+  data_inicio?: Date | null;
+  data_fim?: Date | null;
+  ativo: boolean;
+  criado_em: Date;
+  atualizado_em: Date;
+}
+
 export interface FiltrosAnalise {
   escola_id?: string;
   polo_id?: string;
   ano_letivo?: string;
+  avaliacao_id?: string;
   serie?: string;
   disciplina?: string;
   area_conhecimento?: string;

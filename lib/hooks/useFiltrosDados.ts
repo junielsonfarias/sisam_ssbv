@@ -9,6 +9,7 @@ export interface FiltrosDadosState {
   serie: string
   turmaId: string
   anoLetivo: string
+  avaliacaoId: string
   presenca: string
   nivel: string
   faixaMedia: string
@@ -27,6 +28,7 @@ const FILTROS_INICIAIS: FiltrosDadosState = {
   serie: '',
   turmaId: '',
   anoLetivo: '',
+  avaliacaoId: '',
   presenca: '',
   nivel: '',
   faixaMedia: '',
@@ -76,6 +78,9 @@ export function useFiltrosDados(options: UseFiltrosDadosOptions = {}) {
       }
       if (campo === 'serie' && !valor) {
         novo.turmaId = ''
+      }
+      if (campo === 'anoLetivo') {
+        novo.avaliacaoId = ''
       }
 
       return novo

@@ -8,13 +8,7 @@ import {
 } from 'lucide-react'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
 import { obterDisciplinasPorSerieSync, obterTodasDisciplinas, type Disciplina } from '@/lib/disciplinas-por-serie'
-import {
-  isCacheValid,
-  getCachedEstatisticas,
-  getCachedEscolas,
-  getCachedTurmas,
-  getCachedSeries
-} from '@/lib/cache'
+
 
 // Tipos e utilitários compartilhados
 import {
@@ -118,6 +112,13 @@ export default function PainelDados({
   })
   const [carregando, setCarregando] = useState(true)
 
+  // Filtro global de ano letivo e avaliação
+  const anoAtual = new Date().getFullYear()
+  const [anoLetivo, setAnoLetivo] = useState<string>(anoAtual.toString())
+  const [anosDisponiveis, setAnosDisponiveis] = useState<string[]>([])
+  const [avaliacoes, setAvaliacoes] = useState<{ id: string; nome: string; tipo: string }[]>([])
+  const [avaliacaoId, setAvaliacaoId] = useState<string>('')
+
   // Estados para aba Escolas
   const [escolas, setEscolas] = useState<Escola[]>([])
   const [buscaEscola, setBuscaEscola] = useState('')
@@ -159,6 +160,40 @@ export default function PainelDados({
   const [pesquisouTurmas, setPesquisouTurmas] = useState(false)
   const [pesquisouAlunos, setPesquisouAlunos] = useState(false)
 
+  // Buscar anos letivos disponíveis (do banco + garantir ano atual)
+  useEffect(() => {
+    // Gerar anos base: ano anterior e atual (garantidos mesmo sem dados)
+    const anosBase = new Set([String(anoAtual - 1), String(anoAtual)])
+
+    // Buscar anos com dados reais da API
+    fetch(`/api/admin/dashboard-dados?apenas_anos=true`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.filtros?.anosLetivos) {
+          data.filtros.anosLetivos.forEach((a: string) => anosBase.add(a))
+        }
+        setAnosDisponiveis(Array.from(anosBase).sort().reverse())
+      })
+      .catch(() => {
+        setAnosDisponiveis(Array.from(anosBase).sort().reverse())
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Buscar avaliações quando o ano letivo mudar
+  useEffect(() => {
+    if (anoLetivo.length !== 4) return
+    fetch(`/api/admin/avaliacoes?ano_letivo=${anoLetivo}`)
+      .then(r => r.json())
+      .then(data => {
+        const lista = Array.isArray(data) ? data : []
+        setAvaliacoes(lista)
+        if (lista.length === 1) setAvaliacaoId(lista[0].id)
+        else setAvaliacaoId('')
+      })
+      .catch(() => { setAvaliacoes([]); setAvaliacaoId('') })
+  }, [anoLetivo])
+
   // Carregar estatísticas da aba Geral AUTOMATICAMENTE (sempre da API para garantir dados atualizados)
   // Função para carregar estatísticas com filtro de série opcional
   const carregarEstatisticas = useCallback(async (serieParam?: string) => {
@@ -171,7 +206,13 @@ export default function PainelDados({
       if (serieParam) {
         url.searchParams.set('serie', serieParam)
       }
-      console.log('[PainelDados] Buscando estatísticas da API - série:', serieParam || 'todas')
+      if (anoLetivo) {
+        url.searchParams.set('ano_letivo', anoLetivo)
+      }
+      if (avaliacaoId) {
+        url.searchParams.set('avaliacao_id', avaliacaoId)
+      }
+      console.log('[PainelDados] Buscando estatísticas da API - série:', serieParam || 'todas', 'ano:', anoLetivo)
       const response = await fetch(url.toString())
 
       if (!response.ok) {
@@ -215,24 +256,21 @@ export default function PainelDados({
     } finally {
       setCarregando(false)
     }
-  }, [estatisticasEndpoint])
+  }, [estatisticasEndpoint, anoLetivo, avaliacaoId])
 
-  // Carregar estatísticas iniciais (sem filtro de série)
+  // Carregar estatísticas iniciais e recarregar quando ano/avaliação/série mudar
   useEffect(() => {
-    carregarEstatisticas()
-  }, [carregarEstatisticas])
-
-  // Recarregar estatísticas quando a série mudar
-  useEffect(() => {
-    console.log('[PainelDados] Série mudou para:', filtrosAlunos.serie || 'todas')
     carregarEstatisticas(filtrosAlunos.serie)
-  }, [filtrosAlunos.serie, carregarEstatisticas])
+  }, [carregarEstatisticas, filtrosAlunos.serie])
 
-  // Carregar séries da configuração (sempre busca da API para garantir dados atualizados)
+  // Carregar séries da configuração filtradas pelo ano letivo selecionado
   useEffect(() => {
     const carregarSeriesConfig = async () => {
       try {
-        const response = await fetch('/api/admin/configuracao-series')
+        const url = anoLetivo
+          ? `/api/admin/configuracao-series?ano_letivo=${anoLetivo}`
+          : '/api/admin/configuracao-series'
+        const response = await fetch(url)
         if (response.ok) {
           const data = await response.json()
           if (data?.series && Array.isArray(data.series)) {
@@ -244,6 +282,12 @@ export default function PainelDados({
                 return numA - numB
               })
             setListaSeries(seriesFormatadas)
+            // Se a série selecionada não existe no novo ano, limpar o filtro
+            if (filtrosAlunos.serie && !seriesFormatadas.includes(filtrosAlunos.serie)) {
+              setFiltrosAlunos(prev => ({ ...prev, serie: undefined }))
+            }
+          } else {
+            setListaSeries([])
           }
         }
       } catch (error) {
@@ -251,23 +295,7 @@ export default function PainelDados({
       }
     }
     carregarSeriesConfig()
-  }, [])
-
-  // Carregar filtros do cache de forma SÍNCRONA apenas uma vez na montagem (sem API)
-  useEffect(() => {
-    if (!filtrosCarregados && isCacheValid()) {
-      const cachedEscolas = getCachedEscolas()
-      const cachedTurmas = getCachedTurmas()
-
-      if (cachedEscolas && cachedEscolas.length > 0) {
-        setListaEscolas(cachedEscolas)
-      }
-      if (cachedTurmas && cachedTurmas.length > 0) {
-        setListaTurmas(cachedTurmas)
-      }
-      setFiltrosCarregados(true)
-    }
-  }, [filtrosCarregados])
+  }, [anoLetivo])
 
   // Função para carregar escolas (chamada manualmente ou por useEffect)
   const carregarEscolas = useCallback(async (serieParam?: string) => {
@@ -284,6 +312,8 @@ export default function PainelDados({
       if (serieAtual) {
         url.searchParams.set('serie', serieAtual)
       }
+      if (anoLetivo) url.searchParams.set('ano_letivo', anoLetivo)
+      if (avaliacaoId) url.searchParams.set('avaliacao_id', avaliacaoId)
 
       // Buscar da API com estatísticas
       console.log('[PainelDados] Buscando escolas - série:', serieAtual || 'todas')
@@ -298,7 +328,7 @@ export default function PainelDados({
     } finally {
       setCarregandoEscolas(false)
     }
-  }, [escolasEndpoint, filtrosAlunos.serie])
+  }, [escolasEndpoint, filtrosAlunos.serie, anoLetivo, avaliacaoId])
 
   // Função para carregar turmas (chamada manualmente ou por useEffect)
   const carregarTurmas = useCallback(async (serieParam?: string) => {
@@ -314,6 +344,8 @@ export default function PainelDados({
       if (serieAtual) {
         url.searchParams.set('serie', serieAtual)
       }
+      if (anoLetivo) url.searchParams.set('ano_letivo', anoLetivo)
+      if (avaliacaoId) url.searchParams.set('avaliacao_id', avaliacaoId)
 
       // Buscar da API com estatísticas
       console.log('[PainelDados] Buscando turmas - série:', serieAtual || 'todas')
@@ -328,22 +360,18 @@ export default function PainelDados({
     } finally {
       setCarregandoTurmas(false)
     }
-  }, [turmasEndpoint, filtrosAlunos.serie])
+  }, [turmasEndpoint, filtrosAlunos.serie, anoLetivo, avaliacaoId])
 
-  // Recarregar escolas e turmas automaticamente quando série mudar (se já pesquisou)
+  // Recarregar escolas e turmas automaticamente quando filtros globais mudarem (se já pesquisou)
   useEffect(() => {
-    // Recarregar sempre que a série mudar e já tiver pesquisado antes
-    // (não depende mais da aba ativa para evitar dados desatualizados)
     if (pesquisouEscolas) {
-      console.log('[PainelDados] Série mudou, recarregando escolas:', filtrosAlunos.serie || 'todas')
       carregarEscolas(filtrosAlunos.serie)
     }
     if (pesquisouTurmas) {
-      console.log('[PainelDados] Série mudou, recarregando turmas:', filtrosAlunos.serie || 'todas')
       carregarTurmas(filtrosAlunos.serie)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtrosAlunos.serie])
+  }, [filtrosAlunos.serie, anoLetivo, avaliacaoId])
 
   // NÃO carregar alunos automaticamente - apenas quando clicar em Pesquisar
 
@@ -367,6 +395,8 @@ export default function PainelDados({
       if (filtros.serie) params.set('serie', filtros.serie)
       if (filtros.presenca) params.set('presenca', filtros.presenca)
       if (filtros.etapa_ensino) params.set('tipo_ensino', filtros.etapa_ensino)
+      if (anoLetivo) params.set('ano_letivo', anoLetivo)
+      if (avaliacaoId) params.set('avaliacao_id', avaliacaoId)
       if (busca) params.set('busca', busca)
 
       console.log('[PainelDados] Buscando alunos:', `${resultadosEndpoint}?${params.toString()}`)
@@ -410,34 +440,16 @@ export default function PainelDados({
     carregarAlunosComFiltros(filtrosAlunos, buscaAluno, pagina)
   }, [carregarAlunosComFiltros, filtrosAlunos, buscaAluno])
 
-  const carregarFiltros = async () => {
+  // Carregar listas de escolas e turmas filtradas pelo ano letivo
+  const carregarFiltros = useCallback(async () => {
     try {
-      // Tentar usar cache local primeiro (sincronizado no login)
-      // Nota: séries são carregadas da API de configuração, não do cache
-      if (isCacheValid()) {
-        const cachedEscolas = getCachedEscolas()
-        const cachedTurmas = getCachedTurmas()
-
-        console.log('[PainelDados] Usando filtros do cache local')
-
-        if (cachedEscolas && cachedEscolas.length > 0) {
-          setListaEscolas(cachedEscolas)
-        }
-        if (cachedTurmas && cachedTurmas.length > 0) {
-          setListaTurmas(cachedTurmas)
-        }
-
-        setFiltrosCarregados(true)
-        return
-      }
-
-      // Fallback: Carregar escolas e turmas em PARALELO da API
-      console.log('[PainelDados] Cache não disponível, buscando filtros da API')
       const promises: Promise<void>[] = []
 
       if (escolasEndpoint) {
+        const urlEscolas = new URL(escolasEndpoint, window.location.origin)
+        if (anoLetivo) urlEscolas.searchParams.set('ano_letivo', anoLetivo)
         promises.push(
-          fetch(escolasEndpoint)
+          fetch(urlEscolas.toString())
             .then(res => res.ok ? res.json() : null)
             .then(data => {
               if (data) setListaEscolas(Array.isArray(data) ? data : data.escolas || [])
@@ -446,8 +458,10 @@ export default function PainelDados({
       }
 
       if (turmasEndpoint) {
+        const urlTurmas = new URL(turmasEndpoint, window.location.origin)
+        if (anoLetivo) urlTurmas.searchParams.set('ano_letivo', anoLetivo)
         promises.push(
-          fetch(turmasEndpoint)
+          fetch(urlTurmas.toString())
             .then(res => res.ok ? res.json() : null)
             .then(data => {
               if (data) setListaTurmas(Array.isArray(data) ? data : data.turmas || [])
@@ -459,9 +473,16 @@ export default function PainelDados({
       setFiltrosCarregados(true)
     } catch (error) {
       console.error('Erro ao carregar filtros:', error)
-      setFiltrosCarregados(true) // Mesmo com erro, marca como carregado para não travar
+      setFiltrosCarregados(true)
     }
-  }
+  }, [escolasEndpoint, turmasEndpoint, anoLetivo])
+
+  // Carregar listas de escolas e turmas (recarrega quando ano letivo muda)
+  useEffect(() => {
+    carregarFiltros()
+    // Limpar filtros de escola/turma ao mudar ano (podem não existir no novo ano)
+    setFiltrosAlunos(prev => ({ ...prev, escola_id: undefined, turma_id: undefined }))
+  }, [carregarFiltros])
 
   // Media Geral: usar valor calculado pelo backend (divisor fixo: /3 anos iniciais, /4 anos finais)
   const mediaGeralCalculada = estatisticas.mediaGeral
@@ -527,10 +548,50 @@ export default function PainelDados({
     <div className="space-y-4">
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">{getTitulo()}</h1>
-        {estatisticas.nomePolo && tipoUsuario === 'escola' && (
-          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Polo: {estatisticas.nomePolo}</p>
-        )}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">{getTitulo()}</h1>
+            {estatisticas.nomePolo && tipoUsuario === 'escola' && (
+              <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Polo: {estatisticas.nomePolo}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Ano Letivo</label>
+              <select
+                value={anoLetivo}
+                onChange={(e) => {
+                  setAnoLetivo(e.target.value)
+                  setAvaliacaoId('')
+                }}
+                className="pl-3 pr-8 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white font-medium appearance-none cursor-pointer bg-no-repeat bg-[length:16px_16px] bg-[position:right_8px_center] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')]"
+              >
+                {anosDisponiveis.length === 0 ? (
+                  <option value={anoLetivo}>{anoLetivo}</option>
+                ) : (
+                  anosDisponiveis.map(ano => (
+                    <option key={ano} value={ano}>{ano}</option>
+                  ))
+                )}
+              </select>
+            </div>
+            {avaliacoes.length > 0 && (
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Avaliação</label>
+                <select
+                  value={avaliacaoId}
+                  onChange={(e) => setAvaliacaoId(e.target.value)}
+                  className="pl-3 pr-8 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white appearance-none cursor-pointer bg-no-repeat bg-[length:16px_16px] bg-[position:right_8px_center] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')]"
+                >
+                  <option value="">Todas</option>
+                  {avaliacoes.map(av => (
+                    <option key={av.id} value={av.id}>{av.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Filtro Global de Série - Visível em todas as abas */}

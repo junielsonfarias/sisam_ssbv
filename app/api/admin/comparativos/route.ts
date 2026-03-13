@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const serie = searchParams.get('serie')
     const turmaId = searchParams.get('turma_id')
     const tipoEnsino = searchParams.get('tipo_ensino')
+    const avaliacaoId = searchParams.get('avaliacao_id')
 
     // Verificar cache
     const cacheOptions = {
@@ -160,6 +161,12 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    if (avaliacaoId) {
+      query += ` AND rc.avaliacao_id = $${paramIndex}`
+      params.push(avaliacaoId)
+      paramIndex++
+    }
+
     if (serie) {
       query += ` AND rc.serie = $${paramIndex}`
       params.push(serie)
@@ -285,6 +292,12 @@ export async function GET(request: NextRequest) {
       paramIndexAgregado++
     }
 
+    if (avaliacaoId) {
+      queryAgregado += ` AND rc.avaliacao_id = $${paramIndexAgregado}`
+      paramsAgregado.push(avaliacaoId)
+      paramIndexAgregado++
+    }
+
     if (serie) {
       queryAgregado += ` AND rc.serie = $${paramIndexAgregado}`
       paramsAgregado.push(serie)
@@ -400,6 +413,12 @@ export async function GET(request: NextRequest) {
         if (anoLetivo && anoLetivo.trim() !== '') {
           queryMelhores += ` AND rc.ano_letivo = $${paramIndexMelhores}`
           paramsMelhores.push(anoLetivo.trim())
+          paramIndexMelhores++
+        }
+
+        if (avaliacaoId) {
+          queryMelhores += ` AND rc.avaliacao_id = $${paramIndexMelhores}`
+          paramsMelhores.push(avaliacaoId)
           paramIndexMelhores++
         }
 

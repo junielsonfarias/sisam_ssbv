@@ -22,32 +22,44 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const serie = searchParams.get('serie')
+    const anoLetivo = searchParams.get('ano_letivo')
 
     let query = `
       SELECT
-        id, serie, nome_serie, tipo_ensino,
-        qtd_questoes_lp, qtd_questoes_mat, qtd_questoes_ch, qtd_questoes_cn,
-        total_questoes_objetivas,
-        tem_producao_textual, qtd_itens_producao,
-        avalia_lp, avalia_mat, avalia_ch, avalia_cn,
-        peso_lp, peso_mat, peso_ch, peso_cn, peso_producao,
-        usa_nivel_aprendizagem, ativo,
-        criado_em, atualizado_em
-      FROM configuracao_series
-      WHERE ativo = true
+        cs.id, cs.serie, cs.nome_serie, cs.tipo_ensino,
+        cs.qtd_questoes_lp, cs.qtd_questoes_mat, cs.qtd_questoes_ch, cs.qtd_questoes_cn,
+        cs.total_questoes_objetivas,
+        cs.tem_producao_textual, cs.qtd_itens_producao,
+        cs.avalia_lp, cs.avalia_mat, cs.avalia_ch, cs.avalia_cn,
+        cs.peso_lp, cs.peso_mat, cs.peso_ch, cs.peso_cn, cs.peso_producao,
+        cs.usa_nivel_aprendizagem, cs.ativo,
+        cs.criado_em, cs.atualizado_em
+      FROM configuracao_series cs
+      WHERE cs.ativo = true
     `
     const params: (string | number | boolean | null | undefined)[] = []
+    let paramIndex = 1
 
     if (serie) {
-      // Extrair apenas o número da série
       const numeroSerie = serie.match(/(\d+)/)?.[1]
       if (numeroSerie) {
-        query += ` AND serie = $1`
+        query += ` AND cs.serie = $${paramIndex}`
         params.push(numeroSerie)
+        paramIndex++
       }
     }
 
-    query += ` ORDER BY serie::integer`
+    // Filtrar apenas séries que possuem turmas no ano letivo selecionado
+    if (anoLetivo) {
+      query += ` AND EXISTS (
+        SELECT 1 FROM turmas t
+        WHERE t.serie = cs.serie AND t.ano_letivo = $${paramIndex} AND t.ativo = true
+      )`
+      params.push(anoLetivo)
+      paramIndex++
+    }
+
+    query += ` ORDER BY cs.serie::integer`
 
     const result = await pool.query(query, params)
 

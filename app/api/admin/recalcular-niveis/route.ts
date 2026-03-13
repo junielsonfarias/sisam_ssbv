@@ -23,10 +23,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const { searchParams } = new URL(request.url)
+    const avaliacaoId = searchParams.get('avaliacao_id')
+
     console.log('[Recalcular Níveis] Iniciando recálculo de níveis para registros existentes...')
 
     // Buscar todos os registros de anos iniciais que têm acertos mas não têm níveis calculados
-    const registrosResult = await pool.query(`
+    let registrosQuery = `
       SELECT
         id, serie, presenca,
         total_acertos_lp, total_acertos_mat,
@@ -43,7 +46,14 @@ export async function POST(request: NextRequest) {
         AND (nivel_lp IS NULL OR nivel_mat IS NULL OR nivel_prod IS NULL OR nivel_aluno IS NULL)
       )
       AND presenca = 'P'
-    `)
+    `
+    const registrosParams: string[] = []
+    if (avaliacaoId) {
+      registrosQuery += ` AND avaliacao_id = $1`
+      registrosParams.push(avaliacaoId)
+    }
+
+    const registrosResult = await pool.query(registrosQuery, registrosParams)
 
     console.log(`[Recalcular Níveis] Encontrados ${registrosResult.rows.length} registros para atualizar`)
 
@@ -125,8 +135,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const { searchParams } = new URL(request.url)
+    const avaliacaoId = searchParams.get('avaliacao_id')
+
     // Contar registros que precisam de atualização
-    const countResult = await pool.query(`
+    let countQuery = `
       SELECT
         COUNT(*) as total,
         COUNT(CASE WHEN nivel_lp IS NULL THEN 1 END) as sem_nivel_lp,
@@ -139,7 +152,14 @@ export async function GET(request: NextRequest) {
       )
       AND (total_acertos_lp > 0 OR total_acertos_mat > 0 OR (nota_producao IS NOT NULL AND CAST(nota_producao AS DECIMAL) > 0))
       AND presenca = 'P'
-    `)
+    `
+    const countParams: string[] = []
+    if (avaliacaoId) {
+      countQuery += ` AND avaliacao_id = $1`
+      countParams.push(avaliacaoId)
+    }
+
+    const countResult = await pool.query(countQuery, countParams)
 
     const stats = countResult.rows[0]
 

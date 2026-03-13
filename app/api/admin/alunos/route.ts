@@ -3,7 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 import { isValidUUID, isUniqueConstraintError, getErrorMessage } from '@/lib/validation'
-import { alunoSchema, validateRequest, validateId } from '@/lib/schemas'
+import { alunoSchema, cpfSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
 
 // Schema para criação de aluno
@@ -223,14 +223,14 @@ export async function POST(request: NextRequest) {
       return validacao.response
     }
 
-    const { codigo, nome, escola_id, turma_id, serie, ano_letivo } = validacao.data
+    const { codigo, nome, escola_id, turma_id, serie, ano_letivo, cpf, data_nascimento, pcd } = validacao.data
 
     // Gerar código automático se não fornecido
     const codigoFinal = codigo || await gerarCodigoAluno()
 
     const result = await pool.query(
-      `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, cpf, data_nascimento, pcd)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         codigoFinal,
@@ -239,6 +239,9 @@ export async function POST(request: NextRequest) {
         turma_id || null,
         serie || null,
         ano_letivo || null,
+        cpf || null,
+        data_nascimento || null,
+        pcd || false,
       ]
     )
 
@@ -275,12 +278,13 @@ export async function PUT(request: NextRequest) {
       return validacao.response
     }
 
-    const { id, codigo, nome, escola_id, turma_id, serie, ano_letivo, ativo } = validacao.data
+    const { id, codigo, nome, escola_id, turma_id, serie, ano_letivo, ativo, cpf, data_nascimento, pcd } = validacao.data
 
     const result = await pool.query(
       `UPDATE alunos
-       SET codigo = $1, nome = $2, escola_id = $3, turma_id = $4, serie = $5, ano_letivo = $6, ativo = $7, atualizado_em = CURRENT_TIMESTAMP
-       WHERE id = $8
+       SET codigo = $1, nome = $2, escola_id = $3, turma_id = $4, serie = $5, ano_letivo = $6, ativo = $7,
+           cpf = $8, data_nascimento = $9, pcd = $10, atualizado_em = CURRENT_TIMESTAMP
+       WHERE id = $11
        RETURNING *`,
       [
         codigo || null,
@@ -290,6 +294,9 @@ export async function PUT(request: NextRequest) {
         serie || null,
         ano_letivo || null,
         ativo !== undefined ? ativo : true,
+        cpf || null,
+        data_nascimento || null,
+        pcd !== undefined ? pcd : false,
         id,
       ]
     )

@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const escolaId = searchParams.get('escola_id')
     const poloId = searchParams.get('polo_id')
     const anoLetivo = searchParams.get('ano_letivo')
+    const avaliacaoId = searchParams.get('avaliacao_id')
     const serie = searchParams.get('serie')
     const presencaParam = searchParams.get('presenca')
     // Filtrar valores vazios, "Todas", "todas" - considerar como sem filtro
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
         escolaId,
         poloId,
         anoLetivo,
+        avaliacaoId,
         serie,
         presenca,
         turmaId,
@@ -113,6 +115,9 @@ export async function GET(request: NextRequest) {
         rc.nivel_mat,
         rc.nivel_prod,
         rc.nivel_aluno,
+        rc.avaliacao_id,
+        av.nome as avaliacao_nome,
+        av.tipo as avaliacao_tipo,
         a.nome as aluno_nome,
         e.nome as escola_nome,
         e.polo_id,
@@ -160,6 +165,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON rc.turma_id = t.id
       LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
+      LEFT JOIN avaliacoes av ON rc.avaliacao_id = av.id
       WHERE 1=1
     `
 
@@ -214,6 +220,12 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    if (avaliacaoId) {
+      query += ` AND rc.avaliacao_id = $${paramIndex}`
+      params.push(avaliacaoId)
+      paramIndex++
+    }
+
     if (serie) {
       // Extrair apenas o número da série para comparação flexível
       // Ex: "3º Ano" -> "3", "5º" -> "5"
@@ -251,9 +263,9 @@ export async function GET(request: NextRequest) {
 
     // Filtro de busca por nome do aluno ou escola
     if (busca) {
-      query += ` AND (a.nome ILIKE $${paramIndex} OR e.nome ILIKE $${paramIndex})`
-      params.push(`%${busca}%`)
-      paramIndex++
+      query += ` AND (a.nome ILIKE $${paramIndex} OR e.nome ILIKE $${paramIndex + 1})`
+      params.push(`%${busca}%`, `%${busca}%`)
+      paramIndex += 2
     }
 
     // Ordenar pela media calculada dinamicamente (maior para menor)
@@ -316,6 +328,12 @@ export async function GET(request: NextRequest) {
       countParamIndex++
     }
 
+    if (avaliacaoId) {
+      countQuery += ` AND rc.avaliacao_id = $${countParamIndex}`
+      countParams.push(avaliacaoId)
+      countParamIndex++
+    }
+
     if (serie) {
       const numeroSerie = serie.match(/\d+/)?.[0]
       if (numeroSerie) {
@@ -349,9 +367,9 @@ export async function GET(request: NextRequest) {
 
     // Filtro de busca por nome do aluno ou escola
     if (busca) {
-      countQuery += ` AND (a.nome ILIKE $${countParamIndex} OR e.nome ILIKE $${countParamIndex})`
-      countParams.push(`%${busca}%`)
-      countParamIndex++
+      countQuery += ` AND (a.nome ILIKE $${countParamIndex} OR e.nome ILIKE $${countParamIndex + 1})`
+      countParams.push(`%${busca}%`, `%${busca}%`)
+      countParamIndex += 2
     }
 
     // Adicionar LIMIT e OFFSET à query principal
@@ -495,9 +513,9 @@ export async function GET(request: NextRequest) {
 
     // Filtro de busca por nome do aluno ou escola
     if (busca) {
-      estatisticasQuery += ` AND (a.nome ILIKE $${estatisticasParamIndex} OR e.nome ILIKE $${estatisticasParamIndex})`
-      estatisticasParams.push(`%${busca}%`)
-      estatisticasParamIndex++
+      estatisticasQuery += ` AND (a.nome ILIKE $${estatisticasParamIndex} OR e.nome ILIKE $${estatisticasParamIndex + 1})`
+      estatisticasParams.push(`%${busca}%`, `%${busca}%`)
+      estatisticasParamIndex += 2
     }
 
     // Adicionar logs para debug

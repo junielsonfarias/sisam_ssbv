@@ -58,6 +58,16 @@ export async function GET(request: NextRequest) {
         paramIndex++
       }
 
+      // Filtrar apenas escolas que possuem turmas no ano letivo selecionado
+      if (anoLetivo && anoLetivo.trim() !== '') {
+        query += ` AND EXISTS (
+          SELECT 1 FROM turmas t
+          WHERE t.escola_id = e.id AND t.ano_letivo = $${paramIndex} AND t.ativo = true
+        )`
+        params.push(anoLetivo.trim())
+        paramIndex++
+      }
+
       query += ' ORDER BY e.nome'
 
       const result = await pool.query(query, params)

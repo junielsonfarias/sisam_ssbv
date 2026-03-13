@@ -27,9 +27,11 @@ export async function GET(request: NextRequest) {
     // Extrair filtros da query string
     const { searchParams } = new URL(request.url)
     const serie = searchParams.get('serie') || undefined
+    const anoLetivo = searchParams.get('ano_letivo') || undefined
+    const avaliacaoId = searchParams.get('avaliacao_id') || undefined
 
     // Buscar estatísticas usando o serviço centralizado
-    const estatisticas = await getEstatisticas(usuario, { serie })
+    const estatisticas = await getEstatisticas(usuario, { serie, anoLetivo, avaliacaoId })
 
     return ok(estatisticas)
   } catch (error: any) {

@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
 import { limparTodosOsCaches } from '@/lib/cache'
+import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -25,6 +26,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const anoLetivoParam = (formData.get('ano_letivo') as string) || new Date().getFullYear().toString()
+    const avaliacaoIdParam = formData.get('avaliacao_id') as string | null
+    const avaliacaoId = await resolverAvaliacaoId(avaliacaoIdParam, anoLetivoParam)
 
     const arrayBuffer = await arquivo.arrayBuffer()
     const workbook = XLSX.read(arrayBuffer, { type: 'buffer' })
@@ -170,10 +175,10 @@ export async function POST(request: NextRequest) {
 
     // Criar registro de importação
     const importacaoResult = await pool.query(
-      `INSERT INTO importacoes (usuario_id, nome_arquivo, total_linhas, status)
-       VALUES ($1, $2, $3, 'processando')
+      `INSERT INTO importacoes (usuario_id, nome_arquivo, total_linhas, status, ano_letivo, avaliacao_id)
+       VALUES ($1, $2, $3, 'processando', $4, $5)
        RETURNING id`,
-      [usuario.id, arquivo.name, dados.length]
+      [usuario.id, arquivo.name, dados.length, anoLetivoParam, avaliacaoId]
     )
 
     const importacaoId = importacaoResult.rows[0].id
@@ -281,9 +286,9 @@ export async function POST(request: NextRequest) {
           `INSERT INTO resultados_provas
            (escola_id, aluno_codigo, aluno_nome, questao_id, questao_codigo,
             resposta_aluno, acertou, nota, data_prova, ano_letivo, serie,
-            turma, disciplina, area_conhecimento)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-           ON CONFLICT (aluno_id, questao_codigo, ano_letivo)
+            turma, disciplina, area_conhecimento, avaliacao_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+           ON CONFLICT (aluno_id, questao_codigo, avaliacao_id)
            DO UPDATE SET
              resposta_aluno = EXCLUDED.resposta_aluno,
              acertou = EXCLUDED.acertou,
@@ -305,6 +310,7 @@ export async function POST(request: NextRequest) {
             turma || null,
             disciplina || null,
             areaConhecimento || null,
+            avaliacaoId,
           ]
         )
 

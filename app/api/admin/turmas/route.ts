@@ -4,6 +4,134 @@ import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic';
 
+// POST - Criar nova turma
+export async function POST(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { codigo, nome, escola_id, serie, ano_letivo } = body
+
+    if (!codigo || !escola_id || !serie || !ano_letivo) {
+      return NextResponse.json({ mensagem: 'Campos obrigatórios: codigo, escola_id, serie, ano_letivo' }, { status: 400 })
+    }
+
+    const result = await pool.query(
+      `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, ativo)
+       VALUES ($1, $2, $3, $4, $5, true)
+       RETURNING *`,
+      [codigo.trim(), nome?.trim() || null, escola_id, serie.trim(), ano_letivo.trim()]
+    )
+
+    return NextResponse.json(result.rows[0], { status: 201 })
+  } catch (error: any) {
+    if (error?.code === '23505') {
+      return NextResponse.json({ mensagem: 'Já existe uma turma com este código nesta escola e ano letivo' }, { status: 409 })
+    }
+    console.error('Erro ao criar turma:', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
+// PUT - Atualizar turma
+export async function PUT(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { id, codigo, nome, escola_id, serie, ano_letivo, ativo } = body
+
+    if (!id) {
+      return NextResponse.json({ mensagem: 'ID da turma é obrigatório' }, { status: 400 })
+    }
+
+    // Montar SET dinâmico — só atualiza campos enviados (permite limpar nome com null/vazio)
+    const sets: string[] = []
+    const params: (string | boolean | null)[] = [id]
+    let paramIndex = 2
+
+    if (codigo !== undefined) { sets.push(`codigo = $${paramIndex}`); params.push(codigo?.trim()); paramIndex++ }
+    if (nome !== undefined) { sets.push(`nome = $${paramIndex}`); params.push(nome?.trim() || null); paramIndex++ }
+    if (escola_id !== undefined) { sets.push(`escola_id = $${paramIndex}`); params.push(escola_id); paramIndex++ }
+    if (serie !== undefined) { sets.push(`serie = $${paramIndex}`); params.push(serie?.trim()); paramIndex++ }
+    if (ano_letivo !== undefined) { sets.push(`ano_letivo = $${paramIndex}`); params.push(ano_letivo?.trim()); paramIndex++ }
+    if (ativo !== undefined) { sets.push(`ativo = $${paramIndex}`); params.push(ativo); paramIndex++ }
+
+    if (sets.length === 0) {
+      return NextResponse.json({ mensagem: 'Nenhum campo para atualizar' }, { status: 400 })
+    }
+
+    sets.push('atualizado_em = CURRENT_TIMESTAMP')
+
+    const result = await pool.query(
+      `UPDATE turmas SET ${sets.join(', ')} WHERE id = $1 RETURNING *`,
+      params
+    )
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+    }
+
+    return NextResponse.json(result.rows[0])
+  } catch (error: any) {
+    if (error?.code === '23505') {
+      return NextResponse.json({ mensagem: 'Já existe uma turma com este código nesta escola e ano letivo' }, { status: 409 })
+    }
+    console.error('Erro ao atualizar turma:', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
+// DELETE - Excluir turma (soft delete)
+export async function DELETE(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ mensagem: 'ID da turma é obrigatório' }, { status: 400 })
+    }
+
+    // Verificar se tem alunos vinculados
+    const alunosCheck = await pool.query(
+      'SELECT COUNT(*) as total FROM alunos WHERE turma_id = $1 AND ativo = true',
+      [id]
+    )
+    const totalAlunos = parseInt(alunosCheck.rows[0].total)
+    if (totalAlunos > 0) {
+      return NextResponse.json(
+        { mensagem: `Não é possível excluir: turma possui ${totalAlunos} aluno(s) vinculado(s)` },
+        { status: 409 }
+      )
+    }
+
+    const result = await pool.query(
+      'UPDATE turmas SET ativo = false, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id',
+      [id]
+    )
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+    }
+
+    return NextResponse.json({ mensagem: 'Turma excluída com sucesso' })
+  } catch (error: any) {
+    console.error('Erro ao excluir turma:', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
@@ -16,9 +144,75 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+    const mode = searchParams.get('mode')
     const serie = searchParams.get('serie')
+    const escolaId = searchParams.get('escola_id')
     const escolasIds = searchParams.get('escolas_ids')?.split(',').filter(Boolean) || []
     const anoLetivo = searchParams.get('ano_letivo')
+    const busca = searchParams.get('busca')
+
+    // Modo listagem simples: retorna turmas com contagem de alunos (sem precisar de resultados)
+    if (mode === 'listagem') {
+      const whereConditions: string[] = ['t.ativo = true']
+      const params: string[] = []
+      let paramIndex = 1
+
+      if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+        whereConditions.push(`e.polo_id = $${paramIndex}`)
+        params.push(usuario.polo_id as string)
+        paramIndex++
+      } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+        whereConditions.push(`e.id = $${paramIndex}`)
+        params.push(usuario.escola_id as string)
+        paramIndex++
+      }
+
+      if (anoLetivo && anoLetivo.trim() !== '') {
+        whereConditions.push(`t.ano_letivo = $${paramIndex}`)
+        params.push(anoLetivo.trim())
+        paramIndex++
+      }
+
+      if (escolaId && escolaId.trim() !== '') {
+        whereConditions.push(`t.escola_id = $${paramIndex}`)
+        params.push(escolaId.trim())
+        paramIndex++
+      }
+
+      if (serie && serie.trim() !== '') {
+        whereConditions.push(`t.serie = $${paramIndex}`)
+        params.push(serie.trim())
+        paramIndex++
+      }
+
+      if (busca && busca.trim() !== '') {
+        whereConditions.push(`(t.codigo ILIKE $${paramIndex} OR t.nome ILIKE $${paramIndex + 1} OR e.nome ILIKE $${paramIndex + 2})`)
+        const buscaParam = `%${busca.trim()}%`
+        params.push(buscaParam, buscaParam, buscaParam)
+        paramIndex += 3
+      }
+
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+
+      const query = `
+        SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
+               e.nome as escola_nome, p.nome as polo_nome,
+               COUNT(a.id) FILTER (WHERE a.ativo = true) as total_alunos
+        FROM turmas t
+        INNER JOIN escolas e ON t.escola_id = e.id
+        LEFT JOIN polos p ON e.polo_id = p.id
+        LEFT JOIN alunos a ON a.turma_id = t.id
+        ${whereClause}
+        GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id, e.nome, p.nome
+        ORDER BY t.ano_letivo DESC, e.nome, t.serie, t.codigo
+      `
+
+      const result = await pool.query(query, params)
+      return NextResponse.json(result.rows.map(row => ({
+        ...row,
+        total_alunos: parseInt(row.total_alunos) || 0
+      })))
+    }
 
     // Construir condições WHERE
     const whereConditions: string[] = ['t.ativo = true']
@@ -51,7 +245,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (anoLetivo && anoLetivo.trim() !== '') {
-      whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+      whereConditions.push(`t.ano_letivo = $${paramIndex}`)
       params.push(anoLetivo.trim())
       paramIndex++
     }

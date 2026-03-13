@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const serie = searchParams.get('serie')
     const escolaId = searchParams.get('escola_id')
     const turmaId = searchParams.get('turma_id')
+    const avaliacaoId = searchParams.get('avaliacao_id')
 
     if (polosIds.length !== 2) {
       return NextResponse.json(
@@ -97,6 +98,12 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    if (avaliacaoId) {
+      query += ` AND rc.avaliacao_id = $${paramIndex}`
+      params.push(avaliacaoId)
+      paramIndex++
+    }
+
     if (serie) {
       query += ` AND rc.serie = $${paramIndex}`
       params.push(serie)
@@ -116,7 +123,7 @@ export async function GET(request: NextRequest) {
     }
 
     query += `
-      GROUP BY 
+      GROUP BY
         p.id, p.nome, rc.serie, t.id, t.codigo
       ORDER BY 
         p.nome, rc.serie, t.codigo
@@ -192,6 +199,12 @@ export async function GET(request: NextRequest) {
     if (anoLetivo && anoLetivo.trim() !== '') {
       queryAgregado += ` AND rc.ano_letivo = $${paramIndexAgregado}`
       paramsAgregado.push(anoLetivo.trim())
+      paramIndexAgregado++
+    }
+
+    if (avaliacaoId) {
+      queryAgregado += ` AND rc.avaliacao_id = $${paramIndexAgregado}`
+      paramsAgregado.push(avaliacaoId)
       paramIndexAgregado++
     }
 
@@ -289,6 +302,12 @@ export async function GET(request: NextRequest) {
     if (anoLetivo && anoLetivo.trim() !== '') {
       queryEscolas += ` AND rc.ano_letivo = $${paramIndexEscolas}`
       paramsEscolas.push(anoLetivo.trim())
+      paramIndexEscolas++
+    }
+
+    if (avaliacaoId) {
+      queryEscolas += ` AND rc.avaliacao_id = $${paramIndexEscolas}`
+      paramsEscolas.push(avaliacaoId)
       paramIndexEscolas++
     }
 

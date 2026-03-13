@@ -213,7 +213,7 @@ export default function TabelaPaginada({
       {/* Visualizacao Desktop - Tabela */}
       <div className="hidden md:block">
         <table className="w-full min-w-[400px] md:min-w-[600px] lg:min-w-[800px]">
-          <thead className={`bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600 ${stickyHeader ? 'sticky top-[180px] sm:top-[190px] z-30' : ''}`}>
+          <thead className={`bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 border-b-2 border-gray-300 dark:border-slate-600 ${stickyHeader ? 'sticky top-[180px] sm:top-[190px] z-10' : ''}`}>
             <tr>
               {colunas.map((col: ColunaTabela) => (
                 <th

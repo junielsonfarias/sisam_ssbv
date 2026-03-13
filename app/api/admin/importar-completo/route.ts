@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import { normalizarSerie } from '@/lib/normalizar-serie'
 import {
   carregarConfigSeries,
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const arquivo = formData.get('arquivo') as File
     const anoLetivo = (formData.get('ano_letivo') as string) || new Date().getFullYear().toString()
+    const avaliacaoIdParam = formData.get('avaliacao_id') as string | null
 
     if (!arquivo) {
       return NextResponse.json(
@@ -42,6 +44,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const avaliacaoId = await resolverAvaliacaoId(avaliacaoIdParam, anoLetivo)
 
     const arrayBuffer = await arquivo.arrayBuffer()
     const workbook = XLSX.read(arrayBuffer, { type: 'buffer' })
@@ -58,16 +62,16 @@ export async function POST(request: NextRequest) {
 
     // Criar registro de importação
     const importacaoResult = await pool.query(
-      `INSERT INTO importacoes (usuario_id, nome_arquivo, total_linhas, status, ano_letivo)
-       VALUES ($1, $2, $3, 'processando', $4)
+      `INSERT INTO importacoes (usuario_id, nome_arquivo, total_linhas, status, ano_letivo, avaliacao_id)
+       VALUES ($1, $2, $3, 'processando', $4, $5)
        RETURNING id`,
-      [usuario.id, arquivo.name, dados.length, anoLetivo]
+      [usuario.id, arquivo.name, dados.length, anoLetivo, avaliacaoId]
     )
 
     const importacaoId = importacaoResult.rows[0].id
 
     // Processar importação em background
-    processarImportacao(importacaoId, dados, anoLetivo, usuario.id).catch((error) => {
+    processarImportacao(importacaoId, dados, anoLetivo, usuario.id, avaliacaoId).catch((error) => {
       console.error('Erro ao processar importação em background:', error)
       pool.query(
         `UPDATE importacoes SET status = 'erro', concluido_em = CURRENT_TIMESTAMP WHERE id = $1`,
@@ -93,7 +97,8 @@ async function processarImportacao(
   importacaoId: string,
   dados: any[],
   anoLetivo: string,
-  usuarioId: string
+  usuarioId: string,
+  avaliacaoId: string
 ) {
   const startTime = Date.now()
   console.log(`[IMPORTAÇÃO ${importacaoId}] Iniciando processamento de ${dados.length} linhas`)
@@ -715,6 +720,7 @@ async function processarImportacao(
           escola_id: escolaId,
           turma_id: turmaId,
           ano_letivo: anoLetivo,
+          avaliacao_id: avaliacaoId,
           serie: serie || null,
           presenca: presencaFinal,
           // Se faltou ou sem dados, zerar acertos e notas
@@ -763,6 +769,7 @@ async function processarImportacao(
                   turma_id: turmaId,
                   item_producao_id: itemId,
                   ano_letivo: anoLetivo,
+                  avaliacao_id: avaliacaoId,
                   serie: serie || null,
                   nota: notaItem,
                 })
@@ -894,6 +901,7 @@ async function processarImportacao(
               acertou: (alunoFaltouQuestao || semDadosQuestao) ? false : acertou,
               nota: (alunoFaltouQuestao || semDadosQuestao) ? 0 : nota,
               ano_letivo: anoLetivo,
+              avaliacao_id: avaliacaoId,
               serie: serie || null,
               turma: turmaCodigo || null,
               disciplina,
@@ -1185,7 +1193,7 @@ async function processarImportacao(
         try {
           const result = await pool.query(
             `INSERT INTO resultados_consolidados
-             (aluno_id, escola_id, turma_id, ano_letivo, serie, presenca,
+             (aluno_id, escola_id, turma_id, ano_letivo, avaliacao_id, serie, presenca,
               total_acertos_lp, total_acertos_ch, total_acertos_mat, total_acertos_cn,
               nota_lp, nota_ch, nota_mat, nota_cn, media_aluno,
               nota_producao, nivel_aprendizagem, nivel_aprendizagem_id,
@@ -1193,10 +1201,10 @@ async function processarImportacao(
               item_producao_1, item_producao_2, item_producao_3, item_producao_4,
               item_producao_5, item_producao_6, item_producao_7, item_producao_8,
               nivel_lp, nivel_mat, nivel_prod, nivel_aluno)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-                     $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
-                     $29, $30, $31, $32)
-             ON CONFLICT (aluno_id, ano_letivo)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+                     $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
+                     $30, $31, $32, $33)
+             ON CONFLICT (aluno_id, avaliacao_id)
              DO UPDATE SET
                escola_id = EXCLUDED.escola_id,
                turma_id = EXCLUDED.turma_id,
@@ -1234,6 +1242,7 @@ async function processarImportacao(
               consolidado.escola_id,
               consolidado.turma_id,
               consolidado.ano_letivo,
+              consolidado.avaliacao_id,
               consolidado.serie,
               consolidado.presenca,
               consolidado.total_acertos_lp,
@@ -1313,9 +1322,9 @@ async function processarImportacao(
         try {
           await pool.query(
             `INSERT INTO resultados_producao
-             (aluno_id, escola_id, turma_id, item_producao_id, ano_letivo, serie, nota)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (aluno_id, item_producao_id, ano_letivo)
+             (aluno_id, escola_id, turma_id, item_producao_id, ano_letivo, avaliacao_id, serie, nota)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (aluno_id, item_producao_id, avaliacao_id)
              DO UPDATE SET
                nota = EXCLUDED.nota,
                atualizado_em = CURRENT_TIMESTAMP`,
@@ -1325,6 +1334,7 @@ async function processarImportacao(
               producao.turma_id,
               producao.item_producao_id,
               producao.ano_letivo,
+              producao.avaliacao_id,
               producao.serie,
               producao.nota,
             ]
@@ -1384,23 +1394,23 @@ async function processarImportacao(
 
         try {
           const valores = batch.map((_, idx) => {
-            const base = idx * 16
-            return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16})`
+            const base = idx * 17
+            return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14}, $${base + 15}, $${base + 16}, $${base + 17})`
           }).join(', ')
 
           const params = batch.flatMap(r => [
             r.escola_id, r.aluno_id, r.aluno_codigo, r.aluno_nome, r.turma_id,
             r.questao_id, r.questao_codigo, r.resposta_aluno, r.acertou, r.nota,
-            r.ano_letivo, r.serie, r.turma, r.disciplina, r.area_conhecimento, r.presenca,
+            r.ano_letivo, r.avaliacao_id, r.serie, r.turma, r.disciplina, r.area_conhecimento, r.presenca,
           ])
 
           const insertResult = await pool.query(
-            `INSERT INTO resultados_provas 
-             (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo, 
-              resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca)
+            `INSERT INTO resultados_provas
+             (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo,
+              resposta_aluno, acertou, nota, ano_letivo, avaliacao_id, serie, turma, disciplina, area_conhecimento, presenca)
              VALUES ${valores}
-             ON CONFLICT (aluno_id, questao_codigo, ano_letivo) 
-             DO UPDATE SET 
+             ON CONFLICT (aluno_id, questao_codigo, avaliacao_id)
+             DO UPDATE SET
                resposta_aluno = EXCLUDED.resposta_aluno,
                acertou = EXCLUDED.acertou,
                nota = EXCLUDED.nota,
@@ -1424,12 +1434,12 @@ async function processarImportacao(
           for (const r of batch) {
             try {
               const individualResult = await pool.query(
-                `INSERT INTO resultados_provas 
-                 (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo, 
-                  resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-                 ON CONFLICT (aluno_id, questao_codigo, ano_letivo) 
-                 DO UPDATE SET 
+                `INSERT INTO resultados_provas
+                 (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo,
+                  resposta_aluno, acertou, nota, ano_letivo, avaliacao_id, serie, turma, disciplina, area_conhecimento, presenca)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                 ON CONFLICT (aluno_id, questao_codigo, avaliacao_id)
+                 DO UPDATE SET
                    resposta_aluno = EXCLUDED.resposta_aluno,
                    acertou = EXCLUDED.acertou,
                    nota = EXCLUDED.nota,
@@ -1438,7 +1448,7 @@ async function processarImportacao(
                 [
                   r.escola_id, r.aluno_id, r.aluno_codigo, r.aluno_nome, r.turma_id,
                   r.questao_id, r.questao_codigo, r.resposta_aluno, r.acertou, r.nota,
-                  r.ano_letivo, r.serie, r.turma, r.disciplina, r.area_conhecimento, r.presenca,
+                  r.ano_letivo, r.avaliacao_id, r.serie, r.turma, r.disciplina, r.area_conhecimento, r.presenca,
                 ]
               )
               if (individualResult.rows.length > 0) {

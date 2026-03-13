@@ -22,16 +22,17 @@ export interface Personalizacao {
 }
 
 // CONFIGURACOES FIXAS - Edite aqui para alterar a personalizacao
-const CONFIG_FIXA = {
-  login: {
-    titulo: 'SISAM',
-    subtitulo: 'Sistema de Avaliação Municipal',
-    imagem_url: '/logo.png', // Logo fixa em public/logo.png
-    cor_primaria: '#4f46e5',
-    cor_secundaria: '#818cf8'
-  },
-  rodape: {
-    texto: '2026 Junielson Farias - Todos os direitos reservados Kontrol_tec',
+const CONFIG_LOGIN: PersonalizacaoLogin = {
+  titulo: 'SISAM',
+  subtitulo: 'Sistema de Avaliação Municipal',
+  imagem_url: '/logo.png', // Logo fixa em public/logo.png
+  cor_primaria: '#4f46e5',
+  cor_secundaria: '#818cf8'
+}
+
+function getRodape(): PersonalizacaoRodape {
+  return {
+    texto: `${new Date().getFullYear()} Junielson Farias - Todos os direitos reservados Kontrol_tec`,
     link: null,
     link_texto: null,
     ativo: true
@@ -39,13 +40,13 @@ const CONFIG_FIXA = {
 }
 
 export function getPersonalizacao(): Personalizacao {
-  return CONFIG_FIXA
+  return { login: CONFIG_LOGIN, rodape: getRodape() }
 }
 
 export function getPersonalizacaoLogin(): PersonalizacaoLogin {
-  return CONFIG_FIXA.login
+  return CONFIG_LOGIN
 }
 
 export function getPersonalizacaoRodape(): PersonalizacaoRodape {
-  return CONFIG_FIXA.rodape
+  return getRodape()
 }

@@ -441,3 +441,332 @@ body {
   animation: slide-up 0.3s ease-out forwards;
 }
 
+/* ========================================
+   ESTILOS DE IMPRESSÃO - RELATÓRIOS PDF
+   ======================================== */
+
+@media print {
+  /* Configurações de página */
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  /* Reset do body para impressão */
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Ocultar elementos de navegação do sistema */
+  .print\:hidden,
+  header:not(.cabecalho-relatorio),
+  aside,
+  nav,
+  .barra-acoes-relatorio,
+  footer:not(.rodape-relatorio) {
+    display: none !important;
+  }
+
+  /* Container principal sem padding */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  /* Relatório ocupa toda a largura */
+  .relatorio-container {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Prevenir quebras de página dentro de seções */
+  .secao-relatorio,
+  .grafico-container,
+  .print\:break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Forçar quebra de página antes de elementos */
+  .print\:break-before-page {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  /* Cabeçalho do relatório */
+  .cabecalho-relatorio {
+    background: #1e40af !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border-radius: 0 !important;
+    margin: -15mm -15mm 15mm -15mm !important;
+    padding: 15mm !important;
+    color: white !important;
+  }
+
+  /* Garantir cores nos cards */
+  .bg-white,
+  .dark\:bg-slate-800 {
+    background: white !important;
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Texto escuro para impressão */
+  .text-gray-900,
+  .dark\:text-white {
+    color: #111827 !important;
+  }
+
+  .text-gray-500,
+  .text-gray-600,
+  .dark\:text-gray-300,
+  .dark\:text-gray-400 {
+    color: #4b5563 !important;
+  }
+
+  /* Preservar cores de status */
+  .text-green-600, .text-green-700 { color: #16a34a !important; }
+  .text-amber-600, .text-amber-700, .text-yellow-600 { color: #d97706 !important; }
+  .text-red-600, .text-red-700 { color: #dc2626 !important; }
+  .text-blue-600, .text-blue-700 { color: #2563eb !important; }
+  .text-purple-600, .text-purple-700 { color: #9333ea !important; }
+  .text-pink-600, .text-pink-700 { color: #db2777 !important; }
+
+  /* Backgrounds coloridos - preservar */
+  .bg-green-50, .bg-green-100,
+  .bg-amber-50, .bg-amber-100, .bg-yellow-50, .bg-yellow-100,
+  .bg-red-50, .bg-red-100,
+  .bg-blue-50, .bg-blue-100,
+  .bg-purple-50, .bg-purple-100,
+  .bg-pink-50, .bg-pink-100 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Grids - Ajuste para layout de coluna única em retrato */
+  .grid {
+    display: grid !important;
+  }
+
+  .grid-cols-2,
+  .md\:grid-cols-2,
+  .lg\:grid-cols-2,
+  .md\:grid-cols-4,
+  .lg\:grid-cols-4,
+  .md\:grid-cols-5,
+  .lg\:grid-cols-5,
+  .md\:grid-cols-6,
+  .lg\:grid-cols-6,
+  .lg\:grid-cols-7 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Cards de estatísticas - 3 por linha */
+  .grid-cols-2.md\:grid-cols-4,
+  .grid-cols-2.md\:grid-cols-5,
+  .grid-cols-2.lg\:grid-cols-7 {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Gráficos em coluna única */
+  .md\:grid-cols-2:has(.recharts-wrapper),
+  .grid:has(.recharts-wrapper) {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Questões em grid compacto */
+  .grid-cols-4,
+  .sm\:grid-cols-6,
+  .md\:grid-cols-8,
+  .lg\:grid-cols-10,
+  .grid-cols-5,
+  .sm\:grid-cols-8,
+  .md\:grid-cols-10 {
+    grid-template-columns: repeat(8, 1fr) !important;
+    gap: 4px !important;
+  }
+
+  /* Tabelas */
+  table {
+    font-size: 9pt !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    padding: 3px 6px !important;
+    border: 1px solid #d1d5db !important;
+    white-space: nowrap !important;
+  }
+
+  th {
+    background: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 8pt !important;
+  }
+
+  /* Tabela de turmas - mais compacta */
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  /* Colunas de notas mais estreitas */
+  td:nth-child(n+4):nth-child(-n+9) {
+    padding: 2px 4px !important;
+    text-align: center !important;
+  }
+
+  /* Gráficos */
+  .grafico-container svg,
+  .recharts-wrapper svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .recharts-surface {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Links - remover decoração de impressão */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+
+  /* Rodapé do relatório */
+  .rodape-relatorio {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #e5e7eb;
+    padding: 10mm 15mm;
+    background: white;
+    font-size: 9pt;
+    color: #6b7280;
+  }
+
+  /* Seção de análise por série - mais compacta */
+  .secao-relatorio h2,
+  .secao-relatorio h3 {
+    font-size: 12pt !important;
+    margin-bottom: 8px !important;
+  }
+
+  .secao-relatorio h4 {
+    font-size: 11pt !important;
+  }
+
+  /* Cards e boxes com padding reduzido */
+  .rounded-lg {
+    border-radius: 4px !important;
+  }
+
+  .p-4 {
+    padding: 8px !important;
+  }
+
+  .p-6 {
+    padding: 12px !important;
+  }
+
+  .mb-4 {
+    margin-bottom: 8px !important;
+  }
+
+  .mb-6 {
+    margin-bottom: 12px !important;
+  }
+
+  .mb-8 {
+    margin-bottom: 16px !important;
+  }
+
+  .gap-4 {
+    gap: 8px !important;
+  }
+
+  .gap-6 {
+    gap: 12px !important;
+  }
+
+  /* Texto mais compacto */
+  .text-xs {
+    font-size: 7pt !important;
+  }
+
+  .text-sm {
+    font-size: 8pt !important;
+  }
+
+  .text-base, .text-lg {
+    font-size: 10pt !important;
+  }
+
+  .text-xl {
+    font-size: 11pt !important;
+  }
+
+  .text-2xl {
+    font-size: 12pt !important;
+  }
+
+  .text-3xl {
+    font-size: 14pt !important;
+  }
+
+  .text-4xl {
+    font-size: 16pt !important;
+  }
+
+  /* Ícones menores */
+  .w-5.h-5, .w-6.h-6 {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .w-4.h-4 {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  /* Barra de níveis mais larga */
+  .w-24 {
+    width: 60px !important;
+  }
+
+  /* Esconder elementos desnecessários em impressão */
+  .hidden.md\:inline,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Preservar cores de background nos níveis */
+  .bg-green-500, .bg-blue-500, .bg-amber-500, .bg-red-500 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Legenda dos níveis mais compacta */
+  .flex.flex-wrap.items-center.gap-4.text-xs {
+    gap: 6px !important;
+  }
+
+  /* Evitar quebra dentro de cards de questões */
+  .rounded.p-1\.5,
+  .rounded.p-2 {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+

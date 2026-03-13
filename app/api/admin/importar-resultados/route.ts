@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import * as XLSX from 'xlsx'
 import { limparTodosOsCaches } from '@/lib/cache'
+import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import {
   calcularNivelPorAcertos,
   converterNivelProducao,
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const arquivo = formData.get('arquivo') as File
     const anoLetivo = (formData.get('ano_letivo') as string) || new Date().getFullYear().toString()
+    const avaliacaoIdParam = formData.get('avaliacao_id') as string | null
 
     if (!arquivo) {
       return NextResponse.json(
@@ -51,6 +53,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const avaliacaoId = await resolverAvaliacaoId(avaliacaoIdParam, anoLetivo)
 
     // Carregar configurações de séries e disciplinas do banco de dados
     const configSeriesResult = await pool.query(`
@@ -216,10 +220,10 @@ export async function POST(request: NextRequest) {
 
     // Criar registro de importacao
     const importacaoResult = await pool.query(
-      `INSERT INTO importacoes (usuario_id, nome_arquivo, total_linhas, status)
-       VALUES ($1, $2, $3, 'processando')
+      `INSERT INTO importacoes (usuario_id, nome_arquivo, total_linhas, status, ano_letivo, avaliacao_id)
+       VALUES ($1, $2, $3, 'processando', $4, $5)
        RETURNING id`,
-      [usuario.id, arquivo.name, dados.length]
+      [usuario.id, arquivo.name, dados.length, anoLetivo, avaliacaoId]
     )
 
     const importacaoId = importacaoResult.rows[0].id
@@ -299,9 +303,9 @@ export async function POST(request: NextRequest) {
       const query = `
         INSERT INTO resultados_provas
         (escola_id, aluno_id, aluno_codigo, aluno_nome, turma_id, questao_id, questao_codigo,
-         resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca)
+         resposta_aluno, acertou, nota, ano_letivo, serie, turma, disciplina, area_conhecimento, presenca, avaliacao_id)
         VALUES ${placeholders.join(', ')}
-        ON CONFLICT (aluno_id, questao_codigo, ano_letivo)
+        ON CONFLICT (aluno_id, questao_codigo, avaliacao_id)
         DO UPDATE SET
           resposta_aluno = EXCLUDED.resposta_aluno,
           acertou = EXCLUDED.acertou,
@@ -569,6 +573,7 @@ export async function POST(request: NextRequest) {
               disciplina,
               area,
               presencaFinal,
+              avaliacaoId,
             ])
 
             // Executar batch quando atingir o tamanho maximo
@@ -705,7 +710,8 @@ export async function POST(request: NextRequest) {
               item_producao_1, item_producao_2, item_producao_3, item_producao_4,
               item_producao_5, item_producao_6, item_producao_7, item_producao_8,
               total_questoes_respondidas, total_questoes_esperadas, tipo_avaliacao,
-              nivel_lp, nivel_mat, nivel_prod, nivel_aluno
+              nivel_lp, nivel_mat, nivel_prod, nivel_aluno,
+              avaliacao_id
             ) VALUES (
               $1, $2, $3, $4, $5, $6,
               $7, $8, $9, $10,
@@ -713,9 +719,10 @@ export async function POST(request: NextRequest) {
               $16, $17,
               $18, $19, $20, $21, $22, $23, $24, $25,
               $26, $27, $28,
-              $29, $30, $31, $32
+              $29, $30, $31, $32,
+              $33
             )
-            ON CONFLICT (aluno_id, ano_letivo)
+            ON CONFLICT (aluno_id, avaliacao_id)
             DO UPDATE SET
               escola_id = EXCLUDED.escola_id,
               turma_id = EXCLUDED.turma_id,
@@ -763,7 +770,8 @@ export async function POST(request: NextRequest) {
             (alunoFaltou || semDados) ? null : (itensProducao[6] ?? null),
             (alunoFaltou || semDados) ? null : (itensProducao[7] ?? null),
             questoesRespondidas, totalQuestoesEsperadas, tipoAvaliacao,
-            nivelLp, nivelMat, nivelProd, nivelAlunoCalc
+            nivelLp, nivelMat, nivelProd, nivelAlunoCalc,
+            avaliacaoId
           ])
         }
 

@@ -27,7 +27,8 @@ import {
   WifiOff,
   Activity,
   FileBarChart,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardList
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
@@ -245,6 +246,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         { icon: School, label: 'Escolas', href: '/admin/escolas' },
         { icon: MapPin, label: 'Polos', href: '/admin/polos' },
         { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
+        { icon: Users, label: 'Turmas', href: '/admin/turmas' },
+        { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
+        { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
+        { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
         { icon: FileCheck, label: 'Questoes', href: '/admin/questoes' },
         { icon: Settings, label: 'Configurar Series', href: '/admin/configuracao-series' },
         { icon: FileScan, label: 'Cartao-Resposta', href: '/admin/cartao-resposta' },
@@ -264,7 +269,11 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         { icon: MapPin, label: 'Comparativos Polo', href: '/admin/comparativos-polos' },
         { icon: School, label: 'Escolas', href: '/admin/escolas' },
         { icon: MapPin, label: 'Polos', href: '/admin/polos' },
-        { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
+        { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
+        { icon: Users, label: 'Turmas', href: '/admin/turmas' },
+        { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
+        { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
+        { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' }
       )
     }
 
