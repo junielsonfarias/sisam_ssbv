@@ -47,12 +47,19 @@ export async function GET(
 
     const turma = turmaResult.rows[0]
 
-    // Buscar alunos da turma
+    // Buscar alunos da turma (incluindo transferidos/inativos)
     const alunosResult = await pool.query(
-      `SELECT a.id, a.codigo, a.nome, a.serie, a.ano_letivo, a.ativo
+      `SELECT a.id, a.codigo, a.nome, a.serie, a.ano_letivo, a.ativo,
+              a.data_nascimento, a.pcd, a.situacao, a.data_matricula,
+              (SELECT hs.data FROM historico_situacao hs
+               WHERE hs.aluno_id = a.id AND hs.situacao = 'transferido'
+               ORDER BY hs.data DESC, hs.criado_em DESC LIMIT 1
+              ) as data_transferencia
        FROM alunos a
-       WHERE a.turma_id = $1 AND a.ativo = true
-       ORDER BY a.nome`,
+       WHERE a.turma_id = $1
+       ORDER BY
+         CASE WHEN a.situacao IN ('transferido', 'abandono') THEN 1 ELSE 0 END,
+         a.nome`,
       [turmaId]
     )
 

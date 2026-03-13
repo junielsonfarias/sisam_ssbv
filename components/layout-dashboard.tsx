@@ -28,7 +28,13 @@ import {
   Activity,
   FileBarChart,
   AlertTriangle,
-  ClipboardList
+  ClipboardList,
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  ArrowLeftRight,
+  CalendarCheck,
+  RotateCcw
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
@@ -39,6 +45,13 @@ import AlertaDivergencias from './alerta-divergencias'
 interface LayoutDashboardProps {
   children: React.ReactNode
   tipoUsuario: string
+}
+
+interface MenuItem {
+  icon: any
+  label: string
+  href?: string
+  children?: MenuItem[]
 }
 
 interface Personalizacao {
@@ -56,6 +69,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const [modoOffline, setModoOffline] = useState(false)
   const [personalizacao, setPersonalizacao] = useState<Personalizacao>({})
   const [dataAtual, setDataAtual] = useState('')
+  const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({})
 
   // Função para verificar se o item do menu está ativo
   const isMenuItemActive = (href: string): boolean => {
@@ -217,84 +231,140 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const tipoUsuarioReal = usuario?.tipo_usuario === 'administrador' ? 'admin' : (usuario?.tipo_usuario || tipoUsuario || 'admin')
 
   // Menu fixo baseado no tipo de usuario - sem depender de carregamento async
-  const getMenuItems = () => {
-    const items = [
+  const getMenuItems = (): MenuItem[] => {
+    const items: MenuItem[] = [
       { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
     ]
-
-    // Painel de Dados - FIXO PARA TODOS OS USUARIOS
-    items.push({ icon: Database, label: 'Painel de Dados', href: '/admin/dados' })
-
-    // Analise Grafica - para todos exceto escola (escola tem menu proprio)
-    if (tipoUsuarioReal !== 'escola') {
-      items.push({ icon: TrendingUp, label: 'Analise Grafica', href: `/${basePath}/graficos` })
-    }
 
     // Menu especifico para ADMINISTRADOR
     if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
       items.push(
-        { icon: FileBarChart, label: 'Relatorios', href: '/admin/relatorios' },
-        { icon: Upload, label: 'Importar Dados', href: '/admin/importar-completo' },
-        { icon: UserPlus, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
-        { icon: FilePlus, label: 'Importar Resultados', href: '/admin/importar-resultados' },
-        { icon: History, label: 'Importacoes', href: '/admin/importacoes' },
-        { icon: AlertTriangle, label: 'Divergencias', href: '/admin/divergencias' },
-        { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
-        { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
-        { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
-        { icon: Users, label: 'Usuarios', href: '/admin/usuarios' },
-        { icon: School, label: 'Escolas', href: '/admin/escolas' },
-        { icon: MapPin, label: 'Polos', href: '/admin/polos' },
-        { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
-        { icon: Users, label: 'Turmas', href: '/admin/turmas' },
-        { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
-        { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
-        { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
-        { icon: FileCheck, label: 'Questoes', href: '/admin/questoes' },
-        { icon: Settings, label: 'Configurar Series', href: '/admin/configuracao-series' },
-        { icon: FileScan, label: 'Cartao-Resposta', href: '/admin/cartao-resposta' },
-        { icon: Settings, label: 'Personalizacao', href: '/admin/personalizacao' },
-        { icon: Settings, label: 'Modulos Tecnico', href: '/admin/modulos-tecnico' },
+        // Grupo SISAM
+        {
+          icon: Database, label: 'SISAM', children: [
+            { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+            { icon: TrendingUp, label: 'Análise Gráfica', href: '/admin/graficos' },
+            { icon: FileBarChart, label: 'Relatórios', href: '/admin/relatorios' },
+            { icon: Upload, label: 'Importar Dados', href: '/admin/importar-completo' },
+            { icon: UserPlus, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
+            { icon: FilePlus, label: 'Importar Resultados', href: '/admin/importar-resultados' },
+            { icon: History, label: 'Importações', href: '/admin/importacoes' },
+            { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
+            { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
+            { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
+            { icon: BarChart3, label: 'Comparativo SISAM x Escola', href: '/admin/comparativo-notas' },
+            { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
+            { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
+            { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
+          ]
+        },
+        // Grupo Gestor Escolar
+        {
+          icon: BookOpen, label: 'Gestor Escolar', children: [
+            { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
+            { icon: School, label: 'Escolas', href: '/admin/escolas' },
+            { icon: MapPin, label: 'Polos', href: '/admin/polos' },
+            { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
+            { icon: Users, label: 'Turmas', href: '/admin/turmas' },
+            { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
+            { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
+            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
+            { icon: CalendarCheck, label: 'Frequência', href: '/admin/frequencia' },
+            { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
+            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
+            { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
+            { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
+            { icon: AlertTriangle, label: 'Divergências', href: '/admin/divergencias' },
+            { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+          ]
+        },
+        { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
+        { icon: Settings, label: 'Configurar Séries', href: '/admin/configuracao-series' },
+        { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
+        { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' },
         { icon: Activity, label: 'Logs de Acesso', href: '/admin/logs-acesso' }
       )
     }
 
     // Menu especifico para TECNICO
-    // Dashboard, Painel de Dados, Resultados Consolidados, Comparativos Escolas, Comparativos Polo,
-    // Análise Gráfica, Escolas (visualização), Polos (visualização), Alunos
     if (tipoUsuarioReal === 'tecnico') {
       items.push(
-        { icon: FileText, label: 'Resultados Consolidados', href: '/tecnico/analise' },
-        { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
-        { icon: MapPin, label: 'Comparativos Polo', href: '/admin/comparativos-polos' },
-        { icon: School, label: 'Escolas', href: '/admin/escolas' },
-        { icon: MapPin, label: 'Polos', href: '/admin/polos' },
-        { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
-        { icon: Users, label: 'Turmas', href: '/admin/turmas' },
-        { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
-        { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
-        { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' }
+        // Grupo SISAM
+        {
+          icon: Database, label: 'SISAM', children: [
+            { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+            { icon: TrendingUp, label: 'Análise Gráfica', href: '/tecnico/graficos' },
+            { icon: FileText, label: 'Resultados Consolidados', href: '/tecnico/analise' },
+            { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
+            { icon: MapPin, label: 'Comparativos Polo', href: '/admin/comparativos-polos' },
+            { icon: BarChart3, label: 'Comparativo SISAM x Escola', href: '/admin/comparativo-notas' },
+            { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
+          ]
+        },
+        // Grupo Gestor Escolar
+        {
+          icon: BookOpen, label: 'Gestor Escolar', children: [
+            { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
+            { icon: School, label: 'Escolas', href: '/admin/escolas' },
+            { icon: MapPin, label: 'Polos', href: '/admin/polos' },
+            { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
+            { icon: Users, label: 'Turmas', href: '/admin/turmas' },
+            { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
+            { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
+            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
+            { icon: CalendarCheck, label: 'Frequência', href: '/admin/frequencia' },
+            { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
+            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
+            { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
+            { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
+            { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+          ]
+        }
       )
     }
 
     // Menu especifico para POLO
-    // Dashboard, Painel de Dados, Resultados Consolidados, Comparativo de Escolas (só escolas do polo),
-    // Análise Gráfica, Escolas (visualização das escolas do polo), Alunos (apenas do polo)
     if (tipoUsuarioReal === 'polo') {
       items.push(
-        { icon: FileText, label: 'Resultados Consolidados', href: '/polo/analise' },
-        { icon: BarChart3, label: 'Comparativo Escolas', href: '/admin/comparativos' },
+        // Grupo SISAM
+        {
+          icon: Database, label: 'SISAM', children: [
+            { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+            { icon: TrendingUp, label: 'Análise Gráfica', href: '/polo/graficos' },
+            { icon: FileText, label: 'Resultados Consolidados', href: '/polo/analise' },
+            { icon: BarChart3, label: 'Comparativo Escolas', href: '/admin/comparativos' },
+          ]
+        },
         { icon: School, label: 'Escolas', href: '/polo/escolas' },
         { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
       )
     }
 
     // Menu especifico para ESCOLA
-    // Dashboard, Painel de Dados, Resultados Consolidados, Alunos (apenas da escola)
     if (tipoUsuarioReal === 'escola') {
       items.push(
-        { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
-        { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' }
+        // Grupo SISAM
+        {
+          icon: Database, label: 'SISAM', children: [
+            { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+            { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
+            { icon: BarChart3, label: 'Comparativo SISAM x Escola', href: '/admin/comparativo-notas' },
+          ]
+        },
+        // Grupo Gestor Escolar
+        {
+          icon: BookOpen, label: 'Gestor Escolar', children: [
+            { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
+            { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' },
+            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
+            { icon: CalendarCheck, label: 'Frequência', href: '/admin/frequencia' },
+            { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
+            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
+            { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
+            { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
+            { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+          ]
+        }
       )
     }
 
@@ -302,6 +372,22 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   }
 
   const menuItems = getMenuItems()
+
+  // Verifica se algum filho do grupo está ativo
+  const isGroupActive = (item: MenuItem): boolean => {
+    if (!item.children) return false
+    return item.children.some(child => child.href ? isMenuItemActive(child.href) : false)
+  }
+
+  // Verifica se o grupo está expandido (manual ou auto pelo filho ativo)
+  const isGroupExpanded = (label: string, item: MenuItem): boolean => {
+    if (gruposExpandidos[label] !== undefined) return gruposExpandidos[label]
+    return isGroupActive(item)
+  }
+
+  const toggleGrupo = (label: string) => {
+    setGruposExpandidos(prev => ({ ...prev, [label]: !prev[label] }))
+  }
 
   // Obter contexto do usuário (polo ou escola)
   const getContextoUsuario = () => {
@@ -487,11 +573,72 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             <ul className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon
-                const isActive = isMenuItemActive(item.href)
+
+                // Item com subitens (grupo expansível)
+                if (item.children) {
+                  const expanded = isGroupExpanded(item.label, item)
+                  const groupActive = isGroupActive(item)
+                  return (
+                    <li key={item.label}>
+                      <button
+                        onClick={() => toggleGrupo(item.label)}
+                        className={`
+                          w-full flex items-center px-2 sm:px-3 py-2 sm:py-2.5 text-sm rounded-lg transition-all duration-200
+                          ${groupActive
+                            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium'
+                            : 'text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:text-indigo-600 dark:hover:text-indigo-400'
+                          }
+                        `}
+                      >
+                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0 ${groupActive ? 'text-indigo-600 dark:text-indigo-400' : ''}`} />
+                        <span className="truncate flex-1 text-left">{item.label}</span>
+                        {expanded
+                          ? <ChevronDown className="w-4 h-4 flex-shrink-0 ml-1 transition-transform" />
+                          : <ChevronRight className="w-4 h-4 flex-shrink-0 ml-1 transition-transform" />
+                        }
+                      </button>
+                      {expanded && (
+                        <ul className="mt-1 ml-3 sm:ml-4 pl-2 sm:pl-3 border-l-2 border-indigo-100 dark:border-indigo-800/50 space-y-0.5">
+                          {item.children.map((child) => {
+                            const ChildIcon = child.icon
+                            const childActive = child.href ? isMenuItemActive(child.href) : false
+                            return (
+                              <li key={child.href || child.label}>
+                                <Link
+                                  href={child.href || '#'}
+                                  className={`
+                                    flex items-center px-2 sm:px-3 py-1.5 sm:py-2 text-sm rounded-lg transition-all duration-200
+                                    ${childActive
+                                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 font-medium'
+                                      : 'text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:text-indigo-600 dark:hover:text-indigo-400'
+                                    }
+                                  `}
+                                  onClick={() => {
+                                    setMenuAberto(false)
+                                    setMenuDesktopOculto(true)
+                                  }}
+                                >
+                                  <ChildIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 sm:mr-2.5 flex-shrink-0 ${childActive ? 'text-white' : ''}`} />
+                                  <span className="truncate">{child.label}</span>
+                                  {childActive && (
+                                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                  )}
+                                </Link>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                    </li>
+                  )
+                }
+
+                // Item simples (sem filhos)
+                const isActive = item.href ? isMenuItemActive(item.href) : false
                 return (
-                  <li key={item.href}>
+                  <li key={item.href || item.label}>
                     <Link
-                      href={item.href}
+                      href={item.href || '#'}
                       className={`
                         flex items-center px-2 sm:px-3 py-2 sm:py-2.5 text-sm rounded-lg transition-all duration-200
                         ${isActive

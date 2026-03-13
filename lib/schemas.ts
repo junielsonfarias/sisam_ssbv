@@ -112,6 +112,37 @@ export const alunoSchema = z.object({
   cpf: cpfSchema,
   data_nascimento: z.string().optional().nullable(),
   pcd: z.boolean().default(false).optional(),
+  // Dados familiares
+  nome_mae: z.string().max(255).optional().nullable(),
+  nome_pai: z.string().max(255).optional().nullable(),
+  responsavel: z.string().max(255).optional().nullable(),
+  telefone_responsavel: z.string().max(20).optional().nullable(),
+  // Dados pessoais
+  genero: z.enum(['masculino', 'feminino', 'outro', 'nao_informado']).optional().nullable(),
+  raca_cor: z.enum(['branca', 'preta', 'parda', 'amarela', 'indigena', 'nao_declarada']).optional().nullable(),
+  naturalidade: z.string().max(100).optional().nullable(),
+  nacionalidade: z.string().max(100).optional().nullable(),
+  // Documentos
+  rg: z.string().max(20).optional().nullable(),
+  certidao_nascimento: z.string().max(50).optional().nullable(),
+  sus: z.string().max(20).optional().nullable(),
+  // Endereço
+  endereco: z.string().max(500).optional().nullable(),
+  bairro: z.string().max(100).optional().nullable(),
+  cidade: z.string().max(100).optional().nullable(),
+  cep: z.string().max(10).optional().nullable(),
+  // Programas sociais
+  bolsa_familia: z.boolean().default(false).optional(),
+  nis: z.string().max(20).optional().nullable(),
+  // Projetos
+  projeto_contraturno: z.boolean().default(false).optional(),
+  projeto_nome: z.string().max(255).optional().nullable(),
+  // Saúde
+  tipo_deficiencia: z.string().max(255).optional().nullable(),
+  alergia: z.string().max(500).optional().nullable(),
+  medicacao: z.string().max(500).optional().nullable(),
+  // Observações
+  observacoes: z.string().max(2000).optional().nullable(),
 })
 
 /** Schema para matrícula em lote */
@@ -227,6 +258,56 @@ export const avaliacaoSchema = z.object({
   data_fim: z.string().optional().nullable(),
   ativo: z.boolean().default(true),
 })
+
+// ============================================
+// Schemas do Gestor Escolar
+// ============================================
+
+/** Schema para disciplina escolar */
+export const disciplinaEscolarSchema = z.object({
+  nome: nomeSchema,
+  codigo: z.string().max(50).optional().nullable(),
+  abreviacao: z.string().max(20).optional().nullable(),
+  ordem: z.number().int().min(0).max(100).default(0),
+  ativo: z.boolean().default(true),
+})
+
+/** Tipo de período letivo */
+export const tipoPeriodoSchema = z.enum(['bimestre', 'trimestre', 'semestre', 'anual'])
+
+/** Schema para período letivo */
+export const periodoLetivoSchema = z.object({
+  nome: z.string().min(2).max(255),
+  tipo: tipoPeriodoSchema,
+  numero: z.number().int().min(1).max(4),
+  ano_letivo: anoLetivoSchema,
+  data_inicio: z.string().optional().nullable(),
+  data_fim: z.string().optional().nullable(),
+  ativo: z.boolean().default(true),
+})
+
+/** Schema base para configuração de notas da escola */
+export const configuracaoNotasEscolaBaseSchema = z.object({
+  escola_id: uuidSchema,
+  ano_letivo: anoLetivoSchema,
+  tipo_periodo: z.enum(['bimestre', 'trimestre', 'semestre']).default('bimestre'),
+  nota_maxima: z.number().min(1).max(100).default(10),
+  media_aprovacao: z.number().min(0).max(100).default(6),
+  media_recuperacao: z.number().min(0).max(100).default(5),
+  peso_avaliacao: z.number().min(0).max(1).default(0.6),
+  peso_recuperacao: z.number().min(0).max(1).default(0.4),
+  permite_recuperacao: z.boolean().default(true),
+})
+
+/** Schema com validações cruzadas */
+export const configuracaoNotasEscolaSchema = configuracaoNotasEscolaBaseSchema
+  .refine(data => {
+    const soma = Math.round((data.peso_avaliacao + data.peso_recuperacao) * 100) / 100
+    return soma === 1
+  }, { message: 'A soma dos pesos deve ser igual a 1.0', path: ['peso_avaliacao'] })
+  .refine(data => {
+    return data.media_recuperacao <= data.media_aprovacao
+  }, { message: 'Média de recuperação deve ser menor ou igual à média de aprovação', path: ['media_recuperacao'] })
 
 /** Schema para filtros de busca */
 export const filtrosSchema = z.object({

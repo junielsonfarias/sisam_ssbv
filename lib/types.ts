@@ -413,6 +413,76 @@ export interface ResultadoConsolidadoCompleto extends ResultadoConsolidado {
 }
 
 // ============================================================================
+// GESTOR ESCOLAR - ENTIDADES
+// ============================================================================
+
+/** Disciplina escolar (Português, Matemática, etc.) */
+export interface DisciplinaEscolar {
+  id: string
+  nome: string
+  codigo?: string | null
+  abreviacao?: string | null
+  ordem: number
+  ativo: boolean
+  criado_em: Date
+  atualizado_em: Date
+}
+
+/** Período letivo (bimestre, trimestre, etc.) */
+export interface PeriodoLetivo {
+  id: string
+  nome: string
+  tipo: 'bimestre' | 'trimestre' | 'semestre' | 'anual'
+  numero: number
+  ano_letivo: string
+  data_inicio?: string | null
+  data_fim?: string | null
+  ativo: boolean
+  criado_em: Date
+  atualizado_em: Date
+}
+
+/** Configuração de notas por escola e ano */
+export interface ConfiguracaoNotasEscola {
+  id: string
+  escola_id: string
+  ano_letivo: string
+  tipo_periodo: 'bimestre' | 'trimestre' | 'semestre'
+  nota_maxima: number
+  media_aprovacao: number
+  media_recuperacao: number
+  peso_avaliacao: number
+  peso_recuperacao: number
+  permite_recuperacao: boolean
+  criado_em: Date
+  atualizado_em: Date
+  // Campos via JOIN
+  escola_nome?: string
+}
+
+/** Nota escolar de um aluno */
+export interface NotaEscolar {
+  id: string
+  aluno_id: string
+  disciplina_id: string
+  periodo_id: string
+  escola_id: string
+  ano_letivo: string
+  nota?: number | null
+  nota_recuperacao?: number | null
+  nota_final?: number | null
+  faltas: number
+  observacao?: string | null
+  registrado_por?: string | null
+  criado_em: Date
+  atualizado_em: Date
+  // Campos via JOIN
+  aluno_nome?: string
+  disciplina_nome?: string
+  periodo_nome?: string
+}
+
+// ============================================================================
 // TIPOS DE BANCO DE DADOS
 // ============================================================================
 

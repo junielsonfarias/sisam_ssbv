@@ -3,7 +3,8 @@
 import ProtectedRoute from '@/components/protected-route'
 import ModalHistoricoAluno from '@/components/modal-historico-aluno'
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { Search, Eye, School } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, Eye, School, UserCircle } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { normalizarSerie, ordenarSeries } from '@/lib/dados/utils'
 
@@ -23,6 +24,7 @@ interface Aluno {
 
 export default function AlunosEscolaPage() {
   const toast = useToast()
+  const router = useRouter()
   const [tipoUsuario, setTipoUsuario] = useState<string>('escola')
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [turmas, setTurmas] = useState<any[]>([])
@@ -356,7 +358,13 @@ export default function AlunosEscolaPage() {
                           <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300 font-mono">{aluno.codigo || '-'}</span>
                         </td>
                         <td className="py-2 px-2 md:py-3 md:px-4 whitespace-nowrap">
-                          <div className="text-xs md:text-sm font-medium text-gray-900 dark:text-white truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">{aluno.nome}</div>
+                          <button
+                            onClick={() => router.push(`/admin/alunos/${aluno.id}`)}
+                            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-xs md:text-sm underline cursor-pointer text-left truncate max-w-[100px] sm:max-w-[150px] md:max-w-none"
+                            title="Ver perfil completo do aluno"
+                          >
+                            {aluno.nome}
+                          </button>
                         </td>
                         <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap">
                           <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300">{aluno.turma_codigo || aluno.turma_nome || '-'}</span>
@@ -375,14 +383,23 @@ export default function AlunosEscolaPage() {
                           </span>
                         </td>
                         <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap">
-                          <button
-                            onClick={() => handleVisualizarHistorico(aluno)}
-                            disabled={carregandoHistorico}
-                            className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-50"
-                            title="Ver histórico"
-                          >
-                            <Eye className="w-4 h-4 md:w-5 md:h-5" />
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => router.push(`/admin/alunos/${aluno.id}`)}
+                              className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 p-1 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+                              title="Ver perfil completo"
+                            >
+                              <UserCircle className="w-4 h-4 md:w-5 md:h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleVisualizarHistorico(aluno)}
+                              disabled={carregandoHistorico}
+                              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-50"
+                              title="Ver histórico"
+                            >
+                              <Eye className="w-4 h-4 md:w-5 md:h-5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

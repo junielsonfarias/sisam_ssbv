@@ -142,6 +142,7 @@ export async function GET(request: NextRequest) {
         a.serie,
         a.ano_letivo,
         a.ativo,
+        a.situacao,
         a.criado_em,
         a.atualizado_em,
         e.nome as escola_nome,

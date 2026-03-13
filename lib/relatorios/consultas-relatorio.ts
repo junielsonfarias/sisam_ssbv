@@ -73,13 +73,28 @@ import { calcularProjecoes, calcularDistribuicaoNotas } from './calculos-projeco
 export async function buscarDadosRelatorioEscola(
   escolaId: string,
   anoLetivo: string,
-  serie?: string
+  serie?: string,
+  avaliacaoId?: string
 ): Promise<DadosRelatorioEscola> {
   // Validar parâmetros de entrada
   validarFiltroRelatorio({ id: escolaId, ano_letivo: anoLetivo, serie: serie as any });
 
-  const params = serie ? [escolaId, anoLetivo, serie] : [escolaId, anoLetivo];
-  const serieFilter = serie ? 'AND rc.serie = $3' : '';
+  const params: string[] = [escolaId, anoLetivo];
+  let paramIdx = 3;
+  let serieFilter = '';
+  if (serie) {
+    serieFilter = `AND rc.serie = $${paramIdx}`;
+    params.push(serie);
+    paramIdx++;
+  }
+  let avaliacaoFilter = '';
+  let avaliacaoFilterRP = '';
+  if (avaliacaoId) {
+    avaliacaoFilter = `AND rc.avaliacao_id = $${paramIdx}`;
+    avaliacaoFilterRP = `AND rp.avaliacao_id = $${paramIdx}`;
+    params.push(avaliacaoId);
+    paramIdx++;
+  }
 
   // Query 1: Dados da escola
   const escolaQuery = `
@@ -112,7 +127,7 @@ export async function buscarDadosRelatorioEscola(
     FROM resultados_consolidados_unificada rc
     WHERE rc.escola_id = $1
       AND rc.ano_letivo = $2
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
   `;
 
   // Query 3: Desempenho por disciplina
@@ -131,7 +146,7 @@ export async function buscarDadosRelatorioEscola(
         SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN COALESCE(rc.total_acertos_lp, 0) ELSE 0 END) as acertos_total,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 END) as total_registros
       FROM resultados_consolidados_unificada rc
-      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2 ${serieFilter}
+      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2 ${serieFilter} ${avaliacaoFilter}
 
       UNION ALL
 
@@ -142,7 +157,7 @@ export async function buscarDadosRelatorioEscola(
         SUM(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN COALESCE(rc.total_acertos_mat, 0) ELSE 0 END) as acertos_total,
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 END) as total_registros
       FROM resultados_consolidados_unificada rc
-      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2 ${serieFilter}
+      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2 ${serieFilter} ${avaliacaoFilter}
 
       ${incluirPROD ? `
       UNION ALL
@@ -156,7 +171,7 @@ export async function buscarDadosRelatorioEscola(
       FROM resultados_consolidados_unificada rc
       WHERE rc.escola_id = $1 AND rc.ano_letivo = $2
         AND rc.serie IN ('2º Ano', '3º Ano', '5º Ano')
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
       ` : ''}
 
       ${incluirCHCN ? `
@@ -171,7 +186,7 @@ export async function buscarDadosRelatorioEscola(
       FROM resultados_consolidados_unificada rc
       WHERE rc.escola_id = $1 AND rc.ano_letivo = $2
         AND rc.serie IN ('8º Ano', '9º Ano')
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
 
       UNION ALL
 
@@ -184,7 +199,7 @@ export async function buscarDadosRelatorioEscola(
       FROM resultados_consolidados_unificada rc
       WHERE rc.escola_id = $1 AND rc.ano_letivo = $2
         AND rc.serie IN ('8º Ano', '9º Ano')
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
       ` : ''}
     )
     SELECT
@@ -217,6 +232,7 @@ export async function buscarDadosRelatorioEscola(
     FROM turmas t
     LEFT JOIN resultados_consolidados_unificada rc ON t.id = rc.turma_id
       AND rc.ano_letivo = $2
+      ${avaliacaoFilter}
     WHERE t.escola_id = $1
       ${serie ? 'AND t.serie = $3' : ''}
     GROUP BY t.id, t.codigo, t.nome, t.serie
@@ -246,6 +262,7 @@ export async function buscarDadosRelatorioEscola(
     LEFT JOIN resultados_provas rp ON q.id = rp.questao_id
       AND rp.escola_id = $1
       AND rp.ano_letivo = $2
+      ${avaliacaoFilterRP}
     WHERE 1=1
     GROUP BY q.id, q.codigo, q.disciplina
     HAVING COUNT(rp.id) > 0
@@ -268,7 +285,7 @@ export async function buscarDadosRelatorioEscola(
         AND (rc.presenca = 'P' OR rc.presenca = 'p')
         AND rc.media_aluno IS NOT NULL
         AND CAST(rc.media_aluno AS DECIMAL) > 0
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
     )
     SELECT
       nivel,
@@ -299,7 +316,7 @@ export async function buscarDadosRelatorioEscola(
       AND (rc.presenca = 'P' OR rc.presenca = 'p')
       AND rc.media_aluno IS NOT NULL
       AND CAST(rc.media_aluno AS DECIMAL) > 0
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
   `;
 
   // Query 8: Produção Textual (apenas para Anos Iniciais - usando função utilitária)
@@ -314,7 +331,7 @@ export async function buscarDadosRelatorioEscola(
     WHERE rc.escola_id = $1
       AND rc.ano_letivo = $2
       AND rc.serie IN ('2º Ano', '3º Ano', '5º Ano')
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
   ` : null;
 
   // Query 9: Níveis de aprendizagem por turma
@@ -337,7 +354,7 @@ export async function buscarDadosRelatorioEscola(
         AND (rc.presenca = 'P' OR rc.presenca = 'p')
         AND rc.media_aluno IS NOT NULL
         AND CAST(rc.media_aluno AS DECIMAL) > 0
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
     ) as niveis
     GROUP BY turma_id, nivel
     ORDER BY turma_id, nivel
@@ -357,7 +374,7 @@ export async function buscarDadosRelatorioEscola(
     FROM resultados_consolidados_unificada rc
     WHERE rc.escola_id = $1
       AND rc.ano_letivo = $2
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
     GROUP BY rc.serie
     ORDER BY rc.serie
   `;
@@ -388,6 +405,7 @@ export async function buscarDadosRelatorioEscola(
     WHERE rp.escola_id = $1
       AND rp.ano_letivo = $2
       ${serie ? 'AND rp.serie = $3' : ''}
+      ${avaliacaoFilterRP}
       -- Filtrar disciplinas válidas por série
       AND (
         (rp.serie IN ('2º Ano', '3º Ano', '5º Ano') AND q.disciplina IN ('LP', 'MAT'))
@@ -410,14 +428,14 @@ export async function buscarDadosRelatorioEscola(
     WITH media_escola AS (
       SELECT COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN CAST(rc.media_aluno AS DECIMAL) END)::numeric, 2), 0) as media
       FROM resultados_consolidados_unificada rc
-      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2 ${serieFilter}
+      WHERE rc.escola_id = $1 AND rc.ano_letivo = $2 ${serieFilter} ${avaliacaoFilter}
     ),
     media_polo AS (
       SELECT COALESCE(ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN CAST(rc.media_aluno AS DECIMAL) END)::numeric, 2), 0) as media
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       WHERE e.polo_id = (SELECT polo_id FROM escolas WHERE id = $1)
-        AND rc.ano_letivo = $2 ${serieFilter}
+        AND rc.ano_letivo = $2 ${serieFilter} ${avaliacaoFilter}
     ),
     ranking AS (
       SELECT
@@ -426,7 +444,7 @@ export async function buscarDadosRelatorioEscola(
         COUNT(*) OVER () as total_escolas
       FROM escolas e
       LEFT JOIN resultados_consolidados_unificada rc ON e.id = rc.escola_id
-        AND rc.ano_letivo = $2 ${serieFilter}
+        AND rc.ano_letivo = $2 ${serieFilter} ${avaliacaoFilter}
       WHERE e.polo_id = (SELECT polo_id FROM escolas WHERE id = $1) AND e.ativo = true
       GROUP BY e.id
     )
@@ -766,13 +784,28 @@ export async function buscarDadosRelatorioEscola(
 export async function buscarDadosRelatorioPolo(
   poloId: string,
   anoLetivo: string,
-  serie?: string
+  serie?: string,
+  avaliacaoId?: string
 ): Promise<DadosRelatorioPolo> {
   // Validar parâmetros de entrada
   validarFiltroRelatorio({ id: poloId, ano_letivo: anoLetivo, serie: serie as any });
 
-  const params = serie ? [poloId, anoLetivo, serie] : [poloId, anoLetivo];
-  const serieFilter = serie ? 'AND rc.serie = $3' : '';
+  const params: string[] = [poloId, anoLetivo];
+  let paramIdx = 3;
+  let serieFilter = '';
+  if (serie) {
+    serieFilter = `AND rc.serie = $${paramIdx}`;
+    params.push(serie);
+    paramIdx++;
+  }
+  let avaliacaoFilter = '';
+  let avaliacaoFilterRP = '';
+  if (avaliacaoId) {
+    avaliacaoFilter = `AND rc.avaliacao_id = $${paramIdx}`;
+    avaliacaoFilterRP = `AND rp.avaliacao_id = $${paramIdx}`;
+    params.push(avaliacaoId);
+    paramIdx++;
+  }
 
   // Query 1: Dados do polo
   const poloQuery = `
@@ -796,7 +829,7 @@ export async function buscarDadosRelatorioPolo(
     INNER JOIN escolas e ON rc.escola_id = e.id
     WHERE e.polo_id = $1
       AND rc.ano_letivo = $2
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
   `;
 
   // Query 3: Desempenho por disciplina do polo - usando mesma lógica do dashboard
@@ -813,7 +846,7 @@ export async function buscarDadosRelatorioPolo(
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 END) as total_registros
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
-      WHERE e.polo_id = $1 AND rc.ano_letivo = $2 ${serieFilter}
+      WHERE e.polo_id = $1 AND rc.ano_letivo = $2 ${serieFilter} ${avaliacaoFilter}
 
       UNION ALL
 
@@ -825,7 +858,7 @@ export async function buscarDadosRelatorioPolo(
         COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 END) as total_registros
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
-      WHERE e.polo_id = $1 AND rc.ano_letivo = $2 ${serieFilter}
+      WHERE e.polo_id = $1 AND rc.ano_letivo = $2 ${serieFilter} ${avaliacaoFilter}
 
       ${incluirPROD ? `
       UNION ALL
@@ -840,7 +873,7 @@ export async function buscarDadosRelatorioPolo(
       INNER JOIN escolas e ON rc.escola_id = e.id
       WHERE e.polo_id = $1 AND rc.ano_letivo = $2
         AND rc.serie IN ('2º Ano', '3º Ano', '5º Ano')
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
       ` : ''}
 
       ${incluirCHCN ? `
@@ -856,7 +889,7 @@ export async function buscarDadosRelatorioPolo(
       INNER JOIN escolas e ON rc.escola_id = e.id
       WHERE e.polo_id = $1 AND rc.ano_letivo = $2
         AND rc.serie IN ('8º Ano', '9º Ano')
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
 
       UNION ALL
 
@@ -870,7 +903,7 @@ export async function buscarDadosRelatorioPolo(
       INNER JOIN escolas e ON rc.escola_id = e.id
       WHERE e.polo_id = $1 AND rc.ano_letivo = $2
         AND rc.serie IN ('8º Ano', '9º Ano')
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
       ` : ''}
     )
     SELECT
@@ -896,7 +929,7 @@ export async function buscarDadosRelatorioPolo(
     FROM escolas e
     LEFT JOIN resultados_consolidados_unificada rc ON e.id = rc.escola_id
       AND rc.ano_letivo = $2
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
     WHERE e.polo_id = $1 AND e.ativo = true
     GROUP BY e.id, e.nome, e.codigo
     ORDER BY media_geral DESC NULLS LAST
@@ -914,7 +947,7 @@ export async function buscarDadosRelatorioPolo(
     FROM escolas e
     LEFT JOIN resultados_consolidados_unificada rc ON e.id = rc.escola_id
       AND rc.ano_letivo = $2
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
     WHERE e.polo_id = $1 AND e.ativo = true
     GROUP BY e.id, e.nome
     HAVING COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.media_aluno IS NOT NULL AND CAST(rc.media_aluno AS DECIMAL) > 0 THEN 1 END) > 0
@@ -942,6 +975,7 @@ export async function buscarDadosRelatorioPolo(
     FROM questoes q
     LEFT JOIN resultados_provas rp ON q.id = rp.questao_id
       AND rp.ano_letivo = $2
+      ${avaliacaoFilterRP}
     LEFT JOIN escolas e ON rp.escola_id = e.id
     WHERE e.polo_id = $1
     GROUP BY q.id, q.codigo, q.disciplina
@@ -960,7 +994,7 @@ export async function buscarDadosRelatorioPolo(
       AND (rc.presenca = 'P' OR rc.presenca = 'p')
       AND rc.media_aluno IS NOT NULL
       AND CAST(rc.media_aluno AS DECIMAL) > 0
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
   `;
 
   // Query 8: Distribuição por níveis de aprendizagem - calculado dinamicamente pela média
@@ -979,7 +1013,7 @@ export async function buscarDadosRelatorioPolo(
         AND (rc.presenca = 'P' OR rc.presenca = 'p')
         AND rc.media_aluno IS NOT NULL
         AND CAST(rc.media_aluno AS DECIMAL) > 0
-        ${serieFilter}
+        ${serieFilter} ${avaliacaoFilter}
     )
     SELECT
       nivel,
@@ -1014,7 +1048,7 @@ export async function buscarDadosRelatorioPolo(
     WHERE e.polo_id = $1
       AND rc.ano_letivo = $2
       AND rc.serie IN ('2º Ano', '3º Ano', '5º Ano')
-      ${serieFilter}
+      ${serieFilter} ${avaliacaoFilter}
   ` : null;
 
   try {

@@ -30,16 +30,50 @@ export async function POST(request: NextRequest) {
     for (const aluno of alunos) {
       try {
         if (aluno.id) {
-          // Aluno existente: atualizar turma, série e ano letivo
+          // Verificar se aluno está transferido e validar data
+          const alunoAtual = await pool.query(
+            'SELECT situacao FROM alunos WHERE id = $1', [aluno.id]
+          )
+          if (alunoAtual.rows.length > 0 && alunoAtual.rows[0].situacao === 'transferido') {
+            // Buscar data da última transferência
+            const ultimaTransf = await pool.query(
+              `SELECT data FROM historico_situacao
+               WHERE aluno_id = $1 AND situacao = 'transferido'
+               ORDER BY data DESC, criado_em DESC LIMIT 1`,
+              [aluno.id]
+            )
+            if (ultimaTransf.rows.length > 0) {
+              const dataTransf = ultimaTransf.rows[0].data
+              const hoje = new Date().toISOString().split('T')[0]
+              if (hoje < dataTransf) {
+                resultados.erros.push(
+                  `Aluno ${aluno.nome}: nova matrícula só permitida a partir de ${new Date(dataTransf).toLocaleDateString('pt-BR')}`
+                )
+                continue
+              }
+            }
+          }
+
+          // Aluno existente: atualizar turma, série, ano letivo e reativar
           const result = await pool.query(
             `UPDATE alunos
-             SET turma_id = $1, serie = $2, ano_letivo = $3, escola_id = $4, atualizado_em = CURRENT_TIMESTAMP
+             SET turma_id = $1, serie = $2, ano_letivo = $3, escola_id = $4,
+                 situacao = 'cursando', ativo = true, atualizado_em = CURRENT_TIMESTAMP
              WHERE id = $5
              RETURNING *`,
             [turma_id, serie, ano_letivo, escola_id, aluno.id]
           )
 
           if (result.rows.length > 0) {
+            // Registrar entrada no histórico se veio de transferência
+            if (alunoAtual.rows.length > 0 && alunoAtual.rows[0].situacao === 'transferido') {
+              await pool.query(
+                `INSERT INTO historico_situacao (aluno_id, situacao, situacao_anterior, data, observacao, registrado_por,
+                 tipo_movimentacao, escola_origem_id)
+                 VALUES ($1, 'cursando', 'transferido', CURRENT_DATE, 'Rematrícula via sistema', $2, 'entrada', $3)`,
+                [aluno.id, usuario.id, result.rows[0].escola_id]
+              )
+            }
             resultados.matriculados++
             resultados.alunos.push(result.rows[0])
           } else {

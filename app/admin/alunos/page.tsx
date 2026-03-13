@@ -4,12 +4,14 @@ import ProtectedRoute from '@/components/protected-route'
 import ModalAluno from '@/components/modal-aluno'
 import ModalHistoricoAluno from '@/components/modal-historico-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { Plus, Edit, Trash2, Search, Eye } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, Edit, Trash2, Search, Eye, UserCircle } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { normalizarSerie, ordenarSeries } from '@/lib/dados/utils'
 import { Paginacao, PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useDebounce } from '@/lib/hooks/useDebounce'
+import { Situacao, SITUACOES } from '@/lib/situacoes-config'
 
 interface Aluno {
   id: string
@@ -20,6 +22,7 @@ interface Aluno {
   serie: string | null
   ano_letivo: string | null
   ativo: boolean
+  situacao?: Situacao
   escola_nome?: string
   polo_nome?: string
   turma_codigo?: string
@@ -38,6 +41,7 @@ const formDataInicial = {
 
 export default function AlunosPage() {
   const toast = useToast()
+  const router = useRouter()
   const [tipoUsuario, setTipoUsuario] = useState<string>('admin')
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [polos, setPolos] = useState<PoloSimples[]>([])
@@ -561,6 +565,9 @@ export default function AlunosPage() {
                           <th className="hidden xl:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Ano Letivo
                           </th>
+                          <th className="hidden md:table-cell text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
+                            Situação
+                          </th>
                           <th className="text-left py-3 px-2 md:py-4 md:px-3 lg:px-4 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider">
                             Ações
                           </th>
@@ -569,7 +576,7 @@ export default function AlunosPage() {
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {!pesquisaIniciada ? (
                       <tr>
-                        <td colSpan={8} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
+                        <td colSpan={9} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
                           <Search className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
                           <p className="text-base sm:text-lg font-medium">Selecione os filtros e clique em Pesquisar</p>
                           <p className="text-xs sm:text-sm mt-1 text-gray-400 dark:text-gray-500">Use os filtros acima para encontrar alunos</p>
@@ -577,7 +584,7 @@ export default function AlunosPage() {
                       </tr>
                     ) : alunos.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
+                        <td colSpan={9} className="py-8 sm:py-12 text-center text-gray-500 dark:text-gray-400 px-4">
                           <p className="text-base sm:text-lg font-medium">Nenhum aluno encontrado</p>
                           <p className="text-xs sm:text-sm mt-1 text-gray-400 dark:text-gray-500">Tente ajustar os filtros de busca</p>
                         </td>
@@ -591,9 +598,9 @@ export default function AlunosPage() {
                           <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <div className="flex flex-col">
                               <button
-                                onClick={() => handleVisualizarHistorico(aluno)}
+                                onClick={() => router.push(`/admin/alunos/${aluno.id}`)}
                                 className="text-indigo-600 hover:text-indigo-800 font-medium text-xs md:text-sm underline cursor-pointer text-left mb-1"
-                                title="Clique para visualizar histórico do aluno"
+                                title="Ver perfil completo do aluno"
                               >
                                 {aluno.nome}
                               </button>
@@ -603,6 +610,14 @@ export default function AlunosPage() {
                                 {aluno.turma_codigo && <div>Turma: {aluno.turma_codigo}</div>}
                                 {aluno.serie && <div>Série: {aluno.serie}</div>}
                                 {aluno.ano_letivo && <div>Ano: {aluno.ano_letivo}</div>}
+                                {aluno.situacao && (() => {
+                                  const sit = SITUACOES.find(s => s.value === aluno.situacao)
+                                  return sit ? (
+                                    <span className={`md:hidden inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${sit.cor} ${sit.corDark}`}>
+                                      {sit.label}
+                                    </span>
+                                  ) : null
+                                })()}
                               </div>
                             </div>
                           </td>
@@ -627,8 +642,28 @@ export default function AlunosPage() {
                           <td className="hidden xl:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm">{aluno.ano_letivo || '-'}</span>
                           </td>
+                          <td className="hidden md:table-cell py-3 px-2 md:py-4 md:px-3 lg:px-4">
+                            {(() => {
+                              const sit = SITUACOES.find(s => s.value === aluno.situacao)
+                              return sit ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sit.cor} ${sit.corDark}`}>
+                                  {sit.label}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+                              )
+                            })()}
+                          </td>
                           <td className="py-3 px-2 md:py-4 md:px-3 lg:px-4">
                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-end gap-2">
+                              <button
+                                onClick={() => router.push(`/admin/alunos/${aluno.id}`)}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-3 py-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors text-sm font-medium border border-emerald-200 sm:border-0"
+                                title="Ver Perfil Completo"
+                              >
+                                <UserCircle className="w-4 h-4 flex-shrink-0" />
+                                <span className="sm:hidden">Perfil</span>
+                              </button>
                               <button
                                 onClick={() => handleVisualizarHistorico(aluno)}
                                 className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm font-medium border border-blue-200 sm:border-0"
