@@ -500,15 +500,32 @@ async function queuedQuery(
   }
 
   return new Promise((resolve, reject) => {
-    // Timeout para itens na fila
+    let settled = false; // Flag para evitar double-resolve/reject
+
     const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      // Remover da fila se ainda estiver aguardando
       const idx = queryQueue.findIndex(item => item.resolve === wrappedResolve);
-      if (idx !== -1) queryQueue.splice(idx, 1);
+      if (idx !== -1) {
+        queryQueue.splice(idx, 1);
+        // Item nunca foi dequeued, activeQueries não foi incrementado
+      }
       reject(new Error('Query expirou na fila de espera (timeout 30s)'));
     }, QUEUE_ITEM_TIMEOUT);
 
-    const wrappedResolve = (result: QueryResult) => { clearTimeout(timeoutId); resolve(result); };
-    const wrappedReject = (error: DatabaseError) => { clearTimeout(timeoutId); reject(error); };
+    const wrappedResolve = (result: QueryResult) => {
+      if (settled) return; // Já expirou pelo timeout
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(result);
+    };
+    const wrappedReject = (error: DatabaseError) => {
+      if (settled) return; // Já expirou pelo timeout
+      settled = true;
+      clearTimeout(timeoutId);
+      reject(error);
+    };
 
     queryQueue.push({
       resolve: wrappedResolve,

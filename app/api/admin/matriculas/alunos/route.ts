@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
 
     const client = await pool.connect()
     try {
-    await client.query('BEGIN')
+      await client.query('BEGIN')
 
-    for (const aluno of alunos) {
+      for (const aluno of alunos) {
       try {
         if (aluno.id) {
           // Verificar se aluno já está em outra turma no mesmo ano
