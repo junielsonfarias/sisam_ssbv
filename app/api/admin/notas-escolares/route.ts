@@ -160,12 +160,13 @@ export async function POST(request: NextRequest) {
       [escola_id, ano_letivo]
     )
 
-    const config = configResult.rows[0] || {
-      nota_maxima: 10,
-      media_aprovacao: 6,
-      peso_avaliacao: 0.6,
-      peso_recuperacao: 0.4,
-      permite_recuperacao: true,
+    const rawConfig = configResult.rows[0] || {}
+    const config = {
+      nota_maxima: parseFloat(rawConfig.nota_maxima) || 10,
+      media_aprovacao: parseFloat(rawConfig.media_aprovacao) || 6,
+      peso_avaliacao: parseFloat(rawConfig.peso_avaliacao) || 0.6,
+      peso_recuperacao: parseFloat(rawConfig.peso_recuperacao) || 0.4,
+      permite_recuperacao: rawConfig.permite_recuperacao !== false,
     }
 
     const client = await pool.connect()
@@ -201,17 +202,21 @@ export async function POST(request: NextRequest) {
               continue
             }
 
-            // Calcular nota_final
+            // Calcular nota_final com proteção contra NaN
             let notaFinal: number | null = null
-            if (item.nota !== null && item.nota !== undefined) {
-              notaFinal = item.nota
-              if (item.nota_recuperacao !== null && item.nota_recuperacao !== undefined && config.permite_recuperacao) {
-                if (item.nota_recuperacao > item.nota) {
-                  notaFinal = item.nota_recuperacao
+            const notaNum = typeof item.nota === 'number' ? item.nota : (item.nota !== null && item.nota !== undefined ? parseFloat(item.nota) : null)
+            const recNum = typeof item.nota_recuperacao === 'number' ? item.nota_recuperacao : (item.nota_recuperacao !== null && item.nota_recuperacao !== undefined ? parseFloat(item.nota_recuperacao) : null)
+
+            if (notaNum !== null && !isNaN(notaNum)) {
+              notaFinal = Math.max(0, notaNum)
+              if (recNum !== null && !isNaN(recNum) && config.permite_recuperacao) {
+                if (recNum > notaFinal) {
+                  notaFinal = recNum
                 }
               }
-              notaFinal = Math.min(notaFinal, config.nota_maxima)
+              notaFinal = Math.max(0, Math.min(notaFinal, config.nota_maxima))
               notaFinal = Math.round(notaFinal * 100) / 100
+              if (isNaN(notaFinal)) notaFinal = null // Segurança final
             }
 
             await client.query(upsertSQL, [

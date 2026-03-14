@@ -48,16 +48,30 @@ export async function POST(request: NextRequest) {
       alunos: [] as any[],
     }
 
+    const client = await pool.connect()
+    try {
+    await client.query('BEGIN')
+
     for (const aluno of alunos) {
       try {
         if (aluno.id) {
+          // Verificar se aluno já está em outra turma no mesmo ano
+          const conflito = await client.query(
+            `SELECT turma_id FROM alunos WHERE id = $1 AND turma_id IS NOT NULL AND turma_id != $2 AND ano_letivo = $3 AND situacao = 'cursando'`,
+            [aluno.id, turma_id, ano_letivo]
+          )
+          if (conflito.rows.length > 0) {
+            resultados.erros.push(`Aluno ${aluno.nome}: já matriculado em outra turma neste ano letivo`)
+            continue
+          }
+
           // Verificar se aluno está transferido e validar data
-          const alunoAtual = await pool.query(
+          const alunoAtual = await client.query(
             'SELECT situacao FROM alunos WHERE id = $1', [aluno.id]
           )
           if (alunoAtual.rows.length > 0 && alunoAtual.rows[0].situacao === 'transferido') {
             // Buscar data da última transferência
-            const ultimaTransf = await pool.query(
+            const ultimaTransf = await client.query(
               `SELECT data FROM historico_situacao
                WHERE aluno_id = $1 AND situacao = 'transferido'
                ORDER BY data DESC, criado_em DESC LIMIT 1`,
@@ -78,7 +92,7 @@ export async function POST(request: NextRequest) {
           // Aluno existente: atualizar turma, série, ano letivo e reativar
           // Se turma multiserie/multietapa, usar serie_individual do aluno
           const serieAluno = aluno.serie_individual || serie
-          const result = await pool.query(
+          const result = await client.query(
             `UPDATE alunos
              SET turma_id = $1, serie = $2, ano_letivo = $3, escola_id = $4,
                  situacao = 'cursando', ativo = true, atualizado_em = CURRENT_TIMESTAMP
@@ -90,7 +104,7 @@ export async function POST(request: NextRequest) {
           if (result.rows.length > 0) {
             // Registrar entrada no histórico se veio de transferência
             if (alunoAtual.rows.length > 0 && alunoAtual.rows[0].situacao === 'transferido') {
-              await pool.query(
+              await client.query(
                 `INSERT INTO historico_situacao (aluno_id, situacao, situacao_anterior, data, observacao, registrado_por,
                  tipo_movimentacao, escola_origem_id)
                  VALUES ($1, 'cursando', 'transferido', CURRENT_DATE, 'Rematrícula via sistema', $2, 'entrada', $3)`,
@@ -108,7 +122,7 @@ export async function POST(request: NextRequest) {
           // Se turma multiserie/multietapa, usar serie_individual do aluno
           const serieNovoAluno = aluno.serie_individual || serie
 
-          const result = await pool.query(
+          const result = await client.query(
             `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, cpf, data_nascimento, pcd)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING *`,
@@ -138,10 +152,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    await client.query('COMMIT')
+
     return NextResponse.json({
       mensagem: `${resultados.matriculados} aluno(s) matriculado(s) com sucesso${resultados.criados > 0 ? ` (${resultados.criados} novo(s))` : ''}`,
       ...resultados,
     }, { status: 201 })
+    } catch (txErr) {
+      await client.query('ROLLBACK')
+      throw txErr
+    } finally {
+      client.release()
+    }
   } catch (error: any) {
     console.error('Erro ao matricular alunos:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

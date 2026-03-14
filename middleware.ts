@@ -100,13 +100,25 @@ function checkRateLimit(
 /**
  * Limpa entradas antigas periodicamente
  */
+const MAX_RATE_LIMIT_ENTRIES = 5000
+
 function cleanupOldEntries() {
   const now = Date.now()
-  const maxAge = 5 * 60 * 1000 // 5 minutos
+  const maxAge = 2 * 60 * 1000 // 2 minutos (mais agressivo)
 
   for (const [key, entry] of rateLimitStore.entries()) {
     if (now - entry.firstRequest > maxAge) {
       rateLimitStore.delete(key)
+    }
+  }
+
+  // Se ainda muito grande, limpar os mais antigos
+  if (rateLimitStore.size > MAX_RATE_LIMIT_ENTRIES) {
+    const entries = Array.from(rateLimitStore.entries())
+      .sort((a, b) => a[1].firstRequest - b[1].firstRequest)
+    const toDelete = Math.ceil(rateLimitStore.size * 0.5)
+    for (let i = 0; i < toDelete; i++) {
+      rateLimitStore.delete(entries[i][0])
     }
   }
 }

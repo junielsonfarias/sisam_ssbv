@@ -107,7 +107,17 @@ export async function POST(
           { status: 400 }
         )
       }
-      // escola_destino_nome é opcional para fora do município
+      // Verificar se escola destino existe e não é a mesma
+      if (tipo_transferencia === 'dentro_municipio' && escola_destino_id) {
+        const escolaCheck = await pool.query('SELECT id FROM escolas WHERE id = $1 AND ativo = true', [escola_destino_id])
+        if (escolaCheck.rows.length === 0) {
+          return NextResponse.json({ mensagem: 'Escola destino não encontrada' }, { status: 404 })
+        }
+        const alunoCheck = await pool.query('SELECT escola_id FROM alunos WHERE id = $1', [alunoId])
+        if (alunoCheck.rows[0]?.escola_id === escola_destino_id) {
+          return NextResponse.json({ mensagem: 'Aluno já está nesta escola' }, { status: 400 })
+        }
+      }
     }
 
     // Validar data (se fornecida, deve ser formato válido e não futura)

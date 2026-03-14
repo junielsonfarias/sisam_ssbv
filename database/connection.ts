@@ -46,6 +46,8 @@ let poolConfig: {
 let queryQueue: QueryQueueItem[] = [];
 let activeQueries = 0;
 const MAX_CONCURRENT_QUERIES = 50; // Maximo de queries paralelas (ajustado para 50 usuarios simultaneos)
+const MAX_QUEUE_SIZE = 500; // Limite da fila para evitar memory leak
+const QUEUE_ITEM_TIMEOUT = 30000; // 30s timeout para itens na fila
 
 // Estado de saúde da conexão
 let lastHealthCheck: number = 0;
@@ -492,10 +494,25 @@ async function queuedQuery(
   queryText: string,
   params?: QueryParams
 ): Promise<QueryResult> {
+  // Proteger contra fila infinita
+  if (queryQueue.length >= MAX_QUEUE_SIZE) {
+    throw new Error(`Servidor sobrecarregado: fila de queries cheia (${MAX_QUEUE_SIZE}). Tente novamente em instantes.`);
+  }
+
   return new Promise((resolve, reject) => {
+    // Timeout para itens na fila
+    const timeoutId = setTimeout(() => {
+      const idx = queryQueue.findIndex(item => item.resolve === wrappedResolve);
+      if (idx !== -1) queryQueue.splice(idx, 1);
+      reject(new Error('Query expirou na fila de espera (timeout 30s)'));
+    }, QUEUE_ITEM_TIMEOUT);
+
+    const wrappedResolve = (result: QueryResult) => { clearTimeout(timeoutId); resolve(result); };
+    const wrappedReject = (error: DatabaseError) => { clearTimeout(timeoutId); reject(error); };
+
     queryQueue.push({
-      resolve,
-      reject,
+      resolve: wrappedResolve,
+      reject: wrappedReject,
       queryFn: () => queryWithRetry(pool, queryText, params)
     });
     processQueryQueue();

@@ -102,24 +102,35 @@ export async function POST(request: NextRequest) {
 
         if (!aluno_id) continue
 
-        const presencasVal = presencas ?? 0
-        const faltasVal = faltas ?? 0
-        const faltasJustVal = faltas_justificadas ?? 0
+        const presencasVal = Math.max(0, presencas ?? 0)
+        const faltasVal = Math.max(0, faltas ?? 0)
+        const faltasJustVal = Math.max(0, faltas_justificadas ?? 0)
+
+        // Validar: presenças + faltas não pode exceder dias letivos
+        if (presencasVal + faltasVal > dias_letivos) {
+          continue // Ignora registro inválido silenciosamente
+        }
+
+        // Calcular percentual de frequência
+        const percentualFrequencia = dias_letivos > 0
+          ? Math.round((presencasVal / dias_letivos) * 1000) / 10
+          : 0
 
         await client.query(
           `INSERT INTO frequencia_bimestral
-            (aluno_id, periodo_id, turma_id, escola_id, ano_letivo, dias_letivos, presencas, faltas, faltas_justificadas, observacao, registrado_por)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            (aluno_id, periodo_id, turma_id, escola_id, ano_letivo, dias_letivos, presencas, faltas, faltas_justificadas, percentual_frequencia, observacao, registrado_por)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            ON CONFLICT (aluno_id, periodo_id) DO UPDATE SET
             dias_letivos = EXCLUDED.dias_letivos,
             presencas = EXCLUDED.presencas,
             faltas = EXCLUDED.faltas,
             faltas_justificadas = EXCLUDED.faltas_justificadas,
+            percentual_frequencia = EXCLUDED.percentual_frequencia,
             observacao = EXCLUDED.observacao,
             registrado_por = EXCLUDED.registrado_por,
             atualizado_em = CURRENT_TIMESTAMP`,
           [aluno_id, periodo_id, turma_id, escola_id, ano_letivo, dias_letivos,
-           presencasVal, faltasVal, faltasJustVal, observacao || null, usuario.id]
+           presencasVal, faltasVal, faltasJustVal, percentualFrequencia, observacao || null, usuario.id]
         )
         salvos++
       }
