@@ -52,6 +52,11 @@ export async function POST(request: NextRequest) {
     try {
       await client.query('BEGIN')
 
+      // Validar datas
+      if (data_inicio && data_fim && data_fim < data_inicio) {
+        return NextResponse.json({ mensagem: 'Data de fim deve ser posterior à data de início' }, { status: 400 })
+      }
+
       // Criar ano letivo
       const anoResult = await client.query(
         `INSERT INTO anos_letivos (ano, data_inicio, data_fim, dias_letivos_total, observacao)
@@ -115,6 +120,10 @@ export async function PUT(request: NextRequest) {
 
     if (!id && !ano) {
       return NextResponse.json({ mensagem: 'id ou ano é obrigatório' }, { status: 400 })
+    }
+
+    if (data_inicio && data_fim && data_fim < data_inicio) {
+      return NextResponse.json({ mensagem: 'Data de fim deve ser posterior à data de início' }, { status: 400 })
     }
 
     const client = await pool.connect()
