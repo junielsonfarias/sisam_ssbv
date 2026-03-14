@@ -167,10 +167,7 @@ export async function GET(request: NextRequest) {
         pool.query(dataQuery, [...params, limite, offset])
       ])
     } catch (queryError: any) {
-      console.error('Erro na query SQL:', queryError)
-      console.error('Query count:', countQuery)
-      console.error('Query data:', dataQuery)
-      console.error('Params:', params)
+      console.error('Erro na query de alunos:', queryError.message)
       throw queryError
     }
 
@@ -211,7 +208,7 @@ export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json(
         { mensagem: 'Não autorizado' },
         { status: 403 }
@@ -225,6 +222,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { codigo, nome, escola_id, turma_id, serie, ano_letivo, cpf, data_nascimento, pcd } = validacao.data
+
+    // Escola só pode criar aluno na própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+    }
 
     // Gerar código automático se não fornecido
     const codigoFinal = codigo || await gerarCodigoAluno()
@@ -266,7 +268,7 @@ export async function PUT(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json(
         { mensagem: 'Não autorizado' },
         { status: 403 }
@@ -280,6 +282,11 @@ export async function PUT(request: NextRequest) {
     }
 
     const { id, codigo, nome, escola_id, turma_id, serie, ano_letivo, ativo, cpf, data_nascimento, pcd } = validacao.data
+
+    // Escola só pode editar aluno da própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+    }
 
     const result = await pool.query(
       `UPDATE alunos
@@ -329,7 +336,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json(
         { mensagem: 'Não autorizado' },
         { status: 403 }
@@ -348,7 +355,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verificar se o aluno existe antes de tentar excluir
     const alunoExiste = await pool.query(
-      'SELECT id FROM alunos WHERE id = $1',
+      'SELECT id, escola_id FROM alunos WHERE id = $1',
       [id]
     )
 
@@ -357,6 +364,11 @@ export async function DELETE(request: NextRequest) {
         { mensagem: 'Aluno não encontrado' },
         { status: 404 }
       )
+    }
+
+    // Escola só pode excluir aluno da própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && alunoExiste.rows[0].escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
     // Excluir dados relacionados explicitamente (fallback para garantir limpeza completa)

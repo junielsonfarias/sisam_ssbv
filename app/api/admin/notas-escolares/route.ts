@@ -175,34 +175,8 @@ export async function POST(request: NextRequest) {
       let processados = 0
       const errosDetalhes: { aluno_id: string; mensagem: string }[] = []
 
-      for (const item of notas) {
-        try {
-          // Ignorar nota de recuperação sem nota original
-          if ((item.nota === null || item.nota === undefined) && item.nota_recuperacao !== null && item.nota_recuperacao !== undefined) {
-            errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: 'Nota de recuperação requer nota original' })
-            continue
-          }
-
-          // Calcular nota_final
-          // Regra: recuperação substitui a nota quando for maior
-          // 4 avaliações + 4 recuperações (1 por bimestre)
-          let notaFinal: number | null = null
-          if (item.nota !== null && item.nota !== undefined) {
-            notaFinal = item.nota
-            // Se tem nota de recuperação e é maior que a nota original, substitui
-            if (item.nota_recuperacao !== null && item.nota_recuperacao !== undefined && config.permite_recuperacao) {
-              if (item.nota_recuperacao > item.nota) {
-                notaFinal = item.nota_recuperacao
-              }
-            }
-            // Limitar ao máximo configurado
-            notaFinal = Math.min(notaFinal, config.nota_maxima)
-            // Arredondar para 2 decimais
-            notaFinal = Math.round(notaFinal * 100) / 100
-          }
-
-          await client.query(
-            `INSERT INTO notas_escolares
+      // Preparar statement para reutilização (performance: evita re-parse por item)
+      const upsertSQL = `INSERT INTO notas_escolares
              (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, nota, nota_recuperacao, nota_final, faltas, observacao, registrado_por)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              ON CONFLICT (aluno_id, disciplina_id, periodo_id)
@@ -212,25 +186,44 @@ export async function POST(request: NextRequest) {
                nota_final = EXCLUDED.nota_final,
                faltas = EXCLUDED.faltas,
                observacao = EXCLUDED.observacao,
-               registrado_por = EXCLUDED.registrado_por`,
-            [
-              item.aluno_id,
-              disciplina_id,
-              periodo_id,
-              escola_id,
-              ano_letivo,
-              item.nota ?? null,
-              item.nota_recuperacao ?? null,
-              notaFinal,
-              item.faltas ?? 0,
-              item.observacao ?? null,
-              usuario.id,
-            ]
-          )
-          processados++
-        } catch (err: any) {
-          console.error(`Erro ao salvar nota do aluno ${item.aluno_id}:`, err)
-          errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: err?.message || 'Erro desconhecido' })
+               registrado_por = EXCLUDED.registrado_por`
+
+      // Processar em lotes de 50 para evitar bloqueio prolongado
+      const BATCH_SIZE = 50
+      for (let i = 0; i < notas.length; i += BATCH_SIZE) {
+        const lote = notas.slice(i, i + BATCH_SIZE)
+
+        for (const item of lote) {
+          try {
+            // Ignorar nota de recuperação sem nota original
+            if ((item.nota === null || item.nota === undefined) && item.nota_recuperacao !== null && item.nota_recuperacao !== undefined) {
+              errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: 'Nota de recuperação requer nota original' })
+              continue
+            }
+
+            // Calcular nota_final
+            let notaFinal: number | null = null
+            if (item.nota !== null && item.nota !== undefined) {
+              notaFinal = item.nota
+              if (item.nota_recuperacao !== null && item.nota_recuperacao !== undefined && config.permite_recuperacao) {
+                if (item.nota_recuperacao > item.nota) {
+                  notaFinal = item.nota_recuperacao
+                }
+              }
+              notaFinal = Math.min(notaFinal, config.nota_maxima)
+              notaFinal = Math.round(notaFinal * 100) / 100
+            }
+
+            await client.query(upsertSQL, [
+              item.aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo,
+              item.nota ?? null, item.nota_recuperacao ?? null, notaFinal,
+              item.faltas ?? 0, item.observacao ?? null, usuario.id,
+            ])
+            processados++
+          } catch (err: any) {
+            console.error(`Erro ao salvar nota do aluno ${item.aluno_id}:`, err.message)
+            errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: err?.message || 'Erro desconhecido' })
+          }
         }
       }
 

@@ -45,7 +45,7 @@ let poolConfig: {
 // Fila de queries para controlar concorrência
 let queryQueue: QueryQueueItem[] = [];
 let activeQueries = 0;
-const MAX_CONCURRENT_QUERIES = 25; // Maximo de queries paralelas (ajustado para 20 usuarios simultaneos)
+const MAX_CONCURRENT_QUERIES = 50; // Maximo de queries paralelas (ajustado para 50 usuarios simultaneos)
 
 // Estado de saúde da conexão
 let lastHealthCheck: number = 0;
@@ -77,8 +77,8 @@ function detectSupabaseMode(host: string, port: number): {
   if (isSupabase) {
     if (isTransactionMode) {
       // Transaction Mode: pode ter MUITAS conexoes
-      // Para 50 usuarios simultaneos, usar 25-30 conexoes no pool
-      recommendedMax = 25;
+      // Para 50 usuarios simultaneos, usar 40-50 conexoes no pool
+      recommendedMax = 40;
     } else {
       // Session Mode: MUITO limitado - apenas 15-20 conexoes no total do Supabase
       // Com 50 usuarios, PRECISA usar Transaction Mode (porta 6543)

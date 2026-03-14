@@ -34,7 +34,10 @@ import {
   ChevronRight,
   ArrowLeftRight,
   CalendarCheck,
-  RotateCcw
+  RotateCcw,
+  Bell,
+  DoorOpen,
+  Printer
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
@@ -262,6 +265,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         {
           icon: BookOpen, label: 'Gestor Escolar', children: [
             { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
+            { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
             { icon: School, label: 'Escolas', href: '/admin/escolas' },
             { icon: MapPin, label: 'Polos', href: '/admin/polos' },
             { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
@@ -276,8 +280,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
             { icon: AlertTriangle, label: 'Divergências', href: '/admin/divergencias' },
             { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+            { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
+            { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
+            { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
           ]
         },
+        { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' },
         { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
         { icon: Settings, label: 'Configurar Séries', href: '/admin/configuracao-series' },
         { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
@@ -305,6 +313,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         {
           icon: BookOpen, label: 'Gestor Escolar', children: [
             { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
+            { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
             { icon: School, label: 'Escolas', href: '/admin/escolas' },
             { icon: MapPin, label: 'Polos', href: '/admin/polos' },
             { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
@@ -318,8 +327,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
             { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
             { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+            { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
+            { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
+            { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
           ]
-        }
+        },
+        { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' }
       )
     }
 
@@ -356,6 +369,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           icon: BookOpen, label: 'Gestor Escolar', children: [
             { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
             { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' },
+            { icon: UserPlus, label: 'Matrículas', href: '/escola/matriculas' },
             { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
             { icon: CalendarCheck, label: 'Frequência', href: '/admin/frequencia' },
             { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
@@ -363,8 +377,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
             { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+            { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
+            { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
+            { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
           ]
-        }
+        },
+        { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' }
       )
     }
 

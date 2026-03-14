@@ -18,6 +18,9 @@ interface Turma {
   escola_nome: string
   polo_nome: string | null
   total_alunos: number
+  capacidade_maxima?: number
+  multiserie?: boolean
+  multietapa?: boolean
 }
 
 interface Aluno {
@@ -64,6 +67,9 @@ const formInicial = {
   escola_id: '',
   serie: '',
   ano_letivo: new Date().getFullYear().toString(),
+  capacidade_maxima: 35,
+  multiserie: false,
+  multietapa: false,
 }
 
 function escapeHtml(text: string): string {
@@ -221,6 +227,9 @@ export default function TurmasPage() {
         escola_id: turma.escola_id,
         serie: turma.serie,
         ano_letivo: turma.ano_letivo,
+        capacidade_maxima: turma.capacidade_maxima || 35,
+        multiserie: turma.multiserie || false,
+        multietapa: turma.multietapa || false,
       })
     } else {
       setTurmaEditando(null)
@@ -481,7 +490,7 @@ export default function TurmasPage() {
   const totalPcd = detalhesTurma?.alunos.filter(a => a.pcd).length || 0
 
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola']}>
       <div className="p-3 sm:p-4 md:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">Gestão de Turmas</h1>
@@ -584,6 +593,21 @@ export default function TurmasPage() {
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300">
                         {turma.ano_letivo}
                       </span>
+                      {turma.multiserie && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                          Multisseriada
+                        </span>
+                      )}
+                      {turma.multietapa && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                          Multietapa
+                        </span>
+                      )}
+                      {turma.capacidade_maxima && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500" title="Capacidade máxima">
+                          {turma.total_alunos}/{turma.capacidade_maxima}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                       {turma.escola_nome}
@@ -939,6 +963,50 @@ export default function TurmasPage() {
                     />
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Capacidade Máxima de Alunos
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.capacidade_maxima}
+                    onChange={e => setFormData(prev => ({ ...prev, capacidade_maxima: parseInt(e.target.value) || 35 }))}
+                    min={1}
+                    max={100}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Este valor alimenta o Controle de Vagas</p>
+                </div>
+
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.multiserie}
+                      onChange={e => setFormData(prev => ({ ...prev, multiserie: e.target.checked }))}
+                      className="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    Multisseriada
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.multietapa}
+                      onChange={e => setFormData(prev => ({ ...prev, multietapa: e.target.checked }))}
+                      className="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    Multietapa
+                  </label>
+                </div>
+
+                {(formData.multiserie || formData.multietapa) && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      <strong>Turma {formData.multiserie && formData.multietapa ? 'Multisseriada e Multietapa' : formData.multiserie ? 'Multisseriada' : 'Multietapa'}:</strong> A série informada acima é a série principal da turma. Na matrícula, será possível informar a série individual de cada aluno.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-slate-700">

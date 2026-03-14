@@ -8,22 +8,31 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
     const body = await request.json()
-    const { codigo, nome, escola_id, serie, ano_letivo } = body
+    const { codigo, nome, escola_id, serie, ano_letivo, capacidade_maxima, multiserie, multietapa } = body
 
     if (!codigo || !escola_id || !serie || !ano_letivo) {
       return NextResponse.json({ mensagem: 'Campos obrigatórios: codigo, escola_id, serie, ano_letivo' }, { status: 400 })
     }
 
     const result = await pool.query(
-      `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, ativo)
-       VALUES ($1, $2, $3, $4, $5, true)
+      `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, capacidade_maxima, multiserie, multietapa, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
        RETURNING *`,
-      [codigo.trim(), nome?.trim() || null, escola_id, serie.trim(), ano_letivo.trim()]
+      [
+        codigo.trim(),
+        nome?.trim() || null,
+        escola_id,
+        serie.trim(),
+        ano_letivo.trim(),
+        capacidade_maxima || 35,
+        multiserie || false,
+        multietapa || false
+      ]
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
@@ -40,12 +49,12 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
     const body = await request.json()
-    const { id, codigo, nome, escola_id, serie, ano_letivo, ativo } = body
+    const { id, codigo, nome, escola_id, serie, ano_letivo, ativo, capacidade_maxima, multiserie, multietapa } = body
 
     if (!id) {
       return NextResponse.json({ mensagem: 'ID da turma é obrigatório' }, { status: 400 })
@@ -53,7 +62,7 @@ export async function PUT(request: NextRequest) {
 
     // Montar SET dinâmico — só atualiza campos enviados (permite limpar nome com null/vazio)
     const sets: string[] = []
-    const params: (string | boolean | null)[] = [id]
+    const params: (string | boolean | number | null)[] = [id]
     let paramIndex = 2
 
     if (codigo !== undefined) { sets.push(`codigo = $${paramIndex}`); params.push(codigo?.trim()); paramIndex++ }
@@ -62,6 +71,9 @@ export async function PUT(request: NextRequest) {
     if (serie !== undefined) { sets.push(`serie = $${paramIndex}`); params.push(serie?.trim()); paramIndex++ }
     if (ano_letivo !== undefined) { sets.push(`ano_letivo = $${paramIndex}`); params.push(ano_letivo?.trim()); paramIndex++ }
     if (ativo !== undefined) { sets.push(`ativo = $${paramIndex}`); params.push(ativo); paramIndex++ }
+    if (capacidade_maxima !== undefined) { sets.push(`capacidade_maxima = $${paramIndex}`); params.push(capacidade_maxima); paramIndex++ }
+    if (multiserie !== undefined) { sets.push(`multiserie = $${paramIndex}`); params.push(multiserie); paramIndex++ }
+    if (multietapa !== undefined) { sets.push(`multietapa = $${paramIndex}`); params.push(multietapa); paramIndex++ }
 
     if (sets.length === 0) {
       return NextResponse.json({ mensagem: 'Nenhum campo para atualizar' }, { status: 400 })
@@ -196,6 +208,9 @@ export async function GET(request: NextRequest) {
 
       const query = `
         SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
+               COALESCE(t.capacidade_maxima, 35) as capacidade_maxima,
+               COALESCE(t.multiserie, false) as multiserie,
+               COALESCE(t.multietapa, false) as multietapa,
                e.nome as escola_nome, p.nome as polo_nome,
                COUNT(a.id) FILTER (WHERE a.ativo = true) as total_alunos
         FROM turmas t
@@ -203,14 +218,18 @@ export async function GET(request: NextRequest) {
         LEFT JOIN polos p ON e.polo_id = p.id
         LEFT JOIN alunos a ON a.turma_id = t.id
         ${whereClause}
-        GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id, e.nome, p.nome
+        GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
+                 t.capacidade_maxima, t.multiserie, t.multietapa, e.nome, p.nome
         ORDER BY t.ano_letivo DESC, e.nome, t.serie, t.codigo
       `
 
       const result = await pool.query(query, params)
       return NextResponse.json(result.rows.map(row => ({
         ...row,
-        total_alunos: parseInt(row.total_alunos) || 0
+        total_alunos: parseInt(row.total_alunos) || 0,
+        capacidade_maxima: parseInt(row.capacidade_maxima) || 35,
+        multiserie: row.multiserie === true,
+        multietapa: row.multietapa === true,
       })))
     }
 

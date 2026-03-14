@@ -81,8 +81,8 @@ export const TIMEOUT = {
   STATEMENT: 30000,
   /** Intervalo de health check da conexão em ms */
   HEALTH_CHECK_INTERVAL: 30000,
-  /** Timeout de conexão idle para Supabase em ms */
-  IDLE_SUPABASE: 10000,
+  /** Timeout de conexão idle para Supabase em ms (60s para suportar 50+ usuários) */
+  IDLE_SUPABASE: 60000,
   /** Timeout de conexão idle padrão em ms */
   IDLE_DEFAULT: 30000
 } as const

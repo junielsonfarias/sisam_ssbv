@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
@@ -32,11 +32,13 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(
       `SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
+              t.capacidade_maxima, t.multiserie, t.multietapa,
               COUNT(a.id) FILTER (WHERE a.ativo = true) as total_alunos
        FROM turmas t
        LEFT JOIN alunos a ON a.turma_id = t.id AND a.ativo = true
        WHERE ${conditions.join(' AND ')}
-       GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id
+       GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
+                t.capacidade_maxima, t.multiserie, t.multietapa
        ORDER BY t.serie, t.codigo`,
       params
     )
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
@@ -63,6 +65,11 @@ export async function POST(request: NextRequest) {
 
     if (!codigo || !escola_id || !ano_letivo) {
       return NextResponse.json({ mensagem: 'Código, escola e ano letivo são obrigatórios' }, { status: 400 })
+    }
+
+    // Escola só pode criar turma na própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
     const result = await pool.query(

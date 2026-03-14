@@ -12,6 +12,9 @@ interface Turma {
   nome: string | null
   serie: string | null
   total_alunos: number
+  capacidade_maxima?: number
+  multiserie?: boolean
+  multietapa?: boolean
 }
 
 interface EtapaTurmaProps {
@@ -19,7 +22,7 @@ interface EtapaTurmaProps {
   serie: string
   anoLetivo: string
   turmaSelecionada: string
-  onTurmaChange: (id: string, nome: string) => void
+  onTurmaChange: (id: string, nome: string, turma?: Turma) => void
   onProximo: () => void
   onVoltar: () => void
 }
@@ -90,7 +93,7 @@ export default function EtapaTurma({ escolaId, serie, anoLetivo, turmaSelecionad
         {turmas.map(t => (
           <button
             key={t.id}
-            onClick={() => onTurmaChange(t.id, t.nome || t.codigo)}
+            onClick={() => onTurmaChange(t.id, t.nome || t.codigo, t)}
             className={`relative p-4 rounded-lg border-2 text-left transition-all ${
               turmaSelecionada === t.id
                 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-200 dark:ring-indigo-800'
@@ -102,8 +105,14 @@ export default function EtapaTurma({ escolaId, serie, anoLetivo, turmaSelecionad
             )}
             <div className="font-bold text-gray-900 dark:text-white">{t.codigo}</div>
             {t.nome && <div className="text-sm text-gray-600 dark:text-gray-400">{t.nome}</div>}
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
-              <Users className="w-3 h-3" /> {t.total_alunos} aluno(s)
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1 flex-wrap">
+              <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {t.total_alunos}{t.capacidade_maxima ? `/${t.capacidade_maxima}` : ''}</span>
+              {t.multiserie && (
+                <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-[10px] font-medium">Multi</span>
+              )}
+              {t.multietapa && (
+                <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-[10px] font-medium">Etapa</span>
+              )}
             </div>
           </button>
         ))}

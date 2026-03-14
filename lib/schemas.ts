@@ -158,6 +158,7 @@ export const matriculaBatchSchema = z.object({
     cpf: cpfSchema,
     data_nascimento: z.string().optional().nullable(),
     pcd: z.boolean().default(false).optional(),
+    serie_individual: z.string().max(50).optional().nullable(),
   })).min(1, 'Informe pelo menos um aluno'),
 })
 

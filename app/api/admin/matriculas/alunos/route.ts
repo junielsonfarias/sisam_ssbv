@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
@@ -19,6 +19,27 @@ export async function POST(request: NextRequest) {
     }
 
     const { escola_id, turma_id, serie, ano_letivo, alunos } = validacao.data
+
+    // Escola só pode matricular na própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+    }
+
+    // Verificar se o ano letivo está ativo (se a tabela anos_letivos existir)
+    try {
+      const anoCheck = await pool.query(
+        `SELECT status FROM anos_letivos WHERE ano = $1`,
+        [ano_letivo]
+      )
+      if (anoCheck.rows.length > 0 && anoCheck.rows[0].status !== 'ativo') {
+        return NextResponse.json(
+          { mensagem: `Ano letivo ${ano_letivo} não está ativo. Apenas anos letivos ativos permitem novas matrículas.` },
+          { status: 400 }
+        )
+      }
+    } catch {
+      // Tabela pode não existir ainda — seguir sem validação
+    }
 
     const resultados = {
       matriculados: 0,
@@ -55,13 +76,15 @@ export async function POST(request: NextRequest) {
           }
 
           // Aluno existente: atualizar turma, série, ano letivo e reativar
+          // Se turma multiserie/multietapa, usar serie_individual do aluno
+          const serieAluno = aluno.serie_individual || serie
           const result = await pool.query(
             `UPDATE alunos
              SET turma_id = $1, serie = $2, ano_letivo = $3, escola_id = $4,
                  situacao = 'cursando', ativo = true, atualizado_em = CURRENT_TIMESTAMP
              WHERE id = $5
              RETURNING *`,
-            [turma_id, serie, ano_letivo, escola_id, aluno.id]
+            [turma_id, serieAluno, ano_letivo, escola_id, aluno.id]
           )
 
           if (result.rows.length > 0) {
@@ -82,6 +105,8 @@ export async function POST(request: NextRequest) {
         } else {
           // Novo aluno: criar e matricular
           const codigo = aluno.codigo || await gerarCodigoAluno()
+          // Se turma multiserie/multietapa, usar serie_individual do aluno
+          const serieNovoAluno = aluno.serie_individual || serie
 
           const result = await pool.query(
             `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, cpf, data_nascimento, pcd)
@@ -92,7 +117,7 @@ export async function POST(request: NextRequest) {
               aluno.nome,
               escola_id,
               turma_id,
-              serie,
+              serieNovoAluno,
               ano_letivo,
               aluno.cpf || null,
               aluno.data_nascimento || null,

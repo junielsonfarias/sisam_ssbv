@@ -23,6 +23,7 @@ interface AlunoParaMatricula {
   data_nascimento?: string | null
   pcd?: boolean
   existente?: boolean
+  serie_individual?: string
 }
 
 interface EtapaAlunosProps {
@@ -34,6 +35,8 @@ interface EtapaAlunosProps {
   onMatricular: () => void
   onVoltar: () => void
   matriculando: boolean
+  turmaMultiserie?: boolean
+  turmaMultietapa?: boolean
 }
 
 export default function EtapaAlunos({
@@ -45,7 +48,10 @@ export default function EtapaAlunos({
   onMatricular,
   onVoltar,
   matriculando,
+  turmaMultiserie,
+  turmaMultietapa,
 }: EtapaAlunosProps) {
+  const isMulti = turmaMultiserie || turmaMultietapa
   const [busca, setBusca] = useState('')
   const buscaDebounced = useDebounce(busca, 400)
   const [resultadosBusca, setResultadosBusca] = useState<AlunoExistente[]>([])
@@ -56,6 +62,7 @@ export default function EtapaAlunos({
     cpf: '',
     data_nascimento: '',
     pcd: false,
+    serie_individual: '',
   })
 
   // Buscar alunos existentes
@@ -93,7 +100,7 @@ export default function EtapaAlunos({
       ...alunosSelecionados,
       { ...novoAluno, nome: novoAluno.nome.trim(), existente: false },
     ])
-    setNovoAluno({ nome: '', cpf: '', data_nascimento: '', pcd: false })
+    setNovoAluno({ nome: '', cpf: '', data_nascimento: '', pcd: false, serie_individual: '' })
     setMostrarFormNovo(false)
   }
 
@@ -202,6 +209,18 @@ export default function EtapaAlunos({
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
                 />
               </div>
+              {isMulti && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Série do Aluno *</label>
+                  <input
+                    type="text"
+                    value={novoAluno.serie_individual || ''}
+                    onChange={e => setNovoAluno({ ...novoAluno, serie_individual: e.target.value })}
+                    placeholder="Ex: 1º Ano, 2º Ano"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                  />
+                </div>
+              )}
               <div className="flex items-end">
                 <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 pb-2">
                   <input
@@ -239,11 +258,12 @@ export default function EtapaAlunos({
         <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4">
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             Alunos para Matrícula ({alunosSelecionados.length})
+            {isMulti && <span className="text-xs font-normal text-amber-600 dark:text-amber-400 ml-2">— Informe a série de cada aluno</span>}
           </h3>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {alunosSelecionados.map((aluno, index) => (
               <div key={index} className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">
                     {aluno.nome}
                     {aluno.existente ? (
@@ -257,7 +277,22 @@ export default function EtapaAlunos({
                       </span>
                     )}
                   </div>
-                  {aluno.cpf && <div className="text-xs text-gray-500 dark:text-gray-400">CPF: {aluno.cpf}</div>}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {aluno.cpf && <span className="text-xs text-gray-500 dark:text-gray-400">CPF: {aluno.cpf}</span>}
+                    {isMulti && (
+                      <input
+                        type="text"
+                        value={aluno.serie_individual || ''}
+                        onChange={e => {
+                          const novos = [...alunosSelecionados]
+                          novos[index] = { ...novos[index], serie_individual: e.target.value }
+                          onAlunosChange(novos)
+                        }}
+                        placeholder="Série do aluno..."
+                        className="px-2 py-0.5 text-xs border border-amber-300 dark:border-amber-700 rounded bg-amber-50 dark:bg-amber-900/20 text-gray-800 dark:text-gray-200 w-28"
+                      />
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={() => removerAluno(index)}

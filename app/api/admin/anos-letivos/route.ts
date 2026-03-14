@@ -1,0 +1,212 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import pool from '@/database/connection'
+
+export const dynamic = 'force-dynamic'
+
+// Listar anos letivos
+export async function GET(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola', 'polo'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const result = await pool.query(`
+      SELECT al.*,
+             (SELECT COUNT(*) FROM turmas t WHERE t.ano_letivo = al.ano AND t.ativo = true) as total_turmas,
+             (SELECT COUNT(*) FROM alunos a WHERE a.ano_letivo = al.ano AND a.ativo = true) as total_alunos,
+             (SELECT COUNT(*) FROM periodos_letivos pl WHERE pl.ano_letivo = al.ano AND pl.ativo = true) as total_periodos
+      FROM anos_letivos al
+      ORDER BY al.ano DESC
+    `)
+
+    return NextResponse.json(result.rows.map(r => ({
+      ...r,
+      total_turmas: parseInt(r.total_turmas) || 0,
+      total_alunos: parseInt(r.total_alunos) || 0,
+      total_periodos: parseInt(r.total_periodos) || 0,
+    })))
+  } catch (error: any) {
+    console.error('Erro ao listar anos letivos:', error)
+    return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
+  }
+}
+
+// Criar ano letivo com bimestres
+export async function POST(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { ano, data_inicio, data_fim, dias_letivos_total, observacao, bimestres } = body
+
+    if (!ano || !ano.match(/^\d{4}$/)) {
+      return NextResponse.json({ mensagem: 'Ano deve ter 4 dígitos' }, { status: 400 })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      // Criar ano letivo
+      const anoResult = await client.query(
+        `INSERT INTO anos_letivos (ano, data_inicio, data_fim, dias_letivos_total, observacao)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [ano, data_inicio || null, data_fim || null, dias_letivos_total || 200, observacao || null]
+      )
+
+      // Criar bimestres se fornecidos
+      if (Array.isArray(bimestres) && bimestres.length > 0) {
+        for (const bim of bimestres) {
+          await client.query(
+            `INSERT INTO periodos_letivos (nome, tipo, numero, ano_letivo, data_inicio, data_fim, dias_letivos, ativo)
+             VALUES ($1, 'bimestre', $2, $3, $4, $5, $6, true)
+             ON CONFLICT (tipo, numero, ano_letivo) DO UPDATE SET
+               nome = EXCLUDED.nome, data_inicio = EXCLUDED.data_inicio,
+               data_fim = EXCLUDED.data_fim, dias_letivos = EXCLUDED.dias_letivos`,
+            [bim.nome || `${bim.numero}º Bimestre`, bim.numero, ano, bim.data_inicio || null, bim.data_fim || null, bim.dias_letivos || 50]
+          )
+        }
+      } else {
+        // Criar 4 bimestres padrão
+        const nomes = ['1º Bimestre', '2º Bimestre', '3º Bimestre', '4º Bimestre']
+        for (let i = 0; i < 4; i++) {
+          await client.query(
+            `INSERT INTO periodos_letivos (nome, tipo, numero, ano_letivo, ativo)
+             VALUES ($1, 'bimestre', $2, $3, true)
+             ON CONFLICT (tipo, numero, ano_letivo) DO NOTHING`,
+            [nomes[i], i + 1, ano]
+          )
+        }
+      }
+
+      await client.query('COMMIT')
+      return NextResponse.json({ mensagem: 'Ano letivo criado com sucesso', ano: anoResult.rows[0] || { ano } }, { status: 201 })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (error: any) {
+    if (error?.code === '23505') {
+      return NextResponse.json({ mensagem: 'Ano letivo já existe' }, { status: 409 })
+    }
+    console.error('Erro ao criar ano letivo:', error)
+    return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
+  }
+}
+
+// Atualizar ano letivo (dados, status, bimestres)
+export async function PUT(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { id, ano, data_inicio, data_fim, dias_letivos_total, observacao, status, bimestres } = body
+
+    if (!id && !ano) {
+      return NextResponse.json({ mensagem: 'id ou ano é obrigatório' }, { status: 400 })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      // Ações de status
+      if (status === 'ativo') {
+        // Só pode ter 1 ano ativo por vez
+        await client.query(`UPDATE anos_letivos SET status = 'planejamento' WHERE status = 'ativo'`)
+      }
+
+      // Atualizar ano letivo
+      const sets: string[] = []
+      const params: any[] = []
+      let idx = 1
+
+      if (data_inicio !== undefined) { sets.push(`data_inicio = $${idx}`); params.push(data_inicio); idx++ }
+      if (data_fim !== undefined) { sets.push(`data_fim = $${idx}`); params.push(data_fim); idx++ }
+      if (dias_letivos_total !== undefined) { sets.push(`dias_letivos_total = $${idx}`); params.push(dias_letivos_total); idx++ }
+      if (observacao !== undefined) { sets.push(`observacao = $${idx}`); params.push(observacao); idx++ }
+      if (status !== undefined) { sets.push(`status = $${idx}`); params.push(status); idx++ }
+
+      if (sets.length > 0) {
+        const whereField = id ? 'id' : 'ano'
+        const whereValue = id || ano
+        params.push(whereValue)
+        await client.query(
+          `UPDATE anos_letivos SET ${sets.join(', ')}, atualizado_em = CURRENT_TIMESTAMP WHERE ${whereField} = $${idx}`,
+          params
+        )
+      }
+
+      // Atualizar bimestres se fornecidos
+      if (Array.isArray(bimestres) && bimestres.length > 0) {
+        let anoRef = ano
+        if (!anoRef && id) {
+          const anoQuery = await client.query('SELECT ano FROM anos_letivos WHERE id = $1', [id])
+          anoRef = anoQuery.rows[0]?.ano
+        }
+        if (!anoRef) {
+          await client.query('ROLLBACK')
+          return NextResponse.json({ mensagem: 'Não foi possível identificar o ano letivo' }, { status: 400 })
+        }
+        for (const bim of bimestres) {
+          await client.query(
+            `UPDATE periodos_letivos
+             SET nome = $1, data_inicio = $2, data_fim = $3, dias_letivos = $4
+             WHERE tipo = 'bimestre' AND numero = $5 AND ano_letivo = $6`,
+            [bim.nome || `${bim.numero}º Bimestre`, bim.data_inicio || null, bim.data_fim || null, bim.dias_letivos || 50, bim.numero, anoRef]
+          )
+        }
+      }
+
+      await client.query('COMMIT')
+      return NextResponse.json({ mensagem: 'Ano letivo atualizado' })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (error: any) {
+    console.error('Erro ao atualizar ano letivo:', error)
+    return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
+  }
+}
+
+// Buscar bimestres de um ano
+export async function PATCH(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola', 'polo'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { ano } = body
+
+    if (!ano) return NextResponse.json({ mensagem: 'ano é obrigatório' }, { status: 400 })
+
+    const result = await pool.query(
+      `SELECT id, nome, tipo, numero, ano_letivo, data_inicio, data_fim, dias_letivos, ativo
+       FROM periodos_letivos
+       WHERE ano_letivo = $1 AND tipo = 'bimestre'
+       ORDER BY numero`,
+      [ano]
+    )
+
+    return NextResponse.json(result.rows)
+  } catch (error: any) {
+    console.error('Erro ao buscar bimestres:', error)
+    return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
+  }
+}

@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/protected-route'
 import WizardSteps from '@/components/matriculas/wizard-steps'
-import EtapaEscola from '@/components/matriculas/etapa-escola'
 import EtapaSerie from '@/components/matriculas/etapa-serie'
 import EtapaTurma from '@/components/matriculas/etapa-turma'
 import EtapaAlunos from '@/components/matriculas/etapa-alunos'
 import ResumoMatricula from '@/components/matriculas/resumo-matricula'
 import { useToast } from '@/components/toast'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { School, Users, BookOpen } from 'lucide-react'
 
 interface AlunoParaMatricula {
   id?: string
@@ -21,10 +22,10 @@ interface AlunoParaMatricula {
   serie_individual?: string
 }
 
-const ETAPAS = ['Escola', 'Série', 'Turma', 'Alunos']
+const ETAPAS = ['Série', 'Turma', 'Alunos']
 const ANO_LETIVO_ATUAL = new Date().getFullYear().toString()
 
-export default function MatriculasPage() {
+export default function MatriculasEscolaPage() {
   const toast = useToast()
   const [etapaAtual, setEtapaAtual] = useState(1)
   const [anoLetivo, setAnoLetivo] = useState(ANO_LETIVO_ATUAL)
@@ -43,10 +44,13 @@ export default function MatriculasPage() {
       .catch(() => {})
   }, [])
 
-  // Estado do wizard
-  const [poloId, setPoloId] = useState('')
+  // Dados da escola (carregados automaticamente)
   const [escolaId, setEscolaId] = useState('')
   const [escolaNome, setEscolaNome] = useState('')
+  const [carregandoEscola, setCarregandoEscola] = useState(true)
+  const [resumoEscola, setResumoEscola] = useState<{ total_turmas: number; total_alunos: number } | null>(null)
+
+  // Estado do wizard
   const [serie, setSerie] = useState('')
   const [serieName, setSerieName] = useState('')
   const [turmaId, setTurmaId] = useState('')
@@ -56,6 +60,39 @@ export default function MatriculasPage() {
   const [alunosSelecionados, setAlunosSelecionados] = useState<AlunoParaMatricula[]>([])
   const [matriculando, setMatriculando] = useState(false)
   const [resultado, setResultado] = useState<any>(null)
+
+  // Carregar dados da escola automaticamente
+  useEffect(() => {
+    const carregarEscola = async () => {
+      try {
+        const response = await fetch('/api/auth/verificar')
+        const data = await response.json()
+        if (data.usuario && data.usuario.escola_id) {
+          setEscolaId(data.usuario.escola_id)
+
+          const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`)
+          const escolaData = await escolaRes.json()
+          if (Array.isArray(escolaData) && escolaData.length > 0) {
+            setEscolaNome(escolaData[0].nome)
+          }
+        }
+      } catch {
+        toast.error('Erro ao carregar dados da escola')
+      } finally {
+        setCarregandoEscola(false)
+      }
+    }
+    carregarEscola()
+  }, [])
+
+  // Carregar resumo da escola
+  useEffect(() => {
+    if (!escolaId) return
+    fetch(`/api/admin/matriculas/resumo?escola_id=${escolaId}&ano_letivo=${anoLetivo}`)
+      .then(r => r.json())
+      .then(data => setResumoEscola(data))
+      .catch(() => setResumoEscola(null))
+  }, [escolaId, anoLetivo])
 
   const handleMatricular = async () => {
     if (alunosSelecionados.length === 0) return
@@ -86,7 +123,7 @@ export default function MatriculasPage() {
 
       if (res.ok) {
         setResultado(data)
-        setEtapaAtual(5) // Resumo
+        setEtapaAtual(4) // Resumo
         toast.success(data.mensagem)
       } else {
         toast.error(data.mensagem || 'Erro ao matricular alunos')
@@ -100,9 +137,6 @@ export default function MatriculasPage() {
 
   const resetarWizard = () => {
     setEtapaAtual(1)
-    setPoloId('')
-    setEscolaId('')
-    setEscolaNome('')
     setSerie('')
     setSerieName('')
     setTurmaId('')
@@ -116,11 +150,19 @@ export default function MatriculasPage() {
   const voltarParaAlunos = () => {
     setAlunosSelecionados([])
     setResultado(null)
-    setEtapaAtual(4)
+    setEtapaAtual(3)
+  }
+
+  if (carregandoEscola) {
+    return (
+      <ProtectedRoute tiposPermitidos={['escola']}>
+        <LoadingSpinner text="Carregando dados da escola..." centered size="lg" />
+      </ProtectedRoute>
+    )
   }
 
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
+    <ProtectedRoute tiposPermitidos={['escola']}>
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <div className="flex items-center gap-4 flex-wrap">
@@ -142,48 +184,54 @@ export default function MatriculasPage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Cadastre e vincule alunos a turmas para o ano letivo {anoLetivo}
+            {escolaNome}
           </p>
         </div>
 
-        {etapaAtual <= 4 && (
+        {/* Resumo da escola */}
+        {resumoEscola && (
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4 mb-6">
+            <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-2">
+              <School className="inline w-4 h-4 mr-1" /> {escolaNome} — Resumo {anoLetivo}
+            </h3>
+            <div className="flex gap-6 text-sm text-indigo-600 dark:text-indigo-400">
+              <span className="flex items-center gap-1">
+                <BookOpen className="w-4 h-4" /> {resumoEscola.total_turmas} turma(s)
+              </span>
+              <span className="flex items-center gap-1">
+                <Users className="w-4 h-4" /> {resumoEscola.total_alunos} aluno(s) matriculado(s)
+              </span>
+            </div>
+          </div>
+        )}
+
+        {etapaAtual <= 3 && (
           <WizardSteps etapaAtual={etapaAtual} etapas={ETAPAS} />
         )}
 
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 lg:p-8">
           {etapaAtual === 1 && (
-            <EtapaEscola
-              poloId={poloId}
-              escolaId={escolaId}
-              anoLetivo={anoLetivo}
-              onPoloChange={setPoloId}
-              onEscolaChange={(id, nome) => { setEscolaId(id); setEscolaNome(nome) }}
+            <EtapaSerie
+              serieSelecionada={serie}
+              onSerieChange={(s, nome) => { setSerie(s); setSerieName(nome) }}
               onProximo={() => setEtapaAtual(2)}
+              onVoltar={() => {}} // Sem voltar na primeira etapa
             />
           )}
 
           {etapaAtual === 2 && (
-            <EtapaSerie
-              serieSelecionada={serie}
-              onSerieChange={(s, nome) => { setSerie(s); setSerieName(nome) }}
-              onProximo={() => setEtapaAtual(3)}
-              onVoltar={() => setEtapaAtual(1)}
-            />
-          )}
-
-          {etapaAtual === 3 && (
             <EtapaTurma
               escolaId={escolaId}
               serie={serie}
               anoLetivo={anoLetivo}
               turmaSelecionada={turmaId}
               onTurmaChange={(id, nome, turma) => { setTurmaId(id); setTurmaNome(nome); setTurmaMultiserie(turma?.multiserie || false); setTurmaMultietapa(turma?.multietapa || false) }}
-              onProximo={() => setEtapaAtual(4)}
-              onVoltar={() => setEtapaAtual(2)}
+              onProximo={() => setEtapaAtual(3)}
+              onVoltar={() => setEtapaAtual(1)}
             />
           )}
 
-          {etapaAtual === 4 && (
+          {etapaAtual === 3 && (
             <EtapaAlunos
               escolaId={escolaId}
               turmaId={turmaId}
@@ -191,14 +239,14 @@ export default function MatriculasPage() {
               alunosSelecionados={alunosSelecionados}
               onAlunosChange={setAlunosSelecionados}
               onMatricular={handleMatricular}
-              onVoltar={() => setEtapaAtual(3)}
+              onVoltar={() => setEtapaAtual(2)}
               matriculando={matriculando}
               turmaMultiserie={turmaMultiserie}
               turmaMultietapa={turmaMultietapa}
             />
           )}
 
-          {etapaAtual === 5 && resultado && (
+          {etapaAtual === 4 && resultado && (
             <ResumoMatricula
               resultado={resultado}
               escolaNome={escolaNome}
