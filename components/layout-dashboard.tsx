@@ -73,7 +73,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const [personalizacao, setPersonalizacao] = useState<Personalizacao>({})
   const [dataAtual, setDataAtual] = useState('')
   const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({})
-  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>('sisam')
+  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>(() => {
+    if (typeof window !== 'undefined') return offlineStorage.getModuloAtivo()
+    return 'sisam'
+  })
 
   // Função para verificar se o item do menu está ativo
   const isMenuItemActive = (href: string): boolean => {
@@ -123,11 +126,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     atualizarData()
     const intervalo = setInterval(atualizarData, 60000) // Atualiza a cada minuto
     return () => clearInterval(intervalo)
-  }, [])
-
-  // Carregar módulo ativo do localStorage
-  useEffect(() => {
-    setModuloAtivo(offlineStorage.getModuloAtivo())
   }, [])
 
   useEffect(() => {
@@ -491,16 +489,16 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
                     if (novo === 'gestor') router.push('/admin/dashboard-gestor')
                     else router.push(`/${basePath}/dashboard`)
                   }}
-                  className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${
                     moduloAtivo === 'sisam'
                       ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
                       : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
                   }`}
                   title={`Módulo ativo: ${moduloAtivo === 'sisam' ? 'SISAM' : 'Gestor Escolar'}. Clique para alternar.`}
                 >
-                  {moduloAtivo === 'sisam' ? <Database className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+                  {moduloAtivo === 'sisam' ? <Database className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                   <span>{moduloAtivo === 'sisam' ? 'SISAM' : 'Gestor'}</span>
-                  <ArrowLeftRight className="w-3 h-3 opacity-50" />
+                  <ArrowLeftRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-50" />
                 </button>
               )}
 
