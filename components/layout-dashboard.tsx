@@ -73,6 +73,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const [personalizacao, setPersonalizacao] = useState<Personalizacao>({})
   const [dataAtual, setDataAtual] = useState('')
   const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({})
+  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>('sisam')
 
   // Função para verificar se o item do menu está ativo
   const isMenuItemActive = (href: string): boolean => {
@@ -122,6 +123,11 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     atualizarData()
     const intervalo = setInterval(atualizarData, 60000) // Atualiza a cada minuto
     return () => clearInterval(intervalo)
+  }, [])
+
+  // Carregar módulo ativo do localStorage
+  useEffect(() => {
+    setModuloAtivo(offlineStorage.getModuloAtivo())
   }, [])
 
   useEffect(() => {
@@ -208,8 +214,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   }, [router])
 
   const handleLogout = () => {
-    // Limpar usuario imediatamente (essencial)
+    // Limpar usuario e módulo imediatamente
     offlineStorage.clearUser()
+    offlineStorage.clearModuloAtivo()
 
     // Redirecionar imediatamente para o login
     router.push('/login')
@@ -233,17 +240,18 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const basePath = getBasePath()
   const tipoUsuarioReal = usuario?.tipo_usuario === 'administrador' ? 'admin' : (usuario?.tipo_usuario || tipoUsuario || 'admin')
 
-  // Menu fixo baseado no tipo de usuario - sem depender de carregamento async
+  // Menu fixo baseado no tipo de usuario e módulo ativo
   const getMenuItems = (): MenuItem[] => {
+    const dashHref = moduloAtivo === 'gestor' ? '/admin/dashboard-gestor' : `/${basePath}/dashboard`
     const items: MenuItem[] = [
-      { icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` },
+      { icon: LayoutGrid, label: 'Dashboard', href: dashHref },
     ]
 
     // Menu especifico para ADMINISTRADOR
     if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
-      items.push(
-        // Grupo SISAM
-        {
+      // Grupo SISAM (só no módulo SISAM)
+      if (moduloAtivo === 'sisam') {
+        items.push({
           icon: Database, label: 'SISAM', children: [
             { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
             { icon: TrendingUp, label: 'Análise Gráfica', href: '/admin/graficos' },
@@ -260,11 +268,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
             { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
           ]
-        },
-        // Grupo Gestor Escolar
-        {
+        })
+      }
+      // Grupo Gestor Escolar (só no módulo Gestor)
+      if (moduloAtivo === 'gestor') {
+        items.push({
           icon: BookOpen, label: 'Gestor Escolar', children: [
-            { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
             { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
             { icon: School, label: 'Escolas', href: '/admin/escolas' },
             { icon: MapPin, label: 'Polos', href: '/admin/polos' },
@@ -284,7 +293,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
           ]
-        },
+        })
+      }
+      // Itens comuns (visíveis em ambos módulos)
+      items.push(
         { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' },
         { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
         { icon: Settings, label: 'Configurar Séries', href: '/admin/configuracao-series' },
@@ -296,9 +308,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
     // Menu especifico para TECNICO
     if (tipoUsuarioReal === 'tecnico') {
-      items.push(
-        // Grupo SISAM
-        {
+      if (moduloAtivo === 'sisam') {
+        items.push({
           icon: Database, label: 'SISAM', children: [
             { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
             { icon: TrendingUp, label: 'Análise Gráfica', href: '/tecnico/graficos' },
@@ -308,11 +319,11 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: BarChart3, label: 'Comparativo SISAM x Escola', href: '/admin/comparativo-notas' },
             { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
           ]
-        },
-        // Grupo Gestor Escolar
-        {
+        })
+      }
+      if (moduloAtivo === 'gestor') {
+        items.push({
           icon: BookOpen, label: 'Gestor Escolar', children: [
-            { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
             { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
             { icon: School, label: 'Escolas', href: '/admin/escolas' },
             { icon: MapPin, label: 'Polos', href: '/admin/polos' },
@@ -331,9 +342,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
           ]
-        },
-        { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' }
-      )
+        })
+      }
+      items.push({ icon: Bell, label: 'Notificações', href: '/admin/notificacoes' })
     }
 
     // Menu especifico para POLO
@@ -355,19 +366,18 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
     // Menu especifico para ESCOLA
     if (tipoUsuarioReal === 'escola') {
-      items.push(
-        // Grupo SISAM
-        {
+      if (moduloAtivo === 'sisam') {
+        items.push({
           icon: Database, label: 'SISAM', children: [
             { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
             { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
             { icon: BarChart3, label: 'Comparativo SISAM x Escola', href: '/admin/comparativo-notas' },
           ]
-        },
-        // Grupo Gestor Escolar
-        {
+        })
+      }
+      if (moduloAtivo === 'gestor') {
+        items.push({
           icon: BookOpen, label: 'Gestor Escolar', children: [
-            { icon: LayoutGrid, label: 'Painel do Gestor', href: '/admin/dashboard-gestor' },
             { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' },
             { icon: UserPlus, label: 'Matrículas', href: '/escola/matriculas' },
             { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
@@ -381,9 +391,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
           ]
-        },
-        { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' }
-      )
+        })
+      }
+      items.push({ icon: Bell, label: 'Notificações', href: '/admin/notificacoes' })
     }
 
     return items
@@ -470,6 +480,29 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
               {/* Separador visual */}
               <div className="hidden md:block w-px h-8 bg-gray-200 dark:bg-slate-600 mx-2" />
+
+              {/* Botão de troca de módulo */}
+              {tipoUsuarioReal !== 'polo' && (
+                <button
+                  onClick={() => {
+                    const novo = moduloAtivo === 'sisam' ? 'gestor' as offlineStorage.ModuloAtivo : 'sisam' as offlineStorage.ModuloAtivo
+                    offlineStorage.saveModuloAtivo(novo)
+                    setModuloAtivo(novo)
+                    if (novo === 'gestor') router.push('/admin/dashboard-gestor')
+                    else router.push(`/${basePath}/dashboard`)
+                  }}
+                  className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                    moduloAtivo === 'sisam'
+                      ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
+                      : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
+                  }`}
+                  title={`Módulo ativo: ${moduloAtivo === 'sisam' ? 'SISAM' : 'Gestor Escolar'}. Clique para alternar.`}
+                >
+                  {moduloAtivo === 'sisam' ? <Database className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+                  <span>{moduloAtivo === 'sisam' ? 'SISAM' : 'Gestor'}</span>
+                  <ArrowLeftRight className="w-3 h-3 opacity-50" />
+                </button>
+              )}
 
               {/* Badge do tipo de usuário */}
               <div className="hidden md:flex items-center gap-2">

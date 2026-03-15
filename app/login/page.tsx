@@ -38,18 +38,26 @@ export default function LoginPage() {
 
       if (offlineUser) {
         console.log('[Login] Usuário offline encontrado, redirecionando...')
-        // Se estiver offline ou online, redirecionar para o dashboard correto
-        const tipoUsuario = offlineUser.tipo_usuario
-        if (tipoUsuario === 'administrador') {
-          router.push('/admin/dashboard')
-        } else if (tipoUsuario === 'tecnico') {
-          router.push('/tecnico/dashboard')
-        } else if (tipoUsuario === 'polo') {
+        // Polo vai direto ao dashboard (sem tela de módulos)
+        if (offlineUser.tipo_usuario === 'polo') {
           router.push('/polo/dashboard')
-        } else if (tipoUsuario === 'escola') {
-          router.push('/escola/dashboard')
+          return
+        }
+        // Se já tem módulo selecionado, ir direto ao dashboard correto
+        if (offlineStorage.hasModuloAtivo()) {
+          const modulo = offlineStorage.getModuloAtivo()
+          if (modulo === 'gestor') {
+            router.push('/admin/dashboard-gestor')
+          } else {
+            const tipoUsuario = offlineUser.tipo_usuario
+            if (tipoUsuario === 'administrador') router.push('/admin/dashboard')
+            else if (tipoUsuario === 'tecnico') router.push('/tecnico/dashboard')
+            else if (tipoUsuario === 'escola') router.push('/escola/dashboard')
+            else router.push('/admin/dashboard')
+          }
         } else {
-          router.push('/dashboard')
+          // Sem módulo selecionado — ir para tela de escolha
+          router.push('/modulos')
         }
         return
       }
@@ -155,17 +163,14 @@ export default function LoginPage() {
 
       setSincronizando(false)
 
-      // Redirecionar baseado no tipo de usuário
-      if (data.usuario.tipo_usuario === 'administrador') {
-        router.push('/admin/dashboard')
-      } else if (data.usuario.tipo_usuario === 'tecnico') {
-        router.push('/tecnico/dashboard')
-      } else if (data.usuario.tipo_usuario === 'polo') {
+      // Polo vai direto (sem tela de módulos)
+      if (data.usuario.tipo_usuario === 'polo') {
+        offlineStorage.saveModuloAtivo('sisam')
         router.push('/polo/dashboard')
-      } else if (data.usuario.tipo_usuario === 'escola') {
-        router.push('/escola/dashboard')
       } else {
-        router.push('/dashboard')
+        // Limpar módulo anterior para forçar nova escolha
+        offlineStorage.clearModuloAtivo()
+        router.push('/modulos')
       }
     } catch (error) {
       setErro('Erro ao conectar com o servidor. Verifique sua conexão.')

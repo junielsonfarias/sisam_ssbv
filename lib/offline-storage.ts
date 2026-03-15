@@ -7,6 +7,7 @@ import { toNumber } from './utils-numeros'
 
 const STORAGE_KEYS = {
   USER: 'sisam_offline_user',
+  MODULO_ATIVO: 'sisam_modulo_ativo',
   POLOS: 'sisam_offline_polos',
   ESCOLAS: 'sisam_offline_escolas',
   TURMAS: 'sisam_offline_turmas',
@@ -16,6 +17,25 @@ const STORAGE_KEYS = {
   CONFIG_SERIES: 'sisam_offline_config_series',
   SYNC_DATE: 'sisam_offline_sync_date',
   SYNC_STATUS: 'sisam_offline_sync_status'
+}
+
+// ========== MÓDULO ATIVO ==========
+export type ModuloAtivo = 'sisam' | 'gestor'
+
+export function saveModuloAtivo(modulo: ModuloAtivo): void {
+  localStorage.setItem(STORAGE_KEYS.MODULO_ATIVO, modulo)
+}
+
+export function getModuloAtivo(): ModuloAtivo {
+  return (localStorage.getItem(STORAGE_KEYS.MODULO_ATIVO) as ModuloAtivo) || 'sisam'
+}
+
+export function hasModuloAtivo(): boolean {
+  return localStorage.getItem(STORAGE_KEYS.MODULO_ATIVO) !== null
+}
+
+export function clearModuloAtivo(): void {
+  localStorage.removeItem(STORAGE_KEYS.MODULO_ATIVO)
 }
 
 export interface OfflineUser {
