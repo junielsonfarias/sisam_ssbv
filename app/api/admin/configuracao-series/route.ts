@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
         cs.avalia_lp, cs.avalia_mat, cs.avalia_ch, cs.avalia_cn,
         cs.peso_lp, cs.peso_mat, cs.peso_ch, cs.peso_cn, cs.peso_producao,
         cs.usa_nivel_aprendizagem, cs.ativo,
+        cs.media_aprovacao, cs.media_recuperacao, cs.nota_maxima,
+        cs.max_dependencias, cs.formula_nota_final,
         cs.criado_em, cs.atualizado_em
       FROM configuracao_series cs
       WHERE cs.ativo = true
@@ -114,7 +116,12 @@ export async function PUT(request: NextRequest) {
       avalia_mat,
       avalia_ch,
       avalia_cn,
-      usa_nivel_aprendizagem
+      usa_nivel_aprendizagem,
+      media_aprovacao,
+      media_recuperacao,
+      nota_maxima,
+      max_dependencias,
+      formula_nota_final
     } = body
 
     if (!serie && !id) {
@@ -143,6 +150,11 @@ export async function PUT(request: NextRequest) {
         avalia_ch = COALESCE($12, avalia_ch),
         avalia_cn = COALESCE($13, avalia_cn),
         usa_nivel_aprendizagem = COALESCE($14, usa_nivel_aprendizagem),
+        media_aprovacao = COALESCE($15, media_aprovacao),
+        media_recuperacao = COALESCE($16, media_recuperacao),
+        nota_maxima = COALESCE($17, nota_maxima),
+        max_dependencias = COALESCE($18, max_dependencias),
+        formula_nota_final = COALESCE($19, formula_nota_final),
         atualizado_em = CURRENT_TIMESTAMP
       WHERE ${whereClause}
       RETURNING *`,
@@ -160,7 +172,12 @@ export async function PUT(request: NextRequest) {
         avalia_mat,
         avalia_ch,
         avalia_cn,
-        usa_nivel_aprendizagem
+        usa_nivel_aprendizagem,
+        media_aprovacao,
+        media_recuperacao,
+        nota_maxima,
+        max_dependencias,
+        formula_nota_final
       ]
     )
 
@@ -317,7 +334,12 @@ export async function POST(request: NextRequest) {
       avalia_mat = true,
       avalia_ch = false,
       avalia_cn = false,
-      usa_nivel_aprendizagem = false
+      usa_nivel_aprendizagem = false,
+      media_aprovacao = 6.0,
+      media_recuperacao = 5.0,
+      nota_maxima = 10.0,
+      max_dependencias = 0,
+      formula_nota_final = null
     } = body
 
     if (!serie || !nome_serie) {
@@ -346,8 +368,9 @@ export async function POST(request: NextRequest) {
         qtd_questoes_lp, qtd_questoes_mat, qtd_questoes_ch, qtd_questoes_cn,
         tem_producao_textual, qtd_itens_producao,
         avalia_lp, avalia_mat, avalia_ch, avalia_cn,
-        usa_nivel_aprendizagem, ativo
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true)
+        usa_nivel_aprendizagem, media_aprovacao, media_recuperacao,
+        nota_maxima, max_dependencias, formula_nota_final, ativo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, true)
       RETURNING *`,
       [
         serie,
@@ -363,7 +386,12 @@ export async function POST(request: NextRequest) {
         avalia_mat,
         avalia_ch,
         avalia_cn,
-        usa_nivel_aprendizagem
+        usa_nivel_aprendizagem,
+        media_aprovacao,
+        media_recuperacao,
+        nota_maxima,
+        max_dependencias,
+        formula_nota_final
       ]
     )
 

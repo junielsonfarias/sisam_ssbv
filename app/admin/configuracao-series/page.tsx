@@ -36,6 +36,19 @@ interface ConfiguracaoSerie {
   usa_nivel_aprendizagem: boolean
   ativo: boolean
   disciplinas?: Disciplina[]
+  media_aprovacao?: number
+  media_recuperacao?: number
+  nota_maxima?: number
+  max_dependencias?: number
+  formula_nota_final?: string
+}
+
+interface RegrasAprovacao {
+  media_aprovacao: number
+  media_recuperacao: number
+  nota_maxima: number
+  max_dependencias: number
+  formula_nota_final: string
 }
 
 const DISCIPLINAS_DISPONIVEIS = [
@@ -47,6 +60,10 @@ const DISCIPLINAS_DISPONIVEIS = [
 
 // Configuração padrão de disciplinas por série (hardcoded)
 const DISCIPLINAS_PADRAO_POR_SERIE: Record<string, Disciplina[]> = {
+  '1': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 10, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 2, questao_inicio: 11, questao_fim: 20, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 }
+  ],
   '2': [
     { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 14, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 },
     { disciplina: 'Matemática', sigla: 'MAT', ordem: 2, questao_inicio: 15, questao_fim: 28, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 }
@@ -55,9 +72,25 @@ const DISCIPLINAS_PADRAO_POR_SERIE: Record<string, Disciplina[]> = {
     { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 14, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 },
     { disciplina: 'Matemática', sigla: 'MAT', ordem: 2, questao_inicio: 15, questao_fim: 28, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 }
   ],
+  '4': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 14, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 2, questao_inicio: 15, questao_fim: 28, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 }
+  ],
   '5': [
     { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 14, qtd_questoes: 14, valor_questao: 0.71, nota_maxima: 10 },
     { disciplina: 'Matemática', sigla: 'MAT', ordem: 2, questao_inicio: 15, questao_fim: 34, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 }
+  ],
+  '6': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 20, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
+    { disciplina: 'Ciências Humanas', sigla: 'CH', ordem: 2, questao_inicio: 21, questao_fim: 30, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 3, questao_inicio: 31, questao_fim: 50, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
+    { disciplina: 'Ciências da Natureza', sigla: 'CN', ordem: 4, questao_inicio: 51, questao_fim: 60, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 }
+  ],
+  '7': [
+    { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 20, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
+    { disciplina: 'Ciências Humanas', sigla: 'CH', ordem: 2, questao_inicio: 21, questao_fim: 30, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 },
+    { disciplina: 'Matemática', sigla: 'MAT', ordem: 3, questao_inicio: 31, questao_fim: 50, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
+    { disciplina: 'Ciências da Natureza', sigla: 'CN', ordem: 4, questao_inicio: 51, questao_fim: 60, qtd_questoes: 10, valor_questao: 1.00, nota_maxima: 10 }
   ],
   '8': [
     { disciplina: 'Língua Portuguesa', sigla: 'LP', ordem: 1, questao_inicio: 1, questao_fim: 20, qtd_questoes: 20, valor_questao: 0.50, nota_maxima: 10 },
@@ -92,6 +125,8 @@ export default function ConfiguracaoSeriesPage() {
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro', texto: string } | null>(null)
   const [excluindoSerie, setExcluindoSerie] = useState<string | null>(null)
   const [confirmarExclusao, setConfirmarExclusao] = useState<ConfiguracaoSerie | null>(null)
+  const [regrasEditando, setRegrasEditando] = useState<Record<string, RegrasAprovacao>>({})
+  const [salvandoRegras, setSalvandoRegras] = useState<string | null>(null)
 
   useEffect(() => {
     carregarSeries()
@@ -125,6 +160,20 @@ export default function ConfiguracaoSeriesPage() {
           }
         })
         setSeries(seriesComDisciplinas)
+
+        // Carregar regras de aprovação de cada série
+        const regrasIniciais: Record<string, RegrasAprovacao> = {}
+        seriesComDisciplinas.forEach((s: any) => {
+          const isAnosFinais = s.tipo_ensino === 'anos_finais'
+          regrasIniciais[s.id] = {
+            media_aprovacao: s.media_aprovacao ?? 6.0,
+            media_recuperacao: s.media_recuperacao ?? 5.0,
+            nota_maxima: s.nota_maxima ?? 10.0,
+            max_dependencias: s.max_dependencias ?? (isAnosFinais ? 3 : 0),
+            formula_nota_final: s.formula_nota_final ?? 'media_aritmetica'
+          }
+        })
+        setRegrasEditando(regrasIniciais)
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error)
@@ -404,6 +453,50 @@ export default function ConfiguracaoSeriesPage() {
       setExcluindoSerie(null)
       setConfirmarExclusao(null)
     }
+  }
+
+  const handleSalvarRegras = async (serieId: string) => {
+    const regras = regrasEditando[serieId]
+    if (!regras) return
+
+    setSalvandoRegras(serieId)
+    try {
+      const response = await fetch('/api/admin/configuracao-series', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: serieId,
+          media_aprovacao: regras.media_aprovacao,
+          media_recuperacao: regras.media_recuperacao,
+          nota_maxima: regras.nota_maxima,
+          max_dependencias: regras.max_dependencias,
+          formula_nota_final: regras.formula_nota_final
+        }),
+      })
+
+      if (response.ok) {
+        setMensagem({ tipo: 'sucesso', texto: 'Regras de aprovação atualizadas com sucesso!' })
+        await carregarSeries()
+      } else {
+        const data = await response.json()
+        setMensagem({ tipo: 'erro', texto: data.mensagem || 'Erro ao salvar regras' })
+      }
+    } catch (error) {
+      console.error('Erro ao salvar regras:', error)
+      setMensagem({ tipo: 'erro', texto: 'Erro ao salvar regras de aprovação' })
+    } finally {
+      setSalvandoRegras(null)
+    }
+  }
+
+  const handleAtualizarRegra = (serieId: string, campo: keyof RegrasAprovacao, valor: any) => {
+    setRegrasEditando(prev => ({
+      ...prev,
+      [serieId]: {
+        ...prev[serieId],
+        [campo]: valor
+      }
+    }))
   }
 
   const getTipoEnsinoColor = (tipo: string) => {
@@ -742,6 +835,100 @@ export default function ConfiguracaoSeriesPage() {
                               </div>
                             )}
                           </div>
+
+                          {/* Regras de Aprovação */}
+                          {regrasEditando[config.id] && (
+                            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
+                              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-4">
+                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                Regras de Aprovação
+                              </h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Média para Aprovação</label>
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="10"
+                                    value={regrasEditando[config.id].media_aprovacao}
+                                    onChange={(e) => handleAtualizarRegra(config.id, 'media_aprovacao', parseFloat(e.target.value) || 0)}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Média para Recuperação</label>
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="10"
+                                    value={regrasEditando[config.id].media_recuperacao}
+                                    onChange={(e) => handleAtualizarRegra(config.id, 'media_recuperacao', parseFloat(e.target.value) || 0)}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nota Máxima</label>
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    value={regrasEditando[config.id].nota_maxima}
+                                    onChange={(e) => handleAtualizarRegra(config.id, 'nota_maxima', parseFloat(e.target.value) || 0)}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    Máx. Dependências
+                                    {config.tipo_ensino === 'anos_iniciais' && (
+                                      <span className="text-xs text-gray-400 ml-1">(N/A para anos iniciais)</span>
+                                    )}
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    value={regrasEditando[config.id].max_dependencias}
+                                    onChange={(e) => handleAtualizarRegra(config.id, 'max_dependencias', parseInt(e.target.value) || 0)}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white"
+                                  />
+                                  <p className="text-xs text-gray-400 mt-1">Apenas para 6º ao 9º ano</p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fórmula da Nota Final</label>
+                                  <select
+                                    value={regrasEditando[config.id].formula_nota_final}
+                                    onChange={(e) => handleAtualizarRegra(config.id, 'formula_nota_final', e.target.value)}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white"
+                                  >
+                                    <option value="media_aritmetica">Média Aritmética</option>
+                                    <option value="media_ponderada">Média Ponderada</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="flex justify-end mt-4">
+                                <button
+                                  onClick={() => handleSalvarRegras(config.id)}
+                                  disabled={salvandoRegras === config.id}
+                                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors text-sm"
+                                >
+                                  {salvandoRegras === config.id ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                      Salvando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Save className="w-4 h-4" />
+                                      Salvar Regras
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Botão Editar */}
                           <div className="flex justify-end pt-4 mt-4 border-t border-gray-200 dark:border-slate-700">

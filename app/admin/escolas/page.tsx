@@ -2,7 +2,8 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
-import { Plus, Edit, Trash2, Search, School } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, Edit, Trash2, Search, School, Eye } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { useUserType } from '@/lib/hooks/useUserType'
 import { PoloSimples } from '@/lib/dados/types'
@@ -30,6 +31,7 @@ const formDataInicial = {
 
 export default function EscolasPage() {
   const toast = useToast()
+  const router = useRouter()
   const { tipoUsuario } = useUserType()
   const [escolas, setEscolas] = useState<Escola[]>([])
   const [polos, setPolos] = useState<PoloSimples[]>([])
@@ -275,6 +277,14 @@ export default function EscolasPage() {
                           </td>
                           <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => router.push(`/admin/escolas/${escola.id}`)}
+                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+                                aria-label="Detalhes"
+                                title="Detalhes"
+                              >
+                                <Eye className="w-5 h-5" />
+                              </button>
                               <button
                                 onClick={() => abrirModal(escola)}
                                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"

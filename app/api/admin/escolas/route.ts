@@ -220,7 +220,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { nome, codigo, polo_id, endereco, telefone, email } = await request.json()
+    const body = await request.json()
+    const { nome, polo_id } = body
 
     if (!nome || !polo_id) {
       return NextResponse.json(
@@ -229,11 +230,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // All allowed fields for INSERT (base + INEP)
+    const allowedFields = [
+      'nome', 'codigo', 'polo_id', 'endereco', 'telefone', 'email',
+      // INEP - Identificação
+      'codigo_inep', 'situacao_funcionamento', 'dependencia_administrativa',
+      'categoria_escola', 'localizacao', 'localizacao_diferenciada',
+      'tipo_atendimento_escolarizacao', 'etapas_ensino', 'modalidade_ensino',
+      // INEP - Infraestrutura
+      'agua_potavel', 'energia_eletrica', 'esgoto_sanitario', 'coleta_lixo',
+      'internet', 'banda_larga', 'quadra_esportiva', 'biblioteca',
+      'laboratorio_informatica', 'laboratorio_ciencias',
+      'acessibilidade_deficiente', 'alimentacao_escolar',
+      // INEP - Localização
+      'latitude', 'longitude', 'cep', 'bairro', 'municipio', 'uf',
+      'distrito', 'complemento',
+      // INEP - Outros
+      'telefone_ddd', 'telefone_numero', 'cnpj_mantenedora', 'data_criacao'
+    ]
+
+    const columns: string[] = []
+    const placeholders: string[] = []
+    const values: (string | number | boolean | null | undefined)[] = []
+    let paramIndex = 1
+
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        columns.push(field)
+        placeholders.push(`$${paramIndex}`)
+        values.push(body[field] ?? null)
+        paramIndex++
+      }
+    }
+
     const result = await pool.query(
-      `INSERT INTO escolas (nome, codigo, polo_id, endereco, telefone, email)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO escolas (${columns.join(', ')})
+       VALUES (${placeholders.join(', ')})
        RETURNING *`,
-      [nome, codigo || null, polo_id, endereco || null, telefone || null, email || null]
+      values
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
