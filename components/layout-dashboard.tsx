@@ -79,10 +79,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const [personalizacao, setPersonalizacao] = useState<Personalizacao>({})
   const [dataAtual, setDataAtual] = useState('')
   const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({})
-  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>(() => {
-    if (typeof window !== 'undefined') return offlineStorage.getModuloAtivo()
-    return 'sisam'
-  })
+  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>('sisam')
+  const [hidratado, setHidratado] = useState(false)
 
   // Função para verificar se o item do menu está ativo
   const isMenuItemActive = (href: string): boolean => {
@@ -102,6 +100,20 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     }
     return configs[tipo] || { label: tipo, bgColor: 'bg-gray-100 dark:bg-gray-900/50', textColor: 'text-gray-700 dark:text-gray-300' }
   }
+
+  // Hidratar estado do cliente (evita mismatch server/client)
+  // Também detecta o módulo pela URL atual
+  useEffect(() => {
+    const moduloStorage = offlineStorage.getModuloAtivo()
+    // Se a URL é de dashboard-gestor ou rota do gestor, forçar módulo gestor
+    if (pathname?.includes('dashboard-gestor')) {
+      setModuloAtivo('gestor')
+      offlineStorage.saveModuloAtivo('gestor')
+    } else {
+      setModuloAtivo(moduloStorage)
+    }
+    setHidratado(true)
+  }, [pathname])
 
   // Carregar personalização do sistema
   useEffect(() => {
