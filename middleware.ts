@@ -37,6 +37,7 @@ const EXCLUDED_PATHS = [
   '/api/auth/logout',     // Logout não precisa
   '/api/health',          // Health check
   '/api/init',            // Inicialização
+  '/api/site-config',     // Site institucional (público)
 ]
 
 // Endpoints de importação (mais restritivos)
