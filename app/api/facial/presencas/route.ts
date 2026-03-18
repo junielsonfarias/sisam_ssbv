@@ -71,8 +71,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extrair data e hora do timestamp
+    // Extrair data e hora do timestamp (com validação)
     const dataHora = new Date(timestamp)
+    if (isNaN(dataHora.getTime())) {
+      return NextResponse.json({ mensagem: 'Timestamp inválido' }, { status: 400 })
+    }
     const data = dataHora.toISOString().split('T')[0]
     const hora = dataHora.toTimeString().split(' ')[0]
 

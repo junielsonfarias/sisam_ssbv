@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic'
  * POST /api/facial/presencas/lote
  * Registra presenças em lote (sync offline)
  * Máximo 500 registros por requisição
+ * Usa batch INSERT em chunks de 50 para evitar lock prolongado
  */
 export async function POST(request: NextRequest) {
   try {
@@ -43,75 +44,96 @@ export async function POST(request: NextRequest) {
       alunosMap.set(a.id, a.turma_id)
     }
 
-    const client = await pool.connect()
-    let inseridos = 0
-    let atualizados = 0
+    // Filtrar e preparar registros válidos
+    const validos: { aluno_id: string; turma_id: string; data: string; hora: string; confianca: number }[] = []
     let erros = 0
 
-    try {
-      await client.query('BEGIN')
+    for (const registro of registros) {
+      const { aluno_id, timestamp, confianca } = registro
 
-      for (const registro of registros) {
-        const { aluno_id, timestamp, confianca } = registro
+      if (confianca < FACIAL.CONFIANCA_MINIMA) { erros++; continue }
 
-        // Validar confiança
-        if (confianca < FACIAL.CONFIANCA_MINIMA) {
-          erros++
-          continue
-        }
+      const turmaId = alunosMap.get(aluno_id)
+      if (!turmaId) { erros++; continue }
 
-        // Validar aluno
-        const turmaId = alunosMap.get(aluno_id)
-        if (!turmaId) {
-          erros++
-          continue
-        }
+      const dataHora = new Date(timestamp)
+      if (isNaN(dataHora.getTime())) { erros++; continue }
 
-        const dataHora = new Date(timestamp)
-        const data = dataHora.toISOString().split('T')[0]
-        const hora = dataHora.toTimeString().split(' ')[0]
+      validos.push({
+        aluno_id,
+        turma_id: turmaId,
+        data: dataHora.toISOString().split('T')[0],
+        hora: dataHora.toTimeString().split(' ')[0],
+        confianca,
+      })
+    }
 
-        const result = await client.query(
-          `INSERT INTO frequencia_diaria
-            (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
-           VALUES ($1, $2, $3, $4, $5, 'facial', $6, $7)
-           ON CONFLICT (aluno_id, data) DO UPDATE SET
-            hora_saida = $5,
-            confianca = GREATEST(frequencia_diaria.confianca, $7),
-            atualizado_em = CURRENT_TIMESTAMP
-           RETURNING (xmax = 0) AS is_insert`,
-          [aluno_id, turmaId, dispositivo.escola_id, data, hora, dispositivo.id, confianca]
-        )
-
-        if (result.rows[0]?.is_insert) {
-          inseridos++
-        } else {
-          atualizados++
-        }
-      }
-
-      await client.query('COMMIT')
-
-      // Log do lote
-      await pool.query(
-        `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
-         VALUES ($1, 'presenca_lote', $2)`,
-        [dispositivo.id, JSON.stringify({ total: registros.length, inseridos, atualizados, erros })]
-      )
-
+    if (validos.length === 0) {
       return NextResponse.json({
         sucesso: true,
         total: registros.length,
-        inseridos,
-        atualizados,
+        inseridos: 0,
+        atualizados: 0,
         erros,
       })
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
     }
+
+    // Processar em chunks de 50 para evitar lock prolongado
+    const CHUNK_SIZE = 50
+    let inseridos = 0
+    let atualizados = 0
+
+    for (let i = 0; i < validos.length; i += CHUNK_SIZE) {
+      const chunk = validos.slice(i, i + CHUNK_SIZE)
+
+      // Construir batch INSERT com múltiplos VALUES
+      const values: (string | number)[] = []
+      const placeholders: string[] = []
+      let paramIdx = 1
+
+      for (const reg of chunk) {
+        placeholders.push(
+          `($${paramIdx}, $${paramIdx + 1}, $${paramIdx + 2}, $${paramIdx + 3}, $${paramIdx + 4}, 'facial', $${paramIdx + 5}, $${paramIdx + 6})`
+        )
+        values.push(
+          reg.aluno_id, reg.turma_id, dispositivo.escola_id,
+          reg.data, reg.hora, dispositivo.id, reg.confianca
+        )
+        paramIdx += 7
+      }
+
+      const result = await pool.query(
+        `INSERT INTO frequencia_diaria
+          (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
+         VALUES ${placeholders.join(', ')}
+         ON CONFLICT (aluno_id, data) DO UPDATE SET
+          hora_saida = EXCLUDED.hora_entrada,
+          confianca = GREATEST(frequencia_diaria.confianca, EXCLUDED.confianca),
+          atualizado_em = CURRENT_TIMESTAMP
+         RETURNING (xmax = 0) AS is_insert`,
+        values
+      )
+
+      for (const row of result.rows) {
+        if (row.is_insert) inseridos++
+        else atualizados++
+      }
+    }
+
+    // Log do lote
+    await pool.query(
+      `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
+       VALUES ($1, 'presenca_lote', $2)`,
+      [dispositivo.id, JSON.stringify({ total: registros.length, inseridos, atualizados, erros })]
+    )
+
+    return NextResponse.json({
+      sucesso: true,
+      total: registros.length,
+      inseridos,
+      atualizados,
+      erros,
+    })
   } catch (error: any) {
     console.error('Erro ao registrar presença em lote:', error)
     return NextResponse.json(

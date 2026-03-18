@@ -203,11 +203,12 @@ export default function DispositivosFaciaisPage() {
     carregarEscolas()
     carregarPresencasHoje()
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 30 seconds (com jitter para evitar thundering herd)
+    const jitter = Math.floor(Math.random() * 5000)
     intervalRef.current = setInterval(() => {
       carregarDispositivos(true)
       carregarPresencasHoje()
-    }, 30000)
+    }, 30000 + jitter)
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)

@@ -128,7 +128,8 @@ export default function PainelTurmaPage() {
   // Polling a cada 30s
   useEffect(() => {
     if (painel) {
-      pollingRef.current = setInterval(() => carregarPainel(true), 30000)
+      const jitter = Math.floor(Math.random() * 5000)
+      pollingRef.current = setInterval(() => carregarPainel(true), 30000 + jitter)
     }
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current)

@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       params.push(turmaId)
     }
 
-    query += ` ORDER BY a.nome`
+    query += ` ORDER BY a.nome LIMIT 2000`
 
     const result = await pool.query(query, params)
 

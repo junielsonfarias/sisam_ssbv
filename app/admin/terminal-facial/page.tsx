@@ -232,6 +232,7 @@ export default function TerminalFacialPage() {
     // Loop de detecção
     intervalRef.current = setInterval(async () => {
       if (!video || video.paused || video.ended) return
+      if (document.hidden) return // Não processar com tab em background
 
       try {
         const detections = await faceapi
