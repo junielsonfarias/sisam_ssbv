@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
     // Frequencia bimestral
     const frequencia = frequenciaResult.rows.map((f: any) => ({
       bimestre: f.bimestre,
-      periodo_nome: f.periodo_nome || `${f.bimestre}o Bimestre`,
+      periodo_nome: f.periodo_nome?.replace('Bimestre', 'Avaliacao') || `${f.bimestre}a Avaliacao`,
       aulas_dadas: parseInt(f.aulas_dadas) || 0,
       faltas: parseInt(f.faltas) || 0,
       percentual: f.percentual_frequencia !== null ? parseFloat(f.percentual_frequencia) : null,
