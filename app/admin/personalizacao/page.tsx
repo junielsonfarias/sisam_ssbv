@@ -26,7 +26,7 @@ export default function PersonalizacaoPage() {
     login_imagem_url: null,
     login_cor_primaria: '#4f46e5',
     login_cor_secundaria: '#818cf8',
-    rodape_texto: '© 2026 SISAM - Todos os direitos reservados',
+    rodape_texto: `© ${new Date().getFullYear()} SISAM - Todos os direitos reservados`,
     rodape_link: null,
     rodape_link_texto: null,
     rodape_ativo: true,
@@ -49,7 +49,7 @@ export default function PersonalizacaoPage() {
           login_imagem_url: data.login_imagem_url || null,
           login_cor_primaria: data.login_cor_primaria || '#4f46e5',
           login_cor_secundaria: data.login_cor_secundaria || '#818cf8',
-          rodape_texto: data.rodape_texto || '© 2026 SISAM - Todos os direitos reservados',
+          rodape_texto: data.rodape_texto || `© ${new Date().getFullYear()} SISAM - Todos os direitos reservados`,
           rodape_link: data.rodape_link || null,
           rodape_link_texto: data.rodape_link_texto || null,
           rodape_ativo: data.rodape_ativo !== undefined ? data.rodape_ativo : true,
@@ -306,7 +306,7 @@ export default function PersonalizacaoPage() {
                     onChange={(e) => setFormData({ ...formData, rodape_texto: e.target.value })}
                     rows={3}
                     className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
-                    placeholder="Ex: © 2026 SISAM - Todos os direitos reservados"
+                    placeholder={`Ex: © ${new Date().getFullYear()} SISAM - Todos os direitos reservados`}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Este texto aparecerá no rodapé de todas as páginas do sistema

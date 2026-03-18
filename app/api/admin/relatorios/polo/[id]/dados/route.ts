@@ -47,9 +47,10 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams;
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString();
     const serie = searchParams.get('serie') || undefined;
+    const avaliacaoId = searchParams.get('avaliacao_id') || undefined;
 
     // Buscar dados (reutiliza a função existente)
-    const dados = await buscarDadosRelatorioPolo(poloId, anoLetivo, serie);
+    const dados = await buscarDadosRelatorioPolo(poloId, anoLetivo, serie, avaliacaoId);
 
     // Retornar JSON
     return NextResponse.json(dados, {
