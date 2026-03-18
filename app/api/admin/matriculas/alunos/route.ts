@@ -48,6 +48,28 @@ export async function POST(request: NextRequest) {
       alunos: [] as any[],
     }
 
+    // Verificar capacidade da turma antes de iniciar
+    if (turma_id) {
+      const turmaCheck = await pool.query(
+        `SELECT t.capacidade_maxima,
+                COUNT(a.id) FILTER (WHERE a.situacao = 'cursando') as total_cursando
+         FROM turmas t
+         LEFT JOIN alunos a ON a.turma_id = t.id AND a.situacao = 'cursando'
+         WHERE t.id = $1
+         GROUP BY t.id, t.capacidade_maxima`,
+        [turma_id]
+      )
+      if (turmaCheck.rows.length > 0) {
+        const { capacidade_maxima, total_cursando } = turmaCheck.rows[0]
+        if (capacidade_maxima && parseInt(total_cursando) + alunos.length > capacidade_maxima) {
+          const vagas = capacidade_maxima - parseInt(total_cursando)
+          return NextResponse.json({
+            mensagem: `Turma possui apenas ${vagas} vaga(s) disponível(is) de ${capacidade_maxima}. Tentando matricular ${alunos.length} aluno(s).`,
+          }, { status: 400 })
+        }
+      }
+    }
+
     const client = await pool.connect()
     try {
       await client.query('BEGIN')

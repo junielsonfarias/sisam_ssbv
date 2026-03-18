@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const dataInicio = searchParams.get('data_inicio')
     const dataFim = searchParams.get('data_fim')
     const metodo = searchParams.get('metodo')
+    const anoLetivo = searchParams.get('ano_letivo')
     const pagina = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
     const limite = Math.min(200, Math.max(1, parseInt(searchParams.get('limite') || '50', 10)))
 
@@ -105,6 +106,15 @@ export async function GET(request: NextRequest) {
       countQuery += filter
       params.push(metodo)
       countParams.push(metodo)
+      paramIndex++
+    }
+
+    if (anoLetivo) {
+      const filter = ` AND EXTRACT(YEAR FROM fd.data) = $${paramIndex}`
+      query += filter
+      countQuery += filter
+      params.push(parseInt(anoLetivo, 10))
+      countParams.push(parseInt(anoLetivo, 10))
       paramIndex++
     }
 

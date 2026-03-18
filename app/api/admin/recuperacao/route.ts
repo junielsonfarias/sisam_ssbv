@@ -70,8 +70,9 @@ export async function GET(request: NextRequest) {
       where += ` AND ne.turma_id = $${params.length}`
     }
     if (serie) {
-      params.push(`%${serie}%`)
-      where += ` AND t.serie ILIKE $${params.length}`
+      const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
+      params.push(numSerie)
+      where += ` AND REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${params.length}`
     }
 
     const query = `

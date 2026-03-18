@@ -25,8 +25,9 @@ export async function GET(request: NextRequest) {
     let idx = 3
 
     if (serie) {
-      conditions.push(`t.serie = $${idx}`)
-      params.push(serie)
+      const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
+      conditions.push(`REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${idx}`)
+      params.push(numSerie)
       idx++
     }
 

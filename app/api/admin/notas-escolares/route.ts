@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (turmaId) {
-      whereConditions.push(`a.turma_id = $${paramIndex}`)
+      whereConditions.push(`COALESCE(n.turma_id, a.turma_id) = $${paramIndex}`)
       params.push(turmaId)
       paramIndex++
     }
@@ -94,12 +94,14 @@ export async function GET(request: NextRequest) {
       `SELECT n.*,
               a.nome as aluno_nome, a.codigo as aluno_codigo,
               d.nome as disciplina_nome, d.codigo as disciplina_codigo,
-              p.nome as periodo_nome, p.numero as periodo_numero
+              p.nome as periodo_nome, p.numero as periodo_numero,
+              t.codigo as turma_codigo, t.serie as turma_serie, t.nome as turma_nome
        FROM notas_escolares n
        INNER JOIN alunos a ON n.aluno_id = a.id
        INNER JOIN disciplinas_escolares d ON n.disciplina_id = d.id
        INNER JOIN periodos_letivos p ON n.periodo_id = p.id
        INNER JOIN escolas e ON n.escola_id = e.id
+       LEFT JOIN turmas t ON COALESCE(n.turma_id, a.turma_id) = t.id
        ${whereClause}
        ORDER BY a.nome, d.ordem, p.numero`,
       params
@@ -178,8 +180,8 @@ export async function POST(request: NextRequest) {
 
       // Preparar statement para reutilização (performance: evita re-parse por item)
       const upsertSQL = `INSERT INTO notas_escolares
-             (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, nota, nota_recuperacao, nota_final, faltas, observacao, registrado_por)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id, nota, nota_recuperacao, nota_final, faltas, observacao, registrado_por)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              ON CONFLICT (aluno_id, disciplina_id, periodo_id)
              DO UPDATE SET
                nota = EXCLUDED.nota,
@@ -187,7 +189,8 @@ export async function POST(request: NextRequest) {
                nota_final = EXCLUDED.nota_final,
                faltas = EXCLUDED.faltas,
                observacao = EXCLUDED.observacao,
-               registrado_por = EXCLUDED.registrado_por`
+               registrado_por = EXCLUDED.registrado_por,
+               turma_id = EXCLUDED.turma_id`
 
       // Processar em lotes de 50 para evitar bloqueio prolongado
       const BATCH_SIZE = 50
@@ -220,7 +223,7 @@ export async function POST(request: NextRequest) {
             }
 
             await client.query(upsertSQL, [
-              item.aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo,
+              item.aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id,
               item.nota ?? null, item.nota_recuperacao ?? null, notaFinal,
               item.faltas ?? 0, item.observacao ?? null, usuario.id,
             ])

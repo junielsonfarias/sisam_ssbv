@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const turmaId = searchParams.get('turma_id')
     const periodoId = searchParams.get('periodo_id')
+    const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
     if (!turmaId || !periodoId) {
       return NextResponse.json({ mensagem: 'Informe turma_id e periodo_id' }, { status: 400 })
@@ -28,11 +29,11 @@ export async function GET(request: NextRequest) {
     const alunosResult = await pool.query(
       `SELECT a.id, a.nome, a.codigo, a.situacao, a.pcd
        FROM alunos a
-       WHERE a.turma_id = $1
+       WHERE a.turma_id = $1 AND a.ano_letivo = $2
        ORDER BY
          CASE WHEN a.situacao IN ('transferido', 'abandono') THEN 1 ELSE 0 END,
          a.nome`,
-      [turmaId]
+      [turmaId, anoLetivo]
     )
 
     // Buscar frequências existentes
