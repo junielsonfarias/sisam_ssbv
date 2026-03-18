@@ -359,34 +359,58 @@ export default function DashboardGestorPage() {
                 </div>
               </div>
 
-              {/* Card PCD com lista inline */}
+              {/* Card PCD com lista completa */}
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-5">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-2 mb-3">
-                  <Accessibility className="w-4 h-4" /> Alunos PCD ({data.alunos.pcd})
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                    <Accessibility className="w-4 h-4 text-violet-500" /> Alunos PCD
+                  </h3>
+                  <span className="bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold px-2.5 py-1 rounded-full">
+                    {data.alunos.pcd}
+                  </span>
+                </div>
                 {data.alunos_pcd && data.alunos_pcd.length > 0 ? (
-                  <div className="space-y-2 max-h-[260px] overflow-y-auto">
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                     {data.alunos_pcd.map((aluno) => (
-                      <div key={aluno.id} className="flex items-center justify-between p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg text-sm">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{aluno.nome}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {aluno.turma_codigo} - {aluno.serie}
-                            {aluno.tipo_deficiencia && <> | {aluno.tipo_deficiencia}</>}
-                          </p>
+                      <div key={aluno.id}
+                        className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/10 rounded-xl p-3 border border-violet-100 dark:border-violet-800/30 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setModalAberto('pcd')}>
+                        <div className="flex items-start gap-3">
+                          <div className="bg-violet-100 dark:bg-violet-800/50 rounded-full p-1.5 mt-0.5 flex-shrink-0">
+                            <Accessibility className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{aluno.nome}</p>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                              <span className="inline-flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400">
+                                <School className="w-3 h-3" /> {aluno.turma_codigo}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.serie}
+                              </span>
+                              {aluno.responsavel && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.responsavel}</span>
+                              )}
+                              {aluno.telefone_responsavel && (
+                                <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                                  <Phone className="w-3 h-3" /> {aluno.telefone_responsavel}
+                                </span>
+                              )}
+                            </div>
+                            {aluno.tipo_deficiencia && (
+                              <span className="inline-block mt-1.5 text-[11px] bg-violet-200/60 dark:bg-violet-700/40 text-violet-800 dark:text-violet-200 px-2 py-0.5 rounded-full">
+                                {aluno.tipo_deficiencia}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <Accessibility className="w-4 h-4 text-violet-500 flex-shrink-0 ml-2" />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 py-8 text-center">Nenhum aluno PCD registrado</p>
-                )}
-                {data.alunos_pcd && data.alunos_pcd.length > 0 && (
-                  <button onClick={() => setModalAberto('pcd')}
-                    className="w-full mt-3 text-xs text-violet-600 dark:text-violet-400 hover:underline flex items-center justify-center gap-1">
-                    Ver detalhes completos <ChevronRight className="w-3 h-3" />
-                  </button>
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                    <Accessibility className="w-10 h-10 mb-2 opacity-30" />
+                    <p className="text-sm">Nenhum aluno PCD registrado</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -703,51 +727,101 @@ function ModalTransferencias({ data }: { data: DashboardData }) {
 }
 
 function ModalPCD({ data }: { data: DashboardData }) {
+  // Agrupar por escola
+  const porEscola = (data.alunos_pcd || []).reduce<Record<string, AlunoPcd[]>>((acc, aluno) => {
+    const escola = aluno.escola_nome || 'Sem escola'
+    if (!acc[escola]) acc[escola] = []
+    acc[escola].push(aluno)
+    return acc
+  }, {})
+
   return (
-    <div className="space-y-4">
-      <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-4 text-center">
-        <Accessibility className="w-8 h-8 text-violet-500 mx-auto mb-2" />
-        <p className="text-3xl font-bold text-violet-700 dark:text-violet-300">{data.alunos.pcd}</p>
-        <p className="text-sm text-gray-500">Alunos com deficiencia</p>
+    <div className="space-y-5">
+      <div className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/30 dark:to-purple-900/20 rounded-xl p-5 flex items-center gap-4">
+        <div className="bg-violet-100 dark:bg-violet-800/50 rounded-xl p-3">
+          <Accessibility className="w-8 h-8 text-violet-600 dark:text-violet-400" />
+        </div>
+        <div>
+          <p className="text-3xl font-bold text-violet-700 dark:text-violet-300">{data.alunos.pcd}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {data.alunos.pcd === 1 ? 'Aluno com deficiencia' : 'Alunos com deficiencia'}
+            {data.alunos.total > 0 && (
+              <span className="ml-1 text-xs text-gray-400">
+                ({((data.alunos.pcd / data.alunos.total) * 100).toFixed(1)}% do total)
+              </span>
+            )}
+          </p>
+        </div>
       </div>
 
       {data.alunos_pcd && data.alunos_pcd.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-gray-500 dark:text-gray-400 border-b dark:border-slate-600">
-                <th className="pb-2 font-medium">#</th>
-                <th className="pb-2 font-medium">Nome</th>
-                <th className="pb-2 font-medium">Serie</th>
-                <th className="pb-2 font-medium">Turma</th>
-                <th className="pb-2 font-medium">Deficiencia</th>
-                <th className="pb-2 font-medium">Responsavel</th>
-                <th className="pb-2 font-medium">Telefone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.alunos_pcd.map((a, i) => (
-                <tr key={a.id} className="border-b border-gray-100 dark:border-slate-700/50 hover:bg-violet-50/50 dark:hover:bg-violet-900/10">
-                  <td className="py-2 text-gray-400">{i + 1}</td>
-                  <td className="py-2 font-medium text-gray-800 dark:text-gray-200">{a.nome}</td>
-                  <td className="py-2">{a.serie}</td>
-                  <td className="py-2">{a.turma_codigo}</td>
-                  <td className="py-2 text-xs">{a.tipo_deficiencia || 'Nao informado'}</td>
-                  <td className="py-2 text-xs text-gray-600 dark:text-gray-400">{a.responsavel || '-'}</td>
-                  <td className="py-2 text-xs">
-                    {a.telefone_responsavel ? (
-                      <span className="flex items-center gap-1 text-blue-600">
-                        <Phone className="w-3 h-3" /> {a.telefone_responsavel}
-                      </span>
-                    ) : '-'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-5">
+          {Object.entries(porEscola).map(([escola, alunos]) => (
+            <div key={escola}>
+              {Object.keys(porEscola).length > 1 && (
+                <div className="flex items-center gap-2 mb-3">
+                  <School className="w-4 h-4 text-gray-400" />
+                  <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300">{escola}</h4>
+                  <span className="text-xs bg-gray-100 dark:bg-slate-700 text-gray-500 px-2 py-0.5 rounded-full">{alunos.length}</span>
+                </div>
+              )}
+              <div className="space-y-3">
+                {alunos.map((a, i) => (
+                  <div key={a.id} className="bg-white dark:bg-slate-700/40 border border-gray-100 dark:border-slate-600/50 rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-violet-100 dark:bg-violet-800/50 rounded-full w-9 h-9 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-sm font-bold text-violet-600 dark:text-violet-400">{i + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-800 dark:text-gray-100 text-[15px]">{a.nome}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <span className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium px-2.5 py-1 rounded-lg">
+                            <GraduationCap className="w-3 h-3" /> {a.turma_codigo}
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium px-2.5 py-1 rounded-lg">
+                            {a.serie}
+                          </span>
+                          {a.tipo_deficiencia && (
+                            <span className="inline-flex items-center gap-1 bg-violet-100 dark:bg-violet-800/40 text-violet-700 dark:text-violet-300 text-xs font-medium px-2.5 py-1 rounded-lg">
+                              <Accessibility className="w-3 h-3" /> {a.tipo_deficiencia}
+                            </span>
+                          )}
+                          {!a.tipo_deficiencia && (
+                            <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700/40 text-gray-500 text-xs px-2.5 py-1 rounded-lg">
+                              <AlertTriangle className="w-3 h-3" /> Tipo nao informado
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 pt-2.5 border-t border-gray-100 dark:border-slate-600/30">
+                          {a.data_nascimento && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Nasc: <strong>{new Date(a.data_nascimento).toLocaleDateString('pt-BR')}</strong>
+                            </span>
+                          )}
+                          {a.responsavel && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Resp: <strong>{a.responsavel}</strong>
+                            </span>
+                          )}
+                          {a.telefone_responsavel && (
+                            <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                              <Phone className="w-3 h-3" /> {a.telefone_responsavel}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-400 text-center py-4">Nenhum aluno PCD registrado</p>
+        <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+          <Accessibility className="w-12 h-12 mb-3 opacity-30" />
+          <p className="text-sm">Nenhum aluno PCD registrado</p>
+        </div>
       )}
     </div>
   )
