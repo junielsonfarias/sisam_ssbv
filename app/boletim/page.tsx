@@ -333,11 +333,19 @@ export default function BoletimPage() {
             </div>
 
             {/* Avaliacoes SISAM */}
-            {dados.avaliacoes_sisam.length > 0 && (
+            {dados.avaliacoes_sisam.length > 0 && (() => {
+              const serieNum = parseInt((dados.aluno.serie || '').replace(/\D/g, '')) || 0
+              const isIniciais = [1, 2, 3, 4, 5].includes(serieNum)
+              return (
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-                  <Award className="w-5 h-5 text-indigo-600" />
-                  <h3 className="font-bold text-slate-800">Avaliacoes Municipais (SISAM)</h3>
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-indigo-600" />
+                    <h3 className="font-bold text-slate-800">Avaliacoes Municipais (SISAM)</h3>
+                  </div>
+                  <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full">
+                    {dados.aluno.serie ? `${serieNum}o Ano` : ''} — {isIniciais ? 'Anos Iniciais' : 'Anos Finais'}
+                  </span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -345,11 +353,11 @@ export default function BoletimPage() {
                       <tr className="bg-slate-50 text-slate-500">
                         <th className="text-left px-4 py-3 font-semibold">Avaliacao</th>
                         <th className="text-center px-3 py-3 font-semibold">Presenca</th>
-                        <th className="text-center px-3 py-3 font-semibold">Port.</th>
-                        <th className="text-center px-3 py-3 font-semibold">Mat.</th>
-                        <th className="text-center px-3 py-3 font-semibold">C.Hum.</th>
-                        <th className="text-center px-3 py-3 font-semibold">C.Nat.</th>
-                        <th className="text-center px-3 py-3 font-semibold">Prod.</th>
+                        <th className="text-center px-3 py-3 font-semibold">L. Portuguesa</th>
+                        <th className="text-center px-3 py-3 font-semibold">Matematica</th>
+                        {!isIniciais && <th className="text-center px-3 py-3 font-semibold">C. Humanas</th>}
+                        {!isIniciais && <th className="text-center px-3 py-3 font-semibold">C. Natureza</th>}
+                        {isIniciais && <th className="text-center px-3 py-3 font-semibold">Prod. Textual</th>}
                         <th className="text-center px-3 py-3 font-semibold bg-slate-100">Media</th>
                         <th className="text-center px-3 py-3 font-semibold">Nivel</th>
                       </tr>
@@ -365,9 +373,9 @@ export default function BoletimPage() {
                           </td>
                           <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_lp)}`}>{av.nota_lp?.toFixed(1) ?? '-'}</td>
                           <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_mat)}`}>{av.nota_mat?.toFixed(1) ?? '-'}</td>
-                          <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_ch)}`}>{av.nota_ch?.toFixed(1) ?? '-'}</td>
-                          <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_cn)}`}>{av.nota_cn?.toFixed(1) ?? '-'}</td>
-                          <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_producao)}`}>{av.nota_producao?.toFixed(1) ?? '-'}</td>
+                          {!isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_ch)}`}>{av.nota_ch?.toFixed(1) ?? '-'}</td>}
+                          {!isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_cn)}`}>{av.nota_cn?.toFixed(1) ?? '-'}</td>}
+                          {isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_producao)}`}>{av.nota_producao?.toFixed(1) ?? '-'}</td>}
                           <td className={`text-center px-3 py-3 bg-slate-50 font-bold ${notaColor(av.media)}`}>{av.media?.toFixed(1) ?? '-'}</td>
                           <td className="text-center px-3 py-3">
                             {av.nivel ? (
@@ -385,7 +393,8 @@ export default function BoletimPage() {
                   </table>
                 </div>
               </div>
-            )}
+              )
+            })()}
 
             {/* Frequencia */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
