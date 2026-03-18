@@ -858,7 +858,7 @@ function AbaSeriesOferecidas({
               <div className="flex items-center gap-2">
                 <GraduationCap className={`w-5 h-5 ${vinculada ? 'text-emerald-600' : 'text-gray-400'}`} />
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  {config?.nome_serie || `${num}o Ano`}
+                  {config?.nome_serie || `${num}º Ano`}
                 </span>
               </div>
               <button
@@ -1101,7 +1101,7 @@ function AbaTurmas({
                   <tr key={turma.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                     <td className="py-3 px-4 text-sm font-mono text-gray-600 dark:text-gray-300">{turma.codigo || '-'}</td>
                     <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{turma.nome}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{turma.serie}o Ano</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{turma.serie}º Ano</td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{turnoLabel(turma.turno)}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">
                       {turma.total_alunos}{turma.capacidade ? `/${turma.capacidade}` : ''}
@@ -1277,7 +1277,7 @@ function AbaEstatisticas({
                   return (
                     <div key={s.serie} className="flex items-center gap-3">
                       <span className="text-sm text-gray-600 dark:text-gray-400 w-24 text-right">
-                        {s.nome_serie || `${s.serie}o Ano`}
+                        {s.nome_serie || `${s.serie}º Ano`}
                       </span>
                       <div className="flex-1 h-6 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
                         <div

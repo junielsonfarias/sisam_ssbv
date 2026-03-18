@@ -344,7 +344,7 @@ export default function BoletimPage() {
                     <h3 className="font-bold text-slate-800">Avaliacoes Municipais (SISAM)</h3>
                   </div>
                   <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full">
-                    {dados.aluno.serie ? `${serieNum}o Ano` : ''} — {isIniciais ? 'Anos Iniciais' : 'Anos Finais'}
+                    {dados.aluno.serie ? `${serieNum}º Ano` : ''} — {isIniciais ? 'Anos Iniciais' : 'Anos Finais'}
                   </span>
                 </div>
                 <div className="overflow-x-auto">
