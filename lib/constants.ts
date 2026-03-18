@@ -276,6 +276,48 @@ export const PRESENCA = {
 } as const
 
 // ============================================================================
+// HORÁRIO DE AULA (6º-9º ANO)
+// ============================================================================
+
+/**
+ * Configurações de horário de aula para frequência por hora-aula
+ */
+export const HORARIO_AULA = {
+  /** Total de aulas por dia */
+  TOTAL_AULAS_DIA: 6,
+  /** Dias da semana letivos */
+  DIAS_SEMANA: [
+    { valor: 1, nome: 'Segunda-feira', abrev: 'Seg' },
+    { valor: 2, nome: 'Terça-feira', abrev: 'Ter' },
+    { valor: 3, nome: 'Quarta-feira', abrev: 'Qua' },
+    { valor: 4, nome: 'Quinta-feira', abrev: 'Qui' },
+    { valor: 5, nome: 'Sexta-feira', abrev: 'Sex' },
+  ],
+} as const
+
+// ============================================================================
+// RECONHECIMENTO FACIAL
+// ============================================================================
+
+/**
+ * Configurações do módulo de reconhecimento facial
+ */
+export const FACIAL = {
+  /** Confiança mínima para aceitar reconhecimento (0-1) */
+  CONFIANCA_MINIMA: 0.85,
+  /** Dispositivo considerado offline após X minutos sem ping */
+  PING_TIMEOUT_MINUTOS: 5,
+  /** Alerta se dispositivo offline por mais de X minutos */
+  ALERTA_OFFLINE_MINUTOS: 60,
+  /** Máximo de registros por requisição em lote */
+  LOTE_MAXIMO: 500,
+  /** Prefixo das API keys de dispositivos */
+  API_KEY_PREFIX: 'sisam_dev_',
+  /** Dias para reter logs de dispositivos */
+  RETENCAO_LOGS_DIAS: 365,
+} as const
+
+// ============================================================================
 // REGEX E VALIDAÇÕES
 // ============================================================================
 

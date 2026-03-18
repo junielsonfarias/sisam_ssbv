@@ -1,0 +1,17 @@
+{
+  "sisam_url": "http://localhost:3000",
+  "api_key": "COLE_SUA_API_KEY_AQUI",
+  "camera_index": 0,
+  "camera_width": 640,
+  "camera_height": 480,
+  "confidence_threshold": 0.85,
+  "detection_quality_min": 0.5,
+  "cooldown_seconds": 1800,
+  "sync_interval_minutes": 5,
+  "ping_interval_minutes": 5,
+  "fps_limit": 10,
+  "model": "buffalo_sc",
+  "show_video": true,
+  "sound_enabled": true,
+  "log_level": "INFO"
+}

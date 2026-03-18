@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     // Buscar frequências existentes
     const freqResult = await pool.query(
       `SELECT f.aluno_id, f.dias_letivos, f.presencas, f.faltas, f.faltas_justificadas,
-              f.percentual_frequencia, f.observacao
+              f.percentual_frequencia, f.observacao, f.metodo
        FROM frequencia_bimestral f
        WHERE f.turma_id = $1 AND f.periodo_id = $2`,
       [turmaId, periodoId]

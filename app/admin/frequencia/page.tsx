@@ -2,7 +2,8 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useCallback } from 'react'
-import { Save, Search, ClipboardList, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Save, Search, ClipboardList, AlertCircle, CheckCircle, ArrowLeft, Scan, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
@@ -18,6 +19,7 @@ interface FreqAluno {
   faltas_justificadas: number
   percentual_frequencia: number | null
   observacao: string
+  metodo?: string | null
 }
 
 type Modo = 'selecao' | 'lancamento'
@@ -129,6 +131,7 @@ export default function FrequenciaPage() {
             faltas_justificadas: f.faltas_justificadas ?? 0,
             percentual_frequencia: f.percentual_frequencia ? parseFloat(f.percentual_frequencia) : null,
             observacao: f.observacao || '',
+            metodo: f.metodo || 'manual',
           }
           // Atualizar dias letivos do primeiro registro encontrado
           if (f.dias_letivos && f.dias_letivos > 0) {
@@ -247,15 +250,27 @@ export default function FrequenciaPage() {
               Lançamento de frequência por bimestre
             </p>
           </div>
-          {modo === 'lancamento' && (
-            <button
-              onClick={() => setModo('selecao')}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Voltar
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {modo === 'lancamento' && turmaId && (
+              <Link
+                href={`/admin/frequencia-diaria?turma_id=${turmaId}${escolaId ? `&escola_id=${escolaId}` : ''}`}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+              >
+                <Scan className="w-4 h-4" />
+                Ver Frequência Diária
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            )}
+            {modo === 'lancamento' && (
+              <button
+                onClick={() => setModo('selecao')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Voltar
+              </button>
+            )}
+          </div>
         </div>
 
         {modo === 'selecao' && (
@@ -366,6 +381,7 @@ export default function FrequenciaPage() {
                       <th className="text-center px-2 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase w-20">Justif.</th>
                       <th className="text-center px-2 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase w-24">Presenças</th>
                       <th className="text-center px-2 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase w-20">%</th>
+                      <th className="text-center px-2 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase w-20">Método</th>
                       <th className="text-center px-2 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase w-10" />
                     </tr>
                   </thead>
@@ -416,6 +432,19 @@ export default function FrequenciaPage() {
                             </span>
                           </td>
                           <td className="px-2 py-2.5 text-center">
+                            {freq.metodo && freq.metodo !== 'manual' ? (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                freq.metodo === 'facial' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                freq.metodo === 'qrcode' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              }`}>
+                                {freq.metodo === 'facial' ? 'Facial' : freq.metodo === 'qrcode' ? 'QR Code' : 'Manual'}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400">Manual</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2.5 text-center">
                             {pct !== null && pct < 75 && (
                               <span title="Frequência abaixo de 75%"><AlertCircle className="w-4 h-4 text-red-500 mx-auto" /></span>
                             )}
@@ -431,7 +460,7 @@ export default function FrequenciaPage() {
                     {alunosInativos.length > 0 && (
                       <>
                         <tr>
-                          <td colSpan={7} className="px-4 py-2 bg-gray-100 dark:bg-slate-700/30">
+                          <td colSpan={8} className="px-4 py-2 bg-gray-100 dark:bg-slate-700/30">
                             <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase">
                               Transferidos / Saídas ({alunosInativos.length})
                             </span>
@@ -479,6 +508,9 @@ export default function FrequenciaPage() {
                                 <span className={`text-sm font-bold ${getCorFrequencia(pct)}`}>
                                   {pct !== null ? `${pct}%` : '-'}
                                 </span>
+                              </td>
+                              <td className="px-2 py-2.5 text-center">
+                                <span className="text-[10px] text-gray-400">-</span>
                               </td>
                               <td className="px-2 py-2.5" />
                             </tr>

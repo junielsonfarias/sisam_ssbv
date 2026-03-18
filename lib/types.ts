@@ -546,6 +546,120 @@ export interface PersonalizacaoConfig {
 }
 
 // ============================================================================
+// RECONHECIMENTO FACIAL
+// ============================================================================
+
+/** Dispositivo de reconhecimento facial */
+export interface DispositivoFacial {
+  id: string
+  escola_id: string
+  nome: string
+  localizacao: string | null
+  api_key_hash: string
+  api_key_prefix: string
+  status: 'ativo' | 'inativo' | 'bloqueado'
+  ultimo_ping: Date | null
+  metadata: Record<string, unknown>
+  criado_em: Date
+  atualizado_em: Date
+  // Campos via JOIN
+  escola_nome?: string
+}
+
+/** Consentimento facial (LGPD) */
+export interface ConsentimentoFacial {
+  id: string
+  aluno_id: string
+  responsavel_nome: string
+  responsavel_cpf: string | null
+  consentido: boolean
+  data_consentimento: Date | null
+  data_revogacao: Date | null
+  ip_registro: string | null
+  criado_em: Date
+  atualizado_em: Date
+  // Campos via JOIN
+  aluno_nome?: string
+}
+
+/** Embedding facial de um aluno */
+export interface EmbeddingFacial {
+  id: string
+  aluno_id: string
+  embedding_data: Buffer
+  qualidade: number | null
+  versao_modelo: string
+  registrado_por: string | null
+  criado_em: Date
+  atualizado_em: Date
+}
+
+/** Registro de frequência diária */
+export interface FrequenciaDiaria {
+  id: string
+  aluno_id: string
+  turma_id: string
+  escola_id: string
+  data: string
+  hora_entrada: string | null
+  hora_saida: string | null
+  metodo: 'manual' | 'facial' | 'qrcode'
+  dispositivo_id: string | null
+  confianca: number | null
+  registrado_por: string | null
+  criado_em: Date
+  // Campos via JOIN
+  aluno_nome?: string
+  turma_nome?: string
+  dispositivo_nome?: string
+}
+
+/** Log de evento de dispositivo */
+export interface LogDispositivo {
+  id: string
+  dispositivo_id: string
+  evento: string
+  detalhes: Record<string, unknown>
+  criado_em: Date
+}
+
+// ============================================================================
+// FREQUÊNCIA POR HORA-AULA (6º-9º ANO)
+// ============================================================================
+
+/** Slot de horário de aula na grade semanal */
+export interface HorarioAula {
+  id: string
+  turma_id: string
+  dia_semana: number
+  numero_aula: number
+  disciplina_id: string
+  criado_em: Date
+  atualizado_em: Date
+  // Campos via JOIN
+  disciplina_nome?: string
+  disciplina_codigo?: string
+}
+
+/** Registro de frequência por hora-aula */
+export interface FrequenciaHoraAula {
+  id: string
+  aluno_id: string
+  turma_id: string
+  escola_id: string
+  data: string
+  numero_aula: number
+  disciplina_id: string
+  presente: boolean
+  metodo: 'manual' | 'facial' | 'automatico'
+  registrado_por: string | null
+  criado_em: Date
+  // Campos via JOIN
+  aluno_nome?: string
+  disciplina_nome?: string
+}
+
+// ============================================================================
 // TIPOS DE DADOS OFFLINE
 // ============================================================================
 

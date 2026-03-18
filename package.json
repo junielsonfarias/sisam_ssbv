@@ -92,6 +92,7 @@
     "@types/pg": "^8.10.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@vladmandic/face-api": "^1.7.15",
     "autoprefixer": "^10.4.0",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.5.1",

@@ -27,6 +27,8 @@ const RATE_LIMITS = {
   read: { maxRequests: 600, windowMs: 60 * 1000 },
   // APIs de importação: 15 requisições por minuto (operações pesadas)
   import: { maxRequests: 15, windowMs: 60 * 1000 },
+  // APIs de dispositivos faciais: 300 requisições por minuto (alta frequência de scans)
+  device: { maxRequests: 300, windowMs: 60 * 1000 },
 }
 
 // Endpoints excluídos do rate limiting (já têm próprio ou são públicos)
@@ -43,6 +45,11 @@ const IMPORT_PATHS = [
   '/api/admin/importar-completo',
   '/api/admin/importar-cadastros',
   '/api/admin/importar-resultados',
+]
+
+// Endpoints de dispositivos faciais (alta frequência)
+const DEVICE_PATHS = [
+  '/api/facial/',
 ]
 
 /**
@@ -150,8 +157,12 @@ export function middleware(request: NextRequest) {
   const method = request.method
   let rateLimitConfig = RATE_LIMITS.read
 
+  // Endpoints de dispositivos faciais (alta frequência)
+  if (DEVICE_PATHS.some(path => pathname.startsWith(path))) {
+    rateLimitConfig = RATE_LIMITS.device
+  }
   // Endpoints de importação
-  if (IMPORT_PATHS.some(path => pathname.startsWith(path))) {
+  else if (IMPORT_PATHS.some(path => pathname.startsWith(path))) {
     rateLimitConfig = RATE_LIMITS.import
   }
   // Métodos de escrita

@@ -740,6 +740,25 @@ function PainelLancamento({
         </div>
       )}
 
+      {/* Aviso frequência por aula (6º-9º) */}
+      {!freqUnificada && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-amber-600 dark:text-amber-400 text-lg">&#9432;</span>
+            <span className="text-sm text-amber-700 dark:text-amber-300">
+              <strong>Faltas por disciplina</strong> — calculadas automaticamente a partir da frequência por aula.
+              Gerencie no <strong>Painel da Turma</strong> e agregue os dados ao final do período.
+            </span>
+          </div>
+          <a
+            href="/admin/painel-turma"
+            className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+          >
+            Painel da Turma
+          </a>
+        </div>
+      )}
+
       {/* Controles */}
       <div className="flex flex-wrap items-center gap-3">
         {config.permite_recuperacao && (
@@ -886,15 +905,10 @@ function PainelLancamento({
                         </>
                       )
                     })() : (
-                      <td className="py-2 px-3 text-center">
-                        <input
-                          type="number"
-                          value={nota?.faltas ?? 0}
-                          onChange={e => atualizarNota(aluno.id, 'faltas', parseInt(e.target.value) || 0)}
-                          min={0}
-                          max={999}
-                          className="w-14 text-center rounded-lg border border-gray-300 dark:border-slate-600 px-2 py-1.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        />
+                      <td className="py-2 px-3 text-center" title="Faltas calculadas automaticamente a partir da frequência por aula. Acesse o Painel da Turma para gerenciar.">
+                        <span className="inline-block w-14 text-center rounded-lg border border-gray-200 dark:border-slate-600 px-2 py-1.5 text-sm bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-400 cursor-help">
+                          {nota?.faltas ?? 0}
+                        </span>
                       </td>
                     )}
                     <td className="py-2 px-3 text-center">
