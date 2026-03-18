@@ -38,6 +38,7 @@ const EXCLUDED_PATHS = [
   '/api/health',          // Health check
   '/api/init',            // Inicialização
   '/api/site-config',     // Site institucional (público)
+  '/api/boletim',         // Consulta pública de boletim escolar
 ]
 
 // Endpoints de importação (mais restritivos)

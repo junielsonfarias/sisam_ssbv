@@ -96,6 +96,18 @@ export default function SiteHero({ data }: SiteHeroProps) {
               </a>
             </div>
 
+            {/* Boletim link */}
+            <div className="mb-8">
+              <Link
+                href="/boletim"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                <BookOpen className="w-4 h-4" />
+                Consultar Boletim Escolar
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
             {/* Stats bar */}
             <div className="flex flex-wrap gap-8 sm:gap-12">
               {[

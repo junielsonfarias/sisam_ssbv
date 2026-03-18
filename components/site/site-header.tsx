@@ -14,6 +14,7 @@ const defaultNav = [
   { label: 'Escolas', href: '#escolas' },
   { label: 'Noticias', href: '#noticias' },
   { label: 'Contato', href: '#contato' },
+  { label: 'Boletim', href: '/boletim' },
 ]
 
 export default function SiteHeader({ data }: SiteHeaderProps) {
