@@ -95,6 +95,18 @@ const withPWA = require('next-pwa')({
       }
     },
     {
+      // Cache de modelos face-api.js (estáticos, ~12MB total)
+      urlPattern: /\/models\/face-api\/.*/,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'face-api-models',
+        expiration: {
+          maxEntries: 10,
+          maxAgeSeconds: 90 * 24 * 60 * 60 // 90 dias
+        }
+      }
+    },
+    {
       // APIs de autenticação - nunca cachear
       urlPattern: /\/api\/auth\/.*/,
       handler: 'NetworkOnly'
@@ -131,6 +143,17 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Headers de cache para assets estáticos
+  async headers() {
+    return [
+      {
+        source: '/models/face-api/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=7776000, immutable' }, // 90 dias
+        ],
+      },
+    ]
+  },
   // Melhorar tratamento de chunks para evitar erros de módulos ausentes
   webpack: (config, { isServer, dev }) => {
     if (!isServer) {

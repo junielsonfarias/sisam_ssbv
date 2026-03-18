@@ -91,6 +91,29 @@ export async function GET() {
     }
   }
 
+  // Métricas de dispositivos faciais (se tabela existir)
+  try {
+    const dispositivosResult = await pool.query(
+      `SELECT
+        COUNT(*) FILTER (WHERE status = 'ativo') AS ativos,
+        COUNT(*) FILTER (WHERE status = 'ativo' AND ultimo_ping > NOW() - INTERVAL '5 minutes') AS online,
+        COUNT(*) FILTER (WHERE status = 'ativo' AND (ultimo_ping IS NULL OR ultimo_ping <= NOW() - INTERVAL '60 minutes')) AS offline_longo
+       FROM dispositivos_faciais`
+    )
+    const disp = dispositivosResult.rows[0] || {}
+    health.dispositivos_faciais = {
+      ativos: parseInt(disp.ativos || '0'),
+      online: parseInt(disp.online || '0'),
+      offline_longo: parseInt(disp.offline_longo || '0'),
+    }
+    if (parseInt(disp.offline_longo || '0') > 0) {
+      health.warnings = health.warnings || []
+      health.warnings.push(`${disp.offline_longo} dispositivo(s) facial(is) offline há mais de 1 hora`)
+    }
+  } catch {
+    // Tabela pode não existir ainda — ignorar
+  }
+
   // Verificar JWT_SECRET
   if (process.env.JWT_SECRET && process.env.JWT_SECRET.length > 20) {
     health.checks.jwt = 'ok'
