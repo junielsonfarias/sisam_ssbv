@@ -15,40 +15,40 @@ interface SiteServicesProps {
 
 const defaultServices = [
   {
-    icon: 'ClipboardCheck',
-    title: 'Avaliacoes Municipais',
-    description:
-      'Sistema completo de avaliacoes padronizadas com analise de desempenho por niveis de proficiencia, questoes e descritores.',
-  },
-  {
     icon: 'School',
-    title: 'Gestor Escolar',
+    title: 'Educacao Infantil e Fundamental',
     description:
-      'Gestao integrada de escolas, turmas, matriculas e transferencias com painel administrativo completo.',
+      'Gestao das escolas municipais de educacao infantil e ensino fundamental (1 ao 9 ano), garantindo acesso e qualidade de ensino.',
   },
   {
-    icon: 'Fingerprint',
-    title: 'Frequencia Digital',
+    icon: 'ClipboardCheck',
+    title: 'Acompanhamento Pedagogico',
     description:
-      'Registro de presenca digital com controle por hora-aula, relatorios de frequencia e alertas de infrequencia.',
-  },
-  {
-    icon: 'Camera',
-    title: 'Reconhecimento Facial',
-    description:
-      'Tecnologia de reconhecimento facial para registro automatico de presenca, integrada ao sistema de frequencia.',
-  },
-  {
-    icon: 'BarChart3',
-    title: 'Relatorios e Analises',
-    description:
-      'Dashboards interativos, relatorios detalhados por escola, turma e aluno com exportacao em PDF e graficos.',
+      'Monitoramento continuo do desempenho dos alunos com avaliacoes diagnosticas, analises por disciplina e niveis de aprendizagem.',
   },
   {
     icon: 'UserCircle',
-    title: 'Portal do Aluno',
+    title: 'Formacao de Professores',
     description:
-      'Acesso individual para consulta de notas, frequencia e desempenho nas avaliacoes municipais.',
+      'Programas de formacao continuada para os profissionais da educacao, visando a melhoria constante das praticas pedagogicas.',
+  },
+  {
+    icon: 'Fingerprint',
+    title: 'Frequencia e Permanencia',
+    description:
+      'Controle digital de frequencia escolar com alertas de infrequencia e acoes para garantir a permanencia dos alunos na escola.',
+  },
+  {
+    icon: 'BarChart3',
+    title: 'Gestao por Resultados',
+    description:
+      'Dashboards e relatorios detalhados que permitem a tomada de decisoes baseadas em dados sobre o desempenho educacional do municipio.',
+  },
+  {
+    icon: 'Camera',
+    title: 'Inclusao e Acessibilidade',
+    description:
+      'Programas voltados para alunos PCD e atendimento especializado, promovendo a inclusao e o respeito a diversidade em todas as escolas.',
   },
 ]
 
@@ -61,44 +61,48 @@ const iconMap: Record<string, any> = {
   UserCircle,
 }
 
-const colorVariants = [
-  { bg: 'bg-blue-100', text: 'text-blue-600', border: 'hover:border-blue-200' },
-  { bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'hover:border-emerald-200' },
-  { bg: 'bg-purple-100', text: 'text-purple-600', border: 'hover:border-purple-200' },
-  { bg: 'bg-rose-100', text: 'text-rose-600', border: 'hover:border-rose-200' },
-  { bg: 'bg-amber-100', text: 'text-amber-600', border: 'hover:border-amber-200' },
-  { bg: 'bg-cyan-100', text: 'text-cyan-600', border: 'hover:border-cyan-200' },
-]
-
 export default function SiteServices({ data }: SiteServicesProps) {
   const title = data?.title || 'Nossos Servicos'
   const subtitle = data?.subtitle || 'Ferramentas completas para a gestao educacional moderna'
   const services = data?.services || defaultServices
 
   return (
-    <section id="servicos" className="py-20 sm:py-28 bg-white">
+    <section id="servicos" className="py-24 sm:py-32 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 mb-4">{title}</h2>
+        <div className="text-center mb-16">
+          <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">O que oferecemos</p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-4">{title}</h2>
+          {/* Emerald underline decoration */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="w-8 h-1 bg-emerald-300 rounded-full" />
+            <div className="w-16 h-1 bg-emerald-500 rounded-full" />
+            <div className="w-8 h-1 bg-emerald-300 rounded-full" />
+          </div>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">{subtitle}</p>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Services Grid - 3x2 */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map((service: any, i: number) => {
-            const variant = colorVariants[i % colorVariants.length]
             const Icon = iconMap[service.icon] || ClipboardCheck
             return (
               <div
                 key={i}
-                className={`group relative bg-white rounded-2xl p-8 border border-slate-100 ${variant.border} hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}
+                className="group relative bg-white rounded-2xl p-8 border border-slate-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-500 hover:-translate-y-2"
               >
-                <div className={`w-14 h-14 ${variant.bg} rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className={`w-7 h-7 ${variant.text}`} />
+                {/* Icon circle */}
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 group-hover:bg-gradient-to-br group-hover:from-emerald-500 group-hover:to-emerald-600 group-hover:border-transparent group-hover:shadow-lg group-hover:shadow-emerald-500/25 transition-all duration-500">
+                  <Icon className="w-8 h-8 text-emerald-600 group-hover:text-white transition-colors duration-500" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-3">{service.title}</h3>
+
+                <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-emerald-700 transition-colors duration-300">
+                  {service.title}
+                </h3>
                 <p className="text-slate-500 leading-relaxed">{service.description}</p>
+
+                {/* Bottom accent line that appears on hover */}
+                <div className="absolute bottom-0 left-8 right-8 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
               </div>
             )
           })}

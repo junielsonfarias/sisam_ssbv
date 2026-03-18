@@ -23,6 +23,14 @@ export default function HomePage() {
   const [data, setData] = useState<SiteData | null>(null)
 
   useEffect(() => {
+    // Enable smooth scrolling on the html element
+    document.documentElement.style.scrollBehavior = 'smooth'
+    return () => {
+      document.documentElement.style.scrollBehavior = ''
+    }
+  }, [])
+
+  useEffect(() => {
     fetch('/api/site-config')
       .then(r => r.json())
       .then(d => {
@@ -46,7 +54,14 @@ export default function HomePage() {
   if (!data) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent" />
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/25 animate-pulse">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-slate-400">Carregando SISAM...</p>
+        </div>
       </div>
     )
   }
@@ -54,7 +69,7 @@ export default function HomePage() {
   const { config, stats, escolas } = data
 
   return (
-    <div className="min-h-screen bg-white" style={{ scrollBehavior: 'smooth' }}>
+    <div className="min-h-screen bg-white">
       <SiteHeader data={config.header || {}} />
       <SiteHero data={config.hero || {}} />
       <SiteAbout data={config.about || {}} />

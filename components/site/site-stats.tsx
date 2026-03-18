@@ -27,7 +27,6 @@ function AnimatedCounter({ target, duration = 2000 }: { target: number; duration
           const animate = () => {
             const elapsed = Date.now() - start
             const progress = Math.min(elapsed / duration, 1)
-            // Ease out cubic
             const eased = 1 - Math.pow(1 - progress, 3)
             setCount(Math.round(eased * target))
             if (progress < 1) requestAnimationFrame(animate)
@@ -53,59 +52,66 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
       icon: School,
       value: stats.escolas || 0,
       label: 'Escolas Cadastradas',
-      color: 'from-blue-500 to-blue-600',
-      bgColor: 'bg-blue-100',
-      textColor: 'text-blue-600',
     },
     {
       icon: Users,
       value: stats.alunos || 0,
       label: 'Alunos Matriculados',
-      color: 'from-emerald-500 to-emerald-600',
-      bgColor: 'bg-emerald-100',
-      textColor: 'text-emerald-600',
     },
     {
       icon: BookOpen,
       value: stats.turmas || 0,
       label: 'Turmas Ativas',
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-100',
-      textColor: 'text-purple-600',
     },
     {
       icon: GraduationCap,
       value: stats.professores || 0,
       label: 'Professores',
-      color: 'from-amber-500 to-amber-600',
-      bgColor: 'bg-amber-100',
-      textColor: 'text-amber-600',
     },
   ]
 
   return (
-    <section className="py-20 sm:py-28 bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative py-24 sm:py-32 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 overflow-hidden">
+      {/* Dot pattern overlay */}
+      <div className="absolute inset-0 opacity-[0.07]" style={{
+        backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+        backgroundSize: '24px 24px'
+      }} />
+
+      {/* Colored glow accents */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 mb-4">{title}</h2>
-          <p className="text-lg text-slate-500 max-w-2xl mx-auto">{subtitle}</p>
+        <div className="text-center mb-16">
+          <p className="text-sm font-bold uppercase tracking-widest text-emerald-400 mb-4">Nossos numeros</p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">{title}</h2>
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto">{subtitle}</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {items.map((item, i) => (
             <div
               key={i}
-              className="bg-white rounded-2xl p-6 sm:p-8 text-center shadow-sm border border-slate-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+              className="relative group text-center p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-emerald-500/30 transition-all duration-500"
             >
-              <div className={`w-14 h-14 ${item.bgColor} rounded-xl flex items-center justify-center mx-auto mb-4`}>
-                <item.icon className={`w-7 h-7 ${item.textColor}`} />
+              {/* Icon */}
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6 group-hover:bg-emerald-500/30 transition-colors duration-300">
+                <item.icon className="w-8 h-8 text-emerald-400" />
               </div>
-              <p className="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-2">
+
+              {/* Number */}
+              <p className="text-4xl sm:text-5xl font-extrabold text-white mb-3 tracking-tight">
                 <AnimatedCounter target={item.value} />
               </p>
-              <p className="text-sm sm:text-base text-slate-500 font-medium">{item.label}</p>
+
+              {/* Label */}
+              <p className="text-sm sm:text-base font-medium text-slate-400">{item.label}</p>
+
+              {/* Glow effect on hover */}
+              <div className="absolute inset-0 rounded-2xl bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </div>
           ))}
         </div>
