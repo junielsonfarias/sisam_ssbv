@@ -6,14 +6,15 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/boletim
  *
- * Endpoint publico para consulta de boletim escolar.
+ * Endpoint publico para consulta de boletim escolar completo.
  * Busca por codigo do aluno OU cpf + data_nascimento.
  *
- * Query params:
- *   - codigo: codigo do aluno
- *   - cpf: CPF do aluno (com ou sem mascara)
- *   - data_nascimento: data de nascimento (YYYY-MM-DD)
- *   - ano_letivo: ano letivo (opcional, default = ano atual)
+ * Retorna:
+ * - Dados do aluno (nome, escola, turma, serie, situacao, pcd)
+ * - Disciplinas cadastradas para a turma/serie
+ * - Notas escolares por periodo (bimestre)
+ * - Resultados das avaliacoes SISAM (diagnostica, final)
+ * - Frequencia bimestral
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +24,6 @@ export async function GET(request: NextRequest) {
     const dataNascimento = searchParams.get('data_nascimento')?.trim()
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
-    // Validar que pelo menos um criterio foi informado
     if (!codigo && (!cpfRaw || !dataNascimento)) {
       return NextResponse.json(
         { mensagem: 'Informe o codigo do aluno ou CPF + data de nascimento.' },
@@ -31,10 +31,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Limpar CPF (remover pontos e tracos)
     const cpf = cpfRaw ? cpfRaw.replace(/\D/g, '') : null
 
-    // Validar formato da data de nascimento
     if (dataNascimento && !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
       return NextResponse.json(
         { mensagem: 'Data de nascimento deve estar no formato AAAA-MM-DD.' },
@@ -42,31 +40,37 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Buscar aluno
-    let alunoResult
+    // ============================================
+    // 1. Buscar aluno
+    // ============================================
+    let alunoQuery: string
+    let alunoParams: any[]
+
     if (codigo) {
-      alunoResult = await pool.query(
-        `SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao, a.pcd,
-                e.nome as escola_nome,
-                t.codigo as turma_codigo, t.nome as turma_nome
-         FROM alunos a
-         INNER JOIN escolas e ON a.escola_id = e.id
-         LEFT JOIN turmas t ON a.turma_id = t.id
-         WHERE a.codigo = $1 AND a.ativo = true AND a.ano_letivo = $2`,
-        [codigo, anoLetivo]
-      )
+      alunoQuery = `
+        SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao, a.pcd,
+               a.data_nascimento, a.turma_id, a.escola_id,
+               e.nome as escola_nome,
+               t.codigo as turma_codigo, t.nome as turma_nome, t.serie as turma_serie
+        FROM alunos a
+        INNER JOIN escolas e ON a.escola_id = e.id
+        LEFT JOIN turmas t ON a.turma_id = t.id
+        WHERE a.codigo = $1 AND a.ativo = true AND a.ano_letivo = $2`
+      alunoParams = [codigo, anoLetivo]
     } else {
-      alunoResult = await pool.query(
-        `SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao, a.pcd,
-                e.nome as escola_nome,
-                t.codigo as turma_codigo, t.nome as turma_nome
-         FROM alunos a
-         INNER JOIN escolas e ON a.escola_id = e.id
-         LEFT JOIN turmas t ON a.turma_id = t.id
-         WHERE a.cpf = $1 AND a.data_nascimento = $2 AND a.ativo = true AND a.ano_letivo = $3`,
-        [cpf, dataNascimento, anoLetivo]
-      )
+      alunoQuery = `
+        SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao, a.pcd,
+               a.data_nascimento, a.turma_id, a.escola_id,
+               e.nome as escola_nome,
+               t.codigo as turma_codigo, t.nome as turma_nome, t.serie as turma_serie
+        FROM alunos a
+        INNER JOIN escolas e ON a.escola_id = e.id
+        LEFT JOIN turmas t ON a.turma_id = t.id
+        WHERE a.cpf = $1 AND a.data_nascimento = $2 AND a.ativo = true AND a.ano_letivo = $3`
+      alunoParams = [cpf, dataNascimento, anoLetivo]
     }
+
+    const alunoResult = await pool.query(alunoQuery, alunoParams)
 
     if (alunoResult.rows.length === 0) {
       return NextResponse.json(
@@ -77,20 +81,62 @@ export async function GET(request: NextRequest) {
 
     const aluno = alunoResult.rows[0]
 
-    // Buscar notas escolares
+    // ============================================
+    // 2. Buscar disciplinas da serie/turma
+    // ============================================
+    const disciplinasResult = await pool.query(
+      `SELECT id, nome, codigo, abreviacao, ordem
+       FROM disciplinas_escolares
+       WHERE ativo = true
+       ORDER BY ordem, nome`
+    )
+
+    // ============================================
+    // 3. Buscar periodos letivos do ano
+    // ============================================
+    const periodosResult = await pool.query(
+      `SELECT id, nome, tipo, numero, data_inicio, data_fim
+       FROM periodos_letivos
+       WHERE ano_letivo = $1 AND ativo = true
+       ORDER BY numero`,
+      [anoLetivo]
+    )
+
+    // ============================================
+    // 4. Buscar notas escolares (gestor escolar)
+    // ============================================
     const notasResult = await pool.query(
-      `SELECT ne.nota_final, ne.nota_recuperacao, ne.faltas,
-              d.nome as disciplina, d.abreviacao,
+      `SELECT ne.nota_final, ne.nota_recuperacao, ne.faltas, ne.media_final,
+              ne.disciplina_id, ne.periodo_id,
+              d.nome as disciplina, d.abreviacao, d.codigo as disciplina_codigo,
               p.nome as periodo, p.numero as periodo_numero
        FROM notas_escolares ne
        INNER JOIN disciplinas_escolares d ON ne.disciplina_id = d.id
        INNER JOIN periodos_letivos p ON ne.periodo_id = p.id
        WHERE ne.aluno_id = $1 AND ne.ano_letivo = $2
-       ORDER BY p.numero, d.nome`,
+       ORDER BY p.numero, d.ordem, d.nome`,
       [aluno.id, anoLetivo]
     )
 
-    // Buscar frequencia bimestral
+    // ============================================
+    // 5. Buscar resultados SISAM (avaliacoes municipais)
+    // ============================================
+    const sisamResult = await pool.query(
+      `SELECT rc.nota_lp, rc.nota_mat, rc.nota_ch, rc.nota_cn, rc.nota_producao,
+              rc.media_aluno, rc.presenca, rc.nivel_aprendizagem,
+              rc.total_acertos_lp, rc.total_acertos_mat,
+              rc.total_acertos_ch, rc.total_acertos_cn,
+              av.nome as avaliacao_nome, av.tipo as avaliacao_tipo
+       FROM resultados_consolidados rc
+       INNER JOIN avaliacoes av ON rc.avaliacao_id = av.id
+       WHERE rc.aluno_id = $1 AND rc.ano_letivo = $2
+       ORDER BY av.ordem`,
+      [aluno.id, anoLetivo]
+    )
+
+    // ============================================
+    // 6. Buscar frequencia bimestral
+    // ============================================
     const frequenciaResult = await pool.query(
       `SELECT fb.bimestre, fb.aulas_dadas, fb.faltas, fb.percentual_frequencia,
               p.nome as periodo_nome
@@ -101,41 +147,91 @@ export async function GET(request: NextRequest) {
       [aluno.id, anoLetivo]
     )
 
-    // Agrupar notas por periodo
-    const notasPorPeriodo: Record<number, any[]> = {}
-    for (const nota of notasResult.rows) {
-      const num = nota.periodo_numero
-      if (!notasPorPeriodo[num]) notasPorPeriodo[num] = []
-      notasPorPeriodo[num].push({
-        disciplina: nota.disciplina,
-        abreviacao: nota.abreviacao,
-        nota_final: nota.nota_final !== null ? parseFloat(nota.nota_final) : null,
-        nota_recuperacao: nota.nota_recuperacao !== null ? parseFloat(nota.nota_recuperacao) : null,
-        faltas: nota.faltas || 0,
-      })
-    }
+    // ============================================
+    // 7. Buscar frequencia diaria (resumo)
+    // ============================================
+    const freqDiariaResult = await pool.query(
+      `SELECT
+         COUNT(*) as total_dias,
+         COUNT(*) FILTER (WHERE hora_entrada IS NOT NULL) as dias_presente,
+         MIN(data) as primeira_data,
+         MAX(data) as ultima_data
+       FROM frequencia_diaria
+       WHERE aluno_id = $1 AND EXTRACT(YEAR FROM data) = $2::int`,
+      [aluno.id, anoLetivo]
+    )
 
-    // Calcular frequencia geral
-    const frequencias = frequenciaResult.rows.map((f: any) => ({
-      bimestre: f.bimestre,
-      periodo_nome: f.periodo_nome,
-      aulas_dadas: f.aulas_dadas || 0,
-      faltas: f.faltas || 0,
-      percentual_frequencia: f.percentual_frequencia !== null
-        ? parseFloat(f.percentual_frequencia)
-        : null,
+    // ============================================
+    // Montar resposta
+    // ============================================
+
+    // Disciplinas
+    const disciplinas = disciplinasResult.rows.map((d: any) => ({
+      id: d.id,
+      nome: d.nome,
+      codigo: d.codigo,
+      abreviacao: d.abreviacao,
+      ordem: d.ordem,
     }))
 
-    const freqComValor = frequencias.filter((f: any) => f.percentual_frequencia !== null)
-    const frequenciaGeral = freqComValor.length > 0
-      ? Math.round(
-          (freqComValor.reduce((sum: number, f: any) => sum + f.percentual_frequencia, 0) /
-            freqComValor.length) *
-            100
-        ) / 100
-      : null
+    // Periodos
+    const periodos = periodosResult.rows.map((p: any) => ({
+      id: p.id,
+      nome: p.nome,
+      tipo: p.tipo,
+      numero: p.numero,
+      data_inicio: p.data_inicio,
+      data_fim: p.data_fim,
+    }))
 
-    const totalFaltas = frequencias.reduce((sum: number, f: any) => sum + f.faltas, 0)
+    // Notas organizadas: { [disciplina_id]: { [periodo_numero]: { nota_final, nota_recuperacao, faltas } } }
+    const notasMap: Record<string, Record<number, any>> = {}
+    for (const nota of notasResult.rows) {
+      if (!notasMap[nota.disciplina_id]) notasMap[nota.disciplina_id] = {}
+      notasMap[nota.disciplina_id][nota.periodo_numero] = {
+        nota_final: nota.nota_final !== null ? parseFloat(nota.nota_final) : null,
+        nota_recuperacao: nota.nota_recuperacao !== null ? parseFloat(nota.nota_recuperacao) : null,
+        media_final: nota.media_final !== null ? parseFloat(nota.media_final) : null,
+        faltas: parseInt(nota.faltas) || 0,
+      }
+    }
+
+    // Avaliacoes SISAM
+    const avaliacoes = sisamResult.rows.map((r: any) => ({
+      avaliacao: r.avaliacao_nome,
+      tipo: r.avaliacao_tipo,
+      presenca: r.presenca,
+      nota_lp: r.nota_lp !== null ? parseFloat(r.nota_lp) : null,
+      nota_mat: r.nota_mat !== null ? parseFloat(r.nota_mat) : null,
+      nota_ch: r.nota_ch !== null ? parseFloat(r.nota_ch) : null,
+      nota_cn: r.nota_cn !== null ? parseFloat(r.nota_cn) : null,
+      nota_producao: r.nota_producao !== null ? parseFloat(r.nota_producao) : null,
+      media: r.media_aluno !== null ? parseFloat(r.media_aluno) : null,
+      nivel: r.nivel_aprendizagem,
+      acertos_lp: parseInt(r.total_acertos_lp) || 0,
+      acertos_mat: parseInt(r.total_acertos_mat) || 0,
+      acertos_ch: parseInt(r.total_acertos_ch) || 0,
+      acertos_cn: parseInt(r.total_acertos_cn) || 0,
+    }))
+
+    // Frequencia bimestral
+    const frequencia = frequenciaResult.rows.map((f: any) => ({
+      bimestre: f.bimestre,
+      periodo_nome: f.periodo_nome || `${f.bimestre}o Bimestre`,
+      aulas_dadas: parseInt(f.aulas_dadas) || 0,
+      faltas: parseInt(f.faltas) || 0,
+      percentual: f.percentual_frequencia !== null ? parseFloat(f.percentual_frequencia) : null,
+    }))
+
+    // Frequencia geral
+    const freqComValor = frequencia.filter((f: any) => f.percentual !== null)
+    const frequenciaGeral = freqComValor.length > 0
+      ? Math.round((freqComValor.reduce((s: number, f: any) => s + f.percentual, 0) / freqComValor.length) * 100) / 100
+      : null
+    const totalFaltas = frequencia.reduce((s: number, f: any) => s + f.faltas, 0)
+
+    // Frequencia diaria resumo
+    const freqDiaria = freqDiariaResult.rows[0]
 
     return NextResponse.json({
       aluno: {
@@ -146,13 +242,23 @@ export async function GET(request: NextRequest) {
         turma_nome: aluno.turma_nome,
         escola_nome: aluno.escola_nome,
         ano_letivo: aluno.ano_letivo,
-        situacao: aluno.situacao,
+        situacao: aluno.situacao || 'cursando',
         pcd: aluno.pcd || false,
+        data_nascimento: aluno.data_nascimento,
       },
-      notas: notasPorPeriodo,
-      frequencia: frequencias,
+      disciplinas,
+      periodos,
+      notas: notasMap,
+      avaliacoes_sisam: avaliacoes,
+      frequencia,
       frequencia_geral: frequenciaGeral,
       total_faltas: totalFaltas,
+      frequencia_diaria: {
+        total_dias: parseInt(freqDiaria?.total_dias) || 0,
+        dias_presente: parseInt(freqDiaria?.dias_presente) || 0,
+        primeira_data: freqDiaria?.primeira_data,
+        ultima_data: freqDiaria?.ultima_data,
+      },
     })
   } catch (error: any) {
     console.error('Erro ao consultar boletim:', error?.message || error)
