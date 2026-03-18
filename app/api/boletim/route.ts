@@ -81,85 +81,74 @@ export async function GET(request: NextRequest) {
 
     const aluno = alunoResult.rows[0]
 
-    // ============================================
-    // 2. Buscar disciplinas da serie/turma
-    // ============================================
-    const disciplinasResult = await pool.query(
-      `SELECT id, nome, codigo, abreviacao, ordem
-       FROM disciplinas_escolares
-       WHERE ativo = true
-       ORDER BY ordem, nome`
-    )
+    // Helper: query segura que retorna rows vazio em caso de erro
+    const safeQuery = async (sql: string, params: any[] = [], label: string = '') => {
+      try {
+        return await pool.query(sql, params)
+      } catch (err: any) {
+        console.error(`[Boletim] Erro em ${label}:`, err?.message)
+        return { rows: [] }
+      }
+    }
 
-    // ============================================
-    // 3. Buscar periodos letivos do ano
-    // ============================================
-    const periodosResult = await pool.query(
-      `SELECT id, nome, tipo, numero, data_inicio, data_fim
-       FROM periodos_letivos
-       WHERE ano_letivo = $1 AND ativo = true
-       ORDER BY numero`,
-      [anoLetivo]
-    )
-
-    // ============================================
-    // 4. Buscar notas escolares (gestor escolar)
-    // ============================================
-    const notasResult = await pool.query(
-      `SELECT ne.nota_final, ne.nota_recuperacao, ne.faltas,
-              ne.disciplina_id, ne.periodo_id,
-              d.nome as disciplina, d.abreviacao, d.codigo as disciplina_codigo,
-              p.nome as periodo, p.numero as periodo_numero
-       FROM notas_escolares ne
-       INNER JOIN disciplinas_escolares d ON ne.disciplina_id = d.id
-       INNER JOIN periodos_letivos p ON ne.periodo_id = p.id
-       WHERE ne.aluno_id = $1 AND ne.ano_letivo = $2
-       ORDER BY p.numero, d.nome`,
-      [aluno.id, anoLetivo]
-    )
-
-    // ============================================
-    // 5. Buscar resultados SISAM (avaliacoes municipais)
-    // ============================================
-    const sisamResult = await pool.query(
-      `SELECT rc.nota_lp, rc.nota_mat, rc.nota_ch, rc.nota_cn, rc.nota_producao,
-              rc.media_aluno, rc.presenca, rc.nivel_aprendizagem,
-              rc.total_acertos_lp, rc.total_acertos_mat,
-              rc.total_acertos_ch, rc.total_acertos_cn,
-              av.nome as avaliacao_nome, av.tipo as avaliacao_tipo
-       FROM resultados_consolidados rc
-       INNER JOIN avaliacoes av ON rc.avaliacao_id = av.id
-       WHERE rc.aluno_id = $1 AND rc.ano_letivo = $2
-       ORDER BY av.ordem`,
-      [aluno.id, anoLetivo]
-    )
-
-    // ============================================
-    // 6. Buscar frequencia bimestral
-    // ============================================
-    const frequenciaResult = await pool.query(
-      `SELECT fb.bimestre, fb.aulas_dadas, fb.faltas, fb.percentual_frequencia,
-              p.nome as periodo_nome
-       FROM frequencia_bimestral fb
-       LEFT JOIN periodos_letivos p ON fb.periodo_id = p.id
-       WHERE fb.aluno_id = $1 AND fb.ano_letivo = $2
-       ORDER BY fb.bimestre`,
-      [aluno.id, anoLetivo]
-    )
-
-    // ============================================
-    // 7. Buscar frequencia diaria (resumo)
-    // ============================================
-    const freqDiariaResult = await pool.query(
-      `SELECT
-         COUNT(*) as total_dias,
-         COUNT(*) FILTER (WHERE hora_entrada IS NOT NULL) as dias_presente,
-         MIN(data) as primeira_data,
-         MAX(data) as ultima_data
-       FROM frequencia_diaria
-       WHERE aluno_id = $1 AND EXTRACT(YEAR FROM data) = $2::int`,
-      [aluno.id, anoLetivo]
-    )
+    // Executar todas as queries em paralelo (cada uma tolerante a falha)
+    const [disciplinasResult, periodosResult, notasResult, sisamResult, frequenciaResult, freqDiariaResult] = await Promise.all([
+      // 2. Disciplinas
+      safeQuery(
+        `SELECT id, nome, codigo, abreviacao, ordem FROM disciplinas_escolares WHERE ativo = true ORDER BY ordem, nome`,
+        [], 'disciplinas'
+      ),
+      // 3. Periodos letivos
+      safeQuery(
+        `SELECT id, nome, tipo, numero, data_inicio, data_fim FROM periodos_letivos WHERE ano_letivo = $1 AND ativo = true ORDER BY numero`,
+        [anoLetivo], 'periodos'
+      ),
+      // 4. Notas escolares
+      safeQuery(
+        `SELECT ne.nota_final, ne.nota_recuperacao, ne.faltas,
+                ne.disciplina_id, ne.periodo_id,
+                d.nome as disciplina, d.abreviacao, d.codigo as disciplina_codigo,
+                p.nome as periodo, p.numero as periodo_numero
+         FROM notas_escolares ne
+         INNER JOIN disciplinas_escolares d ON ne.disciplina_id = d.id
+         INNER JOIN periodos_letivos p ON ne.periodo_id = p.id
+         WHERE ne.aluno_id = $1 AND ne.ano_letivo = $2
+         ORDER BY p.numero, d.nome`,
+        [aluno.id, anoLetivo], 'notas'
+      ),
+      // 5. Resultados SISAM
+      safeQuery(
+        `SELECT rc.nota_lp, rc.nota_mat, rc.nota_ch, rc.nota_cn, rc.nota_producao,
+                rc.media_aluno, rc.presenca, rc.nivel_aprendizagem,
+                rc.total_acertos_lp, rc.total_acertos_mat,
+                rc.total_acertos_ch, rc.total_acertos_cn,
+                av.nome as avaliacao_nome, av.tipo as avaliacao_tipo
+         FROM resultados_consolidados rc
+         INNER JOIN avaliacoes av ON rc.avaliacao_id = av.id
+         WHERE rc.aluno_id = $1 AND rc.ano_letivo = $2
+         ORDER BY av.ordem`,
+        [aluno.id, anoLetivo], 'sisam'
+      ),
+      // 6. Frequencia bimestral
+      safeQuery(
+        `SELECT fb.bimestre, fb.aulas_dadas, fb.faltas, fb.percentual_frequencia,
+                p.nome as periodo_nome
+         FROM frequencia_bimestral fb
+         LEFT JOIN periodos_letivos p ON fb.periodo_id = p.id
+         WHERE fb.aluno_id = $1 AND fb.ano_letivo = $2
+         ORDER BY fb.bimestre`,
+        [aluno.id, anoLetivo], 'frequencia'
+      ),
+      // 7. Frequencia diaria
+      safeQuery(
+        `SELECT COUNT(*) as total_dias,
+                COUNT(*) FILTER (WHERE hora_entrada IS NOT NULL) as dias_presente,
+                MIN(data) as primeira_data, MAX(data) as ultima_data
+         FROM frequencia_diaria
+         WHERE aluno_id = $1 AND EXTRACT(YEAR FROM data) = $2::int`,
+        [aluno.id, anoLetivo], 'freq_diaria'
+      ),
+    ])
 
     // ============================================
     // Montar resposta
