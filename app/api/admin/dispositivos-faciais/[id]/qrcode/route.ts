@@ -48,7 +48,7 @@ export async function GET(
 
     // URL segura via variável de ambiente (evita host header injection)
     const sisamUrl = process.env.NEXT_PUBLIC_APP_URL
-      || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
 
     // Dados para o QR Code — API key retornada separadamente, NÃO no QR
     const qrData = {
