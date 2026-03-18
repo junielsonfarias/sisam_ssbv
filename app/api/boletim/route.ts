@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     // 4. Buscar notas escolares (gestor escolar)
     // ============================================
     const notasResult = await pool.query(
-      `SELECT ne.nota_final, ne.nota_recuperacao, ne.faltas, ne.media_final,
+      `SELECT ne.nota_final, ne.nota_recuperacao, ne.faltas,
               ne.disciplina_id, ne.periodo_id,
               d.nome as disciplina, d.abreviacao, d.codigo as disciplina_codigo,
               p.nome as periodo, p.numero as periodo_numero
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
        INNER JOIN disciplinas_escolares d ON ne.disciplina_id = d.id
        INNER JOIN periodos_letivos p ON ne.periodo_id = p.id
        WHERE ne.aluno_id = $1 AND ne.ano_letivo = $2
-       ORDER BY p.numero, d.ordem, d.nome`,
+       ORDER BY p.numero, d.nome`,
       [aluno.id, anoLetivo]
     )
 
@@ -191,7 +191,6 @@ export async function GET(request: NextRequest) {
       notasMap[nota.disciplina_id][nota.periodo_numero] = {
         nota_final: nota.nota_final !== null ? parseFloat(nota.nota_final) : null,
         nota_recuperacao: nota.nota_recuperacao !== null ? parseFloat(nota.nota_recuperacao) : null,
-        media_final: nota.media_final !== null ? parseFloat(nota.media_final) : null,
         faltas: parseInt(nota.faltas) || 0,
       }
     }

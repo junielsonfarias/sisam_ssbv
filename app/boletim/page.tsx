@@ -10,7 +10,7 @@ import Link from 'next/link'
 
 interface Disciplina { id: string; nome: string; codigo: string; abreviacao: string; ordem: number }
 interface Periodo { id: string; nome: string; tipo: string; numero: number }
-interface NotaCell { nota_final: number | null; nota_recuperacao: number | null; media_final: number | null; faltas: number }
+interface NotaCell { nota_final: number | null; nota_recuperacao: number | null; faltas: number }
 interface Avaliacao {
   avaliacao: string; tipo: string; presenca: string
   nota_lp: number | null; nota_mat: number | null; nota_ch: number | null
