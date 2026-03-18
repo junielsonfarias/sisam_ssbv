@@ -908,8 +908,8 @@ function AbaCalendarioLetivo({
     const carregar = async () => {
       try {
         const [periodosRes, configRes] = await Promise.all([
-          fetch(`/api/admin/gestor-escolar/periodos?ano_letivo=${anoLetivo}`),
-          fetch(`/api/admin/gestor-escolar/configuracao-notas?escola_id=${escolaId}&ano_letivo=${anoLetivo}`),
+          fetch(`/api/admin/periodos-letivos?ano_letivo=${anoLetivo}`),
+          fetch(`/api/admin/configuracao-notas?escola_id=${escolaId}&ano_letivo=${anoLetivo}`),
         ])
 
         if (periodosRes.ok) {
@@ -1154,19 +1154,26 @@ function AbaEstatisticas({
   useEffect(() => {
     const carregar = async () => {
       try {
-        const [sitRes, serieRes] = await Promise.all([
-          fetch(`/api/admin/alunos/estatisticas?escola_id=${escolaId}&ano_letivo=${anoLetivo}&tipo=situacao`),
-          fetch(`/api/admin/alunos/estatisticas?escola_id=${escolaId}&ano_letivo=${anoLetivo}&tipo=serie`),
-        ])
+        const res = await fetch(`/api/admin/dashboard-gestor?escola_id=${escolaId}&ano_letivo=${anoLetivo}`)
+        if (res.ok) {
+          const data = await res.json()
+          // Montar situacoes a partir dos dados do dashboard
+          const sits: EstatisticasSituacao[] = []
+          if (data.alunos?.cursando) sits.push({ situacao: 'cursando', total: data.alunos.cursando })
+          if (data.alunos?.transferidos) sits.push({ situacao: 'transferido', total: data.alunos.transferidos })
+          if (data.alunos?.abandono) sits.push({ situacao: 'abandono', total: data.alunos.abandono })
+          if (data.alunos?.aprovados) sits.push({ situacao: 'aprovado', total: data.alunos.aprovados })
+          if (data.alunos?.reprovados) sits.push({ situacao: 'reprovado', total: data.alunos.reprovados })
+          setSituacoes(sits)
 
-        if (sitRes.ok) {
-          const data = await sitRes.json()
-          setSituacoes(Array.isArray(data) ? data : data.dados || [])
-        }
-
-        if (serieRes.ok) {
-          const data = await serieRes.json()
-          setPorSerie(Array.isArray(data) ? data : data.dados || [])
+          // Montar por serie a partir da distribuicao
+          if (data.distribuicao_serie) {
+            setPorSerie(data.distribuicao_serie.map((s: any) => ({
+              serie: s.serie,
+              nome_serie: `${s.serie}º Ano`,
+              total: s.total,
+            })))
+          }
         }
       } catch (error) {
         console.error('Erro ao carregar estatisticas:', error)
