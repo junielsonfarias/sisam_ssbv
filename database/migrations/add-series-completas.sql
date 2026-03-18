@@ -21,22 +21,22 @@ ALTER TABLE configuracao_series ADD COLUMN IF NOT EXISTS formula_nota_final VARC
 
 -- 1o Ano - anos iniciais
 INSERT INTO configuracao_series (serie, nome_serie, tipo_ensino, avalia_lp, avalia_mat, avalia_ch, avalia_cn, tem_producao_textual, media_aprovacao, max_dependencias)
-VALUES ('1', '1o Ano', 'anos_iniciais', true, true, false, false, false, 6.0, 0)
+VALUES ('1', '1º Ano', 'anos_iniciais', true, true, false, false, false, 6.0, 0)
 ON CONFLICT (serie) DO NOTHING;
 
 -- 4o Ano - anos iniciais
 INSERT INTO configuracao_series (serie, nome_serie, tipo_ensino, avalia_lp, avalia_mat, avalia_ch, avalia_cn, tem_producao_textual, media_aprovacao, max_dependencias)
-VALUES ('4', '4o Ano', 'anos_iniciais', true, true, false, false, false, 6.0, 0)
+VALUES ('4', '4º Ano', 'anos_iniciais', true, true, false, false, false, 6.0, 0)
 ON CONFLICT (serie) DO NOTHING;
 
 -- 6o Ano - anos finais
 INSERT INTO configuracao_series (serie, nome_serie, tipo_ensino, avalia_lp, avalia_mat, avalia_ch, avalia_cn, tem_producao_textual, media_aprovacao, max_dependencias)
-VALUES ('6', '6o Ano', 'anos_finais', true, true, true, true, false, 6.0, 3)
+VALUES ('6', '6º Ano', 'anos_finais', true, true, true, true, false, 6.0, 3)
 ON CONFLICT (serie) DO NOTHING;
 
 -- 7o Ano - anos finais
 INSERT INTO configuracao_series (serie, nome_serie, tipo_ensino, avalia_lp, avalia_mat, avalia_ch, avalia_cn, tem_producao_textual, media_aprovacao, max_dependencias)
-VALUES ('7', '7o Ano', 'anos_finais', true, true, true, true, false, 6.0, 3)
+VALUES ('7', '7º Ano', 'anos_finais', true, true, true, true, false, 6.0, 3)
 ON CONFLICT (serie) DO NOTHING;
 
 -- ============================================
