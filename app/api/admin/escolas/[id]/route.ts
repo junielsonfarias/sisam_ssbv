@@ -92,8 +92,24 @@ export async function PUT(
     const escolaId = params.id
     const body = await request.json()
 
-    // Fields that cannot be updated
-    const forbiddenFields = ['id', 'criado_em']
+    // Only allow real escola columns
+    const allowedFields = [
+      'nome', 'codigo', 'polo_id', 'endereco', 'telefone', 'email', 'ativo',
+      // INEP - Identificacao
+      'codigo_inep', 'situacao_funcionamento', 'dependencia_administrativa',
+      'categoria_escola', 'localizacao', 'localizacao_diferenciada',
+      'tipo_atendimento_escolarizacao', 'etapas_ensino', 'modalidade_ensino',
+      // INEP - Infraestrutura
+      'agua_potavel', 'energia_eletrica', 'esgoto_sanitario', 'coleta_lixo',
+      'internet', 'banda_larga', 'quadra_esportiva', 'biblioteca',
+      'laboratorio_informatica', 'laboratorio_ciencias',
+      'acessibilidade_deficiente', 'alimentacao_escolar',
+      // INEP - Localizacao
+      'latitude', 'longitude', 'cep', 'bairro', 'municipio', 'uf',
+      'distrito', 'complemento',
+      // INEP - Outros
+      'telefone_ddd', 'telefone_numero', 'cnpj_mantenedora', 'data_criacao'
+    ]
 
     // Build dynamic SET clause
     const setClauses: string[] = []
@@ -101,7 +117,7 @@ export async function PUT(
     let paramIndex = 1
 
     for (const [key, value] of Object.entries(body)) {
-      if (forbiddenFields.includes(key)) continue
+      if (!allowedFields.includes(key)) continue
 
       setClauses.push(`${key} = $${paramIndex}`)
       values.push(value as string | number | boolean | null | undefined)
