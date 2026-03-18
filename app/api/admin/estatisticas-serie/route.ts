@@ -117,8 +117,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (serie) {
-      baseQuery += ` AND rc.serie = $${paramIndex}`
-      params.push(serie)
+      const numSerie = serie.match(/(\d+)/)?.[1] || serie
+      baseQuery += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`
+      params.push(numSerie)
       paramIndex++
     }
 

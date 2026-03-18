@@ -104,8 +104,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (serie && serie.trim() !== '') {
-      whereConditions.push(`rc.serie = $${paramIndex}`)
-      params.push(serie.trim())
+      const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
+      whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+      params.push(numSerie)
       paramIndex++
     }
 

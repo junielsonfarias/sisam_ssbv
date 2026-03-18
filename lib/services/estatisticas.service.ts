@@ -226,8 +226,32 @@ async function buscarContadoresGlobais(): Promise<{
 }
 
 /**
- * Busca total de escolas com dados de avaliação
- * Usa resultados_consolidados_unificada para garantir consistência com a página de Dados
+ * Normaliza valor de série para SQL: extrai apenas o número
+ * Converte '2º Ano', '2º ano', '2' → '2'
+ */
+function extrairNumeroSerie(serie: string): string {
+  const match = serie.match(/(\d+)/)
+  return match ? match[1] : serie
+}
+
+/**
+ * Adiciona filtro de série normalizado (funciona com '2' ou '2º Ano')
+ */
+function addFiltroSerie(
+  whereConditions: string[],
+  params: (string | null)[],
+  paramIndex: number,
+  serie: string,
+  alias: string = 'a'
+): number {
+  whereConditions.push(`REGEXP_REPLACE(${alias}.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+  params.push(extrairNumeroSerie(serie))
+  return paramIndex + 1
+}
+
+/**
+ * Busca total de escolas com alunos matriculados
+ * Prioriza dados do gestor escolar (tabela alunos) para contagem de escolas
  */
 async function buscarTotalEscolas(
   escopo: EscopoEstatisticas,
@@ -235,47 +259,34 @@ async function buscarTotalEscolas(
 ): Promise<number> {
   const params: (string | null)[] = []
   let paramIndex = 1
-  const whereConditions: string[] = []
+  const whereConditions: string[] = ['a.ativo = true']
 
-  // Filtro de escopo
   if (escopo === 'polo' && filtros.poloId) {
     whereConditions.push(`e.polo_id = $${paramIndex}`)
     params.push(filtros.poloId)
     paramIndex++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    whereConditions.push(`rc.escola_id = $${paramIndex}`)
+    whereConditions.push(`a.escola_id = $${paramIndex}`)
     params.push(filtros.escolaId)
     paramIndex++
   }
 
-  // Filtro de ano letivo
   if (filtros.anoLetivo) {
-    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    whereConditions.push(`a.ano_letivo = $${paramIndex}`)
     params.push(filtros.anoLetivo)
     paramIndex++
   }
 
-  // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`rc.serie = $${paramIndex}`)
-    params.push(filtros.serie)
-    paramIndex++
+    paramIndex = addFiltroSerie(whereConditions, params, paramIndex, filtros.serie, 'a')
   }
 
-  // Filtro de avaliação
-  if (filtros.avaliacaoId) {
-    whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
-    params.push(filtros.avaliacaoId)
-    paramIndex++
-  }
-
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
-  const needsJoin = escopo === 'polo' && filtros.poloId
+  const whereClause = `WHERE ${whereConditions.join(' AND ')}`
 
   const query = `
-    SELECT COUNT(DISTINCT rc.escola_id) as total
-    FROM resultados_consolidados_unificada rc
-    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    SELECT COUNT(DISTINCT a.escola_id) as total
+    FROM alunos a
+    INNER JOIN escolas e ON a.escola_id = e.id AND e.ativo = true
     ${whereClause}
   `
 
@@ -284,8 +295,8 @@ async function buscarTotalEscolas(
 }
 
 /**
- * Busca total de turmas com dados de avaliação
- * Usa resultados_consolidados_unificada para garantir consistência com a página de Dados
+ * Busca total de turmas com alunos matriculados
+ * Prioriza dados do gestor escolar (tabela turmas + alunos)
  */
 async function buscarTotalTurmas(
   escopo: EscopoEstatisticas,
@@ -293,47 +304,34 @@ async function buscarTotalTurmas(
 ): Promise<number> {
   const params: (string | null)[] = []
   let paramIndex = 1
-  const whereConditions: string[] = []
+  const whereConditions: string[] = ['t.ativo = true']
 
-  // Filtro de escopo
   if (escopo === 'polo' && filtros.poloId) {
     whereConditions.push(`e.polo_id = $${paramIndex}`)
     params.push(filtros.poloId)
     paramIndex++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    whereConditions.push(`rc.escola_id = $${paramIndex}`)
+    whereConditions.push(`t.escola_id = $${paramIndex}`)
     params.push(filtros.escolaId)
     paramIndex++
   }
 
-  // Filtro de ano letivo
   if (filtros.anoLetivo) {
-    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    whereConditions.push(`t.ano_letivo = $${paramIndex}`)
     params.push(filtros.anoLetivo)
     paramIndex++
   }
 
-  // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`rc.serie = $${paramIndex}`)
-    params.push(filtros.serie)
-    paramIndex++
+    paramIndex = addFiltroSerie(whereConditions, params, paramIndex, filtros.serie, 't')
   }
 
-  // Filtro de avaliação
-  if (filtros.avaliacaoId) {
-    whereConditions.push(`rc.avaliacao_id = $${paramIndex}`)
-    params.push(filtros.avaliacaoId)
-    paramIndex++
-  }
-
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
-  const needsJoin = escopo === 'polo' && filtros.poloId
+  const whereClause = `WHERE ${whereConditions.join(' AND ')}`
 
   const query = `
-    SELECT COUNT(DISTINCT rc.turma_id) as total
-    FROM resultados_consolidados_unificada rc
-    ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    SELECT COUNT(DISTINCT t.id) as total
+    FROM turmas t
+    INNER JOIN escolas e ON t.escola_id = e.id AND e.ativo = true
     ${whereClause}
   `
 
@@ -369,10 +367,10 @@ async function buscarTotalAlunos(
     paramIndex++
   }
 
-  // Filtro de série
+  // Filtro de série (normalizado para funcionar com '2' ou '2º Ano')
   if (filtros.serie) {
-    query += ` AND serie = $${paramIndex}`
-    params.push(filtros.serie)
+    query += ` AND REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') = $${paramIndex}`
+    params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
 
@@ -413,11 +411,11 @@ async function buscarTotalResultados(
     hasWhere = true
   }
 
-  // Filtro de série
+  // Filtro de série (normalizado)
   if (filtros.serie) {
     query += hasWhere ? ' AND' : ' WHERE'
-    query += ` serie = $${paramIndex}`
-    params.push(filtros.serie)
+    query += ` REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') = $${paramIndex}`
+    params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
     hasWhere = true
   }
@@ -478,8 +476,8 @@ async function buscarPresenca(
 
   // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`rc.serie = $${paramIndex}`)
-    params.push(filtros.serie)
+    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
 
@@ -493,6 +491,8 @@ async function buscarPresenca(
   const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
   const needsJoin = escopo === 'polo' && filtros.poloId
 
+  // Só contar presença quando há dados reais de avaliação (nota_lp ou nota_mat preenchidas)
+  // Registros inicializados sem notas não devem ser contados como "presentes"
   const query = `
     SELECT
       COUNT(DISTINCT CASE WHEN rc.presenca IN ('P', 'p') THEN rc.aluno_id END) as presentes,
@@ -501,6 +501,7 @@ async function buscarPresenca(
     FROM resultados_consolidados_unificada rc
     ${needsJoin ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
     ${whereClause}
+    AND (rc.nota_lp IS NOT NULL OR rc.nota_mat IS NOT NULL OR rc.total_acertos_lp > 0 OR rc.total_acertos_mat > 0)
   `
 
   const result = await pool.query(query, params)
@@ -547,8 +548,8 @@ async function buscarMediaEAprovacao(
 
   // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`rc.serie = $${paramIndex}`)
-    params.push(filtros.serie)
+    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
 
@@ -647,8 +648,8 @@ async function buscarMediasPorTipoEnsino(
 
   // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`rc.serie = $${paramIndex}`)
-    params.push(filtros.serie)
+    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
 
@@ -760,8 +761,8 @@ async function buscarMediasPorDisciplina(
 
   // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`rc.serie = $${paramIndex}`)
-    params.push(filtros.serie)
+    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
 
