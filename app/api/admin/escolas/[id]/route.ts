@@ -111,16 +111,27 @@ export async function PUT(
       'telefone_ddd', 'telefone_numero', 'cnpj_mantenedora', 'data_criacao'
     ]
 
-    // Build dynamic SET clause
+    // Build dynamic SET clause with value sanitization
     const setClauses: string[] = []
-    const values: (string | number | boolean | null | undefined)[] = []
+    const values: any[] = []
     let paramIndex = 1
 
     for (const [key, value] of Object.entries(body)) {
       if (!allowedFields.includes(key)) continue
 
+      // Sanitize values
+      let sanitized = value
+      if (sanitized === '') sanitized = null  // empty string → null
+      if (key === 'etapas_ensino') {
+        // Ensure it's a proper array for TEXT[]
+        sanitized = Array.isArray(value) ? value : (value ? [value] : [])
+      }
+      if (key === 'latitude' || key === 'longitude') {
+        sanitized = value ? parseFloat(value as string) || null : null
+      }
+
       setClauses.push(`${key} = $${paramIndex}`)
-      values.push(value as string | number | boolean | null | undefined)
+      values.push(sanitized)
       paramIndex++
     }
 
@@ -156,7 +167,7 @@ export async function PUT(
         { status: 400 }
       )
     }
-    console.error('Erro ao atualizar escola:', error)
+    console.error('Erro ao atualizar escola:', error?.message || error, 'Code:', error?.code, 'Detail:', error?.detail)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

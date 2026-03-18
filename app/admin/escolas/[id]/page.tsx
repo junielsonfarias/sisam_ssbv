@@ -202,7 +202,8 @@ export default function EscolaDetalhePage() {
   const handleSalvar = async () => {
     setSalvando(true)
     try {
-      const { total_turmas, total_alunos, total_pcd, polo_nome, ...dadosParaSalvar } = formData as any
+      // Remover campos computados/readonly que nao sao colunas da tabela
+      const { total_turmas, total_alunos, total_pcd, polo_nome, id, criado_em, atualizado_em, ...dadosParaSalvar } = formData as any
       const res = await fetch(`/api/admin/escolas/${escolaId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
