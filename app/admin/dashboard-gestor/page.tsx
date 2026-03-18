@@ -359,9 +359,9 @@ export default function DashboardGestorPage() {
                 </div>
               </div>
 
-              {/* Card PCD com lista completa */}
+              {/* Card PCD - tabela compacta 1 linha por aluno */}
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-5">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-2">
                     <Accessibility className="w-4 h-4 text-violet-500" /> Alunos PCD
                   </h3>
@@ -370,41 +370,33 @@ export default function DashboardGestorPage() {
                   </span>
                 </div>
                 {data.alunos_pcd && data.alunos_pcd.length > 0 ? (
-                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                    {data.alunos_pcd.map((aluno) => (
-                      <div key={aluno.id}
-                        className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/10 rounded-xl p-3 border border-violet-100 dark:border-violet-800/30 cursor-pointer hover:shadow-md transition-shadow"
-                        onClick={() => setModalAberto('pcd')}>
-                        <div className="flex items-start gap-3">
-                          <div className="bg-violet-100 dark:bg-violet-800/50 rounded-full p-1.5 mt-0.5 flex-shrink-0">
-                            <Accessibility className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{aluno.nome}</p>
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                              <span className="inline-flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400">
-                                <School className="w-3 h-3" /> {aluno.turma_codigo}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.serie}
-                              </span>
-                              {aluno.responsavel && (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{aluno.responsavel}</span>
-                              )}
-                              {aluno.telefone_responsavel && (
-                                <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
-                                  <Phone className="w-3 h-3" /> {aluno.telefone_responsavel}
-                                </span>
-                              )}
-                            </div>
-                            {aluno.tipo_deficiencia && (
-                              <span className="inline-block mt-1.5 text-[11px] bg-violet-200/60 dark:bg-violet-700/40 text-violet-800 dark:text-violet-200 px-2 py-0.5 rounded-full">
-                                {aluno.tipo_deficiencia}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-white dark:bg-slate-800 z-10">
+                        <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-slate-600">
+                          <th className="pb-2 pr-2 font-medium">Nome</th>
+                          <th className="pb-2 pr-2 font-medium whitespace-nowrap">Turma</th>
+                          <th className="pb-2 pr-2 font-medium whitespace-nowrap">Serie</th>
+                          <th className="pb-2 pr-2 font-medium">Responsavel</th>
+                          <th className="pb-2 font-medium">Telefone</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.alunos_pcd.map((a) => (
+                          <tr key={a.id}
+                            className="border-b border-gray-50 dark:border-slate-700/30 hover:bg-violet-50/50 dark:hover:bg-violet-900/10 cursor-pointer"
+                            onClick={() => setModalAberto('pcd')}>
+                            <td className="py-1.5 pr-2 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">{a.nome}</td>
+                            <td className="py-1.5 pr-2 text-violet-600 dark:text-violet-400 font-medium">{a.turma_codigo}</td>
+                            <td className="py-1.5 pr-2 text-gray-500">{a.serie}</td>
+                            <td className="py-1.5 pr-2 text-gray-500 truncate max-w-[140px]">{a.responsavel || '-'}</td>
+                            <td className="py-1.5 text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                              {a.telefone_responsavel || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-gray-400">
