@@ -126,6 +126,10 @@ export async function GET(request: NextRequest) {
          FROM resultados_consolidados rc
          INNER JOIN avaliacoes av ON rc.avaliacao_id = av.id
          WHERE rc.aluno_id = $1 AND rc.ano_letivo = $2
+           AND (rc.nota_lp IS NOT NULL OR rc.nota_mat IS NOT NULL
+                OR rc.nota_ch IS NOT NULL OR rc.nota_cn IS NOT NULL
+                OR rc.nota_producao IS NOT NULL
+                OR rc.total_acertos_lp > 0 OR rc.total_acertos_mat > 0)
          ORDER BY av.ordem`,
         [aluno.id, anoLetivo], 'sisam'
       ),
