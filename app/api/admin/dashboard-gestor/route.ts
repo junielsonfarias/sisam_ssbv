@@ -213,6 +213,71 @@ export async function GET(request: NextRequest) {
       ORDER BY t.serie
     `
 
+    // ============================================
+    // 8. Lista de alunos PCD
+    // ============================================
+    const pcdParams: any[] = [anoLetivo]
+    let pcdWhere = `WHERE a.ano_letivo = $1 AND a.pcd = true AND a.ativo = true`
+    if (escolaId) {
+      pcdParams.push(escolaId)
+      pcdWhere += ` AND a.escola_id = $${pcdParams.length}`
+    }
+
+    const pcdQuery = `
+      SELECT a.id, a.nome, a.serie, a.data_nascimento, a.tipo_deficiencia,
+             a.responsavel, a.telefone_responsavel,
+             t.codigo as turma_codigo, t.nome as turma_nome,
+             e.nome as escola_nome
+      FROM alunos a
+      LEFT JOIN turmas t ON a.turma_id = t.id
+      LEFT JOIN escolas e ON a.escola_id = e.id
+      ${pcdWhere}
+      ORDER BY e.nome, a.serie, a.nome
+    `
+
+    // ============================================
+    // 9. Lista de alunos por situação (para modal)
+    // ============================================
+    const situacaoParams: any[] = [anoLetivo]
+    let situacaoWhere = `WHERE a.ano_letivo = $1 AND a.ativo = true`
+    if (escolaId) {
+      situacaoParams.push(escolaId)
+      situacaoWhere += ` AND a.escola_id = $${situacaoParams.length}`
+    }
+
+    const situacaoQuery = `
+      SELECT a.id, a.nome, a.serie, a.situacao,
+             t.codigo as turma_codigo,
+             e.nome as escola_nome
+      FROM alunos a
+      LEFT JOIN turmas t ON a.turma_id = t.id
+      LEFT JOIN escolas e ON a.escola_id = e.id
+      ${situacaoWhere}
+      ORDER BY a.situacao, e.nome, a.serie, a.nome
+    `
+
+    // ============================================
+    // 10. Lista de turmas com detalhes (para modal)
+    // ============================================
+    const turmasDetParams: any[] = [anoLetivo]
+    let turmasDetWhere = `WHERE t.ano_letivo = $1 AND t.ativo = true`
+    if (escolaId) {
+      turmasDetParams.push(escolaId)
+      turmasDetWhere += ` AND t.escola_id = $${turmasDetParams.length}`
+    }
+
+    const turmasDetQuery = `
+      SELECT t.id, t.codigo, t.nome, t.serie, t.capacidade_maxima,
+             e.nome as escola_nome,
+             COUNT(a.id) FILTER (WHERE a.situacao = 'cursando' OR a.situacao IS NULL) as total_alunos
+      FROM turmas t
+      LEFT JOIN escolas e ON t.escola_id = e.id
+      LEFT JOIN alunos a ON a.turma_id = t.id AND a.ano_letivo = t.ano_letivo
+      ${turmasDetWhere}
+      GROUP BY t.id, t.codigo, t.nome, t.serie, t.capacidade_maxima, e.nome
+      ORDER BY e.nome, t.serie, t.codigo
+    `
+
     // Executar todas as queries em paralelo
     const [
       alunosResult,
@@ -223,6 +288,9 @@ export async function GET(request: NextRequest) {
       transfResult,
       conselhoResult,
       distResult,
+      pcdResult,
+      situacaoResult,
+      turmasDetResult,
     ] = await Promise.all([
       pool.query(alunosQuery, alunosParams),
       pool.query(turmasQuery, turmasParams),
@@ -232,6 +300,9 @@ export async function GET(request: NextRequest) {
       pool.query(transfQuery, transfParams),
       pool.query(conselhoQuery, conselhoParams),
       pool.query(distQuery, distParams),
+      pool.query(pcdQuery, pcdParams),
+      pool.query(situacaoQuery, situacaoParams),
+      pool.query(turmasDetQuery, turmasDetParams),
     ])
 
     const alunosData = alunosResult.rows[0] || {}
@@ -296,6 +367,35 @@ export async function GET(request: NextRequest) {
       distribuicao_serie: distResult.rows.map(r => ({
         serie: r.serie,
         total: parseInt(r.total) || 0,
+      })),
+      alunos_pcd: pcdResult.rows.map(r => ({
+        id: r.id,
+        nome: r.nome,
+        serie: r.serie,
+        turma_codigo: r.turma_codigo,
+        turma_nome: r.turma_nome,
+        escola_nome: r.escola_nome,
+        data_nascimento: r.data_nascimento,
+        tipo_deficiencia: r.tipo_deficiencia,
+        responsavel: r.responsavel,
+        telefone_responsavel: r.telefone_responsavel,
+      })),
+      alunos_situacao: situacaoResult.rows.map(r => ({
+        id: r.id,
+        nome: r.nome,
+        serie: r.serie,
+        situacao: r.situacao || 'cursando',
+        turma_codigo: r.turma_codigo,
+        escola_nome: r.escola_nome,
+      })),
+      turmas_detalhe: turmasDetResult.rows.map(r => ({
+        id: r.id,
+        codigo: r.codigo,
+        nome: r.nome,
+        serie: r.serie,
+        capacidade_maxima: parseInt(r.capacidade_maxima) || 35,
+        escola_nome: r.escola_nome,
+        total_alunos: parseInt(r.total_alunos) || 0,
       })),
     })
   } catch (error: any) {
