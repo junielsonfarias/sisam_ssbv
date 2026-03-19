@@ -4,11 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth';
 import pool from '@/database/connection';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const usuario = await getUsuarioFromRequest(request);
+  if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const escolaId = searchParams.get('escola_id') || 'e0690bbd-dc70-4ded-b1b3-9b310f3c4c5f';
 

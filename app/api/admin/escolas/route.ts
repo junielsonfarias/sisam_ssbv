@@ -118,6 +118,13 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
+    // Adicionar parâmetro da série para a query de turmas (usado no LEFT JOIN)
+    if (serie && serie.trim() !== '') {
+      const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
+      params.push(numSerie)
+      paramIndex++
+    }
+
     // Detectar se é filtro de anos iniciais (2, 3, 5) ou finais (6, 7, 8, 9)
     const serieNumero = serie ? serie.replace(/[^0-9]/g, '') : ''
     const isAnosIniciais = ['2', '3', '5'].includes(serieNumero)
@@ -167,7 +174,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
       FROM escolas e
       LEFT JOIN polos p ON e.polo_id = p.id
-      LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND t.serie = '${serie.trim()}'` : ''}
+      LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = $${paramIndex}` : ''}
       LEFT JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
         AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
       ${whereClause}

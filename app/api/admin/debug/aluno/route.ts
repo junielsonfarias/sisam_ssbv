@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -9,6 +10,11 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
     const nome = searchParams.get('nome') || 'julia'
 
