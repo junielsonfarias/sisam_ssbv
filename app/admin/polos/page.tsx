@@ -70,13 +70,30 @@ export default function PolosPage() {
       (p.codigo && p.codigo.toLowerCase().includes(busca.toLowerCase()))
   )
 
+  const handleExcluir = async (polo: Polo) => {
+    if (!confirm(`Excluir polo "${polo.nome}"? Esta ação não pode ser desfeita.`)) return
+    try {
+      const res = await fetch(`/api/admin/polos?id=${polo.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Polo excluído com sucesso')
+        await carregarPolos()
+      } else {
+        toast.error(data.mensagem || 'Erro ao excluir polo')
+      }
+    } catch (e) {
+      toast.error('Erro ao excluir polo')
+    }
+  }
+
   const handleSalvar = async () => {
     setSalvando(true)
     try {
+      const payload = isEdicao ? { ...formData, id: poloEditando!.id } : formData
       const response = await fetch('/api/admin/polos', {
-        method: 'POST',
+        method: isEdicao ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()
@@ -201,6 +218,7 @@ export default function PolosPage() {
                                 <Edit className="w-5 h-5" />
                               </button>
                               <button
+                                onClick={() => handleExcluir(polo)}
                                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 aria-label="Excluir"
                                 title="Excluir"

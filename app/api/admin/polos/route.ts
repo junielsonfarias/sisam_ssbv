@@ -102,3 +102,71 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const { id, nome, codigo, descricao } = await request.json()
+    if (!id || !nome) {
+      return NextResponse.json({ mensagem: 'Campos obrigatórios: id, nome' }, { status: 400 })
+    }
+
+    const result = await pool.query(
+      `UPDATE polos SET nome = $1, codigo = $2, descricao = $3 WHERE id = $4 RETURNING *`,
+      [nome, codigo || null, descricao || null, id]
+    )
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Polo não encontrado' }, { status: 404 })
+    }
+
+    return NextResponse.json(result.rows[0])
+  } catch (error: any) {
+    if (error.code === '23505') {
+      return NextResponse.json({ mensagem: 'Código já cadastrado' }, { status: 400 })
+    }
+    console.error('Erro ao atualizar polo:', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
+    }
+
+    // Verificar se há escolas vinculadas
+    const escolasCheck = await pool.query(
+      'SELECT COUNT(*) as total FROM escolas WHERE polo_id = $1',
+      [id]
+    )
+    if (parseInt(escolasCheck.rows[0].total) > 0) {
+      return NextResponse.json(
+        { mensagem: `Não é possível excluir: ${escolasCheck.rows[0].total} escola(s) vinculada(s) a este polo` },
+        { status: 409 }
+      )
+    }
+
+    const result = await pool.query('DELETE FROM polos WHERE id = $1 RETURNING id', [id])
+    if (result.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Polo não encontrado' }, { status: 404 })
+    }
+
+    return NextResponse.json({ mensagem: 'Polo excluído com sucesso' })
+  } catch (error: any) {
+    console.error('Erro ao excluir polo:', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
