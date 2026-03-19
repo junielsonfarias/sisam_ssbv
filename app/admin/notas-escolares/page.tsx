@@ -33,6 +33,11 @@ interface NotaAluno {
 interface ConfigNotas {
   nota_maxima: number; media_aprovacao: number; media_recuperacao: number
   peso_avaliacao: number; peso_recuperacao: number; permite_recuperacao: boolean
+  formula_media?: string
+  pesos_periodos?: { periodo: number; peso: number }[]
+  arredondamento?: string
+  casas_decimais?: number
+  aprovacao_automatica?: boolean
 }
 
 interface ConceitoEscala {
@@ -544,7 +549,11 @@ export default function NotasEscolaresPage() {
         </thead>
         <tbody>${linhas}${freqHtml}</tbody>
       </table>
-      <p style="margin-top:10px;font-size:10px;color:#888">Média de aprovação: ${boletimData.config.media_aprovacao} | Nota máxima: ${boletimData.config.nota_maxima} | Rec. = Recuperação (substitui quando maior)</p>
+      <p style="margin-top:10px;font-size:10px;color:#888">Média de aprovação: ${boletimData.config.media_aprovacao} | Nota máxima: ${boletimData.config.nota_maxima} | Rec. = Recuperação (substitui quando maior)${
+        (boletimData.config as ConfigNotas).formula_media === 'media_ponderada' && (boletimData.config as ConfigNotas).pesos_periodos?.length
+          ? ` | Fórmula: Média Ponderada (pesos: ${(boletimData.config as ConfigNotas).pesos_periodos!.map((p: any) => p.peso).join(', ')})`
+          : ''
+      }</p>
       <p style="font-size:10px;color:#888"><span style="color:#16a34a">Verde</span> = nota de recuperação que substituiu | <span style="text-decoration:line-through">Riscado</span> = nota original substituída</p>
       <script>window.print()</script></body></html>`
 
@@ -1446,6 +1455,11 @@ function PainelBoletim({
             <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-4">
               <span>Média aprovação: <strong>{config.media_aprovacao}</strong></span>
               <span>Nota máxima: <strong>{config.nota_maxima}</strong></span>
+              {config.formula_media === 'media_ponderada' && config.pesos_periodos?.length && (
+                <span className="text-blue-500">
+                  Média Ponderada (pesos: {config.pesos_periodos.map(p => p.peso).join(', ')})
+                </span>
+              )}
               <span className="text-red-500">Vermelho = abaixo da média</span>
               <span className="text-emerald-500">Verde na Rec. = substituiu a nota</span>
               <span className="line-through opacity-50">Riscado = substituída pela recuperação</span>
