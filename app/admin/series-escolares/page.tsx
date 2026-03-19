@@ -579,7 +579,7 @@ export default function SeriesEscolaresPage() {
                           return (
                             <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-gray-700 dark:text-gray-300">
                               <div className="flex flex-wrap gap-3">
-                                <span><strong>Periodo:</strong> {regra.tipo_periodo} ({regra.qtd_periodos}p)</span>
+                                <span><strong>Periodo:</strong> {({'bimestral':'Bimestral','trimestral':'Trimestral','semestral':'Semestral','anual':'Anual'} as any)[regra.tipo_periodo] || regra.tipo_periodo} ({regra.qtd_periodos}p)</span>
                                 <span><strong>Formula:</strong> {regra.formula_media}</span>
                                 {regra.aprovacao_automatica && (
                                   <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Aprovacao automatica</span>

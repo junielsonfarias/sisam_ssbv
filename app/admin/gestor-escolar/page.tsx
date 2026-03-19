@@ -920,7 +920,7 @@ function AbaConfiguracaoNotas({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium text-gray-900 dark:text-white">{c.escola_nome || 'Escola'}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Ano: {c.ano_letivo} | Tipo: {c.tipo_periodo}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Ano: {c.ano_letivo} | Tipo: {({'bimestre':'Bimestre','trimestre':'Trimestre','semestre':'Semestre','anual':'Anual','bimestral':'Bimestral','trimestral':'Trimestral','semestral':'Semestral'} as any)[c.tipo_periodo] || c.tipo_periodo}</p>
               </div>
               {podeEditar && (
                 <button onClick={() => iniciarEdicao(c)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg" title="Editar">
