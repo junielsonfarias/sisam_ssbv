@@ -329,7 +329,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             icon: FileSpreadsheet, label: 'Avaliações Escolares', children: [
               { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
               { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
-              { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
               { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
               { icon: Lock, label: 'Fechamento de Ano', href: '/admin/fechamento-ano' },
             ]
@@ -345,7 +344,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           {
             icon: Settings, label: 'Configurações', children: [
               { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
-              { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+              { icon: GraduationCap, label: 'Séries', href: '/admin/series-escolares' },
+              { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
+              { icon: Settings, label: 'Períodos Letivos', href: '/admin/gestor-escolar' },
               { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
             ]
           },
@@ -412,7 +413,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             icon: FileSpreadsheet, label: 'Avaliações Escolares', children: [
               { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
               { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
-              { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
               { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
               { icon: Lock, label: 'Fechamento de Ano', href: '/admin/fechamento-ano' },
             ]
@@ -427,7 +427,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           {
             icon: Settings, label: 'Configurações', children: [
               { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
-              { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+              { icon: GraduationCap, label: 'Séries', href: '/admin/series-escolares' },
+              { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
+              { icon: Settings, label: 'Períodos Letivos', href: '/admin/gestor-escolar' },
               { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
             ]
           },
@@ -492,7 +494,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             icon: FileSpreadsheet, label: 'Avaliações Escolares', children: [
               { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
               { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
-              { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
             ]
           },
           {
@@ -504,7 +505,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           },
           {
             icon: Settings, label: 'Configurações', children: [
-              { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
+              { icon: GraduationCap, label: 'Séries', href: '/admin/series-escolares' },
+              { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
+              { icon: Settings, label: 'Períodos Letivos', href: '/admin/gestor-escolar' },
               { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
             ]
           },
