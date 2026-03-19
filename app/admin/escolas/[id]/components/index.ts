@@ -1,0 +1,8 @@
+export { AbaDadosGerais } from './AbaDadosGerais'
+export { AbaInfraestrutura } from './AbaInfraestrutura'
+export { AbaSeriesOferecidas } from './AbaSeriesOferecidas'
+export { AbaAvaliacao } from './AbaAvaliacao'
+export { AbaCalendarioLetivo } from './AbaCalendarioLetivo'
+export { AbaTurmas } from './AbaTurmas'
+export { AbaEstatisticas } from './AbaEstatisticas'
+export type { AbaId, EscolaDetalhe, SerieEscola, PoloSimples } from './types'
