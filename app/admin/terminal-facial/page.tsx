@@ -8,6 +8,7 @@ import {
   ScanFace, Loader2, UserX
 } from 'lucide-react'
 import Link from 'next/link'
+import { useSeries } from '@/lib/use-series'
 
 // ============================================================================
 // Tipos
@@ -45,6 +46,8 @@ type StatusCamera = 'desligada' | 'ligando' | 'ativa' | 'erro'
 // ============================================================================
 
 export default function TerminalFacialPage() {
+  const { formatSerie } = useSeries()
+
   // Estado do sistema
   const [statusModelo, setStatusModelo] = useState<StatusModelo>('carregando')
   const [statusCamera, setStatusCamera] = useState<StatusCamera>('desligada')
@@ -548,7 +551,7 @@ export default function TerminalFacialPage() {
                 <option value="">Todas as turmas</option>
                 {turmas.map(t => (
                   <option key={t.id} value={t.id}>
-                    {t.codigo}{t.nome ? ` - ${t.nome}` : ''} ({t.serie})
+                    {t.codigo}{t.nome ? ` - ${t.nome}` : ''} ({formatSerie(t.serie)})
                   </option>
                 ))}
               </select>

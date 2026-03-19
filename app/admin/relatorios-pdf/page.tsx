@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface EscolaSimples { id: string; nome: string }
 interface TurmaSimples { id: string; codigo: string; serie: string }
@@ -30,6 +31,7 @@ interface AtaConselhoData {
 
 export default function RelatoriosPdfPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
 
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolas, setEscolas] = useState<EscolaSimples[]>([])
@@ -198,7 +200,7 @@ export default function RelatoriosPdfPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Turma</label>
               <select value={turmaId} onChange={e => setTurmaId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white">
                 <option value="">Selecione...</option>
-                {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo} - {t.serie}</option>)}
+                {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo} - {formatSerie(t.serie)}</option>)}
               </select>
             </div>
 
@@ -238,7 +240,7 @@ export default function RelatoriosPdfPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm border-b pb-4 dark:border-slate-700">
                 <div><span className="text-gray-500">Nome:</span> <p className="font-medium">{dadosRelatorio.aluno.nome}</p></div>
                 <div><span className="text-gray-500">Código:</span> <p className="font-medium">{dadosRelatorio.aluno.codigo}</p></div>
-                <div><span className="text-gray-500">Série:</span> <p className="font-medium">{dadosRelatorio.aluno.serie}</p></div>
+                <div><span className="text-gray-500">Série:</span> <p className="font-medium">{formatSerie(dadosRelatorio.aluno.serie)}</p></div>
                 <div><span className="text-gray-500">Turma:</span> <p className="font-medium">{dadosRelatorio.aluno.turma_codigo || '—'}</p></div>
               </div>
 
@@ -339,7 +341,7 @@ export default function RelatoriosPdfPage() {
                 <div><span className="text-gray-500">Mãe:</span> <p className="font-medium">{dadosRelatorio.aluno.nome_mae || '—'}</p></div>
                 <div><span className="text-gray-500">Pai:</span> <p className="font-medium">{dadosRelatorio.aluno.nome_pai || '—'}</p></div>
                 <div><span className="text-gray-500">Naturalidade:</span> <p className="font-medium">{dadosRelatorio.aluno.naturalidade || '—'}</p></div>
-                <div><span className="text-gray-500">Série:</span> <p className="font-medium">{dadosRelatorio.aluno.serie}</p></div>
+                <div><span className="text-gray-500">Série:</span> <p className="font-medium">{formatSerie(dadosRelatorio.aluno.serie)}</p></div>
                 <div><span className="text-gray-500">Turma:</span> <p className="font-medium">{dadosRelatorio.aluno.turma_codigo || '—'}</p></div>
                 <div><span className="text-gray-500">Código:</span> <p className="font-medium">{dadosRelatorio.aluno.codigo}</p></div>
               </div>
@@ -421,7 +423,7 @@ export default function RelatoriosPdfPage() {
               {dadosRelatorio.turma && (
                 <div className="grid grid-cols-3 gap-3 text-sm border-b pb-3 dark:border-slate-700">
                   <div><span className="text-gray-500">Turma:</span> <p className="font-medium">{dadosRelatorio.turma.codigo}</p></div>
-                  <div><span className="text-gray-500">Série:</span> <p className="font-medium">{dadosRelatorio.turma.serie}</p></div>
+                  <div><span className="text-gray-500">Série:</span> <p className="font-medium">{formatSerie(dadosRelatorio.turma.serie)}</p></div>
                   <div><span className="text-gray-500">Data:</span> <p className="font-medium">{dadosRelatorio.data_conselho ? new Date(dadosRelatorio.data_conselho).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}</p></div>
                 </div>
               )}

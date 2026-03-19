@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface EscolaSimples { id: string; nome: string }
 interface TurmaSimples { id: string; codigo: string; nome: string | null; serie: string; ano_letivo: string }
@@ -32,6 +33,7 @@ type Modo = 'selecao' | 'conselho'
 
 export default function ConselhoClassePage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [modo, setModo] = useState<Modo>('selecao')
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
@@ -265,7 +267,7 @@ export default function ConselhoClassePage() {
                 <select value={turmaId} onChange={e => setTurmaId(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
                   <option value="">Selecione a turma...</option>
-                  {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo} - {t.nome || t.serie}</option>)}
+                  {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo} - {t.nome || formatSerie(t.serie)}</option>)}
                 </select>
               </div>
 
@@ -306,7 +308,7 @@ export default function ConselhoClassePage() {
                       Conselho de Classe — {turmaSelecionada?.codigo}
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {turmaSelecionada?.nome || turmaSelecionada?.serie} | {periodoSelecionado?.nome}
+                      {turmaSelecionada?.nome || formatSerie(turmaSelecionada?.serie)} | {periodoSelecionado?.nome}
                     </p>
                   </div>
                 </div>

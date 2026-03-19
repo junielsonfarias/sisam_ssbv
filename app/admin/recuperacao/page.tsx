@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { AlertTriangle, Search, Users, BookOpen, RotateCcw, TrendingDown } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface EscolaSimples { id: string; nome: string }
 interface TurmaSimples { id: string; codigo: string; nome: string | null; serie: string; ano_letivo: string }
@@ -33,6 +34,7 @@ interface AlunoRecuperacao {
 
 export default function RecuperacaoPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
@@ -296,7 +298,7 @@ export default function RecuperacaoPage() {
                         <td className="py-3 px-3 text-sm text-gray-500">{idx + 1}</td>
                         <td className="py-3 px-3">
                           <span className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">{aluno.aluno_nome}</span>
-                          <span className="block text-[10px] text-gray-400">{aluno.serie}</span>
+                          <span className="block text-[10px] text-gray-400">{formatSerie(aluno.serie)}</span>
                         </td>
                         <td className="py-3 px-3 text-sm text-gray-700 dark:text-gray-300">{aluno.escola_nome}</td>
                         <td className="py-3 px-3 text-center text-sm text-gray-700 dark:text-gray-300">{aluno.turma_codigo}</td>

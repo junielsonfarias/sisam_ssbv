@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 import dynamic from 'next/dynamic'
 
 // Lazy load Recharts
@@ -101,6 +102,7 @@ export default function AlunoDetalhePage() {
   const router = useRouter()
   const params = useParams()
   const alunoId = params.id as string
+  const { formatSerie } = useSeries()
 
   const [aluno, setAluno] = useState<any>(null)
   const [dados, setDados] = useState<any>(null)
@@ -305,7 +307,7 @@ export default function AlunoDetalhePage() {
               </div>
               <div className="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-3 py-2">
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Série</p>
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{aluno.serie || '-'}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{formatSerie(aluno.serie) || '-'}</p>
               </div>
               <div className="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-3 py-2">
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Ano Letivo</p>
@@ -355,7 +357,7 @@ export default function AlunoDetalhePage() {
                 <div className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3 text-sm">
                   <p className="text-gray-500 text-xs font-semibold uppercase mb-1">Vínculo atual</p>
                   <p className="font-medium text-gray-800 dark:text-white">{aluno.escola_nome}</p>
-                  {aluno.turma_codigo && <p className="text-gray-600 dark:text-gray-300">Turma: {aluno.turma_codigo} — {aluno.serie}</p>}
+                  {aluno.turma_codigo && <p className="text-gray-600 dark:text-gray-300">Turma: {aluno.turma_codigo} — {formatSerie(aluno.serie)}</p>}
                 </div>
                 <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
                   <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
@@ -554,6 +556,7 @@ function AbaDadosPessoais({ aluno, form, editando, updateForm }: any) {
 // Aba Escolar
 // ============================================
 function AbaEscolar({ aluno, dados }: any) {
+  const { formatSerie } = useSeries()
   return (
     <div className="space-y-6">
       <Secao titulo="Dados Escolares Atuais" icon={GraduationCap} cor="emerald">
@@ -561,7 +564,7 @@ function AbaEscolar({ aluno, dados }: any) {
           <Campo label="Escola" valor={aluno.escola_nome} icon={GraduationCap} editando={false} />
           <Campo label="Polo" valor={aluno.polo_nome} icon={MapPin} editando={false} />
           <Campo label="Turma" valor={`${aluno.turma_codigo || '-'} ${aluno.turma_nome ? `(${aluno.turma_nome})` : ''}`} editando={false} />
-          <Campo label="Série" valor={aluno.serie} editando={false} />
+          <Campo label="Série" valor={formatSerie(aluno.serie)} editando={false} />
           <Campo label="Ano Letivo" valor={aluno.ano_letivo} icon={CalendarCheck} editando={false} />
           <Campo label="Data Matrícula" valor={aluno.data_matricula?.split('T')[0]} icon={Clock} editando={false} />
           <Campo label="Situação" valor={SITUACAO_CORES[aluno.situacao || 'cursando']?.label} editando={false} />
@@ -586,7 +589,7 @@ function AbaEscolar({ aluno, dados }: any) {
                   return (
                     <tr key={i} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                       <td className="py-2.5 px-3 font-medium">{h.ano_letivo}</td>
-                      <td className="py-2.5 px-3">{h.serie || '-'}</td>
+                      <td className="py-2.5 px-3">{formatSerie(h.serie) || '-'}</td>
                       <td className="py-2.5 px-3">{h.turma_codigo || '-'}</td>
                       <td className="py-2.5 px-3">{h.escola_nome}</td>
                       <td className="py-2.5 px-3 text-gray-500">{h.data_matricula?.split('T')[0] || '-'}</td>
@@ -967,6 +970,7 @@ function AbaHistorico({ dados }: any) {
 // Aba SISAM
 // ============================================
 function AbaSisam({ dados }: any) {
+  const { formatSerie } = useSeries()
   const sisam = dados.sisam || []
 
   if (sisam.length === 0) return (
@@ -1053,7 +1057,7 @@ function AbaSisam({ dados }: any) {
         const isAnosFinais = ['6','7','8','9'].includes(serieNum) || r.tipo_avaliacao === 'anos_finais'
 
         return (
-          <Secao key={i} titulo={`SISAM ${r.serie || ''} — ${r.ano_letivo || ''}`} icon={FileText}>
+          <Secao key={i} titulo={`SISAM ${formatSerie(r.serie) || ''} — ${r.ano_letivo || ''}`} icon={FileText}>
             {/* Cards por disciplina */}
             {disciplinas.length > 0 ? (
               <div className={`grid gap-4 ${disciplinas.length >= 4 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
@@ -1166,6 +1170,7 @@ function AbaSisam({ dados }: any) {
 // Aba Evolução
 // ============================================
 function AbaEvolucao({ alunoId }: { alunoId: string }) {
+  const { formatSerie } = useSeries()
   const [dados, setDados] = useState<any>(null)
   const [carregando, setCarregando] = useState(true)
 
@@ -1386,7 +1391,7 @@ function AbaEvolucao({ alunoId }: { alunoId: string }) {
                   <tr key={`${ano}-${idx}`} className="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 px-2 font-semibold text-gray-800 dark:text-gray-200">{ano}</td>
                     <td className="py-2 px-2 text-gray-600 dark:text-gray-400 text-xs max-w-[120px] truncate" title={r.avaliacao}>{r.avaliacao}</td>
-                    <td className="py-2 px-2 text-gray-600 dark:text-gray-400">{r.serie}</td>
+                    <td className="py-2 px-2 text-gray-600 dark:text-gray-400">{formatSerie(r.serie)}</td>
                     <td className={`py-2 px-2 text-center font-bold ${getNotaCor(r.nota_lp)}`}>
                       {r.avalia_lp ? (r.nota_lp?.toFixed(1) ?? '-') : <span className="text-gray-300">—</span>}
                       {r.nivel_lp && <span className={`ml-1 text-[9px] px-1 py-0.5 rounded ${getNivelCor(r.nivel_lp)}`}>{r.nivel_lp}</span>}

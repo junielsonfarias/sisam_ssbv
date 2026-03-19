@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Search, ArrowUpRight, ArrowDownLeft, TrendingUp, TrendingDown, Filter } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface Transferencia {
   id: string
@@ -56,6 +57,7 @@ interface EscolaSimples {
 
 export default function TransferenciasPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [transferencias, setTransferencias] = useState<Transferencia[]>([])
   const [resumo, setResumo] = useState<Resumo>({ total_saidas: 0, total_entradas: 0, saldo: 0 })
   const [carregando, setCarregando] = useState(false)
@@ -318,7 +320,7 @@ export default function TransferenciasPage() {
                           <div>
                             <p className="font-medium text-gray-800 dark:text-white text-sm">{t.aluno_nome}</p>
                             {t.serie && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{t.serie}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatSerie(t.serie)}</p>
                             )}
                           </div>
                         </td>

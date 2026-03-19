@@ -12,6 +12,7 @@ import { useToast } from '@/components/toast'
 import { LoadingSpinner, ButtonSpinner } from '@/components/ui/loading-spinner'
 import { normalizarSerie, ordenarSeries } from '@/lib/dados/utils'
 import { SITUACOES } from '@/lib/situacoes-config'
+import { useSeries } from '@/lib/use-series'
 
 interface Aluno {
   id: string
@@ -51,6 +52,7 @@ const formInicial: FormAluno = {
 export default function AlunosEscolaPage() {
   const toast = useToast()
   const router = useRouter()
+  const { formatSerie } = useSeries()
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [turmas, setTurmas] = useState<any[]>([])
   const [todasTurmas, setTodasTurmas] = useState<any[]>([])
@@ -505,7 +507,7 @@ export default function AlunosEscolaPage() {
                           <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300">{aluno.turma_codigo || '-'}</span>
                         </td>
                         <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap hidden md:table-cell">
-                          <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300">{aluno.serie || '-'}</span>
+                          <span className="text-xs md:text-sm text-gray-700 dark:text-gray-300">{formatSerie(aluno.serie)}</span>
                         </td>
                         <td className="py-2 px-2 md:py-3 md:px-4 text-center whitespace-nowrap hidden lg:table-cell">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sitCfg.cor}`}>
@@ -658,7 +660,7 @@ export default function AlunosEscolaPage() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
                     >
                       <option value="">Selecione...</option>
-                      {turmasDoModal.map(t => <option key={t.id} value={t.id}>{t.codigo} {t.serie ? `- ${t.serie}` : ''}</option>)}
+                      {turmasDoModal.map(t => <option key={t.id} value={t.id}>{t.codigo} {t.serie ? `- ${formatSerie(t.serie)}` : ''}</option>)}
                     </select>
                   </div>
 

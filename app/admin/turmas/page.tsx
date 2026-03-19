@@ -7,6 +7,7 @@ import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useDebounce } from '@/lib/hooks/useDebounce'
 import { Situacao, SITUACOES } from '@/lib/situacoes-config'
+import { useSeries } from '@/lib/use-series'
 
 interface Turma {
   id: string
@@ -93,6 +94,7 @@ function calcularIdade(dataNascimento: string | null): number | null {
 
 export default function TurmasPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [tipoUsuario, setTipoUsuario] = useState<string>('')
 
   // Filtros
@@ -436,7 +438,7 @@ export default function TurmasPage() {
       <body>
         <h1>Relação de Alunos - Turma ${escapeHtml(turma.codigo)}${turma.nome ? ' (' + escapeHtml(turma.nome) + ')' : ''}</h1>
         <div class="info">
-          <p>Escola: ${escapeHtml(turma.escola_nome)} | Série: ${escapeHtml(turma.serie)} | Ano Letivo: ${escapeHtml(turma.ano_letivo)}</p>
+          <p>Escola: ${escapeHtml(turma.escola_nome)} | Série: ${escapeHtml(formatSerie(turma.serie))} | Ano Letivo: ${escapeHtml(turma.ano_letivo)}</p>
         </div>
         <table>
           <thead>
@@ -541,7 +543,7 @@ export default function TurmasPage() {
               >
                 <option value="">Todas</option>
                 {seriesUnicas.map(s => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{formatSerie(s)}</option>
                 ))}
               </select>
             </div>
@@ -588,7 +590,7 @@ export default function TurmasPage() {
                         <span className="text-sm text-gray-500 dark:text-gray-400">({turma.nome})</span>
                       )}
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                        {turma.serie}
+                        {formatSerie(turma.serie)}
                       </span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300">
                         {turma.ano_letivo}
@@ -700,7 +702,7 @@ export default function TurmasPage() {
                   <div className="flex gap-2 px-5 pb-4 flex-wrap">
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 backdrop-blur-sm text-xs font-medium text-white">
                       <Calendar className="w-3.5 h-3.5" />
-                      {detalhesTurma.turma.serie} - {detalhesTurma.turma.ano_letivo}
+                      {formatSerie(detalhesTurma.turma.serie)} - {detalhesTurma.turma.ano_letivo}
                     </div>
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 backdrop-blur-sm text-xs font-medium text-white">
                       <Users className="w-3.5 h-3.5" />

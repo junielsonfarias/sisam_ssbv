@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 // ============================================
 // Tipos
@@ -1452,6 +1453,7 @@ function AbaTurmas({
   escolaId: string
   anoLetivo: string
 }) {
+  const { formatSerie } = useSeries()
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [carregando, setCarregando] = useState(true)
 
@@ -1529,7 +1531,7 @@ function AbaTurmas({
                   <tr key={turma.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                     <td className="py-3 px-4 text-sm font-mono text-gray-600 dark:text-gray-300">{turma.codigo || '-'}</td>
                     <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{turma.nome}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{turma.serie}º Ano</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{formatSerie(turma.serie)}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{turnoLabel(turma.turno)}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">
                       {turma.total_alunos}{turma.capacidade ? `/${turma.capacidade}` : ''}

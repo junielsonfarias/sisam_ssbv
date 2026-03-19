@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Search, Upload, Trash2, Shield, UserCheck, AlertTriangle, CheckCircle, XCircle, FileText } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface EscolaSimples { id: string; nome: string }
 interface TurmaSimples { id: string; codigo: string; nome: string | null; serie: string; ano_letivo: string }
@@ -27,6 +28,7 @@ interface ConsentForm {
 
 export default function FacialEnrollmentPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
@@ -339,7 +341,7 @@ export default function FacialEnrollmentPage() {
                   <option value="">Selecione a turma</option>
                   {turmas.map(t => (
                     <option key={t.id} value={t.id}>
-                      {t.codigo} - {t.serie}{t.nome ? ` (${t.nome})` : ''}
+                      {t.codigo} - {formatSerie(t.serie)}{t.nome ? ` (${t.nome})` : ''}
                     </option>
                   ))}
                 </select>

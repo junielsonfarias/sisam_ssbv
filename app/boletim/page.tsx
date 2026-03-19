@@ -7,6 +7,7 @@ import {
   ClipboardCheck, User, School, Clock
 } from 'lucide-react'
 import Link from 'next/link'
+import { useSeries } from '@/lib/use-series'
 
 interface Disciplina { id: string; nome: string; codigo: string; abreviacao: string; ordem: number }
 interface Periodo { id: string; nome: string; tipo: string; numero: number }
@@ -70,6 +71,7 @@ function freqBarColor(p: number | null) {
 }
 
 export default function BoletimPage() {
+  const { formatSerie } = useSeries()
   const [modo, setModo] = useState<'codigo' | 'cpf'>('codigo')
   const [codigo, setCodigo] = useState('')
   const [cpf, setCpf] = useState('')
@@ -238,7 +240,7 @@ export default function BoletimPage() {
                     <h2 className="text-xl sm:text-2xl font-bold">{dados.aluno.nome}</h2>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-emerald-100 text-sm">
                       <span className="flex items-center gap-1"><School className="w-3.5 h-3.5" /> {dados.aluno.escola_nome}</span>
-                      <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {dados.aluno.turma_codigo} - {dados.aluno.serie}</span>
+                      <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {dados.aluno.turma_codigo} - {formatSerie(dados.aluno.serie)}</span>
                     </div>
                   </div>
                 </div>
@@ -344,7 +346,7 @@ export default function BoletimPage() {
                     <h3 className="font-bold text-slate-800">Avaliacoes Municipais (SISAM)</h3>
                   </div>
                   <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full">
-                    {dados.aluno.serie ? `${serieNum}º Ano` : ''} — {isIniciais ? 'Anos Iniciais' : 'Anos Finais'}
+                    {dados.aluno.serie ? formatSerie(dados.aluno.serie) : ''} — {isIniciais ? 'Anos Iniciais' : 'Anos Finais'}
                   </span>
                 </div>
                 <div className="overflow-x-auto">

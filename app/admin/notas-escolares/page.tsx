@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 // ============================================
 // Tipos
@@ -104,6 +105,7 @@ interface FreqUnificadaAluno {
 
 export default function NotasEscolaresPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [modo, setModo] = useState<Modo>('selecao')
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
@@ -573,7 +575,7 @@ export default function NotasEscolaresPage() {
     const html = `<!DOCTYPE html><html><head><title>Boletim - ${esc(boletimAluno.nome)}</title><style>body{font-family:Arial,sans-serif;margin:15px}@media print{body{margin:8px}}table{border-collapse:collapse;width:100%}</style></head><body>
       <h2 style="text-align:center;margin-bottom:3px;font-size:16px">Boletim Escolar ${esc(anoLetivo)}</h2>
       <p style="text-align:center;color:#666;margin-top:0;font-size:13px">${esc(boletimAluno.escola_nome || '')}</p>
-      <table style="margin-bottom:10px;font-size:12px"><tr><td><strong>Aluno:</strong> ${esc(boletimAluno.nome)}</td><td style="padding-left:20px"><strong>Turma:</strong> ${esc(boletimAluno.turma_codigo || '-')}</td><td style="padding-left:20px"><strong>Série:</strong> ${esc(boletimAluno.serie || '-')}</td></tr></table>
+      <table style="margin-bottom:10px;font-size:12px"><tr><td><strong>Aluno:</strong> ${esc(boletimAluno.nome)}</td><td style="padding-left:20px"><strong>Turma:</strong> ${esc(boletimAluno.turma_codigo || '-')}</td><td style="padding-left:20px"><strong>Série:</strong> ${esc(formatSerie(boletimAluno.serie))}</td></tr></table>
       <table>
         <thead>
           <tr><th rowspan="2" style="${th};text-align:left">Disciplina</th>${periodosHeader1}<th rowspan="2" style="${th};background:#dbeafe">Média</th><th rowspan="2" style="${th}">Faltas</th><th rowspan="2" style="${th}">Situação</th></tr>
@@ -645,7 +647,7 @@ export default function NotasEscolaresPage() {
             alunos={alunos}
             notas={notas}
             config={config}
-            turmaNome={turmaSelecionada ? `${turmaSelecionada.codigo} - ${turmaSelecionada.nome || turmaSelecionada.serie}` : ''}
+            turmaNome={turmaSelecionada ? `${turmaSelecionada.codigo} - ${turmaSelecionada.nome || formatSerie(turmaSelecionada.serie)}` : ''}
             disciplinaNome={disciplinaSelecionada?.nome || ''}
             periodoNome={periodoSelecionado?.nome || ''}
             mostrarRecuperacao={mostrarRecuperacao}
@@ -689,6 +691,7 @@ function PainelSelecao({
   setEscolaId, setSerieFiltro, setTurmaId, setDisciplinaId, setPeriodoId, setAnoLetivo,
   onIniciar, avaliacaoTurma,
 }: any) {
+  const { formatSerie } = useSeries()
   const tipoResultado = avaliacaoTurma?.tipo_avaliacao?.tipo_resultado
   const isParecer = tipoResultado === 'parecer'
   // Parecer não precisa de disciplina
@@ -770,7 +773,7 @@ function PainelSelecao({
           >
             <option value="">Selecione a turma...</option>
             {turmas.map((t: any) => (
-              <option key={t.id} value={t.id}>{t.codigo} - {t.nome || t.serie}</option>
+              <option key={t.id} value={t.id}>{t.codigo} - {t.nome || formatSerie(t.serie)}</option>
             ))}
           </select>
         </div>
@@ -1303,6 +1306,7 @@ function PainelBoletim({
   voltar: () => void; imprimir: () => void
   frequencia?: any[]; recuperacao?: any[]
 }) {
+  const { formatSerie } = useSeries()
   const [abaAtiva, setAbaAtiva] = useState<'notas' | 'recuperacao'>('notas')
   const temRecuperacao = recuperacao && recuperacao.length > 0
 
@@ -1318,7 +1322,7 @@ function PainelBoletim({
             <div>
               <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Boletim de {aluno.nome}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {aluno.escola_nome} | Turma: {aluno.turma_codigo || '-'} | Série: {aluno.serie || '-'}
+                {aluno.escola_nome} | Turma: {aluno.turma_codigo || '-'} | Série: {formatSerie(aluno.serie)}
               </p>
             </div>
           </div>

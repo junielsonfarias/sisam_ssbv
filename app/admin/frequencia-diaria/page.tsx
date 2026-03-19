@@ -19,6 +19,7 @@ import {
   QrCode,
   Calendar
 } from 'lucide-react'
+import { useSeries } from '@/lib/use-series'
 
 interface EscolaSimples {
   id: string
@@ -65,6 +66,7 @@ interface Paginacao {
 
 export default function FrequenciaDiariaPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
 
   // Auth
   const [tipoUsuario, setTipoUsuario] = useState('')
@@ -448,7 +450,7 @@ export default function FrequenciaDiariaPage() {
                 <option value="">Todas</option>
                 {turmas.map(t => (
                   <option key={t.id} value={t.id}>
-                    {t.codigo}{t.nome ? ` - ${t.nome}` : ''} ({t.serie})
+                    {t.codigo}{t.nome ? ` - ${t.nome}` : ''} ({formatSerie(t.serie)})
                   </option>
                 ))}
               </select>

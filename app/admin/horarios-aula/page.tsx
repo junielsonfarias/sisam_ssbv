@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Save, Search, Calendar, Clock, ArrowLeft } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface Escola { id: string; nome: string }
 interface Turma { id: string; codigo: string; nome: string | null; serie: string }
@@ -22,6 +23,7 @@ const AULAS = [1, 2, 3, 4, 5, 6]
 
 export default function HorariosAulaPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
@@ -206,7 +208,7 @@ export default function HorariosAulaPage() {
                 <option value="">Selecione</option>
                 {turmas.map(t => (
                   <option key={t.id} value={t.id}>
-                    {t.codigo}{t.nome ? ` - ${t.nome}` : ''} ({t.serie})
+                    {t.codigo}{t.nome ? ` - ${t.nome}` : ''} ({formatSerie(t.serie)})
                   </option>
                 ))}
               </select>
@@ -226,7 +228,7 @@ export default function HorariosAulaPage() {
               <div className="flex items-center gap-3 text-sm">
                 <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span className="font-semibold text-indigo-700 dark:text-indigo-300">
-                  {turmaSelecionada?.codigo}{turmaSelecionada?.nome ? ` - ${turmaSelecionada.nome}` : ''} ({turmaSelecionada?.serie})
+                  {turmaSelecionada?.codigo}{turmaSelecionada?.nome ? ` - ${turmaSelecionada.nome}` : ''} ({formatSerie(turmaSelecionada?.serie)})
                 </span>
                 <span className="w-px h-4 bg-indigo-300 dark:bg-indigo-600" />
                 <span className="text-indigo-600 dark:text-indigo-400">

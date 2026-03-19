@@ -5,6 +5,7 @@ import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/components/toast'
 import { TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Search } from 'lucide-react'
+import { useSeries } from '@/lib/use-series'
 
 interface Polo { id: string; nome: string }
 interface Escola { id: string; nome: string; polo_id: string }
@@ -37,6 +38,7 @@ interface Resumo {
 
 export default function EvolucaoPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [carregando, setCarregando] = useState(false)
   const [anoLetivo, setAnoLetivo] = useState(new Date().getFullYear().toString())
   const [poloId, setPoloId] = useState('')
@@ -239,7 +241,7 @@ export default function EvolucaoPage() {
                     <tr key={al.aluno_id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                       <td className="px-3 py-2 font-medium text-gray-900 dark:text-white whitespace-nowrap">{al.aluno_nome}</td>
                       <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">{al.escola_nome}</td>
-                      <td className="px-3 py-2 text-center text-gray-500 dark:text-gray-400">{al.serie}</td>
+                      <td className="px-3 py-2 text-center text-gray-500 dark:text-gray-400">{formatSerie(al.serie)}</td>
                       <td className="px-2 py-2 text-center">{formatNota(al.diag_nota_lp)}</td>
                       <td className="px-2 py-2 text-center">
                         <span className={deltaClass(al.delta_lp)}>

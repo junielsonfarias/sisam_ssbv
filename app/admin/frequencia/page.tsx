@@ -6,6 +6,7 @@ import { Save, Search, ClipboardList, AlertCircle, CheckCircle, ArrowLeft, Scan,
 import Link from 'next/link'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface EscolaSimples { id: string; nome: string }
 interface TurmaSimples { id: string; codigo: string; nome: string | null; serie: string; ano_letivo: string }
@@ -26,6 +27,7 @@ type Modo = 'selecao' | 'lancamento'
 
 export default function FrequenciaPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [modo, setModo] = useState<Modo>('selecao')
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
@@ -314,7 +316,7 @@ export default function FrequenciaPage() {
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                 >
                   <option value="">Selecione</option>
-                  {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo}{t.nome ? ` - ${t.nome}` : ''} ({t.serie})</option>)}
+                  {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo}{t.nome ? ` - ${t.nome}` : ''} ({formatSerie(t.serie)})</option>)}
                 </select>
               </div>
 
@@ -351,7 +353,7 @@ export default function FrequenciaPage() {
             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800 p-4">
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="font-semibold text-indigo-700 dark:text-indigo-300">
-                  {turmaSelecionada?.codigo}{turmaSelecionada?.nome ? ` - ${turmaSelecionada.nome}` : ''} ({turmaSelecionada?.serie})
+                  {turmaSelecionada?.codigo}{turmaSelecionada?.nome ? ` - ${turmaSelecionada.nome}` : ''} ({formatSerie(turmaSelecionada?.serie)})
                 </span>
                 <span className="w-px h-4 bg-indigo-300 dark:bg-indigo-600" />
                 <span className="text-indigo-600 dark:text-indigo-400">{periodoSelecionado?.nome}</span>

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface AlunoSimples { id: string; nome: string; codigo: string; serie: string }
 interface EscolaSimples { id: string; nome: string }
@@ -43,6 +44,7 @@ const parecerLabel: Record<string, string> = {
 
 export default function HistoricoEscolarPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const printRef = useRef<HTMLDivElement>(null)
 
   const [tipoUsuario, setTipoUsuario] = useState('')
@@ -181,7 +183,7 @@ export default function HistoricoEscolarPage() {
                 className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"
               >
                 <option value="">Selecione...</option>
-                {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo} - {t.serie}</option>)}
+                {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo} - {formatSerie(t.serie)}</option>)}
               </select>
             </div>
             <div>
@@ -211,7 +213,7 @@ export default function HistoricoEscolarPage() {
                   }`}
                 >
                   <span>{a.nome}</span>
-                  <span className="text-xs text-gray-500">{a.codigo} | {a.serie}</span>
+                  <span className="text-xs text-gray-500">{a.codigo} | {formatSerie(a.serie)}</span>
                 </button>
               ))}
             </div>

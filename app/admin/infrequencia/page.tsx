@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { AlertTriangle, Search, Users, TrendingDown } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface EscolaSimples { id: string; nome: string }
 interface Periodo { id: string; nome: string; tipo: string; numero: number; ano_letivo: string }
@@ -26,6 +27,7 @@ interface AlunoInfrequente {
 
 export default function InfrequenciaPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
@@ -302,7 +304,7 @@ export default function InfrequenciaPage() {
                             )}
                           </td>
                           <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">{aluno.escola_nome}</td>
-                          <td className="py-2 px-3 text-center text-sm text-gray-700 dark:text-gray-300">{aluno.serie}</td>
+                          <td className="py-2 px-3 text-center text-sm text-gray-700 dark:text-gray-300">{formatSerie(aluno.serie)}</td>
                           <td className="py-2 px-3 text-center text-sm text-gray-700 dark:text-gray-300">{aluno.turma_codigo}</td>
                           <td className="py-2 px-3 text-center">
                             <span className={`text-sm ${corFaltas}`}>{aluno.faltas}</span>

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner, ButtonSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 
 interface PoloSimples { id: string; nome: string }
 interface EscolaSimples { id: string; nome: string; polo_id?: string }
@@ -51,6 +52,7 @@ type FiltroOcupacao = '' | 'lotada' | 'com_vagas' | 'com_fila'
 
 export default function ControleVagasPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
 
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [polos, setPolos] = useState<PoloSimples[]>([])
@@ -442,7 +444,7 @@ export default function ControleVagasPage() {
                   return (
                     <div key={s.serie} className="flex items-center gap-3">
                       <span className="w-20 text-sm font-medium text-gray-700 dark:text-gray-300 text-right flex-shrink-0">
-                        {s.serie}
+                        {formatSerie(s.serie)}
                       </span>
                       <div className="flex-1 relative">
                         <div className="bg-gray-200 dark:bg-slate-600 rounded-full h-6 overflow-hidden">
@@ -496,7 +498,7 @@ export default function ControleVagasPage() {
                 filtroSerie === s ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300'
               }`}
             >
-              {s}
+              {formatSerie(s)}
             </button>
           ))}
 
@@ -580,7 +582,7 @@ export default function ControleVagasPage() {
                       }`}>
                         <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{t.codigo}</td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs hidden lg:table-cell">{t.escola_nome}</td>
-                        <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{t.serie}</td>
+                        <td className="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{formatSerie(t.serie)}</td>
                         <td className="px-4 py-3 text-center">
                           {modoLote ? (
                             <input
@@ -868,7 +870,7 @@ export default function ControleVagasPage() {
                           <div className="text-xs text-gray-500 dark:text-gray-400">
                             {aluno.codigo && <span>Cód: {aluno.codigo}</span>}
                             {aluno.escola_nome && <span> | {aluno.escola_nome}</span>}
-                            {aluno.serie && <span> | {aluno.serie}</span>}
+                            {aluno.serie && <span> | {formatSerie(aluno.serie)}</span>}
                           </div>
                         </div>
                         <Plus className="w-4 h-4 text-orange-600 flex-shrink-0 ml-2" />

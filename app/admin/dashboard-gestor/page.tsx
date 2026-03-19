@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useSeries } from '@/lib/use-series'
 import dynamic from 'next/dynamic'
 
 const PieChartComponent = dynamic(() => import('recharts').then(mod => {
@@ -120,6 +121,7 @@ type ModalType = 'alunos' | 'turmas' | 'media' | 'frequencia' | 'transferencias'
 
 export default function DashboardGestorPage() {
   const toast = useToast()
+  const { formatSerie } = useSeries()
   const [tipoUsuario, setTipoUsuario] = useState('')
   const [escolas, setEscolas] = useState<EscolaSimples[]>([])
   const [escolaId, setEscolaId] = useState('')
@@ -388,7 +390,7 @@ export default function DashboardGestorPage() {
                             onClick={() => setModalAberto('pcd')}>
                             <td className="py-1.5 pr-2 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">{a.nome}</td>
                             <td className="py-1.5 pr-2 text-violet-600 dark:text-violet-400 font-medium">{a.turma_codigo}</td>
-                            <td className="py-1.5 pr-2 text-gray-500">{a.serie}</td>
+                            <td className="py-1.5 pr-2 text-gray-500">{formatSerie(a.serie)}</td>
                             <td className="py-1.5 pr-2 text-gray-500 truncate max-w-[140px]">{a.responsavel || '-'}</td>
                             <td className="py-1.5 text-blue-600 dark:text-blue-400 whitespace-nowrap">
                               {a.telefone_responsavel || '-'}
@@ -469,6 +471,7 @@ function ModalKPI({ tipo, data, onClose }: { tipo: ModalType; data: DashboardDat
 // ============================================
 
 function ModalAlunos({ data }: { data: DashboardData }) {
+  const { formatSerie } = useSeries()
   const situacoes = [
     { label: 'Cursando', valor: data.alunos.cursando, cor: 'bg-blue-500' },
     { label: 'Aprovados', valor: data.alunos.aprovados, cor: 'bg-emerald-500' },
@@ -520,7 +523,7 @@ function ModalAlunos({ data }: { data: DashboardData }) {
                   <tr key={a.id} className="border-b border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 text-gray-400">{i + 1}</td>
                     <td className="py-2 font-medium text-gray-800 dark:text-gray-200">{a.nome}</td>
-                    <td className="py-2">{a.serie}</td>
+                    <td className="py-2">{formatSerie(a.serie)}</td>
                     <td className="py-2">{a.turma_codigo}</td>
                     <td className="py-2">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -544,6 +547,7 @@ function ModalAlunos({ data }: { data: DashboardData }) {
 }
 
 function ModalTurmas({ data }: { data: DashboardData }) {
+  const { formatSerie } = useSeries()
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
@@ -576,7 +580,7 @@ function ModalTurmas({ data }: { data: DashboardData }) {
                 return (
                   <tr key={t.id} className="border-b border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 font-medium text-gray-800 dark:text-gray-200">{t.codigo}</td>
-                    <td className="py-2">{t.serie}</td>
+                    <td className="py-2">{formatSerie(t.serie)}</td>
                     <td className="py-2 font-semibold">{t.total_alunos}</td>
                     <td className="py-2 text-gray-500">{t.capacidade_maxima}</td>
                     <td className="py-2">
@@ -719,6 +723,7 @@ function ModalTransferencias({ data }: { data: DashboardData }) {
 }
 
 function ModalPCD({ data }: { data: DashboardData }) {
+  const { formatSerie } = useSeries()
   // Agrupar por escola
   const porEscola = (data.alunos_pcd || []).reduce<Record<string, AlunoPcd[]>>((acc, aluno) => {
     const escola = aluno.escola_nome || 'Sem escola'
@@ -771,7 +776,7 @@ function ModalPCD({ data }: { data: DashboardData }) {
                             <GraduationCap className="w-3 h-3" /> {a.turma_codigo}
                           </span>
                           <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium px-2.5 py-1 rounded-lg">
-                            {a.serie}
+                            {formatSerie(a.serie)}
                           </span>
                           {a.tipo_deficiencia && (
                             <span className="inline-flex items-center gap-1 bg-violet-100 dark:bg-violet-800/40 text-violet-700 dark:text-violet-300 text-xs font-medium px-2.5 py-1 rounded-lg">
