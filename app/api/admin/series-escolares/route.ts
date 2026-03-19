@@ -92,7 +92,7 @@ export async function PUT(request: NextRequest) {
     const camposPermitidos = [
       'nome', 'etapa', 'ordem', 'media_aprovacao', 'media_recuperacao',
       'nota_maxima', 'max_dependencias', 'formula_nota_final', 'permite_recuperacao',
-      'idade_minima', 'idade_maxima', 'ativo'
+      'idade_minima', 'idade_maxima', 'ativo', 'tipo_avaliacao_id', 'regra_avaliacao_id'
     ]
 
     const sets: string[] = []

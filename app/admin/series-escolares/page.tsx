@@ -26,6 +26,31 @@ interface SerieEscolar {
   idade_maxima: number | null
   ativo: boolean
   total_disciplinas: number
+  tipo_avaliacao_id: string | null
+  regra_avaliacao_id: string | null
+}
+
+interface TipoAvaliacao {
+  id: string
+  codigo: string
+  nome: string
+  tipo_resultado: string
+}
+
+interface RegraAvaliacao {
+  id: string
+  nome: string
+  tipo_avaliacao_id: string
+  tipo_avaliacao_nome: string
+  tipo_periodo: string
+  qtd_periodos: number
+  media_aprovacao: number | null
+  media_recuperacao: number | null
+  nota_maxima: number | null
+  permite_recuperacao: boolean
+  max_dependencias: number
+  formula_media: string
+  aprovacao_automatica: boolean
 }
 
 interface Disciplina {
@@ -84,6 +109,9 @@ export default function SeriesEscolaresPage() {
   const [formSerie, setFormSerie] = useState<Partial<SerieEscolar>>({})
   const [disciplinasForm, setDisciplinasForm] = useState<DisciplinaForm[]>([])
   const [salvandoDisciplinas, setSalvandoDisciplinas] = useState(false)
+  const [tiposAvaliacao, setTiposAvaliacao] = useState<TipoAvaliacao[]>([])
+  const [regrasAvaliacao, setRegrasAvaliacao] = useState<RegraAvaliacao[]>([])
+  const [regrasFiltradas, setRegrasFiltradas] = useState<RegraAvaliacao[]>([])
 
   // ============================================
   // Carregar dados
@@ -114,6 +142,19 @@ export default function SeriesEscolaresPage() {
     }
   }, [])
 
+  const carregarTiposRegras = useCallback(async () => {
+    try {
+      const [tiposRes, regrasRes] = await Promise.all([
+        fetch('/api/admin/tipos-avaliacao'),
+        fetch('/api/admin/regras-avaliacao'),
+      ])
+      if (tiposRes.ok) setTiposAvaliacao(await tiposRes.json())
+      if (regrasRes.ok) setRegrasAvaliacao(await regrasRes.json())
+    } catch (error) {
+      console.error('Erro ao carregar tipos/regras:', error)
+    }
+  }, [])
+
   const carregarDisciplinasSerie = useCallback(async (serieId: string) => {
     try {
       const res = await fetch(`/api/admin/series-escolares/${serieId}/disciplinas`)
@@ -139,11 +180,11 @@ export default function SeriesEscolaresPage() {
   useEffect(() => {
     const init = async () => {
       setCarregando(true)
-      await Promise.all([carregarSeries(), carregarDisciplinas()])
+      await Promise.all([carregarSeries(), carregarDisciplinas(), carregarTiposRegras()])
       setCarregando(false)
     }
     init()
-  }, [carregarSeries, carregarDisciplinas])
+  }, [carregarSeries, carregarDisciplinas, carregarTiposRegras])
 
   // ============================================
   // Selecionar série
@@ -160,9 +201,17 @@ export default function SeriesEscolaresPage() {
       permite_recuperacao: serie.permite_recuperacao,
       idade_minima: serie.idade_minima,
       idade_maxima: serie.idade_maxima,
+      tipo_avaliacao_id: serie.tipo_avaliacao_id,
+      regra_avaliacao_id: serie.regra_avaliacao_id,
     })
+    // Filtrar regras pelo tipo de avaliacao selecionado
+    if (serie.tipo_avaliacao_id) {
+      setRegrasFiltradas(regrasAvaliacao.filter(r => r.tipo_avaliacao_id === serie.tipo_avaliacao_id))
+    } else {
+      setRegrasFiltradas(regrasAvaliacao)
+    }
     carregarDisciplinasSerie(serie.id)
-  }, [carregarDisciplinasSerie])
+  }, [carregarDisciplinasSerie, regrasAvaliacao])
 
   // ============================================
   // Salvar série
@@ -463,6 +512,83 @@ export default function SeriesEscolaresPage() {
                             placeholder="Opcional"
                           />
                         </div>
+                      </div>
+
+                      {/* Tipo e Regra de Avaliacao */}
+                      <div className="mt-5 pt-4 border-t border-gray-200 dark:border-slate-700">
+                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Avaliacao (Padrao INEP)</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de Avaliacao</label>
+                            <select
+                              value={formSerie.tipo_avaliacao_id || ''}
+                              onChange={e => {
+                                const tipoId = e.target.value || null
+                                setFormSerie(prev => ({ ...prev, tipo_avaliacao_id: tipoId, regra_avaliacao_id: null }))
+                                if (tipoId) {
+                                  setRegrasFiltradas(regrasAvaliacao.filter(r => r.tipo_avaliacao_id === tipoId))
+                                } else {
+                                  setRegrasFiltradas(regrasAvaliacao)
+                                }
+                              }}
+                              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                              <option value="">Selecione o tipo...</option>
+                              {tiposAvaliacao.map(t => (
+                                <option key={t.id} value={t.id}>{t.nome} ({t.tipo_resultado})</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Regra de Avaliacao</label>
+                            <select
+                              value={formSerie.regra_avaliacao_id || ''}
+                              onChange={e => {
+                                const regraId = e.target.value || null
+                                setFormSerie(prev => ({ ...prev, regra_avaliacao_id: regraId }))
+                                // Auto-preencher campos da regra
+                                if (regraId) {
+                                  const regra = regrasAvaliacao.find(r => r.id === regraId)
+                                  if (regra) {
+                                    setFormSerie(prev => ({
+                                      ...prev,
+                                      regra_avaliacao_id: regraId,
+                                      media_aprovacao: regra.media_aprovacao != null ? parseFloat(String(regra.media_aprovacao)) : prev.media_aprovacao,
+                                      media_recuperacao: regra.media_recuperacao != null ? parseFloat(String(regra.media_recuperacao)) : prev.media_recuperacao,
+                                      nota_maxima: regra.nota_maxima != null ? parseFloat(String(regra.nota_maxima)) : prev.nota_maxima,
+                                      max_dependencias: regra.max_dependencias,
+                                      permite_recuperacao: regra.permite_recuperacao,
+                                    }))
+                                  }
+                                }
+                              }}
+                              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                              <option value="">Selecione a regra...</option>
+                              {regrasFiltradas.map(r => (
+                                <option key={r.id} value={r.id}>{r.nome}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Resumo da regra selecionada */}
+                        {formSerie.regra_avaliacao_id && (() => {
+                          const regra = regrasAvaliacao.find(r => r.id === formSerie.regra_avaliacao_id)
+                          if (!regra) return null
+                          return (
+                            <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-gray-700 dark:text-gray-300">
+                              <div className="flex flex-wrap gap-3">
+                                <span><strong>Periodo:</strong> {regra.tipo_periodo} ({regra.qtd_periodos}p)</span>
+                                <span><strong>Formula:</strong> {regra.formula_media}</span>
+                                {regra.aprovacao_automatica && (
+                                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Aprovacao automatica</span>
+                                )}
+                                {regra.permite_recuperacao && <span><strong>Recuperacao:</strong> Sim</span>}
+                              </div>
+                            </div>
+                          )
+                        })()}
                       </div>
 
                       <div className="mt-5 flex justify-end">
