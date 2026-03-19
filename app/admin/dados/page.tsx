@@ -107,7 +107,6 @@ export default function DadosPage() {
         // Limpar filtros persistidos para garantir estado inicial limpo
         localStorage.removeItem(FILTROS_STORAGE_KEY)
       } catch (e) {
-        console.warn('Erro ao limpar filtros do localStorage:', e)
       }
       setFiltrosCarregados(true)
     }
@@ -152,7 +151,6 @@ export default function DadosPage() {
 
     // MODO OFFLINE: Usar dados do localStorage diretamente
     if (!online) {
-      console.log('[Dados] Carregando dados do localStorage (modo offline)')
       setUsandoDadosOffline(true)
 
       // Carregar dados do localStorage
@@ -170,21 +168,10 @@ export default function DadosPage() {
         presenca: filtroPresenca
       })
 
-      console.log('[Dados] Dados offline carregados:', {
-        polos: polosOffline.length,
-        escolas: escolasOffline.length,
-        turmas: turmasOffline.length,
-        resultados: resultadosFiltrados.length
-      })
-
       // DEBUG: Verificar se nota_producao está nos dados carregados
       const comNotaProd = resultadosFiltrados.filter(r => r.nota_producao && parseFloat(String(r.nota_producao)) > 0)
-      console.log('[DEBUG] Resultados com nota_producao > 0:', comNotaProd.length)
       if (comNotaProd.length > 0) {
-        console.log('[DEBUG] Primeiro resultado com nota_producao:', comNotaProd[0])
       } else if (resultadosFiltrados.length > 0) {
-        console.log('[DEBUG] Campos do primeiro resultado:', Object.keys(resultadosFiltrados[0]))
-        console.log('[DEBUG] Primeiro resultado completo:', resultadosFiltrados[0])
       }
 
       // Calcular estatísticas usando função do offlineStorage
@@ -267,7 +254,6 @@ export default function DadosPage() {
 
         // DEBUG: Log para verificar nota_producao
         if (notaProd > 0) {
-          console.log('[DEBUG] Aluno com nota_producao:', { serie: r.serie, notaLp, notaMat, notaProd, mediaAluno })
         }
 
         // Faixas de nota (apenas presentes com média > 0)
@@ -603,11 +589,9 @@ export default function DadosPage() {
         return
       }
 
-      console.error('[Dados] Erro ao carregar dados:', error)
 
       // Fallback para dados offline em caso de erro de rede
       if (offlineStorage.hasOfflineData()) {
-        console.log('[Dados] Fallback para dados offline após erro de rede')
         setUsandoDadosOffline(true)
         setModoOffline(true)
         // Recarregar usando modo offline
@@ -662,7 +646,6 @@ export default function DadosPage() {
       try {
         localStorage.removeItem(FILTROS_STORAGE_KEY)
       } catch (e) {
-        console.warn('Erro ao limpar filtros do localStorage:', e)
       }
     }
   }
@@ -1910,7 +1893,6 @@ export default function DadosPage() {
               }
             } catch (err: unknown) {
               if (!(err instanceof Error) || err.name !== 'AbortError') {
-                console.error('Erro ao carregar dados da escola:', err)
               }
             }
           }
@@ -1929,7 +1911,6 @@ export default function DadosPage() {
               }
             } catch (err: unknown) {
               if (!(err instanceof Error) || err.name !== 'AbortError') {
-                console.error('Erro ao carregar dados do polo:', err)
               }
             }
           }
@@ -1938,7 +1919,6 @@ export default function DadosPage() {
         // Ignorar erros de abort
         if (error instanceof Error && error.name === 'AbortError') return
 
-        console.error('Erro ao carregar tipo de usuário:', error)
         // Fallback para usuário offline
         const offlineUser = offlineStorage.getUser()
         if (offlineUser) {

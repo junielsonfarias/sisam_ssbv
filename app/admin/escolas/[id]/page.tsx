@@ -162,7 +162,6 @@ export default function EscolaDetalhePage() {
       setEscola(data)
       setFormData(data)
     } catch (error) {
-      console.error('Erro ao carregar escola:', error)
       toast.error('Erro ao carregar dados da escola')
     }
   }, [escolaId, anoLetivo])
@@ -175,7 +174,6 @@ export default function EscolaDetalhePage() {
         setSeriesEscola(data.series || [])
       }
     } catch (error) {
-      console.error('Erro ao carregar series:', error)
     }
   }, [escolaId, anoLetivo])
 
@@ -187,7 +185,6 @@ export default function EscolaDetalhePage() {
         setPolos(data)
       }
     } catch (error) {
-      console.error('Erro ao carregar polos:', error)
     }
   }, [])
 
@@ -218,7 +215,6 @@ export default function EscolaDetalhePage() {
         toast.error(data.mensagem || 'Erro ao salvar escola')
       }
     } catch (error) {
-      console.error('Erro ao salvar escola:', error)
       toast.error('Erro ao salvar escola')
     } finally {
       setSalvando(false)
@@ -814,7 +810,6 @@ function AbaSeriesOferecidas({
           setTodasSeries(Array.isArray(data) ? data : data.series || [])
         }
       } catch (error) {
-        console.error('Erro ao carregar series:', error)
       } finally {
         setCarregando(false)
       }
@@ -854,7 +849,6 @@ function AbaSeriesOferecidas({
         }
       }
     } catch (error) {
-      console.error('Erro ao alternar serie:', error)
       toast.error('Erro ao alternar serie')
     } finally {
       setToggling(null)
@@ -1020,7 +1014,6 @@ function AbaAvaliacao({ escolaId, toast }: { escolaId: string; toast: any }) {
         setRegras(Array.isArray(r) ? r : r.regras || [])
       }
     } catch (e) {
-      console.error('Erro:', e)
     } finally {
       setCarregando(false)
     }
@@ -1352,7 +1345,6 @@ function AbaCalendarioLetivo({
           if (configs.length > 0) setConfigNotas(configs[0])
         }
       } catch (error) {
-        console.error('Erro ao carregar calendario:', error)
       } finally {
         setCarregando(false)
       }
@@ -1466,7 +1458,6 @@ function AbaTurmas({
           setTurmas(Array.isArray(data) ? data : data.turmas || [])
         }
       } catch (error) {
-        console.error('Erro ao carregar turmas:', error)
       } finally {
         setCarregando(false)
       }
@@ -1606,7 +1597,6 @@ function AbaEstatisticas({
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar estatisticas:', error)
       } finally {
         setCarregando(false)
       }

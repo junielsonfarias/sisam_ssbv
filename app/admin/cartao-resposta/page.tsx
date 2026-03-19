@@ -48,7 +48,6 @@ export default function CartaoRespostaPage() {
         alert(data.mensagem || 'Erro ao processar imagem')
       }
     } catch (error) {
-      console.error('Erro:', error)
       alert('Erro ao processar imagem')
     } finally {
       setProcessando(false)

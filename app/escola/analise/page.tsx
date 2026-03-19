@@ -31,7 +31,6 @@ export default function EscolaAnalisePage() {
         }
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          console.error('Erro ao carregar dados iniciais:', error)
         }
       } finally {
         setCarregando(false)

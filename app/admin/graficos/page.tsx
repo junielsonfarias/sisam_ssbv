@@ -108,7 +108,6 @@ export default function GraficosPage() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar séries:', error)
     } finally {
       setCarregandoSeries(false)
     }
@@ -166,7 +165,6 @@ export default function GraficosPage() {
       }
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('[DEBUG] Carregando turmas com params:', params.toString())
       }
       
       fetch(`/api/admin/turmas?${params.toString()}`)
@@ -178,7 +176,6 @@ export default function GraficosPage() {
         })
         .then(data => {
           if (process.env.NODE_ENV === 'development') {
-            console.log('[DEBUG] Turmas recebidas:', data)
           }
           if (Array.isArray(data)) {
             setTurmas(data)
@@ -188,7 +185,6 @@ export default function GraficosPage() {
             }
           } else {
             if (process.env.NODE_ENV === 'development') {
-              console.error('Resposta de turmas não é um array:', data)
             }
             setTurmas([])
             setFiltros(prev => ({ ...prev, turma_id: undefined }))
@@ -196,7 +192,6 @@ export default function GraficosPage() {
         })
         .catch((error) => {
           if (process.env.NODE_ENV === 'development') {
-            console.error('Erro ao carregar turmas:', error)
           }
           setTurmas([])
           setFiltros(prev => ({ ...prev, turma_id: undefined }))
@@ -240,7 +235,6 @@ export default function GraficosPage() {
       setSeries([])
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao carregar dados iniciais:', error)
       }
     }
   }
@@ -293,7 +287,6 @@ export default function GraficosPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ mensagem: 'Erro desconhecido' }))
         if (process.env.NODE_ENV === 'development') {
-          console.error('Erro ao buscar gráficos:', response.status, errorData)
         }
         setErro(errorData.mensagem || 'Erro ao buscar gráficos')
         return
@@ -379,7 +372,6 @@ export default function GraficosPage() {
       setDados(data)
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao buscar gráficos:', error)
       }
       setErro(error.message || 'Erro ao conectar com o servidor')
     } finally {

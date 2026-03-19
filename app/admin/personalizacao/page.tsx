@@ -59,7 +59,6 @@ export default function PersonalizacaoPage() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar personalização:', error)
     } finally {
       setCarregando(false)
     }
@@ -82,7 +81,6 @@ export default function PersonalizacaoPage() {
         alert(data.mensagem || 'Erro ao salvar personalização')
       }
     } catch (error) {
-      console.error('Erro ao salvar personalização:', error)
       alert('Erro ao salvar personalização')
     } finally {
       setSalvando(false)
@@ -123,7 +121,6 @@ export default function PersonalizacaoPage() {
       }
       reader.readAsDataURL(file)
     } catch (error) {
-      console.error('Erro ao fazer upload da imagem:', error)
       alert('Erro ao fazer upload da imagem')
       setUploadingImage(false)
     }

@@ -79,7 +79,6 @@ export default function GraficosPoloPage() {
       const escolasData = await escolasRes.json()
       setEscolas(Array.isArray(escolasData) ? escolasData : [])
     } catch (error) {
-      console.error('Erro ao carregar dados iniciais:', error)
     }
   }
 
@@ -130,7 +129,6 @@ export default function GraficosPoloPage() {
 
       setDados(data)
     } catch (error: any) {
-      console.error('Erro ao buscar gráficos:', error)
       setErro(error.message || 'Erro ao conectar com o servidor')
     } finally {
       setCarregando(false)

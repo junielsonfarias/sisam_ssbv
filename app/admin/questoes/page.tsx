@@ -85,7 +85,6 @@ export default function QuestoesPage() {
         setConfigSeries(configData.series)
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
     } finally {
       setCarregando(false)
     }
@@ -203,7 +202,6 @@ export default function QuestoesPage() {
         toast.error(data.mensagem || 'Erro ao salvar questão')
       }
     } catch (error) {
-      console.error('Erro ao salvar questão:', error)
       toast.error('Erro ao salvar questão')
     } finally {
       setSalvando(false)
@@ -256,7 +254,6 @@ export default function QuestoesPage() {
         toast.error(data.mensagem || 'Erro ao excluir questão')
       }
     } catch (error) {
-      console.error('Erro ao excluir:', error)
       toast.error('Erro ao excluir questão')
     }
   }

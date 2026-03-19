@@ -49,7 +49,6 @@ export default function ModulosTecnicoPage() {
         setMensagem({ tipo: 'erro', texto: 'Formato de resposta inválido' })
       }
     } catch (error: any) {
-      console.error('Erro ao carregar módulos:', error)
       setMensagem({ tipo: 'erro', texto: `Erro ao carregar módulos: ${error.message || 'Erro desconhecido'}` })
       setModulos([])
     } finally {
@@ -90,7 +89,6 @@ export default function ModulosTecnicoPage() {
         setMensagem({ tipo: 'erro', texto: data.mensagem || 'Erro ao salvar módulos' })
       }
     } catch (error) {
-      console.error('Erro ao salvar módulos:', error)
       setMensagem({ tipo: 'erro', texto: 'Erro ao salvar módulos' })
     } finally {
       setSalvando(false)

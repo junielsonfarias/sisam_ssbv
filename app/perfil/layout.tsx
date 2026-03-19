@@ -26,7 +26,6 @@ export default function PerfilLayout({
           }
         }
       } catch (error) {
-        console.error('Erro ao detectar tipo de usuário:', error)
       }
     }
     detectarTipoUsuario()

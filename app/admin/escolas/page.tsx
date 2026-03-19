@@ -74,7 +74,6 @@ export default function EscolasPage() {
       setEscolas(escolasData)
       setPolos(polosData)
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
     } finally {
       setCarregando(false)
     }
@@ -106,7 +105,6 @@ export default function EscolasPage() {
         toast.error(data.mensagem || 'Erro ao salvar escola')
       }
     } catch (error) {
-      console.error('Erro ao salvar escola:', error)
       toast.error('Erro ao salvar escola')
     } finally {
       setSalvando(false)
@@ -138,7 +136,6 @@ export default function EscolasPage() {
         return
       }
     } catch (error) {
-      console.error('Erro ao verificar vínculos:', error)
       toast.error('Erro ao verificar vínculos da escola')
       return
     }
@@ -173,7 +170,6 @@ export default function EscolasPage() {
         }
       }
     } catch (error) {
-      console.error('Erro ao excluir escola:', error)
       toast.error('Erro ao excluir escola')
     }
   }

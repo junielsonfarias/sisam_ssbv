@@ -106,7 +106,6 @@ export default function AlunosEscolaPage() {
         }
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          console.error('Erro ao carregar dados iniciais:', error)
         }
       } finally {
         if (!abortController.signal.aborted) {
@@ -136,7 +135,6 @@ export default function AlunosEscolaPage() {
           setSeriesDisponiveis(ordenarSeries(seriesUnicas))
         }
       } catch (error) {
-        console.error('Erro ao carregar séries:', error)
       }
     }
     carregarSeries()
@@ -156,7 +154,7 @@ export default function AlunosEscolaPage() {
   useEffect(() => {
     if (escolaId) {
       fetch(`/api/admin/turmas?escolas_ids=${escolaId}`)
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => setTodasTurmas(Array.isArray(data) ? data : []))
         .catch(() => setTodasTurmas([]))
     }
@@ -197,7 +195,7 @@ export default function AlunosEscolaPage() {
       if (buscaDebounced) params.append('busca', buscaDebounced)
       params.append('limite', '200')
 
-      const data = await fetch(`/api/admin/alunos?${params}`).then(r => r.json())
+      const data = await fetch(`/api/admin/alunos?${params}`).then(r => r.ok ? r.json() : Promise.reject())
 
       const lista = data.alunos && Array.isArray(data.alunos) ? data.alunos : Array.isArray(data) ? data : []
       setAlunos(lista)

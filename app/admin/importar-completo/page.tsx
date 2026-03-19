@@ -41,7 +41,7 @@ export default function ImportarCompletoPage() {
   useEffect(() => {
     if (anoLetivo.length !== 4) { setAvaliacoes([]); setAvaliacaoId(''); return }
     fetch(`/api/admin/avaliacoes?ano_letivo=${anoLetivo}`)
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => {
         const lista: AvaliacaoOpcao[] = Array.isArray(data) ? data : []
         setAvaliacoes(lista)
@@ -88,7 +88,6 @@ export default function ImportarCompletoPage() {
         }
       }
     } catch (error) {
-      console.error('Erro ao buscar resultado final:', error)
     }
   }
 
@@ -153,7 +152,6 @@ export default function ImportarCompletoPage() {
         }
       }
     } catch (error) {
-      console.error('Erro ao buscar progresso:', error)
     }
   }
 
@@ -173,7 +171,6 @@ export default function ImportarCompletoPage() {
         setErro(errorData.mensagem || 'Erro ao pausar importação')
       }
     } catch (error) {
-      console.error('Erro ao pausar:', error)
       setErro('Erro ao conectar com o servidor')
     }
   }
@@ -195,7 +192,6 @@ export default function ImportarCompletoPage() {
         setErro(errorData.mensagem || 'Erro ao retomar importação')
       }
     } catch (error) {
-      console.error('Erro ao retomar:', error)
       setErro('Erro ao conectar com o servidor')
     }
   }
@@ -227,7 +223,6 @@ export default function ImportarCompletoPage() {
         setErro(errorData.mensagem || 'Erro ao cancelar importação')
       }
     } catch (error) {
-      console.error('Erro ao cancelar:', error)
       setErro('Erro ao conectar com o servidor')
     }
   }
@@ -289,7 +284,6 @@ export default function ImportarCompletoPage() {
             removerImportacaoAtiva()
           }
         } catch (error) {
-          console.error('Erro ao verificar importação salva:', error)
           removerImportacaoAtiva()
         }
       }

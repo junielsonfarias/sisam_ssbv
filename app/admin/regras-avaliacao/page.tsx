@@ -139,7 +139,6 @@ export default function RegrasAvaliacaoPage() {
       if (tiposRes.ok) setTipos(await tiposRes.json())
       if (regrasRes.ok) setRegras(await regrasRes.json())
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
       toast.error('Erro ao carregar dados')
     } finally {
       setCarregando(false)

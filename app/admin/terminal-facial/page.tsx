@@ -101,7 +101,6 @@ export default function TerminalFacialPage() {
 
         setStatusModelo('pronto')
       } catch (err: any) {
-        console.error('Erro ao carregar modelos:', err)
         setErroModelo(err.message || 'Falha ao carregar modelos de reconhecimento')
         setStatusModelo('erro')
       }
@@ -112,7 +111,7 @@ export default function TerminalFacialPage() {
   // Carregar escolas
   useEffect(() => {
     fetch('/api/admin/escolas')
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setEscolas(Array.isArray(data) ? data : []))
       .catch(() => setEscolas([]))
   }, [])
@@ -122,7 +121,7 @@ export default function TerminalFacialPage() {
     if (config.escola_id) {
       const ano = new Date().getFullYear()
       fetch(`/api/admin/turmas?escolas_ids=${config.escola_id}&ano_letivo=${ano}`)
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => setTurmas(Array.isArray(data) ? data : []))
         .catch(() => setTurmas([]))
     } else {
@@ -166,7 +165,6 @@ export default function TerminalFacialPage() {
       setAlunos(alunosCarregados)
       return alunosCarregados.length
     } catch (err) {
-      console.error('Erro ao carregar alunos:', err)
       return 0
     }
   }, [config.escola_id, config.turma_id])
@@ -194,7 +192,6 @@ export default function TerminalFacialPage() {
       streamRef.current = stream
       setStatusCamera('ativa')
     } catch (err) {
-      console.error('Erro ao abrir câmera:', err)
       setStatusCamera('erro')
     }
   }, [])

@@ -176,7 +176,6 @@ export default function ConfiguracaoSeriesPage() {
         setRegrasEditando(regrasIniciais)
       }
     } catch (error) {
-      console.error('Erro ao carregar configurações:', error)
       setMensagem({ tipo: 'erro', texto: 'Erro ao carregar configurações' })
     } finally {
       setCarregando(false)
@@ -200,7 +199,6 @@ export default function ConfiguracaoSeriesPage() {
       }
       setEditandoSerie(config.id)
     } catch (error) {
-      console.error('Erro ao buscar disciplinas:', error)
       // Em caso de erro, usar configuração padrão
       if (DISCIPLINAS_PADRAO_POR_SERIE[config.serie]) {
         setDisciplinasEditando([...DISCIPLINAS_PADRAO_POR_SERIE[config.serie]])
@@ -332,7 +330,6 @@ export default function ConfiguracaoSeriesPage() {
         setMensagem({ tipo: 'erro', texto: data.mensagem || 'Erro ao salvar' })
       }
     } catch (error) {
-      console.error('Erro ao salvar:', error)
       setMensagem({ tipo: 'erro', texto: 'Erro ao salvar disciplinas' })
     } finally {
       setSalvando(null)
@@ -355,7 +352,6 @@ export default function ConfiguracaoSeriesPage() {
         setMensagem({ tipo: 'sucesso', texto: 'Tipo de ensino atualizado!' })
       }
     } catch (error) {
-      console.error('Erro ao atualizar tipo de ensino:', error)
     }
   }
 
@@ -424,7 +420,6 @@ export default function ConfiguracaoSeriesPage() {
         setMensagem({ tipo: 'erro', texto: data.mensagem || 'Erro ao criar série' })
       }
     } catch (error) {
-      console.error('Erro ao criar série:', error)
       setMensagem({ tipo: 'erro', texto: 'Erro ao criar série' })
     } finally {
       setSalvando(null)
@@ -447,7 +442,6 @@ export default function ConfiguracaoSeriesPage() {
         setMensagem({ tipo: 'erro', texto: data.mensagem || 'Erro ao excluir série' })
       }
     } catch (error) {
-      console.error('Erro ao excluir série:', error)
       setMensagem({ tipo: 'erro', texto: 'Erro ao excluir série' })
     } finally {
       setExcluindoSerie(null)
@@ -482,7 +476,6 @@ export default function ConfiguracaoSeriesPage() {
         setMensagem({ tipo: 'erro', texto: data.mensagem || 'Erro ao salvar regras' })
       }
     } catch (error) {
-      console.error('Erro ao salvar regras:', error)
       setMensagem({ tipo: 'erro', texto: 'Erro ao salvar regras de aprovação' })
     } finally {
       setSalvandoRegras(null)

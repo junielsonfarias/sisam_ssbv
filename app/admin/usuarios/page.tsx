@@ -68,7 +68,6 @@ export default function UsuariosPage() {
       setPolos(Array.isArray(polosData) ? polosData : [])
       setEscolas(Array.isArray(escolasData) ? escolasData : [])
     } catch (error) {
-      console.error('Erro ao carregar polos e escolas:', error)
     }
   }
 
@@ -78,7 +77,6 @@ export default function UsuariosPage() {
       const data = await response.json()
       setUsuarios(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error)
     } finally {
       setCarregando(false)
     }
@@ -161,7 +159,6 @@ export default function UsuariosPage() {
         toast.error(data.mensagem || 'Erro ao salvar usuário')
       }
     } catch (error) {
-      console.error('Erro ao salvar usuário:', error)
       toast.error('Erro ao salvar usuário')
     } finally {
       setSalvando(false)
@@ -189,7 +186,6 @@ export default function UsuariosPage() {
         toast.error(data.mensagem || 'Erro ao excluir usuário')
       }
     } catch (error) {
-      console.error('Erro ao excluir usuário:', error)
       toast.error('Erro ao excluir usuário')
     } finally {
       setExcluindo(false)
@@ -220,7 +216,6 @@ export default function UsuariosPage() {
         toast.error(data.mensagem || 'Erro ao alterar status')
       }
     } catch (error) {
-      console.error('Erro ao alterar status:', error)
       toast.error('Erro ao alterar status do usuário')
     }
   }

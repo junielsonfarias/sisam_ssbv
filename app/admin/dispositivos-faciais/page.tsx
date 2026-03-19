@@ -169,7 +169,6 @@ export default function DispositivosFaciaisPage() {
         if (!silencioso) toast.error('Erro ao carregar dispositivos')
       }
     } catch (error) {
-      console.error('Erro ao carregar dispositivos:', error)
       if (!silencioso) toast.error('Erro ao carregar dispositivos')
     } finally {
       if (!silencioso) setCarregando(false)
@@ -182,7 +181,6 @@ export default function DispositivosFaciaisPage() {
       const data = await response.json()
       setEscolas(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Erro ao carregar escolas:', error)
     }
   }
 
@@ -194,7 +192,6 @@ export default function DispositivosFaciaisPage() {
         setPresencasHoje(data.presenca?.total_presentes || 0)
       }
     } catch (error) {
-      console.error('Erro ao carregar presencas:', error)
     }
   }
 
@@ -299,7 +296,6 @@ export default function DispositivosFaciaisPage() {
         toast.error(data.mensagem || data.error || 'Erro ao cadastrar dispositivo')
       }
     } catch (error) {
-      console.error('Erro ao cadastrar dispositivo:', error)
       toast.error('Erro ao cadastrar dispositivo')
     } finally {
       setSalvando(false)
@@ -346,7 +342,6 @@ export default function DispositivosFaciaisPage() {
         toast.error(data.mensagem || data.error || 'Erro ao atualizar dispositivo')
       }
     } catch (error) {
-      console.error('Erro ao atualizar dispositivo:', error)
       toast.error('Erro ao atualizar dispositivo')
     } finally {
       setSalvando(false)
@@ -379,7 +374,6 @@ export default function DispositivosFaciaisPage() {
         toast.error(data.mensagem || data.error || 'Erro ao regenerar chave')
       }
     } catch (error) {
-      console.error('Erro ao regenerar chave:', error)
       toast.error('Erro ao regenerar chave')
     } finally {
       setSalvando(false)
@@ -410,7 +404,6 @@ export default function DispositivosFaciaisPage() {
         toast.error(data.mensagem || data.error || 'Erro ao bloquear dispositivo')
       }
     } catch (error) {
-      console.error('Erro ao bloquear dispositivo:', error)
       toast.error('Erro ao bloquear dispositivo')
     } finally {
       setSalvando(false)
@@ -435,7 +428,6 @@ export default function DispositivosFaciaisPage() {
         setMostrarModalQrCode(false)
       }
     } catch (error) {
-      console.error('Erro ao gerar QR Code:', error)
       toast.error('Erro ao gerar QR Code')
       setMostrarModalQrCode(false)
     } finally {
@@ -472,7 +464,6 @@ export default function DispositivosFaciaisPage() {
         setMostrarModalEstatisticas(false)
       }
     } catch (error) {
-      console.error('Erro ao carregar estatisticas:', error)
       toast.error('Erro ao carregar estatisticas')
       setMostrarModalEstatisticas(false)
     } finally {

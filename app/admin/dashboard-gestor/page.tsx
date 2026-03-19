@@ -142,7 +142,7 @@ export default function DashboardGestorPage() {
             if (d.usuario.escola_id) setEscolaId(d.usuario.escola_id)
           }
         }
-      } catch (e) { console.error(e) }
+      } catch { }
     }
     init()
   }, [])
@@ -150,7 +150,7 @@ export default function DashboardGestorPage() {
   useEffect(() => {
     if (tipoUsuario && tipoUsuario !== 'escola') {
       fetch('/api/admin/escolas')
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => setEscolas(Array.isArray(d) ? d : []))
         .catch(() => setEscolas([]))
     }

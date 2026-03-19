@@ -69,7 +69,6 @@ export default function PerfilPage() {
       setNovoNome(data.nome)
       setNovoEmail(data.email)
     } catch (error) {
-      console.error('Erro ao carregar perfil:', error)
       mostrarMensagem('erro', 'Erro ao carregar dados do perfil')
     } finally {
       setCarregando(false)

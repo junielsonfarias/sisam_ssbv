@@ -132,7 +132,6 @@ export default function ComparativosPage() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar dados iniciais:', error)
     }
   }
 
@@ -181,7 +180,6 @@ export default function ComparativosPage() {
         setTurmas([])
       }
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error)
       setTurmas([])
     }
   }
@@ -228,11 +226,9 @@ export default function ComparativosPage() {
         const seriesUnicas = [...new Set(data.dados?.map((d: DadosComparativo) => d.serie).filter(Boolean))] as string[]
         setSeries(seriesUnicas.sort())
       } else {
-        console.error('Erro na API:', data.mensagem)
         setDados({})
       }
     } catch (error) {
-      console.error('Erro ao carregar comparativos:', error)
       setDados({})
     } finally {
       setCarregando(false)

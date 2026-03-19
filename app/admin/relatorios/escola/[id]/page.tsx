@@ -50,7 +50,6 @@ export default function RelatorioEscolaPage() {
         const dadosRelatorio = await response.json();
         setDados(dadosRelatorio);
       } catch (error) {
-        console.error('Erro ao carregar relatório:', error);
         setErro(error instanceof Error ? error.message : 'Erro desconhecido');
       } finally {
         setCarregando(false);

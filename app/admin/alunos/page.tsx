@@ -102,7 +102,6 @@ export default function AlunosPage() {
           setPolos([])
         }
       } catch (error) {
-        console.error('Erro ao carregar dados iniciais:', error)
         setPolos([])
       } finally {
         setCarregando(false)
@@ -115,7 +114,7 @@ export default function AlunosPage() {
   useEffect(() => {
     if (filtroPolo) {
       fetch(`/api/admin/escolas?polo_id=${filtroPolo}`)
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(setEscolas)
         .catch(() => setEscolas([]))
     } else {
@@ -127,7 +126,7 @@ export default function AlunosPage() {
   useEffect(() => {
     if (filtroEscola) {
       fetch(`/api/admin/turmas?escolas_ids=${filtroEscola}`)
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(setTurmas)
         .catch(() => setTurmas([]))
     } else {
@@ -231,7 +230,6 @@ export default function AlunosPage() {
       setPaginacao(paginacaoData)
       setPaginaAtual(paginacaoData.pagina)
     } catch (error) {
-      console.error('Erro ao carregar alunos:', error)
       setAlunos([])
       setPaginacao({
         pagina: 1,
@@ -282,7 +280,7 @@ export default function AlunosPage() {
       })
 
       try {
-        const escolaData = await fetch(`/api/admin/escolas?id=${aluno.escola_id}`).then(r => r.json())
+        const escolaData = await fetch(`/api/admin/escolas?id=${aluno.escola_id}`).then(r => r.ok ? r.json() : Promise.reject())
         if (escolaData[0]?.polo_id) {
           await carregarEscolas(escolaData[0].polo_id)
           await carregarTurmas(aluno.escola_id)
@@ -293,7 +291,6 @@ export default function AlunosPage() {
           }))
         }
       } catch (error) {
-        console.error('Erro ao carregar dados:', error)
       }
     } else {
       setAlunoEditando(null)
@@ -305,12 +302,12 @@ export default function AlunosPage() {
   }
 
   const carregarEscolas = async (poloId: string) => {
-    const data = await fetch(`/api/admin/escolas?polo_id=${poloId}`).then(r => r.json())
+    const data = await fetch(`/api/admin/escolas?polo_id=${poloId}`).then(r => r.ok ? r.json() : Promise.reject())
     setEscolas(data)
   }
 
   const carregarTurmas = async (escolaId: string) => {
-    const data = await fetch(`/api/admin/turmas?escolas_ids=${escolaId}`).then(r => r.json())
+    const data = await fetch(`/api/admin/turmas?escolas_ids=${escolaId}`).then(r => r.ok ? r.json() : Promise.reject())
     setTurmas(data)
   }
 
@@ -340,7 +337,6 @@ export default function AlunosPage() {
         toast.error(data.mensagem || 'Erro ao salvar aluno')
       }
     } catch (error) {
-      console.error('Erro ao salvar:', error)
       toast.error('Erro ao salvar aluno')
     } finally {
       setSalvando(false)
@@ -363,7 +359,6 @@ export default function AlunosPage() {
         setMostrarModalHistorico(false)
       }
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error)
       toast.error('Erro ao carregar histórico')
       setMostrarModalHistorico(false)
     } finally {
@@ -384,7 +379,6 @@ export default function AlunosPage() {
         toast.error(data.mensagem || 'Erro ao excluir')
       }
     } catch (error) {
-      console.error('Erro ao excluir:', error)
       toast.error('Erro ao excluir aluno')
     }
   }

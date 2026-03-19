@@ -74,7 +74,6 @@ export default function ComparativosPolosPage() {
       const polosData = await polosRes.json()
       setPolos(polosData)
     } catch (error) {
-      console.error('Erro ao carregar dados iniciais:', error)
     }
   }
 
@@ -95,7 +94,6 @@ export default function ComparativosPolosPage() {
       }
       setEscolas([...new Map(escolasFiltradas.map(e => [e.id, e])).values()])
     } catch (error) {
-      console.error('Erro ao carregar escolas:', error)
       setEscolas([])
     }
   }
@@ -124,7 +122,6 @@ export default function ComparativosPolosPage() {
         setTurmas([])
       }
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error)
       setTurmas([])
     }
   }
@@ -170,13 +167,11 @@ export default function ComparativosPolosPage() {
         const seriesUnicas = [...new Set(Object.values(data.dadosPorSerie || {}).flat().map((d: any) => d.serie).filter(Boolean))] as string[]
         setSeries(seriesUnicas.sort())
       } else {
-        console.error('Erro na API:', data.mensagem)
         setDados({})
         setDadosAgregados({})
         setDadosPorSerieEscola({})
       }
     } catch (error) {
-      console.error('Erro ao carregar comparativos:', error)
       setDados({})
       setDadosAgregados({})
       setDadosPorSerieEscola({})

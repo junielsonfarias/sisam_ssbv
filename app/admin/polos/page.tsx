@@ -58,7 +58,6 @@ export default function PolosPage() {
       const data = await response.json()
       setPolos(data)
     } catch (error) {
-      console.error('Erro ao carregar polos:', error)
     } finally {
       setCarregando(false)
     }
@@ -106,7 +105,6 @@ export default function PolosPage() {
         toast.error(data.mensagem || 'Erro ao salvar polo')
       }
     } catch (error) {
-      console.error('Erro ao salvar polo:', error)
       toast.error('Erro ao salvar polo')
     } finally {
       setSalvando(false)

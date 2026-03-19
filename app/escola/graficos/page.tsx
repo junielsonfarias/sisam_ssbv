@@ -71,7 +71,6 @@ export default function GraficosEscolaPage() {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar dados iniciais:', error)
       }
     }
     carregarDadosIniciais()
@@ -105,7 +104,6 @@ export default function GraficosEscolaPage() {
         setTurmas([])
       }
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error)
       setTurmas([])
     }
   }
@@ -166,7 +164,6 @@ export default function GraficosEscolaPage() {
       
       setDados(data)
     } catch (error: any) {
-      console.error('Erro ao buscar gráficos:', error)
       setErro(error.message || 'Erro ao conectar com o servidor')
     } finally {
       setCarregando(false)

@@ -114,10 +114,8 @@ export default function LogsAcessoPage() {
           totalGeral: 0
         })
       } else {
-        console.error('Erro ao carregar logs:', data.mensagem)
       }
     } catch (error) {
-      console.error('Erro ao carregar logs:', error)
     } finally {
       setCarregando(false)
     }

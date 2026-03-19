@@ -59,7 +59,6 @@ export default function InfrequenciaPage() {
           }
         }
       } catch (e) {
-        console.error('Erro:', e)
       }
     }
     init()
@@ -69,7 +68,7 @@ export default function InfrequenciaPage() {
   useEffect(() => {
     if (tipoUsuario && tipoUsuario !== 'escola') {
       fetch('/api/admin/escolas')
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => setEscolas(Array.isArray(data) ? data : []))
         .catch(() => setEscolas([]))
     }
@@ -78,7 +77,7 @@ export default function InfrequenciaPage() {
   // Carregar períodos
   useEffect(() => {
     fetch(`/api/admin/periodos-letivos?ano_letivo=${anoLetivo}`)
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setPeriodos(Array.isArray(data) ? data : []))
       .catch(() => setPeriodos([]))
   }, [anoLetivo])

@@ -42,7 +42,6 @@ export default function EscolasPoloPage() {
         setPoloNome(userData.usuario.polo_nome)
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
     } finally {
       setCarregando(false)
     }

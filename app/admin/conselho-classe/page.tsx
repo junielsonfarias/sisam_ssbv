@@ -74,7 +74,7 @@ export default function ConselhoClassePage() {
             }
           }
         }
-      } catch (e) { console.error(e) }
+      } catch { }
     }
     init()
   }, [])
@@ -83,7 +83,7 @@ export default function ConselhoClassePage() {
   useEffect(() => {
     if (tipoUsuario && tipoUsuario !== 'escola') {
       fetch('/api/admin/escolas')
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => setEscolas(Array.isArray(data) ? data : []))
         .catch(() => setEscolas([]))
     }
@@ -93,7 +93,7 @@ export default function ConselhoClassePage() {
   useEffect(() => {
     if (escolaId) {
       fetch(`/api/admin/turmas?escolas_ids=${escolaId}&ano_letivo=${anoLetivo}`)
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => setTurmas(Array.isArray(data) ? data : []))
         .catch(() => setTurmas([]))
     } else {
@@ -105,7 +105,7 @@ export default function ConselhoClassePage() {
   // Carregar períodos
   useEffect(() => {
     fetch(`/api/admin/periodos-letivos?ano_letivo=${anoLetivo}`)
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setPeriodos(Array.isArray(data) ? data : []))
       .catch(() => setPeriodos([]))
   }, [anoLetivo])

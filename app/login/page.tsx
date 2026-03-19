@@ -34,10 +34,8 @@ export default function LoginPage() {
       // Verificar se existe usuário offline no localStorage
       const offlineUser = offlineStorage.getUser()
 
-      console.log('[Login] Verificando usuário offline:', { online, hasUser: !!offlineUser })
 
       if (offlineUser) {
-        console.log('[Login] Usuário offline encontrado, redirecionando...')
         // Polo vai direto ao dashboard (sem tela de módulos)
         if (offlineUser.tipo_usuario === 'polo') {
           router.push('/polo/dashboard')
@@ -114,14 +112,12 @@ export default function LoginPage() {
       try {
         data = await response.json()
       } catch (jsonError) {
-        console.error('Erro ao parsear resposta JSON:', jsonError)
         setErro('Erro ao processar resposta do servidor')
         setCarregando(false)
         return
       }
 
       if (!response.ok) {
-        console.error('Erro no login:', data)
         setErro(data.mensagem || data.detalhes || 'Erro ao fazer login')
         setCarregando(false)
         return
@@ -139,7 +135,6 @@ export default function LoginPage() {
         polo_nome: data.usuario.polo_nome,
         escola_nome: data.usuario.escola_nome
       })
-      console.log('[Login] Usuário salvo para uso offline')
 
       // Limpar cache antigo e sincronizar novos dados
       setCarregando(false)
@@ -157,7 +152,6 @@ export default function LoginPage() {
         setEtapaSincronizacao('Sincronização concluída!')
         await new Promise(resolve => setTimeout(resolve, 500)) // Mostrar mensagem por 500ms
       } catch (syncError) {
-        console.error('[Login] Erro na sincronização, continuando:', syncError)
         // Não bloquear o login se a sincronização falhar
       }
 
