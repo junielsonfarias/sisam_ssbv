@@ -16,6 +16,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 interface EscolaSimples { id: string; nome: string }
 interface TurmaSimples { id: string; codigo: string; nome: string | null; serie: string; ano_letivo: string; total_alunos?: number }
 interface Disciplina { id: string; nome: string; codigo: string | null; abreviacao: string | null }
+interface SerieEscolarSimples { id: string; codigo: string; nome: string; etapa: string; ordem: number }
 interface Periodo { id: string; nome: string; tipo: string; numero: number; ano_letivo: string }
 interface AlunoTurma {
   id: string; nome: string; codigo: string | null; situacao: string | null; pcd: boolean
@@ -110,6 +111,7 @@ export default function NotasEscolaresPage() {
   // Seleção
   const [escolas, setEscolas] = useState<EscolaSimples[]>([])
   const [turmas, setTurmas] = useState<TurmaSimples[]>([])
+  const [seriesEscolares, setSeriesEscolares] = useState<SerieEscolarSimples[]>([])
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
   const [periodos, setPeriodos] = useState<Periodo[]>([])
 
@@ -120,8 +122,27 @@ export default function NotasEscolaresPage() {
   const [periodoId, setPeriodoId] = useState('')
   const [anoLetivo, setAnoLetivo] = useState(new Date().getFullYear().toString())
 
-  // Séries únicas extraídas das turmas + turmas filtradas pela série
-  const seriesUnicas = Array.from(new Set(turmas.map(t => t.serie))).sort()
+  // Mapear serie da turma → nome bonito da series_escolares
+  const mapSerieNome = (serieCodigo: string): string => {
+    // Tentar match por código numérico (ex: "1" → "1º Ano")
+    const num = serieCodigo.replace(/[^0-9]/g, '')
+    const match = seriesEscolares.find(se =>
+      se.codigo === num || se.codigo === serieCodigo || se.nome === serieCodigo
+    )
+    return match?.nome || serieCodigo
+  }
+
+  // Séries únicas extraídas das turmas com nomes corretos
+  const seriesUnicas = Array.from(new Set(turmas.map(t => t.serie)))
+    .map(s => ({ valor: s, nome: mapSerieNome(s) }))
+    .sort((a, b) => {
+      // Ordenar pelo campo ordem da series_escolares
+      const numA = a.valor.replace(/[^0-9]/g, '')
+      const numB = b.valor.replace(/[^0-9]/g, '')
+      const ordemA = seriesEscolares.find(se => se.codigo === numA)?.ordem ?? 99
+      const ordemB = seriesEscolares.find(se => se.codigo === numB)?.ordem ?? 99
+      return ordemA - ordemB
+    })
   const turmasFiltradas = serieFiltro ? turmas.filter(t => t.serie === serieFiltro) : turmas
 
   // Tipo de avaliação da turma
@@ -166,9 +187,10 @@ export default function NotasEscolaresPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [authRes, discRes] = await Promise.all([
+        const [authRes, discRes, seriesRes] = await Promise.all([
           fetch('/api/auth/verificar'),
           fetch('/api/admin/disciplinas-escolares'),
+          fetch('/api/admin/series-escolares'),
         ])
 
         if (authRes.ok) {
@@ -184,6 +206,10 @@ export default function NotasEscolaresPage() {
         }
 
         if (discRes.ok) setDisciplinas(await discRes.json())
+        if (seriesRes.ok) {
+          const data = await seriesRes.json()
+          setSeriesEscolares(Array.isArray(data) ? data : data.series || [])
+        }
       } catch (e) {
         console.error('Erro ao carregar dados iniciais:', e)
       }
@@ -728,8 +754,8 @@ function PainelSelecao({
             className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
           >
             <option value="">Todas as séries</option>
-            {series.map((s: string) => (
-              <option key={s} value={s}>{s}</option>
+            {series.map((s: any) => (
+              <option key={s.valor} value={s.valor}>{s.nome}</option>
             ))}
           </select>
         </div>
