@@ -114,10 +114,15 @@ export default function NotasEscolaresPage() {
   const [periodos, setPeriodos] = useState<Periodo[]>([])
 
   const [escolaId, setEscolaId] = useState('')
+  const [serieFiltro, setSerieFiltro] = useState('')
   const [turmaId, setTurmaId] = useState('')
   const [disciplinaId, setDisciplinaId] = useState('')
   const [periodoId, setPeriodoId] = useState('')
   const [anoLetivo, setAnoLetivo] = useState(new Date().getFullYear().toString())
+
+  // Séries únicas extraídas das turmas + turmas filtradas pela série
+  const seriesUnicas = Array.from(new Set(turmas.map(t => t.serie))).sort()
+  const turmasFiltradas = serieFiltro ? turmas.filter(t => t.serie === serieFiltro) : turmas
 
   // Tipo de avaliação da turma
   const [avaliacaoTurma, setAvaliacaoTurma] = useState<AvaliacaoTurma | null>(null)
@@ -206,6 +211,7 @@ export default function NotasEscolaresPage() {
     } else {
       setTurmas([])
     }
+    setSerieFiltro('')
     setTurmaId('')
   }, [escolaId, anoLetivo])
 
@@ -589,15 +595,18 @@ export default function NotasEscolaresPage() {
           <PainelSelecao
             tipoUsuario={tipoUsuario}
             escolas={escolas}
-            turmas={turmas}
+            turmas={turmasFiltradas}
+            series={seriesUnicas}
             disciplinas={disciplinas}
             periodos={periodos}
             escolaId={escolaId}
+            serieFiltro={serieFiltro}
             turmaId={turmaId}
             disciplinaId={disciplinaId}
             periodoId={periodoId}
             anoLetivo={anoLetivo}
             setEscolaId={setEscolaId}
+            setSerieFiltro={(v: string) => { setSerieFiltro(v); setTurmaId('') }}
             setTurmaId={setTurmaId}
             setDisciplinaId={setDisciplinaId}
             setPeriodoId={setPeriodoId}
@@ -649,9 +658,9 @@ export default function NotasEscolaresPage() {
 // ============================================
 
 function PainelSelecao({
-  tipoUsuario, escolas, turmas, disciplinas, periodos,
-  escolaId, turmaId, disciplinaId, periodoId, anoLetivo,
-  setEscolaId, setTurmaId, setDisciplinaId, setPeriodoId, setAnoLetivo,
+  tipoUsuario, escolas, turmas, series, disciplinas, periodos,
+  escolaId, serieFiltro, turmaId, disciplinaId, periodoId, anoLetivo,
+  setEscolaId, setSerieFiltro, setTurmaId, setDisciplinaId, setPeriodoId, setAnoLetivo,
   onIniciar, avaliacaoTurma,
 }: any) {
   const tipoResultado = avaliacaoTurma?.tipo_avaliacao?.tipo_resultado
@@ -709,6 +718,21 @@ function PainelSelecao({
             </select>
           </div>
         )}
+
+        {/* Série */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Série</label>
+          <select
+            value={serieFiltro}
+            onChange={e => setSerieFiltro(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+          >
+            <option value="">Todas as séries</option>
+            {series.map((s: string) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Turma */}
         <div>
