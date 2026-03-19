@@ -1,0 +1,5 @@
+export { default as AbaVisaoGeral } from './AbaVisaoGeral'
+export { default as AbaEscolas } from './AbaEscolas'
+export { default as AbaTurmas } from './AbaTurmas'
+export { default as AbaAlunos } from './AbaAlunos'
+export { default as AbaAnalises } from './AbaAnalises'
