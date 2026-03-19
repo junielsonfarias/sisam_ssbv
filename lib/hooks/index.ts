@@ -22,3 +22,9 @@ export { useModal } from './useModal'
 
 // Hooks de tipo de usuario
 export { useUserType } from './useUserType'
+
+// Hooks de dados com cache
+export { useEscolas } from './useEscolas'
+export { useTurmas } from './useTurmas'
+export { usePeriodos } from './usePeriodos'
+export { useDisciplinas } from './useDisciplinas'
