@@ -33,7 +33,6 @@ CREATE INDEX IF NOT EXISTS idx_notas_escolares_aluno_ano ON notas_escolares(alun
 CREATE INDEX IF NOT EXISTS idx_series_disciplinas_serie ON series_disciplinas(serie_id);
 CREATE INDEX IF NOT EXISTS idx_series_disciplinas_disciplina ON series_disciplinas(disciplina_id);
 CREATE INDEX IF NOT EXISTS idx_frequencia_diaria_turma ON frequencia_diaria(turma_id) WHERE turma_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_resultados_producao_turma ON resultados_producao(turma_id) WHERE turma_id IS NOT NULL;
 
 -- ============================================
 -- TRIGGERS atualizado_em FALTANTES
