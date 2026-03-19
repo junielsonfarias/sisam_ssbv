@@ -44,7 +44,8 @@ import {
   Tablet,
   CalendarClock,
   LayoutList,
-  Globe
+  Globe,
+  FileSpreadsheet
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
@@ -284,6 +285,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
             { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
             { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
+            { icon: ClipboardList, label: 'Avaliações SISAM', href: '/admin/avaliacoes' },
           ]
         })
       }
@@ -298,7 +300,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Users, label: 'Turmas', href: '/admin/turmas' },
             { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
-            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
             { icon: CalendarCheck, label: 'Frequência', href: '/admin/frequencia' },
             { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
             { icon: Scan, label: 'Frequência Diária', href: '/admin/frequencia-diaria' },
@@ -307,16 +308,20 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Tablet, label: 'Terminal Facial', href: '/admin/terminal-facial' },
             { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
             { icon: LayoutList, label: 'Painel da Turma', href: '/admin/painel-turma' },
-            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
             { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
-            { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
             { icon: AlertTriangle, label: 'Divergências', href: '/admin/divergencias' },
-            { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
-            { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
             { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
             { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
             { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
+          ]
+        })
+        items.push({
+          icon: FileSpreadsheet, label: 'Avaliações Escolares', children: [
+            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
+            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
+            { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
+            { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
           ]
         })
       }
@@ -357,7 +362,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Users, label: 'Turmas', href: '/admin/turmas' },
             { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
-            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
             { icon: CalendarCheck, label: 'Frequência', href: '/admin/frequencia' },
             { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
             { icon: Scan, label: 'Frequência Diária', href: '/admin/frequencia-diaria' },
@@ -366,15 +370,19 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Tablet, label: 'Terminal Facial', href: '/admin/terminal-facial' },
             { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
             { icon: LayoutList, label: 'Painel da Turma', href: '/admin/painel-turma' },
-            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
             { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
-            { icon: ClipboardList, label: 'Avaliações', href: '/admin/avaliacoes' },
-            { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
-            { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
             { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
             { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
             { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
+          ]
+        })
+        items.push({
+          icon: FileSpreadsheet, label: 'Avaliações Escolares', children: [
+            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
+            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
+            { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
+            { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
           ]
         })
       }
@@ -414,7 +422,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           icon: BookOpen, label: 'Gestor Escolar', children: [
             { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' },
             { icon: UserPlus, label: 'Matrículas', href: '/escola/matriculas' },
-            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
             { icon: CalendarCheck, label: 'Frequência', href: '/admin/frequencia' },
             { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
             { icon: Scan, label: 'Frequência Diária', href: '/admin/frequencia-diaria' },
@@ -422,14 +429,19 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: Tablet, label: 'Terminal Facial', href: '/admin/terminal-facial' },
             { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
             { icon: LayoutList, label: 'Painel da Turma', href: '/admin/painel-turma' },
-            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
             { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
-            { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
             { icon: Settings, label: 'Disciplinas e Períodos', href: '/admin/gestor-escolar' },
             { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
             { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
+          ]
+        })
+        items.push({
+          icon: FileSpreadsheet, label: 'Avaliações Escolares', children: [
+            { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
+            { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
+            { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
           ]
         })
       }
