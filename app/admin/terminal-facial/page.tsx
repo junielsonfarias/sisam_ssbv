@@ -4,11 +4,13 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import {
   Camera, CameraOff, Wifi, WifiOff, Users, Clock,
   CheckCircle, AlertCircle, Maximize, Minimize,
-  Volume2, VolumeX, RefreshCw, Settings, ArrowLeft,
+  Volume2, VolumeX, Settings, ArrowLeft,
   ScanFace, Loader2, UserX
 } from 'lucide-react'
 import Link from 'next/link'
 import { useSeries } from '@/lib/use-series'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { useTurmas } from '@/lib/hooks/useTurmas'
 
 // ============================================================================
 // Tipos
@@ -66,8 +68,8 @@ export default function TerminalFacialPage() {
   })
 
   // Dados
-  const [escolas, setEscolas] = useState<{ id: string; nome: string }[]>([])
-  const [turmas, setTurmas] = useState<{ id: string; codigo: string; nome: string | null; serie: string }[]>([])
+  const { escolas } = useEscolas()
+  const { turmas } = useTurmas(config.escola_id)
   const [alunos, setAlunos] = useState<AlunoEmbedding[]>([])
   const [registros, setRegistros] = useState<RegistroPresenca[]>([])
   const [mensagem, setMensagem] = useState('')
@@ -107,27 +109,6 @@ export default function TerminalFacialPage() {
     }
     carregarModelos()
   }, [])
-
-  // Carregar escolas
-  useEffect(() => {
-    fetch('/api/admin/escolas')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setEscolas(Array.isArray(data) ? data : []))
-      .catch(() => setEscolas([]))
-  }, [])
-
-  // Carregar turmas quando escola muda
-  useEffect(() => {
-    if (config.escola_id) {
-      const ano = new Date().getFullYear()
-      fetch(`/api/admin/turmas?escolas_ids=${config.escola_id}&ano_letivo=${ano}`)
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => setTurmas(Array.isArray(data) ? data : []))
-        .catch(() => setTurmas([]))
-    } else {
-      setTurmas([])
-    }
-  }, [config.escola_id])
 
   // ============================================================================
   // Carregar embeddings dos alunos

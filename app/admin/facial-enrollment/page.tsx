@@ -6,9 +6,9 @@ import { Search, Upload, Trash2, Shield, UserCheck, AlertTriangle, CheckCircle, 
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
-
-interface EscolaSimples { id: string; nome: string }
-interface TurmaSimples { id: string; codigo: string; nome: string | null; serie: string; ano_letivo: string }
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { useTurmas } from '@/lib/hooks/useTurmas'
 
 interface AlunoFacial {
   aluno_id: string
@@ -29,13 +29,17 @@ interface ConsentForm {
 export default function FacialEnrollmentPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
+
+  const { tipoUsuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+  const { escolas } = useEscolas({ desabilitado: isEscola })
 
   // Filtros
-  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
-  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [escolaId, setEscolaId] = useState('')
+  const { turmas } = useTurmas(escolaId)
   const [turmaId, setTurmaId] = useState('')
 
   // Dados
@@ -61,47 +65,8 @@ export default function FacialEnrollmentPage() {
   const [deleteAlunoId, setDeleteAlunoId] = useState<string | null>(null)
   const [deletando, setDeletando] = useState(false)
 
-  // Init
+  // Reset turma when escola changes
   useEffect(() => {
-    const init = async () => {
-      try {
-        const authRes = await fetch('/api/auth/verificar')
-        if (authRes.ok) {
-          const data = await authRes.json()
-          if (data.usuario) {
-            const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-            setTipoUsuario(tipo)
-            if (data.usuario.escola_id) {
-              setEscolaIdUsuario(data.usuario.escola_id)
-              setEscolaId(data.usuario.escola_id)
-            }
-          }
-        }
-      } catch {}
-    }
-    init()
-  }, [])
-
-  // Carregar escolas
-  useEffect(() => {
-    if (tipoUsuario && tipoUsuario !== 'escola') {
-      fetch('/api/admin/escolas')
-        .then(r => r.json())
-        .then(data => setEscolas(Array.isArray(data) ? data : []))
-        .catch(() => setEscolas([]))
-    }
-  }, [tipoUsuario])
-
-  // Carregar turmas
-  useEffect(() => {
-    if (escolaId) {
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}`)
-        .then(r => r.json())
-        .then(data => setTurmas(Array.isArray(data) ? data : []))
-        .catch(() => setTurmas([]))
-    } else {
-      setTurmas([])
-    }
     setTurmaId('')
   }, [escolaId])
 

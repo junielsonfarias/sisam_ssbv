@@ -4,15 +4,16 @@ import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useRef } from 'react'
 import {
   FileText, Search, Printer, GraduationCap, Calendar,
-  User, MapPin, BookOpen, CheckCircle, XCircle, ChevronDown
+  User, MapPin
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { useTurmas } from '@/lib/hooks/useTurmas'
 
 interface AlunoSimples { id: string; nome: string; codigo: string; serie: string }
-interface EscolaSimples { id: string; nome: string }
-interface TurmaSimples { id: string; codigo: string; serie: string }
 
 interface HistoricoData {
   aluno: {
@@ -47,12 +48,16 @@ export default function HistoricoEscolarPage() {
   const { formatSerie } = useSeries()
   const printRef = useRef<HTMLDivElement>(null)
 
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
-  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
+  const { tipoUsuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+  const { escolas } = useEscolas()
+  const [escolaId, setEscolaId] = useState('')
+  const { turmas } = useTurmas(escolaId)
   const [alunos, setAlunos] = useState<AlunoSimples[]>([])
 
-  const [escolaId, setEscolaId] = useState('')
   const [turmaId, setTurmaId] = useState('')
   const [alunoId, setAlunoId] = useState('')
   const [busca, setBusca] = useState('')
@@ -60,30 +65,8 @@ export default function HistoricoEscolarPage() {
   const [historico, setHistorico] = useState<HistoricoData | null>(null)
   const [carregando, setCarregando] = useState(false)
 
+  // Reset when escola changes
   useEffect(() => {
-    const u = localStorage.getItem('usuario')
-    if (u) {
-      const parsed = JSON.parse(u)
-      setTipoUsuario(parsed.tipo_usuario)
-      if (parsed.tipo_usuario === 'escola' && parsed.escola_id) {
-        setEscolaId(parsed.escola_id)
-      }
-    }
-    fetch('/api/admin/escolas')
-      .then(r => r.json())
-      .then(data => setEscolas(Array.isArray(data) ? data : data.dados || []))
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    if (escolaId) {
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}`)
-        .then(r => r.json())
-        .then(data => setTurmas(Array.isArray(data) ? data : []))
-        .catch(() => setTurmas([]))
-    } else {
-      setTurmas([])
-    }
     setTurmaId('')
     setAlunoId('')
     setAlunos([])

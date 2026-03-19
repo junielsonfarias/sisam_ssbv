@@ -3,14 +3,14 @@
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import {
-  FileText, Printer, Search, GraduationCap, Users,
-  Calendar, BookOpen, ClipboardList, ChevronDown
+  FileText, Printer, Calendar, BookOpen, ClipboardList
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
 
-interface EscolaSimples { id: string; nome: string }
 interface TurmaSimples { id: string; codigo: string; serie: string }
 interface AlunoSimples { id: string; nome: string; codigo: string; serie: string }
 
@@ -33,8 +33,12 @@ export default function RelatoriosPdfPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
 
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
+  const { tipoUsuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+  const { escolas } = useEscolas()
   const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [alunos, setAlunos] = useState<AlunoSimples[]>([])
 
@@ -47,21 +51,6 @@ export default function RelatoriosPdfPage() {
   const [carregando, setCarregando] = useState(false)
   const [dadosRelatorio, setDadosRelatorio] = useState<any>(null)
   const [escolaNome, setEscolaNome] = useState('')
-
-  useEffect(() => {
-    const u = localStorage.getItem('usuario')
-    if (u) {
-      const parsed = JSON.parse(u)
-      setTipoUsuario(parsed.tipo_usuario)
-      if (parsed.tipo_usuario === 'escola' && parsed.escola_id) {
-        setEscolaId(parsed.escola_id)
-      }
-    }
-    fetch('/api/admin/escolas')
-      .then(r => r.json())
-      .then(data => setEscolas(Array.isArray(data) ? data : data.dados || []))
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     if (escolaId) {

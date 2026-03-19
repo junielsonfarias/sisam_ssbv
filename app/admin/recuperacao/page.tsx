@@ -2,14 +2,14 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Search, Users, BookOpen, RotateCcw, TrendingDown } from 'lucide-react'
+import { AlertTriangle, Search, Users, BookOpen, RotateCcw } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
-
-interface EscolaSimples { id: string; nome: string }
-interface TurmaSimples { id: string; codigo: string; nome: string | null; serie: string; ano_letivo: string }
-interface Periodo { id: string; nome: string; tipo: string; numero: number; ano_letivo: string }
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { useTurmas } from '@/lib/hooks/useTurmas'
+import { usePeriodos } from '@/lib/hooks/usePeriodos'
 
 interface DisciplinaRecuperacao {
   disciplina_nome: string
@@ -35,75 +35,33 @@ interface AlunoRecuperacao {
 export default function RecuperacaoPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
-  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
-  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
-  const [periodos, setPeriodos] = useState<Periodo[]>([])
   const [escolaId, setEscolaId] = useState('')
   const [turmaId, setTurmaId] = useState('')
   const [periodoId, setPeriodoId] = useState('')
   const [serie, setSerie] = useState('')
   const [anoLetivo, setAnoLetivo] = useState(new Date().getFullYear().toString())
 
+  // Auth via hook
+  const { tipoUsuario, usuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+
+  // Dados via hooks
+  const { escolas } = useEscolas({ desabilitado: isEscola })
+  const { turmas } = useTurmas(escolaId, anoLetivo)
+  const { periodos } = usePeriodos(anoLetivo)
+
+  // Reset turmaId quando escola/ano mudam
+  useEffect(() => { setTurmaId('') }, [escolaId, anoLetivo])
+
   const [alunos, setAlunos] = useState<AlunoRecuperacao[]>([])
   const [resumo, setResumo] = useState({
     total_alunos: 0, total_disciplinas: 0, pendentes: 0, em_recuperacao: 0, media_aprovacao: 6
   })
   const [carregando, setCarregando] = useState(false)
-
-  // Init
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const authRes = await fetch('/api/auth/verificar')
-        if (authRes.ok) {
-          const data = await authRes.json()
-          if (data.usuario) {
-            const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-            setTipoUsuario(tipo)
-            if (data.usuario.escola_id) {
-              setEscolaIdUsuario(data.usuario.escola_id)
-              setEscolaId(data.usuario.escola_id)
-            }
-          }
-        }
-      } catch { }
-    }
-    init()
-  }, [])
-
-  // Carregar escolas
-  useEffect(() => {
-    if (tipoUsuario && tipoUsuario !== 'escola') {
-      fetch('/api/admin/escolas')
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => setEscolas(Array.isArray(data) ? data : []))
-        .catch(() => setEscolas([]))
-    }
-  }, [tipoUsuario])
-
-  // Carregar turmas
-  useEffect(() => {
-    if (escolaId) {
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}&ano_letivo=${anoLetivo}`)
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => setTurmas(Array.isArray(data) ? data : []))
-        .catch(() => setTurmas([]))
-    } else {
-      setTurmas([])
-    }
-    setTurmaId('')
-  }, [escolaId, anoLetivo])
-
-  // Carregar períodos
-  useEffect(() => {
-    fetch(`/api/admin/periodos-letivos?ano_letivo=${anoLetivo}`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setPeriodos(Array.isArray(data) ? data : []))
-      .catch(() => setPeriodos([]))
-  }, [anoLetivo])
 
   const buscar = async () => {
     if (!periodoId) {

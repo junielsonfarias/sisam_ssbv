@@ -20,18 +20,9 @@ import {
   Calendar
 } from 'lucide-react'
 import { useSeries } from '@/lib/use-series'
-
-interface EscolaSimples {
-  id: string
-  nome: string
-}
-
-interface TurmaSimples {
-  id: string
-  codigo: string
-  nome: string | null
-  serie: string
-}
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { useTurmas } from '@/lib/hooks/useTurmas'
 
 interface Resumo {
   total_presentes: number
@@ -68,13 +59,25 @@ export default function FrequenciaDiariaPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
 
-  // Auth
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
+  // Filtros
+  const [escolaId, setEscolaId] = useState('')
+  const [turmaId, setTurmaId] = useState('')
+
+  // Auth via hook
+  const { tipoUsuario, usuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+
+  // Dados via hooks
+  const { escolas } = useEscolas({ desabilitado: isEscola })
+  const { turmas } = useTurmas(escolaId)
+
+  // Reset turmaId quando escola muda
+  useEffect(() => { setTurmaId('') }, [escolaId])
 
   // Data
-  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
-  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
   const [registros, setRegistros] = useState<RegistroFrequencia[]>([])
   const [resumo, setResumo] = useState<Resumo>({
     total_presentes: 0,
@@ -84,13 +87,10 @@ export default function FrequenciaDiariaPage() {
     por_metodo: { facial: 0, manual: 0, qrcode: 0 }
   })
 
-  // Filtros
   const [data, setData] = useState(() => {
     const hoje = new Date()
     return hoje.toISOString().split('T')[0]
   })
-  const [escolaId, setEscolaId] = useState('')
-  const [turmaId, setTurmaId] = useState('')
   const [metodo, setMetodo] = useState('')
 
   // Estado
@@ -102,52 +102,6 @@ export default function FrequenciaDiariaPage() {
     total: 0,
     totalPaginas: 0
   })
-
-  // Init - verificar auth
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const authRes = await fetch('/api/auth/verificar')
-        if (authRes.ok) {
-          const authData = await authRes.json()
-          if (authData.usuario) {
-            const tipo = authData.usuario.tipo_usuario === 'administrador' ? 'admin' : authData.usuario.tipo_usuario
-            setTipoUsuario(tipo)
-            if (authData.usuario.escola_id) {
-              setEscolaIdUsuario(authData.usuario.escola_id)
-              setEscolaId(authData.usuario.escola_id)
-            }
-          }
-        }
-      } catch {
-        // silencioso
-      }
-    }
-    init()
-  }, [])
-
-  // Carregar escolas
-  useEffect(() => {
-    if (tipoUsuario && tipoUsuario !== 'escola') {
-      fetch('/api/admin/escolas')
-        .then(r => r.json())
-        .then(d => setEscolas(Array.isArray(d) ? d : []))
-        .catch(() => setEscolas([]))
-    }
-  }, [tipoUsuario])
-
-  // Carregar turmas quando escola muda
-  useEffect(() => {
-    if (escolaId) {
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}`)
-        .then(r => r.json())
-        .then(d => setTurmas(Array.isArray(d) ? d : []))
-        .catch(() => setTurmas([]))
-    } else {
-      setTurmas([])
-    }
-    setTurmaId('')
-  }, [escolaId])
 
   // Carregar resumo
   const carregarResumo = useCallback(async () => {

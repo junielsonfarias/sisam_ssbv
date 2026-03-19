@@ -4,18 +4,18 @@ import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import {
   BarChart3, Search, TrendingUp, TrendingDown, Minus, AlertTriangle,
-  ArrowRight, Printer, Users, BookOpen, FileText
+  Printer, Users, BookOpen, FileText
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { useTurmas } from '@/lib/hooks/useTurmas'
 
 // ============================================
 // Tipos
 // ============================================
-
-interface EscolaSimples { id: string; nome: string }
-interface TurmaSimples { id: string; codigo: string; nome: string | null; serie: string }
 
 interface ComparativoAluno {
   aluno_id: string
@@ -67,58 +67,26 @@ interface Resumo {
 export default function ComparativoNotasPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
-  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
-  const [turmas, setTurmas] = useState<TurmaSimples[]>([])
+  const { tipoUsuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+  const { escolas } = useEscolas({ desabilitado: isEscola })
 
   const [escolaId, setEscolaId] = useState('')
   const [turmaId, setTurmaId] = useState('')
   const [anoLetivo, setAnoLetivo] = useState(new Date().getFullYear().toString())
+  const { turmas } = useTurmas(escolaId, anoLetivo)
 
   const [alunos, setAlunos] = useState<ComparativoAluno[]>([])
   const [resumo, setResumo] = useState<Resumo | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [pesquisado, setPesquisado] = useState(false)
 
-  // Init
+  // Reset turma when escola/ano changes
   useEffect(() => {
-    fetch('/api/auth/verificar')
-      .then(r => r.json())
-      .then(data => {
-        if (data.usuario) {
-          const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-          setTipoUsuario(tipo)
-          if (data.usuario.escola_id) {
-            setEscolaIdUsuario(data.usuario.escola_id)
-            setEscolaId(data.usuario.escola_id)
-          }
-        }
-      })
-      .catch(() => {})
-  }, [])
-
-  // Escolas
-  useEffect(() => {
-    if (tipoUsuario && tipoUsuario !== 'escola') {
-      fetch('/api/admin/escolas')
-        .then(r => r.json())
-        .then(data => setEscolas(Array.isArray(data) ? data : []))
-        .catch(() => setEscolas([]))
-    }
-  }, [tipoUsuario])
-
-  // Turmas
-  useEffect(() => {
-    if (escolaId) {
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}&ano_letivo=${anoLetivo}`)
-        .then(r => r.json())
-        .then(data => setTurmas(Array.isArray(data) ? data : []))
-        .catch(() => setTurmas([]))
-    } else {
-      setTurmas([])
-    }
     setTurmaId('')
   }, [escolaId, anoLetivo])
 

@@ -6,9 +6,9 @@ import { AlertTriangle, Search, Users, TrendingDown } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
-
-interface EscolaSimples { id: string; nome: string }
-interface Periodo { id: string; nome: string; tipo: string; numero: number; ano_letivo: string }
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { usePeriodos } from '@/lib/hooks/usePeriodos'
 interface AlunoInfrequente {
   aluno_id: string
   aluno_nome: string
@@ -28,59 +28,22 @@ interface AlunoInfrequente {
 export default function InfrequenciaPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
-  const [escolas, setEscolas] = useState<EscolaSimples[]>([])
-  const [periodos, setPeriodos] = useState<Periodo[]>([])
+  const { tipoUsuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+  const { escolas } = useEscolas({ desabilitado: isEscola })
   const [escolaId, setEscolaId] = useState('')
   const [periodoId, setPeriodoId] = useState('')
   const [serie, setSerie] = useState('')
   const [anoLetivo, setAnoLetivo] = useState(new Date().getFullYear().toString())
+  const { periodos } = usePeriodos(anoLetivo)
 
   const [alunos, setAlunos] = useState<AlunoInfrequente[]>([])
   const [resumo, setResumo] = useState({ total: 0, infrequentes_75: 0 })
   const [carregando, setCarregando] = useState(false)
-
-  // Init
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const authRes = await fetch('/api/auth/verificar')
-        if (authRes.ok) {
-          const data = await authRes.json()
-          if (data.usuario) {
-            const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-            setTipoUsuario(tipo)
-            if (data.usuario.escola_id) {
-              setEscolaIdUsuario(data.usuario.escola_id)
-              setEscolaId(data.usuario.escola_id)
-            }
-          }
-        }
-      } catch (e) {
-      }
-    }
-    init()
-  }, [])
-
-  // Carregar escolas
-  useEffect(() => {
-    if (tipoUsuario && tipoUsuario !== 'escola') {
-      fetch('/api/admin/escolas')
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => setEscolas(Array.isArray(data) ? data : []))
-        .catch(() => setEscolas([]))
-    }
-  }, [tipoUsuario])
-
-  // Carregar períodos
-  useEffect(() => {
-    fetch(`/api/admin/periodos-letivos?ano_letivo=${anoLetivo}`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setPeriodos(Array.isArray(data) ? data : []))
-      .catch(() => setPeriodos([]))
-  }, [anoLetivo])
 
   // Buscar infrequência
   const buscar = async () => {

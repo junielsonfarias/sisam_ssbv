@@ -1,14 +1,15 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import { useEffect, useState, useCallback } from 'react'
-import { Save, Search, Calendar, Clock, ArrowLeft } from 'lucide-react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { Save, Calendar, Clock } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { useTurmas } from '@/lib/hooks/useTurmas'
 
-interface Escola { id: string; nome: string }
-interface Turma { id: string; codigo: string; nome: string | null; serie: string }
 interface Disciplina { id: string; nome: string; codigo: string }
 interface HorarioSlot { dia_semana: number; numero_aula: number; disciplina_id: string }
 
@@ -24,68 +25,32 @@ const AULAS = [1, 2, 3, 4, 5, 6]
 export default function HorariosAulaPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
-  const [escolas, setEscolas] = useState<Escola[]>([])
-  const [turmas, setTurmas] = useState<Turma[]>([])
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
+  const { tipoUsuario, usuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u, tipo) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+  const { escolas } = useEscolas({ desabilitado: isEscola })
   const [escolaId, setEscolaId] = useState('')
+  const { turmas: todasTurmas } = useTurmas(escolaId)
+
+  // Filtrar somente turmas do 6º ao 9º
+  const turmas = useMemo(() =>
+    todasTurmas.filter(t => {
+      const num = t.serie?.match(/(\d+)/)?.[1]
+      return ['6', '7', '8', '9'].includes(num || '')
+    }), [todasTurmas])
+
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
   const [turmaId, setTurmaId] = useState('')
   const [grade, setGrade] = useState<Record<string, string>>({})
   const [carregando, setCarregando] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [turmaCarregada, setTurmaCarregada] = useState(false)
 
-  // Init
+  // Reset turma when escola changes
   useEffect(() => {
-    const init = async () => {
-      try {
-        const authRes = await fetch('/api/auth/verificar')
-        if (authRes.ok) {
-          const data = await authRes.json()
-          if (data.usuario) {
-            const tipo = data.usuario.tipo_usuario === 'administrador' ? 'admin' : data.usuario.tipo_usuario
-            setTipoUsuario(tipo)
-            if (data.usuario.escola_id) {
-              setEscolaIdUsuario(data.usuario.escola_id)
-              setEscolaId(data.usuario.escola_id)
-            }
-          }
-        }
-      } catch {}
-    }
-    init()
-  }, [])
-
-  // Carregar escolas
-  useEffect(() => {
-    if (tipoUsuario && tipoUsuario !== 'escola') {
-      fetch('/api/admin/escolas')
-        .then(r => r.json())
-        .then(data => setEscolas(Array.isArray(data) ? data : []))
-        .catch(() => setEscolas([]))
-    }
-  }, [tipoUsuario])
-
-  // Carregar turmas (somente 6º-9º)
-  useEffect(() => {
-    if (escolaId) {
-      const ano = new Date().getFullYear()
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}&ano_letivo=${ano}`)
-        .then(r => r.json())
-        .then(data => {
-          const todas = Array.isArray(data) ? data : []
-          const finais = todas.filter((t: any) => {
-            const num = t.serie?.match(/(\d+)/)?.[1]
-            return ['6', '7', '8', '9'].includes(num || '')
-          })
-          setTurmas(finais)
-        })
-        .catch(() => setTurmas([]))
-    } else {
-      setTurmas([])
-    }
     setTurmaId('')
     setTurmaCarregada(false)
   }, [escolaId])

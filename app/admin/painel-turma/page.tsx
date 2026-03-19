@@ -9,9 +9,9 @@ import {
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
-
-interface Escola { id: string; nome: string }
-interface Turma { id: string; codigo: string; nome: string | null; serie: string }
+import { useUserType } from '@/lib/hooks/useUserType'
+import { useEscolas } from '@/lib/hooks/useEscolas'
+import { useTurmas } from '@/lib/hooks/useTurmas'
 interface AlunosPainel {
   id: string; nome: string; codigo: string | null
   na_escola: boolean; hora_entrada: string | null; hora_saida: string | null
@@ -34,12 +34,15 @@ const DIAS_NOMES = ['', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta
 export default function PainelTurmaPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
-  const [tipoUsuario, setTipoUsuario] = useState('')
-  const [escolaIdUsuario, setEscolaIdUsuario] = useState('')
 
-  const [escolas, setEscolas] = useState<Escola[]>([])
-  const [turmas, setTurmas] = useState<Turma[]>([])
+  const { tipoUsuario, isEscola } = useUserType({
+    onUsuarioCarregado: (u) => {
+      if (u.escola_id) setEscolaId(u.escola_id)
+    }
+  })
+  const { escolas } = useEscolas({ desabilitado: isEscola })
   const [escolaId, setEscolaId] = useState('')
+  const { turmas } = useTurmas(escolaId)
   const [turmaId, setTurmaId] = useState('')
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
 
@@ -53,47 +56,8 @@ export default function PainelTurmaPage() {
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Init
+  // Reset turma when escola changes
   useEffect(() => {
-    const init = async () => {
-      try {
-        const authRes = await fetch('/api/auth/verificar')
-        if (authRes.ok) {
-          const d = await authRes.json()
-          if (d.usuario) {
-            const tipo = d.usuario.tipo_usuario === 'administrador' ? 'admin' : d.usuario.tipo_usuario
-            setTipoUsuario(tipo)
-            if (d.usuario.escola_id) {
-              setEscolaIdUsuario(d.usuario.escola_id)
-              setEscolaId(d.usuario.escola_id)
-            }
-          }
-        }
-      } catch {}
-    }
-    init()
-  }, [])
-
-  // Carregar escolas e turmas
-  useEffect(() => {
-    if (tipoUsuario && tipoUsuario !== 'escola') {
-      fetch('/api/admin/escolas')
-        .then(r => r.json())
-        .then(d => setEscolas(Array.isArray(d) ? d : []))
-        .catch(() => setEscolas([]))
-    }
-  }, [tipoUsuario])
-
-  useEffect(() => {
-    if (escolaId) {
-      const ano = new Date().getFullYear()
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}&ano_letivo=${ano}`)
-        .then(r => r.json())
-        .then(d => setTurmas(Array.isArray(d) ? d : []))
-        .catch(() => setTurmas([]))
-    } else {
-      setTurmas([])
-    }
     setTurmaId('')
     setPainel(null)
   }, [escolaId])
