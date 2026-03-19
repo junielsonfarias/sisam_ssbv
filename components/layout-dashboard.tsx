@@ -287,6 +287,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
             { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
             { icon: ClipboardList, label: 'Avaliações SISAM', href: '/admin/avaliacoes' },
+            { icon: Settings, label: 'Séries SISAM', href: '/admin/configuracao-series' },
+            { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' },
           ]
         })
       }
@@ -331,10 +333,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       items.push(
         { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' },
         { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
-        { icon: Settings, label: 'Séries SISAM', href: '/admin/configuracao-series' },
         { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
         { icon: Globe, label: 'Site Institucional', href: '/admin/site-institucional' },
-        { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' },
         { icon: Activity, label: 'Logs de Acesso', href: '/admin/logs-acesso' }
       )
     }
