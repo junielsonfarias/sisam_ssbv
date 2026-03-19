@@ -20,6 +20,15 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = `%${busca.trim()}%`
 
+    // Escola só pode buscar alunos da própria escola
+    const escolaFilter = (usuario.tipo_usuario === 'escola' && usuario.escola_id)
+      ? 'AND a.escola_id = $4'
+      : ''
+    const params: any[] = [searchTerm, searchTerm, searchTerm]
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      params.push(usuario.escola_id)
+    }
+
     const result = await pool.query(
       `SELECT a.id, a.codigo, a.nome, a.serie, a.ano_letivo, a.escola_id, a.turma_id,
               a.cpf, a.data_nascimento, a.pcd,
@@ -30,9 +39,10 @@ export async function GET(request: NextRequest) {
        LEFT JOIN turmas t ON a.turma_id = t.id
        WHERE a.ativo = true
          AND (a.nome ILIKE $1 OR a.codigo ILIKE $2 OR a.cpf ILIKE $3)
+         ${escolaFilter}
        ORDER BY a.nome
        LIMIT 20`,
-      [searchTerm, searchTerm, searchTerm]
+      params
     )
 
     return NextResponse.json(result.rows)

@@ -20,6 +20,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'escola_id é obrigatório' }, { status: 400 })
     }
 
+    // Escola só pode listar turmas da própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escolaId !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+    }
+
     const conditions = ['t.escola_id = $1', 't.ano_letivo = $2', 't.ativo = true']
     const params: any[] = [escolaId, anoLetivo]
     let idx = 3

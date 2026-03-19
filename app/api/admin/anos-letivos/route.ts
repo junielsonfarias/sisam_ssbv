@@ -130,6 +130,25 @@ export async function PUT(request: NextRequest) {
     try {
       await client.query('BEGIN')
 
+      // Validação: não permitir finalizar se há alunos ainda cursando
+      if (status === 'finalizado') {
+        const anoRef = ano || (id ? (await client.query('SELECT ano FROM anos_letivos WHERE id = $1', [id])).rows[0]?.ano : null)
+        if (anoRef) {
+          const cursandoResult = await client.query(
+            `SELECT COUNT(*) as total FROM alunos WHERE ano_letivo = $1 AND ativo = true AND (situacao IS NULL OR situacao = 'cursando')`,
+            [anoRef]
+          )
+          const totalCursando = parseInt(cursandoResult.rows[0]?.total) || 0
+          if (totalCursando > 0) {
+            await client.query('ROLLBACK')
+            return NextResponse.json({
+              mensagem: `Não é possível finalizar: ${totalCursando} aluno(s) ainda com situação 'cursando'`,
+              total_cursando: totalCursando
+            }, { status: 422 })
+          }
+        }
+      }
+
       // Ações de status
       if (status === 'ativo') {
         // Só pode ter 1 ano ativo por vez

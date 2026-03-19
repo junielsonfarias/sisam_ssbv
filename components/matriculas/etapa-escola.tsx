@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { School, MapPin, Users, BookOpen } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import * as offlineStorage from '@/lib/offline-storage'
 
 interface Polo {
   id: string
@@ -34,8 +35,29 @@ export default function EtapaEscola({ poloId, escolaId, anoLetivo, onPoloChange,
   const [escolas, setEscolas] = useState<Escola[]>([])
   const [resumo, setResumo] = useState<Resumo | null>(null)
   const [carregando, setCarregando] = useState(true)
+  const [isEscolaUser, setIsEscolaUser] = useState(false)
+
+  // Auto-selecionar escola para usuário tipo 'escola'
+  useEffect(() => {
+    const user = offlineStorage.getUser()
+    if (user && user.tipo_usuario === 'escola' && user.escola_id) {
+      setIsEscolaUser(true)
+      // Buscar dados da escola do usuário para preencher polo e escola
+      fetch(`/api/admin/escolas/${user.escola_id}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.id) {
+            if (data.polo_id) onPoloChange(data.polo_id)
+            onEscolaChange(data.id, data.nome || user.escola_nome || '')
+          }
+          setCarregando(false)
+        })
+        .catch(() => setCarregando(false))
+    }
+  }, [])
 
   useEffect(() => {
+    if (isEscolaUser) return // Escola users don't need to load polo list
     fetch('/api/admin/polos')
       .then(r => r.json())
       .then(data => {
@@ -43,7 +65,7 @@ export default function EtapaEscola({ poloId, escolaId, anoLetivo, onPoloChange,
         setCarregando(false)
       })
       .catch(() => setCarregando(false))
-  }, [])
+  }, [isEscolaUser])
 
   useEffect(() => {
     if (!poloId) { setEscolas([]); return }
@@ -61,16 +83,40 @@ export default function EtapaEscola({ poloId, escolaId, anoLetivo, onPoloChange,
       .catch(() => setResumo(null))
   }, [escolaId, anoLetivo])
 
-  if (carregando) return <LoadingSpinner size="lg" text="Carregando polos..." centered />
+  const [escolaNomeDisplay, setEscolaNomeDisplay] = useState('')
+
+  // Track escola name for display when auto-selected
+  useEffect(() => {
+    if (isEscolaUser) {
+      const user = offlineStorage.getUser()
+      if (user?.escola_nome) setEscolaNomeDisplay(user.escola_nome)
+    }
+  }, [isEscolaUser])
+
+  if (carregando) return <LoadingSpinner size="lg" text={isEscolaUser ? 'Carregando escola...' : 'Carregando polos...'} centered />
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <School className="w-12 h-12 mx-auto text-indigo-500 mb-2" />
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Selecione a Escola</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Escolha o polo e a escola para realizar as matrículas</p>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          {isEscolaUser ? 'Sua Escola' : 'Selecione a Escola'}
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {isEscolaUser
+            ? 'Escola vinculada ao seu usuário'
+            : 'Escolha o polo e a escola para realizar as matrículas'}
+        </p>
       </div>
 
+      {isEscolaUser ? (
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <School className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <span className="font-medium text-indigo-700 dark:text-indigo-300">{escolaNomeDisplay || 'Escola vinculada'}</span>
+          </div>
+        </div>
+      ) : (
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -111,6 +157,7 @@ export default function EtapaEscola({ poloId, escolaId, anoLetivo, onPoloChange,
           </select>
         </div>
       </div>
+      )}
 
       {resumo && escolaId && (
         <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">

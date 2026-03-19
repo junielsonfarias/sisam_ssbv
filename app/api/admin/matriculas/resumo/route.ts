@@ -19,6 +19,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'escola_id é obrigatório' }, { status: 400 })
     }
 
+    // Escola só pode ver resumo da própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escolaId !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+    }
+
     const [turmasResult, alunosResult] = await Promise.all([
       pool.query(
         `SELECT COUNT(*) as total FROM turmas WHERE escola_id = $1 AND ano_letivo = $2 AND ativo = true`,

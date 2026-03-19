@@ -45,7 +45,8 @@ import {
   CalendarClock,
   LayoutList,
   Globe,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock
 } from 'lucide-react'
 import Rodape from './rodape'
 import { OfflineSyncManager } from './offline-sync-manager'
@@ -322,6 +323,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
             { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
             { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
+            { icon: Lock, label: 'Fechamento de Ano', href: '/admin/fechamento-ano' },
           ]
         })
       }
@@ -383,6 +385,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
             { icon: GraduationCap, label: 'Séries Escolares', href: '/admin/series-escolares' },
             { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
+            { icon: Lock, label: 'Fechamento de Ano', href: '/admin/fechamento-ano' },
           ]
         })
       }

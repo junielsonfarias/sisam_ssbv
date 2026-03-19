@@ -4,8 +4,10 @@ import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import {
   Calendar, Plus, Edit3, Play, Square, CheckCircle, Clock,
-  X, Save, Users, GraduationCap, BookOpen, AlertTriangle, RefreshCw
+  X, Save, Users, GraduationCap, BookOpen, AlertTriangle, RefreshCw,
+  ExternalLink, Loader2
 } from 'lucide-react'
+import Link from 'next/link'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner, ButtonSpinner } from '@/components/ui/loading-spinner'
 
@@ -50,6 +52,15 @@ export default function AnosLetivosPage() {
 
   // Confirmações
   const [confirmando, setConfirmando] = useState<{ id: string; acao: string } | null>(null)
+
+  // Modal de confirmação de finalização com resumo
+  const [modalFinalizar, setModalFinalizar] = useState<AnoLetivo | null>(null)
+  const [resumoFinalizar, setResumoFinalizar] = useState<{
+    total: number; cursando: number; aprovados: number; reprovados: number
+    transferidos: number; abandonos: number; remanejados: number
+  } | null>(null)
+  const [carregandoResumo, setCarregandoResumo] = useState(false)
+  const [finalizando, setFinalizando] = useState(false)
 
   useEffect(() => { carregarAnos() }, [])
 
@@ -161,6 +172,45 @@ export default function AnosLetivosPage() {
         toast.error(data.mensagem || 'Erro')
       }
     } catch { toast.error('Erro de conexão') }
+  }
+
+  const abrirModalFinalizar = async (ano: AnoLetivo) => {
+    setModalFinalizar(ano)
+    setResumoFinalizar(null)
+    setCarregandoResumo(true)
+    try {
+      const res = await fetch(`/api/admin/anos-letivos/resumo?ano=${ano.ano}`)
+      if (res.ok) {
+        setResumoFinalizar(await res.json())
+      } else {
+        toast.error('Erro ao carregar resumo')
+      }
+    } catch {
+      toast.error('Erro de conexão')
+    } finally {
+      setCarregandoResumo(false)
+    }
+  }
+
+  const confirmarFinalizar = async () => {
+    if (!modalFinalizar) return
+    setFinalizando(true)
+    try {
+      const res = await fetch('/api/admin/anos-letivos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: modalFinalizar.id, ano: modalFinalizar.ano, status: 'finalizado' }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`Ano ${modalFinalizar.ano} finalizado`)
+        setModalFinalizar(null)
+        carregarAnos()
+      } else {
+        toast.error(data.mensagem || 'Erro ao finalizar')
+      }
+    } catch { toast.error('Erro de conexão') }
+    finally { setFinalizando(false) }
   }
 
   const updateBimestre = (idx: number, campo: string, valor: any) => {
@@ -286,25 +336,10 @@ export default function AnosLetivosPage() {
                         )
                       )}
                       {ano.status === 'ativo' && (
-                        confirmando?.id === ano.id && confirmando?.acao === 'finalizar' ? (
-                          <div className="flex items-center gap-2 w-full">
-                            <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Finalizar?</span>
-                            <button onClick={() => alterarStatus(ano, 'finalizado')}
-                              className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700">
-                              Confirmar
-                            </button>
-                            <button onClick={() => setConfirmando(null)}
-                              className="px-3 py-1.5 text-gray-500 text-xs">
-                              Cancelar
-                            </button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setConfirmando({ id: ano.id, acao: 'finalizar' })}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-gray-600 text-white rounded-lg text-xs font-medium hover:bg-gray-700 transition w-full justify-center">
-                            <Square className="w-3.5 h-3.5" /> Finalizar Ano Letivo
-                          </button>
-                        )
+                        <button onClick={() => abrirModalFinalizar(ano)}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-gray-600 text-white rounded-lg text-xs font-medium hover:bg-gray-700 transition w-full justify-center">
+                          <Square className="w-3.5 h-3.5" /> Finalizar Ano Letivo
+                        </button>
                       )}
                       {ano.status === 'finalizado' && (
                         <div className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-500 rounded-lg text-xs w-full justify-center">
@@ -316,6 +351,123 @@ export default function AnosLetivosPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* Modal finalizar ano letivo */}
+        {modalFinalizar && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => !finalizando && setModalFinalizar(null)}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+              <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-white" />
+                  <h2 className="text-lg font-bold text-white">Finalizar Ano {modalFinalizar.ano}</h2>
+                </div>
+                <button onClick={() => !finalizando && setModalFinalizar(null)} className="text-white/80 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {carregandoResumo ? (
+                  <div className="flex items-center justify-center py-8 gap-3 text-gray-500">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Carregando resumo...</span>
+                  </div>
+                ) : resumoFinalizar ? (
+                  <>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Resumo dos alunos matriculados no ano letivo <strong>{modalFinalizar.ano}</strong>:
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-gray-50 dark:bg-slate-700/40 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-gray-800 dark:text-gray-200">{resumoFinalizar.total}</p>
+                        <p className="text-[11px] text-gray-500">Total</p>
+                      </div>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{resumoFinalizar.aprovados}</p>
+                        <p className="text-[11px] text-blue-600 dark:text-blue-400">Aprovados</p>
+                      </div>
+                      <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-red-700 dark:text-red-300">{resumoFinalizar.reprovados}</p>
+                        <p className="text-[11px] text-red-600 dark:text-red-400">Reprovados</p>
+                      </div>
+                      <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-orange-700 dark:text-orange-300">{resumoFinalizar.transferidos}</p>
+                        <p className="text-[11px] text-orange-600 dark:text-orange-400">Transferidos</p>
+                      </div>
+                      <div className="bg-gray-100 dark:bg-gray-700/40 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-gray-600 dark:text-gray-300">{resumoFinalizar.abandonos}</p>
+                        <p className="text-[11px] text-gray-500">Abandonos</p>
+                      </div>
+                      <div className={`rounded-lg p-3 text-center ${resumoFinalizar.cursando > 0 ? 'bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-400' : 'bg-emerald-50 dark:bg-emerald-900/20'}`}>
+                        <p className={`text-xl font-bold ${resumoFinalizar.cursando > 0 ? 'text-yellow-700 dark:text-yellow-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                          {resumoFinalizar.cursando}
+                        </p>
+                        <p className={`text-[11px] ${resumoFinalizar.cursando > 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          Cursando
+                        </p>
+                      </div>
+                    </div>
+
+                    {resumoFinalizar.cursando > 0 && (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                              {resumoFinalizar.cursando} aluno(s) ainda com situacao &quot;cursando&quot;
+                            </p>
+                            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                              Nao e possivel finalizar o ano letivo enquanto houver alunos com situacao pendente.
+                              Processe todos os alunos antes de finalizar.
+                            </p>
+                            <Link href="/admin/fechamento-ano"
+                              className="inline-flex items-center gap-1.5 text-xs font-medium text-yellow-800 dark:text-yellow-200 underline hover:no-underline mt-1">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Acesse o Fechamento de Ano para processar os alunos pendentes
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {resumoFinalizar.cursando === 0 && (
+                      <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                              Todos os alunos foram processados
+                            </p>
+                            <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1">
+                              O ano letivo pode ser finalizado com seguranca.
+                              Esta acao e irreversivel.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-red-500 text-center py-4">Erro ao carregar resumo. Tente novamente.</p>
+                )}
+              </div>
+
+              <div className="border-t dark:border-slate-700 px-6 py-4 flex justify-end gap-3">
+                <button onClick={() => !finalizando && setModalFinalizar(null)}
+                  disabled={finalizando}
+                  className="px-4 py-2.5 text-sm text-gray-600 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50">
+                  Cancelar
+                </button>
+                <button onClick={confirmarFinalizar}
+                  disabled={finalizando || carregandoResumo || !resumoFinalizar || resumoFinalizar.cursando > 0}
+                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {finalizando ? <><ButtonSpinner /> Finalizando...</> : <><Square className="w-4 h-4" /> Finalizar Ano Letivo</>}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
