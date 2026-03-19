@@ -27,10 +27,48 @@ interface NotaAluno {
   nota_final: number | null
   faltas: number
   observacao: string
+  conceito: string | null
+  parecer_descritivo: string | null
 }
 interface ConfigNotas {
   nota_maxima: number; media_aprovacao: number; media_recuperacao: number
   peso_avaliacao: number; peso_recuperacao: number; permite_recuperacao: boolean
+}
+
+interface ConceitoEscala {
+  codigo: string; nome: string; valor_numerico: number
+}
+
+interface TipoAvaliacao {
+  id: string | null
+  codigo: string
+  nome: string
+  tipo_resultado: 'parecer' | 'conceito' | 'numerico' | 'misto'
+  escala_conceitos: ConceitoEscala[] | null
+  nota_minima: number
+  nota_maxima: number
+  permite_decimal: boolean
+}
+
+interface RegraAvaliacao {
+  id: string
+  nome: string
+  tipo_periodo: string
+  qtd_periodos: number
+  media_aprovacao: number
+  media_recuperacao: number
+  nota_maxima: number
+  permite_recuperacao: boolean
+  aprovacao_automatica: boolean
+  casas_decimais: number
+  arredondamento: string
+}
+
+interface AvaliacaoTurma {
+  tipo_avaliacao: TipoAvaliacao
+  regra_avaliacao: RegraAvaliacao | null
+  serie_codigo: string | null
+  etapa: string | null
 }
 
 interface BoletimDisciplina {
@@ -76,6 +114,9 @@ export default function NotasEscolaresPage() {
   const [periodoId, setPeriodoId] = useState('')
   const [anoLetivo, setAnoLetivo] = useState(new Date().getFullYear().toString())
 
+  // Tipo de avaliação da turma
+  const [avaliacaoTurma, setAvaliacaoTurma] = useState<AvaliacaoTurma | null>(null)
+
   // Frequência unificada (anos iniciais)
   const [freqUnificada, setFreqUnificada] = useState(false)
   const [diasLetivos, setDiasLetivos] = useState(50)
@@ -104,6 +145,12 @@ export default function NotasEscolaresPage() {
   const turmaSelecionada = turmas.find(t => t.id === turmaId)
   const disciplinaSelecionada = disciplinas.find(d => d.id === disciplinaId)
   const periodoSelecionado = periodos.find(p => p.id === periodoId)
+
+  // Derivados do tipo de avaliação
+  const tipoResultado = avaliacaoTurma?.tipo_avaliacao?.tipo_resultado || 'numerico'
+  const isParecer = tipoResultado === 'parecer'
+  const isConceito = tipoResultado === 'conceito'
+  const isNumerico = tipoResultado === 'numerico'
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -165,9 +212,38 @@ export default function NotasEscolaresPage() {
       .catch(() => setPeriodos([]))
   }, [anoLetivo])
 
+  // Buscar tipo de avaliação ao selecionar turma
+  useEffect(() => {
+    if (turmaId) {
+      fetch(`/api/admin/turmas/${turmaId}/avaliacao`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data) {
+            setAvaliacaoTurma(data)
+            // Atualizar config com dados da regra de avaliação
+            if (data.regra_avaliacao) {
+              const regra = data.regra_avaliacao
+              setConfig(prev => ({
+                ...prev,
+                nota_maxima: regra.nota_maxima || prev.nota_maxima,
+                media_aprovacao: regra.media_aprovacao ?? prev.media_aprovacao,
+                media_recuperacao: regra.media_recuperacao ?? prev.media_recuperacao,
+                permite_recuperacao: regra.permite_recuperacao ?? prev.permite_recuperacao,
+              }))
+            }
+          }
+        })
+        .catch(() => setAvaliacaoTurma(null))
+    } else {
+      setAvaliacaoTurma(null)
+    }
+  }, [turmaId])
+
   // Carregar notas para lançamento
   const carregarNotasLancamento = useCallback(async () => {
-    if (!turmaId || !disciplinaId || !periodoId) return
+    if (!turmaId || !periodoId) return
+    // Parecer não precisa de disciplina; conceito e numérico precisam
+    if (!isParecer && !disciplinaId) return
 
     setCarregando(true)
     try {
@@ -177,13 +253,17 @@ export default function NotasEscolaresPage() {
       setFreqUnificada(unificada)
 
       // Buscar alunos da turma, notas e config em paralelo
+      const notasUrl = isParecer
+        ? `/api/admin/notas-escolares?turma_id=${turmaId}&periodo_id=${periodoId}`
+        : `/api/admin/notas-escolares?turma_id=${turmaId}&disciplina_id=${disciplinaId}&periodo_id=${periodoId}`
+
       const fetches: Promise<Response>[] = [
         fetch(`/api/admin/turmas/${turmaId}/alunos`),
-        fetch(`/api/admin/notas-escolares?turma_id=${turmaId}&disciplina_id=${disciplinaId}&periodo_id=${periodoId}`),
+        fetch(notasUrl),
         fetch(`/api/admin/configuracao-notas?escola_id=${escolaId}&ano_letivo=${anoLetivo}`),
       ]
       // Se frequência unificada, buscar também frequencia_bimestral
-      if (unificada) {
+      if (unificada && !isParecer) {
         fetches.push(fetch(`/api/admin/frequencia?turma_id=${turmaId}&periodo_id=${periodoId}`))
       }
 
@@ -206,6 +286,8 @@ export default function NotasEscolaresPage() {
             nota_final: n.nota_final,
             faltas: n.faltas || 0,
             observacao: n.observacao || '',
+            conceito: n.conceito || null,
+            parecer_descritivo: n.parecer_descritivo || null,
           }
         }
       }
@@ -218,12 +300,12 @@ export default function NotasEscolaresPage() {
       if (configRes.ok) {
         const configData = await configRes.json()
         if (configData.length > 0) {
-          setConfig(configData[0])
+          setConfig(prev => ({ ...prev, ...configData[0] }))
         }
       }
 
       // Carregar frequência unificada se aplicável
-      if (unificada && freqRes && freqRes.ok) {
+      if (unificada && !isParecer && freqRes && freqRes.ok) {
         const freqData = await freqRes.json()
         const freqMap: Record<string, FreqUnificadaAluno> = {}
         if (freqData.frequencias) {
@@ -237,7 +319,7 @@ export default function NotasEscolaresPage() {
           }
         }
         setFrequencias(freqMap)
-      } else if (!unificada) {
+      } else if (!unificada || isParecer) {
         setFrequencias({})
       }
 
@@ -247,14 +329,14 @@ export default function NotasEscolaresPage() {
     } finally {
       setCarregando(false)
     }
-  }, [turmaId, disciplinaId, periodoId, escolaId, anoLetivo, turmas])
+  }, [turmaId, disciplinaId, periodoId, escolaId, anoLetivo, turmas, isParecer])
 
   // Atualizar nota de um aluno
   const atualizarNota = (alunoId: string, campo: keyof NotaAluno, valor: any) => {
     setNotas(prev => ({
       ...prev,
       [alunoId]: {
-        ...prev[alunoId] || { aluno_id: alunoId, nota: null, nota_recuperacao: null, nota_final: null, faltas: 0, observacao: '' },
+        ...prev[alunoId] || { aluno_id: alunoId, nota: null, nota_recuperacao: null, nota_final: null, faltas: 0, observacao: '', conceito: null, parecer_descritivo: null },
         [campo]: valor,
       },
     }))
@@ -265,7 +347,6 @@ export default function NotasEscolaresPage() {
     setFrequencias(prev => {
       const atual = prev[alunoId] || { presencas: diasLetivos, faltas: 0, faltas_justificadas: 0 }
       const nova = { ...atual, [campo]: valor }
-      // Auto-calcular: se alterou faltas, ajusta presenças e vice-versa
       if (campo === 'faltas') {
         nova.presencas = Math.max(0, diasLetivos - valor - nova.faltas_justificadas)
       } else if (campo === 'presencas') {
@@ -306,9 +387,15 @@ export default function NotasEscolaresPage() {
             nota_recuperacao: nota?.nota_recuperacao ?? null,
             faltas: nota?.faltas ?? 0,
             observacao: nota?.observacao || null,
+            conceito: nota?.conceito ?? null,
+            parecer_descritivo: nota?.parecer_descritivo ?? null,
           }
         })
-        .filter(n => n.nota !== null || n.nota_recuperacao !== null || n.faltas > 0)
+        .filter(n => {
+          if (isParecer) return n.parecer_descritivo !== null && n.parecer_descritivo !== ''
+          if (isConceito) return n.conceito !== null
+          return n.nota !== null || n.nota_recuperacao !== null || n.faltas > 0
+        })
 
       if (notasArray.length === 0) {
         toast.info('Nenhuma nota para salvar')
@@ -323,15 +410,15 @@ export default function NotasEscolaresPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             turma_id: turmaId,
-            disciplina_id: disciplinaId,
+            disciplina_id: isParecer ? undefined : disciplinaId,
             periodo_id: periodoId,
             notas: notasArray,
           }),
         })
       ]
 
-      // Se frequência unificada, salvar também
-      if (freqUnificada && diasLetivos > 0) {
+      // Se frequência unificada e não é parecer, salvar também
+      if (freqUnificada && !isParecer && diasLetivos > 0) {
         const freqArray = alunos
           .filter(a => a.situacao === 'cursando' || !a.situacao)
           .map(a => {
@@ -369,7 +456,6 @@ export default function NotasEscolaresPage() {
           msgs.push('Erro ao salvar frequência')
         }
         toast.success(msgs.join(' '))
-        // Recarregar para ver notas finais calculadas
         await carregarNotasLancamento()
       } else {
         toast.error(data.mensagem || 'Erro ao salvar notas')
@@ -508,6 +594,7 @@ export default function NotasEscolaresPage() {
             setPeriodoId={setPeriodoId}
             setAnoLetivo={setAnoLetivo}
             onIniciar={carregarNotasLancamento}
+            avaliacaoTurma={avaliacaoTurma}
           />
         ) : modo === 'lancamento' ? (
           <PainelLancamento
@@ -529,6 +616,7 @@ export default function NotasEscolaresPage() {
             setDiasLetivos={handleDiasLetivosChange}
             frequencias={frequencias}
             atualizarFrequencia={atualizarFrequencia}
+            avaliacaoTurma={avaliacaoTurma}
           />
         ) : modo === 'boletim' && boletimAluno && boletimData ? (
           <PainelBoletim
@@ -555,13 +643,31 @@ function PainelSelecao({
   tipoUsuario, escolas, turmas, disciplinas, periodos,
   escolaId, turmaId, disciplinaId, periodoId, anoLetivo,
   setEscolaId, setTurmaId, setDisciplinaId, setPeriodoId, setAnoLetivo,
-  onIniciar,
+  onIniciar, avaliacaoTurma,
 }: any) {
-  const podeIniciar = turmaId && disciplinaId && periodoId
+  const tipoResultado = avaliacaoTurma?.tipo_avaliacao?.tipo_resultado
+  const isParecer = tipoResultado === 'parecer'
+  // Parecer não precisa de disciplina
+  const podeIniciar = turmaId && periodoId && (isParecer || disciplinaId)
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 space-y-6">
       <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Selecione a turma e disciplina</h2>
+
+      {/* Badge do tipo de avaliação */}
+      {avaliacaoTurma && (
+        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
+          tipoResultado === 'parecer' ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300' :
+          tipoResultado === 'conceito' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' :
+          'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+        }`}>
+          <span className="w-2 h-2 rounded-full bg-current" />
+          {avaliacaoTurma.tipo_avaliacao.nome}
+          {avaliacaoTurma.regra_avaliacao && (
+            <span className="text-xs opacity-70">| {avaliacaoTurma.regra_avaliacao.nome}</span>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Ano letivo */}
@@ -610,20 +716,22 @@ function PainelSelecao({
           </select>
         </div>
 
-        {/* Disciplina */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Disciplina</label>
-          <select
-            value={disciplinaId}
-            onChange={e => setDisciplinaId(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-          >
-            <option value="">Selecione a disciplina...</option>
-            {disciplinas.map((d: any) => (
-              <option key={d.id} value={d.id}>{d.nome}</option>
-            ))}
-          </select>
-        </div>
+        {/* Disciplina — ocultar para Parecer */}
+        {!isParecer && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Disciplina</label>
+            <select
+              value={disciplinaId}
+              onChange={e => setDisciplinaId(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+            >
+              <option value="">Selecione a disciplina...</option>
+              {disciplinas.map((d: any) => (
+                <option key={d.id} value={d.id}>{d.nome}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Período */}
         <div>
@@ -651,7 +759,7 @@ function PainelSelecao({
         }`}
       >
         <FileText className="w-4 h-4" />
-        Lançar Notas
+        {isParecer ? 'Lançar Pareceres' : 'Lançar Notas'}
       </button>
     </div>
   )
@@ -669,21 +777,43 @@ function PainelLancamento({
   voltar, verBoletim,
   freqUnificada, diasLetivos, setDiasLetivos,
   frequencias, atualizarFrequencia,
+  avaliacaoTurma,
 }: any) {
   const alunosAtivos = alunos.filter((a: AlunoTurma) => a.situacao === 'cursando' || !a.situacao)
 
+  const tipoResultado = avaliacaoTurma?.tipo_avaliacao?.tipo_resultado || 'numerico'
+  const isParecer = tipoResultado === 'parecer'
+  const isConceito = tipoResultado === 'conceito'
+  const escalaConceitos: ConceitoEscala[] = avaliacaoTurma?.tipo_avaliacao?.escala_conceitos || []
+
   // Contadores
-  const totalLancados = alunosAtivos.filter((a: AlunoTurma) => notas[a.id]?.nota !== null && notas[a.id]?.nota !== undefined).length
-  const totalAbaixoMedia = alunosAtivos.filter((a: AlunoTurma) => {
+  const totalLancados = alunosAtivos.filter((a: AlunoTurma) => {
     const n = notas[a.id]
-    return n?.nota !== null && n?.nota !== undefined && n.nota < config.media_aprovacao
+    if (isParecer) return n?.parecer_descritivo
+    if (isConceito) return n?.conceito
+    return n?.nota !== null && n?.nota !== undefined
   }).length
-  const totalBaixaFreq = freqUnificada ? alunosAtivos.filter((a: AlunoTurma) => {
+
+  const totalAbaixoMedia = !isParecer ? alunosAtivos.filter((a: AlunoTurma) => {
+    const n = notas[a.id]
+    if (isConceito) {
+      if (!n?.conceito || escalaConceitos.length === 0) return false
+      const c = escalaConceitos.find((c: ConceitoEscala) => c.codigo === n.conceito)
+      return c ? c.valor_numerico < config.media_aprovacao : false
+    }
+    return n?.nota !== null && n?.nota !== undefined && n.nota < config.media_aprovacao
+  }).length : 0
+
+  const totalBaixaFreq = freqUnificada && !isParecer ? alunosAtivos.filter((a: AlunoTurma) => {
     const f = frequencias[a.id]
     if (!f || diasLetivos <= 0) return false
     const pct = (f.presencas / diasLetivos) * 100
     return pct < 75
   }).length : 0
+
+  // Label do tipo
+  const tipoLabel = isParecer ? 'Parecer Descritivo' : isConceito ? 'Conceito' : `Nota (0-${config.nota_maxima})`
+  const subtitulo = isParecer ? `${turmaNome} | ${periodoNome}` : `${turmaNome} | ${periodoNome}`
 
   return (
     <div className="space-y-4">
@@ -695,9 +825,19 @@ function PainelLancamento({
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{disciplinaNome}</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{turmaNome} | {periodoNome}</p>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                {isParecer ? 'Parecer Descritivo' : disciplinaNome}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{subtitulo}</p>
             </div>
+            {/* Badge tipo de avaliação */}
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+              isParecer ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300' :
+              isConceito ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' :
+              'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+            }`}>
+              {tipoLabel}
+            </span>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full">
@@ -708,12 +848,12 @@ function PainelLancamento({
                 {totalAbaixoMedia} abaixo da média
               </span>
             )}
-            {freqUnificada && totalBaixaFreq > 0 && (
+            {freqUnificada && !isParecer && totalBaixaFreq > 0 && (
               <span className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full">
                 {totalBaixaFreq} abaixo de 75% freq.
               </span>
             )}
-            {freqUnificada && (
+            {freqUnificada && !isParecer && (
               <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-xs">
                 Freq. Unificada
               </span>
@@ -722,8 +862,8 @@ function PainelLancamento({
         </div>
       </div>
 
-      {/* Dias Letivos (frequência unificada) */}
-      {freqUnificada && (
+      {/* Dias Letivos (frequência unificada, não para parecer) */}
+      {freqUnificada && !isParecer && (
         <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 flex items-center gap-4">
           <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Dias Letivos no Período:</span>
           <input
@@ -741,7 +881,7 @@ function PainelLancamento({
       )}
 
       {/* Aviso frequência por aula (6º-9º) */}
-      {!freqUnificada && (
+      {!freqUnificada && !isParecer && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-amber-600 dark:text-amber-400 text-lg">&#9432;</span>
@@ -759,9 +899,37 @@ function PainelLancamento({
         </div>
       )}
 
+      {/* Info parecer */}
+      {isParecer && (
+        <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl p-4 flex items-center gap-3">
+          <span className="text-violet-600 dark:text-violet-400 text-lg">&#9998;</span>
+          <span className="text-sm text-violet-700 dark:text-violet-300">
+            <strong>Avaliação por Parecer Descritivo</strong> — escreva o parecer individual de cada aluno.
+            Não há nota numérica. A aprovação é automática para esta etapa.
+          </span>
+        </div>
+      )}
+
+      {/* Info conceito */}
+      {isConceito && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
+          <span className="text-amber-600 dark:text-amber-400 text-lg">&#9733;</span>
+          <div className="text-sm text-amber-700 dark:text-amber-300">
+            <strong>Avaliação por Conceito</strong> — selecione o conceito de cada aluno.
+            <span className="ml-2">
+              {escalaConceitos.map((c: ConceitoEscala) => (
+                <span key={c.codigo} className="inline-flex items-center gap-0.5 mr-2">
+                  <strong>{c.codigo}</strong>={c.nome} ({c.valor_numerico})
+                </span>
+              ))}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Controles */}
       <div className="flex flex-wrap items-center gap-3">
-        {config.permite_recuperacao && (
+        {!isParecer && !isConceito && config.permite_recuperacao && (
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg shadow-sm">
             <input
               type="checkbox"
@@ -778,173 +946,276 @@ function PainelLancamento({
           className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 text-sm font-medium transition-colors ml-auto"
         >
           <Save className="w-4 h-4" />
-          {salvando ? 'Salvando...' : freqUnificada ? 'Salvar Notas e Frequência' : 'Salvar Notas'}
+          {salvando ? 'Salvando...' : isParecer ? 'Salvar Pareceres' : freqUnificada ? 'Salvar Notas e Frequência' : 'Salvar Notas'}
         </button>
       </div>
 
-      {/* Tabela de notas */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">
-            <thead className="bg-gray-50 dark:bg-slate-700">
-              <tr>
-                <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-8">#</th>
-                <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Aluno</th>
-                <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-24">
-                  Nota (0-{config.nota_maxima})
-                </th>
-                {mostrarRecuperacao && (
-                  <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-24">Recuperação</th>
-                )}
-                <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-20">Nota Final</th>
-                {freqUnificada ? (
-                  <>
-                    <th className="text-center py-3 px-3 text-xs font-semibold text-purple-600 dark:text-purple-300 uppercase w-16 bg-purple-50/50 dark:bg-purple-900/10">Faltas</th>
-                    <th className="text-center py-3 px-3 text-xs font-semibold text-purple-600 dark:text-purple-300 uppercase w-16 bg-purple-50/50 dark:bg-purple-900/10">Pres.</th>
-                    <th className="text-center py-3 px-3 text-xs font-semibold text-purple-600 dark:text-purple-300 uppercase w-16 bg-purple-50/50 dark:bg-purple-900/10">%</th>
-                  </>
-                ) : (
-                  <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-16">Faltas</th>
-                )}
-                <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-20">Status</th>
-                <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-16">Boletim</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-              {alunosAtivos.map((aluno: AlunoTurma, idx: number) => {
-                const nota = notas[aluno.id]
-                const notaVal = nota?.nota
-                const notaFinal = nota?.nota_final
-                const abaixo = notaFinal !== null && notaFinal !== undefined && notaFinal < config.media_aprovacao
+      {/* ============================================ */}
+      {/* TABELA: PARECER DESCRITIVO */}
+      {/* ============================================ */}
+      {isParecer ? (
+        <div className="space-y-4">
+          {alunosAtivos.map((aluno: AlunoTurma, idx: number) => {
+            const nota = notas[aluno.id]
+            const parecer = nota?.parecer_descritivo || ''
 
-                return (
-                  <tr key={aluno.id} className={`hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-slate-800/50'}`}>
-                    <td className="py-2 px-3 text-sm text-gray-500">{idx + 1}</td>
-                    <td className="py-2 px-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{aluno.nome}</span>
-                        {aluno.pcd && (
-                          <span className="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">PCD</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <input
-                        type="number"
-                        value={notaVal ?? ''}
-                        onChange={e => {
-                          const v = e.target.value === '' ? null : parseFloat(e.target.value)
-                          atualizarNota(aluno.id, 'nota', v)
-                        }}
-                        min={0}
-                        max={config.nota_maxima}
-                        step={0.1}
-                        className={`w-20 text-center rounded-lg border px-2 py-1.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white
-                          ${abaixo && !mostrarRecuperacao ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'}`}
-                      />
-                    </td>
-                    {mostrarRecuperacao && (
+            return (
+              <div key={aluno.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-sm text-gray-400 font-mono w-6">{idx + 1}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{aluno.nome}</span>
+                  {aluno.pcd && (
+                    <span className="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">PCD</span>
+                  )}
+                  {parecer.length > 0 && (
+                    <CheckCircle className="w-4 h-4 text-emerald-500 ml-auto" />
+                  )}
+                </div>
+                <textarea
+                  value={parecer}
+                  onChange={e => atualizarNota(aluno.id, 'parecer_descritivo', e.target.value)}
+                  placeholder="Escreva o parecer descritivo do aluno..."
+                  rows={4}
+                  className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white resize-y placeholder:text-gray-400"
+                />
+              </div>
+            )
+          })}
+          {alunosAtivos.length === 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-8 text-center text-gray-500 dark:text-gray-400">
+              Nenhum aluno ativo nesta turma
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ============================================ */
+        /* TABELA: CONCEITO / NUMÉRICO */
+        /* ============================================ */
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">
+              <thead className="bg-gray-50 dark:bg-slate-700">
+                <tr>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-8">#</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Aluno</th>
+                  <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-28">
+                    {isConceito ? 'Conceito' : `Nota (0-${config.nota_maxima})`}
+                  </th>
+                  {!isConceito && mostrarRecuperacao && (
+                    <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-24">Recuperação</th>
+                  )}
+                  <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-20">
+                    {isConceito ? 'Valor' : 'Nota Final'}
+                  </th>
+                  {freqUnificada ? (
+                    <>
+                      <th className="text-center py-3 px-3 text-xs font-semibold text-purple-600 dark:text-purple-300 uppercase w-16 bg-purple-50/50 dark:bg-purple-900/10">Faltas</th>
+                      <th className="text-center py-3 px-3 text-xs font-semibold text-purple-600 dark:text-purple-300 uppercase w-16 bg-purple-50/50 dark:bg-purple-900/10">Pres.</th>
+                      <th className="text-center py-3 px-3 text-xs font-semibold text-purple-600 dark:text-purple-300 uppercase w-16 bg-purple-50/50 dark:bg-purple-900/10">%</th>
+                    </>
+                  ) : (
+                    <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-16">Faltas</th>
+                  )}
+                  <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-20">Status</th>
+                  <th className="text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-16">Boletim</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                {alunosAtivos.map((aluno: AlunoTurma, idx: number) => {
+                  const nota = notas[aluno.id]
+                  const notaVal = nota?.nota
+                  const notaFinal = nota?.nota_final
+                  const conceitoVal = nota?.conceito
+
+                  // Para conceito, calcular valor numérico localmente
+                  let conceitoNumerico: number | null = null
+                  if (isConceito && conceitoVal && escalaConceitos.length > 0) {
+                    const c = escalaConceitos.find((c: ConceitoEscala) => c.codigo === conceitoVal)
+                    if (c) conceitoNumerico = c.valor_numerico
+                  }
+
+                  const valorExibicao = isConceito ? conceitoNumerico : notaFinal
+                  const abaixo = valorExibicao !== null && valorExibicao !== undefined && valorExibicao < config.media_aprovacao
+
+                  return (
+                    <tr key={aluno.id} className={`hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-slate-800/50'}`}>
+                      <td className="py-2 px-3 text-sm text-gray-500">{idx + 1}</td>
+                      <td className="py-2 px-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{aluno.nome}</span>
+                          {aluno.pcd && (
+                            <span className="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">PCD</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Input de conceito ou nota */}
                       <td className="py-2 px-3 text-center">
-                        <input
-                          type="number"
-                          value={nota?.nota_recuperacao ?? ''}
-                          onChange={e => {
-                            const v = e.target.value === '' ? null : parseFloat(e.target.value)
-                            atualizarNota(aluno.id, 'nota_recuperacao', v)
-                          }}
-                          min={0}
-                          max={config.nota_maxima}
-                          step={0.1}
-                          className="w-20 text-center rounded-lg border border-orange-300 dark:border-orange-600 px-2 py-1.5 text-sm bg-orange-50 dark:bg-orange-900/20 text-gray-900 dark:text-white"
-                          placeholder="-"
-                        />
-                      </td>
-                    )}
-                    <td className="py-2 px-3 text-center">
-                      <span className={`text-sm font-semibold ${
-                        notaFinal !== null && notaFinal !== undefined
-                          ? (notaFinal >= config.media_aprovacao
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-red-600 dark:text-red-400')
-                          : 'text-gray-400'
-                      }`}>
-                        {notaFinal !== null && notaFinal !== undefined ? notaFinal.toFixed(1) : '-'}
-                      </span>
-                    </td>
-                    {freqUnificada ? (() => {
-                      const freq = frequencias[aluno.id] || { presencas: diasLetivos, faltas: 0, faltas_justificadas: 0 }
-                      const pct = diasLetivos > 0 ? ((freq.presencas / diasLetivos) * 100) : 0
-                      const corPct = pct >= 90 ? 'text-emerald-600 dark:text-emerald-400' : pct >= 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
-                      return (
-                        <>
-                          <td className="py-2 px-3 text-center bg-purple-50/30 dark:bg-purple-900/5">
-                            <input
-                              type="number"
-                              value={freq.faltas}
-                              onChange={e => atualizarFrequencia(aluno.id, 'faltas', parseInt(e.target.value) || 0)}
-                              min={0}
-                              max={diasLetivos}
-                              className="w-14 text-center rounded-lg border border-purple-300 dark:border-purple-600 px-2 py-1.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                            />
-                          </td>
-                          <td className="py-2 px-3 text-center bg-purple-50/30 dark:bg-purple-900/5">
-                            <input
-                              type="number"
-                              value={freq.presencas}
-                              onChange={e => atualizarFrequencia(aluno.id, 'presencas', parseInt(e.target.value) || 0)}
-                              min={0}
-                              max={diasLetivos}
-                              className="w-14 text-center rounded-lg border border-purple-300 dark:border-purple-600 px-2 py-1.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                            />
-                          </td>
-                          <td className="py-2 px-3 text-center bg-purple-50/30 dark:bg-purple-900/5">
-                            <span className={`text-sm font-semibold ${corPct}`}>
-                              {pct.toFixed(0)}%
-                            </span>
-                          </td>
-                        </>
-                      )
-                    })() : (
-                      <td className="py-2 px-3 text-center" title="Faltas calculadas automaticamente a partir da frequência por aula. Acesse o Painel da Turma para gerenciar.">
-                        <span className="inline-block w-14 text-center rounded-lg border border-gray-200 dark:border-slate-600 px-2 py-1.5 text-sm bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-400 cursor-help">
-                          {nota?.faltas ?? 0}
-                        </span>
-                      </td>
-                    )}
-                    <td className="py-2 px-3 text-center">
-                      {notaFinal !== null && notaFinal !== undefined ? (
-                        notaFinal >= config.media_aprovacao ? (
-                          <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
+                        {isConceito ? (
+                          <select
+                            value={conceitoVal || ''}
+                            onChange={e => atualizarNota(aluno.id, 'conceito', e.target.value || null)}
+                            className={`w-24 text-center rounded-lg border px-2 py-1.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white font-semibold
+                              ${abaixo ? 'border-red-300 dark:border-red-600' : 'border-amber-300 dark:border-amber-600'}`}
+                          >
+                            <option value="">-</option>
+                            {escalaConceitos.map((c: ConceitoEscala) => (
+                              <option key={c.codigo} value={c.codigo}>{c.codigo} - {c.nome}</option>
+                            ))}
+                          </select>
                         ) : (
-                          <AlertCircle className="w-5 h-5 text-red-500 mx-auto" />
-                        )
-                      ) : (
-                        <span className="text-gray-300">-</span>
+                          <input
+                            type="number"
+                            value={notaVal ?? ''}
+                            onChange={e => {
+                              const v = e.target.value === '' ? null : parseFloat(e.target.value)
+                              atualizarNota(aluno.id, 'nota', v)
+                            }}
+                            min={0}
+                            max={config.nota_maxima}
+                            step={0.1}
+                            className={`w-20 text-center rounded-lg border px-2 py-1.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white
+                              ${abaixo && !mostrarRecuperacao ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'}`}
+                          />
+                        )}
+                      </td>
+
+                      {/* Recuperação (só numérico) */}
+                      {!isConceito && mostrarRecuperacao && (
+                        <td className="py-2 px-3 text-center">
+                          <input
+                            type="number"
+                            value={nota?.nota_recuperacao ?? ''}
+                            onChange={e => {
+                              const v = e.target.value === '' ? null : parseFloat(e.target.value)
+                              atualizarNota(aluno.id, 'nota_recuperacao', v)
+                            }}
+                            min={0}
+                            max={config.nota_maxima}
+                            step={0.1}
+                            className="w-20 text-center rounded-lg border border-orange-300 dark:border-orange-600 px-2 py-1.5 text-sm bg-orange-50 dark:bg-orange-900/20 text-gray-900 dark:text-white"
+                            placeholder="-"
+                          />
+                        </td>
                       )}
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <button
-                        onClick={() => verBoletim(aluno)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
-                        title="Ver boletim"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+
+                      {/* Nota Final / Valor */}
+                      <td className="py-2 px-3 text-center">
+                        {isConceito ? (
+                          <span className={`text-sm font-semibold ${
+                            conceitoNumerico !== null
+                              ? (conceitoNumerico >= config.media_aprovacao
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-red-600 dark:text-red-400')
+                              : 'text-gray-400'
+                          }`}>
+                            {conceitoNumerico !== null ? conceitoNumerico.toFixed(1) : '-'}
+                          </span>
+                        ) : (
+                          <span className={`text-sm font-semibold ${
+                            notaFinal !== null && notaFinal !== undefined
+                              ? (notaFinal >= config.media_aprovacao
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-red-600 dark:text-red-400')
+                              : 'text-gray-400'
+                          }`}>
+                            {notaFinal !== null && notaFinal !== undefined ? notaFinal.toFixed(1) : '-'}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Frequência */}
+                      {freqUnificada ? (() => {
+                        const freq = frequencias[aluno.id] || { presencas: diasLetivos, faltas: 0, faltas_justificadas: 0 }
+                        const pct = diasLetivos > 0 ? ((freq.presencas / diasLetivos) * 100) : 0
+                        const corPct = pct >= 90 ? 'text-emerald-600 dark:text-emerald-400' : pct >= 75 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
+                        return (
+                          <>
+                            <td className="py-2 px-3 text-center bg-purple-50/30 dark:bg-purple-900/5">
+                              <input
+                                type="number"
+                                value={freq.faltas}
+                                onChange={e => atualizarFrequencia(aluno.id, 'faltas', parseInt(e.target.value) || 0)}
+                                min={0}
+                                max={diasLetivos}
+                                className="w-14 text-center rounded-lg border border-purple-300 dark:border-purple-600 px-2 py-1.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                              />
+                            </td>
+                            <td className="py-2 px-3 text-center bg-purple-50/30 dark:bg-purple-900/5">
+                              <input
+                                type="number"
+                                value={freq.presencas}
+                                onChange={e => atualizarFrequencia(aluno.id, 'presencas', parseInt(e.target.value) || 0)}
+                                min={0}
+                                max={diasLetivos}
+                                className="w-14 text-center rounded-lg border border-purple-300 dark:border-purple-600 px-2 py-1.5 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                              />
+                            </td>
+                            <td className="py-2 px-3 text-center bg-purple-50/30 dark:bg-purple-900/5">
+                              <span className={`text-sm font-semibold ${corPct}`}>
+                                {pct.toFixed(0)}%
+                              </span>
+                            </td>
+                          </>
+                        )
+                      })() : (
+                        <td className="py-2 px-3 text-center" title="Faltas calculadas automaticamente a partir da frequência por aula. Acesse o Painel da Turma para gerenciar.">
+                          <span className="inline-block w-14 text-center rounded-lg border border-gray-200 dark:border-slate-600 px-2 py-1.5 text-sm bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-400 cursor-help">
+                            {nota?.faltas ?? 0}
+                          </span>
+                        </td>
+                      )}
+
+                      {/* Status */}
+                      <td className="py-2 px-3 text-center">
+                        {isConceito ? (
+                          conceitoNumerico !== null ? (
+                            conceitoNumerico >= config.media_aprovacao ? (
+                              <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
+                            ) : (
+                              <AlertCircle className="w-5 h-5 text-red-500 mx-auto" />
+                            )
+                          ) : (
+                            <span className="text-gray-300">-</span>
+                          )
+                        ) : (
+                          notaFinal !== null && notaFinal !== undefined ? (
+                            notaFinal >= config.media_aprovacao ? (
+                              <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
+                            ) : (
+                              <AlertCircle className="w-5 h-5 text-red-500 mx-auto" />
+                            )
+                          ) : (
+                            <span className="text-gray-300">-</span>
+                          )
+                        )}
+                      </td>
+
+                      {/* Boletim */}
+                      <td className="py-2 px-3 text-center">
+                        <button
+                          onClick={() => verBoletim(aluno)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
+                          title="Ver boletim"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {alunosAtivos.length === 0 && (
+                  <tr>
+                    <td colSpan={!isConceito && mostrarRecuperacao ? (freqUnificada ? 10 : 8) : (freqUnificada ? 9 : 7)} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                      Nenhum aluno ativo nesta turma
                     </td>
                   </tr>
-                )
-              })}
-              {alunosAtivos.length === 0 && (
-                <tr>
-                  <td colSpan={mostrarRecuperacao ? (freqUnificada ? 10 : 8) : (freqUnificada ? 9 : 7)} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                    Nenhum aluno ativo nesta turma
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Botão salvar fixo no mobile */}
       <div className="sm:hidden fixed bottom-4 left-4 right-4 z-40">
@@ -954,7 +1225,7 @@ function PainelLancamento({
           className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl shadow-lg hover:bg-emerald-700 disabled:bg-emerald-400 text-sm font-medium"
         >
           <Save className="w-4 h-4" />
-          {salvando ? 'Salvando...' : freqUnificada ? 'Salvar Notas e Frequência' : 'Salvar Notas'}
+          {salvando ? 'Salvando...' : isParecer ? 'Salvar Pareceres' : freqUnificada ? 'Salvar Notas e Frequência' : 'Salvar Notas'}
         </button>
       </div>
     </div>

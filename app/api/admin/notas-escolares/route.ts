@@ -5,10 +5,10 @@ import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
-// Schema para lançamento em lote
+// Schema para lançamento em lote (suporta numerico, conceito e parecer)
 const notaLoteSchema = z.object({
   turma_id: z.string().uuid(),
-  disciplina_id: z.string().uuid(),
+  disciplina_id: z.string().uuid().optional(), // Opcional para parecer (sem disciplina específica)
   periodo_id: z.string().uuid(),
   notas: z.array(z.object({
     aluno_id: z.string().uuid(),
@@ -16,6 +16,8 @@ const notaLoteSchema = z.object({
     nota_recuperacao: z.number().min(0).max(100).nullable().optional(),
     faltas: z.number().int().min(0).optional(),
     observacao: z.string().max(500).nullable().optional(),
+    conceito: z.string().max(5).nullable().optional(),
+    parecer_descritivo: z.string().max(5000).nullable().optional(),
   })),
 })
 
@@ -118,7 +120,8 @@ export async function GET(request: NextRequest) {
  * POST /api/admin/notas-escolares
  *
  * Lançamento de notas em lote para uma turma/disciplina/período
- * Usa UPSERT (INSERT ... ON CONFLICT UPDATE) para criar ou atualizar
+ * Suporta 3 tipos: numerico, conceito, parecer
+ * Detecta automaticamente pelo tipo de avaliação da série
  */
 export async function POST(request: NextRequest) {
   try {
@@ -139,9 +142,29 @@ export async function POST(request: NextRequest) {
 
     const { turma_id, disciplina_id, periodo_id, notas } = validacao.data
 
-    // Buscar turma para obter escola_id e ano_letivo
+    // Buscar turma para obter escola_id, ano_letivo e serie
     const turmaResult = await pool.query(
-      'SELECT escola_id, ano_letivo FROM turmas WHERE id = $1',
+      `SELECT t.escola_id, t.ano_letivo, t.serie,
+              se.tipo_avaliacao_id, se.regra_avaliacao_id,
+              ta.codigo as tipo_codigo, ta.tipo_resultado, ta.escala_conceitos, ta.nota_maxima as tipo_nota_maxima,
+              ra.permite_recuperacao as regra_permite_recuperacao, ra.aprovacao_automatica,
+              ra.media_aprovacao as regra_media_aprovacao, ra.nota_maxima as regra_nota_maxima
+       FROM turmas t
+       LEFT JOIN series_escolares se ON REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = se.codigo
+         OR se.codigo = CASE
+           WHEN t.serie ILIKE '%creche%' THEN 'CRE'
+           WHEN t.serie ILIKE '%pré i%' OR t.serie ILIKE '%pre i%' OR t.serie ILIKE '%pré 1%' THEN 'PRE1'
+           WHEN t.serie ILIKE '%pré ii%' OR t.serie ILIKE '%pre ii%' OR t.serie ILIKE '%pré 2%' THEN 'PRE2'
+           WHEN t.serie ILIKE '%eja%1%' THEN 'EJA1'
+           WHEN t.serie ILIKE '%eja%2%' THEN 'EJA2'
+           WHEN t.serie ILIKE '%eja%3%' THEN 'EJA3'
+           WHEN t.serie ILIKE '%eja%4%' THEN 'EJA4'
+           ELSE REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g')
+         END
+       LEFT JOIN tipos_avaliacao ta ON ta.id = se.tipo_avaliacao_id
+       LEFT JOIN regras_avaliacao ra ON ra.id = se.regra_avaliacao_id
+       WHERE t.id = $1
+       LIMIT 1`,
       [turma_id]
     )
 
@@ -149,14 +172,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
     }
 
-    const { escola_id, ano_letivo } = turmaResult.rows[0]
+    const turma = turmaResult.rows[0]
+    const { escola_id, ano_letivo } = turma
+    const tipoResultado = turma.tipo_resultado || 'numerico'
+    const escalaConceitos = turma.escala_conceitos || []
 
     // Restrição de acesso para escola
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id !== escola_id) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
-    // Buscar configuração de notas da escola para calcular nota_final
+    // Buscar configuração de notas da escola como fallback
     const configResult = await pool.query(
       'SELECT * FROM configuracao_notas_escola WHERE escola_id = $1 AND ano_letivo = $2',
       [escola_id, ano_letivo]
@@ -164,11 +190,11 @@ export async function POST(request: NextRequest) {
 
     const rawConfig = configResult.rows[0] || {}
     const config = {
-      nota_maxima: parseFloat(rawConfig.nota_maxima) || 10,
-      media_aprovacao: parseFloat(rawConfig.media_aprovacao) || 6,
+      nota_maxima: parseFloat(turma.regra_nota_maxima) || parseFloat(rawConfig.nota_maxima) || 10,
+      media_aprovacao: parseFloat(turma.regra_media_aprovacao) || parseFloat(rawConfig.media_aprovacao) || 6,
       peso_avaliacao: parseFloat(rawConfig.peso_avaliacao) || 0.6,
       peso_recuperacao: parseFloat(rawConfig.peso_recuperacao) || 0.4,
-      permite_recuperacao: rawConfig.permite_recuperacao !== false,
+      permite_recuperacao: turma.regra_permite_recuperacao ?? rawConfig.permite_recuperacao ?? true,
     }
 
     const client = await pool.connect()
@@ -178,10 +204,11 @@ export async function POST(request: NextRequest) {
       let processados = 0
       const errosDetalhes: { aluno_id: string; mensagem: string }[] = []
 
-      // Preparar statement para reutilização (performance: evita re-parse por item)
       const upsertSQL = `INSERT INTO notas_escolares
-             (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id, nota, nota_recuperacao, nota_final, faltas, observacao, registrado_por)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+             (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id,
+              nota, nota_recuperacao, nota_final, faltas, observacao,
+              conceito, parecer_descritivo, tipo_avaliacao_id, registrado_por)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
              ON CONFLICT (aluno_id, disciplina_id, periodo_id)
              DO UPDATE SET
                nota = EXCLUDED.nota,
@@ -189,43 +216,73 @@ export async function POST(request: NextRequest) {
                nota_final = EXCLUDED.nota_final,
                faltas = EXCLUDED.faltas,
                observacao = EXCLUDED.observacao,
+               conceito = EXCLUDED.conceito,
+               parecer_descritivo = EXCLUDED.parecer_descritivo,
+               tipo_avaliacao_id = EXCLUDED.tipo_avaliacao_id,
                registrado_por = EXCLUDED.registrado_por,
                turma_id = EXCLUDED.turma_id`
 
-      // Processar em lotes de 50 para evitar bloqueio prolongado
       const BATCH_SIZE = 50
       for (let i = 0; i < notas.length; i += BATCH_SIZE) {
         const lote = notas.slice(i, i + BATCH_SIZE)
 
         for (const item of lote) {
           try {
-            // Ignorar nota de recuperação sem nota original
-            if ((item.nota === null || item.nota === undefined) && item.nota_recuperacao !== null && item.nota_recuperacao !== undefined) {
-              errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: 'Nota de recuperação requer nota original' })
-              continue
-            }
-
-            // Calcular nota_final com proteção contra NaN
             let notaFinal: number | null = null
-            const notaNum = typeof item.nota === 'number' ? item.nota : (item.nota !== null && item.nota !== undefined ? parseFloat(item.nota) : null)
-            const recNum = typeof item.nota_recuperacao === 'number' ? item.nota_recuperacao : (item.nota_recuperacao !== null && item.nota_recuperacao !== undefined ? parseFloat(item.nota_recuperacao) : null)
+            let conceitoVal: string | null = item.conceito ?? null
+            let parecerVal: string | null = item.parecer_descritivo ?? null
+            let notaVal: number | null = item.nota ?? null
+            let notaRecVal: number | null = item.nota_recuperacao ?? null
 
-            if (notaNum !== null && !isNaN(notaNum)) {
-              notaFinal = Math.max(0, notaNum)
-              if (recNum !== null && !isNaN(recNum) && config.permite_recuperacao) {
-                if (recNum > notaFinal) {
-                  notaFinal = recNum
+            if (tipoResultado === 'parecer') {
+              // Parecer: sem nota numérica, apenas texto descritivo
+              notaVal = null
+              notaRecVal = null
+              notaFinal = null
+            } else if (tipoResultado === 'conceito') {
+              // Conceito: converter para valor numérico equivalente
+              if (conceitoVal && Array.isArray(escalaConceitos)) {
+                const conceito = escalaConceitos.find((c: any) => c.codigo === conceitoVal)
+                if (conceito) {
+                  notaVal = parseFloat(conceito.valor_numerico)
+                  notaFinal = notaVal
+                } else {
+                  errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: `Conceito '${conceitoVal}' inválido` })
+                  continue
                 }
               }
-              notaFinal = Math.max(0, Math.min(notaFinal, config.nota_maxima))
-              notaFinal = Math.round(notaFinal * 100) / 100
-              if (isNaN(notaFinal)) notaFinal = null // Segurança final
+              // Conceito não tem recuperação numérica
+              notaRecVal = null
+            } else {
+              // Numérico: lógica original
+              if ((notaVal === null || notaVal === undefined) && notaRecVal !== null && notaRecVal !== undefined) {
+                errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: 'Nota de recuperação requer nota original' })
+                continue
+              }
+
+              const notaNum = typeof notaVal === 'number' ? notaVal : (notaVal !== null && notaVal !== undefined ? parseFloat(String(notaVal)) : null)
+              const recNum = typeof notaRecVal === 'number' ? notaRecVal : (notaRecVal !== null && notaRecVal !== undefined ? parseFloat(String(notaRecVal)) : null)
+
+              if (notaNum !== null && !isNaN(notaNum)) {
+                notaFinal = Math.max(0, notaNum)
+                if (recNum !== null && !isNaN(recNum) && config.permite_recuperacao) {
+                  if (recNum > notaFinal) {
+                    notaFinal = recNum
+                  }
+                }
+                notaFinal = Math.max(0, Math.min(notaFinal, config.nota_maxima))
+                notaFinal = Math.round(notaFinal * 100) / 100
+                if (isNaN(notaFinal)) notaFinal = null
+              }
             }
 
             await client.query(upsertSQL, [
-              item.aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id,
-              item.nota ?? null, item.nota_recuperacao ?? null, notaFinal,
-              item.faltas ?? 0, item.observacao ?? null, usuario.id,
+              item.aluno_id, disciplina_id || null, periodo_id, escola_id, ano_letivo, turma_id,
+              notaVal, notaRecVal, notaFinal,
+              item.faltas ?? 0, item.observacao ?? null,
+              conceitoVal, parecerVal,
+              turma.tipo_avaliacao_id || null,
+              usuario.id,
             ])
             processados++
           } catch (err: any) {
