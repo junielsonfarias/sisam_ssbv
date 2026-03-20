@@ -17,7 +17,12 @@ import {
   ScanFace,
   Hand,
   QrCode,
-  Calendar
+  Calendar,
+  Trash2,
+  MessageSquare,
+  AlertTriangle,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 import { useSeries } from '@/lib/use-series'
 import { useUserType } from '@/lib/hooks/useUserType'
@@ -46,6 +51,8 @@ interface RegistroFrequencia {
   metodo: 'facial' | 'manual' | 'qrcode'
   confianca: number | null
   dispositivo: string | null
+  status: 'presente' | 'ausente'
+  justificativa: string | null
 }
 
 interface Paginacao {
@@ -96,6 +103,10 @@ export default function FrequenciaDiariaPage() {
   // Estado
   const [carregando, setCarregando] = useState(false)
   const [carregandoResumo, setCarregandoResumo] = useState(false)
+  const [lancandoFaltas, setLancandoFaltas] = useState(false)
+  const [excluindoId, setExcluindoId] = useState<string | null>(null)
+  const [justificandoId, setJustificandoId] = useState<string | null>(null)
+  const [justificativaTexto, setJustificativaTexto] = useState('')
   const [paginacao, setPaginacao] = useState<Paginacao>({
     pagina: 1,
     limite: 50,
@@ -116,14 +127,14 @@ export default function FrequenciaDiariaPage() {
       if (res.ok) {
         const d = await res.json()
         setResumo({
-          total_presentes: d.total_presentes ?? 0,
-          total_ausentes: d.total_ausentes ?? 0,
-          taxa_presenca: d.taxa_presenca ?? 0,
-          dispositivos_online: d.dispositivos_online ?? 0,
+          total_presentes: d.presenca?.total_presentes ?? d.total_presentes ?? 0,
+          total_ausentes: d.presenca?.total_ausentes ?? d.total_ausentes ?? 0,
+          taxa_presenca: d.presenca?.taxa_presenca ?? d.taxa_presenca ?? 0,
+          dispositivos_online: d.dispositivos?.online ?? d.dispositivos_online ?? 0,
           por_metodo: {
-            facial: d.por_metodo?.facial ?? 0,
-            manual: d.por_metodo?.manual ?? 0,
-            qrcode: d.por_metodo?.qrcode ?? 0
+            facial: d.presenca?.por_metodo?.facial ?? d.por_metodo?.facial ?? 0,
+            manual: d.presenca?.por_metodo?.manual ?? d.por_metodo?.manual ?? 0,
+            qrcode: d.presenca?.por_metodo?.qrcode ?? d.por_metodo?.qrcode ?? 0
           }
         })
       }
@@ -168,6 +179,113 @@ export default function FrequenciaDiariaPage() {
     carregarRegistros(1)
   }
 
+  // Excluir registro
+  const handleExcluir = async (id: string, nomeAluno: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o registro de frequência de "${nomeAluno}"?`)) return
+
+    setExcluindoId(id)
+    try {
+      const res = await fetch('/api/admin/frequencia-diaria', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (res.ok) {
+        toast.success('Registro excluído com sucesso')
+        carregarRegistros(paginacao.pagina)
+        carregarResumo()
+      } else {
+        const d = await res.json().catch(() => null)
+        toast.error(d?.mensagem || 'Erro ao excluir registro')
+      }
+    } catch {
+      toast.error('Erro ao conectar com o servidor')
+    } finally {
+      setExcluindoId(null)
+    }
+  }
+
+  // Abrir justificativa
+  const handleAbrirJustificativa = (reg: RegistroFrequencia) => {
+    setJustificandoId(reg.id)
+    setJustificativaTexto(reg.justificativa || '')
+  }
+
+  // Fechar justificativa
+  const handleFecharJustificativa = () => {
+    setJustificandoId(null)
+    setJustificativaTexto('')
+  }
+
+  // Salvar justificativa
+  const handleSalvarJustificativa = async () => {
+    if (!justificandoId) return
+
+    try {
+      const res = await fetch('/api/admin/frequencia-diaria', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: justificandoId, justificativa: justificativaTexto }),
+      })
+      if (res.ok) {
+        toast.success('Justificativa salva com sucesso')
+        setRegistros(prev => prev.map(r =>
+          r.id === justificandoId ? { ...r, justificativa: justificativaTexto || null } : r
+        ))
+        handleFecharJustificativa()
+      } else {
+        const d = await res.json().catch(() => null)
+        toast.error(d?.mensagem || 'Erro ao salvar justificativa')
+      }
+    } catch {
+      toast.error('Erro ao conectar com o servidor')
+    }
+  }
+
+  // ESC para fechar modal
+  useEffect(() => {
+    if (!justificandoId) return
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleFecharJustificativa()
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [justificandoId])
+
+  // Lançar faltas
+  const handleLancarFaltas = async () => {
+    if (!turmaId) {
+      toast.error('Selecione uma turma para lançar faltas')
+      return
+    }
+
+    const turmaSelecionada = turmas.find(t => t.id === turmaId)
+    const nomeTurma = turmaSelecionada ? `${turmaSelecionada.codigo}${turmaSelecionada.nome ? ` - ${turmaSelecionada.nome}` : ''}` : turmaId
+
+    if (!confirm(`Lançar FALTA para todos os alunos da turma "${nomeTurma}" que não registraram presença em ${data}?\n\nEsta ação não pode ser desfeita automaticamente.`)) return
+
+    setLancandoFaltas(true)
+    try {
+      const res = await fetch('/api/admin/frequencia-diaria/lancar-faltas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turma_id: turmaId, data }),
+      })
+      const d = await res.json().catch(() => null)
+      if (res.ok) {
+        toast.success(d?.mensagem || 'Faltas lançadas com sucesso')
+        carregarRegistros(1)
+        carregarResumo()
+      } else {
+        toast.error(d?.mensagem || 'Erro ao lançar faltas')
+      }
+    } catch {
+      toast.error('Erro ao conectar com o servidor')
+    } finally {
+      setLancandoFaltas(false)
+    }
+  }
+
   // Badge de metodo
   const getMetodoBadge = (m: string) => {
     const config: Record<string, { label: string; classes: string }> = {
@@ -183,15 +301,48 @@ export default function FrequenciaDiariaPage() {
     )
   }
 
-  // Formatar hora
+  // Badge de status
+  const getStatusBadge = (status: string) => {
+    if (status === 'ausente') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">
+          <XCircle className="w-3 h-3" /> Ausente
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+        <CheckCircle className="w-3 h-3" /> Presente
+      </span>
+    )
+  }
+
+  // Formatar hora — lida com TIME do PostgreSQL ("HH:MM:SS") e datetime ISO
   const formatarHora = (hora: string | null) => {
     if (!hora) return '-'
+    // PostgreSQL TIME retorna "HH:MM:SS" ou "HH:MM:SS.microseconds"
+    const timeMatch = hora.match(/^(\d{2}):(\d{2}):(\d{2})/)
+    if (timeMatch) {
+      return `${timeMatch[1]}:${timeMatch[2]}:${timeMatch[3]}`
+    }
+    // Tentar parse como datetime ISO
     try {
       const d = new Date(hora)
+      if (isNaN(d.getTime())) return hora
       return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     } catch {
       return hora
     }
+  }
+
+  // Formatar confiança (DB armazena 0-1, exibir como 0-100%)
+  const formatarConfianca = (confianca: number | string | null | undefined) => {
+    if (confianca === null || confianca === undefined) return null
+    const valor = Number(confianca)
+    if (isNaN(valor)) return null
+    // Se valor <= 1, multiplicar por 100 (DB armazena 0-1)
+    const percentual = valor <= 1 ? valor * 100 : valor
+    return percentual
   }
 
   // Exportar CSV
@@ -201,17 +352,22 @@ export default function FrequenciaDiariaPage() {
       return
     }
 
-    const headers = ['Nome do Aluno', 'Codigo', 'Turma', 'Hora Entrada', 'Hora Saida', 'Metodo', 'Confianca (%)', 'Dispositivo']
-    const linhas = registros.map(r => [
-      r.aluno_nome,
-      r.aluno_codigo || '',
-      r.turma_codigo || '',
-      r.hora_entrada ? formatarHora(r.hora_entrada) : '',
-      r.hora_saida ? formatarHora(r.hora_saida) : '',
-      r.metodo || '',
-      r.confianca !== null ? r.confianca.toString() : '',
-      r.dispositivo || ''
-    ])
+    const headers = ['Nome do Aluno', 'Codigo', 'Turma', 'Status', 'Hora Entrada', 'Hora Saida', 'Metodo', 'Confianca (%)', 'Dispositivo', 'Justificativa']
+    const linhas = registros.map(r => {
+      const conf = formatarConfianca(r.confianca)
+      return [
+        r.aluno_nome,
+        r.aluno_codigo || '',
+        r.turma_codigo || '',
+        r.status === 'ausente' ? 'Ausente' : 'Presente',
+        r.hora_entrada ? formatarHora(r.hora_entrada) : '',
+        r.hora_saida ? formatarHora(r.hora_saida) : '',
+        r.metodo || '',
+        conf !== null ? Number(conf).toFixed(1) : '',
+        r.dispositivo || '',
+        r.justificativa || ''
+      ]
+    })
 
     const csvContent = [headers, ...linhas]
       .map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(','))
@@ -241,6 +397,15 @@ export default function FrequenciaDiariaPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleLancarFaltas}
+                disabled={!turmaId || lancandoFaltas}
+                title={!turmaId ? 'Selecione uma turma primeiro' : 'Lançar falta para alunos sem presença'}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              >
+                {lancandoFaltas ? <LoadingSpinner /> : <AlertTriangle className="w-4 h-4" />}
+                Lancar Faltas
+              </button>
               <button
                 onClick={handleExportarCSV}
                 disabled={registros.length === 0}
@@ -299,7 +464,7 @@ export default function FrequenciaDiariaPage() {
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Taxa de Presenca</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {carregandoResumo ? '-' : `${resumo.taxa_presenca.toFixed(1)}%`}
+                  {carregandoResumo ? '-' : `${Number(resumo.taxa_presenca).toFixed(1)}%`}
                 </p>
               </div>
             </div>
@@ -439,6 +604,48 @@ export default function FrequenciaDiariaPage() {
           </div>
         </div>
 
+        {/* Modal de justificativa */}
+        {justificandoId && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            onClick={handleFecharJustificativa}
+          >
+            <div
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 p-6 w-full max-w-md mx-4"
+              onClick={e => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Justificativa de Falta</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Informe o motivo da ausencia do aluno
+              </p>
+              <textarea
+                value={justificativaTexto}
+                onChange={e => setJustificativaTexto(e.target.value)}
+                placeholder="Ex: Atestado medico, motivo familiar..."
+                rows={3}
+                autoFocus
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+              />
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={handleFecharJustificativa}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSalvarJustificativa}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabela de resultados */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
@@ -475,6 +682,9 @@ export default function FrequenciaDiariaPage() {
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                         Turma
                       </th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        Status
+                      </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                         Hora Entrada
                       </th>
@@ -488,54 +698,99 @@ export default function FrequenciaDiariaPage() {
                         Confianca
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                        Dispositivo
+                        Justificativa
+                      </th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        Acoes
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-slate-700/40">
-                    {registros.map((reg, idx) => (
-                      <tr
-                        key={reg.id}
-                        className={`hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ${
-                          idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-gray-50/50 dark:bg-slate-800/60'
-                        }`}
-                      >
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                          {reg.aluno_nome}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 font-mono">
-                          {reg.aluno_codigo || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                          {reg.turma_codigo || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                          {formatarHora(reg.hora_entrada)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                          {formatarHora(reg.hora_saida)}
-                        </td>
-                        <td className="px-4 py-3">
-                          {getMetodoBadge(reg.metodo)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {reg.confianca !== null ? (
-                            <span className={`text-sm font-semibold ${
-                              reg.confianca >= 90 ? 'text-green-600 dark:text-green-400' :
-                              reg.confianca >= 70 ? 'text-yellow-600 dark:text-yellow-400' :
-                              'text-red-600 dark:text-red-400'
-                            }`}>
-                              {reg.confianca.toFixed(1)}%
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          {reg.dispositivo || '-'}
-                        </td>
-                      </tr>
-                    ))}
+                    {registros.map((reg, idx) => {
+                      const conf = formatarConfianca(reg.confianca)
+                      return (
+                        <tr
+                          key={reg.id}
+                          className={`hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ${
+                            reg.status === 'ausente'
+                              ? 'bg-red-50/50 dark:bg-red-900/10'
+                              : idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-gray-50/50 dark:bg-slate-800/60'
+                          }`}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                            {reg.aluno_nome}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 font-mono">
+                            {reg.aluno_codigo || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                            {reg.turma_codigo || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {getStatusBadge(reg.status || 'presente')}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                            {formatarHora(reg.hora_entrada)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                            {formatarHora(reg.hora_saida)}
+                          </td>
+                          <td className="px-4 py-3">
+                            {getMetodoBadge(reg.metodo)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {conf !== null ? (
+                              <span className={`text-sm font-semibold ${
+                                conf >= 90 ? 'text-green-600 dark:text-green-400' :
+                                conf >= 70 ? 'text-yellow-600 dark:text-yellow-400' :
+                                'text-red-600 dark:text-red-400'
+                              }`}>
+                                {Number(conf).toFixed(1)}%
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 max-w-[200px]">
+                            {reg.status === 'ausente' ? (
+                              reg.justificativa ? (
+                                <span
+                                  className="cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 truncate block"
+                                  title={reg.justificativa}
+                                  onClick={() => handleAbrirJustificativa(reg)}
+                                >
+                                  {reg.justificativa}
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleAbrirJustificativa(reg)}
+                                  className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+                                >
+                                  <MessageSquare className="w-3 h-3" />
+                                  Justificar
+                                </button>
+                              )
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => handleExcluir(reg.id, reg.aluno_nome)}
+                              disabled={excluindoId === reg.id}
+                              title="Excluir registro"
+                              className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-40"
+                            >
+                              {excluindoId === reg.id ? (
+                                <LoadingSpinner />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
