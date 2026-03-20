@@ -171,6 +171,7 @@ export default function FacialEnrollmentPage() {
       const res = await fetch('/api/admin/facial/consentimento', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           aluno_id: consentAlunoId,
           responsavel_nome: consentForm.responsavel_nome.trim(),
@@ -448,14 +449,22 @@ export default function FacialEnrollmentPage() {
 
     try {
       const mediaDescriptor = calcularMediaDescriptors()
+
+      // Validar que o descriptor foi gerado corretamente
+      if (!mediaDescriptor || mediaDescriptor.length !== 128) {
+        toast.error('Erro ao gerar embedding. Tente capturar novamente.')
+        setCapturaStatus('detectando')
+        return
+      }
+
       const base64 = float32ToBase64(mediaDescriptor)
-      const mediaQualidade = Math.round(
-        POSES.reduce((s, p) => s + (posesCapturadas[p.key]?.score || 0), 0) / POSES.length * 100
-      )
+      const scores = POSES.map(p => posesCapturadas[p.key]?.score || 0).filter(s => s > 0)
+      const mediaQualidade = scores.length > 0 ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) : 70
 
       const res = await fetch('/api/admin/facial/enrollment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ aluno_id: capturaAlunoId, embedding_data: base64, qualidade: mediaQualidade }),
       })
 
@@ -510,6 +519,7 @@ export default function FacialEnrollmentPage() {
     try {
       const res = await fetch(`/api/admin/facial/consentimento?aluno_id=${deleteAlunoId}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       if (!res.ok) {
