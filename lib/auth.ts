@@ -21,6 +21,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import pool from '@/database/connection';
 import { Usuario, TipoUsuario } from './types';
+import { getCachedUsuario, setCachedUsuario } from './cache/memory';
 
 // ============================================================================
 // CONFIGURAÇÃO DE SEGURANÇA
@@ -189,7 +190,7 @@ export function verifyToken(token: string): TokenPayload | null {
  */
 export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuario | null> {
   const token = request.cookies.get('token')?.value;
-  
+
   if (!token) {
     return null;
   }
@@ -197,6 +198,12 @@ export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuar
   const payload = verifyToken(token);
   if (!payload) {
     return null;
+  }
+
+  // Verificar cache de usuário (TTL 5min — evita query por request)
+  const cached = getCachedUsuario<Usuario>(payload.userId);
+  if (cached) {
+    return cached;
   }
 
   try {
@@ -209,14 +216,17 @@ export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuar
       return null;
     }
 
-    return result.rows[0] as Usuario;
+    const usuario = result.rows[0] as Usuario;
+    // Cachear por 5 min para reduzir queries
+    setCachedUsuario(payload.userId, usuario);
+    return usuario;
   } catch (error: any) {
     console.error('Erro ao buscar usuário no banco de dados:', {
       code: error?.code,
       message: error?.message,
       userId: payload.userId,
     });
-    
+
     // Em caso de erro de conexão, retornar null para não quebrar a aplicação
     // O erro será logado para diagnóstico
     return null;

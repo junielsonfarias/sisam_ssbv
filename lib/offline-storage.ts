@@ -209,15 +209,44 @@ function readFromStorage<T>(key: string): T | null {
   }
 }
 
-// Limpar dados antigos para liberar espaço
-// IMPORTANTE: Nunca apagar resultados, polos, escolas ou turmas - são essenciais!
+// Limpar dados antigos para liberar espaço (cascata por prioridade)
+// Prioridade de remoção: QUESTOES > CONFIG_SERIES > RESULTADOS > ALUNOS
+// NUNCA apagar: USER, MODULO_ATIVO, POLOS, ESCOLAS, TURMAS
 function clearOldData(): void {
-  // Manter dados essenciais - apenas remover questões (são grandes demais)
-  const keysToRemove = [STORAGE_KEYS.QUESTOES]
-  keysToRemove.forEach(key => {
-    localStorage.removeItem(key)
-    console.log('[OfflineStorage] Removido para liberar espaco:', key)
-  })
+  const removalPriority = [
+    STORAGE_KEYS.QUESTOES,       // ~15-30MB — removido primeiro
+    STORAGE_KEYS.CONFIG_SERIES,  // ~50KB
+    STORAGE_KEYS.RESULTADOS,     // ~5-50MB — removido em último caso
+  ]
+
+  for (const key of removalPriority) {
+    const item = localStorage.getItem(key)
+    if (item) {
+      localStorage.removeItem(key)
+      console.log(`[OfflineStorage] Removido para liberar espaço: ${key} (~${(item.length / 1024).toFixed(0)}KB)`)
+      // Testar se liberou espaço suficiente
+      try {
+        localStorage.setItem('__quota_test__', 'x'.repeat(1024)) // 1KB
+        localStorage.removeItem('__quota_test__')
+        return // Espaço suficiente, parar
+      } catch {
+        continue // Ainda sem espaço, remover próximo
+      }
+    }
+  }
+}
+
+// Estimar uso de storage em KB
+export function getStorageUsage(): { usedKB: number; items: Record<string, number> } {
+  const items: Record<string, number> = {}
+  let total = 0
+  for (const [name, key] of Object.entries(STORAGE_KEYS)) {
+    const item = localStorage.getItem(key)
+    const sizeKB = item ? item.length / 1024 : 0
+    items[name] = Math.round(sizeKB)
+    total += sizeKB
+  }
+  return { usedKB: Math.round(total), items }
 }
 
 // ========== FUNÇÕES DE USUÁRIO ==========

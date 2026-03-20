@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao, hashPassword } from '@/lib/auth'
 import pool from '@/database/connection'
 import { usuarioSchema, validateRequest, validateId } from '@/lib/schemas'
+import { invalidateUsuarioCache } from '@/lib/cache/memory'
 import { z } from 'zod'
 
 // Schema para criação de usuário (senha obrigatória)
@@ -141,6 +142,9 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Invalidar cache do usuário modificado
+    invalidateUsuarioCache(id)
+
     // Retornar usuário atualizado
     const result = await pool.query(
       `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, criado_em
@@ -218,6 +222,7 @@ export async function DELETE(request: NextRequest) {
         'UPDATE usuarios SET ativo = false, atualizado_em = NOW() WHERE id = $1',
         [id]
       )
+      invalidateUsuarioCache(id)
       return NextResponse.json({ mensagem: 'Usuário desativado com sucesso' })
     }
   } catch (error: any) {

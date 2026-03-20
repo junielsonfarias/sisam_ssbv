@@ -325,6 +325,31 @@ export function invalidateFiltrosCache(): void {
   console.log('[Cache] Filtros cache invalidado')
 }
 
+/**
+ * Cache de usuário autenticado (TTL curto para segurança)
+ */
+export const CACHE_TTL_AUTH = 5 * 60 * 1000 // 5 minutos
+
+export function getCacheKeyUsuario(userId: string): string {
+  return `auth:user:${userId}`
+}
+
+export function getCachedUsuario<T>(userId: string): T | null {
+  return memoryCache.get<T>(getCacheKeyUsuario(userId))
+}
+
+export function setCachedUsuario<T>(userId: string, usuario: T): void {
+  memoryCache.set(getCacheKeyUsuario(userId), usuario, CACHE_TTL_AUTH)
+}
+
+export function invalidateUsuarioCache(userId?: string): void {
+  if (userId) {
+    memoryCache.invalidateByPrefix(`auth:user:${userId}`)
+  } else {
+    memoryCache.invalidateByPrefix('auth:user')
+  }
+}
+
 // Limpeza periódica de cache expirado (a cada 5 minutos)
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {

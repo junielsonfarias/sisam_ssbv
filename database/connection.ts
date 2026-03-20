@@ -194,6 +194,13 @@ function createPool(): Pool {
 
   const newPool = new Pool(config);
 
+  // Forçar timezone UTC em todas as conexões
+  newPool.on('connect', (client: PoolClient) => {
+    client.query("SET timezone = 'UTC'").catch(() => {
+      // Ignorar erro silenciosamente — timezone default do Supabase já é UTC
+    })
+  })
+
   // Tratamento de erros de conexão
   newPool.on('error', (err: DatabaseError) => {
     const errorCode = err?.code;
