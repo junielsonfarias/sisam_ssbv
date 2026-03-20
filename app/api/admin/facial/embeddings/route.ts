@@ -45,11 +45,13 @@ export async function GET(request: NextRequest) {
       WHERE a.escola_id = $1
         AND a.ativo = true
         AND a.situacao = 'cursando'
+        AND a.ano_letivo = $2
     `
-    const params: string[] = [escolaId]
+    const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
+    const params: string[] = [escolaId, anoLetivo]
 
     if (turmaId) {
-      query += ` AND a.turma_id = $2`
+      query += ` AND a.turma_id = $3`
       params.push(turmaId)
     }
 

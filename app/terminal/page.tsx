@@ -353,7 +353,11 @@ export default function TerminalPWA() {
       })
 
       setConfigSalva(true)
-      setMensagemSetup(`${total} aluno(s) carregado(s). Pronto para iniciar!`)
+      if (total === 0) {
+        setMensagemSetup('Nenhum aluno com rosto cadastrado nesta escola. Primeiro cadastre os rostos em Cadastro Facial (/admin/facial-enrollment).')
+      } else {
+        setMensagemSetup(`${total} aluno(s) com rosto cadastrado carregado(s). Pronto para iniciar!`)
+      }
     } catch {
       setMensagemSetup('Erro ao baixar embeddings. Verifique a conexao.')
     } finally {
