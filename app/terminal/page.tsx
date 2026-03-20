@@ -653,150 +653,127 @@ export default function TerminalPWA() {
   }
 
   // ============================================================================
-  // RENDER — TERMINAL (Kiosk Mode)
+  // RENDER — TERMINAL (Kiosk Mode — tela limpa, foco no reconhecimento)
   // ============================================================================
 
   const presentes = new Set(registros.map(r => r.aluno_id)).size
-  const ausentes = alunos.length - presentes
+  const dataHoje = new Date()
+  const diaSemana = dataHoje.toLocaleDateString('pt-BR', { weekday: 'long' })
+  const dataFormatada = dataHoje.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
   return (
     <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col select-none">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-900/90 backdrop-blur-sm border-b border-slate-700/50">
-        <div className="flex items-center gap-3">
-          <ScanFace className="w-6 h-6 text-teal-400" />
-          <div>
-            <h1 className="text-sm font-bold">{escolaNome || 'Terminal Facial'}</h1>
-            <p className="text-[10px] text-gray-400">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
-          </div>
-        </div>
+      {/* Vídeo em tela cheia */}
+      <div className="flex-1 relative">
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
-        <div className="flex items-center gap-2">
-          {/* Sync status */}
-          <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium ${
-            pendentesSync > 0 ? (sincronizando ? 'bg-blue-900/50 text-blue-300' : 'bg-yellow-900/50 text-yellow-300') : 'bg-green-900/50 text-green-300'
+        {/* Overlay de confirmação — nome grande do aluno */}
+        {mostrarConfirmacao && ultimoAlunoNome && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="bg-green-600/95 backdrop-blur-sm rounded-3xl px-16 py-10 text-center shadow-2xl animate-pulse">
+              <CheckCircle className="w-20 h-20 mx-auto mb-4 text-white" />
+              <p className="text-4xl sm:text-5xl font-bold text-white mb-3">{ultimoAlunoNome}</p>
+              <p className="text-xl text-green-100">Presenca registrada!</p>
+            </div>
+          </div>
+        )}
+
+        {/* Mensagem de erro */}
+        {mensagem && !mostrarConfirmacao && (
+          <div className={`absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl text-xl font-bold shadow-2xl ${
+            mensagemTipo === 'erro' ? 'bg-red-600' : 'bg-blue-600'
           }`}>
-            {sincronizando ? <RefreshCw className="w-3 h-3 animate-spin" /> :
-             pendentesSync > 0 ? <CloudOff className="w-3 h-3" /> : <Cloud className="w-3 h-3" />}
-            {pendentesSync > 0 ? `${pendentesSync} pendente(s)` : 'Sincronizado'}
+            {mensagemTipo === 'erro' && <AlertCircle className="w-6 h-6 inline mr-2 -mt-1" />}
+            {mensagem}
           </div>
+        )}
 
-          {/* Online/Offline */}
-          <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium ${online ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-            {online ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-          </div>
-
-          {/* Hora */}
-          <div className="flex items-center gap-1 text-sm font-mono text-gray-300">
-            <Clock className="w-3.5 h-3.5" />
-            {horaAtual}
-          </div>
-
-          {/* Controles */}
-          <button onClick={() => setSomAtivo(!somAtivo)} className="p-1.5 hover:bg-slate-700 rounded transition-colors">
-            {somAtivo ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-gray-500" />}
-          </button>
-          <button onClick={toggleFullscreen} className="p-1.5 hover:bg-slate-700 rounded transition-colors">
-            {fullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-          </button>
-          <button onClick={() => {
-            // Parar câmera e reconhecimento ao voltar para setup
-            if (streamRef.current) {
-              streamRef.current.getTracks().forEach(t => t.stop())
-              streamRef.current = null
-            }
-            if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-            setCameraAtiva(false)
-            setReconhecendo(false)
-            setFase('setup')
-          }} className="p-1.5 hover:bg-slate-700 rounded transition-colors" title="Configuracoes">
-            <Settings className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Video Area */}
-        <div className="flex-1 relative">
-          <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-
-          {/* Overlay de confirmação — nome grande do aluno + check */}
-          {mostrarConfirmacao && ultimoAlunoNome && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="bg-green-600/95 backdrop-blur-sm rounded-3xl px-12 py-8 text-center shadow-2xl animate-pulse">
-                <CheckCircle className="w-16 h-16 mx-auto mb-3 text-white" />
-                <p className="text-3xl sm:text-4xl font-bold text-white mb-2">{ultimoAlunoNome}</p>
-                <p className="text-lg text-green-100">Presenca registrada!</p>
+        {/* Barra superior — informações da escola */}
+        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Escola + data */}
+            <div className="flex items-center gap-3">
+              <ScanFace className="w-7 h-7 text-teal-400" />
+              <div>
+                <h1 className="text-base font-bold text-white">{escolaNome || 'Terminal Facial'}</h1>
+                <p className="text-xs text-gray-300 capitalize">{diaSemana}, {dataFormatada}</p>
               </div>
             </div>
-          )}
 
-          {/* Mensagem de erro/info */}
-          {mensagem && !mostrarConfirmacao && (
-            <div className={`absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl text-xl font-bold shadow-2xl ${
-              mensagemTipo === 'erro' ? 'bg-red-600' : 'bg-blue-600'
-            }`}>
-              {mensagemTipo === 'erro' && <AlertCircle className="w-6 h-6 inline mr-2 -mt-1" />}
-              {mensagem}
-            </div>
-          )}
-
-          {/* Contadores no vídeo */}
-          <div className="absolute top-4 left-4 flex gap-2">
-            <div className="bg-green-600/80 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-              <Users className="w-4 h-4" />
-              <span className="text-sm font-bold">{presentes}</span>
-              <span className="text-xs opacity-80">presentes</span>
-            </div>
-            <div className="bg-slate-700/80 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-              <UserX className="w-4 h-4" />
-              <span className="text-sm font-bold">{ausentes}</span>
-              <span className="text-xs opacity-80">ausentes</span>
+            {/* Hora grande */}
+            <div className="text-right">
+              <p className="text-3xl font-bold font-mono text-white">{horaAtual}</p>
+              <p className="text-xs text-gray-400">{new Date().getFullYear()}</p>
             </div>
           </div>
-
-          {/* Status de reconhecimento */}
-          {!reconhecendo && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-              <div className="text-center">
-                <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin text-teal-400" />
-                <p className="text-lg">Iniciando reconhecimento...</p>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Sidebar — Últimos registros */}
-        <div className="w-72 bg-slate-900 border-l border-slate-700/50 flex flex-col">
-          <div className="px-4 py-3 border-b border-slate-700/50">
-            <h2 className="text-sm font-semibold text-gray-300">Registros de Hoje</h2>
-            <p className="text-xs text-gray-500">{registros.length} registro(s)</p>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {registros.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-600">
-                <ScanFace className="w-10 h-10 mb-2 opacity-30" />
-                <p className="text-xs">Aguardando alunos...</p>
+        {/* Barra inferior — status e contadores */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Contadores */}
+            <div className="flex items-center gap-3">
+              <div className="bg-green-600/80 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                <Users className="w-4 h-4" />
+                <span className="text-sm font-bold">{presentes}</span>
+                <span className="text-xs opacity-80">presentes</span>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-700/30">
-                {registros.map((r, i) => (
-                  <div key={i} className="px-4 py-2 hover:bg-slate-800/50">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{r.nome}</p>
-                        <p className="text-[10px] text-gray-500">{r.hora} • {Math.round(r.confianca * 100)}%</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-slate-600/80 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                <span className="text-sm font-bold">{alunos.length}</span>
+                <span className="text-xs opacity-80">cadastrados</span>
               </div>
-            )}
+            </div>
+
+            {/* Status + controles */}
+            <div className="flex items-center gap-2">
+              {/* Sync */}
+              <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium ${
+                pendentesSync > 0 ? (sincronizando ? 'bg-blue-900/60 text-blue-300' : 'bg-yellow-900/60 text-yellow-300') : 'bg-green-900/60 text-green-300'
+              }`}>
+                {sincronizando ? <RefreshCw className="w-3 h-3 animate-spin" /> :
+                 pendentesSync > 0 ? <CloudOff className="w-3 h-3" /> : <Cloud className="w-3 h-3" />}
+                {pendentesSync > 0 ? `${pendentesSync}` : 'OK'}
+              </div>
+
+              {/* Online */}
+              <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium ${online ? 'bg-green-900/60 text-green-300' : 'bg-red-900/60 text-red-300'}`}>
+                {online ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              </div>
+
+              {/* Som */}
+              <button onClick={() => setSomAtivo(!somAtivo)} className="p-1.5 hover:bg-white/10 rounded transition-colors">
+                {somAtivo ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-gray-500" />}
+              </button>
+
+              {/* Fullscreen */}
+              <button onClick={toggleFullscreen} className="p-1.5 hover:bg-white/10 rounded transition-colors">
+                {fullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+              </button>
+
+              {/* Config */}
+              <button onClick={() => {
+                if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null }
+                if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+                setCameraAtiva(false)
+                setReconhecendo(false)
+                setFase('setup')
+              }} className="p-1.5 hover:bg-white/10 rounded transition-colors" title="Configuracoes">
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Iniciando reconhecimento */}
+        {!reconhecendo && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin text-teal-400" />
+              <p className="text-lg">Iniciando reconhecimento...</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
