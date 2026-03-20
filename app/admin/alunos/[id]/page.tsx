@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Save, User, BookOpen, CalendarCheck, FileText,
   History, GraduationCap, Edit, AlertTriangle,
-  ArrowLeftRight, TrendingUp
+  ArrowLeftRight, TrendingUp, ScanFace
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -20,6 +20,7 @@ import {
   AbaHistorico,
   AbaSisam,
   AbaEvolucao,
+  AbaFacial,
 } from './components'
 import type { Aba } from './components'
 
@@ -157,6 +158,7 @@ export default function AlunoDetalhePage() {
     { id: 'historico', label: 'Histórico', icon: History },
     { id: 'sisam', label: 'SISAM', icon: FileText },
     { id: 'evolucao', label: 'Evolução', icon: TrendingUp },
+    { id: 'facial', label: 'Facial', icon: ScanFace },
   ]
 
   return (
@@ -268,6 +270,7 @@ export default function AlunoDetalhePage() {
         {abaAtiva === 'historico' && <AbaHistorico dados={dados} />}
         {abaAtiva === 'sisam' && <AbaSisam dados={dados} />}
         {abaAtiva === 'evolucao' && <AbaEvolucao alunoId={alunoId} />}
+        {abaAtiva === 'facial' && <AbaFacial alunoId={alunoId} alunoNome={aluno?.nome || ''} />}
 
         {/* ==================== MODAL TRANSFERÊNCIA ==================== */}
         {mostrarModalTransf && (

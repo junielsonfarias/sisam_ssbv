@@ -21,6 +21,28 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const escolaId = searchParams.get('escola_id')
     const turmaId = searchParams.get('turma_id')
+    const alunoIdParam = searchParams.get('aluno_id')
+
+    // Busca por aluno específico (usado na aba facial do perfil)
+    if (alunoIdParam) {
+      const result = await pool.query(`
+        SELECT
+          a.id AS aluno_id,
+          a.nome AS aluno_nome,
+          cf.responsavel_nome,
+          cf.responsavel_cpf,
+          cf.consentido,
+          cf.data_consentimento,
+          cf.data_revogacao,
+          CASE WHEN ef.id IS NOT NULL THEN true ELSE false END AS tem_embedding
+        FROM alunos a
+        LEFT JOIN consentimentos_faciais cf ON cf.aluno_id = a.id
+        LEFT JOIN embeddings_faciais ef ON ef.aluno_id = a.id
+        WHERE a.id = $1
+      `, [alunoIdParam])
+
+      return NextResponse.json({ alunos: result.rows })
+    }
 
     if (!escolaId) {
       return NextResponse.json({ mensagem: 'escola_id é obrigatório' }, { status: 400 })

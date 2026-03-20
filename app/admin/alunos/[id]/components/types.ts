@@ -2,7 +2,7 @@ import {
   CheckCircle, XCircle, AlertTriangle, ArrowLeftRight, RotateCcw
 } from 'lucide-react'
 
-export type Aba = 'pessoal' | 'escolar' | 'notas' | 'frequencia' | 'historico' | 'sisam' | 'evolucao'
+export type Aba = 'pessoal' | 'escolar' | 'notas' | 'frequencia' | 'historico' | 'sisam' | 'evolucao' | 'facial'
 
 export const SITUACAO_CORES: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   cursando: { bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300', label: 'Cursando', icon: CheckCircle },
