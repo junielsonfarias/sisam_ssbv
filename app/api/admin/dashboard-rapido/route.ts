@@ -396,10 +396,13 @@ async function buscarFiltros(usuario: any, presenca: string | null) {
        INNER JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
        ${whereClause}
       ) as escolas,
-      (SELECT json_agg(DISTINCT rc.serie ORDER BY rc.serie)
-       FROM resultados_consolidados_unificada rc
-       INNER JOIN escolas e ON rc.escola_id = e.id
-       ${whereClause} AND rc.serie IS NOT NULL AND rc.serie != ''
+      (SELECT json_agg(s.serie ORDER BY s.serie)
+       FROM (
+         SELECT DISTINCT REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') || 'º Ano' as serie
+         FROM resultados_consolidados_unificada rc
+         INNER JOIN escolas e ON rc.escola_id = e.id
+         ${whereClause} AND rc.serie IS NOT NULL AND rc.serie != ''
+       ) s
       ) as series,
       (SELECT json_agg(DISTINCT rc.ano_letivo ORDER BY rc.ano_letivo DESC)
        FROM resultados_consolidados_unificada rc

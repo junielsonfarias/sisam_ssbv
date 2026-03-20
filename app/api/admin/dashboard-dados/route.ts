@@ -917,7 +917,8 @@ export async function GET(request: NextRequest) {
     const seriesWhereClause = seriesConditions.length > 0 ? `WHERE ${seriesConditions.join(' AND ')}` : ''
     
     const seriesQuery = `
-      SELECT DISTINCT rc.serie, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer as serie_numero
+      SELECT DISTINCT REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') || 'º Ano' as serie,
+             REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer as serie_numero
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       ${seriesWhereClause}

@@ -269,11 +269,12 @@ export async function GET(request: NextRequest) {
       : `WHERE ${baseSeriesCondition}`
 
     const querySeriesDisponiveis = `
-      SELECT DISTINCT rc.serie
+      SELECT DISTINCT REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') || 'º Ano' as serie,
+             REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer as serie_numero
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       ${whereSeriesClause}
-      ORDER BY rc.serie
+      ORDER BY serie_numero
     `
     const resSeriesDisponiveis = await pool.query(querySeriesDisponiveis, paramsSeries)
     const seriesDisponiveis = resSeriesDisponiveis.rows.map((r: any) => r.serie).filter((s: string) => s && s.trim() !== '')
