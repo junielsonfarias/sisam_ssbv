@@ -109,6 +109,7 @@ export interface EmbeddingLocal {
   codigo: string | null
   escola_id: string
   turma_id: string | null
+  turma_codigo: string | null
   serie: string | null
   embedding_base64: string
   atualizado_em: string
@@ -337,6 +338,7 @@ export async function baixarEmbeddings(
       codigo: a.codigo,
       escola_id: escolaId,
       turma_id: a.turma_id,
+      turma_codigo: a.turma_codigo || null,
       serie: a.serie,
       embedding_base64: a.embedding_base64,
       atualizado_em: new Date().toISOString(),

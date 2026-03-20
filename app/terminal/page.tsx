@@ -21,6 +21,8 @@ interface AlunoEmMemoria {
   aluno_id: string
   nome: string
   codigo: string | null
+  serie: string | null
+  turma_codigo: string | null
   descriptor: Float32Array
 }
 
@@ -38,6 +40,12 @@ type StatusModelo = 'carregando' | 'pronto' | 'erro'
 // ============================================================================
 // Componente Principal
 // ============================================================================
+
+// Animações CSS para o overlay de confirmação
+const animationStyles = `
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(1.3) } to { opacity: 1; transform: scale(1) } }
+`
 
 export default function TerminalPWA() {
   // Fase
@@ -76,6 +84,8 @@ export default function TerminalPWA() {
   const [mensagem, setMensagem] = useState('')
   const [mensagemTipo, setMensagemTipo] = useState<'sucesso' | 'info' | 'erro'>('info')
   const [ultimoAlunoNome, setUltimoAlunoNome] = useState('')
+  const [ultimoAlunoInfo, setUltimoAlunoInfo] = useState('')
+  const [ultimoAlunoHora, setUltimoAlunoHora] = useState('')
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
   const [confirmacaoTipo, setConfirmacaoTipo] = useState<'entrada' | 'ja_registrado'>('entrada')
   const confirmacaoTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -125,7 +135,7 @@ export default function TerminalPWA() {
             try {
               const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
               const descriptor = new Float32Array(bytes.buffer)
-              alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, descriptor })
+              alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
             } catch { /* Ignora inválido */ }
           }
           setAlunos(alunosCarregados)
@@ -407,7 +417,7 @@ export default function TerminalPWA() {
         const bytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0))
         if (bytes.length !== 512) continue // 128 floats × 4 bytes
         const descriptor = new Float32Array(bytes.buffer)
-        alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, descriptor })
+        alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
       } catch { /* Ignora embedding inválido */ }
     }
 
@@ -498,18 +508,35 @@ export default function TerminalPWA() {
             const agora = Date.now()
             const emCooldown = ultimoRegistro && (agora - ultimoRegistro) < cooldown * 1000
 
-            // Desenhar retângulo + nome
+            // Desenhar retângulo + nome + turma/série
             const cor = emCooldown ? '#eab308' : '#10b981'
             ctx.strokeStyle = cor
             ctx.lineWidth = 3
             ctx.strokeRect(box.x, box.y, box.width, box.height)
+
             const nome = aluno?.nome || alunoId
-            ctx.font = 'bold 16px sans-serif'
-            const textW = ctx.measureText(nome).width
+            const info = [aluno?.turma_codigo, aluno?.serie ? `${aluno.serie}º Ano` : ''].filter(Boolean).join(' - ')
+
+            // Fundo do label (nome + info)
+            ctx.font = 'bold 15px sans-serif'
+            const nomeW = ctx.measureText(nome).width
+            ctx.font = '12px sans-serif'
+            const infoW = info ? ctx.measureText(info).width : 0
+            const labelW = Math.max(nomeW, infoW) + 20
+            const labelH = info ? 42 : 26
+
             ctx.fillStyle = cor
-            ctx.fillRect(box.x, box.y - 28, textW + 16, 26)
+            ctx.fillRect(box.x, box.y - labelH - 4, labelW, labelH)
+            // Nome
             ctx.fillStyle = '#fff'
-            ctx.fillText(nome, box.x + 8, box.y - 10)
+            ctx.font = 'bold 15px sans-serif'
+            ctx.fillText(nome, box.x + 10, box.y - (info ? 24 : 10))
+            // Turma + série
+            if (info) {
+              ctx.font = '12px sans-serif'
+              ctx.fillStyle = 'rgba(255,255,255,0.85)'
+              ctx.fillText(info, box.x + 10, box.y - 8)
+            }
 
             if (!emCooldown && aluno) {
               cooldownMapRef.current.set(alunoId, agora)
@@ -551,6 +578,8 @@ export default function TerminalPWA() {
 
               // Mostrar confirmação com tipo correto
               setUltimoAlunoNome(aluno.nome)
+              setUltimoAlunoInfo([aluno.turma_codigo, aluno.serie ? `${aluno.serie}º Ano` : ''].filter(Boolean).join(' — '))
+              setUltimoAlunoHora(hora)
               setConfirmacaoTipo(tipo)
               setMostrarConfirmacao(true)
               if (confirmacaoTimeoutRef.current) clearTimeout(confirmacaoTimeoutRef.current)
@@ -758,6 +787,7 @@ export default function TerminalPWA() {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col select-none">
+      <style dangerouslySetInnerHTML={{ __html: animationStyles }} />
       {/* Vídeo em tela cheia */}
       <div className="flex-1 relative">
         {/* Vídeo visível — face-api detecta direto nele */}
@@ -773,25 +803,38 @@ export default function TerminalPWA() {
         {/* Canvas overlay — mesmas dimensões do vídeo via matchDimensions */}
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover" />
 
-        {/* Overlay de confirmação — nome grande do aluno */}
+        {/* Overlay de confirmação — informações completas do aluno */}
         {mostrarConfirmacao && ultimoAlunoNome && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className={`backdrop-blur-sm rounded-3xl px-16 py-10 text-center shadow-2xl ${
+            {/* Fundo escurecido com animação de fechamento */}
+            <div className="absolute inset-0 bg-black/60 animate-[fadeIn_0.2s_ease-out]" />
+            {/* Card central */}
+            <div className={`relative rounded-3xl px-10 sm:px-16 py-8 sm:py-10 text-center shadow-2xl max-w-lg mx-4 animate-[scaleIn_0.3s_ease-out] ${
               confirmacaoTipo === 'ja_registrado'
-                ? 'bg-amber-500/95'
-                : 'bg-green-600/95 animate-pulse'
+                ? 'bg-amber-500'
+                : 'bg-green-600'
             }`}>
+              {/* Ícone */}
               {confirmacaoTipo === 'ja_registrado' ? (
-                <AlertCircle className="w-20 h-20 mx-auto mb-4 text-white" />
+                <AlertCircle className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 text-white/90" />
               ) : (
-                <CheckCircle className="w-20 h-20 mx-auto mb-4 text-white" />
+                <CheckCircle className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 text-white" />
               )}
-              <p className="text-4xl sm:text-5xl font-bold text-white mb-3">{ultimoAlunoNome}</p>
-              <p className="text-xl text-white/90">
-                {confirmacaoTipo === 'ja_registrado'
-                  ? 'Ja registrado hoje!'
-                  : 'Presenca registrada!'}
-              </p>
+              {/* Nome */}
+              <p className="text-2xl sm:text-4xl font-bold text-white mb-2 leading-tight">{ultimoAlunoNome}</p>
+              {/* Turma + Série */}
+              {ultimoAlunoInfo && (
+                <p className="text-base sm:text-lg text-white/80 mb-3">{ultimoAlunoInfo}</p>
+              )}
+              {/* Hora + Status */}
+              <div className="flex items-center justify-center gap-3 mt-2">
+                <span className="bg-white/20 text-white text-sm sm:text-base font-semibold px-4 py-1.5 rounded-full">
+                  {ultimoAlunoHora}
+                </span>
+                <span className="bg-white/20 text-white text-sm sm:text-base font-semibold px-4 py-1.5 rounded-full">
+                  {confirmacaoTipo === 'ja_registrado' ? 'Ja registrado' : 'Entrada'}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -879,7 +922,7 @@ export default function TerminalPWA() {
                       try {
                         const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
                         const descriptor = new Float32Array(bytes.buffer)
-                        novosAlunos.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, descriptor })
+                        novosAlunos.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
                       } catch { /* ignora */ }
                     }
                     setAlunos(novosAlunos)

@@ -36,12 +36,15 @@ export async function GET(request: NextRequest) {
         a.codigo,
         a.turma_id,
         a.serie,
+        t.codigo AS turma_codigo,
+        t.nome AS turma_nome,
         ef.embedding_data,
         ef.qualidade
       FROM alunos a
       INNER JOIN embeddings_faciais ef ON ef.aluno_id = a.id
       INNER JOIN consentimentos_faciais cf ON cf.aluno_id = a.id
         AND cf.consentido = true AND cf.data_revogacao IS NULL
+      LEFT JOIN turmas t ON a.turma_id = t.id
       WHERE a.escola_id = $1
         AND a.ativo = true
         AND a.situacao = 'cursando'
@@ -66,6 +69,8 @@ export async function GET(request: NextRequest) {
       codigo: row.codigo,
       turma_id: row.turma_id,
       serie: row.serie,
+      turma_codigo: row.turma_codigo,
+      turma_nome: row.turma_nome,
       qualidade: row.qualidade,
       embedding_base64: row.embedding_data
         ? Buffer.from(row.embedding_data).toString('base64')
