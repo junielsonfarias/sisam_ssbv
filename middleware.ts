@@ -69,10 +69,12 @@ const RATE_LIMITS = {
 const EXCLUDED_PATHS = [
   '/api/auth/login',      // Tem rate limiting próprio
   '/api/auth/logout',     // Logout não precisa
+  '/api/auth/verificar',  // Chamado frequentemente por todas as páginas
   '/api/health',          // Health check
   '/api/init',            // Inicialização
   '/api/site-config',     // Site institucional (público)
   '/api/boletim',         // Consulta pública de boletim escolar
+  '/api/admin/facial/presenca-terminal', // Terminal facial — alta frequência
 ]
 
 // Endpoints de importação (mais restritivos)
