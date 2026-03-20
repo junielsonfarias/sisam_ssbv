@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 export interface Usuario {
   id: string
@@ -43,6 +43,11 @@ export function useUserType(options: UseUserTypeOptions = {}): UseUserTypeReturn
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
 
+  // Ref para callback — evita loop infinito quando callback muda a cada render
+  const callbackRef = useRef(onUsuarioCarregado)
+  callbackRef.current = onUsuarioCarregado
+  const carregouRef = useRef(false)
+
   const carregarUsuario = useCallback(async () => {
     // Verificar se está offline
     if (!ignorarOffline && typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -70,9 +75,9 @@ export function useUserType(options: UseUserTypeOptions = {}): UseUserTypeReturn
         setTipoUsuario(tipo)
         setUsuario(data.usuario)
 
-        // Chamar callback se fornecido
-        if (onUsuarioCarregado) {
-          onUsuarioCarregado(data.usuario, tipo)
+        // Chamar callback via ref (estável)
+        if (callbackRef.current) {
+          callbackRef.current(data.usuario, tipo)
         }
       }
     } catch (error) {
@@ -81,9 +86,11 @@ export function useUserType(options: UseUserTypeOptions = {}): UseUserTypeReturn
     } finally {
       setCarregando(false)
     }
-  }, [onUsuarioCarregado, ignorarOffline])
+  }, [ignorarOffline])
 
   useEffect(() => {
+    if (carregouRef.current) return
+    carregouRef.current = true
     carregarUsuario()
   }, [carregarUsuario])
 
