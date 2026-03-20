@@ -123,7 +123,7 @@ export default function TerminalPWA() {
           const alunosCarregados: AlunoEmMemoria[] = []
           for (const emb of embsLocais) {
             try {
-              const bytes = Uint8Array.from(atob(emb.embedding_base64), c => c.charCodeAt(0))
+              const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
               const descriptor = new Float32Array(bytes.buffer)
               alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, descriptor })
             } catch { /* Ignora inválido */ }
@@ -402,7 +402,10 @@ export default function TerminalPWA() {
     const alunosCarregados: AlunoEmMemoria[] = []
     for (const emb of embsLocais) {
       try {
-        const bytes = Uint8Array.from(atob(emb.embedding_base64), c => c.charCodeAt(0))
+        // Limpar whitespace do base64 (PostgreSQL encode adiciona \n)
+        const cleanBase64 = emb.embedding_base64.replace(/\s/g, '')
+        const bytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0))
+        if (bytes.length !== 512) continue // 128 floats × 4 bytes
         const descriptor = new Float32Array(bytes.buffer)
         alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, descriptor })
       } catch { /* Ignora embedding inválido */ }
@@ -870,7 +873,7 @@ export default function TerminalPWA() {
                     const novosAlunos: AlunoEmMemoria[] = []
                     for (const emb of embsLocais) {
                       try {
-                        const bytes = Uint8Array.from(atob(emb.embedding_base64), c => c.charCodeAt(0))
+                        const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
                         const descriptor = new Float32Array(bytes.buffer)
                         novosAlunos.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, descriptor })
                       } catch { /* ignora */ }

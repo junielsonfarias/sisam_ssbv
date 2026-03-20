@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         a.codigo,
         a.turma_id,
         a.serie,
-        encode(ef.embedding_data, 'base64') AS embedding_base64,
+        ef.embedding_data,
         ef.qualidade
       FROM alunos a
       INNER JOIN embeddings_faciais ef ON ef.aluno_id = a.id
@@ -59,9 +59,22 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(query, params)
 
+    // Converter BYTEA para base64 limpo (sem quebras de linha do PostgreSQL)
+    const alunos = result.rows.map(row => ({
+      aluno_id: row.aluno_id,
+      nome: row.nome,
+      codigo: row.codigo,
+      turma_id: row.turma_id,
+      serie: row.serie,
+      qualidade: row.qualidade,
+      embedding_base64: row.embedding_data
+        ? Buffer.from(row.embedding_data).toString('base64')
+        : null,
+    }))
+
     return NextResponse.json({
-      alunos: result.rows,
-      total: result.rows.length,
+      alunos,
+      total: alunos.length,
     })
   } catch (error: any) {
     console.error('Erro ao buscar embeddings:', error)
