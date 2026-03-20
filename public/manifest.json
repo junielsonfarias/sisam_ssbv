@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#4F46E5",
   "theme_color": "#4F46E5",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "scope": "/",
   "lang": "pt-BR",
   "categories": ["education", "productivity"],
@@ -86,6 +86,13 @@
       "short_name": "Resultados",
       "description": "Veja os resultados consolidados",
       "url": "/admin/resultados",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Terminal Facial",
+      "short_name": "Terminal",
+      "description": "Reconhecimento facial para frequencia",
+      "url": "/terminal",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ]
