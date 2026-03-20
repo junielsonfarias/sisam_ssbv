@@ -77,6 +77,7 @@ export default function TerminalPWA() {
   const [mensagemTipo, setMensagemTipo] = useState<'sucesso' | 'info' | 'erro'>('info')
   const [ultimoAlunoNome, setUltimoAlunoNome] = useState('')
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
+  const [confirmacaoTipo, setConfirmacaoTipo] = useState<'entrada' | 'ja_registrado'>('entrada')
   const confirmacaoTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [pendentesSync, setPendentesSync] = useState(0)
   const [horaAtual, setHoraAtual] = useState('')
@@ -468,33 +469,57 @@ export default function TerminalPWA() {
             if (!emCooldown && aluno) {
               cooldownMapRef.current.set(alunoId, agora)
 
-              // Registrar no IndexedDB
-              await registrarPresenca({
-                aluno_id: alunoId,
-                nome: aluno.nome,
-                timestamp: new Date().toISOString(),
-                confianca: conf,
-              })
-
+              const timestamp = new Date().toISOString()
               const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-              setRegistros(prev => [{ aluno_id: alunoId, nome: aluno.nome, tipo: 'entrada' as const, hora, confianca: conf }, ...prev].slice(0, 50))
-              setPendentesSync(prev => prev + 1)
+              let tipo: 'entrada' | 'ja_registrado' = 'entrada'
 
-              // Mostrar confirmação grande com nome do aluno
+              // Tentar enviar ao servidor imediatamente (se online)
+              if (navigator.onLine) {
+                try {
+                  const res = await fetch('/api/admin/facial/presenca-terminal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ aluno_id: alunoId, timestamp, confianca: conf }),
+                  })
+                  if (res.ok) {
+                    const data = await res.json()
+                    // Servidor retorna 'saida' se já tinha registro hoje
+                    if (data.tipo === 'saida') tipo = 'ja_registrado'
+                  } else {
+                    // Servidor rejeitou — salvar offline
+                    await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf })
+                    setPendentesSync(prev => prev + 1)
+                  }
+                } catch {
+                  // Sem conexão — salvar offline
+                  await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf })
+                  setPendentesSync(prev => prev + 1)
+                }
+              } else {
+                // Offline — salvar localmente
+                await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf })
+                setPendentesSync(prev => prev + 1)
+              }
+
+              setRegistros(prev => [{ aluno_id: alunoId, nome: aluno.nome, tipo: tipo === 'ja_registrado' ? 'saida' as const : 'entrada' as const, hora, confianca: conf }, ...prev].slice(0, 50))
+
+              // Mostrar confirmação com tipo correto
               setUltimoAlunoNome(aluno.nome)
+              setConfirmacaoTipo(tipo)
               setMostrarConfirmacao(true)
               if (confirmacaoTimeoutRef.current) clearTimeout(confirmacaoTimeoutRef.current)
               confirmacaoTimeoutRef.current = setTimeout(() => setMostrarConfirmacao(false), 3000)
 
-              // Som
+              // Som — tom diferente para já registrado
               if (somAtivo) {
                 try {
-                  const ctx = new AudioContext()
-                  const osc = ctx.createOscillator()
-                  osc.frequency.value = 880
-                  osc.connect(ctx.destination)
+                  const audioCtx = new AudioContext()
+                  const osc = audioCtx.createOscillator()
+                  osc.frequency.value = tipo === 'ja_registrado' ? 440 : 880
+                  osc.connect(audioCtx.destination)
                   osc.start()
-                  setTimeout(() => { osc.stop(); ctx.close() }, 150)
+                  setTimeout(() => { osc.stop(); audioCtx.close() }, tipo === 'ja_registrado' ? 300 : 150)
                 } catch { /* Sem som */ }
               }
             }
@@ -688,10 +713,22 @@ export default function TerminalPWA() {
         {/* Overlay de confirmação — nome grande do aluno */}
         {mostrarConfirmacao && ultimoAlunoNome && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="bg-green-600/95 backdrop-blur-sm rounded-3xl px-16 py-10 text-center shadow-2xl animate-pulse">
-              <CheckCircle className="w-20 h-20 mx-auto mb-4 text-white" />
+            <div className={`backdrop-blur-sm rounded-3xl px-16 py-10 text-center shadow-2xl ${
+              confirmacaoTipo === 'ja_registrado'
+                ? 'bg-amber-500/95'
+                : 'bg-green-600/95 animate-pulse'
+            }`}>
+              {confirmacaoTipo === 'ja_registrado' ? (
+                <AlertCircle className="w-20 h-20 mx-auto mb-4 text-white" />
+              ) : (
+                <CheckCircle className="w-20 h-20 mx-auto mb-4 text-white" />
+              )}
               <p className="text-4xl sm:text-5xl font-bold text-white mb-3">{ultimoAlunoNome}</p>
-              <p className="text-xl text-green-100">Presenca registrada!</p>
+              <p className="text-xl text-white/90">
+                {confirmacaoTipo === 'ja_registrado'
+                  ? 'Ja registrado hoje!'
+                  : 'Presenca registrada!'}
+              </p>
             </div>
           </div>
         )}
