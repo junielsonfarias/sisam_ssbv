@@ -867,6 +867,13 @@ export async function GET(request: NextRequest) {
       filtrosParamIndex++
     }
 
+    // Aplicar filtro de ano letivo nos filtros de séries/turmas/escolas
+    if (anoLetivo) {
+      filtrosWhereConditions.push(`rc.ano_letivo = $${filtrosParamIndex}`)
+      filtrosParams.push(anoLetivo)
+      filtrosParamIndex++
+    }
+
     const filtrosWhereClause = filtrosWhereConditions.length > 0 
       ? `WHERE ${filtrosWhereConditions.join(' AND ')}` 
       : ''
