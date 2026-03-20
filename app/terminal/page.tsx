@@ -190,8 +190,14 @@ export default function TerminalPWA() {
         // Tentar câmera frontal primeiro, fallback para qualquer câmera
         let stream: MediaStream
         try {
+          // Pedir resolução que combina com orientação do dispositivo
+          const isPortrait = window.innerHeight > window.innerWidth
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+            video: {
+              facingMode: 'user',
+              width: { ideal: isPortrait ? 480 : 640 },
+              height: { ideal: isPortrait ? 640 : 480 },
+            },
           })
         } catch {
           // Fallback: qualquer câmera disponível
@@ -414,7 +420,7 @@ export default function TerminalPWA() {
     // Iniciar câmera
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        video: { facingMode: 'user' },
       })
       streamRef.current = stream
       if (videoRef.current) {
@@ -456,25 +462,49 @@ export default function TerminalPWA() {
 
         if (!canvasRef.current || !videoRef.current) return
 
-        // Com object-fill, vídeo preenche 100% do container
-        // Canvas usa mesmo tamanho renderizado para alinhar perfeitamente
-        const containerRect = videoRef.current.getBoundingClientRect()
-        canvasRef.current.width = containerRect.width
-        canvasRef.current.height = containerRect.height
-        const ctx = canvasRef.current.getContext('2d')
-        if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+        const video = videoRef.current
+        const vw = video.videoWidth
+        const vh = video.videoHeight
+        if (!vw || !vh) return
 
-        // Escala: coordenadas nativas do vídeo → tamanho do container na tela
-        const scaleX = containerRect.width / videoRef.current.videoWidth
-        const scaleY = containerRect.height / videoRef.current.videoHeight
+        const containerRect = video.getBoundingClientRect()
+        const cw = containerRect.width
+        const ch = containerRect.height
+
+        // Canvas = tamanho do container
+        canvasRef.current.width = cw
+        canvasRef.current.height = ch
+        const ctx = canvasRef.current.getContext('2d')
+        if (ctx) ctx.clearRect(0, 0, cw, ch)
+
+        // object-cover: escala para preencher, recorta excesso
+        // Calcular escala e offset do crop
+        const videoRatio = vw / vh
+        const containerRatio = cw / ch
+        let scale: number, offsetX: number, offsetY: number
+
+        if (videoRatio > containerRatio) {
+          // Vídeo mais largo que container — recorta laterais
+          scale = ch / vh
+          offsetX = (cw - vw * scale) / 2
+          offsetY = 0
+        } else {
+          // Vídeo mais alto que container — recorta topo/baixo
+          scale = cw / vw
+          offsetX = 0
+          offsetY = (ch - vh * scale) / 2
+        }
+
+        const scaleX = scale
+        const scaleY = scale
 
         for (const det of detections) {
           const match = matcher.findBestMatch(det.descriptor)
           const rawBox = det.detection.box
 
-          // Converter coordenadas nativas → coordenadas na tela
-          const bx = rawBox.x * scaleX
-          const by = rawBox.y * scaleY
+          // Converter coordenadas nativas → coordenadas na tela (com offset do crop)
+          const bx = rawBox.x * scaleX + offsetX
+          const by = rawBox.y * scaleY + offsetY
           const bw = rawBox.width * scaleX
           const bh = rawBox.height * scaleY
 
@@ -738,7 +768,9 @@ export default function TerminalPWA() {
     <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col select-none">
       {/* Vídeo em tela cheia */}
       <div className="flex-1 relative">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-fill" />
+        <video ref={videoRef} autoPlay playsInline muted
+          className="absolute inset-0 w-full h-full"
+          style={{ objectFit: 'cover' }} />
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
         {/* Overlay de confirmação — nome grande do aluno */}
