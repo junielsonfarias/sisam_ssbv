@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import pool, { testConnection, getPoolStats, forceHealthCheck } from '@/database/connection'
+import { getRequestMetrics } from '@/middleware'
 
 export const dynamic = 'force-dynamic';
 
@@ -126,6 +127,13 @@ export async function GET() {
   if (!isTransactionMode && health.diagnostics.is_supabase) {
     health.warnings = health.warnings || [];
     health.warnings.push('Usando Session Mode (porta 5432). Para melhor estabilidade com 50+ usuários, use Transaction Mode (porta 6543).');
+  }
+
+  // Métricas de request do middleware
+  try {
+    health.request_metrics = getRequestMetrics()
+  } catch {
+    // Middleware pode não estar disponível em todos os contextos
   }
 
   const statusCode = health.status === 'ok' ? 200 : 500

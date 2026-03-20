@@ -1,5 +1,8 @@
 import { Pool, QueryResult, PoolClient } from 'pg';
 import { TIMEOUT, POOL, RETRY } from '@/lib/constants';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Database');
 
 // ============================================================================
 // TIPOS

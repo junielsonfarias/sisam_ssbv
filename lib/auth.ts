@@ -22,6 +22,9 @@ import bcrypt from 'bcryptjs';
 import pool from '@/database/connection';
 import { Usuario, TipoUsuario } from './types';
 import { getCachedUsuario, setCachedUsuario } from './cache/memory';
+import { createLogger } from './logger';
+
+const log = createLogger('Auth');
 
 // ============================================================================
 // CONFIGURAÇÃO DE SEGURANÇA
@@ -36,12 +39,11 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Validar JWT_SECRET na inicializacao
 if (!JWT_SECRET) {
-  console.error('ERRO CRITICO: JWT_SECRET nao esta configurado!');
-  console.error('Configure a variavel de ambiente JWT_SECRET com uma chave segura de pelo menos 32 caracteres.');
+  log.error('JWT_SECRET nao esta configurado! Configure com pelo menos 32 caracteres.');
 }
 
 if (JWT_SECRET && JWT_SECRET.length < 32) {
-  console.warn('AVISO: JWT_SECRET deve ter pelo menos 32 caracteres para seguranca adequada.');
+  log.warn('JWT_SECRET deve ter pelo menos 32 caracteres para seguranca adequada.');
 }
 
 // ============================================================================
@@ -221,14 +223,11 @@ export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuar
     setCachedUsuario(payload.userId, usuario);
     return usuario;
   } catch (error: any) {
-    console.error('Erro ao buscar usuário no banco de dados:', {
-      code: error?.code,
-      message: error?.message,
-      userId: payload.userId,
+    log.error('Erro ao buscar usuario no banco', error, {
+      data: { code: error?.code, userId: payload.userId },
     });
 
     // Em caso de erro de conexão, retornar null para não quebrar a aplicação
-    // O erro será logado para diagnóstico
     return null;
   }
 }

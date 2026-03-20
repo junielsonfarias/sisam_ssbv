@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 /**
- * Rate Limiter Global em Memória
- *
- * Configurações diferentes para diferentes tipos de endpoints:
- * - APIs de escrita (POST/PUT/DELETE): mais restritivo
- * - APIs de leitura (GET): menos restritivo
- * - Login: já tem rate limiting próprio
+ * Middleware Global
+ * - Rate limiting por tipo de endpoint
+ * - Headers de segurança em todas as respostas
+ * - Request ID para rastreabilidade
+ * - Métricas de request (contadores e latência)
  */
 
 interface RateLimitEntry {
@@ -17,6 +16,41 @@ interface RateLimitEntry {
 
 // Armazenamento em memória (limpo quando servidor reinicia)
 const rateLimitStore = new Map<string, RateLimitEntry>()
+
+// ============================================================================
+// MÉTRICAS DE REQUEST (em memória — reseta ao reiniciar)
+// ============================================================================
+interface RequestMetrics {
+  totalRequests: number
+  totalErrors: number // 4xx + 5xx
+  requestsByMethod: Record<string, number>
+  requestsByStatus: Record<string, number>
+  startedAt: number
+}
+
+const metrics: RequestMetrics = {
+  totalRequests: 0,
+  totalErrors: 0,
+  requestsByMethod: {},
+  requestsByStatus: {},
+  startedAt: Date.now(),
+}
+
+/** Retorna métricas para o endpoint /api/health */
+export function getRequestMetrics() {
+  return {
+    ...metrics,
+    uptimeSeconds: Math.round((Date.now() - metrics.startedAt) / 1000),
+    requestsPerMinute: metrics.totalRequests > 0
+      ? Math.round(metrics.totalRequests / ((Date.now() - metrics.startedAt) / 60000) * 100) / 100
+      : 0,
+  }
+}
+
+/** Gera um ID curto para rastreabilidade */
+function generateRequestId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
+}
 
 // Configurações por tipo de operação
 // Ajustado para suportar 50+ usuários simultâneos em ambiente municipal (mesmo IP por escola)
@@ -145,10 +179,18 @@ export function middleware(request: NextRequest) {
     return response
   }
 
+  // Métricas: contagem por método
+  const method = request.method
+  metrics.totalRequests++
+  metrics.requestsByMethod[method] = (metrics.requestsByMethod[method] || 0) + 1
+
+  // Request ID para rastreabilidade
+  const requestId = generateRequestId()
+
   // Verificar se endpoint está excluído do rate limiting (mas recebe headers de segurança)
   if (EXCLUDED_PATHS.some(path => pathname.startsWith(path))) {
     const response = NextResponse.next()
-    addSecurityHeaders(response)
+    addSecurityHeaders(response, requestId)
     return response
   }
 
@@ -160,7 +202,6 @@ export function middleware(request: NextRequest) {
   }
 
   // Determinar tipo de rate limit
-  const method = request.method
   let rateLimitConfig = RATE_LIMITS.read
 
   // Endpoints de dispositivos faciais (alta frequência)
@@ -207,7 +248,9 @@ export function middleware(request: NextRequest) {
         }
       }
     )
-    addSecurityHeaders(blockedResponse)
+    metrics.totalErrors++
+    metrics.requestsByStatus['429'] = (metrics.requestsByStatus['429'] || 0) + 1
+    addSecurityHeaders(blockedResponse, requestId)
     return blockedResponse
   }
 
@@ -217,22 +260,25 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-RateLimit-Remaining', result.remaining.toString())
   response.headers.set('X-RateLimit-Reset', result.resetAt.toString())
 
-  // Headers de segurança
-  addSecurityHeaders(response)
+  // Headers de segurança + request ID
+  addSecurityHeaders(response, requestId)
 
   return response
 }
 
 /**
- * Headers de segurança aplicados em todas as respostas
+ * Headers de segurança e rastreabilidade aplicados em todas as respostas
  */
-function addSecurityHeaders(response: NextResponse) {
+function addSecurityHeaders(response: NextResponse, requestId?: string) {
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   // camera=(self) necessário para reconhecimento facial
   response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
+  if (requestId) {
+    response.headers.set('X-Request-Id', requestId)
+  }
 }
 
 // Configurar quais paths o middleware deve interceptar
