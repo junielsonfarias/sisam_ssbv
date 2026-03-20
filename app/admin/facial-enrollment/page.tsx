@@ -13,6 +13,8 @@ import { useTurmas } from '@/lib/hooks/useTurmas'
 interface AlunoFacial {
   aluno_id: string
   nome: string
+  aluno_nome?: string
+  aluno_codigo?: string
   consentido: boolean
   tem_embedding: boolean
   responsavel_nome?: string
@@ -39,8 +41,17 @@ export default function FacialEnrollmentPage() {
 
   // Filtros
   const [escolaId, setEscolaId] = useState('')
+  const [filtroSerie, setFiltroSerie] = useState('')
   const { turmas } = useTurmas(escolaId)
   const [turmaId, setTurmaId] = useState('')
+
+  // Séries únicas extraídas das turmas
+  const seriesDisponiveis = [...new Set(turmas.map(t => t.serie).filter(Boolean))].sort()
+
+  // Turmas filtradas por série
+  const turmasFiltradas = filtroSerie
+    ? turmas.filter(t => t.serie === filtroSerie)
+    : turmas
 
   // Dados
   const [alunos, setAlunos] = useState<AlunoFacial[]>([])
@@ -75,10 +86,16 @@ export default function FacialEnrollmentPage() {
   const [deleteAlunoId, setDeleteAlunoId] = useState<string | null>(null)
   const [deletando, setDeletando] = useState(false)
 
-  // Reset turma when escola changes
+  // Reset filtros quando escola muda
   useEffect(() => {
+    setFiltroSerie('')
     setTurmaId('')
   }, [escolaId])
+
+  // Reset turma quando série muda
+  useEffect(() => {
+    setTurmaId('')
+  }, [filtroSerie])
 
   // Buscar alunos com dados faciais
   const buscarAlunos = useCallback(async () => {
@@ -96,7 +113,9 @@ export default function FacialEnrollmentPage() {
         return
       }
       const data = await res.json()
-      setAlunos(Array.isArray(data) ? data : data.alunos || [])
+      const lista = Array.isArray(data) ? data : data.alunos || []
+      // Normalizar campo nome (API retorna aluno_nome)
+      setAlunos(lista.map((a: any) => ({ ...a, nome: a.nome || a.aluno_nome || '' })))
     } catch {
       toast.error('Erro ao conectar com o servidor')
     } finally {
@@ -428,24 +447,24 @@ export default function FacialEnrollmentPage() {
           </div>
 
           {/* Filtros */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Filtros</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Filtros</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Escola */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Escola</label>
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Escola</label>
                 {tipoUsuario === 'escola' ? (
                   <input
                     type="text"
                     value={escolas.find(e => e.id === escolaId)?.nome || 'Sua escola'}
                     disabled
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-600 text-sm"
+                    className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-sm"
                   />
                 ) : (
                   <select
                     value={escolaId}
                     onChange={e => setEscolaId(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="select-custom w-full"
                   >
                     <option value="">Selecione a escola</option>
                     {escolas.map(e => (
@@ -455,17 +474,33 @@ export default function FacialEnrollmentPage() {
                 )}
               </div>
 
+              {/* Série */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Serie</label>
+                <select
+                  value={filtroSerie}
+                  onChange={e => setFiltroSerie(e.target.value)}
+                  disabled={!escolaId || seriesDisponiveis.length === 0}
+                  className="select-custom w-full"
+                >
+                  <option value="">Todas as series</option>
+                  {seriesDisponiveis.map(s => (
+                    <option key={s} value={s}>{formatSerie(s)}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Turma */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Turma</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Turma</label>
                 <select
                   value={turmaId}
                   onChange={e => setTurmaId(e.target.value)}
-                  disabled={!escolaId}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
+                  disabled={!escolaId || turmasFiltradas.length === 0}
+                  className="select-custom w-full"
                 >
                   <option value="">Selecione a turma</option>
-                  {turmas.map(t => (
+                  {turmasFiltradas.map(t => (
                     <option key={t.id} value={t.id}>
                       {t.codigo} - {formatSerie(t.serie)}{t.nome ? ` (${t.nome})` : ''}
                     </option>
@@ -478,7 +513,7 @@ export default function FacialEnrollmentPage() {
                 <button
                   onClick={buscarAlunos}
                   disabled={!escolaId || !turmaId || carregando}
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {carregando ? <LoadingSpinner /> : <Search className="w-4 h-4" />}
                   Buscar
