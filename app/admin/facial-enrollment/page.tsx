@@ -67,7 +67,26 @@ export default function FacialEnrollmentPage() {
   })
   const [salvandoConsent, setSalvandoConsent] = useState(false)
 
-  // Captura facial via câmera
+  // ============================================================================
+  // CAPTURA FACIAL MULTI-POSE
+  // ============================================================================
+
+  type PoseType = 'frontal' | 'esquerda' | 'direita'
+  interface PoseCapture {
+    descriptor: Float32Array
+    score: number
+    foto: string
+  }
+
+  const POSES: { key: PoseType; label: string; instrucao: string; seta: string }[] = [
+    { key: 'frontal', label: 'Frontal', instrucao: 'Olhe diretamente para a camera', seta: '⬆' },
+    { key: 'esquerda', label: 'Esquerda', instrucao: 'Vire levemente para a esquerda', seta: '⬅' },
+    { key: 'direita', label: 'Direita', instrucao: 'Vire levemente para a direita', seta: '➡' },
+  ]
+
+  const TAMANHO_MINIMO_ROSTO = 15
+  const AMOSTRAS_POR_POSE = 3
+
   const [capturaAlunoId, setCapturaAlunoId] = useState<string | null>(null)
   const [cameraAtiva, setCameraAtiva] = useState(false)
   const [modelosCarregados, setModelosCarregados] = useState(false)
@@ -75,20 +94,23 @@ export default function FacialEnrollmentPage() {
   const [faceDetectada, setFaceDetectada] = useState(false)
   const [qualidadeFace, setQualidadeFace] = useState(0)
   const [tamanhoRosto, setTamanhoRosto] = useState(0)
+  const [anguloDetectado, setAnguloDetectado] = useState<PoseType | null>(null)
   const [enviandoEmbed, setEnviandoEmbed] = useState(false)
   const [capturaStatus, setCapturaStatus] = useState<'aguardando' | 'detectando' | 'capturado' | 'enviando'>('aguardando')
-  const [fotoCapturada, setFotoCapturada] = useState<string | null>(null)
-  const [melhorDescriptor, setMelhorDescriptor] = useState<{ descriptor: Float32Array; score: number } | null>(null)
+  const [poseAtual, setPoseAtual] = useState<number>(0) // índice em POSES
+  const [posesCapturadas, setPosesCapturadas] = useState<Record<PoseType, PoseCapture | null>>({
+    frontal: null, esquerda: null, direita: null
+  })
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const faceapiRef = useRef<any>(null)
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const descriptorBufferRef = useRef<{ descriptor: Float32Array; score: number }[]>([])
+  const poseBufferRef = useRef<{ descriptor: Float32Array; score: number }[]>([])
 
-  // Tamanho mínimo do rosto (% da largura do vídeo)
-  const TAMANHO_MINIMO_ROSTO = 15 // 15% da largura
-  const CAPTURAS_NECESSARIAS = 3 // Número de boas capturas antes de habilitar
+  const poseConfig = POSES[poseAtual] || POSES[0]
+  const todasPosesCapturadas = POSES.every(p => posesCapturadas[p.key] !== null)
+  const posesConcluidasCount = POSES.filter(p => posesCapturadas[p.key] !== null).length
 
   // Delete confirm
   const [deleteAlunoId, setDeleteAlunoId] = useState<string | null>(null)
@@ -206,7 +228,7 @@ export default function FacialEnrollmentPage() {
     }
   }
 
-  // Parar câmera
+  // Parar câmera e resetar tudo
   const pararCamera = () => {
     if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current)
@@ -216,24 +238,44 @@ export default function FacialEnrollmentPage() {
       streamRef.current.getTracks().forEach(t => t.stop())
       streamRef.current = null
     }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null
-    }
+    if (videoRef.current) videoRef.current.srcObject = null
     setCameraAtiva(false)
     setFaceDetectada(false)
     setQualidadeFace(0)
     setTamanhoRosto(0)
+    setAnguloDetectado(null)
     setCapturaStatus('aguardando')
-    setFotoCapturada(null)
-    setMelhorDescriptor(null)
-    descriptorBufferRef.current = []
+    setPoseAtual(0)
+    setPosesCapturadas({ frontal: null, esquerda: null, direita: null })
+    poseBufferRef.current = []
   }
 
-  // Loop de detecção facial com coleta de descriptors
+  // Detectar ângulo do rosto via landmarks (posição do nariz relativo aos olhos)
+  const detectarAngulo = (landmarks: any): PoseType => {
+    const nose = landmarks.getNose()
+    const leftEye = landmarks.getLeftEye()
+    const rightEye = landmarks.getRightEye()
+
+    if (!nose?.length || !leftEye?.length || !rightEye?.length) return 'frontal'
+
+    const noseTip = nose[3] // ponta do nariz
+    const leftEyeCenter = { x: leftEye.reduce((s: number, p: any) => s + p.x, 0) / leftEye.length }
+    const rightEyeCenter = { x: rightEye.reduce((s: number, p: any) => s + p.x, 0) / rightEye.length }
+    const eyeCenter = (leftEyeCenter.x + rightEyeCenter.x) / 2
+    const eyeWidth = Math.abs(rightEyeCenter.x - leftEyeCenter.x)
+
+    // Razão: deslocamento do nariz / largura entre olhos
+    const desvio = (noseTip.x - eyeCenter) / eyeWidth
+
+    if (desvio < -0.15) return 'esquerda'  // nariz deslocado para esquerda da câmera = rosto virado para direita do aluno
+    if (desvio > 0.15) return 'direita'
+    return 'frontal'
+  }
+
+  // Loop de detecção facial com detecção de ângulo
   const iniciarDeteccao = () => {
     if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current)
-    descriptorBufferRef.current = []
-    setMelhorDescriptor(null)
+    poseBufferRef.current = []
 
     detectionIntervalRef.current = setInterval(async () => {
       if (!videoRef.current || !faceapiRef.current || !canvasRef.current) return
@@ -243,13 +285,11 @@ export default function FacialEnrollmentPage() {
       const video = videoRef.current
       const canvas = canvasRef.current
 
-      // Detecção com descriptor para coleta contínua
       const detections = await faceapi
         .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
         .withFaceLandmarks(true)
         .withFaceDescriptors()
 
-      // Ajustar canvas ao vídeo
       const displaySize = { width: video.videoWidth, height: video.videoHeight }
       faceapi.matchDimensions(canvas, displaySize)
       const ctx = canvas.getContext('2d')
@@ -261,57 +301,53 @@ export default function FacialEnrollmentPage() {
         const box = det.detection.box
         const score = det.detection.score
         const rostoPct = Math.round((box.width / displaySize.width) * 100)
-
-        setTamanhoRosto(rostoPct)
-
-        // Verificar tamanho mínimo do rosto
         const rostoGrande = rostoPct >= TAMANHO_MINIMO_ROSTO
         const boaQualidade = score > 0.7
 
-        // Cor: verde (bom), amarelo (pequeno/baixa qualidade), vermelho (muito pequeno)
-        const corBox = rostoGrande && boaQualidade ? '#10b981' : rostoPct >= 10 ? '#eab308' : '#ef4444'
+        // Detectar ângulo
+        const angulo = detectarAngulo(det.landmarks)
+        setAnguloDetectado(angulo)
+        setTamanhoRosto(rostoPct)
+
+        // Verificar se o ângulo corresponde à pose solicitada
+        const poseEsperada = POSES[poseAtual]?.key
+        const anguloCorreto = angulo === poseEsperada
+
+        // Cor da caixa
+        const corBox = !rostoGrande ? '#ef4444' :
+          anguloCorreto && boaQualidade ? '#10b981' :
+          boaQualidade ? '#3b82f6' : '#eab308'
 
         if (ctx) {
-          // Caixa do rosto
           ctx.strokeStyle = corBox
           ctx.lineWidth = 3
           ctx.strokeRect(box.x, box.y, box.width, box.height)
-
-          // Indicadores no topo
           ctx.fillStyle = corBox
           ctx.font = 'bold 13px sans-serif'
-          ctx.fillText(`${(score * 100).toFixed(0)}%`, box.x, box.y - 8)
+          ctx.fillText(`${(score * 100).toFixed(0)}% | ${angulo}`, box.x, box.y - 8)
 
-          // Indicador de tamanho à direita
-          const tamanhoLabel = rostoPct >= TAMANHO_MINIMO_ROSTO ? '' : `Aproxime (${rostoPct}%)`
-          if (tamanhoLabel) {
+          if (!rostoGrande) {
             ctx.fillStyle = '#eab308'
             ctx.font = 'bold 12px sans-serif'
-            ctx.fillText(tamanhoLabel, box.x, box.y + box.height + 16)
+            ctx.fillText(`Aproxime (${rostoPct}%)`, box.x, box.y + box.height + 16)
           }
         }
 
-        // Coletar descriptor se qualidade boa E rosto grande
-        if (boaQualidade && rostoGrande && det.descriptor) {
-          descriptorBufferRef.current.push({ descriptor: det.descriptor, score })
-
-          // Manter apenas os últimos 10
-          if (descriptorBufferRef.current.length > 10) {
-            descriptorBufferRef.current = descriptorBufferRef.current.slice(-10)
+        // Coletar descriptor se ângulo correto, qualidade boa E rosto grande
+        if (anguloCorreto && boaQualidade && rostoGrande && det.descriptor) {
+          poseBufferRef.current.push({ descriptor: det.descriptor, score })
+          if (poseBufferRef.current.length > 10) {
+            poseBufferRef.current = poseBufferRef.current.slice(-10)
           }
-
-          // Selecionar melhor dos coletados
-          const melhor = descriptorBufferRef.current.reduce((a, b) => a.score > b.score ? a : b)
-          setMelhorDescriptor(melhor)
         }
 
-        setFaceDetectada(rostoGrande && boaQualidade)
+        setFaceDetectada(rostoGrande && boaQualidade && anguloCorreto)
         setQualidadeFace(Math.round(score * 100))
       } else {
         setFaceDetectada(false)
         setQualidadeFace(0)
         setTamanhoRosto(0)
-
+        setAnguloDetectado(null)
         if (detections.length > 1 && ctx) {
           ctx.fillStyle = '#ef4444'
           ctx.font = 'bold 16px sans-serif'
@@ -321,80 +357,106 @@ export default function FacialEnrollmentPage() {
     }, 500)
   }
 
-  // Converter Float32Array para base64 (compatível com browser)
-  const float32ToBase64 = (arr: Float32Array): string => {
-    const bytes = new Uint8Array(arr.buffer)
-    let binary = ''
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i])
-    }
-    return btoa(binary)
-  }
-
-  // Capturar embedding — usa o melhor descriptor coletado
-  const capturarEmbedding = async () => {
-    if (!videoRef.current || !capturaAlunoId) return
-
-    // Usar melhor descriptor já coletado no buffer
-    const descriptorFinal = melhorDescriptor || descriptorBufferRef.current[descriptorBufferRef.current.length - 1]
-
-    if (!descriptorFinal) {
-      toast.error('Nenhum rosto com qualidade suficiente detectado. Ajuste posicao e iluminacao.')
+  // Capturar a pose atual
+  const capturarPose = () => {
+    if (poseBufferRef.current.length < AMOSTRAS_POR_POSE) {
+      toast.error(`Aguarde ${AMOSTRAS_POR_POSE} amostras. Mantenha a posicao.`)
       return
     }
+    if (!videoRef.current) return
 
-    // Capturar foto do vídeo para preview
+    // Selecionar melhor descriptor
+    const melhor = poseBufferRef.current.reduce((a, b) => a.score > b.score ? a : b)
+
+    // Capturar foto
     const video = videoRef.current
     const tempCanvas = document.createElement('canvas')
     tempCanvas.width = video.videoWidth
     tempCanvas.height = video.videoHeight
     const tempCtx = tempCanvas.getContext('2d')
+    let foto = ''
     if (tempCtx) {
       tempCtx.drawImage(video, 0, 0)
-      setFotoCapturada(tempCanvas.toDataURL('image/jpeg', 0.8))
+      foto = tempCanvas.toDataURL('image/jpeg', 0.7)
     }
+
+    // Salvar pose
+    const poseKey = POSES[poseAtual].key
+    setPosesCapturadas(prev => ({ ...prev, [poseKey]: { descriptor: melhor.descriptor, score: melhor.score, foto } }))
+    poseBufferRef.current = []
+
+    // Avançar para próxima pose
+    if (poseAtual < POSES.length - 1) {
+      setPoseAtual(prev => prev + 1)
+      toast.success(`${POSES[poseAtual].label} capturado! Agora: ${POSES[poseAtual + 1].label}`)
+    } else {
+      toast.success('Todas as poses capturadas! Clique em Salvar.')
+    }
+  }
+
+  // Converter Float32Array para base64 (browser)
+  const float32ToBase64 = (arr: Float32Array): string => {
+    const bytes = new Uint8Array(arr.buffer)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    return btoa(binary)
+  }
+
+  // Calcular média dos descriptors das 3 poses
+  const calcularMediaDescriptors = (): Float32Array => {
+    const descs = POSES.map(p => posesCapturadas[p.key]?.descriptor).filter(Boolean) as Float32Array[]
+    const media = new Float32Array(128)
+    for (let i = 0; i < 128; i++) {
+      let soma = 0
+      for (const d of descs) soma += d[i]
+      media[i] = soma / descs.length
+    }
+    // Normalizar (L2 norm) para manter compatibilidade com FaceMatcher
+    let norm = 0
+    for (let i = 0; i < 128; i++) norm += media[i] * media[i]
+    norm = Math.sqrt(norm)
+    if (norm > 0) for (let i = 0; i < 128; i++) media[i] /= norm
+    return media
+  }
+
+  // Salvar embedding final (média das 3 poses)
+  const salvarEmbedding = async () => {
+    if (!capturaAlunoId || !todasPosesCapturadas) return
 
     setCapturaStatus('enviando')
     setEnviandoEmbed(true)
 
     try {
-      const base64 = float32ToBase64(descriptorFinal.descriptor)
-      const qualidade = Math.round(descriptorFinal.score * 100)
+      const mediaDescriptor = calcularMediaDescriptors()
+      const base64 = float32ToBase64(mediaDescriptor)
+      const mediaQualidade = Math.round(
+        POSES.reduce((s, p) => s + (posesCapturadas[p.key]?.score || 0), 0) / POSES.length * 100
+      )
 
       const res = await fetch('/api/admin/facial/enrollment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          aluno_id: capturaAlunoId,
-          embedding_data: base64,
-          qualidade,
-        }),
+        body: JSON.stringify({ aluno_id: capturaAlunoId, embedding_data: base64, qualidade: mediaQualidade }),
       })
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         toast.error(err.mensagem || err.error || 'Erro ao salvar embedding')
         setCapturaStatus('detectando')
-        setFotoCapturada(null)
         return
       }
 
-      toast.success(`Rosto cadastrado! Qualidade: ${qualidade}% (${descriptorBufferRef.current.length} amostras)`)
+      toast.success(`Rosto cadastrado com 3 angulos! Qualidade media: ${mediaQualidade}%`)
       setCapturaStatus('capturado')
 
-      // Fechar após 2s
       setTimeout(() => {
         pararCamera()
         setCapturaAlunoId(null)
-        setFotoCapturada(null)
-        setMelhorDescriptor(null)
-        descriptorBufferRef.current = []
         buscarAlunos()
       }, 2000)
     } catch {
       toast.error('Erro ao processar captura facial')
       setCapturaStatus('detectando')
-      setFotoCapturada(null)
     } finally {
       setEnviandoEmbed(false)
     }
@@ -406,24 +468,18 @@ export default function FacialEnrollmentPage() {
     setCapturaStatus('aguardando')
     setFaceDetectada(false)
     setQualidadeFace(0)
-
-    if (!modelosCarregados) {
-      await carregarModelos()
-    }
+    setPoseAtual(0)
+    setPosesCapturadas({ frontal: null, esquerda: null, direita: null })
+    poseBufferRef.current = []
+    if (!modelosCarregados) await carregarModelos()
   }
 
-  // Cleanup ao desmontar ou fechar modal
-  useEffect(() => {
-    return () => {
-      pararCamera()
-    }
-  }, [])
+  // Cleanup
+  useEffect(() => { return () => { pararCamera() } }, [])
 
-  // Iniciar câmera quando modal abre e modelos estão prontos
+  // Iniciar câmera quando modal abre
   useEffect(() => {
-    if (capturaAlunoId && modelosCarregados && !cameraAtiva) {
-      iniciarCamera()
-    }
+    if (capturaAlunoId && modelosCarregados && !cameraAtiva) iniciarCamera()
   }, [capturaAlunoId, modelosCarregados])
 
   // Deletar dados faciais
@@ -771,10 +827,10 @@ export default function FacialEnrollmentPage() {
           </div>
         )}
 
-        {/* Modal de Captura Facial via Camera */}
+        {/* Modal de Captura Facial Multi-Pose */}
         {capturaAlunoId && (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto">
               {/* Header */}
               <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
@@ -783,46 +839,74 @@ export default function FacialEnrollmentPage() {
                       <Camera className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-gray-800 dark:text-white">Captura Facial</h3>
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-white">Captura Facial Multi-Angulo</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {alunos.find(a => a.aluno_id === capturaAlunoId)?.nome}
                       </p>
                     </div>
                   </div>
-                  {/* Status badge */}
-                  <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    capturaStatus === 'capturado' ? 'bg-green-100 text-green-700' :
-                    capturaStatus === 'enviando' ? 'bg-blue-100 text-blue-700' :
-                    faceDetectada ? 'bg-emerald-100 text-emerald-700' :
-                    cameraAtiva ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
-                    {capturaStatus === 'capturado' ? 'Capturado!' :
-                     capturaStatus === 'enviando' ? 'Salvando...' :
-                     carregandoModelos ? 'Carregando modelos...' :
-                     !cameraAtiva ? 'Iniciando camera...' :
-                     faceDetectada ? `Rosto detectado (${qualidadeFace}%)` :
-                     'Posicione o rosto'}
-                  </div>
+                  <span className="text-xs font-semibold bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-3 py-1 rounded-full">
+                    {posesConcluidasCount}/{POSES.length} poses
+                  </span>
                 </div>
               </div>
 
-              {/* Camera view */}
-              <div className="px-6 py-4">
-                <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-                  <canvas
-                    ref={canvasRef}
-                    className="absolute inset-0 w-full h-full"
-                  />
+              {/* Progresso das poses */}
+              <div className="px-6 pt-4">
+                <div className="flex gap-2">
+                  {POSES.map((pose, i) => {
+                    const capturada = posesCapturadas[pose.key] !== null
+                    const atual = i === poseAtual && !todasPosesCapturadas
+                    return (
+                      <div key={pose.key} className={`flex-1 rounded-lg p-2 text-center transition-all border-2 ${
+                        capturada ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' :
+                        atual ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-400 dark:border-teal-600 shadow-sm' :
+                        'bg-gray-50 dark:bg-slate-700/50 border-transparent'
+                      }`}>
+                        <div className="text-2xl mb-1">{capturada ? '✅' : pose.seta}</div>
+                        <p className={`text-xs font-semibold ${capturada ? 'text-green-700 dark:text-green-400' : atual ? 'text-teal-700 dark:text-teal-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {pose.label}
+                        </p>
+                        {capturada && posesCapturadas[pose.key] && (
+                          <p className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">
+                            {Math.round(posesCapturadas[pose.key]!.score * 100)}%
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
 
-                  {/* Overlay de loading */}
+              {/* Camera + instrução */}
+              <div className="px-6 py-4">
+                {/* Instrução da pose atual */}
+                {cameraAtiva && !todasPosesCapturadas && capturaStatus !== 'capturado' && (
+                  <div className={`mb-3 rounded-lg p-3 text-center ${
+                    faceDetectada ? 'bg-green-50 dark:bg-green-900/20' : 'bg-teal-50 dark:bg-teal-900/20'
+                  }`}>
+                    <p className="text-3xl mb-1">{poseConfig.seta}</p>
+                    <p className={`text-sm font-semibold ${faceDetectada ? 'text-green-700 dark:text-green-300' : 'text-teal-700 dark:text-teal-300'}`}>
+                      {poseConfig.instrucao}
+                    </p>
+                    {anguloDetectado && anguloDetectado !== poseConfig.key && (
+                      <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                        Detectado: {anguloDetectado} — vire para {poseConfig.label.toLowerCase()}
+                      </p>
+                    )}
+                    {faceDetectada && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        Angulo correto! Amostras: {poseBufferRef.current.length}/{AMOSTRAS_POR_POSE}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+
+                  {/* Loading */}
                   {(carregandoModelos || (!cameraAtiva && capturaAlunoId)) && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/70">
                       <div className="text-center text-white">
@@ -832,16 +916,18 @@ export default function FacialEnrollmentPage() {
                     </div>
                   )}
 
-                  {/* Overlay de sucesso com preview */}
+                  {/* Sucesso final */}
                   {capturaStatus === 'capturado' && (
                     <div className="absolute inset-0 flex items-center justify-center bg-green-900/80">
                       <div className="text-center text-white">
-                        {fotoCapturada && (
-                          <img src={fotoCapturada} alt="Captura" className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-green-400 shadow-lg" />
-                        )}
+                        <div className="flex justify-center gap-3 mb-4">
+                          {POSES.map(p => posesCapturadas[p.key]?.foto && (
+                            <img key={p.key} src={posesCapturadas[p.key]!.foto} alt={p.label}
+                              className="w-20 h-20 rounded-full object-cover border-3 border-green-400 shadow-lg" />
+                          ))}
+                        </div>
                         <CheckCircle className="w-10 h-10 mx-auto mb-2 text-green-400" />
-                        <p className="text-xl font-bold">Rosto cadastrado!</p>
-                        <p className="text-sm text-green-200 mt-1">Qualidade: {qualidadeFace}%</p>
+                        <p className="text-xl font-bold">Rosto cadastrado com 3 angulos!</p>
                       </div>
                     </div>
                   )}
@@ -849,75 +935,65 @@ export default function FacialEnrollmentPage() {
                   {/* Guia visual */}
                   {cameraAtiva && !faceDetectada && capturaStatus === 'detectando' && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-48 h-60 border-2 border-dashed border-white/40 rounded-3xl" />
+                      <div className="w-48 h-60 border-2 border-dashed border-white/30 rounded-3xl" />
                     </div>
                   )}
                 </div>
 
-                {/* Instrucoes */}
-                <div className="mt-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3">
-                  <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <Video className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-500" />
-                    <div>
-                      <p className="font-medium">Instrucoes:</p>
-                      <ul className="text-xs mt-1 space-y-0.5 text-gray-500 dark:text-gray-400">
-                        <li>Posicione o aluno de frente para a camera, com boa iluminacao</li>
-                        <li>Aguarde a caixa verde aparecer ao redor do rosto</li>
-                        <li>Quando a qualidade estiver acima de 70%, clique em Capturar</li>
-                        <li>Apenas 1 rosto deve estar visivel na camera</li>
-                      </ul>
-                    </div>
+                {/* Fotos das poses capturadas */}
+                {posesConcluidasCount > 0 && capturaStatus !== 'capturado' && (
+                  <div className="mt-3 flex gap-3">
+                    {POSES.map(p => posesCapturadas[p.key] && (
+                      <div key={p.key} className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 rounded-lg px-3 py-2">
+                        <img src={posesCapturadas[p.key]!.foto} alt={p.label}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-green-400" />
+                        <div>
+                          <p className="text-xs font-semibold text-green-700 dark:text-green-300">{p.label}</p>
+                          <p className="text-[10px] text-green-600">{Math.round(posesCapturadas[p.key]!.score * 100)}%</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Footer */}
               <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-wrap">
-                  {cameraAtiva && (
+                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                  {cameraAtiva && !todasPosesCapturadas && (
                     <>
-                      {/* Qualidade */}
-                      <div className="flex items-center gap-1.5">
-                        <div className={`w-2.5 h-2.5 rounded-full ${qualidadeFace >= 70 ? 'bg-green-500' : qualidadeFace > 0 ? 'bg-yellow-500' : 'bg-gray-300'} ${faceDetectada ? 'animate-pulse' : ''}`} />
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                          Qualidade: <strong className={qualidadeFace >= 70 ? 'text-green-600' : 'text-yellow-600'}>{qualidadeFace || '-'}%</strong>
-                        </span>
-                      </div>
-                      {/* Tamanho do rosto */}
-                      {tamanhoRosto > 0 && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
-                            Rosto: <strong className={tamanhoRosto >= TAMANHO_MINIMO_ROSTO ? 'text-green-600' : 'text-orange-600'}>{tamanhoRosto}%</strong>
-                          </span>
-                        </div>
-                      )}
-                      {/* Amostras coletadas */}
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                          Amostras: <strong className={descriptorBufferRef.current.length >= CAPTURAS_NECESSARIAS ? 'text-green-600' : 'text-gray-500'}>{descriptorBufferRef.current.length}</strong>/{CAPTURAS_NECESSARIAS}+
-                        </span>
-                      </div>
+                      <span>Qualidade: <strong className={qualidadeFace >= 70 ? 'text-green-600' : 'text-yellow-600'}>{qualidadeFace || '-'}%</strong></span>
+                      {tamanhoRosto > 0 && <span>Rosto: <strong className={tamanhoRosto >= TAMANHO_MINIMO_ROSTO ? 'text-green-600' : 'text-orange-600'}>{tamanhoRosto}%</strong></span>}
+                      {anguloDetectado && <span>Angulo: <strong>{anguloDetectado}</strong></span>}
                     </>
                   )}
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => {
-                      pararCamera()
-                      setCapturaAlunoId(null)
-                    }}
+                    onClick={() => { pararCamera(); setCapturaAlunoId(null) }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
                   >
                     Cancelar
                   </button>
-                  <button
-                    onClick={capturarEmbedding}
-                    disabled={!melhorDescriptor || enviandoEmbed || capturaStatus === 'capturado' || descriptorBufferRef.current.length < CAPTURAS_NECESSARIAS}
-                    className="px-5 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                  >
-                    {enviandoEmbed ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                    Capturar Rosto
-                  </button>
+                  {!todasPosesCapturadas ? (
+                    <button
+                      onClick={capturarPose}
+                      disabled={!faceDetectada || poseBufferRef.current.length < AMOSTRAS_POR_POSE}
+                      className="px-5 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                      <Camera className="w-4 h-4" />
+                      Capturar {poseConfig.label} ({poseAtual + 1}/{POSES.length})
+                    </button>
+                  ) : (
+                    <button
+                      onClick={salvarEmbedding}
+                      disabled={enviandoEmbed || capturaStatus === 'capturado'}
+                      className="px-5 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                      {enviandoEmbed ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      Salvar Cadastro Facial
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
