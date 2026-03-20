@@ -257,65 +257,70 @@ export async function contarPresencasPendentes(): Promise<number> {
 // SINCRONIZAÇÃO
 // ============================================================================
 
-export async function sincronizarPresencas(apiUrl: string, token: string): Promise<{ enviados: number; erros: number }> {
+export async function sincronizarPresencas(apiUrl: string, _token: string): Promise<{ enviados: number; erros: number }> {
   const pendentes = await obterPresencasPendentes()
   if (pendentes.length === 0) return { enviados: 0, erros: 0 }
 
-  try {
-    const registros = pendentes.map(p => ({
-      aluno_id: p.aluno_id,
-      timestamp: p.timestamp,
-      confianca: p.confianca,
-    }))
+  let enviados = 0
+  let erros = 0
+  const idsEnviados: number[] = []
 
-    const res = await fetch(`${apiUrl}/api/facial/presencas/lote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ registros }),
-    })
-
-    if (res.ok) {
-      const data = await res.json()
-      const ids = pendentes.map(p => p.id!).filter(Boolean)
-      await marcarPresencasEnviadas(ids)
-
-      // Log de sync
-      const db = await openDB()
-      const tx = db.transaction(STORES.SYNC_LOG, 'readwrite')
-      tx.objectStore(STORES.SYNC_LOG).add({
-        tipo: 'presencas',
-        total: pendentes.length,
-        enviados: data.inseridos || pendentes.length,
-        erros: data.erros || 0,
-        timestamp: new Date().toISOString(),
+  // Enviar cada presença individualmente via endpoint JWT
+  for (const p of pendentes) {
+    try {
+      const res = await fetch(`${apiUrl}/api/admin/facial/presenca-terminal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          aluno_id: p.aluno_id,
+          timestamp: p.timestamp,
+          confianca: p.confianca,
+        }),
       })
 
-      return { enviados: data.inseridos || pendentes.length, erros: data.erros || 0 }
+      if (res.ok) {
+        enviados++
+        if (p.id) idsEnviados.push(p.id)
+      } else {
+        erros++
+      }
+    } catch {
+      erros++
     }
-
-    return { enviados: 0, erros: pendentes.length }
-  } catch {
-    return { enviados: 0, erros: pendentes.length }
   }
+
+  // Marcar enviados
+  if (idsEnviados.length > 0) {
+    await marcarPresencasEnviadas(idsEnviados)
+  }
+
+  // Log de sync
+  try {
+    const db = await openDB()
+    const tx = db.transaction(STORES.SYNC_LOG, 'readwrite')
+    tx.objectStore(STORES.SYNC_LOG).add({
+      tipo: 'presencas',
+      total: pendentes.length,
+      enviados,
+      erros,
+      timestamp: new Date().toISOString(),
+    })
+  } catch { /* Log opcional */ }
+
+  return { enviados, erros }
 }
 
 export async function baixarEmbeddings(
   apiUrl: string,
-  token: string,
+  _token: string, // Mantido por compatibilidade — auth via cookie httpOnly
   escolaId: string,
   turmaId?: string
 ): Promise<number> {
   const params = new URLSearchParams({ escola_id: escolaId })
   if (turmaId) params.set('turma_id', turmaId)
 
-  // Definir cookie no browser para autenticação
-  if (typeof document !== 'undefined') {
-    document.cookie = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
-  }
-
+  // Cookie httpOnly já foi definido pelo login — browser envia automaticamente
   const res = await fetch(`${apiUrl}/api/admin/facial/embeddings?${params}`, {
     credentials: 'include',
   })

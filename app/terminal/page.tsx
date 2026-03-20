@@ -43,7 +43,13 @@ export default function TerminalPWA() {
   // Fase
   const [fase, setFase] = useState<Fase>('setup')
 
-  // Setup
+  // Setup — Login
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
+  const [logado, setLogado] = useState(false)
+  const [loginCarregando, setLoginCarregando] = useState(false)
+
+  // Setup — Config
   const [serverUrl, setServerUrl] = useState('')
   const [token, setToken] = useState('')
   const [escolaId, setEscolaId] = useState('')
@@ -259,33 +265,74 @@ export default function TerminalPWA() {
   // SETUP — Buscar escolas e salvar config
   // ============================================================================
 
-  // Definir cookie de autenticação no browser
-  const definirCookie = (tk: string) => {
-    document.cookie = `token=${tk}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+  // Login no terminal — faz autenticação e recebe cookie httpOnly automaticamente
+  const fazerLogin = async () => {
+    if (!email || !senha) {
+      setMensagemSetup('Informe email e senha')
+      return
+    }
+
+    setLoginCarregando(true)
+    setMensagemSetup('')
+
+    try {
+      const baseUrl = serverUrl || window.location.origin
+
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: email.trim().toLowerCase(), senha }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setMensagemSetup(data.mensagem || 'Email ou senha incorretos')
+        return
+      }
+
+      // Login OK — cookie httpOnly foi definido automaticamente pelo servidor
+      setLogado(true)
+      setToken('authenticated')
+      setMensagemSetup('')
+
+      // Se usuário é do tipo escola, pré-selecionar
+      if (data.usuario?.escola_id) {
+        setEscolaId(data.usuario.escola_id)
+        setEscolaNome(data.usuario.escola_nome || '')
+      }
+
+      // Buscar escolas
+      await buscarEscolas(baseUrl)
+    } catch {
+      setMensagemSetup('Servidor inacessivel. Verifique a URL.')
+    } finally {
+      setLoginCarregando(false)
+    }
   }
 
-  const buscarEscolas = async () => {
+  const buscarEscolas = async (baseUrl?: string) => {
     try {
-      // Definir cookie para que o browser envie automaticamente
-      definirCookie(token)
+      const url = baseUrl || serverUrl || window.location.origin
 
-      const res = await fetch(`${serverUrl}/api/admin/escolas`, {
+      const res = await fetch(`${url}/api/admin/escolas`, {
         credentials: 'include',
       })
       if (res.ok) {
         const data = await res.json()
         setEscolas(Array.isArray(data) ? data.map((e: any) => ({ id: e.id, nome: e.nome })) : [])
-        setMensagemSetup('')
       } else {
-        setMensagemSetup('Erro ao conectar. Verifique o token.')
+        setMensagemSetup('Sessao expirada. Faca login novamente.')
+        setLogado(false)
       }
     } catch {
-      setMensagemSetup('Servidor inacessivel. Verifique a URL.')
+      setMensagemSetup('Erro ao carregar escolas.')
     }
   }
 
   const baixarESalvar = async () => {
-    if (!escolaId || !token) return
+    if (!escolaId || !logado) return
     setBaixandoEmbed(true)
     setMensagemSetup('Baixando embeddings dos alunos...')
 
@@ -505,30 +552,33 @@ export default function TerminalPWA() {
             <span>Modelos IA: {statusModelo === 'pronto' ? 'Prontos' : statusModelo === 'erro' ? 'Erro ao carregar' : 'Carregando...'}</span>
           </div>
 
-          {/* Servidor */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL do Servidor</label>
-            <input type="url" value={serverUrl} onChange={e => setServerUrl(e.target.value)}
-              placeholder="https://sisam.cidade.gov.br"
-              className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white" />
-          </div>
-
-          {/* Token */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Token de Acesso</label>
-            <div className="flex gap-2">
-              <input type="password" value={token} onChange={e => setToken(e.target.value)}
-                placeholder="Cole o token JWT aqui"
-                className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white" />
-              <button onClick={buscarEscolas} disabled={!serverUrl || !token}
-                className="px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors">
-                Conectar
+          {/* Login do terminal */}
+          {!logado ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="admin@semed.gov.br" autoComplete="email"
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                  onKeyDown={e => e.key === 'Enter' && fazerLogin()} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha</label>
+                <input type="password" value={senha} onChange={e => setSenha(e.target.value)}
+                  placeholder="Sua senha" autoComplete="current-password"
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                  onKeyDown={e => e.key === 'Enter' && fazerLogin()} />
+              </div>
+              <button onClick={fazerLogin} disabled={!email || !senha || loginCarregando}
+                className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+                {loginCarregando ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                {loginCarregando ? 'Conectando...' : 'Entrar'}
               </button>
             </div>
-          </div>
+          ) : null}
 
-          {/* Escola */}
-          {escolas.length > 0 && (
+          {/* Escola — aparece após login */}
+          {logado && escolas.length > 0 && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Escola</label>
@@ -563,7 +613,7 @@ export default function TerminalPWA() {
               </div>
 
               {/* Baixar embeddings */}
-              <button onClick={baixarESalvar} disabled={!escolaId || baixandoEmbed || statusModelo !== 'pronto'}
+              <button onClick={baixarESalvar} disabled={!escolaId || baixandoEmbed || statusModelo !== 'pronto' || !logado}
                 className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
                 {baixandoEmbed ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
                 {baixandoEmbed ? 'Baixando...' : `Baixar Dados dos Alunos${totalEmbeddings > 0 ? ` (${totalEmbeddings} salvos)` : ''}`}
