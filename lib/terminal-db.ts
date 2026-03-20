@@ -321,7 +321,8 @@ export async function baixarEmbeddings(
   if (turmaId) params.set('turma_id', turmaId)
 
   // Cookie httpOnly já foi definido pelo login — browser envia automaticamente
-  const res = await fetch(`${apiUrl}/api/admin/facial/embeddings?${params}`, {
+  const url = apiUrl || (typeof window !== 'undefined' ? window.location.origin : '')
+  const res = await fetch(`${url}/api/admin/facial/embeddings?${params}`, {
     credentials: 'include',
   })
 

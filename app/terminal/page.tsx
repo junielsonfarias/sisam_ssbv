@@ -823,6 +823,32 @@ export default function TerminalPWA() {
                 {fullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
               </button>
 
+              {/* Atualizar embeddings */}
+              <button onClick={async () => {
+                try {
+                  const url = serverUrl || window.location.origin
+                  const total = await baixarEmbeddings(url, '', escolaId)
+                  if (total > 0) {
+                    const embsLocais = await obterEmbeddings()
+                    const novosAlunos: AlunoEmMemoria[] = []
+                    for (const emb of embsLocais) {
+                      try {
+                        const bytes = Uint8Array.from(atob(emb.embedding_base64), c => c.charCodeAt(0))
+                        const descriptor = new Float32Array(bytes.buffer)
+                        novosAlunos.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, descriptor })
+                      } catch { /* ignora */ }
+                    }
+                    setAlunos(novosAlunos)
+                    setMensagem(`${total} aluno(s) atualizado(s)`)
+                    setMensagemTipo('info')
+                    if (mensagemTimeoutRef.current) clearTimeout(mensagemTimeoutRef.current)
+                    mensagemTimeoutRef.current = setTimeout(() => setMensagem(''), 3000)
+                  }
+                } catch { /* sem conexão */ }
+              }} className="p-1.5 hover:bg-white/10 rounded transition-colors" title="Atualizar alunos">
+                <Download className="w-4 h-4" />
+              </button>
+
               {/* Config */}
               <button onClick={() => {
                 if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null }
