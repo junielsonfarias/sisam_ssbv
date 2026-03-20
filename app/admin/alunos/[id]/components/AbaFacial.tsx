@@ -3,25 +3,10 @@
 import { useEffect, useState } from 'react'
 import {
   ScanFace, Shield, CheckCircle, XCircle, AlertTriangle,
-  Calendar, User, Clock, Fingerprint
+  Calendar, User, Clock, Fingerprint, Save, Loader2
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-
-interface DadosFaciais {
-  consentimento: {
-    consentido: boolean
-    responsavel_nome: string | null
-    responsavel_cpf: string | null
-    data_consentimento: string | null
-    data_revogacao: string | null
-  } | null
-  embedding: {
-    qualidade: number | null
-    versao_modelo: string | null
-    criado_em: string | null
-  } | null
-  fotos_captura: string[] // fotos das poses (se disponíveis no futuro)
-}
+import { useToast } from '@/components/toast'
 
 interface Props {
   alunoId: string
@@ -29,68 +14,88 @@ interface Props {
 }
 
 export function AbaFacial({ alunoId, alunoNome }: Props) {
-  const [dados, setDados] = useState<DadosFaciais | null>(null)
+  const toast = useToast()
+
+  // Dados
+  const [consentimento, setConsentimento] = useState<any>(null)
+  const [embedding, setEmbedding] = useState<any>(null)
   const [carregando, setCarregando] = useState(true)
 
-  useEffect(() => {
-    const carregar = async () => {
-      setCarregando(true)
-      try {
-        // Buscar consentimento
-        const consentRes = await fetch(`/api/admin/facial/consentimento?escola_id=all&aluno_id=${alunoId}`, {
-          credentials: 'include',
-        })
+  // Formulário de consentimento
+  const [mostrarFormConsent, setMostrarFormConsent] = useState(false)
+  const [responsavelNome, setResponsavelNome] = useState('')
+  const [responsavelCpf, setResponsavelCpf] = useState('')
+  const [salvandoConsent, setSalvandoConsent] = useState(false)
 
-        // Buscar embedding
-        const embedRes = await fetch(`/api/admin/facial/enrollment?aluno_id=${alunoId}`, {
-          credentials: 'include',
-        })
+  const carregar = async () => {
+    setCarregando(true)
+    try {
+      const [consentRes, embedRes] = await Promise.all([
+        fetch(`/api/admin/facial/consentimento?aluno_id=${alunoId}`, { credentials: 'include' }),
+        fetch(`/api/admin/facial/enrollment?aluno_id=${alunoId}`, { credentials: 'include' }),
+      ])
 
-        let consentimento = null
-        let embedding = null
-
-        if (consentRes.ok) {
-          const consentData = await consentRes.json()
-          const lista = consentData.alunos || consentData
-          const aluno = Array.isArray(lista) ? lista.find((a: any) => a.aluno_id === alunoId) : null
-          if (aluno) {
-            consentimento = {
-              consentido: aluno.consentido || false,
-              responsavel_nome: aluno.responsavel_nome || null,
-              responsavel_cpf: aluno.responsavel_cpf || null,
-              data_consentimento: aluno.data_consentimento || null,
-              data_revogacao: aluno.data_revogacao || null,
-            }
-          }
-        }
-
-        if (embedRes.ok) {
-          const embedData = await embedRes.json()
-          embedding = {
-            qualidade: embedData.qualidade || null,
-            versao_modelo: embedData.versao_modelo || null,
-            criado_em: embedData.criado_em || null,
-          }
-        }
-
-        setDados({ consentimento, embedding, fotos_captura: [] })
-      } catch {
-        setDados({ consentimento: null, embedding: null, fotos_captura: [] })
-      } finally {
-        setCarregando(false)
+      if (consentRes.ok) {
+        const data = await consentRes.json()
+        const lista = data.alunos || []
+        const aluno = lista.find((a: any) => a.aluno_id === alunoId)
+        setConsentimento(aluno || null)
       }
-    }
 
-    carregar()
-  }, [alunoId])
-
-  if (carregando) {
-    return <LoadingSpinner text="Carregando dados faciais..." centered />
+      if (embedRes.ok) {
+        setEmbedding(await embedRes.json())
+      } else {
+        setEmbedding(null)
+      }
+    } catch { /* erro silencioso */ }
+    setCarregando(false)
   }
 
-  const temConsentimento = dados?.consentimento?.consentido === true
-  const temEmbedding = dados?.embedding !== null
-  const formatarData = (d: string | null) => {
+  useEffect(() => { carregar() }, [alunoId])
+
+  const salvarConsentimento = async () => {
+    if (!responsavelNome.trim()) {
+      toast.error('Informe o nome do responsavel')
+      return
+    }
+
+    setSalvandoConsent(true)
+    try {
+      const res = await fetch('/api/admin/facial/consentimento', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          aluno_id: alunoId,
+          responsavel_nome: responsavelNome.trim(),
+          responsavel_cpf: responsavelCpf.trim() || null,
+          consentido: true,
+        }),
+      })
+
+      if (res.ok) {
+        toast.success('Consentimento LGPD registrado com sucesso!')
+        setMostrarFormConsent(false)
+        setResponsavelNome('')
+        setResponsavelCpf('')
+        await carregar()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.mensagem || 'Erro ao registrar consentimento')
+      }
+    } catch {
+      toast.error('Erro ao conectar com o servidor')
+    } finally {
+      setSalvandoConsent(false)
+    }
+  }
+
+  if (carregando) return <LoadingSpinner text="Carregando dados faciais..." centered />
+
+  const temConsentimento = consentimento?.consentido === true
+  const temEmbedding = embedding?.aluno_id != null
+
+  const formatarData = (d: string | null | undefined) => {
     if (!d) return '-'
     try { return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }
     catch { return d }
@@ -98,7 +103,7 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Status geral */}
+      {/* Status cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Consentimento */}
         <div className={`rounded-xl p-5 border-2 ${
@@ -120,7 +125,15 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
           {temConsentimento ? (
             <CheckCircle className="w-8 h-8 text-green-500 mx-auto" />
           ) : (
-            <XCircle className="w-8 h-8 text-red-400 mx-auto" />
+            <div className="text-center">
+              <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+              <button
+                onClick={() => setMostrarFormConsent(true)}
+                className="text-xs font-semibold text-red-600 hover:text-red-700 underline"
+              >
+                Registrar consentimento
+              </button>
+            </div>
           )}
         </div>
 
@@ -159,19 +172,17 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
               <p className="text-xs text-gray-500">do reconhecimento</p>
             </div>
           </div>
-          {temEmbedding && dados?.embedding?.qualidade ? (
+          {temEmbedding && embedding?.qualidade ? (
             <div className="text-center">
               <p className={`text-3xl font-bold ${
-                dados.embedding.qualidade >= 80 ? 'text-green-600' :
-                dados.embedding.qualidade >= 60 ? 'text-yellow-600' : 'text-red-600'
-              }`}>
-                {dados.embedding.qualidade}%
-              </p>
+                embedding.qualidade >= 80 ? 'text-green-600' :
+                embedding.qualidade >= 60 ? 'text-yellow-600' : 'text-red-600'
+              }`}>{embedding.qualidade}%</p>
               <div className="w-full h-2 bg-gray-200 dark:bg-slate-600 rounded-full mt-2 overflow-hidden">
                 <div className={`h-full rounded-full ${
-                  dados.embedding.qualidade >= 80 ? 'bg-green-500' :
-                  dados.embedding.qualidade >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                }`} style={{ width: `${dados.embedding.qualidade}%` }} />
+                  embedding.qualidade >= 80 ? 'bg-green-500' :
+                  embedding.qualidade >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                }`} style={{ width: `${embedding.qualidade}%` }} />
               </div>
             </div>
           ) : (
@@ -180,8 +191,53 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
         </div>
       </div>
 
+      {/* Formulário de consentimento */}
+      {mostrarFormConsent && (
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-teal-200 dark:border-teal-800 overflow-hidden">
+          <div className="px-5 py-3 bg-teal-50 dark:bg-teal-900/30 border-b border-teal-200 dark:border-teal-800">
+            <h3 className="text-sm font-semibold text-teal-700 dark:text-teal-300 flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Registrar Consentimento LGPD — {alunoNome}
+            </h3>
+          </div>
+          <div className="p-5 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Responsavel *</label>
+              <input type="text" value={responsavelNome} onChange={e => setResponsavelNome(e.target.value)}
+                placeholder="Nome completo do responsavel legal"
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CPF do Responsavel (opcional)</label>
+              <input type="text" value={responsavelCpf} onChange={e => setResponsavelCpf(e.target.value)}
+                placeholder="000.000.000-00"
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none" />
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <Shield className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                Ao registrar o consentimento, o responsavel autoriza o uso de reconhecimento facial
+                para fins de registro de presenca escolar. Apenas vetores matematicos sao armazenados,
+                nao imagens ou fotografias.
+              </p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setMostrarFormConsent(false); setResponsavelNome(''); setResponsavelCpf('') }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button onClick={salvarConsentimento} disabled={!responsavelNome.trim() || salvandoConsent}
+                className="px-4 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2">
+                {salvandoConsent ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Registrar Consentimento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detalhes do consentimento */}
-      {dados?.consentimento && (
+      {temConsentimento && consentimento && (
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
           <div className="px-5 py-3 bg-gray-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
@@ -194,48 +250,34 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Responsavel</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                 <User className="w-4 h-4 text-gray-400" />
-                {dados.consentimento.responsavel_nome || '-'}
+                {consentimento.responsavel_nome || '-'}
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">CPF do Responsavel</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {dados.consentimento.responsavel_cpf || 'Nao informado'}
+                {consentimento.responsavel_cpf || 'Nao informado'}
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Data do Consentimento</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-gray-400" />
-                {formatarData(dados.consentimento.data_consentimento)}
+                {formatarData(consentimento.data_consentimento)}
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                temConsentimento
-                  ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                  : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
-              }`}>
-                {temConsentimento ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                {temConsentimento ? 'Consentimento ativo' : 'Revogado'}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                <CheckCircle className="w-3.5 h-3.5" /> Consentimento ativo
               </span>
             </div>
-            {dados.consentimento.data_revogacao && (
-              <div className="sm:col-span-2">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Data da Revogacao</p>
-                <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  {formatarData(dados.consentimento.data_revogacao)}
-                </p>
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {/* Detalhes do embedding */}
-      {temEmbedding && dados?.embedding && (
+      {temEmbedding && embedding && (
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
           <div className="px-5 py-3 bg-gray-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
@@ -247,28 +289,22 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Qualidade da Captura</p>
               <p className={`text-lg font-bold ${
-                (dados.embedding.qualidade || 0) >= 80 ? 'text-green-600' :
-                (dados.embedding.qualidade || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
-              }`}>
-                {dados.embedding.qualidade ? `${dados.embedding.qualidade}%` : '-'}
-              </p>
+                (embedding.qualidade || 0) >= 80 ? 'text-green-600' :
+                (embedding.qualidade || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
+              }`}>{embedding.qualidade ? `${embedding.qualidade}%` : '-'}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Versao do Modelo</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {dados.embedding.versao_modelo || 'v1'}
-              </p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{embedding.versao_modelo || 'v1'}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Data do Cadastro</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                 <Clock className="w-4 h-4 text-gray-400" />
-                {formatarData(dados.embedding.criado_em)}
+                {formatarData(embedding.criado_em)}
               </p>
             </div>
           </div>
-
-          {/* Aviso LGPD */}
           <div className="mx-5 mb-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-start gap-2">
             <Shield className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-blue-700 dark:text-blue-300">
@@ -279,15 +315,20 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
         </div>
       )}
 
-      {/* Estado vazio */}
-      {!temConsentimento && !temEmbedding && (
+      {/* Estado vazio — sem consentimento e sem embedding */}
+      {!temConsentimento && !temEmbedding && !mostrarFormConsent && (
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-8 text-center">
           <ScanFace className="w-16 h-16 mx-auto mb-4 text-gray-200 dark:text-gray-600" />
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Sem cadastro facial</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-4">
             Este aluno ainda nao possui cadastro de reconhecimento facial.
-            Acesse o modulo de Cadastro Facial para registrar o consentimento e capturar o rosto do aluno.
+            Registre o consentimento do responsavel para iniciar.
           </p>
+          <button onClick={() => setMostrarFormConsent(true)}
+            className="px-5 py-2.5 bg-teal-600 text-white rounded-lg font-semibold text-sm hover:bg-teal-700 transition-colors inline-flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Registrar Consentimento LGPD
+          </button>
         </div>
       )}
     </div>

@@ -180,18 +180,37 @@ export default function TerminalPWA() {
     if (fase !== 'terminal' || cameraAtiva || statusModelo !== 'pronto' || alunos.length === 0) return
 
     const iniciarCameraAuto = async () => {
+      // Parar stream anterior se existir
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop())
+        streamRef.current = null
+      }
+
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-        })
+        // Tentar câmera frontal primeiro, fallback para qualquer câmera
+        let stream: MediaStream
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          })
+        } catch {
+          // Fallback: qualquer câmera disponível
+          stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        }
+
         streamRef.current = stream
         if (videoRef.current) {
           videoRef.current.srcObject = stream
           await videoRef.current.play()
         }
         setCameraAtiva(true)
-      } catch {
-        setMensagem('Erro ao acessar camera')
+      } catch (err: any) {
+        const msg = err?.name === 'NotAllowedError'
+          ? 'Camera bloqueada. Permita o acesso nas configuracoes do navegador.'
+          : err?.name === 'NotFoundError'
+          ? 'Nenhuma camera encontrada neste dispositivo.'
+          : 'Erro ao acessar camera. Verifique as permissoes.'
+        setMensagem(msg)
         setMensagemTipo('erro')
       }
     }
