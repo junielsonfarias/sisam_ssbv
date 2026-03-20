@@ -42,6 +42,7 @@ type StatusModelo = 'carregando' | 'pronto' | 'erro'
 export default function TerminalPWA() {
   // Fase
   const [fase, setFase] = useState<Fase>('setup')
+  const [inicializando, setInicializando] = useState(true)
 
   // Setup — Login
   const [email, setEmail] = useState('')
@@ -147,6 +148,7 @@ export default function TerminalPWA() {
 
       // Pendentes de sync
       setPendentesSync(await contarPresencasPendentes())
+      setInicializando(false)
     }
     init()
 
@@ -525,6 +527,21 @@ export default function TerminalPWA() {
       await document.exitFullscreen().catch(() => {})
       setFullscreen(false)
     }
+  }
+
+  // ============================================================================
+  // RENDER — LOADING INICIAL (evita flash da tela de setup)
+  // ============================================================================
+
+  if (inicializando) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <ScanFace className="w-16 h-16 mx-auto mb-4 text-teal-400 animate-pulse" />
+          <p className="text-lg font-medium">Carregando terminal...</p>
+        </div>
+      </div>
+    )
   }
 
   // ============================================================================
