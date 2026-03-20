@@ -455,16 +455,50 @@ export default function TerminalPWA() {
           .withFaceDescriptors()
 
         if (!canvasRef.current || !videoRef.current) return
-        const displaySize = { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight }
-        faceapi.matchDimensions(canvasRef.current, displaySize)
+
+        // Usar tamanho renderizado do vídeo na tela (não o nativo da câmera)
+        const videoEl = videoRef.current
+        const videoNative = { width: videoEl.videoWidth, height: videoEl.videoHeight }
+        const containerRect = videoEl.getBoundingClientRect()
+
+        // Calcular offset do object-contain (barras pretas)
+        const videoRatio = videoNative.width / videoNative.height
+        const containerRatio = containerRect.width / containerRect.height
+        let renderWidth: number, renderHeight: number, offsetX: number, offsetY: number
+
+        if (videoRatio > containerRatio) {
+          // Vídeo mais largo — barras em cima/baixo
+          renderWidth = containerRect.width
+          renderHeight = containerRect.width / videoRatio
+          offsetX = 0
+          offsetY = (containerRect.height - renderHeight) / 2
+        } else {
+          // Vídeo mais alto — barras nas laterais
+          renderHeight = containerRect.height
+          renderWidth = containerRect.height * videoRatio
+          offsetX = (containerRect.width - renderWidth) / 2
+          offsetY = 0
+        }
+
+        // Canvas ocupa o container inteiro
+        canvasRef.current.width = containerRect.width
+        canvasRef.current.height = containerRect.height
         const ctx = canvasRef.current.getContext('2d')
         if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
 
-        const resized = faceapi.resizeResults(detections, displaySize)
+        // Escalar detecções do espaço nativo do vídeo para o espaço renderizado
+        const scaleX = renderWidth / videoNative.width
+        const scaleY = renderHeight / videoNative.height
 
-        for (const det of resized) {
+        for (const det of detections) {
           const match = matcher.findBestMatch(det.descriptor)
-          const box = det.detection.box
+          const rawBox = det.detection.box
+
+          // Converter coordenadas do espaço nativo do vídeo → espaço na tela
+          const bx = rawBox.x * scaleX + offsetX
+          const by = rawBox.y * scaleY + offsetY
+          const bw = rawBox.width * scaleX
+          const bh = rawBox.height * scaleY
 
           if (match.label !== 'unknown') {
             const alunoId = match.label
@@ -479,10 +513,10 @@ export default function TerminalPWA() {
             if (ctx) {
               ctx.strokeStyle = emCooldown ? '#eab308' : '#10b981'
               ctx.lineWidth = 3
-              ctx.strokeRect(box.x, box.y, box.width, box.height)
+              ctx.strokeRect(bx, by, bw, bh)
               ctx.fillStyle = emCooldown ? '#eab308' : '#10b981'
-              ctx.font = 'bold 14px sans-serif'
-              ctx.fillText(aluno?.nome || alunoId, box.x, box.y - 8)
+              ctx.font = 'bold 16px sans-serif'
+              ctx.fillText(aluno?.nome || alunoId, bx, by - 10)
             }
 
             if (!emCooldown && aluno) {
@@ -546,7 +580,7 @@ export default function TerminalPWA() {
             if (ctx) {
               ctx.strokeStyle = '#ef4444'
               ctx.lineWidth = 2
-              ctx.strokeRect(box.x, box.y, box.width, box.height)
+              ctx.strokeRect(bx, by, bw, bh)
             }
           }
         }
@@ -726,8 +760,8 @@ export default function TerminalPWA() {
     <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col select-none">
       {/* Vídeo em tela cheia */}
       <div className="flex-1 relative">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain bg-black" />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }} />
 
         {/* Overlay de confirmação — nome grande do aluno */}
         {mostrarConfirmacao && ultimoAlunoNome && (
