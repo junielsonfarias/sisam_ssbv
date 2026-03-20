@@ -113,8 +113,12 @@ export async function POST(request: NextRequest) {
       aluno: alunoResult.rows[0],
     }, { status: 201 })
   } catch (error: any) {
-    console.error('Erro no enrollment facial:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+    console.error('Erro no enrollment facial:', error?.message, error?.code, error?.detail)
+    return NextResponse.json({
+      mensagem: 'Erro interno do servidor',
+      detalhes: process.env.NODE_ENV === 'development' ? error?.message : undefined,
+      codigo: error?.code,
+    }, { status: 500 })
   }
 }
 

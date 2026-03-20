@@ -401,9 +401,10 @@ export default function FacialEnrollmentPage() {
       foto = tempCanvas.toDataURL('image/jpeg', 0.7)
     }
 
-    // Salvar pose
+    // Salvar pose — clonar descriptor para evitar referência invalidada
     const poseKey = POSES[poseAtual].key
-    setPosesCapturadas(prev => ({ ...prev, [poseKey]: { descriptor: melhor.descriptor, score: melhor.score, foto } }))
+    const descriptorClone = new Float32Array(melhor.descriptor)
+    setPosesCapturadas(prev => ({ ...prev, [poseKey]: { descriptor: descriptorClone, score: melhor.score, foto } }))
     poseBufferRef.current = []
 
     // Avançar para próxima pose
@@ -470,7 +471,9 @@ export default function FacialEnrollmentPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        toast.error(err.mensagem || err.error || 'Erro ao salvar embedding')
+        const msg = err.mensagem || err.error || `Erro ao salvar (${res.status})`
+        toast.error(msg)
+        console.error('Enrollment erro:', res.status, err)
         setCapturaStatus('detectando')
         return
       }
@@ -483,8 +486,9 @@ export default function FacialEnrollmentPage() {
         setCapturaAlunoId(null)
         buscarAlunos()
       }, 2000)
-    } catch {
-      toast.error('Erro ao processar captura facial')
+    } catch (err: any) {
+      console.error('Erro ao salvar embedding:', err)
+      toast.error(`Erro ao salvar: ${err?.message || 'Verifique a conexao'}`)
       setCapturaStatus('detectando')
     } finally {
       setEnviandoEmbed(false)
