@@ -95,6 +95,7 @@ export default function TerminalPWA() {
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const sincronizandoRef = useRef(false)
   const mensagemTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const detectandoRef = useRef(false)
 
   // ============================================================================
   // INICIALIZAÇÃO — Carregar config salva + modelos
@@ -190,17 +191,10 @@ export default function TerminalPWA() {
         // Tentar câmera frontal primeiro, fallback para qualquer câmera
         let stream: MediaStream
         try {
-          // Pedir resolução que combina com orientação do dispositivo
-          const isPortrait = window.innerHeight > window.innerWidth
           stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: 'user',
-              width: { ideal: isPortrait ? 480 : 640 },
-              height: { ideal: isPortrait ? 640 : 480 },
-            },
+            video: { facingMode: 'user' },
           })
         } catch {
-          // Fallback: qualquer câmera disponível
           stream = await navigator.mediaDevices.getUserMedia({ video: true })
         }
 
@@ -450,83 +444,42 @@ export default function TerminalPWA() {
 
     setReconhecendo(true)
 
+    // Sincronizar canvas com dimensões do vídeo
+    const video = videoRef.current
+    if (video && canvasRef.current && video.videoWidth && video.videoHeight) {
+      faceapi.matchDimensions(canvasRef.current, { width: video.videoWidth, height: video.videoHeight })
+    }
+
     intervalRef.current = setInterval(async () => {
       if (!videoRef.current || videoRef.current.paused) return
       if (document.hidden) return
+      if (detectandoRef.current) return // Evitar sobreposição
+      if (videoRef.current.readyState < 2) return // Vídeo não pronto
+
+      detectandoRef.current = true
 
       try {
+        const video = videoRef.current
+        const canvas = canvasRef.current
+        if (!canvas) return
+
         const detections = await faceapi
-          .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
+          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
           .withFaceLandmarks(true)
           .withFaceDescriptors()
 
-        if (!canvasRef.current || !videoRef.current) return
+        // Usar resizeResults do face-api (cuida de escala/rotação automaticamente)
+        const dims = { width: video.videoWidth, height: video.videoHeight }
+        const resized = faceapi.resizeResults(detections, dims)
 
-        const video = videoRef.current
-        const vw = video.videoWidth
-        const vh = video.videoHeight
-        if (!vw || !vh) return
-
-        const canvas = canvasRef.current
-        const parent = canvas.parentElement
-        if (!parent) return
-        const cw = parent.clientWidth
-        const ch = parent.clientHeight
-
-        // Setar tamanho do canvas = tamanho do container
-        canvas.width = cw
-        canvas.height = ch
+        // Limpar canvas
         const ctx = canvas.getContext('2d')
         if (!ctx) return
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-        // Desenhar vídeo no canvas com efeito "cover" (preenche sem distorcer)
-        const videoRatio = vw / vh
-        const canvasRatio = cw / ch
-        let sx = 0, sy = 0, sw = vw, sh = vh
-
-        if (videoRatio > canvasRatio) {
-          // Vídeo mais largo — recortar laterais
-          sw = vh * canvasRatio
-          sx = (vw - sw) / 2
-        } else {
-          // Vídeo mais alto — recortar topo/baixo
-          sh = vw / canvasRatio
-          sy = (vh - sh) / 2
-        }
-
-        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch)
-
-        // Escala das detecções: coordenadas nativas → canvas
-        const scaleX = cw / sw
-        const scaleY = ch / sh
-
-        // Status visual de escaneamento
-        if (detections.length === 0) {
-          ctx.strokeStyle = 'rgba(255,255,255,0.15)'
-          ctx.lineWidth = 2
-          // Guia oval central
-          const ovalW = cw * 0.4
-          const ovalH = ch * 0.35
-          ctx.beginPath()
-          ctx.ellipse(cw / 2, ch * 0.4, ovalW / 2, ovalH / 2, 0, 0, Math.PI * 2)
-          ctx.stroke()
-          // Texto
-          ctx.fillStyle = 'rgba(255,255,255,0.5)'
-          ctx.font = 'bold 16px sans-serif'
-          ctx.textAlign = 'center'
-          ctx.fillText('Posicione o rosto', cw / 2, ch * 0.4 + ovalH / 2 + 25)
-          ctx.textAlign = 'start'
-        }
-
-        for (const det of detections) {
+        for (const det of resized) {
           const match = matcher.findBestMatch(det.descriptor)
-          const rawBox = det.detection.box
-
-          // Coordenadas relativas à área visível (após crop)
-          const bx = (rawBox.x - sx) * scaleX
-          const by = (rawBox.y - sy) * scaleY
-          const bw = rawBox.width * scaleX
-          const bh = rawBox.height * scaleY
+          const box = det.detection.box
 
           if (match.label !== 'unknown') {
             const alunoId = match.label
@@ -538,21 +491,18 @@ export default function TerminalPWA() {
             const agora = Date.now()
             const emCooldown = ultimoRegistro && (agora - ultimoRegistro) < cooldown * 1000
 
-            if (ctx) {
-              const cor = emCooldown ? '#eab308' : '#10b981'
-              // Retângulo arredondado
-              ctx.strokeStyle = cor
-              ctx.lineWidth = 3
-              ctx.strokeRect(bx, by, bw, bh)
-              // Fundo do nome
-              const nome = aluno?.nome || alunoId
-              ctx.font = 'bold 16px sans-serif'
-              const textW = ctx.measureText(nome).width
-              ctx.fillStyle = cor
-              ctx.fillRect(bx, by - 28, textW + 16, 26)
-              ctx.fillStyle = '#fff'
-              ctx.fillText(nome, bx + 8, by - 10)
-            }
+            // Desenhar retângulo + nome
+            const cor = emCooldown ? '#eab308' : '#10b981'
+            ctx.strokeStyle = cor
+            ctx.lineWidth = 3
+            ctx.strokeRect(box.x, box.y, box.width, box.height)
+            const nome = aluno?.nome || alunoId
+            ctx.font = 'bold 16px sans-serif'
+            const textW = ctx.measureText(nome).width
+            ctx.fillStyle = cor
+            ctx.fillRect(box.x, box.y - 28, textW + 16, 26)
+            ctx.fillStyle = '#fff'
+            ctx.fillText(nome, box.x + 8, box.y - 10)
 
             if (!emCooldown && aluno) {
               cooldownMapRef.current.set(alunoId, agora)
@@ -612,23 +562,23 @@ export default function TerminalPWA() {
               }
             }
           } else {
-            if (ctx) {
-              ctx.strokeStyle = '#ef4444'
-              ctx.lineWidth = 2
-              ctx.strokeRect(bx, by, bw, bh)
-              // Label "Não cadastrado"
-              const label = 'Nao cadastrado'
-              ctx.font = 'bold 14px sans-serif'
-              const tw = ctx.measureText(label).width
-              ctx.fillStyle = 'rgba(239,68,68,0.85)'
-              ctx.fillRect(bx, by - 24, tw + 12, 22)
-              ctx.fillStyle = '#fff'
-              ctx.fillText(label, bx + 6, by - 8)
-            }
+            // Rosto não cadastrado
+            ctx.strokeStyle = '#ef4444'
+            ctx.lineWidth = 2
+            ctx.strokeRect(box.x, box.y, box.width, box.height)
+            const label = 'Nao cadastrado'
+            ctx.font = 'bold 14px sans-serif'
+            const tw = ctx.measureText(label).width
+            ctx.fillStyle = 'rgba(239,68,68,0.85)'
+            ctx.fillRect(box.x, box.y - 24, tw + 12, 22)
+            ctx.fillStyle = '#fff'
+            ctx.fillText(label, box.x + 6, box.y - 8)
           }
         }
-      } catch { /* Erro no loop — continua */ }
-    }, 600)
+      } catch { /* Erro no loop — continua */ } finally {
+        detectandoRef.current = false
+      }
+    }, 500)
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
@@ -803,11 +753,18 @@ export default function TerminalPWA() {
     <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col select-none">
       {/* Vídeo em tela cheia */}
       <div className="flex-1 relative">
-        {/* Vídeo oculto — usado como source para detecção */}
+        {/* Vídeo visível — face-api detecta direto nele */}
         <video ref={videoRef} autoPlay playsInline muted
-          className="absolute opacity-0 pointer-events-none" style={{ width: 1, height: 1 }} />
-        {/* Canvas renderiza vídeo + retângulos (sem desalinhamento) */}
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+          className="absolute inset-0 w-full h-full object-cover"
+          onLoadedMetadata={() => {
+            // Canvas sincronizado com vídeo quando metadados carregam
+            if (canvasRef.current && videoRef.current) {
+              const v = videoRef.current
+              faceapiRef.current?.matchDimensions(canvasRef.current, { width: v.videoWidth, height: v.videoHeight })
+            }
+          }} />
+        {/* Canvas overlay — mesmas dimensões do vídeo via matchDimensions */}
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover" />
 
         {/* Overlay de confirmação — nome grande do aluno */}
         {mostrarConfirmacao && ultimoAlunoNome && (
