@@ -355,8 +355,9 @@ export default function FacialEnrollmentPage() {
         }
 
         // Coletar descriptor se ângulo correto, qualidade boa E rosto grande
+        // IMPORTANTE: clonar descriptor aqui — face-api reutiliza o buffer interno
         if (anguloCorreto && boaQualidade && rostoGrande && det.descriptor) {
-          poseBufferRef.current.push({ descriptor: det.descriptor, score })
+          poseBufferRef.current.push({ descriptor: new Float32Array(det.descriptor), score })
           if (poseBufferRef.current.length > 10) {
             poseBufferRef.current = poseBufferRef.current.slice(-10)
           }
