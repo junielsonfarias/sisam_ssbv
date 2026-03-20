@@ -1,8 +1,8 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import { useEffect, useState, useCallback } from 'react'
-import { Search, Upload, Trash2, Shield, UserCheck, AlertTriangle, CheckCircle, XCircle, FileText } from 'lucide-react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { Search, Camera, Trash2, Shield, UserCheck, AlertTriangle, CheckCircle, XCircle, FileText, RefreshCw, Video } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
@@ -56,10 +56,20 @@ export default function FacialEnrollmentPage() {
   })
   const [salvandoConsent, setSalvandoConsent] = useState(false)
 
-  // Upload embedding
-  const [uploadAlunoId, setUploadAlunoId] = useState<string | null>(null)
-  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  // Captura facial via câmera
+  const [capturaAlunoId, setCapturaAlunoId] = useState<string | null>(null)
+  const [cameraAtiva, setCameraAtiva] = useState(false)
+  const [modelosCarregados, setModelosCarregados] = useState(false)
+  const [carregandoModelos, setCarregandoModelos] = useState(false)
+  const [faceDetectada, setFaceDetectada] = useState(false)
+  const [qualidadeFace, setQualidadeFace] = useState(0)
   const [enviandoEmbed, setEnviandoEmbed] = useState(false)
+  const [capturaStatus, setCapturaStatus] = useState<'aguardando' | 'detectando' | 'capturado' | 'enviando'>('aguardando')
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const faceapiRef = useRef<any>(null)
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Delete confirm
   const [deleteAlunoId, setDeleteAlunoId] = useState<string | null>(null)
@@ -132,51 +142,202 @@ export default function FacialEnrollmentPage() {
     }
   }
 
-  // Upload embedding
-  const enviarEmbedding = async () => {
-    if (!uploadAlunoId || !uploadFile) {
-      toast.error('Selecione um arquivo de embedding')
-      return
-    }
-
-    setEnviandoEmbed(true)
+  // Carregar modelos face-api.js
+  const carregarModelos = async () => {
+    if (modelosCarregados) return
+    setCarregandoModelos(true)
     try {
-      const reader = new FileReader()
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string
-          const base64Data = result.includes(',') ? result.split(',')[1] : result
-          resolve(base64Data)
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(uploadFile)
-      })
+      const faceapi = await import('@vladmandic/face-api')
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models/face-api')
+      await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models/face-api')
+      await faceapi.nets.faceRecognitionNet.loadFromUri('/models/face-api')
+      faceapiRef.current = faceapi
+      setModelosCarregados(true)
+    } catch {
+      toast.error('Erro ao carregar modelos de reconhecimento facial')
+    } finally {
+      setCarregandoModelos(false)
+    }
+  }
 
+  // Iniciar câmera
+  const iniciarCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+      setCameraAtiva(true)
+      setCapturaStatus('detectando')
+      iniciarDeteccao()
+    } catch {
+      toast.error('Erro ao acessar a camera. Verifique as permissoes do navegador.')
+    }
+  }
+
+  // Parar câmera
+  const pararCamera = () => {
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current)
+      detectionIntervalRef.current = null
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+    setCameraAtiva(false)
+    setFaceDetectada(false)
+    setQualidadeFace(0)
+    setCapturaStatus('aguardando')
+  }
+
+  // Loop de detecção facial (feedback visual em tempo real)
+  const iniciarDeteccao = () => {
+    if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current)
+
+    detectionIntervalRef.current = setInterval(async () => {
+      if (!videoRef.current || !faceapiRef.current || !canvasRef.current) return
+
+      const faceapi = faceapiRef.current
+      const video = videoRef.current
+      const canvas = canvasRef.current
+
+      const detections = await faceapi
+        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
+        .withFaceLandmarks(true)
+
+      // Ajustar canvas ao vídeo
+      const displaySize = { width: video.videoWidth, height: video.videoHeight }
+      faceapi.matchDimensions(canvas, displaySize)
+      const ctx = canvas.getContext('2d')
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      if (detections.length === 1) {
+        // Uma face detectada — ideal
+        const resized = faceapi.resizeResults(detections, displaySize)
+        const box = resized[0].detection.box
+        const score = resized[0].detection.score
+
+        if (ctx) {
+          ctx.strokeStyle = score > 0.7 ? '#10b981' : '#eab308'
+          ctx.lineWidth = 3
+          ctx.strokeRect(box.x, box.y, box.width, box.height)
+          ctx.fillStyle = score > 0.7 ? '#10b981' : '#eab308'
+          ctx.font = 'bold 14px sans-serif'
+          ctx.fillText(`${(score * 100).toFixed(0)}%`, box.x, box.y - 8)
+        }
+
+        setFaceDetectada(true)
+        setQualidadeFace(Math.round(score * 100))
+      } else {
+        setFaceDetectada(false)
+        setQualidadeFace(0)
+
+        if (detections.length > 1 && ctx) {
+          ctx.fillStyle = '#ef4444'
+          ctx.font = 'bold 16px sans-serif'
+          ctx.fillText('Apenas 1 rosto por vez!', 10, 30)
+        }
+      }
+    }, 500)
+  }
+
+  // Capturar embedding do rosto atual
+  const capturarEmbedding = async () => {
+    if (!videoRef.current || !faceapiRef.current || !capturaAlunoId) return
+
+    setCapturaStatus('enviando')
+    setEnviandoEmbed(true)
+
+    try {
+      const faceapi = faceapiRef.current
+      const video = videoRef.current
+
+      // Detectar com descriptor completo
+      const detection = await faceapi
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.6 }))
+        .withFaceLandmarks(true)
+        .withFaceDescriptor()
+
+      if (!detection) {
+        toast.error('Nenhum rosto detectado. Posicione o aluno em frente a camera.')
+        setCapturaStatus('detectando')
+        return
+      }
+
+      // Converter Float32Array para base64
+      const descriptor = detection.descriptor
+      const buffer = Buffer.from(new Float32Array(descriptor).buffer)
+      const base64 = buffer.toString('base64')
+      const qualidade = Math.round(detection.detection.score * 100)
+
+      // Enviar para API
       const res = await fetch('/api/admin/facial/enrollment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          aluno_id: uploadAlunoId,
+          aluno_id: capturaAlunoId,
           embedding_data: base64,
+          qualidade,
         }),
       })
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        toast.error(err.error || 'Erro ao enviar embedding')
+        toast.error(err.error || 'Erro ao salvar embedding')
+        setCapturaStatus('detectando')
         return
       }
 
-      toast.success('Embedding facial cadastrado com sucesso')
-      setUploadAlunoId(null)
-      setUploadFile(null)
-      await buscarAlunos()
-    } catch {
-      toast.error('Erro ao processar arquivo')
+      toast.success('Rosto cadastrado com sucesso!')
+      setCapturaStatus('capturado')
+
+      // Fechar após 1.5s
+      setTimeout(() => {
+        pararCamera()
+        setCapturaAlunoId(null)
+        buscarAlunos()
+      }, 1500)
+    } catch (err) {
+      toast.error('Erro ao processar captura facial')
+      setCapturaStatus('detectando')
     } finally {
       setEnviandoEmbed(false)
     }
   }
+
+  // Abrir modal de captura
+  const abrirCaptura = async (alunoId: string) => {
+    setCapturaAlunoId(alunoId)
+    setCapturaStatus('aguardando')
+    setFaceDetectada(false)
+    setQualidadeFace(0)
+
+    if (!modelosCarregados) {
+      await carregarModelos()
+    }
+  }
+
+  // Cleanup ao desmontar ou fechar modal
+  useEffect(() => {
+    return () => {
+      pararCamera()
+    }
+  }, [])
+
+  // Iniciar câmera quando modal abre e modelos estão prontos
+  useEffect(() => {
+    if (capturaAlunoId && modelosCarregados && !cameraAtiva) {
+      iniciarCamera()
+    }
+  }, [capturaAlunoId, modelosCarregados])
 
   // Deletar dados faciais
   const deletarDadosFaciais = async () => {
@@ -388,18 +549,20 @@ export default function FacialEnrollmentPage() {
                                 Consentimento
                               </button>
 
-                              {/* Upload button - only for consented students */}
+                              {/* Captura facial - only for consented students */}
                               {aluno.consentido && (
                                 <button
-                                  onClick={() => {
-                                    setUploadAlunoId(aluno.aluno_id)
-                                    setUploadFile(null)
-                                  }}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-300 text-blue-700 hover:bg-blue-50 transition-colors"
-                                  title="Upload de embedding"
+                                  onClick={() => abrirCaptura(aluno.aluno_id)}
+                                  disabled={carregandoModelos}
+                                  className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                    aluno.tem_embedding
+                                      ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                                      : 'border-blue-300 text-blue-700 hover:bg-blue-50'
+                                  } disabled:opacity-50`}
+                                  title={aluno.tem_embedding ? 'Recapturar rosto' : 'Capturar rosto via camera'}
                                 >
-                                  <Upload className="w-3.5 h-3.5" />
-                                  Embedding
+                                  {carregandoModelos ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                                  {aluno.tem_embedding ? 'Recapturar' : 'Capturar'}
                                 </button>
                               )}
 
@@ -505,54 +668,133 @@ export default function FacialEnrollmentPage() {
           </div>
         )}
 
-        {/* Modal de Upload de Embedding */}
-        {uploadAlunoId && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Upload de Embedding Facial
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Aluno: {alunos.find(a => a.aluno_id === uploadAlunoId)?.nome}
-                </p>
-              </div>
-
-              <div className="px-6 py-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Arquivo de Embedding (base64)
-                  </label>
-                  <input
-                    type="file"
-                    onChange={e => setUploadFile(e.target.files?.[0] || null)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Selecione o arquivo contendo os dados do embedding facial do aluno.
-                  </p>
+        {/* Modal de Captura Facial via Camera */}
+        {capturaAlunoId && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-teal-100 dark:bg-teal-900/40 rounded-lg p-2">
+                      <Camera className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-white">Captura Facial</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {alunos.find(a => a.aluno_id === capturaAlunoId)?.nome}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Status badge */}
+                  <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    capturaStatus === 'capturado' ? 'bg-green-100 text-green-700' :
+                    capturaStatus === 'enviando' ? 'bg-blue-100 text-blue-700' :
+                    faceDetectada ? 'bg-emerald-100 text-emerald-700' :
+                    cameraAtiva ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {capturaStatus === 'capturado' ? 'Capturado!' :
+                     capturaStatus === 'enviando' ? 'Salvando...' :
+                     carregandoModelos ? 'Carregando modelos...' :
+                     !cameraAtiva ? 'Iniciando camera...' :
+                     faceDetectada ? `Rosto detectado (${qualidadeFace}%)` :
+                     'Posicione o rosto'}
+                  </div>
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t flex justify-end gap-3">
-                <button
-                  onClick={() => {
-                    setUploadAlunoId(null)
-                    setUploadFile(null)
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={enviarEmbedding}
-                  disabled={enviandoEmbed || !uploadFile}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                >
-                  {enviandoEmbed && <LoadingSpinner />}
-                  <Upload className="w-4 h-4" />
-                  Enviar Embedding
-                </button>
+              {/* Camera view */}
+              <div className="px-6 py-4">
+                <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    className="absolute inset-0 w-full h-full"
+                  />
+
+                  {/* Overlay de loading */}
+                  {(carregandoModelos || (!cameraAtiva && capturaAlunoId)) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                      <div className="text-center text-white">
+                        <RefreshCw className="w-10 h-10 mx-auto mb-3 animate-spin opacity-70" />
+                        <p className="text-sm">{carregandoModelos ? 'Carregando modelos de IA...' : 'Iniciando camera...'}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Overlay de sucesso */}
+                  {capturaStatus === 'capturado' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-green-900/70">
+                      <div className="text-center text-white">
+                        <CheckCircle className="w-16 h-16 mx-auto mb-3 text-green-400" />
+                        <p className="text-xl font-bold">Rosto cadastrado!</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Guia visual */}
+                  {cameraAtiva && !faceDetectada && capturaStatus === 'detectando' && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-48 h-60 border-2 border-dashed border-white/40 rounded-3xl" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Instrucoes */}
+                <div className="mt-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3">
+                  <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <Video className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-500" />
+                    <div>
+                      <p className="font-medium">Instrucoes:</p>
+                      <ul className="text-xs mt-1 space-y-0.5 text-gray-500 dark:text-gray-400">
+                        <li>Posicione o aluno de frente para a camera, com boa iluminacao</li>
+                        <li>Aguarde a caixa verde aparecer ao redor do rosto</li>
+                        <li>Quando a qualidade estiver acima de 70%, clique em Capturar</li>
+                        <li>Apenas 1 rosto deve estar visivel na camera</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {faceDetectada && (
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${qualidadeFace >= 70 ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Qualidade: <strong className={qualidadeFace >= 70 ? 'text-green-600' : 'text-yellow-600'}>{qualidadeFace}%</strong>
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      pararCamera()
+                      setCapturaAlunoId(null)
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={capturarEmbedding}
+                    disabled={!faceDetectada || enviandoEmbed || qualidadeFace < 50 || capturaStatus === 'capturado'}
+                    className="px-5 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    {enviandoEmbed ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                    Capturar Rosto
+                  </button>
+                </div>
               </div>
             </div>
           </div>
