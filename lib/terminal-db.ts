@@ -311,8 +311,13 @@ export async function baixarEmbeddings(
   const params = new URLSearchParams({ escola_id: escolaId })
   if (turmaId) params.set('turma_id', turmaId)
 
+  // Definir cookie no browser para autenticação
+  if (typeof document !== 'undefined') {
+    document.cookie = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+  }
+
   const res = await fetch(`${apiUrl}/api/admin/facial/embeddings?${params}`, {
-    headers: { 'Cookie': `token=${token}` },
+    credentials: 'include',
   })
 
   if (!res.ok) throw new Error('Erro ao baixar embeddings')

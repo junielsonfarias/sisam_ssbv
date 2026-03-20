@@ -259,10 +259,18 @@ export default function TerminalPWA() {
   // SETUP — Buscar escolas e salvar config
   // ============================================================================
 
+  // Definir cookie de autenticação no browser
+  const definirCookie = (tk: string) => {
+    document.cookie = `token=${tk}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+  }
+
   const buscarEscolas = async () => {
     try {
+      // Definir cookie para que o browser envie automaticamente
+      definirCookie(token)
+
       const res = await fetch(`${serverUrl}/api/admin/escolas`, {
-        headers: { 'Cookie': `token=${token}` },
+        credentials: 'include',
       })
       if (res.ok) {
         const data = await res.json()
