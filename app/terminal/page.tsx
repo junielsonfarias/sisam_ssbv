@@ -456,47 +456,25 @@ export default function TerminalPWA() {
 
         if (!canvasRef.current || !videoRef.current) return
 
-        // Usar tamanho renderizado do vídeo na tela (não o nativo da câmera)
-        const videoEl = videoRef.current
-        const videoNative = { width: videoEl.videoWidth, height: videoEl.videoHeight }
-        const containerRect = videoEl.getBoundingClientRect()
-
-        // Calcular offset do object-contain (barras pretas)
-        const videoRatio = videoNative.width / videoNative.height
-        const containerRatio = containerRect.width / containerRect.height
-        let renderWidth: number, renderHeight: number, offsetX: number, offsetY: number
-
-        if (videoRatio > containerRatio) {
-          // Vídeo mais largo — barras em cima/baixo
-          renderWidth = containerRect.width
-          renderHeight = containerRect.width / videoRatio
-          offsetX = 0
-          offsetY = (containerRect.height - renderHeight) / 2
-        } else {
-          // Vídeo mais alto — barras nas laterais
-          renderHeight = containerRect.height
-          renderWidth = containerRect.height * videoRatio
-          offsetX = (containerRect.width - renderWidth) / 2
-          offsetY = 0
-        }
-
-        // Canvas ocupa o container inteiro
+        // Com object-fill, vídeo preenche 100% do container
+        // Canvas usa mesmo tamanho renderizado para alinhar perfeitamente
+        const containerRect = videoRef.current.getBoundingClientRect()
         canvasRef.current.width = containerRect.width
         canvasRef.current.height = containerRect.height
         const ctx = canvasRef.current.getContext('2d')
         if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
 
-        // Escalar detecções do espaço nativo do vídeo para o espaço renderizado
-        const scaleX = renderWidth / videoNative.width
-        const scaleY = renderHeight / videoNative.height
+        // Escala: coordenadas nativas do vídeo → tamanho do container na tela
+        const scaleX = containerRect.width / videoRef.current.videoWidth
+        const scaleY = containerRect.height / videoRef.current.videoHeight
 
         for (const det of detections) {
           const match = matcher.findBestMatch(det.descriptor)
           const rawBox = det.detection.box
 
-          // Converter coordenadas do espaço nativo do vídeo → espaço na tela
-          const bx = rawBox.x * scaleX + offsetX
-          const by = rawBox.y * scaleY + offsetY
+          // Converter coordenadas nativas → coordenadas na tela
+          const bx = rawBox.x * scaleX
+          const by = rawBox.y * scaleY
           const bw = rawBox.width * scaleX
           const bh = rawBox.height * scaleY
 
@@ -760,8 +738,8 @@ export default function TerminalPWA() {
     <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col select-none">
       {/* Vídeo em tela cheia */}
       <div className="flex-1 relative">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain bg-black" />
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }} />
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-fill" />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
         {/* Overlay de confirmação — nome grande do aluno */}
         {mostrarConfirmacao && ultimoAlunoNome && (
