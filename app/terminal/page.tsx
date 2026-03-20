@@ -274,7 +274,7 @@ export default function TerminalPWA() {
       sincronizandoRef.current = true
       setSincronizando(true)
       try {
-        const result = await sincronizarPresencas(serverUrl, token)
+        const result = await sincronizarPresencas(serverUrl || window.location.origin, token)
         if (result.enviados > 0) {
           await limparPresencasEnviadas()
         }
@@ -546,9 +546,11 @@ export default function TerminalPWA() {
               let tipo: 'entrada' | 'ja_registrado' = 'entrada'
 
               // Tentar enviar ao servidor imediatamente (se online)
+              let salvoNoServidor = false
               if (navigator.onLine) {
                 try {
-                  const res = await fetch('/api/admin/facial/presenca-terminal', {
+                  const baseUrl = serverUrl || window.location.origin
+                  const res = await fetch(`${baseUrl}/api/admin/facial/presenca-terminal`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -556,30 +558,24 @@ export default function TerminalPWA() {
                   })
                   if (res.ok) {
                     const data = await res.json()
-                    // Servidor retorna 'saida' se já tinha registro hoje
+                    salvoNoServidor = true
                     if (data.tipo === 'saida') tipo = 'ja_registrado'
-                  } else {
-                    // Servidor rejeitou — salvar offline
-                    await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf })
-                    setPendentesSync(prev => prev + 1)
                   }
-                } catch {
-                  // Sem conexão — salvar offline
-                  await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf })
-                  setPendentesSync(prev => prev + 1)
-                }
-              } else {
-                // Offline — salvar localmente
+                } catch { /* falha de rede */ }
+              }
+
+              // Se não salvou no servidor, guardar offline para sync posterior
+              if (!salvoNoServidor) {
                 await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf })
                 setPendentesSync(prev => prev + 1)
               }
 
               setRegistros(prev => [{ aluno_id: alunoId, nome: aluno.nome, tipo: tipo === 'ja_registrado' ? 'saida' as const : 'entrada' as const, hora, confianca: conf }, ...prev].slice(0, 50))
 
-              // Mostrar confirmação com tipo correto
+              // Mostrar confirmação com tipo e status de sync
               setUltimoAlunoNome(aluno.nome)
               setUltimoAlunoInfo([aluno.turma_codigo, aluno.serie ? `${aluno.serie}º Ano` : ''].filter(Boolean).join(' — '))
-              setUltimoAlunoHora(hora)
+              setUltimoAlunoHora(`${hora}${salvoNoServidor ? '' : ' (offline)'}`)
               setConfirmacaoTipo(tipo)
               setMostrarConfirmacao(true)
               if (confirmacaoTimeoutRef.current) clearTimeout(confirmacaoTimeoutRef.current)
