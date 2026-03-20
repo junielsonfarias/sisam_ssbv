@@ -443,7 +443,11 @@ export default function TerminalPWA() {
     const labeledDescriptors = alunos.map(a =>
       new faceapi.LabeledFaceDescriptors(a.aluno_id, [a.descriptor])
     )
-    const matcher = new faceapi.FaceMatcher(labeledDescriptors, 1 - confianca)
+    // maxDescriptorDistance: distância euclidiana máxima para match
+    // face-api.js: mesma pessoa ~0.3-0.5, diferente ~0.7+
+    // Mapear confiança do usuário (70-90%) para distância (0.6-0.4)
+    const maxDistance = confianca >= 0.9 ? 0.4 : confianca >= 0.85 ? 0.5 : 0.6
+    const matcher = new faceapi.FaceMatcher(labeledDescriptors, maxDistance)
 
     setReconhecendo(true)
 
