@@ -23,9 +23,11 @@ export async function POST(request: NextRequest) {
 
     const { aluno_id, timestamp, confianca } = validacao.data
 
-    if (confianca < FACIAL.CONFIANCA_MINIMA) {
+    // O FaceMatcher no terminal já filtra por threshold configurável.
+    // A API aceita qualquer confiança > 0 (a qualidade é controlada no terminal).
+    if (confianca <= 0) {
       return NextResponse.json(
-        { mensagem: `Confiança ${confianca} abaixo do mínimo (${FACIAL.CONFIANCA_MINIMA})` },
+        { mensagem: 'Confiança deve ser maior que 0' },
         { status: 400 }
       )
     }

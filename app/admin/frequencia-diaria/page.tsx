@@ -150,7 +150,7 @@ export default function FrequenciaDiariaPage() {
       const res = await fetch(`/api/admin/frequencia-diaria?${params.toString()}`)
       if (res.ok) {
         const d = await res.json()
-        setRegistros(d.registros || [])
+        setRegistros(d.frequencias || d.registros || [])
         setPaginacao(d.paginacao || { pagina: 1, limite: 50, total: 0, totalPaginas: 0 })
       } else {
         toast.error('Erro ao carregar registros de frequencia')
