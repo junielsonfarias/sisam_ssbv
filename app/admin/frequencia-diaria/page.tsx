@@ -11,12 +11,7 @@ import {
   ChevronRight,
   RefreshCw,
   Users,
-  UserX,
   BarChart3,
-  Wifi,
-  ScanFace,
-  Hand,
-  QrCode,
   Calendar,
   Trash2,
   MessageSquare,
@@ -30,15 +25,10 @@ import { useEscolas } from '@/lib/hooks/useEscolas'
 import { useTurmas } from '@/lib/hooks/useTurmas'
 
 interface Resumo {
+  total_alunos: number
   total_presentes: number
   total_ausentes: number
   taxa_presenca: number
-  dispositivos_online: number
-  por_metodo: {
-    facial: number
-    manual: number
-    qrcode: number
-  }
 }
 
 interface RegistroFrequencia {
@@ -87,11 +77,10 @@ export default function FrequenciaDiariaPage() {
   // Data
   const [registros, setRegistros] = useState<RegistroFrequencia[]>([])
   const [resumo, setResumo] = useState<Resumo>({
+    total_alunos: 0,
     total_presentes: 0,
     total_ausentes: 0,
     taxa_presenca: 0,
-    dispositivos_online: 0,
-    por_metodo: { facial: 0, manual: 0, qrcode: 0 }
   })
 
   const [data, setData] = useState(() => {
@@ -116,26 +105,21 @@ export default function FrequenciaDiariaPage() {
 
   // Carregar resumo
   const carregarResumo = useCallback(async () => {
-    if (!escolaId) return
     setCarregandoResumo(true)
     try {
       const params = new URLSearchParams()
       params.set('data', data)
-      params.set('escola_id', escolaId)
+      if (escolaId) params.set('escola_id', escolaId)
+      if (turmaId) params.set('turma_id', turmaId)
 
       const res = await fetch(`/api/admin/frequencia-diaria/resumo?${params.toString()}`)
       if (res.ok) {
         const d = await res.json()
         setResumo({
-          total_presentes: d.presenca?.total_presentes ?? d.total_presentes ?? 0,
-          total_ausentes: d.presenca?.total_ausentes ?? d.total_ausentes ?? 0,
-          taxa_presenca: d.presenca?.taxa_presenca ?? d.taxa_presenca ?? 0,
-          dispositivos_online: d.dispositivos?.online ?? d.dispositivos_online ?? 0,
-          por_metodo: {
-            facial: d.presenca?.por_metodo?.facial ?? d.por_metodo?.facial ?? 0,
-            manual: d.presenca?.por_metodo?.manual ?? d.por_metodo?.manual ?? 0,
-            qrcode: d.presenca?.por_metodo?.qrcode ?? d.por_metodo?.qrcode ?? 0
-          }
+          total_alunos: d.total_alunos ?? 0,
+          total_presentes: d.total_presentes ?? 0,
+          total_ausentes: d.total_ausentes ?? 0,
+          taxa_presenca: d.taxa_presenca ?? 0,
         })
       }
     } catch {
@@ -143,7 +127,7 @@ export default function FrequenciaDiariaPage() {
     } finally {
       setCarregandoResumo(false)
     }
-  }, [data, escolaId])
+  }, [data, escolaId, turmaId])
 
   // Carregar registros
   const carregarRegistros = useCallback(async (pagina = 1) => {
@@ -427,15 +411,29 @@ export default function FrequenciaDiariaPage() {
         </div>
 
         {/* Cards de resumo */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total de Alunos</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {carregandoResumo ? '-' : resumo.total_alunos}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Presentes Hoje</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Presentes</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {carregandoResumo ? '-' : resumo.total_presentes}
                 </p>
               </div>
@@ -445,11 +443,11 @@ export default function FrequenciaDiariaPage() {
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <UserX className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Ausentes</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {carregandoResumo ? '-' : resumo.total_ausentes}
                 </p>
               </div>
@@ -458,59 +456,14 @@ export default function FrequenciaDiariaPage() {
 
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                <BarChart3 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Taxa de Presenca</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {carregandoResumo ? '-' : `${Number(resumo.taxa_presenca).toFixed(1)}%`}
                 </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                <Wifi className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Dispositivos Online</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {carregandoResumo ? '-' : resumo.dispositivos_online}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Card de metodos */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Por Metodo</p>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
-                  <ScanFace className="w-3.5 h-3.5" /> Facial
-                </span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {carregandoResumo ? '-' : resumo.por_metodo.facial}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
-                  <Hand className="w-3.5 h-3.5" /> Manual
-                </span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {carregandoResumo ? '-' : resumo.por_metodo.manual}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 text-green-700 dark:text-green-300">
-                  <QrCode className="w-3.5 h-3.5" /> QR Code
-                </span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {carregandoResumo ? '-' : resumo.por_metodo.qrcode}
-                </span>
               </div>
             </div>
           </div>

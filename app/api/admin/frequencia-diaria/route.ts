@@ -176,19 +176,36 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
     }
 
-    let query = 'DELETE FROM frequencia_diaria WHERE id = $1'
-    const params: string[] = [id]
+    // Buscar dados do registro antes de excluir (para limpar frequencia_hora_aula)
+    let selectQuery = 'SELECT id, aluno_id, turma_id, data FROM frequencia_diaria WHERE id = $1'
+    const selectParams: string[] = [id]
 
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      query += ' AND escola_id = $2'
-      params.push(usuario.escola_id)
+      selectQuery += ' AND escola_id = $2'
+      selectParams.push(usuario.escola_id)
     }
 
-    query += ' RETURNING id'
-    const result = await pool.query(query, params)
+    const registro = await pool.query(selectQuery, selectParams)
 
-    if (result.rows.length === 0) {
+    if (registro.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
+    }
+
+    const { aluno_id, turma_id, data: dataRegistro } = registro.rows[0]
+
+    // Excluir frequência diária
+    await pool.query('DELETE FROM frequencia_diaria WHERE id = $1', [id])
+
+    // Limpar frequência por aula do mesmo aluno/data (best-effort)
+    if (aluno_id && turma_id && dataRegistro) {
+      try {
+        await pool.query(
+          'DELETE FROM frequencia_hora_aula WHERE aluno_id = $1 AND turma_id = $2 AND data = $3',
+          [aluno_id, turma_id, dataRegistro]
+        )
+      } catch {
+        // Tabela pode não existir ou não ter registros — não impede a exclusão principal
+      }
     }
 
     return NextResponse.json({ mensagem: 'Registro excluído com sucesso' })

@@ -21,7 +21,13 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
   const [autorizado, setAutorizado] = useState(false)
   const verificandoRef = useRef(false)
 
+  // Estabilizar tiposPermitidos para evitar re-renders infinitos
+  // (arrays literais como prop criam nova referência a cada render do pai)
+  const tiposKey = tiposPermitidos.slice().sort().join(',')
+
   useEffect(() => {
+    const tiposArr = tiposKey.split(',')
+
     const verificarAuth = async () => {
       // Evitar verificações simultâneas
       if (verificandoRef.current) return
@@ -30,25 +36,24 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
       // Função para verificar se tipo de usuário é permitido
       // Trata 'admin' como sinônimo de 'administrador' para compatibilidade
       const verificarTipoPermitido = (tipoUsuario: string): boolean => {
-        const tiposPermitidosStr = tiposPermitidos as string[]
-        const tiposPermitidosExpandidos = [...tiposPermitidosStr]
-        if (tiposPermitidosStr.includes('administrador')) {
-          tiposPermitidosExpandidos.push('admin')
+        const tiposExpandidos = [...tiposArr]
+        if (tiposArr.includes('administrador')) {
+          tiposExpandidos.push('admin')
         }
-        if (tiposPermitidosStr.includes('admin')) {
-          tiposPermitidosExpandidos.push('administrador')
+        if (tiposArr.includes('admin')) {
+          tiposExpandidos.push('administrador')
         }
-        return tiposPermitidosExpandidos.includes(tipoUsuario)
+        return tiposExpandidos.includes(tipoUsuario)
       }
 
       // Verificar cache de autorização (evita re-verificação ao navegar entre páginas)
-      const tiposKey = tiposPermitidos.sort().join(',')
       if (authCache &&
           authCache.tiposPermitidos === tiposKey &&
           Date.now() - authCache.timestamp < AUTH_CACHE_TTL) {
-        console.log('[ProtectedRoute] Usando cache de autorização')
-        setAutorizado(authCache.autorizado)
-        setCarregando(false)
+        if (!autorizado || carregando) {
+          setAutorizado(authCache.autorizado)
+          setCarregando(false)
+        }
         verificandoRef.current = false
         return
       }
@@ -137,7 +142,8 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
     }
 
     verificarAuth()
-  }, [router, tiposPermitidos])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, tiposKey])
 
   if (carregando) {
     return (
