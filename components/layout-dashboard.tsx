@@ -269,29 +269,47 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
     // Menu especifico para ADMINISTRADOR
     if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
-      // Grupo SISAM (só no módulo SISAM)
+      // Grupos SISAM (só no módulo SISAM)
       if (moduloAtivo === 'sisam') {
-        items.push({
-          icon: Database, label: 'SISAM', children: [
-            { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
-            { icon: TrendingUp, label: 'Análise Gráfica', href: '/admin/graficos' },
-            { icon: FileBarChart, label: 'Relatórios', href: '/admin/relatorios' },
-            { icon: Upload, label: 'Importar Dados', href: '/admin/importar-completo' },
-            { icon: UserPlus, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
-            { icon: FilePlus, label: 'Importar Resultados', href: '/admin/importar-resultados' },
-            { icon: History, label: 'Importações', href: '/admin/importacoes' },
-            { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
-            { icon: BarChart3, label: 'Comparativos', href: '/admin/comparativos' },
-            { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
-            { icon: BarChart3, label: 'Comparativo SISAM x Escola', href: '/admin/comparativo-notas' },
-            { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
-            { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
-            { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
-            { icon: ClipboardList, label: 'Avaliações SISAM', href: '/admin/avaliacoes' },
-            { icon: Settings, label: 'Séries SISAM', href: '/admin/configuracao-series' },
-            { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' },
-          ]
-        })
+        items.push(
+          {
+            icon: Database, label: 'Análises', children: [
+              { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+              { icon: TrendingUp, label: 'Análise Gráfica', href: '/admin/graficos' },
+              { icon: FileBarChart, label: 'Relatórios', href: '/admin/relatorios' },
+            ]
+          },
+          {
+            icon: FileText, label: 'Resultados', children: [
+              { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
+              { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
+              { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
+              { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
+              { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
+            ]
+          },
+          {
+            icon: ClipboardList, label: 'Avaliações', children: [
+              { icon: ClipboardList, label: 'Avaliações SISAM', href: '/admin/avaliacoes' },
+              { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
+              { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
+            ]
+          },
+          {
+            icon: Upload, label: 'Importação', children: [
+              { icon: Upload, label: 'Importar Dados', href: '/admin/importar-completo' },
+              { icon: UserPlus, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
+              { icon: FilePlus, label: 'Importar Resultados', href: '/admin/importar-resultados' },
+              { icon: History, label: 'Histórico', href: '/admin/importacoes' },
+            ]
+          },
+          {
+            icon: Settings, label: 'Configurações SISAM', children: [
+              { icon: Settings, label: 'Séries SISAM', href: '/admin/configuracao-series' },
+              { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' },
+            ]
+          },
+        )
       }
       // Grupos do Gestor Escolar (só no módulo Gestor)
       if (moduloAtivo === 'gestor') {
@@ -366,17 +384,23 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para TECNICO
     if (tipoUsuarioReal === 'tecnico') {
       if (moduloAtivo === 'sisam') {
-        items.push({
-          icon: Database, label: 'SISAM', children: [
-            { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
-            { icon: TrendingUp, label: 'Análise Gráfica', href: '/tecnico/graficos' },
-            { icon: FileText, label: 'Resultados Consolidados', href: '/tecnico/analise' },
-            { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
-            { icon: MapPin, label: 'Comparativos Polo', href: '/admin/comparativos-polos' },
-            { icon: BarChart3, label: 'Comparativo SISAM x Escola', href: '/admin/comparativo-notas' },
-            { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
-          ]
-        })
+        items.push(
+          {
+            icon: Database, label: 'Análises', children: [
+              { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+              { icon: TrendingUp, label: 'Análise Gráfica', href: '/tecnico/graficos' },
+            ]
+          },
+          {
+            icon: FileText, label: 'Resultados', children: [
+              { icon: FileText, label: 'Resultados Consolidados', href: '/tecnico/analise' },
+              { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
+              { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
+              { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
+              { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
+            ]
+          },
+        )
       }
       if (moduloAtivo === 'gestor') {
         items.push(
@@ -442,30 +466,43 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Menu especifico para POLO
     if (tipoUsuarioReal === 'polo') {
       items.push(
-        // Grupo SISAM
         {
-          icon: Database, label: 'SISAM', children: [
+          icon: Database, label: 'Análises', children: [
             { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
             { icon: TrendingUp, label: 'Análise Gráfica', href: '/polo/graficos' },
+          ]
+        },
+        {
+          icon: FileText, label: 'Resultados', children: [
             { icon: FileText, label: 'Resultados Consolidados', href: '/polo/analise' },
             { icon: BarChart3, label: 'Comparativo Escolas', href: '/admin/comparativos' },
           ]
         },
-        { icon: School, label: 'Escolas', href: '/polo/escolas' },
-        { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' }
+        {
+          icon: BookOpen, label: 'Cadastros', children: [
+            { icon: School, label: 'Escolas', href: '/polo/escolas' },
+            { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
+          ]
+        },
       )
     }
 
     // Menu especifico para ESCOLA
     if (tipoUsuarioReal === 'escola') {
       if (moduloAtivo === 'sisam') {
-        items.push({
-          icon: Database, label: 'SISAM', children: [
-            { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
-            { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
-            { icon: BarChart3, label: 'Comparativo SISAM x Escola', href: '/admin/comparativo-notas' },
-          ]
-        })
+        items.push(
+          {
+            icon: Database, label: 'Análises', children: [
+              { icon: Database, label: 'Painel de Dados', href: '/admin/dados' },
+            ]
+          },
+          {
+            icon: FileText, label: 'Resultados', children: [
+              { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
+              { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
+            ]
+          },
+        )
       }
       if (moduloAtivo === 'gestor' && usuario?.gestor_escolar_habilitado) {
         items.push(
