@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Search, Camera, Trash2, Shield, UserCheck, AlertTriangle, CheckCircle, XCircle, FileText, RefreshCw, Video } from 'lucide-react'
+import { Search, Camera, Trash2, Shield, UserCheck, AlertTriangle, CheckCircle, XCircle, FileText, RefreshCw, Video, SwitchCamera } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
@@ -101,6 +101,7 @@ export default function FacialEnrollmentPage() {
   const [posesCapturadas, setPosesCapturadas] = useState<Record<PoseType, PoseCapture | null>>({
     frontal: null, esquerda: null, direita: null
   })
+  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user')
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -213,11 +214,17 @@ export default function FacialEnrollmentPage() {
     }
   }
 
-  // Iniciar câmera
-  const iniciarCamera = async () => {
+  // Iniciar câmera com modo selecionado (frontal ou traseira)
+  const iniciarCamera = async (modo?: 'user' | 'environment') => {
+    const facingMode = modo || cameraMode
+    // Parar câmera anterior se existir
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } }
       })
       streamRef.current = stream
       if (videoRef.current) {
@@ -230,6 +237,15 @@ export default function FacialEnrollmentPage() {
     } catch {
       toast.error('Erro ao acessar a camera. Verifique as permissoes do navegador.')
     }
+  }
+
+  // Alternar entre câmera frontal e traseira
+  const alternarCamera = async () => {
+    const novoModo = cameraMode === 'user' ? 'environment' : 'user'
+    setCameraMode(novoModo)
+    // Limpar buffer de poses da pose atual (ângulo muda)
+    poseBufferRef.current = []
+    await iniciarCamera(novoModo)
   }
 
   // Parar câmera e resetar tudo
@@ -849,9 +865,19 @@ export default function FacialEnrollmentPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs font-semibold bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-3 py-1 rounded-full">
-                    {posesConcluidasCount}/{POSES.length} poses
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={alternarCamera}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                      title={cameraMode === 'user' ? 'Usando camera frontal — clique para traseira' : 'Usando camera traseira — clique para frontal'}
+                    >
+                      <SwitchCamera className="w-3.5 h-3.5" />
+                      {cameraMode === 'user' ? 'Frontal' : 'Traseira'}
+                    </button>
+                    <span className="text-xs font-semibold bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-3 py-1 rounded-full">
+                      {posesConcluidasCount}/{POSES.length} poses
+                    </span>
+                  </div>
                 </div>
               </div>
 
