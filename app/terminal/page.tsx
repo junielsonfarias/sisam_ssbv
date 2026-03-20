@@ -68,6 +68,9 @@ export default function TerminalPWA() {
   const [registros, setRegistros] = useState<RegistroLocal[]>([])
   const [mensagem, setMensagem] = useState('')
   const [mensagemTipo, setMensagemTipo] = useState<'sucesso' | 'info' | 'erro'>('info')
+  const [ultimoAlunoNome, setUltimoAlunoNome] = useState('')
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
+  const confirmacaoTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [pendentesSync, setPendentesSync] = useState(0)
   const [horaAtual, setHoraAtual] = useState('')
   const [sincronizando, setSincronizando] = useState(false)
@@ -106,7 +109,17 @@ export default function TerminalPWA() {
         const count = await contarEmbeddings()
         setTotalEmbeddings(count)
         if (count > 0) {
-          // Config + embeddings existem → ir direto para terminal
+          // Config + embeddings existem → carregar e ir direto para terminal
+          const embsLocais = await obterEmbeddings()
+          const alunosCarregados: AlunoEmMemoria[] = []
+          for (const emb of embsLocais) {
+            try {
+              const bytes = Uint8Array.from(atob(emb.embedding_base64), c => c.charCodeAt(0))
+              const descriptor = new Float32Array(bytes.buffer)
+              alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, descriptor })
+            } catch { /* Ignora inválido */ }
+          }
+          setAlunos(alunosCarregados)
           setFase('terminal')
         }
       } else {
@@ -149,6 +162,33 @@ export default function TerminalPWA() {
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
+
+  // ============================================================================
+  // AUTO-START CÂMERA ao entrar no terminal
+  // ============================================================================
+
+  useEffect(() => {
+    if (fase !== 'terminal' || cameraAtiva || statusModelo !== 'pronto' || alunos.length === 0) return
+
+    const iniciarCameraAuto = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        })
+        streamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play()
+        }
+        setCameraAtiva(true)
+      } catch {
+        setMensagem('Erro ao acessar camera')
+        setMensagemTipo('erro')
+      }
+    }
+
+    iniciarCameraAuto()
+  }, [fase, statusModelo, alunos.length])
 
   // ============================================================================
   // WAKE LOCK — Impedir tela de apagar
@@ -377,13 +417,13 @@ export default function TerminalPWA() {
 
               const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
               setRegistros(prev => [{ aluno_id: alunoId, nome: aluno.nome, tipo: 'entrada' as const, hora, confianca: conf }, ...prev].slice(0, 50))
-              setMensagem(`${aluno.nome}`)
-              setMensagemTipo('sucesso')
               setPendentesSync(prev => prev + 1)
 
-              // Limpar mensagem após 3 segundos
-              if (mensagemTimeoutRef.current) clearTimeout(mensagemTimeoutRef.current)
-              mensagemTimeoutRef.current = setTimeout(() => setMensagem(''), 3000)
+              // Mostrar confirmação grande com nome do aluno
+              setUltimoAlunoNome(aluno.nome)
+              setMostrarConfirmacao(true)
+              if (confirmacaoTimeoutRef.current) clearTimeout(confirmacaoTimeoutRef.current)
+              confirmacaoTimeoutRef.current = setTimeout(() => setMostrarConfirmacao(false), 3000)
 
               // Som
               if (somAtivo) {
@@ -620,12 +660,23 @@ export default function TerminalPWA() {
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
-          {/* Mensagem grande no centro */}
-          {mensagem && (
-            <div className={`absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl text-2xl font-bold shadow-2xl transition-all ${
-              mensagemTipo === 'sucesso' ? 'bg-green-600' : mensagemTipo === 'erro' ? 'bg-red-600' : 'bg-blue-600'
+          {/* Overlay de confirmação — nome grande do aluno + check */}
+          {mostrarConfirmacao && ultimoAlunoNome && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="bg-green-600/95 backdrop-blur-sm rounded-3xl px-12 py-8 text-center shadow-2xl animate-pulse">
+                <CheckCircle className="w-16 h-16 mx-auto mb-3 text-white" />
+                <p className="text-3xl sm:text-4xl font-bold text-white mb-2">{ultimoAlunoNome}</p>
+                <p className="text-lg text-green-100">Presenca registrada!</p>
+              </div>
+            </div>
+          )}
+
+          {/* Mensagem de erro/info */}
+          {mensagem && !mostrarConfirmacao && (
+            <div className={`absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl text-xl font-bold shadow-2xl ${
+              mensagemTipo === 'erro' ? 'bg-red-600' : 'bg-blue-600'
             }`}>
-              {mensagemTipo === 'sucesso' && <CheckCircle className="w-7 h-7 inline mr-2 -mt-1" />}
+              {mensagemTipo === 'erro' && <AlertCircle className="w-6 h-6 inline mr-2 -mt-1" />}
               {mensagem}
             </div>
           )}
