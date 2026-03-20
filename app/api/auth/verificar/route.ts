@@ -29,6 +29,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Para usuários tipo escola, buscar se o Gestor Escolar está habilitado
+    let gestorEscolarHabilitado = true // admin/tecnico sempre têm acesso
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      try {
+        const escolaResult = await pool.query(
+          'SELECT gestor_escolar_habilitado FROM escolas WHERE id = $1',
+          [usuario.escola_id]
+        )
+        gestorEscolarHabilitado = escolaResult.rows[0]?.gestor_escolar_habilitado ?? false
+      } catch {
+        gestorEscolarHabilitado = false
+      }
+    }
+
     return NextResponse.json({
       usuario: {
         id: usuario.id,
@@ -37,6 +51,7 @@ export async function GET(request: NextRequest) {
         tipo_usuario: usuario.tipo_usuario,
         polo_id: usuario.polo_id,
         escola_id: usuario.escola_id,
+        gestor_escolar_habilitado: gestorEscolarHabilitado,
       },
     })
   } catch (error: any) {

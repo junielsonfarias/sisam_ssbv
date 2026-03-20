@@ -26,6 +26,13 @@ export default function ModulosPage() {
       return
     }
 
+    // Escola sem Gestor Escolar habilitado — redirecionar direto para SISAM
+    if (user.tipo_usuario === 'escola' && !user.gestor_escolar_habilitado) {
+      offlineStorage.saveModuloAtivo('sisam')
+      router.push('/escola/dashboard')
+      return
+    }
+
     setCarregando(false)
   }, [router])
 

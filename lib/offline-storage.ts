@@ -47,6 +47,7 @@ export interface OfflineUser {
   escola_id?: number
   polo_nome?: string
   escola_nome?: string
+  gestor_escolar_habilitado?: boolean
 }
 
 export interface OfflinePolo {

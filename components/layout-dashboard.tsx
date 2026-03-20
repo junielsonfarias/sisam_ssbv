@@ -171,7 +171,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               polo_id: data.usuario.polo_id,
               escola_id: data.usuario.escola_id,
               polo_nome: data.usuario.polo_nome,
-              escola_nome: data.usuario.escola_nome
+              escola_nome: data.usuario.escola_nome,
+              gestor_escolar_habilitado: data.usuario.gestor_escolar_habilitado
             })
           } else {
             // Sem sessão válida, tentar usuário offline
@@ -466,7 +467,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           ]
         })
       }
-      if (moduloAtivo === 'gestor') {
+      if (moduloAtivo === 'gestor' && usuario?.gestor_escolar_habilitado) {
         items.push(
           {
             icon: BookOpen, label: 'Cadastros', children: [
@@ -601,8 +602,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               {/* Separador visual */}
               <div className="hidden md:block w-px h-8 bg-gray-200 dark:bg-slate-600 mx-2" />
 
-              {/* Botão de troca de módulo */}
-              {tipoUsuarioReal !== 'polo' && (
+              {/* Botão de troca de módulo - oculto para polo e escola sem gestor habilitado */}
+              {tipoUsuarioReal !== 'polo' && !(tipoUsuarioReal === 'escola' && !usuario?.gestor_escolar_habilitado) && (
                 <button
                   onClick={() => {
                     const novo = moduloAtivo === 'sisam' ? 'gestor' as offlineStorage.ModuloAtivo : 'sisam' as offlineStorage.ModuloAtivo

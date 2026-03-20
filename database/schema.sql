@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS escolas (
     telefone VARCHAR(50),
     email VARCHAR(255),
     ativo BOOLEAN DEFAULT true,
+    gestor_escolar_habilitado BOOLEAN DEFAULT false,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

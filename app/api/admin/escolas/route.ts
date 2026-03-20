@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
 
     // All allowed fields for INSERT (base + INEP)
     const allowedFields = [
-      'nome', 'codigo', 'polo_id', 'endereco', 'telefone', 'email',
+      'nome', 'codigo', 'polo_id', 'endereco', 'telefone', 'email', 'gestor_escolar_habilitado',
       // INEP - Identificação
       'codigo_inep', 'situacao_funcionamento', 'dependencia_administrativa',
       'categoria_escola', 'localizacao', 'localizacao_diferenciada',

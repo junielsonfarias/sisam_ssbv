@@ -3,7 +3,7 @@
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Edit, Trash2, Search, School, Eye } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, School, Eye, BookOpen } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { useUserType } from '@/lib/hooks/useUserType'
 import { PoloSimples } from '@/lib/dados/types'
@@ -18,6 +18,7 @@ interface Escola {
   polo_id: string
   polo_nome?: string
   ativo: boolean
+  gestor_escolar_habilitado?: boolean
 }
 
 const formDataInicial = {
@@ -174,6 +175,26 @@ export default function EscolasPage() {
     }
   }
 
+  const handleToggleGestor = async (escola: Escola) => {
+    try {
+      const novoValor = !escola.gestor_escolar_habilitado
+      const response = await fetch(`/api/admin/escolas/${escola.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gestor_escolar_habilitado: novoValor }),
+      })
+
+      if (response.ok) {
+        setEscolas(prev => prev.map(e => e.id === escola.id ? { ...e, gestor_escolar_habilitado: novoValor } : e))
+        toast.success(`Gestor Escolar ${novoValor ? 'habilitado' : 'desabilitado'} para ${escola.nome}`)
+      } else {
+        toast.error('Erro ao atualizar permissão')
+      }
+    } catch {
+      toast.error('Erro ao atualizar permissão')
+    }
+  }
+
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
         <div className="space-y-6">
@@ -221,6 +242,9 @@ export default function EscolasPage() {
                       <th className="text-left py-2 md:py-3 px-2 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
                         Polo
                       </th>
+                      <th className="text-center py-2 md:py-3 px-2 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">
+                        Gestor
+                      </th>
                       <th className="text-left py-2 md:py-3 px-2 md:px-4 lg:px-6 font-semibold text-gray-700 dark:text-gray-200 text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
                         Status
                       </th>
@@ -232,7 +256,7 @@ export default function EscolasPage() {
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                     {escolasFiltradas.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-gray-500 dark:text-gray-400">
+                        <td colSpan={6} className="py-12 text-center text-gray-500 dark:text-gray-400">
                           <School className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
                           <p className="text-lg font-medium">Nenhuma escola encontrada</p>
                           <p className="text-sm">Tente ajustar os filtros de busca</p>
@@ -259,6 +283,20 @@ export default function EscolasPage() {
                           </td>
                           <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap hidden md:table-cell">
                             <span className="text-gray-600 dark:text-gray-300 text-xs md:text-sm">{escola.polo_nome || '-'}</span>
+                          </td>
+                          <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap hidden sm:table-cell text-center">
+                            <button
+                              onClick={() => handleToggleGestor(escola)}
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                                escola.gestor_escolar_habilitado
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200'
+                              }`}
+                              title={escola.gestor_escolar_habilitado ? 'Gestor Escolar habilitado - clique para desabilitar' : 'Gestor Escolar desabilitado - clique para habilitar'}
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                              {escola.gestor_escolar_habilitado ? 'Sim' : 'Não'}
+                            </button>
                           </td>
                           <td className="py-2 md:py-3 px-2 md:px-4 lg:px-6 whitespace-nowrap hidden lg:table-cell">
                             <span

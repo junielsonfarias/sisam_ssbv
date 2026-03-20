@@ -94,7 +94,7 @@ export async function PUT(
 
     // Only allow real escola columns
     const allowedFields = [
-      'nome', 'codigo', 'polo_id', 'endereco', 'telefone', 'email', 'ativo',
+      'nome', 'codigo', 'polo_id', 'endereco', 'telefone', 'email', 'ativo', 'gestor_escolar_habilitado',
       // INEP - Identificacao
       'codigo_inep', 'situacao_funcionamento', 'dependencia_administrativa',
       'categoria_escola', 'localizacao', 'localizacao_diferenciada',

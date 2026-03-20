@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
         u.foto_url,
         u.criado_em,
         p.nome as polo_nome,
-        e.nome as escola_nome
+        e.nome as escola_nome,
+        COALESCE(e.gestor_escolar_habilitado, false) as gestor_escolar_habilitado
       FROM usuarios u
       LEFT JOIN polos p ON u.polo_id = p.id
       LEFT JOIN escolas e ON u.escola_id = e.id
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
       foto_url: perfil.foto_url,
       polo_nome: perfil.polo_nome,
       escola_nome: perfil.escola_nome,
+      gestor_escolar_habilitado: perfil.gestor_escolar_habilitado,
       criado_em: perfil.criado_em
     })
   } catch (error: any) {
