@@ -40,12 +40,14 @@ export async function GET(request: NextRequest) {
       FROM alunos a
       LEFT JOIN consentimentos_faciais cf ON cf.aluno_id = a.id
       LEFT JOIN embeddings_faciais ef ON ef.aluno_id = a.id
-      WHERE a.escola_id = $1 AND a.ativo = true AND a.situacao = 'cursando'
+      WHERE a.escola_id = $1 AND a.ativo = true
+        AND a.ano_letivo = $2
     `
-    const params: string[] = [escolaId]
+    const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
+    const params: string[] = [escolaId, anoLetivo]
 
     if (turmaId) {
-      query += ` AND a.turma_id = $2`
+      query += ` AND a.turma_id = $3`
       params.push(turmaId)
     }
 

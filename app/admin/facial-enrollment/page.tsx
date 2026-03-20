@@ -137,9 +137,13 @@ export default function FacialEnrollmentPage() {
     setCarregando(true)
     setBuscouAlunos(true)
     try {
-      const res = await fetch(`/api/admin/facial/consentimento?escola_id=${escolaId}&turma_id=${turmaId}`)
+      const anoAtual = new Date().getFullYear().toString()
+      const res = await fetch(`/api/admin/facial/consentimento?escola_id=${escolaId}&turma_id=${turmaId}&ano_letivo=${anoAtual}`, {
+        credentials: 'include',
+      })
       if (!res.ok) {
-        toast.error('Erro ao carregar dados faciais')
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.mensagem || `Erro ao carregar (${res.status})`)
         return
       }
       const data = await res.json()
