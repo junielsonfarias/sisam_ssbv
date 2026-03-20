@@ -467,44 +467,64 @@ export default function TerminalPWA() {
         const vh = video.videoHeight
         if (!vw || !vh) return
 
-        const containerRect = video.getBoundingClientRect()
-        const cw = containerRect.width
-        const ch = containerRect.height
+        const canvas = canvasRef.current
+        const parent = canvas.parentElement
+        if (!parent) return
+        const cw = parent.clientWidth
+        const ch = parent.clientHeight
 
-        // Canvas = tamanho do container
-        canvasRef.current.width = cw
-        canvasRef.current.height = ch
-        const ctx = canvasRef.current.getContext('2d')
-        if (ctx) ctx.clearRect(0, 0, cw, ch)
+        // Setar tamanho do canvas = tamanho do container
+        canvas.width = cw
+        canvas.height = ch
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
 
-        // object-cover: escala para preencher, recorta excesso
-        // Calcular escala e offset do crop
+        // Desenhar vídeo no canvas com efeito "cover" (preenche sem distorcer)
         const videoRatio = vw / vh
-        const containerRatio = cw / ch
-        let scale: number, offsetX: number, offsetY: number
+        const canvasRatio = cw / ch
+        let sx = 0, sy = 0, sw = vw, sh = vh
 
-        if (videoRatio > containerRatio) {
-          // Vídeo mais largo que container — recorta laterais
-          scale = ch / vh
-          offsetX = (cw - vw * scale) / 2
-          offsetY = 0
+        if (videoRatio > canvasRatio) {
+          // Vídeo mais largo — recortar laterais
+          sw = vh * canvasRatio
+          sx = (vw - sw) / 2
         } else {
-          // Vídeo mais alto que container — recorta topo/baixo
-          scale = cw / vw
-          offsetX = 0
-          offsetY = (ch - vh * scale) / 2
+          // Vídeo mais alto — recortar topo/baixo
+          sh = vw / canvasRatio
+          sy = (vh - sh) / 2
         }
 
-        const scaleX = scale
-        const scaleY = scale
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch)
+
+        // Escala das detecções: coordenadas nativas → canvas
+        const scaleX = cw / sw
+        const scaleY = ch / sh
+
+        // Status visual de escaneamento
+        if (detections.length === 0) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.15)'
+          ctx.lineWidth = 2
+          // Guia oval central
+          const ovalW = cw * 0.4
+          const ovalH = ch * 0.35
+          ctx.beginPath()
+          ctx.ellipse(cw / 2, ch * 0.4, ovalW / 2, ovalH / 2, 0, 0, Math.PI * 2)
+          ctx.stroke()
+          // Texto
+          ctx.fillStyle = 'rgba(255,255,255,0.5)'
+          ctx.font = 'bold 16px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.fillText('Posicione o rosto', cw / 2, ch * 0.4 + ovalH / 2 + 25)
+          ctx.textAlign = 'start'
+        }
 
         for (const det of detections) {
           const match = matcher.findBestMatch(det.descriptor)
           const rawBox = det.detection.box
 
-          // Converter coordenadas nativas → coordenadas na tela (com offset do crop)
-          const bx = rawBox.x * scaleX + offsetX
-          const by = rawBox.y * scaleY + offsetY
+          // Coordenadas relativas à área visível (após crop)
+          const bx = (rawBox.x - sx) * scaleX
+          const by = (rawBox.y - sy) * scaleY
           const bw = rawBox.width * scaleX
           const bh = rawBox.height * scaleY
 
@@ -519,12 +539,19 @@ export default function TerminalPWA() {
             const emCooldown = ultimoRegistro && (agora - ultimoRegistro) < cooldown * 1000
 
             if (ctx) {
-              ctx.strokeStyle = emCooldown ? '#eab308' : '#10b981'
+              const cor = emCooldown ? '#eab308' : '#10b981'
+              // Retângulo arredondado
+              ctx.strokeStyle = cor
               ctx.lineWidth = 3
               ctx.strokeRect(bx, by, bw, bh)
-              ctx.fillStyle = emCooldown ? '#eab308' : '#10b981'
+              // Fundo do nome
+              const nome = aluno?.nome || alunoId
               ctx.font = 'bold 16px sans-serif'
-              ctx.fillText(aluno?.nome || alunoId, bx, by - 10)
+              const textW = ctx.measureText(nome).width
+              ctx.fillStyle = cor
+              ctx.fillRect(bx, by - 28, textW + 16, 26)
+              ctx.fillStyle = '#fff'
+              ctx.fillText(nome, bx + 8, by - 10)
             }
 
             if (!emCooldown && aluno) {
@@ -589,6 +616,14 @@ export default function TerminalPWA() {
               ctx.strokeStyle = '#ef4444'
               ctx.lineWidth = 2
               ctx.strokeRect(bx, by, bw, bh)
+              // Label "Não cadastrado"
+              const label = 'Nao cadastrado'
+              ctx.font = 'bold 14px sans-serif'
+              const tw = ctx.measureText(label).width
+              ctx.fillStyle = 'rgba(239,68,68,0.85)'
+              ctx.fillRect(bx, by - 24, tw + 12, 22)
+              ctx.fillStyle = '#fff'
+              ctx.fillText(label, bx + 6, by - 8)
             }
           }
         }
@@ -768,9 +803,10 @@ export default function TerminalPWA() {
     <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col select-none">
       {/* Vídeo em tela cheia */}
       <div className="flex-1 relative">
+        {/* Vídeo oculto — usado como source para detecção */}
         <video ref={videoRef} autoPlay playsInline muted
-          className="absolute inset-0 w-full h-full"
-          style={{ objectFit: 'cover' }} />
+          className="absolute opacity-0 pointer-events-none" style={{ width: 1, height: 1 }} />
+        {/* Canvas renderiza vídeo + retângulos (sem desalinhamento) */}
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
         {/* Overlay de confirmação — nome grande do aluno */}
