@@ -704,7 +704,6 @@ export default function TerminalPWA() {
             {/* Hora grande */}
             <div className="text-right">
               <p className="text-3xl font-bold font-mono text-white">{horaAtual}</p>
-              <p className="text-xs text-gray-400">{new Date().getFullYear()}</p>
             </div>
           </div>
         </div>
