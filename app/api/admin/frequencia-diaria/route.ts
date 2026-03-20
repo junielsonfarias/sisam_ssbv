@@ -23,16 +23,17 @@ export async function GET(request: NextRequest) {
     const dataInicio = searchParams.get('data_inicio')
     const dataFim = searchParams.get('data_fim')
     const metodo = searchParams.get('metodo')
+    const status = searchParams.get('status')
     const anoLetivo = searchParams.get('ano_letivo')
     const pagina = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
     const limite = Math.min(200, Math.max(1, parseInt(searchParams.get('limite') || '50', 10)))
 
     let query = `
       SELECT fd.id, fd.aluno_id, fd.data, fd.hora_entrada, fd.hora_saida,
-             fd.metodo, fd.confianca, fd.criado_em,
+             fd.metodo, fd.confianca, fd.status, fd.justificativa, fd.criado_em,
              a.nome AS aluno_nome, a.codigo AS aluno_codigo,
              t.nome AS turma_nome, t.codigo AS turma_codigo,
-             d.nome AS dispositivo_nome
+             d.nome AS dispositivo
       FROM frequencia_diaria fd
       INNER JOIN alunos a ON a.id = fd.aluno_id
       LEFT JOIN turmas t ON t.id = fd.turma_id
@@ -109,6 +110,15 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
+    if (status && ['presente', 'ausente'].includes(status)) {
+      const filter = ` AND fd.status = $${paramIndex}`
+      query += filter
+      countQuery += filter
+      params.push(status)
+      countParams.push(status)
+      paramIndex++
+    }
+
     if (anoLetivo) {
       const filter = ` AND EXTRACT(YEAR FROM fd.data) = $${paramIndex}`
       query += filter
@@ -120,7 +130,7 @@ export async function GET(request: NextRequest) {
 
     // Paginação
     const offset = (pagina - 1) * limite
-    query += ` ORDER BY fd.data DESC, a.nome ASC`
+    query += ` ORDER BY fd.data DESC, fd.status ASC, a.nome ASC`
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
     params.push(limite, offset)
 
@@ -145,6 +155,84 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Erro ao listar frequência diária:', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
+/**
+ * DELETE /api/admin/frequencia-diaria
+ * Exclui um registro de frequência
+ * Body: { id }
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const { id } = await request.json()
+    if (!id) {
+      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
+    }
+
+    let query = 'DELETE FROM frequencia_diaria WHERE id = $1'
+    const params: string[] = [id]
+
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      query += ' AND escola_id = $2'
+      params.push(usuario.escola_id)
+    }
+
+    query += ' RETURNING id'
+    const result = await pool.query(query, params)
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
+    }
+
+    return NextResponse.json({ mensagem: 'Registro excluído com sucesso' })
+  } catch (error: any) {
+    console.error('Erro ao excluir frequência:', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
+/**
+ * PATCH /api/admin/frequencia-diaria
+ * Atualiza justificativa de um registro de frequência
+ * Body: { id, justificativa }
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const { id, justificativa } = await request.json()
+    if (!id) {
+      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
+    }
+
+    let query = 'UPDATE frequencia_diaria SET justificativa = $1 WHERE id = $2'
+    const params: (string | null)[] = [justificativa || null, id]
+
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      query += ' AND escola_id = $3'
+      params.push(usuario.escola_id)
+    }
+
+    query += ' RETURNING id'
+    const result = await pool.query(query, params)
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
+    }
+
+    return NextResponse.json({ mensagem: 'Justificativa salva com sucesso' })
+  } catch (error: any) {
+    console.error('Erro ao atualizar justificativa:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

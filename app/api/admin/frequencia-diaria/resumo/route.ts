@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       escolaId = usuario.escola_id
     }
 
-    // Total de presentes no dia
+    // Total de presentes no dia (exclui registros com status='ausente')
     let presencaQuery = `
       SELECT
         COUNT(*) AS total_presentes,
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN metodo = 'manual' THEN 1 END) AS presentes_manual,
         COUNT(CASE WHEN metodo = 'qrcode' THEN 1 END) AS presentes_qrcode
       FROM frequencia_diaria
-      WHERE data = $1
+      WHERE data = $1 AND status = 'presente'
     `
     const presencaParams: string[] = [data]
 
