@@ -74,13 +74,21 @@ export default function FacialEnrollmentPage() {
   const [carregandoModelos, setCarregandoModelos] = useState(false)
   const [faceDetectada, setFaceDetectada] = useState(false)
   const [qualidadeFace, setQualidadeFace] = useState(0)
+  const [tamanhoRosto, setTamanhoRosto] = useState(0)
   const [enviandoEmbed, setEnviandoEmbed] = useState(false)
   const [capturaStatus, setCapturaStatus] = useState<'aguardando' | 'detectando' | 'capturado' | 'enviando'>('aguardando')
+  const [fotoCapturada, setFotoCapturada] = useState<string | null>(null)
+  const [melhorDescriptor, setMelhorDescriptor] = useState<{ descriptor: Float32Array; score: number } | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const faceapiRef = useRef<any>(null)
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const descriptorBufferRef = useRef<{ descriptor: Float32Array; score: number }[]>([])
+
+  // Tamanho mínimo do rosto (% da largura do vídeo)
+  const TAMANHO_MINIMO_ROSTO = 15 // 15% da largura
+  const CAPTURAS_NECESSARIAS = 3 // Número de boas capturas antes de habilitar
 
   // Delete confirm
   const [deleteAlunoId, setDeleteAlunoId] = useState<string | null>(null)
@@ -214,23 +222,32 @@ export default function FacialEnrollmentPage() {
     setCameraAtiva(false)
     setFaceDetectada(false)
     setQualidadeFace(0)
+    setTamanhoRosto(0)
     setCapturaStatus('aguardando')
+    setFotoCapturada(null)
+    setMelhorDescriptor(null)
+    descriptorBufferRef.current = []
   }
 
-  // Loop de detecção facial (feedback visual em tempo real)
+  // Loop de detecção facial com coleta de descriptors
   const iniciarDeteccao = () => {
     if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current)
+    descriptorBufferRef.current = []
+    setMelhorDescriptor(null)
 
     detectionIntervalRef.current = setInterval(async () => {
       if (!videoRef.current || !faceapiRef.current || !canvasRef.current) return
+      if (capturaStatus === 'enviando' || capturaStatus === 'capturado') return
 
       const faceapi = faceapiRef.current
       const video = videoRef.current
       const canvas = canvasRef.current
 
+      // Detecção com descriptor para coleta contínua
       const detections = await faceapi
         .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
         .withFaceLandmarks(true)
+        .withFaceDescriptors()
 
       // Ajustar canvas ao vídeo
       const displaySize = { width: video.videoWidth, height: video.videoHeight }
@@ -239,25 +256,61 @@ export default function FacialEnrollmentPage() {
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       if (detections.length === 1) {
-        // Uma face detectada — ideal
         const resized = faceapi.resizeResults(detections, displaySize)
-        const box = resized[0].detection.box
-        const score = resized[0].detection.score
+        const det = resized[0]
+        const box = det.detection.box
+        const score = det.detection.score
+        const rostoPct = Math.round((box.width / displaySize.width) * 100)
+
+        setTamanhoRosto(rostoPct)
+
+        // Verificar tamanho mínimo do rosto
+        const rostoGrande = rostoPct >= TAMANHO_MINIMO_ROSTO
+        const boaQualidade = score > 0.7
+
+        // Cor: verde (bom), amarelo (pequeno/baixa qualidade), vermelho (muito pequeno)
+        const corBox = rostoGrande && boaQualidade ? '#10b981' : rostoPct >= 10 ? '#eab308' : '#ef4444'
 
         if (ctx) {
-          ctx.strokeStyle = score > 0.7 ? '#10b981' : '#eab308'
+          // Caixa do rosto
+          ctx.strokeStyle = corBox
           ctx.lineWidth = 3
           ctx.strokeRect(box.x, box.y, box.width, box.height)
-          ctx.fillStyle = score > 0.7 ? '#10b981' : '#eab308'
-          ctx.font = 'bold 14px sans-serif'
+
+          // Indicadores no topo
+          ctx.fillStyle = corBox
+          ctx.font = 'bold 13px sans-serif'
           ctx.fillText(`${(score * 100).toFixed(0)}%`, box.x, box.y - 8)
+
+          // Indicador de tamanho à direita
+          const tamanhoLabel = rostoPct >= TAMANHO_MINIMO_ROSTO ? '' : `Aproxime (${rostoPct}%)`
+          if (tamanhoLabel) {
+            ctx.fillStyle = '#eab308'
+            ctx.font = 'bold 12px sans-serif'
+            ctx.fillText(tamanhoLabel, box.x, box.y + box.height + 16)
+          }
         }
 
-        setFaceDetectada(true)
+        // Coletar descriptor se qualidade boa E rosto grande
+        if (boaQualidade && rostoGrande && det.descriptor) {
+          descriptorBufferRef.current.push({ descriptor: det.descriptor, score })
+
+          // Manter apenas os últimos 10
+          if (descriptorBufferRef.current.length > 10) {
+            descriptorBufferRef.current = descriptorBufferRef.current.slice(-10)
+          }
+
+          // Selecionar melhor dos coletados
+          const melhor = descriptorBufferRef.current.reduce((a, b) => a.score > b.score ? a : b)
+          setMelhorDescriptor(melhor)
+        }
+
+        setFaceDetectada(rostoGrande && boaQualidade)
         setQualidadeFace(Math.round(score * 100))
       } else {
         setFaceDetectada(false)
         setQualidadeFace(0)
+        setTamanhoRosto(0)
 
         if (detections.length > 1 && ctx) {
           ctx.fillStyle = '#ef4444'
@@ -268,36 +321,46 @@ export default function FacialEnrollmentPage() {
     }, 500)
   }
 
-  // Capturar embedding do rosto atual
+  // Converter Float32Array para base64 (compatível com browser)
+  const float32ToBase64 = (arr: Float32Array): string => {
+    const bytes = new Uint8Array(arr.buffer)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    return btoa(binary)
+  }
+
+  // Capturar embedding — usa o melhor descriptor coletado
   const capturarEmbedding = async () => {
-    if (!videoRef.current || !faceapiRef.current || !capturaAlunoId) return
+    if (!videoRef.current || !capturaAlunoId) return
+
+    // Usar melhor descriptor já coletado no buffer
+    const descriptorFinal = melhorDescriptor || descriptorBufferRef.current[descriptorBufferRef.current.length - 1]
+
+    if (!descriptorFinal) {
+      toast.error('Nenhum rosto com qualidade suficiente detectado. Ajuste posicao e iluminacao.')
+      return
+    }
+
+    // Capturar foto do vídeo para preview
+    const video = videoRef.current
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = video.videoWidth
+    tempCanvas.height = video.videoHeight
+    const tempCtx = tempCanvas.getContext('2d')
+    if (tempCtx) {
+      tempCtx.drawImage(video, 0, 0)
+      setFotoCapturada(tempCanvas.toDataURL('image/jpeg', 0.8))
+    }
 
     setCapturaStatus('enviando')
     setEnviandoEmbed(true)
 
     try {
-      const faceapi = faceapiRef.current
-      const video = videoRef.current
+      const base64 = float32ToBase64(descriptorFinal.descriptor)
+      const qualidade = Math.round(descriptorFinal.score * 100)
 
-      // Detectar com descriptor completo
-      const detection = await faceapi
-        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.6 }))
-        .withFaceLandmarks(true)
-        .withFaceDescriptor()
-
-      if (!detection) {
-        toast.error('Nenhum rosto detectado. Posicione o aluno em frente a camera.')
-        setCapturaStatus('detectando')
-        return
-      }
-
-      // Converter Float32Array para base64
-      const descriptor = detection.descriptor
-      const buffer = Buffer.from(new Float32Array(descriptor).buffer)
-      const base64 = buffer.toString('base64')
-      const qualidade = Math.round(detection.detection.score * 100)
-
-      // Enviar para API
       const res = await fetch('/api/admin/facial/enrollment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -310,23 +373,28 @@ export default function FacialEnrollmentPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        toast.error(err.error || 'Erro ao salvar embedding')
+        toast.error(err.mensagem || err.error || 'Erro ao salvar embedding')
         setCapturaStatus('detectando')
+        setFotoCapturada(null)
         return
       }
 
-      toast.success('Rosto cadastrado com sucesso!')
+      toast.success(`Rosto cadastrado! Qualidade: ${qualidade}% (${descriptorBufferRef.current.length} amostras)`)
       setCapturaStatus('capturado')
 
-      // Fechar após 1.5s
+      // Fechar após 2s
       setTimeout(() => {
         pararCamera()
         setCapturaAlunoId(null)
+        setFotoCapturada(null)
+        setMelhorDescriptor(null)
+        descriptorBufferRef.current = []
         buscarAlunos()
-      }, 1500)
-    } catch (err) {
+      }, 2000)
+    } catch {
       toast.error('Erro ao processar captura facial')
       setCapturaStatus('detectando')
+      setFotoCapturada(null)
     } finally {
       setEnviandoEmbed(false)
     }
@@ -764,12 +832,16 @@ export default function FacialEnrollmentPage() {
                     </div>
                   )}
 
-                  {/* Overlay de sucesso */}
+                  {/* Overlay de sucesso com preview */}
                   {capturaStatus === 'capturado' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-green-900/70">
+                    <div className="absolute inset-0 flex items-center justify-center bg-green-900/80">
                       <div className="text-center text-white">
-                        <CheckCircle className="w-16 h-16 mx-auto mb-3 text-green-400" />
+                        {fotoCapturada && (
+                          <img src={fotoCapturada} alt="Captura" className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-green-400 shadow-lg" />
+                        )}
+                        <CheckCircle className="w-10 h-10 mx-auto mb-2 text-green-400" />
                         <p className="text-xl font-bold">Rosto cadastrado!</p>
+                        <p className="text-sm text-green-200 mt-1">Qualidade: {qualidadeFace}%</p>
                       </div>
                     </div>
                   )}
@@ -801,14 +873,31 @@ export default function FacialEnrollmentPage() {
 
               {/* Footer */}
               <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {faceDetectada && (
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${qualidadeFace >= 70 ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Qualidade: <strong className={qualidadeFace >= 70 ? 'text-green-600' : 'text-yellow-600'}>{qualidadeFace}%</strong>
-                      </span>
-                    </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {cameraAtiva && (
+                    <>
+                      {/* Qualidade */}
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-2.5 h-2.5 rounded-full ${qualidadeFace >= 70 ? 'bg-green-500' : qualidadeFace > 0 ? 'bg-yellow-500' : 'bg-gray-300'} ${faceDetectada ? 'animate-pulse' : ''}`} />
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          Qualidade: <strong className={qualidadeFace >= 70 ? 'text-green-600' : 'text-yellow-600'}>{qualidadeFace || '-'}%</strong>
+                        </span>
+                      </div>
+                      {/* Tamanho do rosto */}
+                      {tamanhoRosto > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
+                            Rosto: <strong className={tamanhoRosto >= TAMANHO_MINIMO_ROSTO ? 'text-green-600' : 'text-orange-600'}>{tamanhoRosto}%</strong>
+                          </span>
+                        </div>
+                      )}
+                      {/* Amostras coletadas */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          Amostras: <strong className={descriptorBufferRef.current.length >= CAPTURAS_NECESSARIAS ? 'text-green-600' : 'text-gray-500'}>{descriptorBufferRef.current.length}</strong>/{CAPTURAS_NECESSARIAS}+
+                        </span>
+                      </div>
+                    </>
                   )}
                 </div>
                 <div className="flex gap-3">
@@ -823,7 +912,7 @@ export default function FacialEnrollmentPage() {
                   </button>
                   <button
                     onClick={capturarEmbedding}
-                    disabled={!faceDetectada || enviandoEmbed || qualidadeFace < 50 || capturaStatus === 'capturado'}
+                    disabled={!melhorDescriptor || enviandoEmbed || capturaStatus === 'capturado' || descriptorBufferRef.current.length < CAPTURAS_NECESSARIAS}
                     className="px-5 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                   >
                     {enviandoEmbed ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
