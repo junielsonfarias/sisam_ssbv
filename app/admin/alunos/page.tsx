@@ -5,7 +5,7 @@ import ModalAluno from '@/components/modal-aluno'
 import ModalHistoricoAluno from '@/components/modal-historico-aluno'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Edit, Trash2, Search, Eye, UserCircle } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Eye, UserCircle, GraduationCap, Users, School, RefreshCw } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { normalizarSerie, ordenarSeries } from '@/lib/dados/utils'
 import { Paginacao, PoloSimples, EscolaSimples, TurmaSimples } from '@/lib/dados/types'
@@ -402,133 +402,123 @@ export default function AlunosPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo']}>
-        <div className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-            <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-2">Gestão de Alunos</h1>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Total de alunos cadastrados: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{paginacao.total}</span>
-              </p>
+        <div className="space-y-6">
+          {/* Header com gradiente */}
+          <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl shadow-lg p-6 text-white print:hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-lg p-2">
+                  <GraduationCap className="w-8 h-8" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">Gestao de Alunos</h1>
+                  <p className="text-sm opacity-90">Cadastro, busca e gerenciamento de alunos</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={handlePesquisar} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Atualizar">
+                  <RefreshCw className="w-5 h-5" />
+                </button>
+                <button onClick={() => handleAbrirModal()}
+                  className="bg-white text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50 flex items-center gap-2 font-semibold text-sm shadow-sm transition-all">
+                  <Plus className="w-4 h-4" />
+                  Novo Aluno
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => handleAbrirModal()}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center w-full sm:w-auto"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Novo Aluno
-            </button>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 sm:gap-4">
-              <div className="relative sm:col-span-2 lg:col-span-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-                <input
-                  type="text"
-                  placeholder="Buscar aluno..."
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700"
-                />
+          {/* KPI Cards */}
+          {pesquisaIniciada && !carregando && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-2">
+                    <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{paginacao.total}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Total de Alunos</p>
+                  </div>
+                </div>
               </div>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-emerald-100 dark:bg-emerald-900/30 rounded-lg p-2">
+                    <GraduationCap className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{seriesDisponiveis.length}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Series</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-2">
+                    <School className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{escolas.length || polos.length}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{escolas.length ? 'Escolas' : 'Polos'}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-100 dark:bg-orange-900/30 rounded-lg p-2">
+                    <Eye className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{alunos.length}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Exibidos{paginacao.totalPaginas > 1 ? ` (p.${paginacao.pagina})` : ''}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-              <select
-                value={filtroPolo}
-                onChange={(e) => {
-                  setFiltroPolo(e.target.value)
-                  setFiltroEscola('')
-                  setFiltroTurma('')
-                  if (e.target.value) carregarEscolas(e.target.value)
-                  else setEscolas([])
-                }}
-                className="select-custom w-full"
-              >
+          {/* Filtros */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="relative lg:col-span-2">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input type="text" placeholder="Buscar por nome ou codigo..." value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700" />
+              </div>
+              <select value={filtroPolo} onChange={(e) => { setFiltroPolo(e.target.value); setFiltroEscola(''); setFiltroTurma(''); if (e.target.value) carregarEscolas(e.target.value); else setEscolas([]); }}
+                className="select-custom w-full">
                 <option value="">Todos os polos</option>
-                {polos.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nome}</option>
-                ))}
+                {polos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
               </select>
-
-              <select
-                value={filtroEscola}
-                onChange={(e) => {
-                  setFiltroEscola(e.target.value)
-                  setFiltroTurma('')
-                }}
-                className="select-custom w-full"
-                disabled={!filtroPolo}
-              >
+              <select value={filtroEscola} onChange={(e) => { setFiltroEscola(e.target.value); setFiltroTurma(''); }}
+                className="select-custom w-full" disabled={!filtroPolo}>
                 <option value="">Todas as escolas</option>
-                {escolas.map((e) => (
-                  <option key={e.id} value={e.id}>{e.nome}</option>
-                ))}
+                {escolas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
               </select>
-
-              <select
-                value={filtroTurma}
-                onChange={(e) => setFiltroTurma(e.target.value)}
-                className="select-custom w-full"
-                disabled={!filtroEscola}
-              >
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+              <select value={filtroTurma} onChange={(e) => setFiltroTurma(e.target.value)}
+                className="select-custom w-full" disabled={!filtroEscola}>
                 <option value="">Todas as turmas</option>
-                {turmas.map((t) => (
-                  <option key={t.id} value={t.id}>{t.codigo} - {t.nome || ''}</option>
-                ))}
+                {turmas.map((t) => <option key={t.id} value={t.id}>{t.codigo} - {t.nome || ''}</option>)}
               </select>
-
-              <select
-                value={filtroSerie}
-                onChange={(e) => setFiltroSerie(e.target.value)}
-                className="select-custom w-full"
-              >
-                <option value="">Todas as séries</option>
-                {seriesDisponiveis.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+              <select value={filtroSerie} onChange={(e) => setFiltroSerie(e.target.value)} className="select-custom w-full">
+                <option value="">Todas as series</option>
+                {seriesDisponiveis.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-
-              <select
-                value={filtroAno}
-                onChange={(e) => setFiltroAno(e.target.value)}
-                className="select-custom w-full"
-              >
+              <select value={filtroAno} onChange={(e) => setFiltroAno(e.target.value)} className="select-custom w-full">
                 <option value="">Todos os anos</option>
-                {anosDisponiveis.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
+                {anosDisponiveis.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
-
-              {/* Botão de Pesquisar */}
-              <button
-                onClick={handlePesquisar}
-                disabled={carregando}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full transition-colors"
-              >
+              <button onClick={handlePesquisar} disabled={carregando}
+                className="bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-colors">
                 <Search className="w-4 h-4" />
                 {carregando ? 'Pesquisando...' : 'Pesquisar'}
               </button>
             </div>
           </div>
-
-          {/* Card com total de alunos */}
-          {!carregando && pesquisaIniciada && (
-            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm sm:text-base opacity-90 mb-1">Total de Alunos</p>
-                  <p className="text-3xl sm:text-4xl font-bold">{paginacao.total}</p>
-                  {paginacao.totalPaginas > 1 && (
-                    <p className="text-sm opacity-75 mt-1">
-                      Mostrando {alunos.length} de {paginacao.total} (Página {paginacao.pagina} de {paginacao.totalPaginas})
-                    </p>
-                  )}
-                </div>
-                <div className="bg-white bg-opacity-20 rounded-full p-3 sm:p-4">
-                  <Plus className="w-8 h-8 sm:w-10 sm:h-10" />
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
             {carregando ? (

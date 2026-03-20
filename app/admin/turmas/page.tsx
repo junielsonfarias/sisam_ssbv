@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Edit, Trash2, Search, Users, Printer, X, Eye, GraduationCap, Calendar, School } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Users, Printer, X, Eye, GraduationCap, Calendar, School, RefreshCw, LayoutGrid } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useDebounce } from '@/lib/hooks/useDebounce'
@@ -493,80 +493,102 @@ export default function TurmasPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola']}>
-      <div className="p-3 sm:p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">Gestão de Turmas</h1>
-          <button
-            onClick={() => handleAbrirModal()}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Nova Turma
-          </button>
+      <div className="space-y-6">
+        {/* Header com gradiente */}
+        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white print:hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 rounded-lg p-2">
+                <LayoutGrid className="w-8 h-8" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Gestao de Turmas</h1>
+                <p className="text-sm opacity-90">Organize turmas, series e alunos por escola</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => carregarTurmas()} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Atualizar">
+                <RefreshCw className="w-5 h-5" />
+              </button>
+              <button onClick={() => handleAbrirModal()}
+                className="bg-white text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50 flex items-center gap-2 font-semibold text-sm shadow-sm transition-all">
+                <Plus className="w-4 h-4" />
+                Nova Turma
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Filtros */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 mb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ano Letivo</label>
-              <select
-                value={filtroAno}
-                onChange={e => setFiltroAno(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-              >
-                <option value="">Todos</option>
-                {anosDisponiveis.map(ano => (
-                  <option key={ano} value={ano}>{ano}</option>
-                ))}
-              </select>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-violet-100 dark:bg-violet-900/30 rounded-lg p-2">
+                <LayoutGrid className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{turmas.length}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Turmas</p>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Escola</label>
-              <select
-                value={filtroEscola}
-                onChange={e => setFiltroEscola(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-              >
-                <option value="">Todas</option>
-                {escolas.map(e => (
-                  <option key={e.id} value={e.id}>{e.nome}</option>
-                ))}
-              </select>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-2">
+                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{turmas.reduce((acc, t) => acc + t.total_alunos, 0)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total Alunos</p>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Série</label>
-              <select
-                value={filtroSerie}
-                onChange={e => setFiltroSerie(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-              >
-                <option value="">Todas</option>
-                {seriesUnicas.map(s => (
-                  <option key={s} value={s}>{formatSerie(s)}</option>
-                ))}
-              </select>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-100 dark:bg-emerald-900/30 rounded-lg p-2">
+                <GraduationCap className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{seriesUnicas.length}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Series</p>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Busca</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={busca}
-                  onChange={e => setBusca(e.target.value)}
-                  placeholder="Código, nome ou escola..."
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                />
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-100 dark:bg-orange-900/30 rounded-lg p-2">
+                <School className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{escolas.length}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Escolas</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Resumo */}
-        <div className="flex items-center gap-4 mb-4 text-sm text-gray-600 dark:text-gray-400">
-          <span>{turmas.length} turma(s) encontrada(s)</span>
-          <span>{turmas.reduce((acc, t) => acc + t.total_alunos, 0)} aluno(s) no total</span>
+        {/* Filtros */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <select value={filtroAno} onChange={e => setFiltroAno(e.target.value)} className="select-custom w-full">
+              <option value="">Todos os anos</option>
+              {anosDisponiveis.map(ano => <option key={ano} value={ano}>{ano}</option>)}
+            </select>
+            <select value={filtroEscola} onChange={e => setFiltroEscola(e.target.value)} className="select-custom w-full">
+              <option value="">Todas as escolas</option>
+              {escolas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+            </select>
+            <select value={filtroSerie} onChange={e => setFiltroSerie(e.target.value)} className="select-custom w-full">
+              <option value="">Todas as series</option>
+              {seriesUnicas.map(s => <option key={s} value={s}>{formatSerie(s)}</option>)}
+            </select>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
+                placeholder="Codigo, nome ou escola..."
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+          </div>
         </div>
 
         {/* Lista de Turmas */}

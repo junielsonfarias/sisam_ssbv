@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useCallback } from 'react'
-import { Save, Search, AlertCircle, CheckCircle, ArrowLeft, Scan, ExternalLink } from 'lucide-react'
+import { Save, Search, AlertCircle, CheckCircle, ArrowLeft, Scan, ExternalLink, CalendarCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -202,34 +202,39 @@ export default function FrequenciaPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola']}>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Frequência Escolar</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Lançamento de frequência por bimestre
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {modo === 'lancamento' && turmaId && (
-              <Link
-                href={`/admin/frequencia-diaria?turma_id=${turmaId}${escolaId ? `&escola_id=${escolaId}` : ''}`}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
-              >
-                <Scan className="w-4 h-4" />
-                Ver Frequência Diária
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            )}
-            {modo === 'lancamento' && (
-              <button
-                onClick={() => setModo('selecao')}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Voltar
-              </button>
-            )}
+        {/* Header com gradiente */}
+        <div className="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-xl shadow-lg p-6 text-white print:hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 rounded-lg p-2">
+                <CalendarCheck className="w-8 h-8" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Frequencia Bimestral</h1>
+                <p className="text-sm opacity-90">Lancamento de presencas e faltas por bimestre</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {modo === 'lancamento' && turmaId && (
+                <Link
+                  href={`/admin/frequencia-diaria?turma_id=${turmaId}${escolaId ? `&escola_id=${escolaId}` : ''}`}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <Scan className="w-4 h-4" />
+                  Diaria
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              )}
+              {modo === 'lancamento' && (
+                <button
+                  onClick={() => setModo('selecao')}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Voltar
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

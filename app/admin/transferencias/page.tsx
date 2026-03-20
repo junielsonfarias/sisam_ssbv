@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useCallback } from 'react'
-import { Search, ArrowUpRight, ArrowDownLeft, TrendingUp, TrendingDown, Filter } from 'lucide-react'
+import { Search, ArrowUpRight, ArrowDownLeft, TrendingUp, TrendingDown, Filter, ArrowLeftRight } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
@@ -140,12 +140,17 @@ export default function TransferenciasPage() {
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Gestão de Transferências</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Acompanhe as movimentações de alunos entre escolas
-          </p>
+        {/* Header com gradiente */}
+        <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-lg p-6 text-white print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 rounded-lg p-2">
+              <ArrowLeftRight className="w-8 h-8" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Gestao de Transferencias</h1>
+              <p className="text-sm opacity-90">Acompanhe as movimentacoes de alunos entre escolas</p>
+            </div>
+          </div>
         </div>
 
         {/* Filtros */}
