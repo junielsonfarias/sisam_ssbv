@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(
       `SELECT ef.embedding_data, ef.qualidade, ef.versao_modelo,
+              ef.criado_em, ef.atualizado_em,
               a.nome AS aluno_nome
        FROM embeddings_faciais ef
        INNER JOIN alunos a ON a.id = ef.aluno_id
@@ -47,6 +48,8 @@ export async function GET(request: NextRequest) {
       embedding_data: embeddingBase64,
       qualidade: row.qualidade,
       versao_modelo: row.versao_modelo,
+      criado_em: row.criado_em,
+      atualizado_em: row.atualizado_em,
     })
   } catch (error: any) {
     console.error('Erro ao buscar embedding:', error)
@@ -102,7 +105,8 @@ export async function POST(request: NextRequest) {
        ON CONFLICT (aluno_id) DO UPDATE SET
         embedding_data = EXCLUDED.embedding_data,
         qualidade = EXCLUDED.qualidade,
-        registrado_por = EXCLUDED.registrado_por
+        registrado_por = EXCLUDED.registrado_por,
+        atualizado_em = CURRENT_TIMESTAMP
        RETURNING id`,
       [aluno_id, embeddingBuffer, qualidade || null, usuario.id]
     )

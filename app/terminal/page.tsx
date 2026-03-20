@@ -837,12 +837,49 @@ export default function TerminalPWA() {
           </div>
         </div>
 
-        {/* Iniciando reconhecimento */}
+        {/* Iniciando reconhecimento ou erro de câmera */}
         {!reconhecendo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin text-teal-400" />
-              <p className="text-lg">Iniciando reconhecimento...</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+            <div className="text-center max-w-sm px-4">
+              {mensagemTipo === 'erro' && mensagem ? (
+                <>
+                  <AlertCircle className="w-14 h-14 mx-auto mb-4 text-red-400" />
+                  <p className="text-lg font-medium text-white mb-2">{mensagem}</p>
+                  <p className="text-sm text-gray-400 mb-6">
+                    Verifique se a permissao de camera esta habilitada nas configuracoes do navegador.
+                  </p>
+                  <button
+                    onClick={async () => {
+                      setMensagem('')
+                      setMensagemTipo('info')
+                      try {
+                        let stream: MediaStream
+                        try {
+                          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+                        } catch {
+                          stream = await navigator.mediaDevices.getUserMedia({ video: true })
+                        }
+                        if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
+                        streamRef.current = stream
+                        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play() }
+                        setCameraAtiva(true)
+                      } catch {
+                        setMensagem('Camera indisponivel. Verifique as permissoes.')
+                        setMensagemTipo('erro')
+                      }
+                    }}
+                    className="px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Camera className="w-5 h-5" />
+                    Tentar Novamente
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin text-teal-400" />
+                  <p className="text-lg">Iniciando reconhecimento...</p>
+                </>
+              )}
             </div>
           </div>
         )}
