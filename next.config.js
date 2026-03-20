@@ -1,3 +1,11 @@
+// Validação de variáveis de ambiente obrigatórias no build
+const requiredEnvVars = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET']
+const missingEnvVars = requiredEnvVars.filter(v => !process.env[v])
+if (missingEnvVars.length > 0) {
+  console.warn(`⚠️  Variáveis de ambiente não configuradas: ${missingEnvVars.join(', ')}`)
+  console.warn('   A aplicação não funcionará corretamente sem estas variáveis.')
+}
+
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,

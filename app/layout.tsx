@@ -3,6 +3,7 @@ import './globals.css'
 import { PWAInstallPrompt, ConnectionStatus } from '@/components/pwa-install-prompt'
 import { ThemeProvider } from '@/lib/theme-provider'
 import { ToastProvider } from '@/components/toast'
+import ErrorBoundary from '@/components/error-boundary'
 
 export const metadata: Metadata = {
   title: 'SISAM - Sistema de Avaliacao Municipal',
@@ -76,9 +77,11 @@ export default function RootLayout({
       <body className="bg-theme-primary text-theme-primary">
         <ThemeProvider defaultTheme="light">
           <ToastProvider>
-            <ConnectionStatus />
-            {children}
-            <PWAInstallPrompt />
+            <ErrorBoundary>
+              <ConnectionStatus />
+              {children}
+              <PWAInstallPrompt />
+            </ErrorBoundary>
           </ToastProvider>
         </ThemeProvider>
       </body>

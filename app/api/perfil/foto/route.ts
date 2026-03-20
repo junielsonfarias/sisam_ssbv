@@ -24,10 +24,11 @@ export async function POST(request: NextRequest) {
     // Se recebeu base64, salvar como data URL
     // Em produção, você deve fazer upload para Supabase Storage ou S3
     if (foto_base64) {
-      // Validar se é uma imagem válida
-      if (!foto_base64.startsWith('data:image/')) {
+      // Validar se é uma imagem com formato permitido (whitelist)
+      const mimeMatch = foto_base64.match(/^data:image\/(jpeg|jpg|png|webp);base64,/)
+      if (!mimeMatch) {
         return NextResponse.json(
-          { mensagem: 'Formato de imagem inválido' },
+          { mensagem: 'Formato não permitido. Use PNG, JPG ou WebP.' },
           { status: 400 }
         )
       }

@@ -278,7 +278,17 @@ export async function GET(request: NextRequest) {
       ORDER BY e.nome, t.serie, t.codigo
     `
 
-    // Executar todas as queries em paralelo
+    // Helper: query tolerante a falha
+    const safeQuery = async (sql: string, params: any[] = []) => {
+      try {
+        return await pool.query(sql, params)
+      } catch (err: any) {
+        console.error('[Dashboard Gestor] Query falhou:', err?.message)
+        return { rows: [] }
+      }
+    }
+
+    // Executar todas as queries em paralelo (cada uma tolerante a falha)
     const [
       alunosResult,
       turmasResult,
@@ -292,17 +302,17 @@ export async function GET(request: NextRequest) {
       situacaoResult,
       turmasDetResult,
     ] = await Promise.all([
-      pool.query(alunosQuery, alunosParams),
-      pool.query(turmasQuery, turmasParams),
-      pool.query(notasQuery, notasParams),
-      pool.query(mediaDiscQuery, mediaDiscParams),
-      pool.query(freqQuery, freqParams),
-      pool.query(transfQuery, transfParams),
-      pool.query(conselhoQuery, conselhoParams),
-      pool.query(distQuery, distParams),
-      pool.query(pcdQuery, pcdParams),
-      pool.query(situacaoQuery, situacaoParams),
-      pool.query(turmasDetQuery, turmasDetParams),
+      safeQuery(alunosQuery, alunosParams),
+      safeQuery(turmasQuery, turmasParams),
+      safeQuery(notasQuery, notasParams),
+      safeQuery(mediaDiscQuery, mediaDiscParams),
+      safeQuery(freqQuery, freqParams),
+      safeQuery(transfQuery, transfParams),
+      safeQuery(conselhoQuery, conselhoParams),
+      safeQuery(distQuery, distParams),
+      safeQuery(pcdQuery, pcdParams),
+      safeQuery(situacaoQuery, situacaoParams),
+      safeQuery(turmasDetQuery, turmasDetParams),
     ])
 
     const alunosData = alunosResult.rows[0] || {}

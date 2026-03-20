@@ -73,7 +73,7 @@ function saveImageLocally(base64Data: string): string | null {
     ensureDirectoryExists(UPLOADS_PATH)
 
     // Extrair o tipo e os dados da string base64
-    const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/)
+    const matches = base64Data.match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/)
     if (!matches) {
       console.error('Formato de imagem invalido')
       return null

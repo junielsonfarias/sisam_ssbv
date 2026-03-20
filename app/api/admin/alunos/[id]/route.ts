@@ -46,7 +46,17 @@ export async function GET(
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    // 2-7: Buscar dados complementares em paralelo
+    // Helper: query tolerante a falha (não derruba toda a request se uma query falhar)
+    const safeQuery = async (sql: string, params: any[] = []) => {
+      try {
+        return await pool.query(sql, params)
+      } catch (err: any) {
+        console.error(`[Aluno ${alunoId}] Query falhou:`, err?.message)
+        return { rows: [] }
+      }
+    }
+
+    // 2-7: Buscar dados complementares em paralelo (cada query tolerante a falha)
     const [
       historicoResult,
       notasResult,
@@ -56,7 +66,7 @@ export async function GET(
       turmasHistResult,
     ] = await Promise.all([
       // 2. Histórico de situação
-      pool.query(
+      safeQuery(
         `SELECT hs.*, u.nome as registrado_por_nome,
                 ed.nome as escola_destino_ref_nome,
                 eo.nome as escola_origem_ref_nome
@@ -70,7 +80,7 @@ export async function GET(
       ),
 
       // 3. Notas escolares (todos os períodos)
-      pool.query(
+      safeQuery(
         `SELECT ne.*, d.nome as disciplina_nome, d.abreviacao as disciplina_abreviacao,
                 pl.nome as periodo_nome, pl.numero as periodo_numero
          FROM notas_escolares ne
@@ -82,7 +92,7 @@ export async function GET(
       ),
 
       // 4. Frequência unificada
-      pool.query(
+      safeQuery(
         `SELECT fb.*, pl.nome as periodo_nome, pl.numero as periodo_numero
          FROM frequencia_bimestral fb
          INNER JOIN periodos_letivos pl ON fb.periodo_id = pl.id
@@ -92,7 +102,7 @@ export async function GET(
       ),
 
       // 5. Resultados SISAM (consolidados) com config da série
-      pool.query(
+      safeQuery(
         `SELECT rc.*,
                 cs.qtd_questoes_lp, cs.qtd_questoes_mat, cs.qtd_questoes_ch, cs.qtd_questoes_cn,
                 cs.tem_producao_textual, cs.qtd_itens_producao,
@@ -106,7 +116,7 @@ export async function GET(
       ),
 
       // 6. Pareceres do conselho de classe
-      pool.query(
+      safeQuery(
         `SELECT cca.parecer, cca.observacao, cc.ano_letivo,
                 pl.nome as periodo_nome, pl.numero as periodo_numero
          FROM conselho_classe_alunos cca
@@ -118,7 +128,7 @@ export async function GET(
       ),
 
       // 7. Histórico de turmas (matrículas em diferentes turmas/anos)
-      pool.query(
+      safeQuery(
         `SELECT DISTINCT a2.ano_letivo, a2.serie, t2.codigo as turma_codigo, t2.nome as turma_nome,
                 e2.nome as escola_nome, a2.situacao, a2.data_matricula
          FROM alunos a2

@@ -138,14 +138,18 @@ let lastCleanup = Date.now()
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // Ignorar requisições que não são API
+  // Requisições que não são API — aplicar apenas headers de segurança
   if (!pathname.startsWith('/api/')) {
-    return NextResponse.next()
+    const response = NextResponse.next()
+    addSecurityHeaders(response)
+    return response
   }
 
-  // Verificar se endpoint está excluído
+  // Verificar se endpoint está excluído do rate limiting (mas recebe headers de segurança)
   if (EXCLUDED_PATHS.some(path => pathname.startsWith(path))) {
-    return NextResponse.next()
+    const response = NextResponse.next()
+    addSecurityHeaders(response)
+    return response
   }
 
   // Limpar entradas antigas periodicamente
@@ -187,7 +191,7 @@ export function middleware(request: NextRequest) {
   if (!result.allowed) {
     const retryAfter = Math.ceil((result.resetAt - now) / 1000)
 
-    return NextResponse.json(
+    const blockedResponse = NextResponse.json(
       {
         mensagem: 'Muitas requisições. Tente novamente em alguns segundos.',
         erro: 'RATE_LIMIT_EXCEEDED',
@@ -203,6 +207,8 @@ export function middleware(request: NextRequest) {
         }
       }
     )
+    addSecurityHeaders(blockedResponse)
+    return blockedResponse
   }
 
   // Adicionar headers de rate limit na resposta
@@ -211,10 +217,28 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-RateLimit-Remaining', result.remaining.toString())
   response.headers.set('X-RateLimit-Reset', result.resetAt.toString())
 
+  // Headers de segurança
+  addSecurityHeaders(response)
+
   return response
+}
+
+/**
+ * Headers de segurança aplicados em todas as respostas
+ */
+function addSecurityHeaders(response: NextResponse) {
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  // camera=(self) necessário para reconhecimento facial
+  response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
 }
 
 // Configurar quais paths o middleware deve interceptar
 export const config = {
-  matcher: '/api/:path*',
+  matcher: [
+    '/api/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|logo.png|models|uploads|sw.js|manifest.json|icons).*)',
+  ],
 }

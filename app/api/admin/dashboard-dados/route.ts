@@ -1377,11 +1377,21 @@ export async function GET(request: NextRequest) {
     // Executar queries em lotes para evitar MaxClientsInSessionMode
     // CORREÇÃO: Queries que usam whereClauseBase devem usar paramsBase
     // Isso garante que contagens de alunos/presentes/faltantes não sejam afetadas pelo filtro de disciplina
+    // Helper: query tolerante a falha (não derruba toda a request se uma query falhar)
+    const safeQuery = async (sql: string, params: any[] = []) => {
+      try {
+        return await pool.query(sql, params)
+      } catch (err: any) {
+        console.error('[Dashboard Dados] Query falhou:', err?.message)
+        return { rows: [] }
+      }
+    }
+
     // Lote 1: Métricas principais e dados básicos
     // ========== EXECUÇÃO OTIMIZADA: TODAS AS QUERIES EM PARALELO ==========
     // Consolidamos de 6 lotes sequenciais para 2 lotes paralelos (redução de ~60% no tempo)
 
-    // Lote Principal: Todas as queries de dados
+    // Lote Principal: Todas as queries de dados (cada uma tolerante a falha)
     const [
       // Métricas e estatísticas básicas
       metricasResult,
@@ -1415,35 +1425,35 @@ export async function GET(request: NextRequest) {
       turmasComMaisAcertosResult
     ] = await Promise.all([
       // Métricas e estatísticas básicas
-      pool.query(metricasQuery, paramsBase),
-      pool.query(niveisQuery, paramsBase),
-      pool.query(mediasPorSerieQuery, paramsBase),
-      pool.query(mediasPorPoloQuery, paramsBase),
-      pool.query(faixasNotaQuery, params),
+      safeQuery(metricasQuery, paramsBase),
+      safeQuery(niveisQuery, paramsBase),
+      safeQuery(mediasPorSerieQuery, paramsBase),
+      safeQuery(mediasPorPoloQuery, paramsBase),
+      safeQuery(faixasNotaQuery, params),
       // Escolas, turmas e presença
-      pool.query(mediasPorEscolaQuery, paramsBase),
-      pool.query(mediasPorTurmaQuery, paramsBase),
-      pool.query(presencaQuery, paramsBase),
-      pool.query(topAlunosQuery, params),
-      pool.query(totalAlunosQuery, params),
+      safeQuery(mediasPorEscolaQuery, paramsBase),
+      safeQuery(mediasPorTurmaQuery, paramsBase),
+      safeQuery(presencaQuery, paramsBase),
+      safeQuery(topAlunosQuery, params),
+      safeQuery(totalAlunosQuery, params),
       // Alunos detalhados e filtros
-      pool.query(alunosDetalhadosQuery, params),
-      pool.query(polosQuery, filtrosParams),
-      pool.query(escolasQuery, filtrosParams),
-      pool.query(seriesQuery, filtrosParams),
-      pool.query(turmasQuery, filtrosParams),
+      safeQuery(alunosDetalhadosQuery, params),
+      safeQuery(polosQuery, filtrosParams),
+      safeQuery(escolasQuery, filtrosParams),
+      safeQuery(seriesQuery, filtrosParams),
+      safeQuery(turmasQuery, filtrosParams),
       // Anos letivos, níveis e taxa de acerto
-      pool.query(anosLetivosQuery, filtrosParams),
-      pool.query(niveisDispQuery, filtrosParams),
-      pool.query(taxaAcertoPorDisciplinaQuery, rpParams),
-      pool.query(taxaAcertoGeralQuery, rpParams),
+      safeQuery(anosLetivosQuery, filtrosParams),
+      safeQuery(niveisDispQuery, filtrosParams),
+      safeQuery(taxaAcertoPorDisciplinaQuery, rpParams),
+      safeQuery(taxaAcertoGeralQuery, rpParams),
       // Análises de acertos/erros
-      pool.query(questoesComMaisErrosQuery, rpParams),
-      pool.query(escolasComMaisErrosQuery, rpParams),
-      pool.query(turmasComMaisErrosQuery, rpParams),
-      pool.query(questoesComMaisAcertosQuery, rpParams),
-      pool.query(escolasComMaisAcertosQuery, rpParams),
-      pool.query(turmasComMaisAcertosQuery, rpParams)
+      safeQuery(questoesComMaisErrosQuery, rpParams),
+      safeQuery(escolasComMaisErrosQuery, rpParams),
+      safeQuery(turmasComMaisErrosQuery, rpParams),
+      safeQuery(questoesComMaisAcertosQuery, rpParams),
+      safeQuery(escolasComMaisAcertosQuery, rpParams),
+      safeQuery(turmasComMaisAcertosQuery, rpParams)
     ])
 
     // Lote de Resumos: Para cache local (somente se não tem filtro de série)
@@ -1454,10 +1464,10 @@ export async function GET(request: NextRequest) {
 
     if (!serie) {
       const [questoesResumo, escolasResumo, turmasResumo, disciplinasResumo] = await Promise.all([
-        pool.query(resumoQuestoesPorSerieQuery, rpParamsSemSerie),
-        pool.query(resumoEscolasPorSerieQuery, rpParamsSemSerie),
-        pool.query(resumoTurmasPorSerieQuery, rpParamsSemSerie),
-        pool.query(resumoDisciplinasPorSerieQuery, rpParamsSemSerie)
+        safeQuery(resumoQuestoesPorSerieQuery, rpParamsSemSerie),
+        safeQuery(resumoEscolasPorSerieQuery, rpParamsSemSerie),
+        safeQuery(resumoTurmasPorSerieQuery, rpParamsSemSerie),
+        safeQuery(resumoDisciplinasPorSerieQuery, rpParamsSemSerie)
       ])
       resumoQuestoesPorSerieResult = questoesResumo
       resumoEscolasPorSerieResult = escolasResumo

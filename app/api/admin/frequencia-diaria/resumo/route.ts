@@ -73,10 +73,15 @@ export async function GET(request: NextRequest) {
       dispositivosParams.push(escolaId)
     }
 
+    const safeQuery = async (sql: string, params: any[] = []) => {
+      try { return await pool.query(sql, params) }
+      catch (err: any) { console.error('[Freq Resumo] Query falhou:', err?.message); return { rows: [] } }
+    }
+
     const [presencaResult, alunosResult, dispositivosResult] = await Promise.all([
-      pool.query(presencaQuery, presencaParams),
-      pool.query(alunosQuery, alunosParams),
-      pool.query(dispositivosQuery, dispositivosParams),
+      safeQuery(presencaQuery, presencaParams),
+      safeQuery(alunosQuery, alunosParams),
+      safeQuery(dispositivosQuery, dispositivosParams),
     ])
 
     const presenca = presencaResult.rows[0]

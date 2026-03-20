@@ -62,6 +62,10 @@ export interface TokenPayload {
   poloId?: string | null;
   /** ID da escola (para usuários do tipo 'escola') */
   escolaId?: string | null;
+  /** Timestamp de emissão do token (incluído automaticamente pelo JWT) */
+  iat?: number;
+  /** Timestamp de expiração do token (incluído automaticamente pelo JWT) */
+  exp?: number;
 }
 
 // ============================================================================
