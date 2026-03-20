@@ -472,43 +472,129 @@ function ModalKPI({ tipo, data, onClose }: { tipo: ModalType; data: DashboardDat
 
 function ModalAlunos({ data }: { data: DashboardData }) {
   const { formatSerie } = useSeries()
+  const [busca, setBusca] = useState('')
+  const [filtroSituacao, setFiltroSituacao] = useState('')
+
   const situacoes = [
-    { label: 'Cursando', valor: data.alunos.cursando, cor: 'bg-blue-500' },
-    { label: 'Aprovados', valor: data.alunos.aprovados, cor: 'bg-emerald-500' },
-    { label: 'Reprovados', valor: data.alunos.reprovados, cor: 'bg-red-500' },
-    { label: 'Transferidos', valor: data.alunos.transferidos, cor: 'bg-orange-500' },
-    { label: 'Abandono', valor: data.alunos.abandono, cor: 'bg-gray-500' },
+    { key: 'cursando', label: 'Cursando', valor: data.alunos.cursando, cor: 'bg-blue-500', corTexto: 'text-blue-700 dark:text-blue-300', corFundo: 'bg-blue-50 dark:bg-blue-900/20', icon: Users },
+    { key: 'aprovado', label: 'Aprovados', valor: data.alunos.aprovados, cor: 'bg-emerald-500', corTexto: 'text-emerald-700 dark:text-emerald-300', corFundo: 'bg-emerald-50 dark:bg-emerald-900/20', icon: TrendingUp },
+    { key: 'reprovado', label: 'Reprovados', valor: data.alunos.reprovados, cor: 'bg-red-500', corTexto: 'text-red-700 dark:text-red-300', corFundo: 'bg-red-50 dark:bg-red-900/20', icon: TrendingDown },
+    { key: 'transferido', label: 'Transferidos', valor: data.alunos.transferidos, cor: 'bg-orange-500', corTexto: 'text-orange-700 dark:text-orange-300', corFundo: 'bg-orange-50 dark:bg-orange-900/20', icon: ArrowLeftRight },
+    { key: 'abandono', label: 'Abandono', valor: data.alunos.abandono, cor: 'bg-gray-500', corTexto: 'text-gray-700 dark:text-gray-300', corFundo: 'bg-gray-50 dark:bg-gray-700/50', icon: AlertTriangle },
   ]
   const total = data.alunos.total
 
+  // Barra de distribuição visual
+  const barraSegmentos = situacoes.filter(s => s.valor > 0).map(s => ({
+    ...s, pct: total > 0 ? (s.valor / total) * 100 : 0
+  }))
+
+  // Distribuição por série
+  const seriesOrdenadas = [...(data.distribuicao_serie || [])].sort((a, b) => b.total - a.total)
+  const maxSerie = seriesOrdenadas.length > 0 ? seriesOrdenadas[0].total : 1
+
+  // Filtrar alunos
+  const alunosFiltrados = (data.alunos_situacao || []).filter(a => {
+    const matchBusca = !busca || a.nome.toLowerCase().includes(busca.toLowerCase()) || a.turma_codigo?.toLowerCase().includes(busca.toLowerCase())
+    const matchSituacao = !filtroSituacao || a.situacao === filtroSituacao
+    return matchBusca && matchSituacao
+  })
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {situacoes.map(s => (
-          <div key={s.label} className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{s.valor}</p>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <div className={`w-2 h-2 rounded-full ${s.cor}`} />
-              <span className="text-xs text-gray-500 dark:text-gray-400">{s.label}</span>
-            </div>
-            {total > 0 && <p className="text-[10px] text-gray-400 mt-1">{((s.valor / total) * 100).toFixed(1)}%</p>}
-          </div>
-        ))}
-        <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-3 text-center">
-          <p className="text-2xl font-bold text-violet-700 dark:text-violet-300">{data.alunos.pcd}</p>
-          <div className="flex items-center justify-center gap-2 mt-1">
-            <Accessibility className="w-3 h-3 text-violet-500" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">PCD</span>
-          </div>
+    <div className="space-y-5">
+      {/* Header com total destacado */}
+      <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="bg-blue-100 dark:bg-blue-900/30 rounded-xl p-3">
+          <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
         </div>
+        <div className="flex-1">
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{total}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">alunos matriculados</p>
+        </div>
+        {data.alunos.pcd > 0 && (
+          <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg px-3 py-2 text-center">
+            <div className="flex items-center gap-1.5">
+              <Accessibility className="w-4 h-4 text-violet-500" />
+              <span className="text-lg font-bold text-violet-700 dark:text-violet-300">{data.alunos.pcd}</span>
+            </div>
+            <p className="text-[10px] text-violet-500">PCD</p>
+          </div>
+        )}
       </div>
 
+      {/* Barra de distribuição visual */}
+      {total > 0 && (
+        <div className="space-y-2">
+          <div className="flex h-3 rounded-full overflow-hidden">
+            {barraSegmentos.map(s => (
+              <div key={s.key} className={`${s.cor} transition-all`} style={{ width: `${s.pct}%` }}
+                title={`${s.label}: ${s.valor} (${s.pct.toFixed(1)}%)`} />
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {barraSegmentos.map(s => (
+              <div key={s.key} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <div className={`w-2 h-2 rounded-full ${s.cor}`} />
+                <span>{s.label}: <strong className="text-gray-700 dark:text-gray-200">{s.valor}</strong> ({s.pct.toFixed(1)}%)</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cards de situação clicáveis (filtro) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        {situacoes.map(s => {
+          const SIcon = s.icon
+          const ativo = filtroSituacao === s.key
+          return (
+            <button key={s.key} onClick={() => setFiltroSituacao(ativo ? '' : s.key)}
+              className={`rounded-lg p-3 text-center transition-all border-2 ${
+                ativo ? `${s.corFundo} border-current ${s.corTexto} shadow-sm` : `${s.corFundo} border-transparent hover:border-gray-200 dark:hover:border-slate-600`
+              }`}>
+              <SIcon className={`w-4 h-4 mx-auto mb-1 ${s.corTexto}`} />
+              <p className={`text-xl font-bold ${s.corTexto}`}>{s.valor}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">{s.label}</p>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Distribuição por série */}
+      {seriesOrdenadas.length > 0 && (
+        <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4">
+          <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Alunos por Serie</h4>
+          <div className="space-y-2">
+            {seriesOrdenadas.map(s => (
+              <div key={s.serie} className="flex items-center gap-3">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300 w-16 text-right">{formatSerie(s.serie)}</span>
+                <div className="flex-1 h-5 bg-gray-200 dark:bg-slate-600 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full flex items-center justify-end pr-2 transition-all"
+                    style={{ width: `${Math.max((s.total / maxSerie) * 100, 8)}%` }}>
+                    {s.total > 3 && <span className="text-[10px] font-bold text-white">{s.total}</span>}
+                  </div>
+                </div>
+                {s.total <= 3 && <span className="text-xs font-semibold text-gray-500 w-6">{s.total}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tabela de alunos com busca */}
       {data.alunos_situacao && data.alunos_situacao.length > 0 && (
         <>
-          <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-4">Lista de alunos ({data.alunos_situacao.length})</h4>
-          <div className="overflow-x-auto">
+          <div className="flex items-center gap-3 mt-2">
+            <div className="relative flex-1">
+              <input type="text" placeholder="Buscar aluno ou turma..."
+                value={busca} onChange={e => setBusca(e.target.value)}
+                className="w-full pl-3 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+            <span className="text-xs text-gray-400 whitespace-nowrap">{alunosFiltrados.length} de {data.alunos_situacao.length}</span>
+          </div>
+          <div className="overflow-x-auto max-h-[280px] overflow-y-auto">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 bg-white dark:bg-slate-800 z-10">
                 <tr className="text-left text-xs text-gray-500 dark:text-gray-400 border-b dark:border-slate-600">
                   <th className="pb-2 font-medium">#</th>
                   <th className="pb-2 font-medium">Nome</th>
@@ -519,22 +605,22 @@ function ModalAlunos({ data }: { data: DashboardData }) {
                 </tr>
               </thead>
               <tbody>
-                {data.alunos_situacao.map((a, i) => (
+                {alunosFiltrados.map((a, i) => (
                   <tr key={a.id} className="border-b border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                    <td className="py-2 text-gray-400">{i + 1}</td>
-                    <td className="py-2 font-medium text-gray-800 dark:text-gray-200">{a.nome}</td>
-                    <td className="py-2">{formatSerie(a.serie)}</td>
-                    <td className="py-2">{a.turma_codigo}</td>
-                    <td className="py-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    <td className="py-1.5 text-gray-400 text-xs">{i + 1}</td>
+                    <td className="py-1.5 font-medium text-gray-800 dark:text-gray-200">{a.nome}</td>
+                    <td className="py-1.5 text-xs">{formatSerie(a.serie)}</td>
+                    <td className="py-1.5 text-xs font-mono">{a.turma_codigo}</td>
+                    <td className="py-1.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                         a.situacao === 'cursando' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' :
-                        a.situacao === 'aprovado' ? 'bg-emerald-100 text-emerald-700' :
-                        a.situacao === 'reprovado' ? 'bg-red-100 text-red-700' :
-                        a.situacao === 'transferido' ? 'bg-orange-100 text-orange-700' :
-                        'bg-gray-100 text-gray-700'
+                        a.situacao === 'aprovado' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' :
+                        a.situacao === 'reprovado' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                        a.situacao === 'transferido' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' :
+                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                       }`}>{a.situacao}</span>
                     </td>
-                    <td className="py-2 text-xs text-gray-500 truncate max-w-[150px]">{a.escola_nome}</td>
+                    <td className="py-1.5 text-xs text-gray-500 truncate max-w-[130px]">{a.escola_nome}</td>
                   </tr>
                 ))}
               </tbody>
