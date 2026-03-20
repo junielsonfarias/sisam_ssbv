@@ -19,7 +19,12 @@ const STORES = {
 // ABRIR BANCO
 // ============================================================================
 
+// Cache da conexão — reutiliza a mesma instância
+let dbInstance: IDBDatabase | null = null
+
 function openDB(): Promise<IDBDatabase> {
+  if (dbInstance) return Promise.resolve(dbInstance)
+
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
 
@@ -49,7 +54,11 @@ function openDB(): Promise<IDBDatabase> {
       }
     }
 
-    req.onsuccess = () => resolve(req.result)
+    req.onsuccess = () => {
+      dbInstance = req.result
+      dbInstance.onclose = () => { dbInstance = null }
+      resolve(dbInstance)
+    }
     req.onerror = () => reject(req.error)
   })
 }

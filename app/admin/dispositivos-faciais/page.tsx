@@ -25,6 +25,7 @@ import {
   Users,
   Activity,
   Search,
+  Trash2,
 } from 'lucide-react'
 
 // ==================== Types ====================
@@ -410,6 +411,28 @@ export default function DispositivosFaciaisPage() {
     }
   }
 
+  const handleExcluirPermanente = async (dispositivo: Dispositivo) => {
+    if (!confirm(`Excluir permanentemente o dispositivo "${dispositivo.nome}"?\n\nEsta ação remove o dispositivo e todos os seus logs. Não pode ser desfeita.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/dispositivos-faciais/${dispositivo.id}?permanente=true`, {
+        method: 'DELETE',
+      })
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success('Dispositivo excluído permanentemente')
+        carregarDispositivos()
+      } else {
+        toast.error(data.mensagem || 'Erro ao excluir dispositivo')
+      }
+    } catch {
+      toast.error('Erro ao excluir dispositivo')
+    }
+  }
+
   const abrirModalQrCode = async (dispositivo: Dispositivo) => {
     setDispositivoSelecionado(dispositivo)
     setMostrarModalQrCode(true)
@@ -715,6 +738,16 @@ export default function DispositivosFaciaisPage() {
                         >
                           <Ban className="w-3.5 h-3.5" />
                           Bloquear
+                        </button>
+                      )}
+                      {dispositivo.status === 'bloqueado' && (
+                        <button
+                          onClick={() => handleExcluirPermanente(dispositivo)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-700 dark:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                          title="Excluir permanentemente"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Excluir
                         </button>
                       )}
                     </div>

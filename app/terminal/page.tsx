@@ -82,6 +82,8 @@ export default function TerminalPWA() {
   const containerRef = useRef<HTMLDivElement>(null)
   const wakeLockRef = useRef<any>(null)
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const sincronizandoRef = useRef(false)
+  const mensagemTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // ============================================================================
   // INICIALIZAÇÃO — Carregar config salva + modelos
@@ -163,12 +165,15 @@ export default function TerminalPWA() {
       } catch { /* Não suportado */ }
     }
 
-    requestWakeLock()
-    document.addEventListener('visibilitychange', () => {
+    const handleVisibility = () => {
       if (document.visibilityState === 'visible') requestWakeLock()
-    })
+    }
+
+    requestWakeLock()
+    document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
       if (wakeLockRef.current) wakeLockRef.current.release().catch(() => {})
     }
   }, [fase])
@@ -181,20 +186,23 @@ export default function TerminalPWA() {
     if (fase !== 'terminal') return
 
     const sync = async () => {
-      if (!online || !token || sincronizando) return
+      if (!navigator.onLine || !token || sincronizandoRef.current) return
       const count = await contarPresencasPendentes()
-      if (count === 0) return
+      if (count === 0) {
+        setPendentesSync(0)
+        return
+      }
 
+      sincronizandoRef.current = true
       setSincronizando(true)
       try {
         const result = await sincronizarPresencas(serverUrl, token)
         if (result.enviados > 0) {
           await limparPresencasEnviadas()
-          setMensagem(`${result.enviados} presenca(s) sincronizada(s)`)
-          setMensagemTipo('sucesso')
         }
       } catch { /* Retry no próximo ciclo */ }
       setPendentesSync(await contarPresencasPendentes())
+      sincronizandoRef.current = false
       setSincronizando(false)
     }
 
@@ -205,7 +213,7 @@ export default function TerminalPWA() {
     return () => {
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current)
     }
-  }, [fase, online, token, serverUrl])
+  }, [fase, token, serverUrl])
 
   // ============================================================================
   // SETUP — Buscar escolas e salvar config
@@ -372,6 +380,10 @@ export default function TerminalPWA() {
               setMensagem(`${aluno.nome}`)
               setMensagemTipo('sucesso')
               setPendentesSync(prev => prev + 1)
+
+              // Limpar mensagem após 3 segundos
+              if (mensagemTimeoutRef.current) clearTimeout(mensagemTimeoutRef.current)
+              mensagemTimeoutRef.current = setTimeout(() => setMensagem(''), 3000)
 
               // Som
               if (somAtivo) {
@@ -585,7 +597,17 @@ export default function TerminalPWA() {
           <button onClick={toggleFullscreen} className="p-1.5 hover:bg-slate-700 rounded transition-colors">
             {fullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
-          <button onClick={() => { setFase('setup') }} className="p-1.5 hover:bg-slate-700 rounded transition-colors" title="Configuracoes">
+          <button onClick={() => {
+            // Parar câmera e reconhecimento ao voltar para setup
+            if (streamRef.current) {
+              streamRef.current.getTracks().forEach(t => t.stop())
+              streamRef.current = null
+            }
+            if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+            setCameraAtiva(false)
+            setReconhecendo(false)
+            setFase('setup')
+          }} className="p-1.5 hover:bg-slate-700 rounded transition-colors" title="Configuracoes">
             <Settings className="w-4 h-4" />
           </button>
         </div>

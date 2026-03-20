@@ -127,7 +127,8 @@ export async function PUT(
 
 /**
  * DELETE /api/admin/dispositivos-faciais/[id]
- * Desativa (bloqueia) um dispositivo
+ * Sem query param: bloqueia (soft-delete)
+ * Com ?permanente=true: exclui permanentemente (só bloqueados)
  */
 export async function DELETE(
   request: NextRequest,
@@ -140,7 +141,32 @@ export async function DELETE(
     }
 
     const { id } = params
+    const { searchParams } = new URL(request.url)
+    const permanente = searchParams.get('permanente') === 'true'
 
+    if (permanente) {
+      // Exclusão permanente — apenas dispositivos bloqueados
+      const check = await pool.query(
+        "SELECT id, status FROM dispositivos_faciais WHERE id = $1",
+        [id]
+      )
+      if (check.rows.length === 0) {
+        return NextResponse.json({ mensagem: 'Dispositivo não encontrado' }, { status: 404 })
+      }
+      if (check.rows[0].status !== 'bloqueado') {
+        return NextResponse.json(
+          { mensagem: 'Apenas dispositivos bloqueados podem ser excluídos. Bloqueie primeiro.' },
+          { status: 400 }
+        )
+      }
+
+      await pool.query('DELETE FROM logs_dispositivos WHERE dispositivo_id = $1', [id])
+      await pool.query('DELETE FROM dispositivos_faciais WHERE id = $1', [id])
+
+      return NextResponse.json({ mensagem: 'Dispositivo excluído permanentemente' })
+    }
+
+    // Soft-delete: bloquear
     const result = await pool.query(
       `UPDATE dispositivos_faciais SET status = 'bloqueado'
        WHERE id = $1
@@ -157,7 +183,7 @@ export async function DELETE(
       dispositivo: result.rows[0],
     })
   } catch (error: any) {
-    console.error('Erro ao bloquear dispositivo:', error)
+    console.error('Erro ao processar dispositivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
