@@ -178,7 +178,7 @@ export function middleware(request: NextRequest) {
   // Requisições que não são API — aplicar apenas headers de segurança
   if (!pathname.startsWith('/api/')) {
     const response = NextResponse.next()
-    addSecurityHeaders(response)
+    addSecurityHeaders(response, undefined, pathname)
     return response
   }
 
@@ -193,7 +193,7 @@ export function middleware(request: NextRequest) {
   // Verificar se endpoint está excluído do rate limiting (mas recebe headers de segurança)
   if (EXCLUDED_PATHS.some(path => pathname.startsWith(path))) {
     const response = NextResponse.next()
-    addSecurityHeaders(response, requestId)
+    addSecurityHeaders(response, requestId, pathname)
     return response
   }
 
@@ -233,7 +233,7 @@ export function middleware(request: NextRequest) {
           { mensagem: 'Requisição bloqueada: origem inválida' },
           { status: 403 }
         )
-        addSecurityHeaders(blockedResponse)
+        addSecurityHeaders(blockedResponse, undefined, pathname)
         return blockedResponse
       }
     }
@@ -272,7 +272,7 @@ export function middleware(request: NextRequest) {
     )
     metrics.totalErrors++
     metrics.requestsByStatus['429'] = (metrics.requestsByStatus['429'] || 0) + 1
-    addSecurityHeaders(blockedResponse, requestId)
+    addSecurityHeaders(blockedResponse, requestId, pathname)
     return blockedResponse
   }
 
@@ -283,7 +283,7 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-RateLimit-Reset', result.resetAt.toString())
 
   // Headers de segurança + request ID
-  addSecurityHeaders(response, requestId)
+  addSecurityHeaders(response, requestId, pathname)
 
   return response
 }
@@ -291,15 +291,22 @@ export function middleware(request: NextRequest) {
 /**
  * Headers de segurança e rastreabilidade aplicados em todas as respostas
  */
-function addSecurityHeaders(response: NextResponse, requestId?: string) {
+function addSecurityHeaders(response: NextResponse, requestId?: string, pathname?: string) {
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   // camera=(self) necessário para reconhecimento facial
   response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
-  // Content Security Policy — protege contra XSS
-  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'")
+
+  // CSP diferenciado para terminal facial (precisa de wasm, camera, blob URLs)
+  const isTerminal = pathname?.startsWith('/terminal') || pathname?.startsWith('/admin/terminal-facial') || pathname?.startsWith('/admin/facial-enrollment')
+  if (isTerminal) {
+    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: mediastream:; font-src 'self' data:; connect-src 'self' https: http:; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-ancestors 'none'")
+  } else {
+    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'")
+  }
+
   if (requestId) {
     response.headers.set('X-Request-Id', requestId)
   }
