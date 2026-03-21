@@ -214,7 +214,10 @@ export async function DELETE(request: NextRequest) {
 
     if (hardDelete) {
       // Exclusão permanente
-      await pool.query('DELETE FROM usuarios WHERE id = $1', [id])
+      const delResult = await pool.query('DELETE FROM usuarios WHERE id = $1 RETURNING nome, email, tipo_usuario', [id])
+      if (delResult.rows[0]) {
+        console.log(`[AUDIT] Usuário excluído: ${delResult.rows[0].email} (${delResult.rows[0].tipo_usuario}) por ${usuario.email}`)
+      }
       return NextResponse.json({ mensagem: 'Usuário excluído permanentemente' })
     } else {
       // Apenas desativar (soft delete)
@@ -222,6 +225,7 @@ export async function DELETE(request: NextRequest) {
         'UPDATE usuarios SET ativo = false, atualizado_em = NOW() WHERE id = $1',
         [id]
       )
+      console.log(`[AUDIT] Usuário desativado: ${id} por ${usuario.email}`)
       invalidateUsuarioCache(id)
       return NextResponse.json({ mensagem: 'Usuário desativado com sucesso' })
     }

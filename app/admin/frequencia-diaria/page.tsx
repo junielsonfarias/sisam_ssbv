@@ -121,9 +121,11 @@ export default function FrequenciaDiariaPage() {
           total_ausentes: d.total_ausentes ?? 0,
           taxa_presenca: d.taxa_presenca ?? 0,
         })
+      } else {
+        setResumo({ total_alunos: 0, total_presentes: 0, total_ausentes: 0, taxa_presenca: 0 })
       }
     } catch {
-      // silencioso
+      setResumo({ total_alunos: 0, total_presentes: 0, total_ausentes: 0, taxa_presenca: 0 })
     } finally {
       setCarregandoResumo(false)
     }

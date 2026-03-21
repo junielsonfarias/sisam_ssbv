@@ -43,6 +43,9 @@ if (!JWT_SECRET) {
 }
 
 if (JWT_SECRET && JWT_SECRET.length < 32) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET deve ter pelo menos 32 caracteres em produção. Aplicação bloqueada por segurança.');
+  }
   log.warn('JWT_SECRET deve ter pelo menos 32 caracteres para seguranca adequada.');
 }
 

@@ -86,10 +86,14 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const [hidratado, setHidratado] = useState(false)
 
   // Função para verificar se o item do menu está ativo
+  // Usa correspondência exata ou subrota, com proteção contra falso-positivo
+  // (ex: /admin/relatorios não deve ativar /admin/relatorios-pdf)
   const isMenuItemActive = (href: string): boolean => {
     if (!pathname) return false
-    // Verifica correspondência exata ou se é uma subrota
-    return pathname === href || pathname.startsWith(href + '/')
+    if (pathname === href) return true
+    // Subrota: pathname deve começar com href + '/' (não apenas href como prefix)
+    if (pathname.startsWith(href + '/')) return true
+    return false
   }
 
   // Função para obter configurações do badge por tipo de usuário
@@ -99,7 +103,9 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       administrador: { label: 'Administrador', bgColor: 'bg-purple-100 dark:bg-purple-900/50', textColor: 'text-purple-700 dark:text-purple-300' },
       tecnico: { label: 'Técnico', bgColor: 'bg-blue-100 dark:bg-blue-900/50', textColor: 'text-blue-700 dark:text-blue-300' },
       polo: { label: 'Polo', bgColor: 'bg-green-100 dark:bg-green-900/50', textColor: 'text-green-700 dark:text-green-300' },
-      escola: { label: 'Escola', bgColor: 'bg-orange-100 dark:bg-orange-900/50', textColor: 'text-orange-700 dark:text-orange-300' }
+      escola: { label: 'Escola', bgColor: 'bg-orange-100 dark:bg-orange-900/50', textColor: 'text-orange-700 dark:text-orange-300' },
+      professor: { label: 'Professor', bgColor: 'bg-emerald-100 dark:bg-emerald-900/50', textColor: 'text-emerald-700 dark:text-emerald-300' },
+      gestor: { label: 'Gestor Escolar', bgColor: 'bg-teal-100 dark:bg-teal-900/50', textColor: 'text-teal-700 dark:text-teal-300' }
     }
     return configs[tipo] || { label: tipo, bgColor: 'bg-gray-100 dark:bg-gray-900/50', textColor: 'text-gray-700 dark:text-gray-300' }
   }
@@ -361,6 +367,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             ]
           },
           {
+            icon: GraduationCap, label: 'Professores', children: [
+              { icon: Users, label: 'Gerenciar Professores', href: '/admin/professores' },
+              { icon: ArrowLeftRight, label: 'Vincular Turmas', href: '/admin/professor-turmas' },
+            ]
+          },
+          {
             icon: Settings, label: 'Configurações', children: [
               { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
               { icon: GraduationCap, label: 'Séries', href: '/admin/series-escolares' },
@@ -554,6 +566,24 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       items.push({ icon: Bell, label: 'Notificações', href: '/admin/notificacoes' })
     }
 
+    // Menu para PROFESSOR
+    if (tipoUsuarioReal === 'professor') {
+      items.push(
+        { icon: LayoutGrid, label: 'Dashboard', href: '/professor/dashboard' },
+        { icon: Users, label: 'Minhas Turmas', href: '/professor/turmas' },
+        {
+          icon: CalendarCheck, label: 'Frequência', children: [
+            { icon: CalendarCheck, label: 'Lançar Frequência', href: '/professor/frequencia' },
+          ]
+        },
+        {
+          icon: FileSpreadsheet, label: 'Notas', children: [
+            { icon: FileText, label: 'Lançar Notas', href: '/professor/notas' },
+          ]
+        },
+      )
+    }
+
     return items
   }
 
@@ -640,7 +670,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               <div className="hidden md:block w-px h-8 bg-gray-200 dark:bg-slate-600 mx-2" />
 
               {/* Botão de troca de módulo - oculto para polo e escola sem gestor habilitado */}
-              {tipoUsuarioReal !== 'polo' && !(tipoUsuarioReal === 'escola' && !usuario?.gestor_escolar_habilitado) && (
+              {tipoUsuarioReal !== 'polo' && tipoUsuarioReal !== 'professor' && !(tipoUsuarioReal === 'escola' && !usuario?.gestor_escolar_habilitado) && (
                 <button
                   onClick={() => {
                     const novo = moduloAtivo === 'sisam' ? 'gestor' as offlineStorage.ModuloAtivo : 'sisam' as offlineStorage.ModuloAtivo

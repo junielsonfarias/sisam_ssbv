@@ -1,8 +1,13 @@
 /**
  * Rate Limiter simples em memoria
  *
- * NOTA: Em producao com multiplas instancias (Vercel), considere usar Redis
- * Este rate limiter funciona bem para uma unica instancia ou desenvolvimento
+ * LIMITAÇÃO: Em produção com múltiplas instâncias (Vercel serverless), cada
+ * instância tem seu próprio store — um atacante pode distribuir requests
+ * entre instâncias para contornar o limite. Para produção com alto risco,
+ * migrar para Redis (Upstash) ou Vercel KV.
+ *
+ * Para o contexto municipal atual (50 usuários, IP compartilhado por escola),
+ * esta implementação é adequada.
  */
 
 interface RateLimitEntry {

@@ -17,14 +17,14 @@ const withPWA = require('next-pwa')({
   navigationPreload: true,
   runtimeCaching: [
     {
-      // Navegação de páginas - NetworkFirst para funcionar offline
+      // Navegação de páginas - NetworkFirst com cache curto para evitar dados stale
       urlPattern: ({ request }) => request.mode === 'navigate',
       handler: 'NetworkFirst',
       options: {
         cacheName: 'pages-cache',
         expiration: {
-          maxEntries: 50,
-          maxAgeSeconds: 24 * 60 * 60 // 24 horas
+          maxEntries: 100,
+          maxAgeSeconds: 2 * 60 * 60 // 2 horas (reduzido de 24h para evitar dados stale)
         },
         networkTimeoutSeconds: 5
       }
@@ -36,8 +36,8 @@ const withPWA = require('next-pwa')({
       options: {
         cacheName: 'html-cache',
         expiration: {
-          maxEntries: 50,
-          maxAgeSeconds: 24 * 60 * 60 // 24 horas
+          maxEntries: 100,
+          maxAgeSeconds: 2 * 60 * 60 // 2 horas
         }
       }
     },

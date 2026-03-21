@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogIn, Eye, EyeOff, WifiOff, Database, CheckCircle } from 'lucide-react'
+import { LogIn, Eye, EyeOff, WifiOff, Database, CheckCircle, GraduationCap } from 'lucide-react'
+import Link from 'next/link'
 import Rodape from '@/components/rodape'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
 import * as offlineStorage from '@/lib/offline-storage'
@@ -39,6 +40,11 @@ export default function LoginPage() {
         // Polo vai direto ao dashboard (sem tela de módulos)
         if (offlineUser.tipo_usuario === 'polo') {
           router.push('/polo/dashboard')
+          return
+        }
+        // Professor vai direto ao seu portal
+        if (offlineUser.tipo_usuario === 'professor') {
+          router.push('/professor/dashboard')
           return
         }
         // Se já tem módulo selecionado, ir direto ao dashboard correto
@@ -162,6 +168,10 @@ export default function LoginPage() {
       if (data.usuario.tipo_usuario === 'polo') {
         offlineStorage.saveModuloAtivo('sisam')
         router.push('/polo/dashboard')
+      } else if (data.usuario.tipo_usuario === 'professor') {
+        // Professor vai direto ao seu portal
+        offlineStorage.saveModuloAtivo('professor')
+        router.push('/professor/dashboard')
       } else {
         // Limpar módulo anterior para forçar nova escolha
         offlineStorage.clearModuloAtivo()
@@ -330,6 +340,17 @@ export default function LoginPage() {
           >
             {carregando ? 'Entrando...' : 'Entrar'}
           </button>
+
+          {/* Link cadastro professor */}
+          <div className="mt-4 text-center">
+            <Link
+              href="/cadastro-professor"
+              className="inline-flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
+            >
+              <GraduationCap className="h-4 w-4" />
+              Sou professor — Criar minha conta
+            </Link>
+          </div>
         </form>
         </div>
       </div>

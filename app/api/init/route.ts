@@ -152,17 +152,11 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Usuario autenticado como admin - retornar mais detalhes (mas sem expor sensiveis)
+    // Usuario autenticado como admin - retornar detalhes sem expor infraestrutura
     const status: Record<string, unknown> = {
       ambiente: process.env.NODE_ENV,
-      variaveis_configuradas: {
-        DB_HOST: !!process.env.DB_HOST,
-        DB_NAME: !!process.env.DB_NAME,
-        DB_USER: !!process.env.DB_USER,
-        DB_PASSWORD: !!process.env.DB_PASSWORD,
-        DB_PORT: !!process.env.DB_PORT,
-        JWT_SECRET: !!process.env.JWT_SECRET,
-      },
+      banco_configurado: !!(process.env.DB_HOST && process.env.DB_NAME),
+      auth_configurado: !!process.env.JWT_SECRET,
       conexao_banco: conexaoOk,
       admin_existe: adminExiste,
     }

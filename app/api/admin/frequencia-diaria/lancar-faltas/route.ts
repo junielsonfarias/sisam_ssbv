@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
 
     // Inserir falta para alunos ativos da turma que NÃO têm registro no dia
     const result = await pool.query(`
-      INSERT INTO frequencia_diaria (aluno_id, turma_id, escola_id, data, metodo, status)
-      SELECT a.id, $1, $2, $3, 'manual', 'ausente'
+      INSERT INTO frequencia_diaria (aluno_id, turma_id, escola_id, data, metodo, status, registrado_por)
+      SELECT a.id, $1, $2, $3, 'manual', 'ausente', $4
       FROM alunos a
       WHERE a.turma_id = $1
         AND a.ativo = true
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
           WHERE fd.turma_id = $1 AND fd.data = $3
         )
       RETURNING id
-    `, [turma_id, turma.escola_id, data])
+    `, [turma_id, turma.escola_id, data, usuario.id])
 
     return NextResponse.json({
       mensagem: `${result.rows.length} falta(s) lançada(s) com sucesso`,

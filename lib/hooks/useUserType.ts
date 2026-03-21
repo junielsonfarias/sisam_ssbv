@@ -29,6 +29,7 @@ export interface UseUserTypeReturn {
   isAdmin: boolean
   isPolo: boolean
   isEscola: boolean
+  isProfessor: boolean
 }
 
 /**
@@ -100,9 +101,10 @@ export function useUserType(options: UseUserTypeOptions = {}): UseUserTypeReturn
     carregando,
     erro,
     recarregar: carregarUsuario,
-    isAdmin: tipoUsuario === 'admin',
+    isAdmin: tipoUsuario === 'admin' || tipoUsuario === 'administrador',
     isPolo: tipoUsuario === 'polo',
-    isEscola: tipoUsuario === 'escola'
+    isEscola: tipoUsuario === 'escola',
+    isProfessor: tipoUsuario === 'professor'
   }
 }
 

@@ -27,7 +27,7 @@
  * NOTA: O tipo 'admin' foi removido em favor de 'administrador' para padronização.
  * Se houver dados legados com 'admin', a função verificarPermissao em lib/auth.ts trata a compatibilidade.
  */
-export type TipoUsuario = 'administrador' | 'tecnico' | 'polo' | 'escola';
+export type TipoUsuario = 'administrador' | 'tecnico' | 'polo' | 'escola' | 'professor';
 
 // ============================================================================
 // ENTIDADES PRINCIPAIS

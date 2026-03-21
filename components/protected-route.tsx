@@ -11,8 +11,8 @@ interface ProtectedRouteProps {
   tiposPermitidos: TipoUsuario[]
 }
 
-// Cache global de autorização para evitar re-verificações desnecessárias
-let authCache: { autorizado: boolean; timestamp: number; tiposPermitidos: string } | null = null
+// Cache global de autorização keyed por userId+tiposPermitidos
+let authCache: { autorizado: boolean; timestamp: number; tiposPermitidos: string; userId: string } | null = null
 const AUTH_CACHE_TTL = 300000 // 5 minutos de cache para melhor navegação offline
 
 export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedRouteProps) {
@@ -46,9 +46,14 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
         return tiposExpandidos.includes(tipoUsuario)
       }
 
-      // Verificar cache de autorização (evita re-verificação ao navegar entre páginas)
+      // PRIMEIRO: Verificar se existe usuário offline salvo no localStorage
+      const offlineUser = offlineStorage.getUser()
+      const currentUserId = offlineUser?.id || ''
+
+      // Verificar cache de autorização (keyed por userId + tiposPermitidos)
       if (authCache &&
           authCache.tiposPermitidos === tiposKey &&
+          authCache.userId === currentUserId &&
           Date.now() - authCache.timestamp < AUTH_CACHE_TTL) {
         if (!autorizado || carregando) {
           setAutorizado(authCache.autorizado)
@@ -57,9 +62,6 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
         verificandoRef.current = false
         return
       }
-
-      // PRIMEIRO: Verificar se existe usuário offline salvo no localStorage
-      const offlineUser = offlineStorage.getUser()
       const online = offlineStorage.isOnline()
 
       console.log('[ProtectedRoute] Verificando auth:', { online, hasOfflineUser: !!offlineUser })
@@ -69,7 +71,7 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
       if (offlineUser && verificarTipoPermitido(offlineUser.tipo_usuario)) {
         console.log('[ProtectedRoute] Usuário offline válido encontrado, autorizando')
         setAutorizado(true)
-        authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey }
+        authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey, userId: currentUserId }
 
         // Se offline, terminar aqui
         if (!online) {
@@ -113,7 +115,7 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
                 escola_nome: data.usuario.escola_nome
               })
               setAutorizado(true)
-              authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey }
+              authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey, userId: currentUserId }
             } else {
               // Tipo não permitido - redirecionar para login
               console.log('[ProtectedRoute] Tipo de usuário não permitido:', tipoUsuarioOriginal)

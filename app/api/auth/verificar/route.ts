@@ -43,6 +43,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Para professores, buscar escolas e turmas vinculadas
+    let professorEscolas: { escola_id: string; escola_nome: string }[] = []
+    if (usuario.tipo_usuario === 'professor') {
+      try {
+        const profResult = await pool.query(
+          `SELECT DISTINCT t.escola_id, e.nome as escola_nome
+           FROM professor_turmas pt
+           JOIN turmas t ON t.id = pt.turma_id
+           JOIN escolas e ON e.id = t.escola_id
+           WHERE pt.professor_id = $1 AND pt.ativo = true`,
+          [usuario.id]
+        )
+        professorEscolas = profResult.rows
+      } catch {
+        professorEscolas = []
+      }
+    }
+
     return NextResponse.json({
       usuario: {
         id: usuario.id,
@@ -52,6 +70,7 @@ export async function GET(request: NextRequest) {
         polo_id: usuario.polo_id,
         escola_id: usuario.escola_id,
         gestor_escolar_habilitado: gestorEscolarHabilitado,
+        ...(usuario.tipo_usuario === 'professor' && { professor_escolas: professorEscolas }),
       },
     })
   } catch (error: any) {

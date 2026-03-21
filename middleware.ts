@@ -74,6 +74,7 @@ const EXCLUDED_PATHS = [
   '/api/init',            // Inicialização
   '/api/site-config',     // Site institucional (público)
   '/api/boletim',         // Consulta pública de boletim escolar
+  '/api/auth/cadastro-professor', // Tem rate limiting próprio (3/15min)
   '/api/admin/facial/presenca-terminal', // Terminal facial — alta frequência
 ]
 
@@ -219,6 +220,25 @@ export function middleware(request: NextRequest) {
     rateLimitConfig = RATE_LIMITS.write
   }
 
+  // Proteção CSRF: verificar Origin header em mutations (reforça SameSite=lax)
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && pathname.startsWith('/api/')) {
+    const origin = request.headers.get('origin')
+    const host = request.headers.get('host')
+    // Permitir requests sem origin (same-origin navigation, mobile apps)
+    // mas bloquear se origin não bate com host
+    if (origin && host) {
+      const originHost = new URL(origin).host
+      if (originHost !== host) {
+        const blockedResponse = NextResponse.json(
+          { mensagem: 'Requisição bloqueada: origem inválida' },
+          { status: 403 }
+        )
+        addSecurityHeaders(blockedResponse)
+        return blockedResponse
+      }
+    }
+  }
+
   // Criar chave única: IP + pathname + método
   const clientIP = getClientIP(request)
   const rateLimitKey = `${clientIP}:${pathname}:${method}`
@@ -278,6 +298,8 @@ function addSecurityHeaders(response: NextResponse, requestId?: string) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   // camera=(self) necessário para reconhecimento facial
   response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
+  // Content Security Policy — protege contra XSS
+  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'")
   if (requestId) {
     response.headers.set('X-Request-Id', requestId)
   }

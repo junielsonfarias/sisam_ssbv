@@ -314,43 +314,51 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Verificar vínculos antes de excluir
-    const vinculosResult = await pool.query(`
-      SELECT 
-        (SELECT COUNT(*) FROM alunos WHERE escola_id = $1) as total_alunos,
-        (SELECT COUNT(*) FROM turmas WHERE escola_id = $1) as total_turmas,
-        (SELECT COUNT(*) FROM resultados_provas WHERE escola_id = $1) as total_resultados,
-        (SELECT COUNT(*) FROM resultados_consolidados_unificada WHERE escola_id = $1) as total_consolidados,
-        (SELECT COUNT(*) FROM usuarios WHERE escola_id = $1) as total_usuarios
-    `, [escolaId])
+    // Verificar vínculos e excluir em transação atômica (evita race condition)
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
 
-    const vinculos = vinculosResult.rows[0]
-    
-    if (vinculos.total_alunos > 0 || vinculos.total_turmas > 0 || 
-        vinculos.total_resultados > 0 || vinculos.total_consolidados > 0 || 
-        vinculos.total_usuarios > 0) {
-      return NextResponse.json(
-        { 
-          mensagem: 'Não é possível excluir a escola pois possui vínculos',
-          vinculos: {
-            totalAlunos: parseInt(vinculos.total_alunos) || 0,
-            totalTurmas: parseInt(vinculos.total_turmas) || 0,
-            totalResultados: parseInt(vinculos.total_resultados) || 0,
-            totalConsolidados: parseInt(vinculos.total_consolidados) || 0,
-            totalUsuarios: parseInt(vinculos.total_usuarios) || 0,
-          }
-        },
-        { status: 400 }
-      )
+      const vinculosResult = await client.query(`
+        SELECT
+          (SELECT COUNT(*) FROM alunos WHERE escola_id = $1) as total_alunos,
+          (SELECT COUNT(*) FROM turmas WHERE escola_id = $1) as total_turmas,
+          (SELECT COUNT(*) FROM resultados_provas WHERE escola_id = $1) as total_resultados,
+          (SELECT COUNT(*) FROM resultados_consolidados_unificada WHERE escola_id = $1) as total_consolidados,
+          (SELECT COUNT(*) FROM usuarios WHERE escola_id = $1) as total_usuarios
+      `, [escolaId])
+
+      const vinculos = vinculosResult.rows[0]
+
+      if (vinculos.total_alunos > 0 || vinculos.total_turmas > 0 ||
+          vinculos.total_resultados > 0 || vinculos.total_consolidados > 0 ||
+          vinculos.total_usuarios > 0) {
+        await client.query('ROLLBACK')
+        return NextResponse.json(
+          {
+            mensagem: 'Não é possível excluir a escola pois possui vínculos',
+            vinculos: {
+              totalAlunos: parseInt(vinculos.total_alunos) || 0,
+              totalTurmas: parseInt(vinculos.total_turmas) || 0,
+              totalResultados: parseInt(vinculos.total_resultados) || 0,
+              totalConsolidados: parseInt(vinculos.total_consolidados) || 0,
+              totalUsuarios: parseInt(vinculos.total_usuarios) || 0,
+            }
+          },
+          { status: 400 }
+        )
+      }
+
+      const delResult = await client.query('DELETE FROM escolas WHERE id = $1 RETURNING nome', [escolaId])
+      await client.query('COMMIT')
+      console.log(`[AUDIT] Escola excluída: ${delResult.rows[0]?.nome} (${escolaId}) por ${usuario.email} (${usuario.tipo_usuario})`)
+      return NextResponse.json({ mensagem: 'Escola excluída com sucesso' }, { status: 200 })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
     }
-
-    // Excluir a escola
-    await pool.query('DELETE FROM escolas WHERE id = $1', [escolaId])
-
-    return NextResponse.json(
-      { mensagem: 'Escola excluída com sucesso' },
-      { status: 200 }
-    )
   } catch (error: any) {
     console.error('Erro ao excluir escola:', error)
     return NextResponse.json(

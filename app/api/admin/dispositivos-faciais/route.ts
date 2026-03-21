@@ -104,13 +104,18 @@ export async function POST(request: NextRequest) {
       [nome, escola_id, localizacao || null, apiKeyHash, apiKeyPrefix]
     )
 
+    // API key é retornada apenas na criação — mascarar parcialmente no log
+    console.log(`Dispositivo facial criado: ${result.rows[0].id}, key prefix: ${apiKeyPrefix}`)
     return NextResponse.json({
       mensagem: 'Dispositivo registrado com sucesso',
       dispositivo: result.rows[0],
       escola: escolaResult.rows[0],
       api_key: apiKey,
-      aviso: 'IMPORTANTE: Guarde esta API key. Ela não será exibida novamente.',
-    }, { status: 201 })
+      aviso: 'IMPORTANTE: Guarde esta API key em local seguro. Ela não será exibida novamente.',
+    }, {
+      status: 201,
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    })
   } catch (error: any) {
     console.error('Erro ao registrar dispositivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

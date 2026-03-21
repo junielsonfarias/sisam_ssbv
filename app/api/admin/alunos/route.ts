@@ -371,26 +371,27 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
-    // Excluir dados relacionados explicitamente (fallback para garantir limpeza completa)
-    // Isso garante que mesmo se a constraint não for CASCADE, os dados sejam removidos
-    await pool.query('DELETE FROM resultados_provas WHERE aluno_id = $1', [id])
-    await pool.query('DELETE FROM resultados_producao WHERE aluno_id = $1', [id])
-    await pool.query('DELETE FROM resultados_consolidados WHERE aluno_id = $1', [id])
-
-    // Agora excluir o aluno
-    const result = await pool.query(
-      'DELETE FROM alunos WHERE id = $1 RETURNING id',
-      [id]
-    )
-
-    if (result.rows.length === 0) {
-      return NextResponse.json(
-        { mensagem: 'Aluno não encontrado' },
-        { status: 404 }
-      )
+    // Excluir em transação para garantir consistência
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      await client.query('DELETE FROM resultados_provas WHERE aluno_id = $1', [id])
+      await client.query('DELETE FROM resultados_producao WHERE aluno_id = $1', [id])
+      await client.query('DELETE FROM resultados_consolidados WHERE aluno_id = $1', [id])
+      const result = await client.query('DELETE FROM alunos WHERE id = $1 RETURNING id, nome', [id])
+      if (result.rows.length === 0) {
+        await client.query('ROLLBACK')
+        return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
+      }
+      await client.query('COMMIT')
+      console.log(`[AUDIT] Aluno excluído: ${result.rows[0].nome} (${id}) por ${usuario.email} (${usuario.tipo_usuario})`)
+      return NextResponse.json({ mensagem: 'Aluno excluído com sucesso' })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
     }
-
-    return NextResponse.json({ mensagem: 'Aluno excluído com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao excluir aluno:', getErrorMessage(error))
     return NextResponse.json(

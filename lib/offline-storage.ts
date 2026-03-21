@@ -20,7 +20,7 @@ const STORAGE_KEYS = {
 }
 
 // ========== MÓDULO ATIVO ==========
-export type ModuloAtivo = 'sisam' | 'gestor'
+export type ModuloAtivo = 'sisam' | 'gestor' | 'professor'
 
 export function saveModuloAtivo(modulo: ModuloAtivo): void {
   localStorage.setItem(STORAGE_KEYS.MODULO_ATIVO, modulo)
@@ -178,6 +178,10 @@ function saveToStorage(key: string, data: any, isEssential: boolean = false): bo
     // Se exceder quota, limpar dados não essenciais e tentar novamente
     if (error.name === 'QuotaExceededError') {
       console.warn('[OfflineStorage] Quota excedida, limpando dados antigos...')
+      // Notificar UI sobre problema de armazenamento
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sisam:storage-quota', { detail: { key } }))
+      }
       clearOldData()
 
       // Tentar novamente apenas para dados essenciais

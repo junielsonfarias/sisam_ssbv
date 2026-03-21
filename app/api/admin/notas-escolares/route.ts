@@ -93,7 +93,9 @@ export async function GET(request: NextRequest) {
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
     const result = await pool.query(
-      `SELECT n.*,
+      `SELECT n.id, n.aluno_id, n.disciplina_id, n.periodo_id, n.escola_id, n.turma_id,
+              n.ano_letivo, n.nota, n.nota_recuperacao, n.nota_final, n.faltas,
+              n.observacao, n.conceito, n.parecer_descritivo, n.criado_em, n.atualizado_em,
               a.nome as aluno_nome, a.codigo as aluno_codigo,
               d.nome as disciplina_nome, d.codigo as disciplina_codigo,
               p.nome as periodo_nome, p.numero as periodo_numero,

@@ -8,6 +8,7 @@ import {
   ScanFace, Loader2, UserX
 } from 'lucide-react'
 import Link from 'next/link'
+import ProtectedRoute from '@/components/protected-route'
 import { useSeries } from '@/lib/use-series'
 import { useEscolas } from '@/lib/hooks/useEscolas'
 import { useTurmas } from '@/lib/hooks/useTurmas'
@@ -47,7 +48,7 @@ type StatusCamera = 'desligada' | 'ligando' | 'ativa' | 'erro'
 // Componente Principal
 // ============================================================================
 
-export default function TerminalFacialPage() {
+function TerminalFacialContent() {
   const { formatSerie } = useSeries()
 
   // Estado do sistema
@@ -781,6 +782,14 @@ export default function TerminalFacialPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TerminalFacialPage() {
+  return (
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola']}>
+      <TerminalFacialContent />
+    </ProtectedRoute>
   )
 }
 

@@ -33,11 +33,27 @@ export async function GET(request: NextRequest) {
 
     const cpf = cpfRaw ? cpfRaw.replace(/\D/g, '') : null
 
-    if (dataNascimento && !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
+    if (cpf && cpf.length !== 11) {
       return NextResponse.json(
-        { mensagem: 'Data de nascimento deve estar no formato AAAA-MM-DD.' },
+        { mensagem: 'CPF deve conter 11 dígitos.' },
         { status: 400 }
       )
+    }
+
+    if (dataNascimento) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
+        return NextResponse.json(
+          { mensagem: 'Data de nascimento deve estar no formato AAAA-MM-DD.' },
+          { status: 400 }
+        )
+      }
+      const ano = parseInt(dataNascimento.substring(0, 4))
+      if (ano < 1950 || ano > new Date().getFullYear()) {
+        return NextResponse.json(
+          { mensagem: 'Ano de nascimento inválido.' },
+          { status: 400 }
+        )
+      }
     }
 
     // ============================================

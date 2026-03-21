@@ -175,7 +175,7 @@ export function isValidNota(nota: number | string | null | undefined): boolean {
  */
 export function isValidTipoUsuario(tipo: string | null | undefined): boolean {
   if (!tipo) return false
-  const tiposValidos = ['administrador', 'tecnico', 'polo', 'escola', 'admin'] // admin é legacy
+  const tiposValidos = ['administrador', 'tecnico', 'polo', 'escola', 'professor', 'admin'] // admin é legacy
   return tiposValidos.includes(tipo.toLowerCase())
 }
 

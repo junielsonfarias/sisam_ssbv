@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar tipo_usuario
-    const tiposValidos = ['administrador', 'tecnico', 'polo', 'escola']
+    const tiposValidos = ['administrador', 'tecnico', 'polo', 'escola', 'professor']
     const tipoUsuario = String(usuario.tipo_usuario || '').toLowerCase()
     
     if (!tipoUsuario || !tiposValidos.includes(tipoUsuario)) {
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
     const tokenPayload = {
       userId: String(usuario.id),
       email: String(usuario.email),
-      tipoUsuario: tipoUsuario as 'administrador' | 'tecnico' | 'polo' | 'escola',
+      tipoUsuario: tipoUsuario as 'administrador' | 'tecnico' | 'polo' | 'escola' | 'professor',
       poloId: usuario.polo_id ? String(usuario.polo_id) : null,
       escolaId: usuario.escola_id ? String(usuario.escola_id) : null,
     }
@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
     try {
       response.cookies.set('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' || (process.env.VERCEL_URL || '').includes('https'),
         sameSite: 'lax',
         maxAge: SESSAO.COOKIE_MAX_AGE,
         path: '/',

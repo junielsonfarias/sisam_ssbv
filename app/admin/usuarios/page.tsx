@@ -102,6 +102,7 @@ export default function UsuariosPage() {
       tecnico: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200',
       polo: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200',
       escola: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200',
+      professor: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200',
     }
     return colors[tipoNormalizado as TipoUsuario] || 'bg-gray-100 text-gray-800'
   }
@@ -113,6 +114,7 @@ export default function UsuariosPage() {
       tecnico: 'Técnico',
       polo: 'Polo',
       escola: 'Escola',
+      professor: 'Professor',
     }
     return labels[tipoNormalizado as TipoUsuario] || tipo
   }
