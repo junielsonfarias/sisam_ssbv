@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { calcularNotaFinal, lancarNotas } from '@/lib/services/notas'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -199,116 +200,68 @@ export async function POST(request: NextRequest) {
       permite_recuperacao: turma.regra_permite_recuperacao ?? rawConfig.permite_recuperacao ?? true,
     }
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
+    // Pré-processar notas com base no tipo de resultado (conceito, parecer, numérico)
+    const notasPreparadas = []
+    const errosPreprocessamento: { aluno_id: string; mensagem: string }[] = []
 
-      let processados = 0
-      const errosDetalhes: { aluno_id: string; mensagem: string }[] = []
+    for (const item of notas) {
+      let notaVal: number | null = item.nota ?? null
+      let notaRecVal: number | null = item.nota_recuperacao ?? null
+      let conceitoVal: string | null = item.conceito ?? null
+      let parecerVal: string | null = item.parecer_descritivo ?? null
 
-      const upsertSQL = `INSERT INTO notas_escolares
-             (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id,
-              nota, nota_recuperacao, nota_final, faltas, observacao,
-              conceito, parecer_descritivo, tipo_avaliacao_id, registrado_por)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-             ON CONFLICT (aluno_id, disciplina_id, periodo_id)
-             DO UPDATE SET
-               nota = EXCLUDED.nota,
-               nota_recuperacao = EXCLUDED.nota_recuperacao,
-               nota_final = EXCLUDED.nota_final,
-               faltas = EXCLUDED.faltas,
-               observacao = EXCLUDED.observacao,
-               conceito = EXCLUDED.conceito,
-               parecer_descritivo = EXCLUDED.parecer_descritivo,
-               tipo_avaliacao_id = EXCLUDED.tipo_avaliacao_id,
-               registrado_por = EXCLUDED.registrado_por,
-               turma_id = EXCLUDED.turma_id`
-
-      const BATCH_SIZE = 50
-      for (let i = 0; i < notas.length; i += BATCH_SIZE) {
-        const lote = notas.slice(i, i + BATCH_SIZE)
-
-        for (const item of lote) {
-          try {
-            let notaFinal: number | null = null
-            let conceitoVal: string | null = item.conceito ?? null
-            let parecerVal: string | null = item.parecer_descritivo ?? null
-            let notaVal: number | null = item.nota ?? null
-            let notaRecVal: number | null = item.nota_recuperacao ?? null
-
-            if (tipoResultado === 'parecer') {
-              // Parecer: sem nota numérica, apenas texto descritivo
-              notaVal = null
-              notaRecVal = null
-              notaFinal = null
-            } else if (tipoResultado === 'conceito') {
-              // Conceito: converter para valor numérico equivalente
-              if (conceitoVal && Array.isArray(escalaConceitos)) {
-                const conceito = escalaConceitos.find((c: any) => c.codigo === conceitoVal)
-                if (conceito) {
-                  notaVal = parseFloat(conceito.valor_numerico)
-                  notaFinal = notaVal
-                } else {
-                  errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: `Conceito '${conceitoVal}' inválido` })
-                  continue
-                }
-              }
-              // Conceito não tem recuperação numérica
-              notaRecVal = null
-            } else {
-              // Numérico: lógica original
-              if ((notaVal === null || notaVal === undefined) && notaRecVal !== null && notaRecVal !== undefined) {
-                errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: 'Nota de recuperação requer nota original' })
-                continue
-              }
-
-              const notaNum = typeof notaVal === 'number' ? notaVal : (notaVal !== null && notaVal !== undefined ? parseFloat(String(notaVal)) : null)
-              const recNum = typeof notaRecVal === 'number' ? notaRecVal : (notaRecVal !== null && notaRecVal !== undefined ? parseFloat(String(notaRecVal)) : null)
-
-              if (notaNum !== null && !isNaN(notaNum)) {
-                notaFinal = Math.max(0, notaNum)
-                if (recNum !== null && !isNaN(recNum) && config.permite_recuperacao) {
-                  if (recNum > notaFinal) {
-                    notaFinal = recNum
-                  }
-                }
-                notaFinal = Math.max(0, Math.min(notaFinal, config.nota_maxima))
-                notaFinal = Math.round(notaFinal * 100) / 100
-                if (isNaN(notaFinal)) notaFinal = null
-              }
-            }
-
-            await client.query(upsertSQL, [
-              item.aluno_id, disciplina_id || null, periodo_id, escola_id, ano_letivo, turma_id,
-              notaVal, notaRecVal, notaFinal,
-              item.faltas ?? 0, item.observacao ?? null,
-              conceitoVal, parecerVal,
-              turma.tipo_avaliacao_id || null,
-              usuario.id,
-            ])
-            processados++
-          } catch (err: any) {
-            console.error(`Erro ao salvar nota do aluno ${item.aluno_id}:`, err.message)
-            errosDetalhes.push({ aluno_id: item.aluno_id, mensagem: err?.message || 'Erro desconhecido' })
+      if (tipoResultado === 'parecer') {
+        notaVal = null
+        notaRecVal = null
+      } else if (tipoResultado === 'conceito') {
+        if (conceitoVal && Array.isArray(escalaConceitos)) {
+          const conceito = escalaConceitos.find((c: any) => c.codigo === conceitoVal)
+          if (conceito) {
+            notaVal = parseFloat(conceito.valor_numerico)
+          } else {
+            errosPreprocessamento.push({ aluno_id: item.aluno_id, mensagem: `Conceito '${conceitoVal}' inválido` })
+            continue
           }
+        }
+        notaRecVal = null
+      } else {
+        if ((notaVal === null || notaVal === undefined) && notaRecVal !== null && notaRecVal !== undefined) {
+          errosPreprocessamento.push({ aluno_id: item.aluno_id, mensagem: 'Nota de recuperação requer nota original' })
+          continue
         }
       }
 
-      await client.query('COMMIT')
-
-      const erros = errosDetalhes.length
-      return NextResponse.json({
-        mensagem: `${processados} nota(s) salva(s) com sucesso${erros > 0 ? `, ${erros} erro(s)` : ''}`,
-        processados,
-        erros,
-        errosDetalhes: erros > 0 ? errosDetalhes : undefined,
+      notasPreparadas.push({
+        aluno_id: item.aluno_id,
+        nota: notaVal,
+        nota_recuperacao: notaRecVal,
+        faltas: item.faltas,
+        observacao: item.observacao,
+        conceito: conceitoVal,
+        parecer_descritivo: parecerVal,
       })
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
     }
+
+    // Usar service layer centralizado para UPSERT
+    const resultado = await lancarNotas({
+      turmaId: turma_id,
+      disciplinaId: disciplina_id || '',
+      periodoId: periodo_id,
+      escolaId: escola_id,
+      anoLetivo: ano_letivo,
+      notas: notasPreparadas,
+      config: { nota_maxima: config.nota_maxima, media_aprovacao: config.media_aprovacao, permite_recuperacao: config.permite_recuperacao },
+      registradoPor: usuario.id,
+      tipoAvaliacaoId: turma.tipo_avaliacao_id || null,
+    })
+
+    const todosErros = [...errosPreprocessamento, ...resultado.erros]
+    return NextResponse.json({
+      mensagem: `${resultado.processados} nota(s) salva(s) com sucesso${todosErros.length > 0 ? `, ${todosErros.length} erro(s)` : ''}`,
+      processados: resultado.processados,
+      erros: todosErros.length,
+      errosDetalhes: todosErros.length > 0 ? todosErros : undefined,
+    })
   } catch (error: any) {
     console.error('Erro ao salvar notas:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
