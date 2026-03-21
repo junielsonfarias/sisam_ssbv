@@ -103,6 +103,7 @@ export default function UsuariosPage() {
       polo: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200',
       escola: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200',
       professor: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200',
+      editor: 'bg-pink-100 dark:bg-pink-900/50 text-pink-800 dark:text-pink-200',
     }
     return colors[tipoNormalizado as TipoUsuario] || 'bg-gray-100 text-gray-800'
   }
@@ -115,6 +116,7 @@ export default function UsuariosPage() {
       polo: 'Polo',
       escola: 'Escola',
       professor: 'Professor',
+      editor: 'Editor de Notícias',
     }
     return labels[tipoNormalizado as TipoUsuario] || tipo
   }

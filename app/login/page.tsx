@@ -47,6 +47,11 @@ export default function LoginPage() {
           router.push('/professor/dashboard')
           return
         }
+        // Editor vai direto ao portal de notícias
+        if (offlineUser.tipo_usuario === 'editor') {
+          router.push('/editor/noticias')
+          return
+        }
         // Se já tem módulo selecionado, ir direto ao dashboard correto
         if (offlineStorage.hasModuloAtivo()) {
           const modulo = offlineStorage.getModuloAtivo()
@@ -172,6 +177,9 @@ export default function LoginPage() {
         // Professor vai direto ao seu portal
         offlineStorage.saveModuloAtivo('professor')
         router.push('/professor/dashboard')
+      } else if (data.usuario.tipo_usuario === 'editor') {
+        // Editor vai direto ao portal de notícias
+        router.push('/editor/noticias')
       } else {
         // Limpar módulo anterior para forçar nova escolha
         offlineStorage.clearModuloAtivo()

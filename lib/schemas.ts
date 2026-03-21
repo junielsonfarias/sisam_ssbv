@@ -78,7 +78,8 @@ export const tipoUsuarioSchema = z.enum([
   'tecnico',
   'polo',
   'escola',
-  'professor'
+  'professor',
+  'editor'
 ])
 
 /** Nota (0 a 10) */

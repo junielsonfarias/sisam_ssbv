@@ -105,7 +105,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       polo: { label: 'Polo', bgColor: 'bg-green-100 dark:bg-green-900/50', textColor: 'text-green-700 dark:text-green-300' },
       escola: { label: 'Escola', bgColor: 'bg-orange-100 dark:bg-orange-900/50', textColor: 'text-orange-700 dark:text-orange-300' },
       professor: { label: 'Professor', bgColor: 'bg-emerald-100 dark:bg-emerald-900/50', textColor: 'text-emerald-700 dark:text-emerald-300' },
-      gestor: { label: 'Gestor Escolar', bgColor: 'bg-teal-100 dark:bg-teal-900/50', textColor: 'text-teal-700 dark:text-teal-300' }
+      gestor: { label: 'Gestor Escolar', bgColor: 'bg-teal-100 dark:bg-teal-900/50', textColor: 'text-teal-700 dark:text-teal-300' },
+      editor: { label: 'Editor', bgColor: 'bg-pink-100 dark:bg-pink-900/50', textColor: 'text-pink-700 dark:text-pink-300' }
     }
     return configs[tipo] || { label: tipo, bgColor: 'bg-gray-100 dark:bg-gray-900/50', textColor: 'text-gray-700 dark:text-gray-300' }
   }
@@ -584,6 +585,13 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       )
     }
 
+    // Menu para EDITOR DE NOTÍCIAS
+    if (tipoUsuarioReal === 'editor') {
+      items.push(
+        { icon: LayoutGrid, label: 'Notícias', href: '/editor/noticias' },
+      )
+    }
+
     return items
   }
 
@@ -670,7 +678,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               <div className="hidden md:block w-px h-8 bg-gray-200 dark:bg-slate-600 mx-2" />
 
               {/* Botão de troca de módulo - oculto para polo e escola sem gestor habilitado */}
-              {tipoUsuarioReal !== 'polo' && tipoUsuarioReal !== 'professor' && !(tipoUsuarioReal === 'escola' && !usuario?.gestor_escolar_habilitado) && (
+              {tipoUsuarioReal !== 'polo' && tipoUsuarioReal !== 'professor' && tipoUsuarioReal !== 'editor' && !(tipoUsuarioReal === 'escola' && !usuario?.gestor_escolar_habilitado) && (
                 <button
                   onClick={() => {
                     const novo = moduloAtivo === 'educatec' ? 'gestor' as offlineStorage.ModuloAtivo : 'educatec' as offlineStorage.ModuloAtivo

@@ -30,6 +30,7 @@ export interface UseUserTypeReturn {
   isPolo: boolean
   isEscola: boolean
   isProfessor: boolean
+  isEditor: boolean
 }
 
 /**
@@ -104,7 +105,8 @@ export function useUserType(options: UseUserTypeOptions = {}): UseUserTypeReturn
     isAdmin: tipoUsuario === 'admin' || tipoUsuario === 'administrador',
     isPolo: tipoUsuario === 'polo',
     isEscola: tipoUsuario === 'escola',
-    isProfessor: tipoUsuario === 'professor'
+    isProfessor: tipoUsuario === 'professor',
+    isEditor: tipoUsuario === 'editor'
   }
 }
 

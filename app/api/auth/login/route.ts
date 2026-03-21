@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar tipo_usuario
-    const tiposValidos = ['administrador', 'tecnico', 'polo', 'escola', 'professor']
+    const tiposValidos = ['administrador', 'tecnico', 'polo', 'escola', 'professor', 'editor']
     const tipoUsuario = String(usuario.tipo_usuario || '').toLowerCase()
     
     if (!tipoUsuario || !tiposValidos.includes(tipoUsuario)) {
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
     const tokenPayload = {
       userId: String(usuario.id),
       email: String(usuario.email),
-      tipoUsuario: tipoUsuario as 'administrador' | 'tecnico' | 'polo' | 'escola' | 'professor',
+      tipoUsuario: tipoUsuario as 'administrador' | 'tecnico' | 'polo' | 'escola' | 'professor' | 'editor',
       poloId: usuario.polo_id ? String(usuario.polo_id) : null,
       escolaId: usuario.escola_id ? String(usuario.escola_id) : null,
     }
