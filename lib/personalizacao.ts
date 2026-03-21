@@ -23,8 +23,8 @@ export interface Personalizacao {
 
 // CONFIGURACOES FIXAS - Edite aqui para alterar a personalizacao
 const CONFIG_LOGIN: PersonalizacaoLogin = {
-  titulo: 'SISAM',
-  subtitulo: 'Sistema de Avaliação Municipal',
+  titulo: 'Educatec',
+  subtitulo: 'SEMED SSBV',
   imagem_url: '/logo.png', // Logo fixa em public/logo.png
   cor_primaria: '#4f46e5',
   cor_secundaria: '#818cf8'

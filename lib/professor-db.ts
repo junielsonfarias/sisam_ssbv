@@ -3,7 +3,7 @@
  * Armazena turmas, alunos, disciplinas, períodos e filas de lançamentos pendentes
  */
 
-const DB_NAME = 'sisam-professor'
+const DB_NAME = 'educatec-professor'
 const DB_VERSION = 1
 
 const STORES = {

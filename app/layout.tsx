@@ -6,13 +6,13 @@ import { ToastProvider } from '@/components/toast'
 import ErrorBoundary from '@/components/error-boundary'
 
 export const metadata: Metadata = {
-  title: 'SISAM - Sistema de Avaliacao Municipal',
-  description: 'Sistema de Avaliacao Municipal - Gestao de resultados educacionais',
+  title: 'Educatec - SEMED SSBV',
+  description: 'Sistema de Gestao Escolar - Secretaria Municipal de Educacao de Sao Sebastiao da Boa Vista',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SISAM',
+    title: 'Educatec',
   },
   formatDetection: {
     telephone: false,
@@ -41,7 +41,7 @@ export const viewport: Viewport = {
 const themeScript = `
 (function() {
   try {
-    var theme = localStorage.getItem('sisam-theme') || 'system';
+    var theme = localStorage.getItem('educatec-theme') || 'system';
     var resolved = theme;
     if (theme === 'system') {
       resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

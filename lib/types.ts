@@ -1,5 +1,5 @@
 /**
- * Definições de Tipos do Sistema SISAM
+ * Definições de Tipos do Sistema Educatec
  *
  * Este módulo contém todas as interfaces e tipos TypeScript utilizados
  * no sistema, incluindo:

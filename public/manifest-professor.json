@@ -1,5 +1,5 @@
 {
-  "name": "SISAM - Portal do Professor",
+  "name": "Educatec - Portal do Professor",
   "short_name": "Professor",
   "description": "Portal do professor para gestao de frequencia escolar",
   "start_url": "/professor/dashboard",

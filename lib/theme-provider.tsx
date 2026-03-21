@@ -23,7 +23,7 @@ const ThemeContext = createContext<ThemeContextType>({
 })
 
 // Chave para localStorage
-const THEME_STORAGE_KEY = 'sisam-theme'
+const THEME_STORAGE_KEY = 'educatec-theme'
 
 // Props do Provider
 interface ThemeProviderProps {

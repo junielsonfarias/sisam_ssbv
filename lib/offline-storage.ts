@@ -6,28 +6,28 @@ import { offlineDB, STORES as IDB_STORES, isIndexedDBAvailable } from './offline
 import { toNumber } from './utils-numeros'
 
 const STORAGE_KEYS = {
-  USER: 'sisam_offline_user',
-  MODULO_ATIVO: 'sisam_modulo_ativo',
-  POLOS: 'sisam_offline_polos',
-  ESCOLAS: 'sisam_offline_escolas',
-  TURMAS: 'sisam_offline_turmas',
-  RESULTADOS: 'sisam_offline_resultados',
-  ALUNOS: 'sisam_offline_alunos',
-  QUESTOES: 'sisam_offline_questoes',
-  CONFIG_SERIES: 'sisam_offline_config_series',
-  SYNC_DATE: 'sisam_offline_sync_date',
-  SYNC_STATUS: 'sisam_offline_sync_status'
+  USER: 'educatec_offline_user',
+  MODULO_ATIVO: 'educatec_modulo_ativo',
+  POLOS: 'educatec_offline_polos',
+  ESCOLAS: 'educatec_offline_escolas',
+  TURMAS: 'educatec_offline_turmas',
+  RESULTADOS: 'educatec_offline_resultados',
+  ALUNOS: 'educatec_offline_alunos',
+  QUESTOES: 'educatec_offline_questoes',
+  CONFIG_SERIES: 'educatec_offline_config_series',
+  SYNC_DATE: 'educatec_offline_sync_date',
+  SYNC_STATUS: 'educatec_offline_sync_status'
 }
 
 // ========== MÓDULO ATIVO ==========
-export type ModuloAtivo = 'sisam' | 'gestor' | 'professor'
+export type ModuloAtivo = 'educatec' | 'gestor' | 'professor'
 
 export function saveModuloAtivo(modulo: ModuloAtivo): void {
   localStorage.setItem(STORAGE_KEYS.MODULO_ATIVO, modulo)
 }
 
 export function getModuloAtivo(): ModuloAtivo {
-  return (localStorage.getItem(STORAGE_KEYS.MODULO_ATIVO) as ModuloAtivo) || 'sisam'
+  return (localStorage.getItem(STORAGE_KEYS.MODULO_ATIVO) as ModuloAtivo) || 'educatec'
 }
 
 export function hasModuloAtivo(): boolean {
@@ -180,7 +180,7 @@ function saveToStorage(key: string, data: any, isEssential: boolean = false): bo
       console.warn('[OfflineStorage] Quota excedida, limpando dados antigos...')
       // Notificar UI sobre problema de armazenamento
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('sisam:storage-quota', { detail: { key } }))
+        window.dispatchEvent(new CustomEvent('educatec:storage-quota', { detail: { key } }))
       }
       clearOldData()
 

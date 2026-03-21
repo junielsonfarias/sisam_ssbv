@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
-  title: 'SISAM - Terminal Facial',
+  title: 'Educatec - Terminal Facial',
   description: 'Terminal de reconhecimento facial para registro de frequencia escolar',
   manifest: '/manifest-terminal.json',
   appleWebApp: {

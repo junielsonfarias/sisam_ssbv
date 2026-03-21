@@ -139,12 +139,12 @@ export default function ComparativoNotasPage() {
       </tr>`
     }).join('')
 
-    const html = `<!DOCTYPE html><html><head><title>Comparativo SISAM x Notas Escolares</title>
+    const html = `<!DOCTYPE html><html><head><title>Comparativo Educatec x Notas Escolares</title>
       <style>body{font-family:Arial,sans-serif;margin:20px}table{border-collapse:collapse;width:100%}@media print{body{margin:10px}}</style></head><body>
-      <h2 style="text-align:center">Comparativo SISAM x Notas Escolares - ${esc(anoLetivo)}</h2>
+      <h2 style="text-align:center">Comparativo Educatec x Notas Escolares - ${esc(anoLetivo)}</h2>
       <table><thead><tr>
         <th style="padding:6px 8px;border:1px solid #ddd;background:#e8f0fe;font-size:11px" rowspan="2">Aluno</th>
-        <th style="padding:6px 8px;border:1px solid #ddd;background:#dbeafe;font-size:11px" colspan="3">SISAM</th>
+        <th style="padding:6px 8px;border:1px solid #ddd;background:#dbeafe;font-size:11px" colspan="3">Educatec</th>
         <th style="padding:6px 8px;border:1px solid #ddd;background:#d1fae5;font-size:11px" colspan="3">Escola</th>
         <th style="padding:6px 8px;border:1px solid #ddd;background:#fef3c7;font-size:11px" rowspan="2">Delta</th>
       </tr><tr>
@@ -155,7 +155,7 @@ export default function ComparativoNotasPage() {
         <th style="padding:4px 8px;border:1px solid #ddd;background:#d1fae5;font-size:10px">MAT</th>
         <th style="padding:4px 8px;border:1px solid #ddd;background:#d1fae5;font-size:10px">Média</th>
       </tr></thead><tbody>${linhas}</tbody></table>
-      <p style="font-size:10px;color:#888;margin-top:10px">Delta = Nota Escolar - Nota SISAM. Positivo = escola acima do SISAM.</p>
+      <p style="font-size:10px;color:#888;margin-top:10px">Delta = Nota Escolar - Nota Educatec. Positivo = escola acima do Educatec.</p>
       <script>window.print()</script></body></html>`
 
     const w = window.open('', '_blank')
@@ -172,7 +172,7 @@ export default function ComparativoNotasPage() {
               <BarChart3 className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Comparativo SISAM x Notas Escolares</h1>
+              <h1 className="text-2xl font-bold">Comparativo Educatec x Notas Escolares</h1>
               <p className="text-sm opacity-90">Compare o desempenho dos alunos nas avaliações municipais com as notas da escola</p>
             </div>
           </div>
@@ -274,7 +274,7 @@ function CardsResumo({ resumo }: { resumo: Resumo }) {
         cor="bg-blue-500"
       />
       <CardResumo
-        titulo="Média SISAM"
+        titulo="Média Educatec"
         valor={resumo.media_sisam?.toFixed(1) ?? '-'}
         subtitulo="Avaliação municipal"
         icon={<FileText className="w-6 h-6" />}
@@ -290,7 +290,7 @@ function CardsResumo({ resumo }: { resumo: Resumo }) {
       <CardResumo
         titulo="Diferença"
         valor={resumo.delta_geral !== null ? `${resumo.delta_geral > 0 ? '+' : ''}${resumo.delta_geral.toFixed(1)}` : '-'}
-        subtitulo={resumo.delta_geral !== null ? (resumo.delta_geral > 0 ? 'Escola acima' : resumo.delta_geral < 0 ? 'SISAM acima' : 'Equivalente') : ''}
+        subtitulo={resumo.delta_geral !== null ? (resumo.delta_geral > 0 ? 'Escola acima' : resumo.delta_geral < 0 ? 'Educatec acima' : 'Equivalente') : ''}
         icon={deltaIcon || <Minus className="w-6 h-6" />}
         cor={resumo.delta_geral !== null ? (resumo.delta_geral >= 0 ? 'bg-emerald-500' : 'bg-red-500') : 'bg-gray-400'}
       />
@@ -326,9 +326,9 @@ function ComparativoDisciplinas({ disciplinas }: { disciplinas: Resumo['por_disc
           <div key={d.codigo} className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
             <h4 className="font-medium text-gray-800 dark:text-white mb-3">{d.disciplina}</h4>
             <div className="space-y-2">
-              {/* Barra SISAM */}
+              {/* Barra Educatec */}
               <div className="flex items-center gap-3">
-                <span className="text-xs w-16 text-gray-500 dark:text-gray-400">SISAM</span>
+                <span className="text-xs w-16 text-gray-500 dark:text-gray-400">Educatec</span>
                 <div className="flex-1 bg-gray-200 dark:bg-slate-700 rounded-full h-4 overflow-hidden">
                   <div
                     className="bg-indigo-500 h-full rounded-full transition-all"
@@ -379,7 +379,7 @@ function AlertasDiscrepancia({ resumo }: { resumo: Resumo }) {
             <div>
               <h4 className="font-medium text-amber-800 dark:text-amber-300">Atenção: Discrepância Alta</h4>
               <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                <strong>{resumo.discrepancias_altas}</strong> aluno(s) com média escolar {'>='} 6.0 mas SISAM {'<'} 5.0.
+                <strong>{resumo.discrepancias_altas}</strong> aluno(s) com média escolar {'>='} 6.0 mas Educatec {'<'} 5.0.
                 Pode indicar diferença de critérios de avaliação.
               </p>
             </div>
@@ -393,7 +393,7 @@ function AlertasDiscrepancia({ resumo }: { resumo: Resumo }) {
             <div>
               <h4 className="font-medium text-sky-800 dark:text-sky-300">Destaque Positivo</h4>
               <p className="text-sm text-sky-700 dark:text-sky-400 mt-1">
-                <strong>{resumo.discrepancias_baixas}</strong> aluno(s) com média escolar {'<'} 6.0 mas SISAM {'>='} 6.0.
+                <strong>{resumo.discrepancias_baixas}</strong> aluno(s) com média escolar {'<'} 6.0 mas Educatec {'>='} 6.0.
                 Demonstram potencial que pode não estar refletido nas notas escolares.
               </p>
             </div>
@@ -427,7 +427,7 @@ function TabelaComparativa({ alunos, onImprimir }: { alunos: ComparativoAluno[];
           <thead className="bg-gray-50 dark:bg-slate-700">
             <tr>
               <th rowSpan={2} className="text-left py-2 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase sticky left-0 bg-gray-50 dark:bg-slate-700">Aluno</th>
-              <th colSpan={3} className="text-center py-1 px-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase border-b border-gray-200 dark:border-slate-600 bg-indigo-50/50 dark:bg-indigo-900/10">SISAM</th>
+              <th colSpan={3} className="text-center py-1 px-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase border-b border-gray-200 dark:border-slate-600 bg-indigo-50/50 dark:bg-indigo-900/10">Educatec</th>
               <th colSpan={3} className="text-center py-1 px-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase border-b border-gray-200 dark:border-slate-600 bg-emerald-50/50 dark:bg-emerald-900/10">Escola</th>
               <th rowSpan={2} className="text-center py-2 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase bg-amber-50/50 dark:bg-amber-900/10">Delta</th>
             </tr>
@@ -482,11 +482,11 @@ function TabelaComparativa({ alunos, onImprimir }: { alunos: ComparativoAluno[];
       </div>
 
       <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-4">
-        <span className="text-indigo-500">SISAM = Avaliação Municipal</span>
+        <span className="text-indigo-500">Educatec = Avaliação Municipal</span>
         <span className="text-emerald-500">Escola = Média das notas escolares</span>
-        <span>Delta = Escola - SISAM</span>
+        <span>Delta = Escola - Educatec</span>
         <span className="text-emerald-500">+ positivo = escola acima</span>
-        <span className="text-red-500">- negativo = SISAM acima</span>
+        <span className="text-red-500">- negativo = Educatec acima</span>
       </div>
     </div>
   )

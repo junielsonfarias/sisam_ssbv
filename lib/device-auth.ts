@@ -41,7 +41,7 @@ export interface ApiKeyGerada {
 /**
  * Gera uma nova API key para um dispositivo
  *
- * Formato: sisam_dev_ + 32 caracteres hexadecimais
+ * Formato: educatec_dev_ + 32 caracteres hexadecimais
  * Retorna a chave em texto, o hash bcrypt e o prefixo para busca rápida
  *
  * @returns Objeto com apiKey (texto), apiKeyHash (bcrypt) e apiKeyPrefix (8 chars)

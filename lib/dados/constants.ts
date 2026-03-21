@@ -91,7 +91,7 @@ export const PAGINACAO_ANALISES_INICIAL = {
   turmasAcertos: 1
 }
 
-export const FILTROS_STORAGE_KEY = 'sisam_painel_dados_filtros'
+export const FILTROS_STORAGE_KEY = 'educatec_painel_dados_filtros'
 
 export const CORES_METRIC_CARD: Record<string, { bg: string; text: string; border: string; iconBg: string }> = {
   indigo: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', iconBg: 'bg-indigo-100' },

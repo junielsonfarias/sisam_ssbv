@@ -1,6 +1,6 @@
 // Sistema de armazenamento offline usando IndexedDB
 
-const DB_NAME = 'sisam-offline-db';
+const DB_NAME = 'educatec-offline-db';
 const DB_VERSION = 2; // Incrementado para adicionar store CONFIG_SERIES
 
 // Stores (tabelas) do IndexedDB
@@ -329,7 +329,7 @@ export async function saveUserOffline(user: any): Promise<void> {
     await offlineDB.putItem(STORES.USER_DATA, offlineUser);
 
     // Também salvar no localStorage como backup
-    localStorage.setItem('sisam-offline-user', JSON.stringify(offlineUser));
+    localStorage.setItem('educatec-offline-user', JSON.stringify(offlineUser));
   } catch (error) {
     console.error('Erro ao salvar usuário offline:', error);
   }
@@ -339,7 +339,7 @@ export async function saveUserOffline(user: any): Promise<void> {
 export async function getOfflineUser(): Promise<OfflineUser | null> {
   // Primeiro tentar localStorage (mais rápido)
   try {
-    const stored = localStorage.getItem('sisam-offline-user');
+    const stored = localStorage.getItem('educatec-offline-user');
     if (stored) {
       const user = JSON.parse(stored);
       // Verificar se não expirou (7 dias)
@@ -380,7 +380,7 @@ export async function getOfflineUser(): Promise<OfflineUser | null> {
 // Limpar usuário offline (logout)
 export async function clearOfflineUser(): Promise<void> {
   try {
-    localStorage.removeItem('sisam-offline-user');
+    localStorage.removeItem('educatec-offline-user');
     if (isIndexedDBAvailable()) {
       const db = await offlineDB.getDB();
       const transaction = db.transaction(STORES.USER_DATA, 'readwrite');

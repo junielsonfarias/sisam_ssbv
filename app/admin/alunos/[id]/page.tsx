@@ -156,7 +156,7 @@ export default function AlunoDetalhePage() {
     { id: 'notas', label: 'Notas', icon: BookOpen },
     { id: 'frequencia', label: 'Frequência', icon: CalendarCheck },
     { id: 'historico', label: 'Histórico', icon: History },
-    { id: 'sisam', label: 'SISAM', icon: FileText },
+    { id: 'sisam', label: 'Avaliações', icon: FileText },
     { id: 'evolucao', label: 'Evolução', icon: TrendingUp },
     { id: 'facial', label: 'Facial', icon: ScanFace },
   ]

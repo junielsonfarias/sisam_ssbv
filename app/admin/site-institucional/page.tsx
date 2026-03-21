@@ -408,7 +408,7 @@ export default function SiteInstitucionalPage() {
     <div className="space-y-6">
       <div>
         <label className={labelClass}>Texto de Copyright</label>
-        <input type="text" className={inputClass} value={formData.texto_copyright || ''} onChange={e => updateField('texto_copyright', e.target.value)} placeholder="Ex: 2026 SISAM. Todos os direitos reservados." />
+        <input type="text" className={inputClass} value={formData.texto_copyright || ''} onChange={e => updateField('texto_copyright', e.target.value)} placeholder="Ex: 2026 Educatec. Todos os direitos reservados." />
       </div>
 
       {/* Links Uteis */}

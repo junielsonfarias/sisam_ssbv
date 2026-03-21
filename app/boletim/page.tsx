@@ -334,7 +334,7 @@ export default function BoletimPage() {
               </div>
             </div>
 
-            {/* Avaliacoes SISAM */}
+            {/* Avaliacoes Educatec */}
             {dados.avaliacoes_sisam.length > 0 && (() => {
               const serieNum = parseInt((dados.aluno.serie || '').replace(/\D/g, '')) || 0
               const isIniciais = [1, 2, 3, 4, 5].includes(serieNum)
@@ -343,7 +343,7 @@ export default function BoletimPage() {
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Award className="w-5 h-5 text-indigo-600" />
-                    <h3 className="font-bold text-slate-800">Avaliacoes Municipais (SISAM)</h3>
+                    <h3 className="font-bold text-slate-800">Avaliacoes Municipais (Educatec)</h3>
                   </div>
                   <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full">
                     {dados.aluno.serie ? formatSerie(dados.aluno.serie) : ''} — {isIniciais ? 'Anos Iniciais' : 'Anos Finais'}

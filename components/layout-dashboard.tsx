@@ -82,7 +82,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const [personalizacao, setPersonalizacao] = useState<Personalizacao>({})
   const [dataAtual, setDataAtual] = useState('')
   const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({})
-  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>('sisam')
+  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>('educatec')
   const [hidratado, setHidratado] = useState(false)
 
   // Função para verificar se o item do menu está ativo
@@ -275,8 +275,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
     // Menu especifico para ADMINISTRADOR
     if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
-      // Grupos SISAM (só no módulo SISAM)
-      if (moduloAtivo === 'sisam') {
+      // Grupos Educatec (só no módulo Educatec)
+      if (moduloAtivo === 'educatec') {
         items.push(
           {
             icon: Database, label: 'Análises', children: [
@@ -290,13 +290,13 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
               { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
               { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
-              { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
+              { icon: BarChart3, label: 'Educatec x Escola', href: '/admin/comparativo-notas' },
               { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
             ]
           },
           {
             icon: ClipboardList, label: 'Avaliações', children: [
-              { icon: ClipboardList, label: 'Avaliações SISAM', href: '/admin/avaliacoes' },
+              { icon: ClipboardList, label: 'Avaliações Educatec', href: '/admin/avaliacoes' },
               { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
               { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
             ]
@@ -310,8 +310,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
             ]
           },
           {
-            icon: Settings, label: 'Configurações SISAM', children: [
-              { icon: Settings, label: 'Séries SISAM', href: '/admin/configuracao-series' },
+            icon: Settings, label: 'Configurações Educatec', children: [
+              { icon: Settings, label: 'Séries Educatec', href: '/admin/configuracao-series' },
               { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' },
             ]
           },
@@ -395,7 +395,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
     // Menu especifico para TECNICO
     if (tipoUsuarioReal === 'tecnico') {
-      if (moduloAtivo === 'sisam') {
+      if (moduloAtivo === 'educatec') {
         items.push(
           {
             icon: Database, label: 'Análises', children: [
@@ -408,7 +408,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               { icon: FileText, label: 'Resultados Consolidados', href: '/tecnico/analise' },
               { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
               { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
-              { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
+              { icon: BarChart3, label: 'Educatec x Escola', href: '/admin/comparativo-notas' },
               { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
             ]
           },
@@ -501,7 +501,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
 
     // Menu especifico para ESCOLA
     if (tipoUsuarioReal === 'escola') {
-      if (moduloAtivo === 'sisam') {
+      if (moduloAtivo === 'educatec') {
         items.push(
           {
             icon: Database, label: 'Análises', children: [
@@ -511,7 +511,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
           {
             icon: FileText, label: 'Resultados', children: [
               { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
-              { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
+              { icon: BarChart3, label: 'Educatec x Escola', href: '/admin/comparativo-notas' },
             ]
           },
         )
@@ -659,7 +659,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               {/* Nome do Sistema */}
               <div className="flex flex-col min-w-0">
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 dark:text-white truncate">
-                  {personalizacao.nome_sistema || 'SISAM'}
+                  {personalizacao.nome_sistema || 'Educatec'}
                 </h1>
                 <span className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 truncate">
                   Sistema de Avaliação Municipal
@@ -673,21 +673,21 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               {tipoUsuarioReal !== 'polo' && tipoUsuarioReal !== 'professor' && !(tipoUsuarioReal === 'escola' && !usuario?.gestor_escolar_habilitado) && (
                 <button
                   onClick={() => {
-                    const novo = moduloAtivo === 'sisam' ? 'gestor' as offlineStorage.ModuloAtivo : 'sisam' as offlineStorage.ModuloAtivo
+                    const novo = moduloAtivo === 'educatec' ? 'gestor' as offlineStorage.ModuloAtivo : 'educatec' as offlineStorage.ModuloAtivo
                     offlineStorage.saveModuloAtivo(novo)
                     setModuloAtivo(novo)
                     if (novo === 'gestor') router.push('/admin/dashboard-gestor')
                     else router.push(`/${basePath}/dashboard`)
                   }}
                   className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${
-                    moduloAtivo === 'sisam'
+                    moduloAtivo === 'educatec'
                       ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
                       : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
                   }`}
-                  title={`Módulo ativo: ${moduloAtivo === 'sisam' ? 'SISAM' : 'Gestor Escolar'}. Clique para alternar.`}
+                  title={`Módulo ativo: ${moduloAtivo === 'educatec' ? 'Educatec' : 'Gestor Escolar'}. Clique para alternar.`}
                 >
-                  {moduloAtivo === 'sisam' ? <Database className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-                  <span>{moduloAtivo === 'sisam' ? 'SISAM' : 'Gestor'}</span>
+                  {moduloAtivo === 'educatec' ? <Database className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                  <span>{moduloAtivo === 'educatec' ? 'Educatec' : 'Gestor'}</span>
                   <ArrowLeftRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-50" />
                 </button>
               )}

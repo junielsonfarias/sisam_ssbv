@@ -9,7 +9,7 @@ export function AbaSisam({ dados }: any) {
   if (sisam.length === 0) return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-12 text-center">
       <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-      <p className="text-gray-500">Nenhum resultado SISAM encontrado</p>
+      <p className="text-gray-500">Nenhum resultado de avaliação encontrado</p>
     </div>
   )
 
@@ -90,7 +90,7 @@ export function AbaSisam({ dados }: any) {
         const isAnosFinais = ['6','7','8','9'].includes(serieNum) || r.tipo_avaliacao === 'anos_finais'
 
         return (
-          <Secao key={i} titulo={`SISAM ${formatSerie(r.serie) || ''} — ${r.ano_letivo || ''}`} icon={FileText}>
+          <Secao key={i} titulo={`Avaliação ${formatSerie(r.serie) || ''} — ${r.ano_letivo || ''}`} icon={FileText}>
             {/* Cards por disciplina */}
             {disciplinas.length > 0 ? (
               <div className={`grid gap-4 ${disciplinas.length >= 4 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>

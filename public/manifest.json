@@ -1,7 +1,7 @@
 {
-  "name": "SISAM - Sistema de Avaliacao Municipal",
-  "short_name": "SISAM",
-  "description": "Sistema de Avaliacao Municipal - Acompanhe resultados e desempenho escolar",
+  "name": "Educatec - SEMED SSBV",
+  "short_name": "Educatec",
+  "description": "Sistema de Gestao Escolar - Secretaria Municipal de Educacao de Sao Sebastiao da Boa Vista",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#4F46E5",

@@ -15,7 +15,7 @@ const defaultNews = [
   {
     date: '2026-03-10',
     title: 'Novo Modulo de Reconhecimento Facial',
-    excerpt: 'O SISAM agora conta com tecnologia de reconhecimento facial para registro automatico de frequencia escolar.',
+    excerpt: 'O Educatec agora conta com tecnologia de reconhecimento facial para registro automatico de frequencia escolar.',
   },
   {
     date: '2026-02-28',
@@ -62,7 +62,7 @@ function formatMonth(dateStr: string): string {
 
 export default function SiteNews({ data }: SiteNewsProps) {
   const title = data?.title || 'Noticias e Atualizacoes'
-  const subtitle = data?.subtitle || 'Fique por dentro das novidades do SISAM'
+  const subtitle = data?.subtitle || 'Fique por dentro das novidades do Educatec'
   const news = data?.news || defaultNews
 
   if (!news || news.length === 0) {

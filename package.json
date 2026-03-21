@@ -1,7 +1,7 @@
 {
-  "name": "sisam",
-  "version": "1.0.0",
-  "description": "Sistema de Análise de Provas - SISAM",
+  "name": "educatec",
+  "version": "2.0.0",
+  "description": "Educatec - Sistema de Gestão Escolar | SEMED SSBV",
   "private": true,
   "scripts": {
     "dev": "next dev",

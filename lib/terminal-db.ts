@@ -5,7 +5,7 @@
  * Funciona sem internet — sincroniza quando reconectar.
  */
 
-const DB_NAME = 'sisam-terminal'
+const DB_NAME = 'educatec-terminal'
 const DB_VERSION = 1
 
 const STORES = {

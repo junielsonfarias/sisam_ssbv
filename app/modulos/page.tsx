@@ -21,14 +21,14 @@ export default function ModulosPage() {
 
     // Polo não tem Gestor Escolar — redirecionar direto
     if (user.tipo_usuario === 'polo') {
-      offlineStorage.saveModuloAtivo('sisam')
+      offlineStorage.saveModuloAtivo('educatec')
       router.push('/polo/dashboard')
       return
     }
 
-    // Escola sem Gestor Escolar habilitado — redirecionar direto para SISAM
+    // Escola sem Gestor Escolar habilitado — redirecionar direto para Educatec
     if (user.tipo_usuario === 'escola' && !user.gestor_escolar_habilitado) {
-      offlineStorage.saveModuloAtivo('sisam')
+      offlineStorage.saveModuloAtivo('educatec')
       router.push('/escola/dashboard')
       return
     }
@@ -43,7 +43,7 @@ export default function ModulosPage() {
     if (modulo === 'gestor') {
       router.push('/admin/dashboard-gestor')
     } else {
-      // SISAM — redirecionar ao dashboard do tipo
+      // Educatec — redirecionar ao dashboard do tipo
       if (tipo === 'administrador') router.push('/admin/dashboard')
       else if (tipo === 'tecnico') router.push('/tecnico/dashboard')
       else if (tipo === 'escola') router.push('/escola/dashboard')
@@ -71,8 +71,8 @@ export default function ModulosPage() {
             <Database className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">SISAM</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Sistema de Avaliacao Municipal</p>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Educatec</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Sistema de Gestão Escolar — SEMED SSBV</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -101,9 +101,9 @@ export default function ModulosPage() {
 
           {/* Cards de módulo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Card SISAM */}
+            {/* Card Educatec */}
             <button
-              onClick={() => selecionarModulo('sisam')}
+              onClick={() => selecionarModulo('educatec')}
               className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-indigo-500 transition-all duration-300 p-8 text-left overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-100 dark:from-indigo-900/30 to-transparent rounded-bl-full opacity-60 group-hover:opacity-100 transition" />
@@ -113,9 +113,9 @@ export default function ModulosPage() {
                   <Database className="w-8 h-8 text-white" />
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">SISAM</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Educatec</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                  Sistema de Avaliacao Municipal
+                  Sistema de Gestão Escolar — SEMED SSBV
                 </p>
 
                 <div className="space-y-2">
@@ -132,7 +132,7 @@ export default function ModulosPage() {
                 </div>
 
                 <div className="mt-6 text-sm font-semibold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
-                  Acessar SISAM →
+                  Acessar Educatec →
                 </div>
               </div>
             </button>

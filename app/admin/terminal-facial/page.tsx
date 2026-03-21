@@ -597,7 +597,7 @@ function TerminalFacialContent() {
       <div className="flex items-center justify-between px-4 py-2 bg-gray-900/90 backdrop-blur-sm z-10">
         <div className="flex items-center gap-3">
           <ScanFace className="w-6 h-6 text-indigo-400" />
-          <span className="text-white font-semibold hidden sm:inline">SISAM Terminal</span>
+          <span className="text-white font-semibold hidden sm:inline">Educatec Terminal</span>
 
           {/* Status */}
           <div className="flex items-center gap-1.5">

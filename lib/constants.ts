@@ -1,5 +1,5 @@
 /**
- * Constantes Centralizadas do Sistema SISAM
+ * Constantes Centralizadas do Sistema Educatec
  *
  * Este arquivo contém todas as constantes (magic numbers) utilizadas
  * no sistema, organizadas por categoria para facilitar manutenção.
@@ -62,7 +62,7 @@ export const SESSAO = {
   /** Tempo de expiração do token JWT em dias */
   TOKEN_EXPIRACAO_DIAS: 7,
   /** Nome do cookie de autenticação */
-  COOKIE_NAME: 'sisam_auth'
+  COOKIE_NAME: 'educatec_auth'
 } as const
 
 // ============================================================================
@@ -312,7 +312,7 @@ export const FACIAL = {
   /** Máximo de registros por requisição em lote */
   LOTE_MAXIMO: 500,
   /** Prefixo das API keys de dispositivos */
-  API_KEY_PREFIX: 'sisam_dev_',
+  API_KEY_PREFIX: 'educatec_dev_',
   /** Dias para reter logs de dispositivos */
   RETENCAO_LOGS_DIAS: 365,
 } as const

@@ -166,7 +166,7 @@ export default function LoginPage() {
 
       // Polo vai direto (sem tela de módulos)
       if (data.usuario.tipo_usuario === 'polo') {
-        offlineStorage.saveModuloAtivo('sisam')
+        offlineStorage.saveModuloAtivo('educatec')
         router.push('/polo/dashboard')
       } else if (data.usuario.tipo_usuario === 'professor') {
         // Professor vai direto ao seu portal

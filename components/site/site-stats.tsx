@@ -44,7 +44,7 @@ function AnimatedCounter({ target, duration = 2000 }: { target: number; duration
 }
 
 export default function SiteStats({ data, stats }: SiteStatsProps) {
-  const title = data?.title || 'SISAM em Numeros'
+  const title = data?.title || 'Educatec em Numeros'
   const subtitle = data?.subtitle || 'Acompanhe o alcance da nossa plataforma educacional'
 
   const items = [
