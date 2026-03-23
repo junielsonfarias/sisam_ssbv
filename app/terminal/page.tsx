@@ -1,64 +1,34 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
-import {
-  Camera, Wifi, WifiOff, Users, Clock, CheckCircle, AlertCircle,
-  Maximize, Minimize, Volume2, VolumeX, Settings, ScanFace,
-  Loader2, UserX, RefreshCw, Download, CloudOff, Cloud
-} from 'lucide-react'
-import {
-  obterConfig, salvarConfig, obterEmbeddings, contarEmbeddings,
-  registrarPresenca, contarPresencasPendentes, sincronizarPresencas,
-  baixarEmbeddings, limparPresencasEnviadas,
-  type TerminalConfig, type EmbeddingLocal
-} from '@/lib/terminal-db'
+import { useEffect, useState, useRef } from 'react'
+import { ScanFace } from 'lucide-react'
+import { useTerminalInit } from './hooks/useTerminalInit'
+import { useCamera } from './hooks/useCamera'
+import { useSync } from './hooks/useSync'
+import { useFaceRecognition } from './hooks/useFaceRecognition'
+import { SetupPanel } from './components/SetupPanel'
+import { TerminalView } from './components/TerminalView'
+import type { AlunoEmMemoria, RegistroLocal } from './types'
 
 // ============================================================================
-// Tipos
+// Componente Principal — Orquestrador
 // ============================================================================
-
-interface AlunoEmMemoria {
-  aluno_id: string
-  nome: string
-  codigo: string | null
-  serie: string | null
-  turma_codigo: string | null
-  descriptor: Float32Array
-}
-
-interface RegistroLocal {
-  aluno_id: string
-  nome: string
-  tipo: 'entrada' | 'saida'
-  hora: string
-  confianca: number
-}
-
-type Fase = 'setup' | 'terminal'
-type StatusModelo = 'carregando' | 'pronto' | 'erro'
-
-// ============================================================================
-// Componente Principal
-// ============================================================================
-
-// Animações CSS para o overlay de confirmação
-const animationStyles = `
-@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-@keyframes scaleIn { from { opacity: 0; transform: scale(1.3) } to { opacity: 1; transform: scale(1) } }
-`
 
 export default function TerminalPWA() {
-  // Fase
-  const [fase, setFase] = useState<Fase>('setup')
-  const [inicializando, setInicializando] = useState(true)
+  // Inicializacao central (config, modelos, clock, online)
+  const {
+    fase, setFase,
+    inicializando,
+    statusModelo,
+    online,
+    horaAtual,
+    pendentesSync, setPendentesSync,
+    savedConfig,
+    initialAlunos,
+    faceapiRef,
+  } = useTerminalInit()
 
-  // Setup — Login
-  const [email, setEmail] = useState('')
-  const [senha, setSenha] = useState('')
-  const [logado, setLogado] = useState(false)
-  const [loginCarregando, setLoginCarregando] = useState(false)
-
-  // Setup — Config
+  // Estado local do terminal
   const [serverUrl, setServerUrl] = useState('')
   const [token, setToken] = useState('')
   const [escolaId, setEscolaId] = useState('')
@@ -67,15 +37,9 @@ export default function TerminalPWA() {
   const [confianca, setConfianca] = useState(0.85)
   const [cooldown, setCooldown] = useState(1800)
   const [configSalva, setConfigSalva] = useState(false)
-  const [baixandoEmbed, setBaixandoEmbed] = useState(false)
   const [totalEmbeddings, setTotalEmbeddings] = useState(0)
-  const [escolas, setEscolas] = useState<{ id: string; nome: string }[]>([])
-  const [mensagemSetup, setMensagemSetup] = useState('')
 
-  // Terminal
-  const [statusModelo, setStatusModelo] = useState<StatusModelo>('carregando')
   const [cameraAtiva, setCameraAtiva] = useState(false)
-  const [online, setOnline] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
   const [somAtivo, setSomAtivo] = useState(true)
   const [reconhecendo, setReconhecendo] = useState(false)
@@ -88,543 +52,61 @@ export default function TerminalPWA() {
   const [ultimoAlunoHora, setUltimoAlunoHora] = useState('')
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
   const [confirmacaoTipo, setConfirmacaoTipo] = useState<'entrada' | 'ja_registrado'>('entrada')
-  const confirmacaoTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const [pendentesSync, setPendentesSync] = useState(0)
-  const [horaAtual, setHoraAtual] = useState('')
   const [sincronizando, setSincronizando] = useState(false)
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const faceapiRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const cooldownMapRef = useRef<Map<string, number>>(new Map())
-  const containerRef = useRef<HTMLDivElement>(null)
-  const wakeLockRef = useRef<any>(null)
-  const syncIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const sincronizandoRef = useRef(false)
-  const mensagemTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const detectandoRef = useRef(false)
 
-  // ============================================================================
-  // INICIALIZAÇÃO — Carregar config salva + modelos
-  // ============================================================================
-
+  // Sincronizar config carregada do IndexedDB
   useEffect(() => {
-    const init = async () => {
-      // Carregar config do IndexedDB
-      const cfg = await obterConfig()
-      if (cfg) {
-        setServerUrl(cfg.server_url)
-        setToken(cfg.api_token)
-        setEscolaId(cfg.escola_id)
-        setEscolaNome(cfg.escola_nome)
-        setTurmaId(cfg.turma_id || '')
-        setConfianca(cfg.confianca_minima)
-        setCooldown(cfg.cooldown_segundos)
-        setConfigSalva(true)
+    if (!savedConfig) return
+    setServerUrl(savedConfig.serverUrl)
+    setToken(savedConfig.token)
+    setEscolaId(savedConfig.escolaId)
+    setEscolaNome(savedConfig.escolaNome)
+    setTurmaId(savedConfig.turmaId)
+    setConfianca(savedConfig.confianca)
+    setCooldown(savedConfig.cooldown)
+    setConfigSalva(savedConfig.configSalva)
+    setTotalEmbeddings(savedConfig.totalEmbeddings)
+  }, [savedConfig])
 
-        const count = await contarEmbeddings()
-        setTotalEmbeddings(count)
-        if (count > 0) {
-          // Config + embeddings existem → carregar e ir direto para terminal
-          const embsLocais = await obterEmbeddings()
-          const alunosCarregados: AlunoEmMemoria[] = []
-          for (const emb of embsLocais) {
-            try {
-              const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
-              const descriptor = new Float32Array(bytes.buffer)
-              alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
-            } catch { /* Ignora inválido */ }
-          }
-          setAlunos(alunosCarregados)
-          setFase('terminal')
-        }
-      } else {
-        // Primeiro uso — tentar detectar URL do servidor
-        setServerUrl(window.location.origin)
-      }
-
-      // Carregar modelos face-api
-      try {
-        const faceapi = await import('@vladmandic/face-api')
-        await faceapi.nets.tinyFaceDetector.loadFromUri('/models/face-api')
-        await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models/face-api')
-        await faceapi.nets.faceRecognitionNet.loadFromUri('/models/face-api')
-        faceapiRef.current = faceapi
-        setStatusModelo('pronto')
-      } catch {
-        setStatusModelo('erro')
-      }
-
-      // Pendentes de sync
-      setPendentesSync(await contarPresencasPendentes())
-      setInicializando(false)
-    }
-    init()
-
-    // Relógio
-    const clockInterval = setInterval(() => {
-      setHoraAtual(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
-    }, 1000)
-
-    // Online/offline
-    const handleOnline = () => setOnline(true)
-    const handleOffline = () => setOnline(false)
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    setOnline(navigator.onLine)
-
-    return () => {
-      clearInterval(clockInterval)
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
-
-  // ============================================================================
-  // AUTO-START CÂMERA ao entrar no terminal
-  // ============================================================================
-
+  // Sincronizar alunos carregados na init
   useEffect(() => {
-    if (fase !== 'terminal' || cameraAtiva || statusModelo !== 'pronto' || alunos.length === 0) return
-
-    const iniciarCameraAuto = async () => {
-      // Parar stream anterior se existir
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop())
-        streamRef.current = null
-      }
-
-      try {
-        // Tentar câmera frontal primeiro, fallback para qualquer câmera
-        let stream: MediaStream
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user' },
-          })
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true })
-        }
-
-        streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          await videoRef.current.play()
-        }
-        setCameraAtiva(true)
-      } catch (err: any) {
-        const msg = err?.name === 'NotAllowedError'
-          ? 'Camera bloqueada. Permita o acesso nas configuracoes do navegador.'
-          : err?.name === 'NotFoundError'
-          ? 'Nenhuma camera encontrada neste dispositivo.'
-          : 'Erro ao acessar camera. Verifique as permissoes.'
-        setMensagem(msg)
-        setMensagemTipo('erro')
-      }
+    if (initialAlunos.length > 0) {
+      setAlunos(initialAlunos)
     }
+  }, [initialAlunos])
 
-    iniciarCameraAuto()
-  }, [fase, statusModelo, alunos.length])
+  // Camera auto-start + wake lock
+  useCamera({
+    fase, statusModelo, alunosCount: alunos.length,
+    cameraAtiva, setCameraAtiva,
+    setMensagem, setMensagemTipo,
+    videoRef, streamRef,
+  })
 
-  // ============================================================================
-  // WAKE LOCK — Impedir tela de apagar
-  // ============================================================================
+  // Sync automatico de presencas
+  useSync({
+    fase, token, serverUrl,
+    setPendentesSync, sincronizando, setSincronizando,
+  })
 
-  useEffect(() => {
-    if (fase !== 'terminal') return
+  // Reconhecimento facial
+  useFaceRecognition({
+    fase, cameraAtiva, faceapiRef, alunos, confianca, cooldown, somAtivo,
+    serverUrl, token, videoRef, canvasRef,
+    setReconhecendo, setRegistros, setUltimoAlunoNome, setUltimoAlunoInfo,
+    setUltimoAlunoHora, setConfirmacaoTipo, setMostrarConfirmacao, setPendentesSync,
+  })
 
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLockRef.current = await (navigator as any).wakeLock.request('screen')
-        }
-      } catch { /* Não suportado */ }
-    }
-
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') requestWakeLock()
-    }
-
-    requestWakeLock()
-    document.addEventListener('visibilitychange', handleVisibility)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility)
-      if (wakeLockRef.current) wakeLockRef.current.release().catch(() => {})
-    }
-  }, [fase])
-
-  // ============================================================================
-  // SYNC AUTOMÁTICO — Enviar presenças quando online
-  // ============================================================================
-
-  useEffect(() => {
-    if (fase !== 'terminal') return
-
-    const sync = async () => {
-      if (!navigator.onLine || !token || sincronizandoRef.current) return
-      const count = await contarPresencasPendentes()
-      if (count === 0) {
-        setPendentesSync(0)
-        return
-      }
-
-      sincronizandoRef.current = true
-      setSincronizando(true)
-      try {
-        const result = await sincronizarPresencas(serverUrl || window.location.origin, token)
-        if (result.enviados > 0) {
-          await limparPresencasEnviadas()
-        }
-      } catch { /* Retry no próximo ciclo */ }
-      setPendentesSync(await contarPresencasPendentes())
-      sincronizandoRef.current = false
-      setSincronizando(false)
-    }
-
-    // Sync a cada 30 segundos
-    syncIntervalRef.current = setInterval(sync, 30000)
-    sync() // Sync imediato ao entrar no terminal
-
-    return () => {
-      if (syncIntervalRef.current) clearInterval(syncIntervalRef.current)
-    }
-  }, [fase, token, serverUrl])
-
-  // ============================================================================
-  // SETUP — Buscar escolas e salvar config
-  // ============================================================================
-
-  // Login no terminal — faz autenticação e recebe cookie httpOnly automaticamente
-  const fazerLogin = async () => {
-    if (!email || !senha) {
-      setMensagemSetup('Informe email e senha')
-      return
-    }
-
-    setLoginCarregando(true)
-    setMensagemSetup('')
-
-    try {
-      const baseUrl = serverUrl || window.location.origin
-
-      const res = await fetch(`${baseUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email: email.trim().toLowerCase(), senha }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        setMensagemSetup(data.mensagem || 'Email ou senha incorretos')
-        return
-      }
-
-      // Login OK — cookie httpOnly foi definido automaticamente pelo servidor
-      setLogado(true)
-      setToken('authenticated')
-      setMensagemSetup('')
-
-      // Se usuário é do tipo escola, pré-selecionar
-      if (data.usuario?.escola_id) {
-        setEscolaId(data.usuario.escola_id)
-        setEscolaNome(data.usuario.escola_nome || '')
-      }
-
-      // Buscar escolas
-      await buscarEscolas(baseUrl)
-    } catch {
-      setMensagemSetup('Servidor inacessivel. Verifique a URL.')
-    } finally {
-      setLoginCarregando(false)
-    }
-  }
-
-  const buscarEscolas = async (baseUrl?: string) => {
-    try {
-      const url = baseUrl || serverUrl || window.location.origin
-
-      const res = await fetch(`${url}/api/admin/escolas`, {
-        credentials: 'include',
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setEscolas(Array.isArray(data) ? data.map((e: any) => ({ id: e.id, nome: e.nome })) : [])
-      } else {
-        setMensagemSetup('Sessao expirada. Faca login novamente.')
-        setLogado(false)
-      }
-    } catch {
-      setMensagemSetup('Erro ao carregar escolas.')
-    }
-  }
-
-  const baixarESalvar = async () => {
-    if (!escolaId || !logado) return
-    setBaixandoEmbed(true)
-    setMensagemSetup('Baixando embeddings dos alunos...')
-
-    try {
-      const total = await baixarEmbeddings(serverUrl, token, escolaId, turmaId || undefined)
-      setTotalEmbeddings(total)
-
-      const escola = escolas.find(e => e.id === escolaId)
-      await salvarConfig({
-        escola_id: escolaId,
-        escola_nome: escola?.nome || '',
-        turma_id: turmaId || undefined,
-        confianca_minima: confianca,
-        cooldown_segundos: cooldown,
-        server_url: serverUrl,
-        api_token: token,
-        ultima_sync_embeddings: new Date().toISOString(),
-      })
-
-      setConfigSalva(true)
-      if (total === 0) {
-        setMensagemSetup('Nenhum aluno com rosto cadastrado nesta escola. Primeiro cadastre os rostos em Cadastro Facial (/admin/facial-enrollment).')
-      } else {
-        setMensagemSetup(`${total} aluno(s) com rosto cadastrado carregado(s). Pronto para iniciar!`)
-      }
-    } catch {
-      setMensagemSetup('Erro ao baixar embeddings. Verifique a conexao.')
-    } finally {
-      setBaixandoEmbed(false)
-    }
-  }
-
-  // ============================================================================
-  // INICIAR TERMINAL
-  // ============================================================================
-
-  const iniciarTerminal = async () => {
-    // Carregar embeddings do IndexedDB para memória
-    const embsLocais = await obterEmbeddings()
-    if (embsLocais.length === 0) {
-      setMensagemSetup('Nenhum embedding encontrado. Baixe os dados primeiro.')
-      return
-    }
-
-    const alunosCarregados: AlunoEmMemoria[] = []
-    for (const emb of embsLocais) {
-      try {
-        // Limpar whitespace do base64 (PostgreSQL encode adiciona \n)
-        const cleanBase64 = emb.embedding_base64.replace(/\s/g, '')
-        const bytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0))
-        if (bytes.length !== 512) continue // 128 floats × 4 bytes
-        const descriptor = new Float32Array(bytes.buffer)
-        alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
-      } catch { /* Ignora embedding inválido */ }
-    }
-
-    setAlunos(alunosCarregados)
-    setFase('terminal')
-
-    // Iniciar câmera
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-      })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
-      setCameraAtiva(true)
-    } catch {
-      setMensagem('Erro ao acessar camera')
-      setMensagemTipo('erro')
-    }
-  }
-
-  // ============================================================================
-  // RECONHECIMENTO FACIAL
-  // ============================================================================
-
-  useEffect(() => {
-    if (fase !== 'terminal' || !cameraAtiva || !faceapiRef.current || alunos.length === 0) return
-
-    const faceapi = faceapiRef.current
-
-    const labeledDescriptors = alunos.map(a =>
-      new faceapi.LabeledFaceDescriptors(a.aluno_id, [a.descriptor])
-    )
-    // maxDescriptorDistance: distância euclidiana máxima para match
-    // face-api.js: mesma pessoa ~0.3-0.5, diferente ~0.7+
-    // Mapear confiança do usuário (70-90%) para distância (0.6-0.4)
-    const maxDistance = confianca >= 0.9 ? 0.4 : confianca >= 0.85 ? 0.5 : 0.6
-    const matcher = new faceapi.FaceMatcher(labeledDescriptors, maxDistance)
-
-    setReconhecendo(true)
-
-    // Sincronizar canvas com dimensões do vídeo
-    const video = videoRef.current
-    if (video && canvasRef.current && video.videoWidth && video.videoHeight) {
-      faceapi.matchDimensions(canvasRef.current, { width: video.videoWidth, height: video.videoHeight })
-    }
-
-    intervalRef.current = setInterval(async () => {
-      if (!videoRef.current || videoRef.current.paused) return
-      if (document.hidden) return
-      if (detectandoRef.current) return // Evitar sobreposição
-      if (videoRef.current.readyState < 2) return // Vídeo não pronto
-
-      detectandoRef.current = true
-
-      try {
-        const video = videoRef.current
-        const canvas = canvasRef.current
-        if (!canvas) return
-
-        const detections = await faceapi
-          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
-          .withFaceLandmarks(true)
-          .withFaceDescriptors()
-
-        // Usar resizeResults do face-api (cuida de escala/rotação automaticamente)
-        const dims = { width: video.videoWidth, height: video.videoHeight }
-        const resized = faceapi.resizeResults(detections, dims)
-
-        // Limpar canvas
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-        for (const det of resized) {
-          const match = matcher.findBestMatch(det.descriptor)
-          const box = det.detection.box
-
-          if (match.label !== 'unknown') {
-            const alunoId = match.label
-            const conf = 1 - match.distance
-            const aluno = alunos.find(a => a.aluno_id === alunoId)
-
-            // Verificar cooldown
-            const ultimoRegistro = cooldownMapRef.current.get(alunoId)
-            const agora = Date.now()
-            const emCooldown = ultimoRegistro && (agora - ultimoRegistro) < cooldown * 1000
-
-            // Desenhar retângulo + nome + turma/série
-            const cor = emCooldown ? '#eab308' : '#10b981'
-            ctx.strokeStyle = cor
-            ctx.lineWidth = 3
-            ctx.strokeRect(box.x, box.y, box.width, box.height)
-
-            const nome = aluno?.nome || alunoId
-            const info = [aluno?.turma_codigo, aluno?.serie ? `${aluno.serie}º Ano` : ''].filter(Boolean).join(' - ')
-
-            // Fundo do label (nome + info)
-            ctx.font = 'bold 15px sans-serif'
-            const nomeW = ctx.measureText(nome).width
-            ctx.font = '12px sans-serif'
-            const infoW = info ? ctx.measureText(info).width : 0
-            const labelW = Math.max(nomeW, infoW) + 20
-            const labelH = info ? 42 : 26
-
-            ctx.fillStyle = cor
-            ctx.fillRect(box.x, box.y - labelH - 4, labelW, labelH)
-            // Nome
-            ctx.fillStyle = '#fff'
-            ctx.font = 'bold 15px sans-serif'
-            ctx.fillText(nome, box.x + 10, box.y - (info ? 24 : 10))
-            // Turma + série
-            if (info) {
-              ctx.font = '12px sans-serif'
-              ctx.fillStyle = 'rgba(255,255,255,0.85)'
-              ctx.fillText(info, box.x + 10, box.y - 8)
-            }
-
-            if (!emCooldown && aluno) {
-              cooldownMapRef.current.set(alunoId, agora)
-
-              const timestamp = new Date().toISOString()
-              const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-              let tipo: 'entrada' | 'ja_registrado' = 'entrada'
-
-              // Tentar enviar ao servidor imediatamente (se online)
-              let salvoNoServidor = false
-              if (navigator.onLine) {
-                try {
-                  const baseUrl = serverUrl || window.location.origin
-                  const res = await fetch(`${baseUrl}/api/admin/facial/presenca-terminal`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ aluno_id: alunoId, timestamp, confianca: conf }),
-                  })
-                  if (res.ok) {
-                    const data = await res.json()
-                    salvoNoServidor = true
-                    if (data.tipo === 'saida') tipo = 'ja_registrado'
-                  }
-                } catch { /* falha de rede */ }
-              }
-
-              // Se não salvou no servidor, guardar offline para sync posterior
-              if (!salvoNoServidor) {
-                await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf })
-                setPendentesSync(prev => prev + 1)
-              }
-
-              setRegistros(prev => [{ aluno_id: alunoId, nome: aluno.nome, tipo: tipo === 'ja_registrado' ? 'saida' as const : 'entrada' as const, hora, confianca: conf }, ...prev].slice(0, 50))
-
-              // Mostrar confirmação com tipo e status de sync
-              setUltimoAlunoNome(aluno.nome)
-              setUltimoAlunoInfo([aluno.turma_codigo, aluno.serie ? `${aluno.serie}º Ano` : ''].filter(Boolean).join(' — '))
-              setUltimoAlunoHora(`${hora}${salvoNoServidor ? '' : ' (offline)'}`)
-              setConfirmacaoTipo(tipo)
-              setMostrarConfirmacao(true)
-              if (confirmacaoTimeoutRef.current) clearTimeout(confirmacaoTimeoutRef.current)
-              confirmacaoTimeoutRef.current = setTimeout(() => setMostrarConfirmacao(false), 3000)
-
-              // Som — tom diferente para já registrado
-              if (somAtivo) {
-                try {
-                  const audioCtx = new AudioContext()
-                  const osc = audioCtx.createOscillator()
-                  osc.frequency.value = tipo === 'ja_registrado' ? 440 : 880
-                  osc.connect(audioCtx.destination)
-                  osc.start()
-                  setTimeout(() => { osc.stop(); audioCtx.close() }, tipo === 'ja_registrado' ? 300 : 150)
-                } catch { /* Sem som */ }
-              }
-            }
-          } else {
-            // Rosto não cadastrado
-            ctx.strokeStyle = '#ef4444'
-            ctx.lineWidth = 2
-            ctx.strokeRect(box.x, box.y, box.width, box.height)
-            const label = 'Nao cadastrado'
-            ctx.font = 'bold 14px sans-serif'
-            const tw = ctx.measureText(label).width
-            ctx.fillStyle = 'rgba(239,68,68,0.85)'
-            ctx.fillRect(box.x, box.y - 24, tw + 12, 22)
-            ctx.fillStyle = '#fff'
-            ctx.fillText(label, box.x + 6, box.y - 8)
-          }
-        }
-      } catch { /* Erro no loop — continua */ } finally {
-        detectandoRef.current = false
-      }
-    }, 500)
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      setReconhecendo(false)
-    }
-  }, [fase, cameraAtiva, alunos, confianca, cooldown, somAtivo])
-
-  // ============================================================================
-  // FULLSCREEN
-  // ============================================================================
-
+  // Fullscreen toggle
   const toggleFullscreen = async () => {
     if (!document.fullscreenElement) {
-      await containerRef.current?.requestFullscreen().catch(() => {})
+      await document.documentElement.requestFullscreen().catch(() => {})
       setFullscreen(true)
     } else {
       await document.exitFullscreen().catch(() => {})
@@ -633,7 +115,7 @@ export default function TerminalPWA() {
   }
 
   // ============================================================================
-  // RENDER — LOADING INICIAL (evita flash da tela de setup)
+  // RENDER — LOADING INICIAL
   // ============================================================================
 
   if (inicializando) {
@@ -653,346 +135,54 @@ export default function TerminalPWA() {
 
   if (fase === 'setup') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-8 space-y-6">
-          {/* Logo */}
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-100 mb-4">
-              <ScanFace className="w-8 h-8 text-teal-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Terminal Facial</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Configurar dispositivo para reconhecimento</p>
-          </div>
-
-          {/* Status dos modelos */}
-          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-            statusModelo === 'pronto' ? 'bg-green-50 text-green-700' :
-            statusModelo === 'erro' ? 'bg-red-50 text-red-700' :
-            'bg-blue-50 text-blue-700'
-          }`}>
-            {statusModelo === 'carregando' && <Loader2 className="w-4 h-4 animate-spin" />}
-            {statusModelo === 'pronto' && <CheckCircle className="w-4 h-4" />}
-            {statusModelo === 'erro' && <AlertCircle className="w-4 h-4" />}
-            <span>Modelos IA: {statusModelo === 'pronto' ? 'Prontos' : statusModelo === 'erro' ? 'Erro ao carregar' : 'Carregando...'}</span>
-          </div>
-
-          {/* Login do terminal */}
-          {!logado ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@semed.gov.br" autoComplete="email"
-                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                  onKeyDown={e => e.key === 'Enter' && fazerLogin()} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha</label>
-                <input type="password" value={senha} onChange={e => setSenha(e.target.value)}
-                  placeholder="Sua senha" autoComplete="current-password"
-                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                  onKeyDown={e => e.key === 'Enter' && fazerLogin()} />
-              </div>
-              <button onClick={fazerLogin} disabled={!email || !senha || loginCarregando}
-                className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
-                {loginCarregando ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                {loginCarregando ? 'Conectando...' : 'Entrar'}
-              </button>
-            </div>
-          ) : null}
-
-          {/* Escola — aparece após login */}
-          {logado && escolas.length > 0 && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Escola</label>
-                <select value={escolaId} onChange={e => { setEscolaId(e.target.value); setEscolaNome(escolas.find(x => x.id === e.target.value)?.nome || '') }}
-                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
-                  <option value="">Selecione a escola</option>
-                  {escolas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confianca</label>
-                  <select value={confianca} onChange={e => setConfianca(parseFloat(e.target.value))}
-                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
-                    <option value={0.7}>70%</option>
-                    <option value={0.8}>80%</option>
-                    <option value={0.85}>85% (padrao)</option>
-                    <option value={0.9}>90%</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cooldown</label>
-                  <select value={cooldown} onChange={e => setCooldown(parseInt(e.target.value))}
-                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
-                    <option value={300}>5 min</option>
-                    <option value={900}>15 min</option>
-                    <option value={1800}>30 min (padrao)</option>
-                    <option value={3600}>1 hora</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Baixar embeddings */}
-              <button onClick={baixarESalvar} disabled={!escolaId || baixandoEmbed || statusModelo !== 'pronto' || !logado}
-                className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
-                {baixandoEmbed ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                {baixandoEmbed ? 'Baixando...' : `Baixar Dados dos Alunos${totalEmbeddings > 0 ? ` (${totalEmbeddings} salvos)` : ''}`}
-              </button>
-            </>
-          )}
-
-          {/* Mensagem */}
-          {mensagemSetup && (
-            <p className={`text-sm text-center ${mensagemSetup.includes('Erro') || mensagemSetup.includes('inacessivel') ? 'text-red-600' : 'text-teal-600'}`}>
-              {mensagemSetup}
-            </p>
-          )}
-
-          {/* Iniciar Terminal */}
-          {totalEmbeddings > 0 && statusModelo === 'pronto' && (
-            <button onClick={iniciarTerminal}
-              className="w-full py-4 bg-green-600 text-white rounded-xl font-bold text-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-3 shadow-lg">
-              <Camera className="w-6 h-6" />
-              Iniciar Terminal ({totalEmbeddings} alunos)
-            </button>
-          )}
-
-          {/* Voltar para config */}
-          {configSalva && (
-            <button onClick={() => setFase('terminal')} className="w-full text-center text-sm text-gray-500 hover:text-gray-700 transition-colors">
-              Voltar ao terminal
-            </button>
-          )}
-        </div>
-      </div>
+      <SetupPanel
+        statusModelo={statusModelo}
+        serverUrl={serverUrl} setServerUrl={setServerUrl}
+        token={token} setToken={setToken}
+        escolaId={escolaId} setEscolaId={setEscolaId}
+        escolaNome={escolaNome} setEscolaNome={setEscolaNome}
+        turmaId={turmaId} setTurmaId={setTurmaId}
+        confianca={confianca} setConfianca={setConfianca}
+        cooldown={cooldown} setCooldown={setCooldown}
+        configSalva={configSalva} setConfigSalva={setConfigSalva}
+        totalEmbeddings={totalEmbeddings} setTotalEmbeddings={setTotalEmbeddings}
+        setAlunos={setAlunos} setFase={setFase}
+        setCameraAtiva={setCameraAtiva}
+        setMensagem={setMensagem} setMensagemTipo={setMensagemTipo}
+        streamRef={streamRef} videoRef={videoRef}
+      />
     )
   }
 
   // ============================================================================
-  // RENDER — TERMINAL (Kiosk Mode — tela limpa, foco no reconhecimento)
+  // RENDER — TERMINAL
   // ============================================================================
 
-  const presentes = new Set(registros.map(r => r.aluno_id)).size
-  const dataHoje = new Date()
-  const diaSemana = dataHoje.toLocaleDateString('pt-BR', { weekday: 'long' })
-  const dataFormatada = dataHoje.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
-
   return (
-    <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col select-none">
-      <style dangerouslySetInnerHTML={{ __html: animationStyles }} />
-      {/* Vídeo em tela cheia */}
-      <div className="flex-1 relative">
-        {/* Vídeo visível — face-api detecta direto nele */}
-        <video ref={videoRef} autoPlay playsInline muted
-          className="absolute inset-0 w-full h-full object-cover"
-          onLoadedMetadata={() => {
-            // Canvas sincronizado com vídeo quando metadados carregam
-            if (canvasRef.current && videoRef.current) {
-              const v = videoRef.current
-              faceapiRef.current?.matchDimensions(canvasRef.current, { width: v.videoWidth, height: v.videoHeight })
-            }
-          }} />
-        {/* Canvas overlay — mesmas dimensões do vídeo via matchDimensions */}
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover" />
-
-        {/* Overlay de confirmação — informações completas do aluno */}
-        {mostrarConfirmacao && ultimoAlunoNome && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            {/* Fundo escurecido com animação de fechamento */}
-            <div className="absolute inset-0 bg-black/60 animate-[fadeIn_0.2s_ease-out]" />
-            {/* Card central */}
-            <div className={`relative rounded-3xl px-10 sm:px-16 py-8 sm:py-10 text-center shadow-2xl max-w-lg mx-4 animate-[scaleIn_0.3s_ease-out] ${
-              confirmacaoTipo === 'ja_registrado'
-                ? 'bg-amber-500'
-                : 'bg-green-600'
-            }`}>
-              {/* Ícone */}
-              {confirmacaoTipo === 'ja_registrado' ? (
-                <AlertCircle className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 text-white/90" />
-              ) : (
-                <CheckCircle className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 text-white" />
-              )}
-              {/* Nome */}
-              <p className="text-2xl sm:text-4xl font-bold text-white mb-2 leading-tight">{ultimoAlunoNome}</p>
-              {/* Turma + Série */}
-              {ultimoAlunoInfo && (
-                <p className="text-base sm:text-lg text-white/80 mb-3">{ultimoAlunoInfo}</p>
-              )}
-              {/* Hora + Status */}
-              <div className="flex items-center justify-center gap-3 mt-2">
-                <span className="bg-white/20 text-white text-sm sm:text-base font-semibold px-4 py-1.5 rounded-full">
-                  {ultimoAlunoHora}
-                </span>
-                <span className="bg-white/20 text-white text-sm sm:text-base font-semibold px-4 py-1.5 rounded-full">
-                  {confirmacaoTipo === 'ja_registrado' ? 'Ja registrado' : 'Entrada'}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Mensagem de erro */}
-        {mensagem && !mostrarConfirmacao && (
-          <div className={`absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl text-xl font-bold shadow-2xl ${
-            mensagemTipo === 'erro' ? 'bg-red-600' : 'bg-blue-600'
-          }`}>
-            {mensagemTipo === 'erro' && <AlertCircle className="w-6 h-6 inline mr-2 -mt-1" />}
-            {mensagem}
-          </div>
-        )}
-
-        {/* Barra superior — informações da escola */}
-        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Escola + data */}
-            <div className="flex items-center gap-3">
-              <ScanFace className="w-7 h-7 text-teal-400" />
-              <div>
-                <h1 className="text-base font-bold text-white">{escolaNome || 'Terminal Facial'}</h1>
-                <p className="text-xs text-gray-300 capitalize">{diaSemana}, {dataFormatada}</p>
-              </div>
-            </div>
-
-            {/* Hora grande */}
-            <div className="text-right">
-              <p className="text-3xl font-bold font-mono text-white">{horaAtual}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Barra inferior — status e contadores */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Contadores */}
-            <div className="flex items-center gap-3">
-              <div className="bg-green-600/80 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                <Users className="w-4 h-4" />
-                <span className="text-sm font-bold">{presentes}</span>
-                <span className="text-xs opacity-80">presentes</span>
-              </div>
-              <div className="bg-slate-600/80 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                <span className="text-sm font-bold">{alunos.length}</span>
-                <span className="text-xs opacity-80">cadastrados</span>
-              </div>
-            </div>
-
-            {/* Status + controles */}
-            <div className="flex items-center gap-2">
-              {/* Sync */}
-              <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium ${
-                pendentesSync > 0 ? (sincronizando ? 'bg-blue-900/60 text-blue-300' : 'bg-yellow-900/60 text-yellow-300') : 'bg-green-900/60 text-green-300'
-              }`}>
-                {sincronizando ? <RefreshCw className="w-3 h-3 animate-spin" /> :
-                 pendentesSync > 0 ? <CloudOff className="w-3 h-3" /> : <Cloud className="w-3 h-3" />}
-                {pendentesSync > 0 ? `${pendentesSync}` : 'OK'}
-              </div>
-
-              {/* Online */}
-              <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium ${online ? 'bg-green-900/60 text-green-300' : 'bg-red-900/60 text-red-300'}`}>
-                {online ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              </div>
-
-              {/* Som */}
-              <button onClick={() => setSomAtivo(!somAtivo)} className="p-1.5 hover:bg-white/10 rounded transition-colors">
-                {somAtivo ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-gray-500" />}
-              </button>
-
-              {/* Fullscreen */}
-              <button onClick={toggleFullscreen} className="p-1.5 hover:bg-white/10 rounded transition-colors">
-                {fullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-              </button>
-
-              {/* Atualizar embeddings */}
-              <button onClick={async () => {
-                try {
-                  const url = serverUrl || window.location.origin
-                  const total = await baixarEmbeddings(url, '', escolaId)
-                  if (total > 0) {
-                    const embsLocais = await obterEmbeddings()
-                    const novosAlunos: AlunoEmMemoria[] = []
-                    for (const emb of embsLocais) {
-                      try {
-                        const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
-                        const descriptor = new Float32Array(bytes.buffer)
-                        novosAlunos.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
-                      } catch { /* ignora */ }
-                    }
-                    setAlunos(novosAlunos)
-                    setMensagem(`${total} aluno(s) atualizado(s)`)
-                    setMensagemTipo('info')
-                    if (mensagemTimeoutRef.current) clearTimeout(mensagemTimeoutRef.current)
-                    mensagemTimeoutRef.current = setTimeout(() => setMensagem(''), 3000)
-                  }
-                } catch { /* sem conexão */ }
-              }} className="p-1.5 hover:bg-white/10 rounded transition-colors" title="Atualizar alunos">
-                <Download className="w-4 h-4" />
-              </button>
-
-              {/* Config */}
-              <button onClick={() => {
-                if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null }
-                if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-                setCameraAtiva(false)
-                setReconhecendo(false)
-                setFase('setup')
-              }} className="p-1.5 hover:bg-white/10 rounded transition-colors" title="Configuracoes">
-                <Settings className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Iniciando reconhecimento ou erro de câmera */}
-        {!reconhecendo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-            <div className="text-center max-w-sm px-4">
-              {mensagemTipo === 'erro' && mensagem ? (
-                <>
-                  <AlertCircle className="w-14 h-14 mx-auto mb-4 text-red-400" />
-                  <p className="text-lg font-medium text-white mb-2">{mensagem}</p>
-                  <p className="text-sm text-gray-400 mb-6">
-                    Verifique se a permissao de camera esta habilitada nas configuracoes do navegador.
-                  </p>
-                  <button
-                    onClick={async () => {
-                      setMensagem('')
-                      setMensagemTipo('info')
-                      try {
-                        let stream: MediaStream
-                        try {
-                          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-                        } catch {
-                          stream = await navigator.mediaDevices.getUserMedia({ video: true })
-                        }
-                        if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
-                        streamRef.current = stream
-                        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play() }
-                        setCameraAtiva(true)
-                      } catch {
-                        setMensagem('Camera indisponivel. Verifique as permissoes.')
-                        setMensagemTipo('erro')
-                      }
-                    }}
-                    className="px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors inline-flex items-center gap-2"
-                  >
-                    <Camera className="w-5 h-5" />
-                    Tentar Novamente
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin text-teal-400" />
-                  <p className="text-lg">Iniciando reconhecimento...</p>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <TerminalView
+      escolaNome={escolaNome} horaAtual={horaAtual}
+      online={online} fullscreen={fullscreen}
+      somAtivo={somAtivo} setSomAtivo={setSomAtivo}
+      reconhecendo={reconhecendo}
+      alunos={alunos} setAlunos={setAlunos}
+      registros={registros}
+      mensagem={mensagem} setMensagem={setMensagem}
+      mensagemTipo={mensagemTipo} setMensagemTipo={setMensagemTipo}
+      ultimoAlunoNome={ultimoAlunoNome}
+      ultimoAlunoInfo={ultimoAlunoInfo}
+      ultimoAlunoHora={ultimoAlunoHora}
+      mostrarConfirmacao={mostrarConfirmacao}
+      confirmacaoTipo={confirmacaoTipo}
+      pendentesSync={pendentesSync}
+      sincronizando={sincronizando}
+      serverUrl={serverUrl} escolaId={escolaId}
+      videoRef={videoRef} canvasRef={canvasRef}
+      faceapiRef={faceapiRef} streamRef={streamRef}
+      intervalRef={intervalRef}
+      setCameraAtiva={setCameraAtiva}
+      setReconhecendo={setReconhecendo}
+      setFase={setFase}
+      toggleFullscreen={toggleFullscreen}
+    />
   )
 }
