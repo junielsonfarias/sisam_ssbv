@@ -50,11 +50,14 @@ export function useCamera({
         }
         setCameraAtiva(true)
       } catch (err: any) {
+        console.error('[Camera] Erro:', err?.name, err?.message)
         const msg = err?.name === 'NotAllowedError'
           ? 'Camera bloqueada. Permita o acesso nas configuracoes do navegador.'
           : err?.name === 'NotFoundError'
           ? 'Nenhuma camera encontrada neste dispositivo.'
-          : 'Erro ao acessar camera. Verifique as permissoes.'
+          : err?.name === 'NotReadableError'
+          ? 'Camera em uso por outro aplicativo.'
+          : `Erro ao acessar camera: ${err?.name || err?.message || 'desconhecido'}`
         setMensagem(msg)
         setMensagemTipo('erro')
       }

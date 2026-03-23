@@ -296,14 +296,16 @@ function addSecurityHeaders(response: NextResponse, requestId?: string, pathname
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  // camera=(self) necessário para reconhecimento facial
-  response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
-
-  // CSP diferenciado para terminal facial (precisa de wasm, camera, blob URLs)
+  // CSP e Permissions-Policy diferenciados para terminal facial
   const isTerminal = pathname?.startsWith('/terminal') || pathname?.startsWith('/admin/terminal-facial') || pathname?.startsWith('/admin/facial-enrollment')
+
   if (isTerminal) {
+    // Terminal: câmera obrigatória, WASM para face-api, mediastream para vídeo
+    response.headers.set('Permissions-Policy', 'camera=*, microphone=(), geolocation=()')
     response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: mediastream:; font-src 'self' data:; connect-src 'self' https: http:; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-ancestors 'none'")
   } else {
+    // Demais páginas: câmera restrita, CSP padrão
+    response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
     response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'")
   }
 
