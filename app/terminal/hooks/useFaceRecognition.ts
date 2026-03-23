@@ -38,15 +38,27 @@ export function useFaceRecognition({
   const detectandoRef = useRef(false)
 
   useEffect(() => {
-    if (fase !== 'terminal' || !cameraAtiva || !faceapiRef.current || alunos.length === 0) return
+    if (fase !== 'terminal' || !cameraAtiva || !faceapiRef.current || alunos.length === 0) {
+      if (fase === 'terminal') {
+        console.warn('[FaceRecognition] Não iniciou:', {
+          cameraAtiva, faceapi: !!faceapiRef.current, alunos: alunos.length,
+        })
+      }
+      return
+    }
 
     const faceapi = faceapiRef.current
 
+    // Clonar descriptors para evitar corrupção de referência
     const labeledDescriptors = alunos.map(a =>
-      new faceapi.LabeledFaceDescriptors(a.aluno_id, [a.descriptor])
+      new faceapi.LabeledFaceDescriptors(a.aluno_id, [new Float32Array(a.descriptor)])
     )
-    const maxDistance = confianca >= 0.9 ? 0.4 : confianca >= 0.85 ? 0.5 : 0.6
+    // Thresholds ajustados para webcam com iluminação variável
+    // face-api.js euclidean distance: <0.4 = muito similar, 0.4-0.6 = provável, >0.6 = incerto
+    const maxDistance = confianca >= 0.9 ? 0.5 : confianca >= 0.85 ? 0.6 : 0.7
     const matcher = new faceapi.FaceMatcher(labeledDescriptors, maxDistance)
+
+    console.info(`[FaceRecognition] Matcher criado: ${alunos.length} aluno(s), maxDistance=${maxDistance}`)
 
     setReconhecendo(true)
 

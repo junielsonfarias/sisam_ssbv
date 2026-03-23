@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         a.codigo,
         a.turma_id,
         a.serie,
-        encode(ef.embedding_data, 'base64') AS embedding_base64,
+        ef.embedding_data,
         ef.versao_modelo,
         ef.qualidade,
         GREATEST(a.atualizado_em, ef.atualizado_em) AS atualizado_em
@@ -79,8 +79,17 @@ export async function GET(request: NextRequest) {
       })]
     )
 
+    // Converter bytea para base64 limpo (sem quebras de linha do PostgreSQL)
+    const alunos = result.rows.map(row => ({
+      ...row,
+      embedding_base64: row.embedding_data
+        ? Buffer.from(row.embedding_data).toString('base64')
+        : null,
+      embedding_data: undefined,
+    }))
+
     return NextResponse.json({
-      alunos: result.rows,
+      alunos,
       removidos,
       sincronizado_em: new Date().toISOString(),
     })

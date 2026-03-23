@@ -68,6 +68,7 @@ export function useTerminalInit(): UseTerminalInitReturn {
           }
           loadedAlunos = alunosCarregados
           goToTerminal = true
+          console.info(`[TerminalInit] ${alunosCarregados.length} embeddings carregados de ${count} no IndexedDB`)
         }
 
         setSavedConfig({
