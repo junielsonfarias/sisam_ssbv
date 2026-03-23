@@ -31,6 +31,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validar MIME type da imagem
+    const MIMES_IMAGEM = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+    if (imagem.type && !MIMES_IMAGEM.includes(imagem.type)) {
+      return NextResponse.json(
+        { mensagem: `Tipo de imagem não permitido (${imagem.type}). Envie JPEG, PNG ou WebP.` },
+        { status: 400 }
+      )
+    }
+
+    // Limitar tamanho (10MB)
+    if (imagem.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { mensagem: 'Imagem muito grande. Máximo: 10MB.' },
+        { status: 413 }
+      )
+    }
+
     // Converter imagem para buffer
     const arrayBuffer = await imagem.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)

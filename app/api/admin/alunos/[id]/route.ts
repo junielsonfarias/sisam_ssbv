@@ -41,8 +41,11 @@ export async function GET(
 
     const aluno = alunoResult.rows[0]
 
-    // Restrição de acesso
+    // Restrição de acesso por tipo de usuário
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id !== aluno.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id && aluno.polo_id !== usuario.polo_id) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 

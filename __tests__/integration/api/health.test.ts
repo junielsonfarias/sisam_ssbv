@@ -107,24 +107,26 @@ describe('GET /api/health', () => {
     expect(body.checks.jwt).toBe('error')
   })
 
-  it('retorna sugestoes quando erro e ECONNREFUSED', async () => {
+  it('nao expoe detalhes de infraestrutura quando banco falha', async () => {
     mockForceHealthCheck.mockResolvedValue({ healthy: false, error: 'ECONNREFUSED', latency: 0 })
     mockPool.query.mockRejectedValue(new Error('fail'))
 
     const response = await GET()
     const body = await response.json()
-    expect(body.suggestions).toBeDefined()
-    expect(body.suggestions.length).toBeGreaterThan(0)
+    // Não deve expor: suggestions, diagnostics, host_type, is_supabase
+    expect(body.suggestions).toBeUndefined()
+    expect(body.diagnostics).toBeUndefined()
+    expect(body.database_error).toBe('Falha na conexão com o banco de dados')
   })
 
-  it('retorna diagnostics com host_type e connection_mode', async () => {
+  it('nao expoe diagnostics, host_type ou provider info', async () => {
     mockForceHealthCheck.mockResolvedValue({ healthy: true, latency: 1 })
     mockPool.query.mockResolvedValue({ rows: [{ ativos: '0', online: '0', offline_longo: '0' }], rowCount: 1 } as any)
 
     const response = await GET()
     const body = await response.json()
-    expect(body.diagnostics).toBeDefined()
-    expect(body.diagnostics.connection_mode).toBe('session')
-    expect(body.diagnostics.port).toBe(5432)
+    expect(body.diagnostics).toBeUndefined()
+    expect(body.config.jwt_secret).not.toContain('too_short')
+    expect(body.config.db_ssl).toBeUndefined()
   })
 })

@@ -8,10 +8,16 @@
  * @module lib/excel-reader
  */
 
-import ExcelJS from 'exceljs'
-
 export interface ExcelRow {
   [key: string]: string | number | null | undefined
+}
+
+/**
+ * Carrega ExcelJS sob demanda (evita 450KB no bundle principal)
+ */
+async function getExcelJS() {
+  const ExcelJS = (await import('exceljs')).default
+  return ExcelJS
 }
 
 /**
@@ -26,6 +32,7 @@ export async function lerPlanilha(
   buffer: ArrayBuffer,
   options?: { sheetIndex?: number }
 ): Promise<ExcelRow[]> {
+  const ExcelJS = await getExcelJS()
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(Buffer.from(buffer) as any)
 
@@ -88,6 +95,7 @@ export async function lerPlanilha(
  * Retorna os nomes das abas de uma planilha Excel
  */
 export async function listarAbas(buffer: ArrayBuffer): Promise<string[]> {
+  const ExcelJS = await getExcelJS()
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(Buffer.from(buffer) as any)
   return workbook.worksheets.map(ws => ws.name)

@@ -324,6 +324,35 @@ export const FACIAL = {
 /**
  * Expressões regulares para validação
  */
+// ============================================================================
+// CÓDIGOS DE ERRO POSTGRESQL
+// ============================================================================
+
+export const PG_ERRORS = {
+  /** Violação de chave única (registro duplicado) */
+  UNIQUE_VIOLATION: '23505',
+  /** Violação de check constraint */
+  CHECK_VIOLATION: '23514',
+  /** Violação de foreign key */
+  FOREIGN_KEY_VIOLATION: '23503',
+  /** Tabela não encontrada */
+  UNDEFINED_TABLE: '42P01',
+  /** Sintaxe de input inválida */
+  INVALID_TEXT_REPRESENTATION: '22P02',
+  /** Falha de autenticação */
+  INVALID_PASSWORD: '28P01',
+  /** Query cancelada por timeout */
+  QUERY_CANCELED: '57014',
+  /** Conexão recusada */
+  CONNECTION_REFUSED: 'ECONNREFUSED',
+  /** Host não encontrado */
+  HOST_NOT_FOUND: 'ENOTFOUND',
+  /** Rede inacessível */
+  NETWORK_UNREACHABLE: 'ENETUNREACH',
+  /** Timeout de conexão */
+  CONNECTION_TIMEOUT: 'ETIMEDOUT',
+} as const
+
 export const REGEX = {
   /** Email válido */
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
