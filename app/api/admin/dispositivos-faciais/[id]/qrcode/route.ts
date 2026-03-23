@@ -76,7 +76,7 @@ export async function GET(
       },
       aviso: 'Uma nova API key foi gerada. A chave anterior foi invalidada.',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao gerar QR code:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import * as XLSX from 'xlsx'
+import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches } from '@/lib/cache'
 import { resolverAvaliacaoId } from '@/lib/avaliacoes'
+import { validarArquivoUpload } from '@/lib/api-helpers'
 import {
   calcularNivelPorAcertos,
   converterNivelProducao,
@@ -18,17 +19,8 @@ export const dynamic = 'force-dynamic';
 // Tamanho do batch para inserts
 const BATCH_SIZE = 500
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const formData = await request.formData()
     const arquivo = formData.get('arquivo') as File
     const anoLetivo = (formData.get('ano_letivo') as string) || new Date().getFullYear().toString()
@@ -41,11 +33,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const erroUpload = validarArquivoUpload(arquivo)
+    if (erroUpload) {
+      return NextResponse.json({ mensagem: erroUpload }, { status: 400 })
+    }
+
     const arrayBuffer = await arquivo.arrayBuffer()
-    const workbook = XLSX.read(arrayBuffer, { type: 'buffer' })
-    const primeiraAba = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[primeiraAba]
-    const dados = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: '' })
+    const dados = await lerPlanilha(arrayBuffer)
 
     if (!dados || dados.length === 0) {
       return NextResponse.json(
@@ -776,9 +770,9 @@ export async function POST(request: NextRequest) {
         }
 
         linhasProcessadas++
-      } catch (error: any) {
+      } catch (error: unknown) {
         linhasComErro++
-        const mensagemErro = error.message || 'Erro desconhecido'
+        const mensagemErro = (error as Error).message || 'Erro desconhecido'
         erros.push(`Linha ${i + 2}: ${mensagemErro}`)
         if (erros.length >= 100) {
           erros.push(`... e mais ${dados.length - i - 1} erros`)
@@ -824,11 +818,11 @@ export async function POST(request: NextRequest) {
       erros: erros.slice(0, 20),
       cache_invalidado: true,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao importar resultados:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})

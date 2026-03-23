@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       total_turmas: parseInt(turmasResult.rows[0]?.total) || 0,
       total_alunos: parseInt(alunosResult.rows[0]?.total) || 0,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar resumo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

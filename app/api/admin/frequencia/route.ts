@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -9,68 +9,53 @@ export const dynamic = 'force-dynamic'
  * Busca frequência de uma turma para um período específico
  * Params: turma_id, periodo_id
  */
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+  const { searchParams } = new URL(request.url)
+  const turmaId = searchParams.get('turma_id')
+  const periodoId = searchParams.get('periodo_id')
+  const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
-    const { searchParams } = new URL(request.url)
-    const turmaId = searchParams.get('turma_id')
-    const periodoId = searchParams.get('periodo_id')
-    const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
-
-    if (!turmaId || !periodoId) {
-      return NextResponse.json({ mensagem: 'Informe turma_id e periodo_id' }, { status: 400 })
-    }
-
-    // Buscar alunos da turma
-    const alunosResult = await pool.query(
-      `SELECT a.id, a.nome, a.codigo, a.situacao, a.pcd
-       FROM alunos a
-       WHERE a.turma_id = $1 AND a.ano_letivo = $2
-       ORDER BY
-         CASE WHEN a.situacao IN ('transferido', 'abandono') THEN 1 ELSE 0 END,
-         a.nome`,
-      [turmaId, anoLetivo]
-    )
-
-    // Buscar frequências existentes
-    const freqResult = await pool.query(
-      `SELECT f.aluno_id, f.dias_letivos, f.presencas, f.faltas, f.faltas_justificadas,
-              f.percentual_frequencia, f.observacao, f.metodo
-       FROM frequencia_bimestral f
-       WHERE f.turma_id = $1 AND f.periodo_id = $2`,
-      [turmaId, periodoId]
-    )
-
-    const freqMap: Record<string, any> = {}
-    for (const f of freqResult.rows) {
-      freqMap[f.aluno_id] = f
-    }
-
-    return NextResponse.json({
-      alunos: alunosResult.rows,
-      frequencias: freqMap,
-    })
-  } catch (error: any) {
-    console.error('Erro ao buscar frequência:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  if (!turmaId || !periodoId) {
+    return NextResponse.json({ mensagem: 'Informe turma_id e periodo_id' }, { status: 400 })
   }
-}
+
+  // Buscar alunos da turma
+  const alunosResult = await pool.query(
+    `SELECT a.id, a.nome, a.codigo, a.situacao, a.pcd
+     FROM alunos a
+     WHERE a.turma_id = $1 AND a.ano_letivo = $2
+     ORDER BY
+       CASE WHEN a.situacao IN ('transferido', 'abandono') THEN 1 ELSE 0 END,
+       a.nome`,
+    [turmaId, anoLetivo]
+  )
+
+  // Buscar frequências existentes
+  const freqResult = await pool.query(
+    `SELECT f.aluno_id, f.dias_letivos, f.presencas, f.faltas, f.faltas_justificadas,
+            f.percentual_frequencia, f.observacao, f.metodo
+     FROM frequencia_bimestral f
+     WHERE f.turma_id = $1 AND f.periodo_id = $2`,
+    [turmaId, periodoId]
+  )
+
+  const freqMap: Record<string, any> = {}
+  for (const f of freqResult.rows) {
+    freqMap[f.aluno_id] = f
+  }
+
+  return NextResponse.json({
+    alunos: alunosResult.rows,
+    frequencias: freqMap,
+  })
+})
 
 /**
  * POST /api/admin/frequencia
  * Salva frequência em lote para uma turma/período
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const { turma_id, periodo_id, dias_letivos, frequencias } = body
 
@@ -148,8 +133,8 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao salvar frequência:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

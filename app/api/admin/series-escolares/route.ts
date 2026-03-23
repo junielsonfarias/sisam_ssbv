@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const etapa = searchParams.get('etapa')
 
@@ -38,15 +33,10 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao buscar séries escolares:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const {
       codigo, nome, etapa, ordem, media_aprovacao, media_recuperacao,
@@ -66,22 +56,17 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao criar série escolar:', error)
-    if (error.code === '23505') {
+    if ((error as any).code === '23505') {
       return NextResponse.json({ mensagem: 'Já existe uma série com este código' }, { status: 409 })
     }
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const { id, ...campos } = body
 
@@ -128,15 +113,10 @@ export async function PUT(request: NextRequest) {
     console.error('Erro ao atualizar série escolar:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado - apenas administradores' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -158,4 +138,4 @@ export async function DELETE(request: NextRequest) {
     console.error('Erro ao desativar série escolar:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

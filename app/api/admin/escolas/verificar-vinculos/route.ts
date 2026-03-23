@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       totalConsolidados: parseInt(vinculos.total_consolidados) || 0,
       totalUsuarios: parseInt(vinculos.total_usuarios) || 0,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao verificar vínculos:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

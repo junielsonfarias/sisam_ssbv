@@ -133,8 +133,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ diagnosticos })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no diagnóstico facial:', error)
-    return NextResponse.json({ mensagem: error?.message || 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ mensagem: (error as Error)?.message || 'Erro interno' }, { status: 500 })
   }
 }

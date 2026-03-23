@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -9,13 +9,8 @@ export const revalidate = 0
  * GET /api/admin/regras-avaliacao
  * Lista todas as regras de avaliacao com o nome do tipo.
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const todos = searchParams.get('todos') === 'true'
     const tipoAvaliacaoId = searchParams.get('tipo_avaliacao_id')
@@ -47,26 +42,21 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(query, params)
     return NextResponse.json(result.rows)
-  } catch (error: any) {
-    if (error?.code === '42P01') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '42P01') {
       return NextResponse.json([])
     }
     console.error('Erro ao listar regras de avaliacao:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * POST /api/admin/regras-avaliacao
  * Cria uma nova regra de avaliacao. Admin e tecnico.
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const {
       nome, descricao, tipo_avaliacao_id, tipo_periodo, qtd_periodos,
@@ -100,23 +90,18 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao criar regra de avaliacao:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * PUT /api/admin/regras-avaliacao
  * Atualiza uma regra de avaliacao. Admin e tecnico.
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const { id, ...campos } = body
 
@@ -169,19 +154,14 @@ export async function PUT(request: NextRequest) {
     console.error('Erro ao atualizar regra de avaliacao:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * DELETE /api/admin/regras-avaliacao?id=...
  * Soft delete de regra de avaliacao. Apenas admin.
  */
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado - apenas administradores' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -215,4 +195,4 @@ export async function DELETE(request: NextRequest) {
     console.error('Erro ao desativar regra de avaliacao:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

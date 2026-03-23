@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json({ horarios: result.rows, turma_id: turmaId })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar horários:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao salvar horários:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const estatisticas = await getEstatisticas(usuario, { serie, anoLetivo, avaliacaoId })
 
     return ok(estatisticas)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API Tecnico Estatisticas] Erro:', error)
     return okComFallback(getEstatisticasPadrao(), error)
   }

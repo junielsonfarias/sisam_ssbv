@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       mensagem: 'Usuario administrador criado. Acesse o banco de dados para definir a senha ou use o processo de recuperacao.',
       aviso: 'Por seguranca, a senha temporaria NAO e exibida. Resete via banco de dados.'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro na inicializacao:', error)
     return NextResponse.json({
       erro: true,
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(status)
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       erro: true,
       mensagem: 'Erro ao verificar status',

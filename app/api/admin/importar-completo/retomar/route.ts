@@ -64,10 +64,10 @@ export async function POST(request: NextRequest) {
       mensagem: 'Importação retomada com sucesso',
       status: 'processando'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao retomar importação:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }

@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         }
 
         await client.query('COMMIT')
-      } catch (error: any) {
+      } catch (error: unknown) {
         await client.query('ROLLBACK')
         throw error
       } finally {
@@ -223,10 +223,10 @@ export async function POST(request: NextRequest) {
       confianca,
       aluno_salvo: !!alunoId
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao processar cartão-resposta:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao processar cartão-resposta', erro: error.message },
+      { mensagem: 'Erro ao processar cartão-resposta', erro: (error as Error).message },
       { status: 500 }
     )
   }

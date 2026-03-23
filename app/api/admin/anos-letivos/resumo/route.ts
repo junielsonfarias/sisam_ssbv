@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       abandonos: parseInt(row.abandonos) || 0,
       remanejados: parseInt(row.remanejados) || 0,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar resumo do ano letivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }

@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const safeQuery = async (sql: string, params: any[] = []) => {
       try { return await pool.query(sql, params) }
-      catch (err: any) { console.error('[Freq Resumo] Query falhou:', err?.message); return { rows: [] } }
+      catch (err: unknown) { console.error('[Freq Resumo] Query falhou:', (err as Error)?.message); return { rows: [] } }
     }
 
     const [presencaResult, alunosResult] = await Promise.all([
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
       total_ausentes: totalAusentes,
       taxa_presenca: taxaPresenca,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar resumo de frequência:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

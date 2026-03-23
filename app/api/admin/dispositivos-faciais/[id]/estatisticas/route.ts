@@ -96,7 +96,7 @@ export async function GET(
       total_erros_semana: totalErros,
       logs_recentes: logsResult.rows,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar estatísticas:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

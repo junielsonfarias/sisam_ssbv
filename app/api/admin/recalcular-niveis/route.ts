@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
         `, [nivelLp, nivelMat, nivelProd, nivelAlunoCalc, registro.id])
 
         atualizados++
-      } catch (error: any) {
-        console.error(`[Recalcular Níveis] Erro ao atualizar registro ${registro.id}:`, error.message)
+      } catch (error: unknown) {
+        console.error(`[Recalcular Níveis] Erro ao atualizar registro ${registro.id}:`, (error as Error).message)
         erros++
       }
     }
@@ -114,10 +114,10 @@ export async function POST(request: NextRequest) {
       atualizados,
       erros,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Recalcular Níveis] Erro:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -171,10 +171,10 @@ export async function GET(request: NextRequest) {
       sem_nivel_aluno: parseInt(stats.sem_nivel_aluno || '0'),
       necessita_recalculo: parseInt(stats.sem_nivel_aluno || '0') > 0 || parseInt(stats.sem_nivel_prod || '0') > 0,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Recalcular Níveis] Erro ao verificar status:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }

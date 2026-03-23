@@ -114,7 +114,7 @@ export async function PUT(request: NextRequest) {
       mensagem: 'Email alterado com sucesso',
       email: novoEmail.trim()
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao alterar email:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

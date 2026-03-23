@@ -153,7 +153,7 @@ export function internalError(mensagem: string = 'Erro interno do servidor', err
 
   // Incluir detalhes do erro apenas em desenvolvimento
   if (process.env.NODE_ENV === 'development' && error) {
-    resposta.detalhes = error instanceof Error ? error.message : String(error)
+    resposta.detalhes = error instanceof Error ? (error as Error).message : String(error)
   }
 
   return NextResponse.json(resposta, { status: 500 })

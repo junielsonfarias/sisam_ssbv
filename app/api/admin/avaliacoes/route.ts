@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { avaliacaoSchema, validateRequest } from '@/lib/schemas'
 import { getErrorMessage } from '@/lib/validation'
@@ -11,13 +11,8 @@ export const dynamic = 'force-dynamic'
  *
  * Lista avaliações, com filtro opcional por ano_letivo.
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const anoLetivo = searchParams.get('ano_letivo')
 
@@ -37,28 +32,23 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(query, params)
     return NextResponse.json(result.rows)
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Se a tabela não existe ainda (migração não executada), retornar array vazio
-    if (error?.code === '42P01') {
+    if ((error as any)?.code === '42P01') {
       return NextResponse.json([])
     }
     console.error('Erro ao listar avaliações:', getErrorMessage(error))
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * POST /api/admin/avaliacoes
  *
  * Cria uma nova avaliação.
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, avaliacaoSchema)
     if (!validacao.success) return validacao.response
 
@@ -72,8 +62,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json(
         { mensagem: 'Já existe uma avaliação deste tipo para este ano letivo' },
         { status: 400 }
@@ -82,20 +72,15 @@ export async function POST(request: NextRequest) {
     console.error('Erro ao criar avaliação:', getErrorMessage(error))
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * PUT /api/admin/avaliacoes
  *
  * Atualiza uma avaliação existente.
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const { id, nome, descricao, data_inicio, data_fim, ativo } = body
 
@@ -125,4 +110,4 @@ export async function PUT(request: NextRequest) {
     console.error('Erro ao atualizar avaliação:', getErrorMessage(error))
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

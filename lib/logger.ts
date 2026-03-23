@@ -271,9 +271,9 @@ export function error(message: string, error?: unknown, context?: LogContext): v
 
   if (error) {
     if (error instanceof Error) {
-      console.error(`  → ${error.name}: ${error.message}`)
-      if (error.stack && process.env.NODE_ENV === 'development') {
-        console.error(error.stack)
+      console.error(`  → ${(error as any).name}: ${(error as Error).message}`)
+      if ((error as any).stack && process.env.NODE_ENV === 'development') {
+        console.error((error as any).stack)
       }
     } else {
       console.error(`  → ${String(error)}`)

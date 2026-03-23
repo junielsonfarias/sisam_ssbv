@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       sucesso: true,
       servidor_timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no ping do dispositivo:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

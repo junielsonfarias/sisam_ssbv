@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { periodoLetivoSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
@@ -10,54 +10,39 @@ const atualizarPeriodoSchema = periodoLetivoSchema.extend({
   id: z.string().uuid('ID inválido'),
 })
 
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
+  const { searchParams } = new URL(request.url)
+  const anoLetivo = searchParams.get('ano_letivo')
+  const tipo = searchParams.get('tipo')
 
-    const { searchParams } = new URL(request.url)
-    const anoLetivo = searchParams.get('ano_letivo')
-    const tipo = searchParams.get('tipo')
+  const whereConditions: string[] = []
+  const params: string[] = []
+  let paramIndex = 1
 
-    const whereConditions: string[] = []
-    const params: string[] = []
-    let paramIndex = 1
-
-    if (anoLetivo) {
-      whereConditions.push(`ano_letivo = $${paramIndex}`)
-      params.push(anoLetivo)
-      paramIndex++
-    }
-
-    if (tipo) {
-      whereConditions.push(`tipo = $${paramIndex}`)
-      params.push(tipo)
-      paramIndex++
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
-
-    const result = await pool.query(
-      `SELECT * FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
-      params
-    )
-
-    return NextResponse.json(result.rows)
-  } catch (error: any) {
-    console.error('Erro ao buscar períodos letivos:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  if (anoLetivo) {
+    whereConditions.push(`ano_letivo = $${paramIndex}`)
+    params.push(anoLetivo)
+    paramIndex++
   }
-}
 
-export async function POST(request: NextRequest) {
+  if (tipo) {
+    whereConditions.push(`tipo = $${paramIndex}`)
+    params.push(tipo)
+    paramIndex++
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+
+  const result = await pool.query(
+    `SELECT * FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
+    params
+  )
+
+  return NextResponse.json(result.rows)
+})
+
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, periodoLetivoSchema)
     if (!validacao.success) return validacao.response
 
@@ -71,8 +56,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json(
         { mensagem: 'Já existe um período deste tipo e número para este ano letivo' },
         { status: 400 }
@@ -81,15 +66,10 @@ export async function POST(request: NextRequest) {
     console.error('Erro ao criar período letivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, atualizarPeriodoSchema)
     if (!validacao.success) return validacao.response
 
@@ -108,8 +88,8 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json(
         { mensagem: 'Já existe um período deste tipo e número para este ano letivo' },
         { status: 400 }
@@ -118,15 +98,10 @@ export async function PUT(request: NextRequest) {
     console.error('Erro ao atualizar período letivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const validacaoId = validateId(searchParams.get('id'))
     if (!validacaoId.success) return validacaoId.response
@@ -155,8 +130,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Período excluído com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir período letivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

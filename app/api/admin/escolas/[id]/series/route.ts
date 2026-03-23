@@ -39,7 +39,7 @@ export async function GET(
       series: result.rows,
       total: result.rows.length
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar séries da escola:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
@@ -92,7 +92,7 @@ export async function POST(
     }
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao vincular série à escola:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
@@ -149,7 +149,7 @@ export async function DELETE(
       mensagem: 'Série removida com sucesso',
       serie: result.rows[0]
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao remover série da escola:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

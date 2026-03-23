@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar histórico escolar:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }

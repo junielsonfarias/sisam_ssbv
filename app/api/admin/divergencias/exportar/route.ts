@@ -100,10 +100,10 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao exportar divergências:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao exportar divergências', erro: error.message },
+      { mensagem: 'Erro ao exportar divergências', erro: (error as Error).message },
       { status: 500 }
     )
   }

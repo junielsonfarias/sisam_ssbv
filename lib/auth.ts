@@ -141,7 +141,7 @@ export function generateToken(payload: TokenPayload): string {
     }
 
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao gerar token JWT:', error)
     throw error
   }
@@ -225,9 +225,9 @@ export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuar
     // Cachear por 5 min para reduzir queries
     setCachedUsuario(payload.userId, usuario);
     return usuario;
-  } catch (error: any) {
+  } catch (error: unknown) {
     log.error('Erro ao buscar usuario no banco', error, {
-      data: { code: error?.code, userId: payload.userId },
+      data: { code: (error as any)?.code, userId: payload.userId },
     });
 
     // Em caso de erro de conexão, retornar null para não quebrar a aplicação

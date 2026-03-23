@@ -70,10 +70,10 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(result.rows)
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar disciplinas:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -231,22 +231,22 @@ export async function POST(request: NextRequest) {
         total_questoes: totalQuestoes
       })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       await client.query('ROLLBACK')
       throw error
     } finally {
       client.release()
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao salvar disciplinas:', error)
-    console.error('Stack:', error.stack)
+    console.error('Stack:', (error as any).stack)
     console.error('Detalhes:', JSON.stringify(error, null, 2))
     return NextResponse.json(
       {
-        mensagem: error.message || 'Erro interno do servidor',
-        detalhes: error.detail || null,
-        codigo: error.code || null
+        mensagem: (error as Error).message || 'Erro interno do servidor',
+        detalhes: (error as any).detail || null,
+        codigo: (error as any).code || null
       },
       { status: 500 }
     )
@@ -288,10 +288,10 @@ export async function DELETE(request: NextRequest) {
       mensagem: 'Disciplina removida com sucesso'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao remover disciplina:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }

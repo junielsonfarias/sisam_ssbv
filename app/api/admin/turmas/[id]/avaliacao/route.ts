@@ -171,7 +171,7 @@ export async function GET(
     }
 
     return NextResponse.json(avaliacao)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar avaliação da turma:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

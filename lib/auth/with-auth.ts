@@ -61,8 +61,8 @@ export function withAuth(
       }
 
       return await fn(request, usuario)
-    } catch (error: any) {
-      console.error(`Erro na rota ${request.method} ${request.url}:`, error?.message)
+    } catch (error: unknown) {
+      console.error(`Erro na rota ${request.method} ${request.url}:`, (error as Error)?.message)
       return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
     }
   }

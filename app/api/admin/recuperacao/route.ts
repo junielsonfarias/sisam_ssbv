@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
         media_aprovacao: mediaAprovacao,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar recuperação:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

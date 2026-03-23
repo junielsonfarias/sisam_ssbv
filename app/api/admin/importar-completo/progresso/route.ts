@@ -56,10 +56,10 @@ export async function GET(request: NextRequest) {
       criado_em: importacao.criado_em,
       concluido_em: importacao.concluido_em,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar progresso:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }

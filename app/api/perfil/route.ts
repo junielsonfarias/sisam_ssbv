@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       gestor_escolar_habilitado: perfil.gestor_escolar_habilitado,
       criado_em: perfil.criado_em
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar perfil:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest) {
       mensagem: 'Nome atualizado com sucesso',
       nome: nome.trim()
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar perfil:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

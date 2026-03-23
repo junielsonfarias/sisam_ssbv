@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       removidos,
       sincronizado_em: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao sincronizar alunos:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

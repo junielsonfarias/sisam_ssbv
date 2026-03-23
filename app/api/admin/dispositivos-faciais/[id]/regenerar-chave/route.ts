@@ -54,7 +54,7 @@ export async function POST(
       api_key: apiKey,
       aviso: 'IMPORTANTE: Guarde esta API key. A chave anterior foi invalidada.',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao regenerar chave:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

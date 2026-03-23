@@ -77,7 +77,7 @@ export async function GET(
       alunos: alunosResult.rows,
       total: alunosResult.rows.length,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar alunos da turma:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

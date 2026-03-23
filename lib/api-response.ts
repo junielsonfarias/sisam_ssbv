@@ -74,16 +74,37 @@ export function apiBadRequest(mensagem: string) {
   return apiError({ mensagem, erro: API_ERRORS.DADOS_INVALIDOS, status: 400 })
 }
 
+/**
+ * Extrai mensagem de erro de forma segura de qualquer valor.
+ * Útil em blocos catch com error: unknown.
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return (error as Error).message
+  if (typeof error === 'string') return error
+  return 'Erro desconhecido'
+}
+
+/**
+ * Extrai código de erro PostgreSQL/Node de forma segura.
+ */
+export function getErrorCode(error: unknown): string | undefined {
+  if (error && typeof error === 'object' && 'code' in error) {
+    return String((error as { code: unknown }).code)
+  }
+  return undefined
+}
+
 /** 500 - Erro interno com classificação de erro de banco */
-export function apiServerError(error: any, contexto?: string) {
-  const err = error as Error & { code?: string }
+export function apiServerError(error: unknown, contexto?: string) {
+  const message = getErrorMessage(error)
+  const code = getErrorCode(error)
   let erro: ApiErrorCode = API_ERRORS.ERRO_INTERNO
 
-  if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ENETUNREACH') {
+  if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'ENETUNREACH') {
     erro = API_ERRORS.CONEXAO_BANCO
-  } else if (err.code === 'ETIMEDOUT' || err.code === '57014') {
+  } else if (code === 'ETIMEDOUT' || code === '57014') {
     erro = API_ERRORS.TIMEOUT_BANCO
-  } else if (err.code === '23505') {
+  } else if (code === '23505') {
     return apiError({
       mensagem: 'Registro duplicado',
       erro: API_ERRORS.REGISTRO_DUPLICADO,
@@ -92,12 +113,12 @@ export function apiServerError(error: any, contexto?: string) {
   }
 
   if (contexto) {
-    console.error(`[${contexto}] Erro:`, err?.message)
+    console.error(`[${contexto}] Erro:`, message)
   }
 
   return apiError({
     mensagem: 'Erro interno do servidor',
     erro,
-    detalhes: err?.message,
+    detalhes: message,
   })
 }

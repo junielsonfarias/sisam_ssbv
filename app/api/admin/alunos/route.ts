@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 import { isValidUUID, isUniqueConstraintError, getErrorMessage } from '@/lib/validation'
 import { alunoSchema, cpfSchema, validateRequest, validateId } from '@/lib/schemas'
+import { parsePaginacao, buildPaginacaoResponse } from '@/lib/api-helpers'
 import { z } from 'zod'
 
 // Schema para criação de aluno
@@ -31,17 +32,8 @@ export const dynamic = 'force-dynamic';
  * - escola_id, turma_id, serie, ano_letivo: filtros
  * - busca: busca por nome ou código
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json(
-        { alunos: [], total: 0, mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const poloId = searchParams.get('polo_id')
     const escolaId = searchParams.get('escola_id')
@@ -51,9 +43,7 @@ export async function GET(request: NextRequest) {
     const busca = searchParams.get('busca')
 
     // Parâmetros de paginação
-    const pagina = Math.max(1, parseInt(searchParams.get('pagina') || '1'))
-    const limite = Math.min(200, Math.max(1, parseInt(searchParams.get('limite') || '50')))
-    const offset = (pagina - 1) * limite
+    const paginacao = parsePaginacao(searchParams, { limiteMax: 200, limitePadrao: 50 })
 
     // Query base com condições (incluindo apenas alunos ativos)
     let whereConditions: string[] = ['a.ativo = true']
@@ -164,7 +154,7 @@ export async function GET(request: NextRequest) {
     try {
       [countResult, dataResult] = await Promise.all([
         pool.query(countQuery, params),
-        pool.query(dataQuery, [...params, limite, offset])
+        pool.query(dataQuery, [...params, paginacao.limite, paginacao.offset])
       ])
     } catch (queryError: any) {
       console.error('Erro na query de alunos:', queryError.message)
@@ -172,21 +162,13 @@ export async function GET(request: NextRequest) {
     }
 
     const total = parseInt(countResult.rows[0]?.total || '0')
-    const totalPaginas = Math.ceil(total / limite)
 
     return NextResponse.json({
       alunos: dataResult.rows,
-      paginacao: {
-        pagina,
-        limite,
-        total,
-        totalPaginas,
-        temProxima: pagina < totalPaginas,
-        temAnterior: pagina > 1
-      }
+      paginacao: buildPaginacaoResponse(paginacao, total)
     })
-  } catch (error: any) {
-    console.error('Erro ao buscar alunos:', error?.message || error)
+  } catch (error: unknown) {
+    console.error('Erro ao buscar alunos:', (error as Error)?.message || error)
 
     // Retornar estrutura válida mesmo em erro para evitar crash no frontend
     return NextResponse.json({
@@ -199,22 +181,13 @@ export async function GET(request: NextRequest) {
         temProxima: false,
         temAnterior: false
       },
-      erro: error?.message || 'Erro interno do servidor'
+      erro: (error as Error)?.message || 'Erro interno do servidor'
     }, { status: 500 })
   }
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     // Validar dados de entrada com Zod
     const validacao = await validateRequest(request, criarAlunoSchema)
     if (!validacao.success) {
@@ -262,19 +235,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     // Validar dados de entrada com Zod
     const validacao = await validateRequest(request, atualizarAlunoSchema)
     if (!validacao.success) {
@@ -330,19 +294,10 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const idParam = searchParams.get('id')
 
@@ -399,5 +354,4 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
+})

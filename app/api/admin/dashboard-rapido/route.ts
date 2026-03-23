@@ -346,10 +346,10 @@ export async function GET(request: NextRequest) {
       _stats: memoryCache.getStats()
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no dashboard rápido:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor', erro: error.message },
+      { mensagem: (error as Error).message || 'Erro interno do servidor', erro: (error as Error).message },
       { status: 500 }
     )
   }

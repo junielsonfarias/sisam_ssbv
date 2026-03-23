@@ -119,10 +119,10 @@ export async function validateDeviceApiKey(
     }
 
     return null
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao validar API key do dispositivo:', {
-      code: error?.code,
-      message: error?.message,
+      code: (error as any)?.code,
+      message: (error as Error)?.message,
     })
     return null
   }

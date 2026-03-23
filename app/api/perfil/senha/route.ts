@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       mensagem: 'Senha alterada com sucesso'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao alterar senha:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         ? 'Usuario administrador ja existe'
         : 'Nenhum administrador encontrado. Use POST para criar.'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao verificar usuario:', error)
     return NextResponse.json({
       erro: true,
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       mensagem: 'Usuario administrador criado. Defina a senha via banco de dados ou processo de recuperacao.',
       aviso: 'Por seguranca, a senha temporaria NAO e exibida.'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao criar usuario:', error)
     return NextResponse.json({
       erro: true,

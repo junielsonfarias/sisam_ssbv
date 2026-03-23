@@ -100,10 +100,10 @@ export async function corrigirResultadosOrfaos(
       corrigidos,
       erros: 0
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       sucesso: false,
-      mensagem: `Erro ao remover resultados órfãos: ${error.message}`,
+      mensagem: `Erro ao remover resultados órfãos: ${(error as Error).message}`,
       corrigidos: 0,
       erros: 1
     }
@@ -220,8 +220,8 @@ export async function corrigirMediasInconsistentes(
       corrigidos,
       erros
     }
-  } catch (error: any) {
-    return { sucesso: false, mensagem: `Erro ao corrigir médias: ${error.message}`, corrigidos: 0, erros: 1 }
+  } catch (error: unknown) {
+    return { sucesso: false, mensagem: `Erro ao corrigir médias: ${(error as Error).message}`, corrigidos: 0, erros: 1 }
   }
 }
 
@@ -322,8 +322,8 @@ export async function corrigirNivelAprendizagemErrado(
       corrigidos,
       erros
     }
-  } catch (error: any) {
-    return { sucesso: false, mensagem: `Erro ao corrigir níveis: ${error.message}`, corrigidos: 0, erros: 1 }
+  } catch (error: unknown) {
+    return { sucesso: false, mensagem: `Erro ao corrigir níveis: ${(error as Error).message}`, corrigidos: 0, erros: 1 }
   }
 }
 
@@ -369,8 +369,8 @@ export async function corrigirPresencaInconsistente(
       corrigidos,
       erros: 0
     }
-  } catch (error: any) {
-    return { sucesso: false, mensagem: `Erro ao corrigir presenças: ${error.message}`, corrigidos: 0, erros: 1 }
+  } catch (error: unknown) {
+    return { sucesso: false, mensagem: `Erro ao corrigir presenças: ${(error as Error).message}`, corrigidos: 0, erros: 1 }
   }
 }
 
@@ -418,8 +418,8 @@ export async function corrigirTurmasVazias(
       corrigidos,
       erros: 0
     }
-  } catch (error: any) {
-    return { sucesso: false, mensagem: `Erro ao inativar turmas: ${error.message}`, corrigidos: 0, erros: 1 }
+  } catch (error: unknown) {
+    return { sucesso: false, mensagem: `Erro ao inativar turmas: ${(error as Error).message}`, corrigidos: 0, erros: 1 }
   }
 }
 
@@ -462,8 +462,8 @@ export async function corrigirImportacoesPendentes(
       corrigidos,
       erros: 0
     }
-  } catch (error: any) {
-    return { sucesso: false, mensagem: `Erro ao cancelar importações: ${error.message}`, corrigidos: 0, erros: 1 }
+  } catch (error: unknown) {
+    return { sucesso: false, mensagem: `Erro ao cancelar importações: ${(error as Error).message}`, corrigidos: 0, erros: 1 }
   }
 }
 
@@ -582,12 +582,23 @@ export async function corrigirNotaForaRange(
   usuarioId: string,
   usuarioNome: string
 ): Promise<ResultadoCorrecao> {
+  const CAMPOS_PERMITIDOS = [
+    'nota_lp', 'nota_mat', 'nota_ch', 'nota_cn', 'nota_producao',
+    'media_aluno', 'acertos_lp', 'acertos_mat', 'acertos_ch', 'acertos_cn',
+    'nota_lp_final', 'nota_mat_final', 'nota_ch_final', 'nota_cn_final',
+    'media_final'
+  ]
+
   const { ids, dadosCorrecao } = params
   const campo = dadosCorrecao?.campo as string
   const novoValor = dadosCorrecao?.novoValor as number
 
   if (!ids || ids.length === 0 || !campo || novoValor === undefined) {
     return { sucesso: false, mensagem: 'Dados incompletos para correção', corrigidos: 0, erros: 1 }
+  }
+
+  if (!CAMPOS_PERMITIDOS.includes(campo)) {
+    return { sucesso: false, mensagem: `Campo '${campo}' não permitido para correção`, corrigidos: 0, erros: 1 }
   }
 
   if (novoValor < 0 || novoValor > 10) {

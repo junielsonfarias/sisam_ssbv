@@ -127,11 +127,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(resultado, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no debug:', error);
     return NextResponse.json({
-      erro: error.message,
-      stack: error.stack
+      erro: (error as Error).message,
+      stack: (error as any).stack
     }, { status: 500 });
   }
 }

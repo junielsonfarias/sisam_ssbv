@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
       canceladas: result.rows.length,
       importacoes: result.rows,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao cancelar importações:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }

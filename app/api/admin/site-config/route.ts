@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -10,13 +10,8 @@ export const dynamic = 'force-dynamic'
  * Lista todas as secoes de configuracao do site (requer autenticacao).
  * Acessivel por administrador e tecnico.
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado' }, { status: 403 })
-    }
-
     const result = await pool.query(
       `SELECT sc.id, sc.secao, sc.conteudo, sc.atualizado_por, sc.atualizado_em, sc.criado_em,
               u.nome AS atualizado_por_nome
@@ -26,15 +21,15 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Se a tabela nao existe ainda (migracao nao executada), retornar array vazio
-    if (error?.code === '42P01') {
+    if ((error as any)?.code === '42P01') {
       return NextResponse.json([])
     }
-    console.error('Erro ao listar configuracoes do site:', error?.message || error)
+    console.error('Erro ao listar configuracoes do site:', (error as Error)?.message || error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * PUT /api/admin/site-config
@@ -43,13 +38,8 @@ export async function GET(request: NextRequest) {
  * Body: { secao: string, conteudo: object }
  * Acessivel por administrador e tecnico.
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const { secao, conteudo } = body
 
@@ -76,8 +66,8 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
-    console.error('Erro ao atualizar configuracao do site:', error?.message || error)
+  } catch (error: unknown) {
+    console.error('Erro ao atualizar configuracao do site:', (error as Error)?.message || error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

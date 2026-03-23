@@ -56,7 +56,7 @@ export async function GET(
       aluno: alunoResult.rows[0],
       historico: historicoResult.rows,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar situação do aluno:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -211,7 +211,7 @@ export async function POST(
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao alterar situação do aluno:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       api_key: isNew ? apiKey : undefined,
       mensagem: isNew ? 'Terminal registrado automaticamente' : 'Terminal já registrado',
     }, { status: isNew ? 201 : 200 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no auto-registro:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

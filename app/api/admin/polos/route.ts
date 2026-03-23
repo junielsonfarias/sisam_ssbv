@@ -1,75 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get('id')
+
+  // Se usuário é polo ou escola, só pode ver seu próprio polo
+  if (usuario.tipo_usuario === 'polo' || usuario.tipo_usuario === 'escola') {
+    const poloIdPermitido = usuario.polo_id
+    if (id && id !== poloIdPermitido) {
       return NextResponse.json(
-        { mensagem: 'Não autorizado' },
+        { mensagem: 'Não autorizado a acessar este polo' },
         { status: 403 }
       )
     }
-
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-
-    // Se usuário é polo ou escola, só pode ver seu próprio polo
-    if (usuario.tipo_usuario === 'polo' || usuario.tipo_usuario === 'escola') {
-      const poloIdPermitido = usuario.polo_id
-      if (id && id !== poloIdPermitido) {
-        return NextResponse.json(
-          { mensagem: 'Não autorizado a acessar este polo' },
-          { status: 403 }
-        )
-      }
-      // Retornar apenas o polo do usuário
-      const result = await pool.query(
-        'SELECT * FROM polos WHERE id = $1',
-        [poloIdPermitido]
-      )
-      return NextResponse.json(result.rows)
-    }
-
-    // Admin e tecnico podem ver todos os polos
-    let query = 'SELECT * FROM polos'
-    const params: (string | number | boolean | null | undefined)[] = []
-
-    if (id) {
-      query += ' WHERE id = $1'
-      params.push(id)
-    }
-
-    query += ' ORDER BY nome'
-
-    const result = await pool.query(query, params)
-
-    return NextResponse.json(result.rows)
-  } catch (error: any) {
-    console.error('Erro ao buscar polos:', error)
-    return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
-      { status: 500 }
+    // Retornar apenas o polo do usuário
+    const result = await pool.query(
+      'SELECT * FROM polos WHERE id = $1',
+      [poloIdPermitido]
     )
+    return NextResponse.json(result.rows)
   }
-}
 
-export async function POST(request: NextRequest) {
+  // Admin e tecnico podem ver todos os polos
+  let query = 'SELECT * FROM polos'
+  const params: (string | number | boolean | null | undefined)[] = []
+
+  if (id) {
+    query += ' WHERE id = $1'
+    params.push(id)
+  }
+
+  query += ' ORDER BY nome'
+
+  const result = await pool.query(query, params)
+
+  return NextResponse.json(result.rows)
+})
+
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { nome, codigo, descricao } = await request.json()
 
     if (!nome) {
@@ -87,8 +62,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
@@ -100,15 +75,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { id, nome, codigo, descricao } = await request.json()
     if (!id || !nome) {
       return NextResponse.json({ mensagem: 'Campos obrigatórios: id, nome' }, { status: 400 })
@@ -124,22 +94,17 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') {
       return NextResponse.json({ mensagem: 'Código já cadastrado' }, { status: 400 })
     }
     console.error('Erro ao atualizar polo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) {
@@ -164,9 +129,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Polo excluído com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir polo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
-
+})

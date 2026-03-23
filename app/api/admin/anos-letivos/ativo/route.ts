@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ ano_ativo: result.rows[0] })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar ano letivo ativo:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }

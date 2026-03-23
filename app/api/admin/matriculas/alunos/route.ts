@@ -165,11 +165,11 @@ export async function POST(request: NextRequest) {
           resultados.matriculados++
           resultados.alunos.push(result.rows[0])
         }
-      } catch (err: any) {
-        if (err?.code === '23505') {
+      } catch (err: unknown) {
+        if ((err as any)?.code === '23505') {
           resultados.erros.push(`Aluno ${aluno.nome}: código ou CPF já cadastrado`)
         } else {
-          resultados.erros.push(`Aluno ${aluno.nome}: ${err?.message || 'Erro desconhecido'}`)
+          resultados.erros.push(`Aluno ${aluno.nome}: ${(err as Error)?.message || 'Erro desconhecido'}`)
         }
       }
     }
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao matricular alunos:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -84,7 +84,7 @@ export function useUserType(options: UseUserTypeOptions = {}): UseUserTypeReturn
       }
     } catch (error) {
       console.error('Erro ao carregar tipo de usuário:', error)
-      setErro(error instanceof Error ? error.message : 'Erro desconhecido')
+      setErro(error instanceof Error ? (error as Error).message : 'Erro desconhecido')
     } finally {
       setCarregando(false)
     }

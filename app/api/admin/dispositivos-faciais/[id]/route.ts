@@ -50,7 +50,7 @@ export async function GET(
       dispositivo,
       logs: logsResult.rows,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar dispositivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -119,7 +119,7 @@ export async function PUT(
       mensagem: 'Dispositivo atualizado',
       dispositivo: result.rows[0],
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar dispositivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -182,7 +182,7 @@ export async function DELETE(
       mensagem: 'Dispositivo bloqueado',
       dispositivo: result.rows[0],
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao processar dispositivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

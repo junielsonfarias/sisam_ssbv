@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { disciplinaEscolarSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
@@ -10,40 +10,25 @@ const atualizarDisciplinaSchema = disciplinaEscolarSchema.extend({
   id: z.string().uuid('ID inválido'),
 })
 
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
+  const { searchParams } = new URL(request.url)
+  const apenasAtivas = searchParams.get('ativas') !== 'false'
 
-    const { searchParams } = new URL(request.url)
-    const apenasAtivas = searchParams.get('ativas') !== 'false'
+  let query = 'SELECT * FROM disciplinas_escolares'
+  const params: string[] = []
 
-    let query = 'SELECT * FROM disciplinas_escolares'
-    const params: string[] = []
-
-    if (apenasAtivas) {
-      query += ' WHERE ativo = true'
-    }
-
-    query += ' ORDER BY ordem, nome'
-
-    const result = await pool.query(query, params)
-    return NextResponse.json(result.rows)
-  } catch (error: any) {
-    console.error('Erro ao buscar disciplinas:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  if (apenasAtivas) {
+    query += ' WHERE ativo = true'
   }
-}
 
-export async function POST(request: NextRequest) {
+  query += ' ORDER BY ordem, nome'
+
+  const result = await pool.query(query, params)
+  return NextResponse.json(result.rows)
+})
+
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, disciplinaEscolarSchema)
     if (!validacao.success) return validacao.response
 
@@ -57,22 +42,17 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json({ mensagem: 'Código de disciplina já cadastrado' }, { status: 400 })
     }
     console.error('Erro ao criar disciplina:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, atualizarDisciplinaSchema)
     if (!validacao.success) return validacao.response
 
@@ -91,22 +71,17 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json({ mensagem: 'Código de disciplina já cadastrado' }, { status: 400 })
     }
     console.error('Erro ao atualizar disciplina:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const validacaoId = validateId(searchParams.get('id'))
     if (!validacaoId.success) return validacaoId.response
@@ -135,8 +110,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Disciplina excluída com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir disciplina:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

@@ -72,7 +72,7 @@ export async function GET(
     )
 
     return NextResponse.json(result.rows)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar regras da escola:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -135,7 +135,7 @@ export async function POST(
     )
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao salvar regra da escola:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -173,7 +173,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ mensagem: 'Override removido, usando regra padrão' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao remover regra da escola:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

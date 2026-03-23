@@ -73,20 +73,20 @@ export async function GET(request: NextRequest) {
         ...(usuario.tipo_usuario === 'professor' && { professor_escolas: professorEscolas }),
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao verificar autenticação:', {
-      message: error?.message,
-      code: error?.code,
-      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+      message: (error as Error)?.message,
+      code: (error as any)?.code,
+      stack: process.env.NODE_ENV === 'development' ? (error as any)?.stack : undefined,
     })
     
     // Verificar se é erro de banco de dados
-    if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND' || error?.code === 'ETIMEDOUT') {
+    if ((error as any)?.code === 'ECONNREFUSED' || (error as any)?.code === 'ENOTFOUND' || (error as any)?.code === 'ETIMEDOUT') {
       return NextResponse.json(
         { 
           mensagem: 'Erro ao conectar com o banco de dados',
           erro: 'DB_CONNECTION_ERROR',
-          detalhes: process.env.NODE_ENV === 'development' ? error.message : undefined
+          detalhes: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
         },
         { status: 503 }
       )
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       { 
         mensagem: 'Erro interno do servidor',
         erro: 'INTERNAL_ERROR',
-        detalhes: process.env.NODE_ENV === 'development' ? error.message : undefined
+        detalhes: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
       },
       { status: 500 }
     )

@@ -84,10 +84,10 @@ export async function POST(request: NextRequest) {
       titulo: config.titulo
     }, { status: resultado.sucesso ? 200 : 400 })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao corrigir divergência:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao corrigir divergência', erro: error.message },
+      { mensagem: 'Erro ao corrigir divergência', erro: (error as Error).message },
       { status: 500 }
     )
   }

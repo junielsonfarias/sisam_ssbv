@@ -76,10 +76,10 @@ export async function GET(request: NextRequest) {
       series: result.rows,
       total: result.rows.length
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar configuração de séries:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -195,10 +195,10 @@ export async function PUT(request: NextRequest) {
       mensagem: 'Configuração atualizada com sucesso',
       serie: result.rows[0]
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar configuração de série:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -295,10 +295,10 @@ export async function DELETE(request: NextRequest) {
       mensagem: 'Série excluída com sucesso',
       serie: result.rows[0]
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir configuração de série:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -403,10 +403,10 @@ export async function POST(request: NextRequest) {
       id: result.rows[0].id,
       serie: result.rows[0]
     }, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao criar configuração de série:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }

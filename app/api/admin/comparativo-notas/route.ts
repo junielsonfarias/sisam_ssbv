@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
       },
       disciplinas_mapeamento: mapeamento,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar comparativo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       total_alunos: parseInt(r.total_alunos) || 0,
       total_periodos: parseInt(r.total_periodos) || 0,
     })))
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao listar anos letivos:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
@@ -98,8 +98,8 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json({ mensagem: 'Ano letivo já existe' }, { status: 409 })
     }
     console.error('Erro ao criar ano letivo:', error)
@@ -205,7 +205,7 @@ export async function PUT(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar ano letivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
@@ -233,7 +233,7 @@ export async function PATCH(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar bimestres:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }

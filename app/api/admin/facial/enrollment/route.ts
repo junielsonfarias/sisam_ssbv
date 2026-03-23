@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       criado_em: row.criado_em,
       atualizado_em: row.atualizado_em,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar embedding:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -116,24 +116,24 @@ export async function POST(request: NextRequest) {
       id: result.rows[0].id,
       aluno: alunoResult.rows[0],
     }, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no enrollment facial:', {
-      message: error?.message,
-      code: error?.code,
-      detail: error?.detail,
-      constraint: error?.constraint,
+      message: (error as Error)?.message,
+      code: (error as any)?.code,
+      detail: (error as any)?.detail,
+      constraint: (error as any)?.constraint,
     })
 
     // Erro de constraint do PostgreSQL (qualidade fora do range, etc)
-    if (error?.code === '23514') {
+    if ((error as any)?.code === '23514') {
       return NextResponse.json({
         mensagem: 'Valor de qualidade fora do intervalo permitido (0-100)',
       }, { status: 400 })
     }
 
     return NextResponse.json({
-      mensagem: error?.detail || error?.message || 'Erro interno do servidor',
-      codigo: error?.code,
+      mensagem: (error as any)?.detail || (error as Error)?.message || 'Erro interno do servidor',
+      codigo: (error as any)?.code,
     }, { status: 500 })
   }
 }
@@ -162,7 +162,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       mensagem: 'Dados faciais removidos com sucesso',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao remover dados faciais:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

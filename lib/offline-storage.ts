@@ -173,10 +173,10 @@ function saveToStorage(key: string, data: any, isEssential: boolean = false): bo
     localStorage.setItem(key, jsonData)
     console.log(`[OfflineStorage] Salvou ${key}: ${(jsonData.length / 1024).toFixed(2)}KB`)
     return true
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[OfflineStorage] Erro ao salvar ${key}:`, error)
     // Se exceder quota, limpar dados não essenciais e tentar novamente
-    if (error.name === 'QuotaExceededError') {
+    if ((error as any).name === 'QuotaExceededError') {
       console.warn('[OfflineStorage] Quota excedida, limpando dados antigos...')
       // Notificar UI sobre problema de armazenamento
       if (typeof window !== 'undefined') {
@@ -637,10 +637,10 @@ export async function syncOfflineData(): Promise<{ success: boolean; message: st
       setSyncStatus('error')
       return { success: false, message: 'Erro ao salvar dados no dispositivo' }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[OfflineStorage] Erro na sincronização:', error)
     setSyncStatus('error')
-    return { success: false, message: error.message || 'Erro desconhecido' }
+    return { success: false, message: (error as Error).message || 'Erro desconhecido' }
   }
 }
 

@@ -10,6 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "setup-db": "node scripts/setup-database.js",
     "seed": "node scripts/seed.js",
     "seed-supabase": "node scripts/seed-supabase.js",
@@ -83,6 +86,7 @@
     "monitorar-pool": "node scripts/monitorar-pool.js"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^3.3.0",
     "@react-pdf/renderer": "^4.3.2",
     "@types/bcryptjs": "^2.4.0",
@@ -98,13 +102,13 @@
     "chart.js": "^4.5.1",
     "clsx": "^2.1.0",
     "date-fns": "^3.3.0",
+    "exceljs": "^4.4.0",
     "html-to-image": "^1.11.13",
     "iconv-lite": "^0.6.3",
     "jimp": "^0.22.12",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.344.0",
     "next": "^14.2.0",
-    "next-pwa": "^5.6.0",
     "pdfkit": "^0.14.0",
     "pg": "^8.11.0",
     "postcss": "^8.4.0",
@@ -115,12 +119,14 @@
     "sharp": "^0.33.5",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.4.0",
-    "xlsx": "^0.18.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@types/exceljs": "^0.5.3",
+    "@vitest/coverage-v8": "^4.1.0",
     "dotenv": "^17.2.3",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.0"
+    "eslint-config-next": "^14.2.0",
+    "vitest": "^4.1.0"
   }
 }

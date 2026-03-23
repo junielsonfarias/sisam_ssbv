@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const result = await pool.query(query, params)
 
     return NextResponse.json({ vinculos: result.rows })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao listar vínculos:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -123,9 +123,9 @@ export async function POST(request: NextRequest) {
       mensagem: 'Vínculo criado com sucesso',
       vinculo_id: result.rows[0].id,
     }, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Constraint violation (vínculo duplicado)
-    if (error.code === '23505') {
+    if ((error as any).code === '23505') {
       return NextResponse.json({ mensagem: 'Vínculo já existe para esta turma/disciplina' }, { status: 409 })
     }
     console.error('Erro ao criar vínculo:', error)
@@ -207,8 +207,8 @@ export async function PATCH(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') {
       return NextResponse.json({ mensagem: 'O novo professor já possui vínculo ativo com esta turma/disciplina' }, { status: 409 })
     }
     console.error('Erro ao trocar professor:', error)
@@ -243,7 +243,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Vínculo removido com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao remover vínculo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

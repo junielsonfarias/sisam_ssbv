@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       nao_lidas: parseInt(countResult.rows[0].total)
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar notificações:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
@@ -134,7 +134,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ mensagem: `${ids.length} notificação(ões) marcada(s) como lida(s)` })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao marcar notificações:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
       client.release()
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao gerar notificações:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }

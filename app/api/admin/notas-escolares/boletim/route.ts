@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
       frequencia: frequenciaPeriodos,
       recuperacao,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao gerar boletim:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -39,11 +39,11 @@ export async function GET(request: NextRequest) {
       stats: statsResult,
       escolas: escolasResult,
     })
-  } catch (error: any) {
-    if (error?.code === '42P01') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '42P01') {
       return NextResponse.json({ secoes: [], stats: null, escolas: [] })
     }
-    console.error('Erro ao buscar configuracao do site:', error?.message || error)
+    console.error('Erro ao buscar configuracao do site:', (error as Error)?.message || error)
     return NextResponse.json({ secoes: [], stats: null, escolas: [] })
   }
 }

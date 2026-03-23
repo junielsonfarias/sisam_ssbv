@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     }
 
     return okComCache(estatisticas, 'banco')
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API Admin Estatisticas] Erro:', error)
     return okComFallback(getEstatisticasPadrao(), error)
   }

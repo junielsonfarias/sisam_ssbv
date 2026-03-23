@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     const result = await pool.query(query, params)
 
     return NextResponse.json({ alunos: result.rows })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao listar consentimentos:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       mensagem: consentido ? 'Consentimento registrado' : 'Consentimento revogado',
       consentimento: result.rows[0],
     }, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao registrar consentimento:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -187,7 +187,7 @@ export async function DELETE(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao revogar consentimento:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

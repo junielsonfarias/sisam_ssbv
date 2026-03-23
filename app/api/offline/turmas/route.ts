@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       total: result.rows.length,
       sincronizado_em: new Date().toISOString()
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar turmas para offline:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

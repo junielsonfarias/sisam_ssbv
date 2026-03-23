@@ -128,16 +128,16 @@ export async function GET(request: NextRequest) {
       },
       sincronizado_em: new Date().toISOString()
     })
-  } catch (error: any) {
-    console.error('[OfflineResultados] Erro:', error?.message)
-    console.error('[OfflineResultados] Stack:', error?.stack)
-    console.error('[OfflineResultados] Código:', error?.code)
+  } catch (error: unknown) {
+    console.error('[OfflineResultados] Erro:', (error as Error)?.message)
+    console.error('[OfflineResultados] Stack:', (error as any)?.stack)
+    console.error('[OfflineResultados] Código:', (error as any)?.code)
 
     return NextResponse.json(
       {
         mensagem: 'Erro ao buscar resultados',
-        erro: error?.message,
-        codigo: error?.code
+        erro: (error as Error)?.message,
+        codigo: (error as any)?.code
       },
       { status: 500 }
     )

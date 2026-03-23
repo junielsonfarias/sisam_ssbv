@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const result = await pool.query(query, params)
 
     return NextResponse.json({ professores: result.rows })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao listar professores:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       mensagem: 'Professor criado com sucesso',
       professor: result.rows[0],
     }, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao criar professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -139,7 +139,7 @@ export async function PATCH(request: NextRequest) {
       mensagem: ativo ? 'Professor ativado com sucesso' : 'Professor desativado',
       professor: result.rows[0],
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -181,7 +181,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Cadastro rejeitado e excluído' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

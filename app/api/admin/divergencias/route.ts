@@ -59,10 +59,10 @@ export async function GET(request: NextRequest) {
       dataVerificacao: resultado.dataVerificacao
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar divergências:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao buscar divergências', erro: error.message },
+      { mensagem: 'Erro ao buscar divergências', erro: (error as Error).message },
       { status: 500 }
     )
   }
@@ -93,10 +93,10 @@ export async function POST(request: NextRequest) {
       dataVerificacao: resultado.dataVerificacao
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao executar verificação:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao executar verificação', erro: error.message },
+      { mensagem: 'Erro ao executar verificação', erro: (error as Error).message },
       { status: 500 }
     )
   }

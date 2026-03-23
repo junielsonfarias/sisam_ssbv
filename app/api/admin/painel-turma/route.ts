@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
         total_aulas: horarioDia.length,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no painel da turma:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

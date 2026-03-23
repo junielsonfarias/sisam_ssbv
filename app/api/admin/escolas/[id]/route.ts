@@ -62,7 +62,7 @@ export async function GET(
     }
 
     return NextResponse.json(escola)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar escola:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
@@ -160,14 +160,14 @@ export async function PUT(
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
       )
     }
-    console.error('Erro ao atualizar escola:', error?.message || error, 'Code:', error?.code, 'Detail:', error?.detail)
+    console.error('Erro ao atualizar escola:', (error as Error)?.message || error, 'Code:', (error as any)?.code, 'Detail:', (error as any)?.detail)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -9,67 +9,52 @@ export const dynamic = 'force-dynamic'
  * Busca conselho de classe de uma turma/período
  * Params: turma_id, periodo_id
  */
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+  const { searchParams } = new URL(request.url)
+  const turmaId = searchParams.get('turma_id')
+  const periodoId = searchParams.get('periodo_id')
 
-    const { searchParams } = new URL(request.url)
-    const turmaId = searchParams.get('turma_id')
-    const periodoId = searchParams.get('periodo_id')
-
-    if (!turmaId || !periodoId) {
-      return NextResponse.json({ mensagem: 'Informe turma_id e periodo_id' }, { status: 400 })
-    }
-
-    // Buscar conselho existente
-    const conselhoResult = await pool.query(
-      `SELECT c.*, u.nome as registrado_por_nome
-       FROM conselho_classe c
-       LEFT JOIN usuarios u ON c.registrado_por = u.id
-       WHERE c.turma_id = $1 AND c.periodo_id = $2`,
-      [turmaId, periodoId]
-    )
-
-    if (conselhoResult.rows.length === 0) {
-      return NextResponse.json({ conselho: null, pareceres: {} })
-    }
-
-    const conselho = conselhoResult.rows[0]
-
-    // Buscar pareceres dos alunos
-    const pareceresResult = await pool.query(
-      `SELECT cca.aluno_id, cca.parecer, cca.observacao
-       FROM conselho_classe_alunos cca
-       WHERE cca.conselho_id = $1`,
-      [conselho.id]
-    )
-
-    const pareceres: Record<string, { parecer: string; observacao: string }> = {}
-    for (const p of pareceresResult.rows) {
-      pareceres[p.aluno_id] = { parecer: p.parecer, observacao: p.observacao || '' }
-    }
-
-    return NextResponse.json({ conselho, pareceres })
-  } catch (error: any) {
-    console.error('Erro ao buscar conselho de classe:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  if (!turmaId || !periodoId) {
+    return NextResponse.json({ mensagem: 'Informe turma_id e periodo_id' }, { status: 400 })
   }
-}
+
+  // Buscar conselho existente
+  const conselhoResult = await pool.query(
+    `SELECT c.*, u.nome as registrado_por_nome
+     FROM conselho_classe c
+     LEFT JOIN usuarios u ON c.registrado_por = u.id
+     WHERE c.turma_id = $1 AND c.periodo_id = $2`,
+    [turmaId, periodoId]
+  )
+
+  if (conselhoResult.rows.length === 0) {
+    return NextResponse.json({ conselho: null, pareceres: {} })
+  }
+
+  const conselho = conselhoResult.rows[0]
+
+  // Buscar pareceres dos alunos
+  const pareceresResult = await pool.query(
+    `SELECT cca.aluno_id, cca.parecer, cca.observacao
+     FROM conselho_classe_alunos cca
+     WHERE cca.conselho_id = $1`,
+    [conselho.id]
+  )
+
+  const pareceres: Record<string, { parecer: string; observacao: string }> = {}
+  for (const p of pareceresResult.rows) {
+    pareceres[p.aluno_id] = { parecer: p.parecer, observacao: p.observacao || '' }
+  }
+
+  return NextResponse.json({ conselho, pareceres })
+})
 
 /**
  * POST /api/admin/conselho-classe
  * Salva conselho de classe (ata + pareceres dos alunos)
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const { turma_id, periodo_id, data_reuniao, ata_geral, pareceres } = body
 
@@ -139,8 +124,8 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao salvar conselho de classe:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

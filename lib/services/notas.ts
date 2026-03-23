@@ -149,8 +149,8 @@ export async function lancarNotas(params: {
           ]
         )
         processados++
-      } catch (err: any) {
-        erros.push({ aluno_id: item.aluno_id, mensagem: err?.message || 'Erro desconhecido' })
+      } catch (err: unknown) {
+        erros.push({ aluno_id: item.aluno_id, mensagem: (err as Error)?.message || 'Erro desconhecido' })
       }
     }
 

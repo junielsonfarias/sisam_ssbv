@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ itens: result.rows, resumo: resumoFila })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar fila de espera:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       posicao
     }, { status: 201 })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao adicionar à fila:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
@@ -257,7 +257,7 @@ export async function PUT(request: NextRequest) {
       client.release()
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar fila:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
@@ -321,7 +321,7 @@ export async function DELETE(request: NextRequest) {
       client.release()
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao remover da fila:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }

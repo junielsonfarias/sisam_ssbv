@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       ...r,
       total_alunos: parseInt(r.total_alunos) || 0
     })))
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao listar turmas:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json({ mensagem: 'Turma com este código já existe para esta escola e ano letivo' }, { status: 400 })
     }
     console.error('Erro ao criar turma:', error)

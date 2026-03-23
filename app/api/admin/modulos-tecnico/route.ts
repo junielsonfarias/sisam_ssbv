@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar módulos do técnico:', error)
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor', erro: error.message },
+      { mensagem: 'Erro interno do servidor', erro: (error as Error).message },
       { status: 500 }
     )
   }
@@ -79,16 +79,16 @@ export async function PUT(request: NextRequest) {
       )
 
       return NextResponse.json(result.rows)
-    } catch (error: any) {
+    } catch (error: unknown) {
       await client.query('ROLLBACK')
       throw error
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar módulos do técnico:', error)
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor', erro: error.message },
+      { mensagem: 'Erro interno do servidor', erro: (error as Error).message },
       { status: 500 }
     )
   }

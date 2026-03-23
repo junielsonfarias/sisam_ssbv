@@ -62,12 +62,12 @@ export async function GET(
   } catch (error: unknown) {
     console.error('Erro ao buscar dados do relatório do polo:');
     console.error('- Tipo do erro:', error?.constructor?.name);
-    console.error('- Mensagem:', error instanceof Error ? error.message : String(error));
-    if (error instanceof Error && error.stack) {
-      console.error('- Stack:', error.stack);
+    console.error('- Mensagem:', error instanceof Error ? (error as Error).message : String(error));
+    if (error instanceof Error && (error as any).stack) {
+      console.error('- Stack:', (error as any).stack);
     }
 
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    const errorMessage = error instanceof Error ? (error as Error).message : 'Erro desconhecido';
 
     return NextResponse.json(
       {

@@ -282,8 +282,8 @@ export async function GET(request: NextRequest) {
     const safeQuery = async (sql: string, params: any[] = []) => {
       try {
         return await pool.query(sql, params)
-      } catch (err: any) {
-        console.error('[Dashboard Gestor] Query falhou:', err?.message)
+      } catch (err: unknown) {
+        console.error('[Dashboard Gestor] Query falhou:', (err as Error)?.message)
         return { rows: [] }
       }
     }
@@ -408,7 +408,7 @@ export async function GET(request: NextRequest) {
         total_alunos: parseInt(r.total_alunos) || 0,
       })),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no dashboard gestor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

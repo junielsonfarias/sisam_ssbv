@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       mensagem: 'Foto atualizada com sucesso',
       foto_url: urlFinal
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar foto:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
@@ -95,7 +95,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       mensagem: 'Foto removida com sucesso'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao remover foto:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

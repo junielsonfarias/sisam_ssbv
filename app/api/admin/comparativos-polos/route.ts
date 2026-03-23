@@ -370,10 +370,10 @@ export async function GET(request: NextRequest) {
       dadosPorSerieEscola,
       polos: polosIds
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar comparativo de polos:', error)
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor', erro: error.message },
+      { mensagem: 'Erro interno do servidor', erro: (error as Error).message },
       { status: 500 }
     )
   }

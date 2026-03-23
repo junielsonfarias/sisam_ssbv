@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
         temAnterior: pagina > 1,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao listar frequência diária:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -209,7 +209,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Registro excluído com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir frequência:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -248,7 +248,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Justificativa salva com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar justificativa:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

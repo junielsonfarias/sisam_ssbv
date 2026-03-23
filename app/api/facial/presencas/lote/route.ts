@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       atualizados,
       erros,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao registrar presença em lote:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

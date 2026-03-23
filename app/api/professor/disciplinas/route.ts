@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       )
       return NextResponse.json({ disciplinas: result.rows })
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao listar disciplinas:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

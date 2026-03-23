@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(query)
     return NextResponse.json(result.rows)
-  } catch (error: any) {
-    if (error?.code === '42P01') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '42P01') {
       return NextResponse.json([])
     }
     console.error('Erro ao listar tipos de avaliacao:', error)
@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao criar tipo de avaliacao:', error)
-    if (error.code === '23505') {
+    if ((error as any).code === '23505') {
       return NextResponse.json({ mensagem: 'Ja existe um tipo com este codigo' }, { status: 409 })
     }
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
@@ -133,9 +133,9 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar tipo de avaliacao:', error)
-    if (error.code === '23505') {
+    if ((error as any).code === '23505') {
       return NextResponse.json({ mensagem: 'Ja existe um tipo com este codigo' }, { status: 409 })
     }
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

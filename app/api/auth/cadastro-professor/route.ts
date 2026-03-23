@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         email: result.rows[0].email,
       },
     }, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no cadastro de professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

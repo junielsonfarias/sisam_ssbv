@@ -50,8 +50,8 @@ export async function GET(
     const safeQuery = async (sql: string, params: any[] = []) => {
       try {
         return await pool.query(sql, params)
-      } catch (err: any) {
-        console.error(`[Aluno ${alunoId}] Query falhou:`, err?.message)
+      } catch (err: unknown) {
+        console.error(`[Aluno ${alunoId}] Query falhou:`, (err as Error)?.message)
         return { rows: [] }
       }
     }
@@ -169,7 +169,7 @@ export async function GET(
       conselho: conselhoResult.rows,
       historico_turmas: turmasHistResult.rows,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar detalhes do aluno:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -242,7 +242,7 @@ export async function PUT(
     )
 
     return NextResponse.json({ mensagem: 'Aluno atualizado com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar aluno:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       disciplinas,
       sync_date: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no sync professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
               freqSalvas++
             }
           }
-        } catch (err: any) {
-          erros.push(`Freq ${freq.turma_id}/${freq.data}: ${err.message}`)
+        } catch (err: unknown) {
+          erros.push(`Freq ${freq.turma_id}/${freq.data}: ${(err as Error).message}`)
         }
       }
 
@@ -158,8 +158,8 @@ export async function POST(request: NextRequest) {
               notasSalvas++
             }
           }
-        } catch (err: any) {
-          erros.push(`Notas ${nota.turma_id}: ${err.message}`)
+        } catch (err: unknown) {
+          erros.push(`Notas ${nota.turma_id}: ${(err as Error).message}`)
         }
       }
 
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no sync upload:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

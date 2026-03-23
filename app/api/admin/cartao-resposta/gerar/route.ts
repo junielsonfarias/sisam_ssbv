@@ -170,10 +170,10 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': `attachment; filename="cartao-resposta-${anoLetivo}${serie ? `-${serie.replace(/\s+/g, '-')}` : ''}.pdf"`,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao gerar cartão-resposta:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao gerar cartão-resposta', erro: error.message },
+      { mensagem: 'Erro ao gerar cartão-resposta', erro: (error as Error).message },
       { status: 500 }
     )
   }

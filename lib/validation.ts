@@ -215,7 +215,7 @@ export function isDatabaseError(error: unknown): error is DatabaseError {
  */
 export function getErrorMessage(error: unknown): string {
   if (isError(error)) {
-    return error.message
+    return (error as Error).message
   }
   if (typeof error === 'string') {
     return error
@@ -232,7 +232,7 @@ export function getErrorMessage(error: unknown): string {
  */
 export function getDatabaseErrorCode(error: unknown): string | undefined {
   if (isDatabaseError(error)) {
-    return error.code
+    return (error as any).code
   }
   return undefined
 }
@@ -256,7 +256,7 @@ export function isForeignKeyError(error: unknown): boolean {
  * Verifica se é um erro de aborto (fetch cancelado)
  */
 export function isAbortError(error: unknown): boolean {
-  return isError(error) && error.name === 'AbortError'
+  return isError(error) && (error as any).name === 'AbortError'
 }
 
 /**

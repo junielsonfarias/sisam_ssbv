@@ -126,7 +126,7 @@ async function executarQuerySegura<T>(
     const dados = await queryFn()
     return { sucesso: true, dados }
   } catch (error) {
-    const mensagem = error instanceof Error ? error.message : 'Erro desconhecido'
+    const mensagem = error instanceof Error ? (error as Error).message : 'Erro desconhecido'
     log.error(`Erro ao ${descricao}`, error, { data: { descricao } })
     return { sucesso: false, erro: mensagem }
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { calcularNotaFinal, lancarNotas } from '@/lib/services/notas'
 import { z } from 'zod'
@@ -28,96 +28,86 @@ const notaLoteSchema = z.object({
  * Busca notas de uma turma para uma disciplina e período específicos
  * Params: turma_id, disciplina_id, periodo_id
  */
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+  const { searchParams } = new URL(request.url)
+  const turmaId = searchParams.get('turma_id')
+  const disciplinaId = searchParams.get('disciplina_id')
+  const periodoId = searchParams.get('periodo_id')
+  const escolaId = searchParams.get('escola_id')
+  const alunoId = searchParams.get('aluno_id')
 
-    const { searchParams } = new URL(request.url)
-    const turmaId = searchParams.get('turma_id')
-    const disciplinaId = searchParams.get('disciplina_id')
-    const periodoId = searchParams.get('periodo_id')
-    const escolaId = searchParams.get('escola_id')
-    const alunoId = searchParams.get('aluno_id')
-
-    if (!turmaId && !escolaId && !alunoId) {
-      return NextResponse.json({ mensagem: 'Informe turma_id, escola_id ou aluno_id' }, { status: 400 })
-    }
-
-    const whereConditions: string[] = []
-    const params: string[] = []
-    let paramIndex = 1
-
-    // Restrição de acesso
-    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      whereConditions.push(`n.escola_id = $${paramIndex}`)
-      params.push(usuario.escola_id as string)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      whereConditions.push(`e.polo_id = $${paramIndex}`)
-      params.push(usuario.polo_id as string)
-      paramIndex++
-    }
-
-    if (turmaId) {
-      whereConditions.push(`COALESCE(n.turma_id, a.turma_id) = $${paramIndex}`)
-      params.push(turmaId)
-      paramIndex++
-    }
-
-    if (disciplinaId) {
-      whereConditions.push(`n.disciplina_id = $${paramIndex}`)
-      params.push(disciplinaId)
-      paramIndex++
-    }
-
-    if (periodoId) {
-      whereConditions.push(`n.periodo_id = $${paramIndex}`)
-      params.push(periodoId)
-      paramIndex++
-    }
-
-    if (escolaId) {
-      whereConditions.push(`n.escola_id = $${paramIndex}`)
-      params.push(escolaId)
-      paramIndex++
-    }
-
-    if (alunoId) {
-      whereConditions.push(`n.aluno_id = $${paramIndex}`)
-      params.push(alunoId)
-      paramIndex++
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
-
-    const result = await pool.query(
-      `SELECT n.id, n.aluno_id, n.disciplina_id, n.periodo_id, n.escola_id, n.turma_id,
-              n.ano_letivo, n.nota, n.nota_recuperacao, n.nota_final, n.faltas,
-              n.observacao, n.conceito, n.parecer_descritivo, n.criado_em, n.atualizado_em,
-              a.nome as aluno_nome, a.codigo as aluno_codigo,
-              d.nome as disciplina_nome, d.codigo as disciplina_codigo,
-              p.nome as periodo_nome, p.numero as periodo_numero,
-              t.codigo as turma_codigo, t.serie as turma_serie, t.nome as turma_nome
-       FROM notas_escolares n
-       INNER JOIN alunos a ON n.aluno_id = a.id
-       INNER JOIN disciplinas_escolares d ON n.disciplina_id = d.id
-       INNER JOIN periodos_letivos p ON n.periodo_id = p.id
-       INNER JOIN escolas e ON n.escola_id = e.id
-       LEFT JOIN turmas t ON COALESCE(n.turma_id, a.turma_id) = t.id
-       ${whereClause}
-       ORDER BY a.nome, d.ordem, p.numero`,
-      params
-    )
-
-    return NextResponse.json(result.rows)
-  } catch (error: any) {
-    console.error('Erro ao buscar notas:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  if (!turmaId && !escolaId && !alunoId) {
+    return NextResponse.json({ mensagem: 'Informe turma_id, escola_id ou aluno_id' }, { status: 400 })
   }
-}
+
+  const whereConditions: string[] = []
+  const params: string[] = []
+  let paramIndex = 1
+
+  // Restrição de acesso
+  if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+    whereConditions.push(`n.escola_id = $${paramIndex}`)
+    params.push(usuario.escola_id as string)
+    paramIndex++
+  } else if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
+    params.push(usuario.polo_id as string)
+    paramIndex++
+  }
+
+  if (turmaId) {
+    whereConditions.push(`COALESCE(n.turma_id, a.turma_id) = $${paramIndex}`)
+    params.push(turmaId)
+    paramIndex++
+  }
+
+  if (disciplinaId) {
+    whereConditions.push(`n.disciplina_id = $${paramIndex}`)
+    params.push(disciplinaId)
+    paramIndex++
+  }
+
+  if (periodoId) {
+    whereConditions.push(`n.periodo_id = $${paramIndex}`)
+    params.push(periodoId)
+    paramIndex++
+  }
+
+  if (escolaId) {
+    whereConditions.push(`n.escola_id = $${paramIndex}`)
+    params.push(escolaId)
+    paramIndex++
+  }
+
+  if (alunoId) {
+    whereConditions.push(`n.aluno_id = $${paramIndex}`)
+    params.push(alunoId)
+    paramIndex++
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+
+  const result = await pool.query(
+    `SELECT n.id, n.aluno_id, n.disciplina_id, n.periodo_id, n.escola_id, n.turma_id,
+            n.ano_letivo, n.nota, n.nota_recuperacao, n.nota_final, n.faltas,
+            n.observacao, n.conceito, n.parecer_descritivo, n.criado_em, n.atualizado_em,
+            a.nome as aluno_nome, a.codigo as aluno_codigo,
+            d.nome as disciplina_nome, d.codigo as disciplina_codigo,
+            p.nome as periodo_nome, p.numero as periodo_numero,
+            t.codigo as turma_codigo, t.serie as turma_serie, t.nome as turma_nome
+     FROM notas_escolares n
+     INNER JOIN alunos a ON n.aluno_id = a.id
+     INNER JOIN disciplinas_escolares d ON n.disciplina_id = d.id
+     INNER JOIN periodos_letivos p ON n.periodo_id = p.id
+     INNER JOIN escolas e ON n.escola_id = e.id
+     LEFT JOIN turmas t ON COALESCE(n.turma_id, a.turma_id) = t.id
+     ${whereClause}
+     ORDER BY a.nome, d.ordem, p.numero`,
+    params
+  )
+
+  return NextResponse.json(result.rows)
+})
 
 /**
  * POST /api/admin/notas-escolares
@@ -126,13 +116,8 @@ export async function GET(request: NextRequest) {
  * Suporta 3 tipos: numerico, conceito, parecer
  * Detecta automaticamente pelo tipo de avaliação da série
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const body = await request.json()
     const validacao = notaLoteSchema.safeParse(body)
 
@@ -262,11 +247,11 @@ export async function POST(request: NextRequest) {
       erros: todosErros.length,
       errosDetalhes: todosErros.length > 0 ? todosErros : undefined,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao salvar notas:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * GET /api/admin/notas-escolares?aluno_id=X

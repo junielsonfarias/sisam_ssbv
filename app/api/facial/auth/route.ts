@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       escola: escolaResult.rows[0],
       servidor_timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro na autenticação do dispositivo:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

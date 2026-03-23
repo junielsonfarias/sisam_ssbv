@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar configurações de notas:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json(
         { mensagem: 'Já existe uma configuração para esta escola neste ano letivo' },
         { status: 400 }
@@ -150,8 +150,8 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json(
         { mensagem: 'Já existe uma configuração para esta escola neste ano letivo' },
         { status: 400 }
@@ -199,7 +199,7 @@ export async function DELETE(request: NextRequest) {
 
     await pool.query('DELETE FROM configuracao_notas_escola WHERE id = $1', [id])
     return NextResponse.json({ mensagem: 'Configuração excluída com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir configuração de notas:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

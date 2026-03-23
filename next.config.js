@@ -6,7 +6,7 @@ if (missingEnvVars.length > 0) {
   console.warn('   A aplicação não funcionará corretamente sem estas variáveis.')
 }
 
-const withPWA = require('next-pwa')({
+const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   register: true,
   skipWaiting: true,

@@ -154,13 +154,13 @@ export async function GET(request: NextRequest) {
     const historico = Array.from(alunosAgrupados.values())
 
     return NextResponse.json(historico)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar histórico do aluno:', error)
-    console.error('Stack trace:', error?.stack)
+    console.error('Stack trace:', (error as any)?.stack)
     return NextResponse.json(
       { 
         mensagem: 'Erro interno do servidor',
-        erro: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        erro: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
       },
       { status: 500 }
     )

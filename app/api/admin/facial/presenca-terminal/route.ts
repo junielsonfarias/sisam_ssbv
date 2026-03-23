@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       data,
       hora,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao registrar presença via terminal:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -137,9 +137,9 @@ export async function enfileirarFrequencia(dados: any): Promise<boolean> {
     const tx = db.transaction(STORES.FREQUENCIA_QUEUE, 'readwrite')
     tx.objectStore(STORES.FREQUENCIA_QUEUE).add({ ...dados, timestamp: Date.now() })
     return true
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ProfessorDB] Erro ao enfileirar frequência:', error)
-    if (error.name === 'QuotaExceededError') {
+    if ((error as any).name === 'QuotaExceededError') {
       // Limpar pendentes antigos para liberar espaço
       await limparPendentesAntigos()
       try {
@@ -175,9 +175,9 @@ export async function enfileirarNotas(dados: any): Promise<boolean> {
     const tx = db.transaction(STORES.NOTAS_QUEUE, 'readwrite')
     tx.objectStore(STORES.NOTAS_QUEUE).add({ ...dados, timestamp: Date.now() })
     return true
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ProfessorDB] Erro ao enfileirar notas:', error)
-    if (error.name === 'QuotaExceededError') {
+    if ((error as any).name === 'QuotaExceededError') {
       await limparPendentesAntigos()
       try {
         const db = await openDB()

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao listar séries:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error?.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any)?.code === '23505') {
       return NextResponse.json({ mensagem: 'Série já cadastrada' }, { status: 400 })
     }
     console.error('Erro ao criar série:', error)

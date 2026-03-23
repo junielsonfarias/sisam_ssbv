@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         tem_config: configResult.rows.length > 0
       }
     })
-  } catch (error: any) {
-    return NextResponse.json({ erro: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ erro: (error as Error).message }, { status: 500 })
   }
 }

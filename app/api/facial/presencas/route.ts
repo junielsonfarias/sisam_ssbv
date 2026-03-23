@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       data,
       hora,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao registrar presença facial:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

@@ -3,11 +3,38 @@ import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 
+// Rate limiting específico para boletim (dados pessoais — LGPD)
+// 30 consultas por IP a cada 15 minutos
+const boletimLimiter = new Map<string, { count: number; resetAt: number }>()
+const BOLETIM_MAX = 30
+const BOLETIM_WINDOW = 15 * 60 * 1000
+
+function checkBoletimRate(ip: string): boolean {
+  const now = Date.now()
+  const entry = boletimLimiter.get(ip)
+  if (!entry || now > entry.resetAt) {
+    boletimLimiter.set(ip, { count: 1, resetAt: now + BOLETIM_WINDOW })
+    return true
+  }
+  if (entry.count >= BOLETIM_MAX) return false
+  entry.count++
+  return true
+}
+
+// Cleanup a cada 10 minutos
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, entry] of boletimLimiter) {
+    if (now > entry.resetAt) boletimLimiter.delete(ip)
+  }
+}, 10 * 60 * 1000)
+
 /**
  * GET /api/boletim
  *
  * Endpoint publico para consulta de boletim escolar completo.
  * Busca por codigo do aluno OU cpf + data_nascimento.
+ * Rate limited: 30 req/15min por IP (proteção LGPD).
  *
  * Retorna:
  * - Dados do aluno (nome, escola, turma, serie, situacao, pcd)
@@ -18,6 +45,13 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    if (!checkBoletimRate(ip)) {
+      return NextResponse.json(
+        { mensagem: 'Muitas consultas. Tente novamente em alguns minutos.' },
+        { status: 429 }
+      )
+    }
     const { searchParams } = new URL(request.url)
     const codigo = searchParams.get('codigo')?.trim()
     const cpfRaw = searchParams.get('cpf')?.trim()
@@ -101,8 +135,8 @@ export async function GET(request: NextRequest) {
     const safeQuery = async (sql: string, params: any[] = [], label: string = '') => {
       try {
         return await pool.query(sql, params)
-      } catch (err: any) {
-        console.error(`[Boletim] Erro em ${label}:`, err?.message)
+      } catch (err: unknown) {
+        console.error(`[Boletim] Erro em ${label}:`, (err as Error)?.message)
         return { rows: [] }
       }
     }
@@ -268,8 +302,8 @@ export async function GET(request: NextRequest) {
         ultima_data: freqDiaria?.ultima_data,
       },
     })
-  } catch (error: any) {
-    console.error('Erro ao consultar boletim:', error?.message || error)
+  } catch (error: unknown) {
+    console.error('Erro ao consultar boletim:', (error as Error)?.message || error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor. Tente novamente mais tarde.' },
       { status: 500 }

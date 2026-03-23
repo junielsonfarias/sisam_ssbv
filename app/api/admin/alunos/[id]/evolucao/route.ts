@@ -178,7 +178,7 @@ export async function GET(
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar evolução do aluno:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

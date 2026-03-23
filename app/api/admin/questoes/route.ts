@@ -1,49 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic';
-export async function GET(request: NextRequest) {
+
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+  const result = await pool.query(
+    `SELECT
+      id, codigo, descricao, disciplina, area_conhecimento,
+      dificuldade, gabarito, criado_em,
+      serie_aplicavel, tipo_questao, numero_questao
+     FROM questoes
+     ORDER BY criado_em DESC`
+  )
+
+  return NextResponse.json(result.rows)
+})
+
+export const POST = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
-    const result = await pool.query(
-      `SELECT
-        id, codigo, descricao, disciplina, area_conhecimento,
-        dificuldade, gabarito, criado_em,
-        serie_aplicavel, tipo_questao, numero_questao
-       FROM questoes
-       ORDER BY criado_em DESC`
-    )
-
-    return NextResponse.json(result.rows)
-  } catch (error: any) {
-    console.error('Erro ao buscar questões:', error)
-    return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao } = await request.json()
 
     // Normalizar valores vazios para null
@@ -69,8 +44,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
@@ -82,19 +57,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const body = await request.json()
     const { id, codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao } = body
 
@@ -138,50 +104,41 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro completo ao atualizar questão:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
-      stack: error.stack,
+      message: (error as Error).message,
+      code: (error as any).code,
+      detail: (error as any).detail,
+      stack: (error as any).stack,
     })
-    
-    if (error.code === '23505') {
+
+    if ((error as any).code === '23505') {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
       )
     }
-    
-    if (error.code === '22P02') {
+
+    if ((error as any).code === '22P02') {
       return NextResponse.json(
         { mensagem: 'ID inválido. Verifique se o ID está correto.' },
         { status: 400 }
       )
     }
-    
+
     return NextResponse.json(
-      { 
-        mensagem: error.message || 'Erro interno do servidor', 
-        detalhes: error.code,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      {
+        mensagem: (error as Error).message || 'Erro interno do servidor',
+        detalhes: (error as any).code,
+        stack: process.env.NODE_ENV === 'development' ? (error as any).stack : undefined
       },
       { status: 500 }
     )
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -205,12 +162,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ mensagem: 'Questão excluída com sucesso' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir questão:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
-
+})

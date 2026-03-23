@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao, hashPassword } from '@/lib/auth'
+import { hashPassword } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { usuarioSchema, validateRequest, validateId } from '@/lib/schemas'
 import { invalidateUsuarioCache } from '@/lib/cache/memory'
@@ -19,44 +20,18 @@ const atualizarUsuarioSchema = usuarioSchema.extend({
 export const dynamic = 'force-dynamic';
 
 // GET - Listar usuários
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador'], async (request, usuario) => {
+  const result = await pool.query(
+    `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, criado_em
+     FROM usuarios
+     ORDER BY nome`
+  )
+
+  return NextResponse.json(result.rows)
+})
+
+export const POST = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
-    const result = await pool.query(
-      `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, criado_em
-       FROM usuarios
-       ORDER BY nome`
-    )
-
-    return NextResponse.json(result.rows)
-  } catch (error: any) {
-    console.error('Erro ao buscar usuários:', error)
-    return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     // Validar dados de entrada com Zod
     const validacao = await validateRequest(request, criarUsuarioSchema)
     if (!validacao.success) {
@@ -75,8 +50,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') {
       return NextResponse.json(
         { mensagem: 'Email já cadastrado' },
         { status: 400 }
@@ -88,20 +63,11 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // PUT - Atualizar usuário
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     // Validar dados de entrada com Zod
     const validacao = await validateRequest(request, atualizarUsuarioSchema)
     if (!validacao.success) {
@@ -153,8 +119,8 @@ export async function PUT(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0])
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') {
       return NextResponse.json(
         { mensagem: 'Email já cadastrado para outro usuário' },
         { status: 400 }
@@ -166,20 +132,11 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // DELETE - Excluir ou desativar usuário
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const idParam = searchParams.get('id')
     const hardDelete = searchParams.get('hard') === 'true'
@@ -229,12 +186,11 @@ export async function DELETE(request: NextRequest) {
       invalidateUsuarioCache(id)
       return NextResponse.json({ mensagem: 'Usuário desativado com sucesso' })
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir usuário:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
-
+})

@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
       totalAlunos: new Set(resultadosFiltrados.map((r) => r.aluno_codigo).filter(Boolean)).size,
       resultados: resultadosFiltrados.slice(0, 100), // Limitar a 100 resultados para performance
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar dados de análise:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

@@ -335,7 +335,7 @@ export async function GET(request: NextRequest) {
         parciais: totalParciais,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao calcular fechamento do ano:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
@@ -432,9 +432,9 @@ export async function POST(request: NextRequest) {
             processados++
             if (item.situacao === 'aprovado') aprovados++
             else reprovados++
-          } catch (err: any) {
-            console.error(`Erro ao processar aluno ${item.aluno_id}:`, err.message)
-            errosProcessamento.push({ aluno_id: item.aluno_id, mensagem: err?.message || 'Erro desconhecido' })
+          } catch (err: unknown) {
+            console.error(`Erro ao processar aluno ${item.aluno_id}:`, (err as Error).message)
+            errosProcessamento.push({ aluno_id: item.aluno_id, mensagem: (err as Error)?.message || 'Erro desconhecido' })
           }
         }
       }
@@ -455,7 +455,7 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao aplicar fechamento do ano:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Limpar caches expirados
     try {
       limparCachesExpirados()
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Não crítico
     }
 
@@ -525,7 +525,7 @@ export async function GET(request: NextRequest) {
         geradoEm: new Date().toISOString()
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar comparativos:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

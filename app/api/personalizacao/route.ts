@@ -35,7 +35,7 @@ function readLocalConfig() {
       const content = fs.readFileSync(CONFIG_PATH, 'utf-8')
       return JSON.parse(content)
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao ler arquivo de configuracao local:', error)
   }
   return null
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     // Retornar valores padrao
     return NextResponse.json(DEFAULTS)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar personalizacao:', error)
     return NextResponse.json(DEFAULTS)
   }

@@ -118,10 +118,10 @@ export async function GET(request: NextRequest) {
       poolConexoes: poolStats,
       recomendacoes: gerarRecomendacoes(infoMemoria, poolStats)
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao gerenciar cache:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro ao gerenciar cache' },
+      { mensagem: (error as Error).message || 'Erro ao gerenciar cache' },
       { status: 500 }
     )
   }

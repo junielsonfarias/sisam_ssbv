@@ -30,10 +30,10 @@ export async function GET(request: NextRequest) {
       niveis: result.rows,
       total: result.rows.length
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao buscar níveis de aprendizagem:', error)
     return NextResponse.json(
-      { mensagem: error.message || 'Erro interno do servidor' },
+      { mensagem: (error as Error).message || 'Erro interno do servidor' },
       { status: 500 }
     )
   }

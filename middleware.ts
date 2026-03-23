@@ -73,7 +73,7 @@ const EXCLUDED_PATHS = [
   '/api/health',          // Health check
   '/api/init',            // Inicialização
   '/api/site-config',     // Site institucional (público)
-  '/api/boletim',         // Consulta pública de boletim escolar
+  // '/api/boletim' — removido: agora tem rate limiting (read)
   '/api/auth/cadastro-professor', // Tem rate limiting próprio (3/15min)
   '/api/admin/facial/presenca-terminal', // Terminal facial — alta frequência
 ]

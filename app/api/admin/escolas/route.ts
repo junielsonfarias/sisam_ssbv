@@ -1,232 +1,207 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
 
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
+  const { searchParams } = new URL(request.url)
+  const poloId = searchParams.get('polo_id')
+  const escolaId = searchParams.get('id')
+  const serie = searchParams.get('serie')
+  const anoLetivo = searchParams.get('ano_letivo')
+  const comEstatisticas = searchParams.get('com_estatisticas') === 'true'
 
-    const { searchParams } = new URL(request.url)
-    const poloId = searchParams.get('polo_id')
-    const escolaId = searchParams.get('id')
-    const serie = searchParams.get('serie')
-    const anoLetivo = searchParams.get('ano_letivo')
-    const comEstatisticas = searchParams.get('com_estatisticas') === 'true'
-
-    // Se não precisa de estatísticas, usar query simples
-    if (!comEstatisticas) {
-      let query = `
-        SELECT e.*, p.nome as polo_nome
-        FROM escolas e
-        LEFT JOIN polos p ON e.polo_id = p.id
-        WHERE e.ativo = true
-      `
-      const params: (string | number | boolean | null | undefined)[] = []
-      let paramIndex = 1
-
-      // Aplicar restrições de acesso
-      if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-        query += ` AND e.polo_id = $${paramIndex}`
-        params.push(usuario.polo_id)
-        paramIndex++
-      } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-        query += ` AND e.id = $${paramIndex}`
-        params.push(usuario.escola_id)
-        paramIndex++
-      }
-
-      // Aplicar filtros
-      if (poloId) {
-        query += ` AND e.polo_id = $${paramIndex}`
-        params.push(poloId)
-        paramIndex++
-      }
-
-      if (escolaId) {
-        query += ` AND e.id = $${paramIndex}`
-        params.push(escolaId)
-        paramIndex++
-      }
-
-      // Filtrar apenas escolas que possuem turmas no ano letivo selecionado
-      if (anoLetivo && anoLetivo.trim() !== '') {
-        query += ` AND EXISTS (
-          SELECT 1 FROM turmas t
-          WHERE t.escola_id = e.id AND t.ano_letivo = $${paramIndex} AND t.ativo = true
-        )`
-        params.push(anoLetivo.trim())
-        paramIndex++
-      }
-
-      query += ' ORDER BY e.nome'
-
-      const result = await pool.query(query, params)
-      return NextResponse.json(result.rows)
-    }
-
-    // Query com estatísticas (médias por disciplina)
-    const whereConditions: string[] = ['e.ativo = true']
+  // Se não precisa de estatísticas, usar query simples
+  if (!comEstatisticas) {
+    let query = `
+      SELECT e.*, p.nome as polo_nome
+      FROM escolas e
+      LEFT JOIN polos p ON e.polo_id = p.id
+      WHERE e.ativo = true
+    `
     const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
     // Aplicar restrições de acesso
     if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      whereConditions.push(`e.polo_id = $${paramIndex}`)
+      query += ` AND e.polo_id = $${paramIndex}`
       params.push(usuario.polo_id)
       paramIndex++
     } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      whereConditions.push(`e.id = $${paramIndex}`)
+      query += ` AND e.id = $${paramIndex}`
       params.push(usuario.escola_id)
       paramIndex++
     }
 
     // Aplicar filtros
     if (poloId) {
-      whereConditions.push(`e.polo_id = $${paramIndex}`)
+      query += ` AND e.polo_id = $${paramIndex}`
       params.push(poloId)
       paramIndex++
     }
 
     if (escolaId) {
-      whereConditions.push(`e.id = $${paramIndex}`)
+      query += ` AND e.id = $${paramIndex}`
       params.push(escolaId)
       paramIndex++
     }
 
-    if (serie && serie.trim() !== '') {
-      const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-      whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
-      params.push(numSerie)
-      paramIndex++
-    }
-
+    // Filtrar apenas escolas que possuem turmas no ano letivo selecionado
     if (anoLetivo && anoLetivo.trim() !== '') {
-      whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+      query += ` AND EXISTS (
+        SELECT 1 FROM turmas t
+        WHERE t.escola_id = e.id AND t.ano_letivo = $${paramIndex} AND t.ativo = true
+      )`
       params.push(anoLetivo.trim())
       paramIndex++
     }
 
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
-
-    // Adicionar parâmetro da série para a query de turmas (usado no LEFT JOIN)
-    if (serie && serie.trim() !== '') {
-      const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-      params.push(numSerie)
-      paramIndex++
-    }
-
-    // Detectar se é filtro de anos iniciais (2, 3, 5) ou finais (6, 7, 8, 9)
-    const serieNumero = serie ? serie.replace(/[^0-9]/g, '') : ''
-    const isAnosIniciais = ['2', '3', '5'].includes(serieNumero)
-    const isAnosFinais = ['6', '7', '8', '9'].includes(serieNumero)
-
-    // Query com cálculo de médias correto
-    // Anos iniciais (2, 3, 5): média = (LP + MAT + PROD) / 3
-    // Anos finais (6, 7, 8, 9): média = (LP + CH + MAT + CN) / 4
-    const query = `
-      SELECT
-        e.id,
-        e.nome,
-        e.codigo,
-        p.nome as polo_nome,
-        COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) as total_alunos,
-        COUNT(DISTINCT t.id) as total_turmas,
-        -- Média CORRIGIDA: divisor FIXO para consistência com outras APIs
-        -- Anos iniciais (2, 3, 5): média = (LP + MAT + PROD) / 3.0
-        -- Anos finais (6, 7, 8, 9): média = (LP + CH + MAT + CN) / 4.0
-        ROUND(AVG(CASE
-          WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
-            CASE
-              -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD com divisor fixo 3
-              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-                (
-                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-                ) / 3.0
-              -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN com divisor fixo 4
-              ELSE
-                (
-                  COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                  COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-                ) / 4.0
-            END
-          ELSE NULL
-        END), 2) as media_geral,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
-        ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
-        COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
-        COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
-      FROM escolas e
-      LEFT JOIN polos p ON e.polo_id = p.id
-      LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = $${paramIndex}` : ''}
-      LEFT JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
-        AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
-      ${whereClause}
-      GROUP BY e.id, e.nome, e.codigo, p.nome
-      HAVING COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) > 0
-      ORDER BY media_geral DESC NULLS LAST, e.nome
-    `
+    query += ' ORDER BY e.nome'
 
     const result = await pool.query(query, params)
-
-    // Converter campos numéricos para garantir consistência
-    // Quando filtro de série está ativo, ocultar disciplinas não aplicáveis
-    const escolas = result.rows.map(row => ({
-      id: row.id,
-      nome: row.nome,
-      codigo: row.codigo,
-      polo_nome: row.polo_nome,
-      total_alunos: parseInt(row.total_alunos) || 0,
-      total_turmas: parseInt(row.total_turmas) || 0,
-      media_geral: parseFloat(row.media_geral) || null,
-      media_lp: parseFloat(row.media_lp) || null,
-      media_mat: parseFloat(row.media_mat) || null,
-      // PROD: mostrar apenas para anos iniciais (2, 3, 5)
-      media_prod: isAnosFinais ? null : parseFloat(row.media_prod) || null,
-      // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9)
-      media_ch: isAnosIniciais ? null : parseFloat(row.media_ch) || null,
-      media_cn: isAnosIniciais ? null : parseFloat(row.media_cn) || null,
-      presentes: parseInt(row.presentes) || 0,
-      faltantes: parseInt(row.faltantes) || 0
-    }))
-
-    return NextResponse.json(escolas)
-  } catch (error: any) {
-    console.error('Erro ao buscar escolas:', error)
-    return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json(result.rows)
   }
-}
 
-export async function POST(request: NextRequest) {
+  // Query com estatísticas (médias por disciplina)
+  const whereConditions: string[] = ['e.ativo = true']
+  const params: (string | number | boolean | null | undefined)[] = []
+  let paramIndex = 1
+
+  // Aplicar restrições de acesso
+  if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
+    params.push(usuario.polo_id)
+    paramIndex++
+  } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+    whereConditions.push(`e.id = $${paramIndex}`)
+    params.push(usuario.escola_id)
+    paramIndex++
+  }
+
+  // Aplicar filtros
+  if (poloId) {
+    whereConditions.push(`e.polo_id = $${paramIndex}`)
+    params.push(poloId)
+    paramIndex++
+  }
+
+  if (escolaId) {
+    whereConditions.push(`e.id = $${paramIndex}`)
+    params.push(escolaId)
+    paramIndex++
+  }
+
+  if (serie && serie.trim() !== '') {
+    const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
+    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    params.push(numSerie)
+    paramIndex++
+  }
+
+  if (anoLetivo && anoLetivo.trim() !== '') {
+    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
+    params.push(anoLetivo.trim())
+    paramIndex++
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+
+  // Adicionar parâmetro da série para a query de turmas (usado no LEFT JOIN)
+  if (serie && serie.trim() !== '') {
+    const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
+    params.push(numSerie)
+    paramIndex++
+  }
+
+  // Detectar se é filtro de anos iniciais (2, 3, 5) ou finais (6, 7, 8, 9)
+  const serieNumero = serie ? serie.replace(/[^0-9]/g, '') : ''
+  const isAnosIniciais = ['2', '3', '5'].includes(serieNumero)
+  const isAnosFinais = ['6', '7', '8', '9'].includes(serieNumero)
+
+  // Query com cálculo de médias correto
+  // Anos iniciais (2, 3, 5): média = (LP + MAT + PROD) / 3
+  // Anos finais (6, 7, 8, 9): média = (LP + CH + MAT + CN) / 4
+  const query = `
+    SELECT
+      e.id,
+      e.nome,
+      e.codigo,
+      p.nome as polo_nome,
+      COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) as total_alunos,
+      COUNT(DISTINCT t.id) as total_turmas,
+      -- Média CORRIGIDA: divisor FIXO para consistência com outras APIs
+      -- Anos iniciais (2, 3, 5): média = (LP + MAT + PROD) / 3.0
+      -- Anos finais (6, 7, 8, 9): média = (LP + CH + MAT + CN) / 4.0
+      ROUND(AVG(CASE
+        WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
+          CASE
+            -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD com divisor fixo 3
+            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              (
+                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
+              ) / 3.0
+            -- Anos finais (6, 7, 8, 9): média de LP, CH, MAT, CN com divisor fixo 4
+            ELSE
+              (
+                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
+                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
+              ) / 4.0
+          END
+        ELSE NULL
+      END), 2) as media_geral,
+      ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
+      ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
+      ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_prod,
+      ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
+      ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
+      COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
+      COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
+    FROM escolas e
+    LEFT JOIN polos p ON e.polo_id = p.id
+    LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = $${paramIndex}` : ''}
+    LEFT JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
+      AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
+    ${whereClause}
+    GROUP BY e.id, e.nome, e.codigo, p.nome
+    HAVING COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN rc.aluno_id END) > 0
+    ORDER BY media_geral DESC NULLS LAST, e.nome
+  `
+
+  const result = await pool.query(query, params)
+
+  // Converter campos numéricos para garantir consistência
+  // Quando filtro de série está ativo, ocultar disciplinas não aplicáveis
+  const escolas = result.rows.map(row => ({
+    id: row.id,
+    nome: row.nome,
+    codigo: row.codigo,
+    polo_nome: row.polo_nome,
+    total_alunos: parseInt(row.total_alunos) || 0,
+    total_turmas: parseInt(row.total_turmas) || 0,
+    media_geral: parseFloat(row.media_geral) || null,
+    media_lp: parseFloat(row.media_lp) || null,
+    media_mat: parseFloat(row.media_mat) || null,
+    // PROD: mostrar apenas para anos iniciais (2, 3, 5)
+    media_prod: isAnosFinais ? null : parseFloat(row.media_prod) || null,
+    // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9)
+    media_ch: isAnosIniciais ? null : parseFloat(row.media_ch) || null,
+    media_cn: isAnosIniciais ? null : parseFloat(row.media_cn) || null,
+    presentes: parseInt(row.presentes) || 0,
+    faltantes: parseInt(row.faltantes) || 0
+  }))
+
+  return NextResponse.json(escolas)
+})
+
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const body = await request.json()
     const { nome, polo_id } = body
 
@@ -278,8 +253,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
@@ -291,19 +266,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const escolaId = searchParams.get('id')
 
@@ -359,12 +325,11 @@ export async function DELETE(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao excluir escola:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
-
+})
