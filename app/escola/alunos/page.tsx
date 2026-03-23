@@ -105,7 +105,7 @@ export default function AlunosEscolaPage() {
           }
         }
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
+        if ((error as any).name !== 'AbortError') {
         }
       } finally {
         if (!abortController.signal.aborted) {

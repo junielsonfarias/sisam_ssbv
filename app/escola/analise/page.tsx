@@ -30,7 +30,7 @@ export default function EscolaAnalisePage() {
           }
         }
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
+        if ((error as any).name !== 'AbortError') {
         }
       } finally {
         setCarregando(false)
