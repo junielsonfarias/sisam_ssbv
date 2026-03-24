@@ -408,7 +408,7 @@ export function AbaPesquisarAluno({
           {!mostrarMatricula && (
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => router.push(`/admin/alunos?busca=${encodeURIComponent(alunoSelecionado.nome)}`)}
+                onClick={() => router.push(`/admin/alunos/${alunoSelecionado.id}`)}
                 className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm transition-colors"
               >
                 <Eye className="w-4 h-4" /> Visualizar Aluno

@@ -192,7 +192,10 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const basePath = getBasePath()
   const tipoUsuarioReal = usuario?.tipo_usuario === 'administrador' ? 'admin' : (usuario?.tipo_usuario || tipoUsuario || 'admin')
 
-  const menuItems = getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario })
+  // Só montar menu completo após hidratação (evita mismatch SSR vs client)
+  const menuItems = hidratado
+    ? getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario })
+    : []
 
   // Verifica se algum filho do grupo está ativo
   const isGroupActive = (item: MenuItem): boolean => {
