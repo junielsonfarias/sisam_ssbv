@@ -262,32 +262,34 @@ export function AbaPesquisarAluno({
 
   return (
     <div className="space-y-6">
-      {/* Header + Busca */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Pesquisar Aluno</h2>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar por nome, código ou CPF..."
-            className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            autoFocus
-          />
-          {buscando && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <LoadingSpinner size="sm" />
-            </div>
+      {/* Header + Busca — oculta quando aluno está selecionado */}
+      {!alunoSelecionado && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Pesquisar Aluno</h2>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar por nome, código ou CPF..."
+              className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              autoFocus
+            />
+            {buscando && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <LoadingSpinner size="sm" />
+              </div>
+            )}
+          </div>
+          {busca.length > 0 && busca.length < 2 && (
+            <p className="text-xs text-gray-400 mt-1">Digite pelo menos 2 caracteres para buscar</p>
           )}
         </div>
-        {busca.length > 0 && busca.length < 2 && (
-          <p className="text-xs text-gray-400 mt-1">Digite pelo menos 2 caracteres para buscar</p>
-        )}
-      </div>
+      )}
 
-      {/* Resultados da busca */}
-      {buscaRealizada && resultados.length > 0 && (
+      {/* Resultados da busca — oculta quando aluno está selecionado */}
+      {!alunoSelecionado && buscaRealizada && resultados.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {resultados.length} aluno{resultados.length > 1 ? 's' : ''} encontrado{resultados.length > 1 ? 's' : ''}
@@ -297,11 +299,7 @@ export function AbaPesquisarAluno({
               <div
                 key={aluno.id}
                 onClick={() => selecionarAluno(aluno)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md
-                  ${alunoSelecionado?.id === aluno.id
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 shadow-md'
-                    : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300'
-                  }`}
+                className="p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300 cursor-pointer transition-all hover:shadow-md"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -330,8 +328,8 @@ export function AbaPesquisarAluno({
         </div>
       )}
 
-      {/* Nenhum resultado */}
-      {buscaRealizada && resultados.length === 0 && busca.length >= 2 && !buscando && (
+      {/* Nenhum resultado — oculta quando aluno selecionado */}
+      {!alunoSelecionado && buscaRealizada && resultados.length === 0 && busca.length >= 2 && !buscando && (
         <div className="text-center py-8">
           <User className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
           <p className="text-gray-500 dark:text-gray-400">Nenhum aluno encontrado para &quot;{busca}&quot;</p>
@@ -351,17 +349,23 @@ export function AbaPesquisarAluno({
         </div>
       )}
 
-      {/* Card do aluno selecionado */}
+      {/* Card do aluno selecionado — visão focada */}
       {alunoSelecionado && (
-        <div className="bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <User className="w-5 h-5 text-indigo-600" /> {alunoSelecionado.nome}
-            </h3>
-            <button onClick={() => { setAlunoSelecionado(null); setMostrarMatricula(false) }} className="text-gray-400 hover:text-gray-600">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="space-y-4">
+          {/* Botão voltar */}
+          <button
+            onClick={() => { setAlunoSelecionado(null); setMostrarMatricula(false) }}
+            className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium"
+          >
+            <Search className="w-4 h-4" /> ← Voltar à pesquisa
+          </button>
+
+          <div className="bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <User className="w-5 h-5 text-indigo-600" /> {alunoSelecionado.nome}
+              </h3>
+            </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
             <div className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-2">
@@ -408,6 +412,7 @@ export function AbaPesquisarAluno({
               </button>
             </div>
           )}
+        </div>
         </div>
       )}
 
@@ -616,8 +621,8 @@ export function AbaPesquisarAluno({
         </div>
       )}
 
-      {/* Botão cadastrar novo (sempre visível se podeEditar) */}
-      {podeEditar && !mostrarNovoAluno && buscaRealizada && resultados.length > 0 && (
+      {/* Botão cadastrar novo — oculta quando aluno selecionado */}
+      {podeEditar && !mostrarNovoAluno && !alunoSelecionado && buscaRealizada && resultados.length > 0 && (
         <div className="text-center">
           <button
             onClick={() => {
