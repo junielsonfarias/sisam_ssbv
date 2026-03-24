@@ -55,15 +55,16 @@ export default function GraficosEscolaPage() {
   }, [filtros.serie, filtros.disciplina, disciplinasDisponiveis])
 
   useEffect(() => {
+    const controller = new AbortController()
     const carregarDadosIniciais = async () => {
       try {
-        const response = await fetch('/api/auth/verificar')
+        const response = await fetch('/api/auth/verificar', { signal: controller.signal })
         const data = await response.json()
         if (data.usuario && data.usuario.escola_id) {
           setEscolaId(data.usuario.escola_id)
-          
+
           // Carregar nome da escola e polo
-          const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`)
+          const escolaRes = await fetch(`/api/admin/escolas?id=${data.usuario.escola_id}`, { signal: controller.signal })
           const escolaData = await escolaRes.json()
           if (Array.isArray(escolaData) && escolaData.length > 0) {
             setEscolaNome(escolaData[0].nome)
@@ -71,16 +72,21 @@ export default function GraficosEscolaPage() {
           }
         }
       } catch (error) {
+        if ((error as Error).name === 'AbortError') return
+        console.error('[EscolaGraficos] Erro ao carregar dados iniciais:', (error as Error).message)
       }
     }
     carregarDadosIniciais()
+    return () => controller.abort()
   }, [])
 
   useEffect(() => {
-    carregarTurmas()
+    const controller = new AbortController()
+    carregarTurmas(controller.signal)
+    return () => controller.abort()
   }, [filtros.serie, escolaId, filtros.ano_letivo])
 
-  const carregarTurmas = async () => {
+  const carregarTurmas = async (signal?: AbortSignal) => {
     if (!escolaId || !filtros.serie) {
       setTurmas([])
       return
@@ -90,12 +96,12 @@ export default function GraficosEscolaPage() {
       const params = new URLSearchParams()
       params.append('escolas_ids', escolaId)
       params.append('serie', filtros.serie)
-      
+
       if (filtros.ano_letivo) {
         params.append('ano_letivo', filtros.ano_letivo)
       }
 
-      const response = await fetch(`/api/admin/turmas?${params.toString()}`)
+      const response = await fetch(`/api/admin/turmas?${params.toString()}`, { signal })
       const data = await response.json()
 
       if (response.ok && Array.isArray(data)) {
@@ -104,6 +110,7 @@ export default function GraficosEscolaPage() {
         setTurmas([])
       }
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return
       setTurmas([])
     }
   }

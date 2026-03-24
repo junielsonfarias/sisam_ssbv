@@ -23,9 +23,13 @@ vi.mock('@/lib/rate-limiter', () => ({
 }))
 
 // Mock constants
-vi.mock('@/lib/constants', () => ({
-  SESSAO: { COOKIE_MAX_AGE: 86400 },
-}))
+vi.mock('@/lib/constants', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/constants')>()
+  return {
+    ...actual,
+    SESSAO: { COOKIE_MAX_AGE: 86400 },
+  }
+})
 
 import { POST } from '@/app/api/auth/login/route'
 import pool from '@/database/connection'

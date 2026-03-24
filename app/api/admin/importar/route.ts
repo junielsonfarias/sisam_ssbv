@@ -39,7 +39,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   }
 
   // Detectar nomes das colunas automaticamente
-  const primeiraLinha = dados[0] as any
+  const primeiraLinha = dados[0] as Record<string, unknown>
   const colunasDisponiveis = Object.keys(primeiraLinha)
 
   // Função para encontrar coluna por múltiplos nomes possíveis
@@ -184,7 +184,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   // Processar cada linha
   for (let i = 0; i < dados.length; i++) {
     try {
-      const linha = dados[i] as any
+      const linha = dados[i] as Record<string, unknown>
 
       // Extrair valores usando as colunas detectadas
       const escolaCodigo = colEscola ? (linha[colEscola] || '').toString().trim() : null

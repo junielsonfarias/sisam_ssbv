@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUsuarioFromRequest, podeAcessarPolo } from '@/lib/auth';
 import { buscarDadosRelatorioPolo } from '@/lib/relatorios/consultas-relatorio';
+import { DatabaseError } from '@/lib/validation'
 
 export async function GET(
   request: NextRequest,
@@ -63,8 +64,8 @@ export async function GET(
     console.error('Erro ao buscar dados do relatório do polo:');
     console.error('- Tipo do erro:', error?.constructor?.name);
     console.error('- Mensagem:', error instanceof Error ? (error as Error).message : String(error));
-    if (error instanceof Error && (error as any).stack) {
-      console.error('- Stack:', (error as any).stack);
+    if (error instanceof Error && (error as DatabaseError).stack) {
+      console.error('- Stack:', (error as DatabaseError).stack);
     }
 
     const errorMessage = error instanceof Error ? (error as Error).message : 'Erro desconhecido';

@@ -307,7 +307,9 @@ export async function sincronizarPresencas(apiUrl: string, _token: string): Prom
       erros,
       timestamp: new Date().toISOString(),
     })
-  } catch { /* Log opcional */ }
+  } catch (err) {
+    console.warn('[TerminalDB] Falha não-crítica ao gravar sync log:', (err as Error).message)
+  }
 
   return { enviados, erros }
 }

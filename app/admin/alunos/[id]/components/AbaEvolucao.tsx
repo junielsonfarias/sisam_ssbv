@@ -82,7 +82,9 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
       try {
         const res = await fetch(`/api/admin/alunos/${alunoId}/evolucao`)
         if (res.ok) setDados(await res.json())
-      } catch { /* silencia */ }
+      } catch (err) {
+        console.error('[AbaEvolucao] Erro ao carregar evolução:', (err as Error).message)
+      }
       finally { setCarregando(false) }
     }
     carregar()

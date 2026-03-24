@@ -12,6 +12,7 @@ import {
   getNotaColor,
   getNotaBgColor,
 } from '@/lib/dados/utils'
+import type { Disciplina } from '@/lib/disciplinas-por-serie'
 import type { AbaAlunosProps } from './types'
 
 export default function AbaAlunos({
@@ -106,13 +107,13 @@ export default function AbaAlunos({
 
                 {/* Notas em Grid - Dinamico baseado na serie */}
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  {disciplinasExibir.map((disciplina: any) => {
+                  {disciplinasExibir.map((disciplina: Disciplina) => {
                     const disciplinaAplicavel = isDisciplinaAplicavel(resultado.serie, disciplina.codigo)
                     if (!disciplinaAplicavel) return null
 
-                    const nota = getNotaNumero((resultado as any)[disciplina.campo_nota])
-                    const acertos = disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
-                    const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
+                    const nota = getNotaNumero(resultado[disciplina.campo_nota] as number | string | null)
+                    const acertos = disciplina.campo_acertos ? (Number(resultado[disciplina.campo_acertos]) || 0) : null
+                    const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
 
                     return (
                       <div key={disciplina.codigo} className={`p-3 rounded-lg ${getNotaBgColor(nota)} border border-gray-200 dark:border-slate-600`}>
@@ -123,7 +124,7 @@ export default function AbaAlunos({
                           </div>
                         ) : (
                           <>
-                            {getTotalQuestoesPorSerie(resultado, disciplina.codigo) && acertos !== null && (
+                            {!!getTotalQuestoesPorSerie(resultado, disciplina.codigo) && acertos !== null && (
                               <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{acertos}/{getTotalQuestoesPorSerie(resultado, disciplina.codigo)}</div>
                             )}
                             <div className={`text-lg font-bold ${getNotaColor(nota)} mb-1`}>
@@ -198,7 +199,7 @@ export default function AbaAlunos({
               <th className="hidden lg:table-cell text-center py-1 px-0.5 md:py-2 md:px-1 lg:py-2.5 lg:px-1.5 font-bold text-indigo-900 dark:text-indigo-200 text-[10px] md:text-xs lg:text-sm uppercase tracking-wider border-b border-indigo-200 dark:border-indigo-700 w-20">
                 Presenca
               </th>
-              {disciplinasExibir.map((disciplina: any) => {
+              {disciplinasExibir.map((disciplina: Disciplina) => {
                 const isDestaque = filtroDisciplina === disciplina.codigo ||
                   (filtroDisciplina === 'PT' && disciplina.codigo === 'PROD')
                 return (
@@ -285,11 +286,11 @@ export default function AbaAlunos({
                         {resultado.presenca === 'P' || resultado.presenca === 'p' ? '✓ Presente' : '✗ Falta'}
                       </span>
                     </td>
-                    {disciplinasExibir.map((disciplina: any) => {
+                    {disciplinasExibir.map((disciplina: Disciplina) => {
                       const disciplinaAplicavel = isDisciplinaAplicavel(resultado.serie, disciplina.codigo)
-                      const nota = disciplinaAplicavel ? getNotaNumero((resultado as any)[disciplina.campo_nota]) : null
-                      const acertos = disciplinaAplicavel && disciplina.campo_acertos ? ((resultado as any)[disciplina.campo_acertos] || 0) : null
-                      const nivelAprendizagem = disciplina.tipo === 'nivel' ? (resultado as any).nivel_aprendizagem : null
+                      const nota = disciplinaAplicavel ? getNotaNumero(resultado[disciplina.campo_nota] as number | string | null) : null
+                      const acertos = disciplinaAplicavel && disciplina.campo_acertos ? (Number(resultado[disciplina.campo_acertos]) || 0) : null
+                      const nivelAprendizagem = disciplina.tipo === 'nivel' ? resultado.nivel_aprendizagem : null
                       const isDestaqueDisciplina = filtroDisciplina === disciplina.codigo ||
                         (filtroDisciplina === 'PT' && disciplina.codigo === 'PROD')
 

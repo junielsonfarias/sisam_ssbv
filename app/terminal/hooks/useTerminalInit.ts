@@ -64,7 +64,9 @@ export function useTerminalInit(): UseTerminalInitReturn {
               const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
               const descriptor = new Float32Array(bytes.buffer)
               alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
-            } catch { /* Ignora invalido */ }
+            } catch {
+              // Expected: skip individual invalid embeddings without breaking the loop
+            }
           }
           loadedAlunos = alunosCarregados
           goToTerminal = true

@@ -75,7 +75,9 @@ export function useCamera({
         if ('wakeLock' in navigator) {
           wakeLockRef.current = await (navigator as any).wakeLock.request('screen')
         }
-      } catch { /* Nao suportado */ }
+      } catch {
+        // Expected: Wake Lock API not supported in all browsers
+      }
     }
 
     const handleVisibility = () => {

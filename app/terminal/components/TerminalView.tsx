@@ -196,7 +196,9 @@ export function TerminalView({
                         const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
                         const descriptor = new Float32Array(bytes.buffer)
                         novosAlunos.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
-                      } catch { /* ignora */ }
+                      } catch {
+                        // Expected: skip individual invalid embeddings
+                      }
                     }
                     setAlunos(novosAlunos)
                     setMensagem(`${total} aluno(s) atualizado(s)`)
@@ -204,7 +206,9 @@ export function TerminalView({
                     if (mensagemTimeoutRef.current) clearTimeout(mensagemTimeoutRef.current)
                     mensagemTimeoutRef.current = setTimeout(() => setMensagem(''), 3000)
                   }
-                } catch { /* sem conexao */ }
+                } catch {
+                  // Expected: network unavailable in offline mode
+                }
               }} className="p-1.5 hover:bg-white/10 rounded transition-colors" title="Atualizar alunos">
                 <Download className="w-4 h-4" />
               </button>

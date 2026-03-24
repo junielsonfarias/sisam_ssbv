@@ -64,9 +64,9 @@ export async function GET(
       dados.escolas
     );
 
-    // Gerar PDF - usando any para contornar tipagem do react-pdf
+    // Gerar PDF - cast necessário pois react-pdf espera tipo interno diferente de React.ReactElement
     const documento = React.createElement(RelatorioPoloPDF, { dados, graficos });
-    const pdfBuffer = await renderToBuffer(documento as any);
+    const pdfBuffer = await renderToBuffer(documento as unknown as Parameters<typeof renderToBuffer>[0]);
 
     // Nome do arquivo
     const codigoPolo = dados.polo.codigo || dados.polo.id.substring(0, 8);

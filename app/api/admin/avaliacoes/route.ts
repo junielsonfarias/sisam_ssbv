@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { avaliacaoSchema, validateRequest } from '@/lib/schemas'
-import { getErrorMessage } from '@/lib/validation'
+import { PG_ERRORS } from '@/lib/constants'
+import { avaliacaoSchema, validateRequest, uuidSchema } from '@/lib/schemas'
+import { z } from 'zod'
+import { getErrorMessage, DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +36,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
     // Se a tabela não existe ainda (migração não executada), retornar array vazio
-    if ((error as any)?.code === '42P01') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json([])
     }
     console.error('Erro ao listar avaliações:', getErrorMessage(error))
@@ -63,7 +65,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Já existe uma avaliação deste tipo para este ano letivo' },
         { status: 400 }
@@ -79,14 +81,22 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
  *
  * Atualiza uma avaliação existente.
  */
+/** Schema para atualizar avaliação: id obrigatório, demais campos opcionais */
+const atualizarAvaliacaoSchema = z.object({
+  id: uuidSchema,
+  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(255).optional(),
+  descricao: z.string().max(1000).optional().nullable(),
+  data_inicio: z.string().optional().nullable(),
+  data_fim: z.string().optional().nullable(),
+  ativo: z.boolean().optional(),
+})
+
 export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const body = await request.json()
-    const { id, nome, descricao, data_inicio, data_fim, ativo } = body
+    const validacao = await validateRequest(request, atualizarAvaliacaoSchema)
+    if (!validacao.success) return validacao.response
 
-    if (!id) {
-      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
-    }
+    const { id, nome, descricao, data_inicio, data_fim, ativo } = validacao.data
 
     const result = await pool.query(
       `UPDATE avaliacoes

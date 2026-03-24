@@ -4,6 +4,7 @@
 
 import { offlineDB, STORES as IDB_STORES, isIndexedDBAvailable } from './offline-db'
 import { toNumber } from './utils-numeros'
+import { DatabaseError } from '@/lib/validation'
 
 const STORAGE_KEYS = {
   USER: 'educatec_offline_user',
@@ -176,7 +177,7 @@ function saveToStorage(key: string, data: any, isEssential: boolean = false): bo
   } catch (error: unknown) {
     console.error(`[OfflineStorage] Erro ao salvar ${key}:`, error)
     // Se exceder quota, limpar dados não essenciais e tentar novamente
-    if ((error as any).name === 'QuotaExceededError') {
+    if ((error as DatabaseError).name === 'QuotaExceededError') {
       console.warn('[OfflineStorage] Quota excedida, limpando dados antigos...')
       // Notificar UI sobre problema de armazenamento
       if (typeof window !== 'undefined') {
@@ -411,7 +412,7 @@ export async function saveResultadosAsync(resultados: OfflineResultado[]): Promi
         ...r,
         id: r.id || `temp_${index}`
       }))
-      await offlineDB.saveData(IDB_STORES.RESULTADOS, resultadosComId as any)
+      await offlineDB.saveData(IDB_STORES.RESULTADOS, resultadosComId)
       console.log('[OfflineStorage] Resultados salvos no IndexedDB:', resultados.length)
     } catch (error) {
       console.error('[OfflineStorage] Erro ao salvar resultados no IndexedDB:', error)
@@ -766,7 +767,7 @@ export function calcularEstatisticas(resultados: OfflineResultado[]): {
     media_mat: calcMedia(presentes.map(r => r.nota_mat)),
     media_ch: calcMedia(presentes.map(r => r.nota_ch)),
     media_cn: calcMedia(presentes.map(r => r.nota_cn)),
-    media_producao: calcMedia(presentes.map(r => (r as any).nota_producao)),
+    media_producao: calcMedia(presentes.map(r => r.nota_producao)),
     media_geral: calcMedia(presentes.map(r => r.media_aluno))
   }
 }

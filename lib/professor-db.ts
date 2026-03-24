@@ -139,7 +139,7 @@ export async function enfileirarFrequencia(dados: any): Promise<boolean> {
     return true
   } catch (error: unknown) {
     console.error('[ProfessorDB] Erro ao enfileirar frequência:', error)
-    if ((error as any).name === 'QuotaExceededError') {
+    if ((error as Error).name === 'QuotaExceededError') {
       // Limpar pendentes antigos para liberar espaço
       await limparPendentesAntigos()
       try {
@@ -177,7 +177,7 @@ export async function enfileirarNotas(dados: any): Promise<boolean> {
     return true
   } catch (error: unknown) {
     console.error('[ProfessorDB] Erro ao enfileirar notas:', error)
-    if ((error as any).name === 'QuotaExceededError') {
+    if ((error as Error).name === 'QuotaExceededError') {
       await limparPendentesAntigos()
       try {
         const db = await openDB()

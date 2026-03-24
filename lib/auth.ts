@@ -23,6 +23,7 @@ import pool from '@/database/connection';
 import { Usuario, TipoUsuario } from './types';
 import { getCachedUsuario, setCachedUsuario } from './cache/memory';
 import { createLogger } from './logger';
+import { DatabaseError } from '@/lib/validation'
 
 const log = createLogger('Auth');
 
@@ -133,7 +134,7 @@ export function generateToken(payload: TokenPayload): string {
     }
 
     if (JWT_SECRET.length < 32) {
-      console.warn('AVISO: JWT_SECRET deve ter pelo menos 32 caracteres para seguranca adequada.')
+      log.warn('JWT_SECRET deve ter pelo menos 32 caracteres para seguranca adequada.')
     }
 
     if (!payload.userId || !payload.email || !payload.tipoUsuario) {
@@ -142,7 +143,7 @@ export function generateToken(payload: TokenPayload): string {
 
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
   } catch (error: unknown) {
-    console.error('Erro ao gerar token JWT:', error)
+    log.error('Erro ao gerar token JWT', error)
     throw error
   }
 }
@@ -162,7 +163,7 @@ export function generateToken(payload: TokenPayload): string {
 export function verifyToken(token: string): TokenPayload | null {
   try {
     if (!JWT_SECRET) {
-      console.error('JWT_SECRET nao esta configurado')
+      log.error('JWT_SECRET nao esta configurado')
       return null;
     }
     return jwt.verify(token, JWT_SECRET) as TokenPayload;
@@ -227,7 +228,7 @@ export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuar
     return usuario;
   } catch (error: unknown) {
     log.error('Erro ao buscar usuario no banco', error, {
-      data: { code: (error as any)?.code, userId: payload.userId },
+      data: { code: (error as DatabaseError)?.code, userId: payload.userId },
     });
 
     // Em caso de erro de conexão, retornar null para não quebrar a aplicação
@@ -334,7 +335,7 @@ export async function podeAcessarEscola(usuario: Usuario, escolaId: string): Pro
       );
       return result.rows.length > 0;
     } catch (error) {
-      console.error('Erro ao verificar acesso a escola:', error);
+      log.error('Erro ao verificar acesso a escola', error);
       return false;
     }
   }

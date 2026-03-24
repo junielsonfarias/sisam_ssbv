@@ -1,4 +1,5 @@
-import type { DashboardData, AlunoDetalhado, ColunaTabela } from '@/lib/dados/types'
+import type { DashboardData, AlunoDetalhado, ColunaTabela, PaginacaoAnalises } from '@/lib/dados/types'
+import type { Disciplina } from '@/lib/disciplinas-por-serie'
 
 // Props comuns para abas que mostram "pesquise primeiro"
 export interface AbaBaseProps {
@@ -43,7 +44,7 @@ export interface AbaTurmasProps extends AbaBaseProps {
 export interface AbaAlunosProps extends AbaBaseProps {
   alunosPaginados: AlunoDetalhado[]
   alunosOrdenados: any[]
-  disciplinasExibir: any[]
+  disciplinasExibir: Disciplina[]
   filtroSerie: string
   filtroTipoEnsino: string
   filtroDisciplina: string
@@ -66,7 +67,7 @@ export interface AbaAnalisesProps extends AbaBaseProps {
   filtroDisciplina: string
   ordenacao: { coluna: string; direcao: 'asc' | 'desc' }
   handleOrdenacao: (coluna: string) => void
-  paginasAnalises: any
-  setPaginasAnalises: (fn: any) => void
+  paginasAnalises: PaginacaoAnalises
+  setPaginasAnalises: (fn: (prev: PaginacaoAnalises) => PaginacaoAnalises) => void
   itensPorPagina: number
 }

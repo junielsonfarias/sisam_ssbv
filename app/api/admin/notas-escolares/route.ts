@@ -3,6 +3,9 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { calcularNotaFinal, lancarNotas } from '@/lib/services/notas'
 import { z } from 'zod'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addAccessControl, buildWhereString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,63 +32,33 @@ const notaLoteSchema = z.object({
  * Params: turma_id, disciplina_id, periodo_id
  */
 export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
-  const { searchParams } = new URL(request.url)
-  const turmaId = searchParams.get('turma_id')
-  const disciplinaId = searchParams.get('disciplina_id')
-  const periodoId = searchParams.get('periodo_id')
-  const escolaId = searchParams.get('escola_id')
-  const alunoId = searchParams.get('aluno_id')
+  const searchParams = request.nextUrl.searchParams
+  const { turma_id, disciplina_id, periodo_id, escola_id, aluno_id } = parseSearchParams(
+    searchParams, ['turma_id', 'disciplina_id', 'periodo_id', 'escola_id', 'aluno_id']
+  )
 
-  if (!turmaId && !escolaId && !alunoId) {
+  if (!turma_id && !escola_id && !aluno_id) {
     return NextResponse.json({ mensagem: 'Informe turma_id, escola_id ou aluno_id' }, { status: 400 })
   }
 
-  const whereConditions: string[] = []
-  const params: string[] = []
-  let paramIndex = 1
+  const where = createWhereBuilder()
 
   // Restrição de acesso
-  if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-    whereConditions.push(`n.escola_id = $${paramIndex}`)
-    params.push(usuario.escola_id as string)
-    paramIndex++
-  } else if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-    whereConditions.push(`e.polo_id = $${paramIndex}`)
-    params.push(usuario.polo_id as string)
-    paramIndex++
+  addAccessControl(where, usuario, { escolaIdField: 'n.escola_id', poloIdField: 'e.polo_id' })
+
+  // turma_id usa COALESCE — precisa de addRawCondition pattern
+  if (turma_id) {
+    where.conditions.push(`COALESCE(n.turma_id, a.turma_id) = $${where.paramIndex}`)
+    where.params.push(turma_id)
+    where.paramIndex++
   }
 
-  if (turmaId) {
-    whereConditions.push(`COALESCE(n.turma_id, a.turma_id) = $${paramIndex}`)
-    params.push(turmaId)
-    paramIndex++
-  }
+  addCondition(where, 'n.disciplina_id', disciplina_id)
+  addCondition(where, 'n.periodo_id', periodo_id)
+  addCondition(where, 'n.escola_id', escola_id)
+  addCondition(where, 'n.aluno_id', aluno_id)
 
-  if (disciplinaId) {
-    whereConditions.push(`n.disciplina_id = $${paramIndex}`)
-    params.push(disciplinaId)
-    paramIndex++
-  }
-
-  if (periodoId) {
-    whereConditions.push(`n.periodo_id = $${paramIndex}`)
-    params.push(periodoId)
-    paramIndex++
-  }
-
-  if (escolaId) {
-    whereConditions.push(`n.escola_id = $${paramIndex}`)
-    params.push(escolaId)
-    paramIndex++
-  }
-
-  if (alunoId) {
-    whereConditions.push(`n.aluno_id = $${paramIndex}`)
-    params.push(alunoId)
-    paramIndex++
-  }
-
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+  const whereClause = buildWhereString(where)
 
   const result = await pool.query(
     `SELECT n.id, n.aluno_id, n.disciplina_id, n.periodo_id, n.escola_id, n.turma_id,
@@ -103,7 +76,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
      LEFT JOIN turmas t ON COALESCE(n.turma_id, a.turma_id) = t.id
      ${whereClause}
      ORDER BY a.nome, d.ordem, p.numero`,
-    params
+    where.params
   )
 
   return NextResponse.json(result.rows)

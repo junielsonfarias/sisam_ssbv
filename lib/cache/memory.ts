@@ -11,6 +11,10 @@
  * 4. Cache separado por tipo de dado (métricas, filtros, detalhes)
  */
 
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('MemoryCache')
+
 interface CacheEntry<T> {
   data: T
   timestamp: number
@@ -134,7 +138,7 @@ class MemoryCache {
       this.cache.delete(entries[i][0])
     }
 
-    console.log(`[Cache] LRU eviction: removidos ${toRemove} itens`)
+    log.debug(`LRU eviction: removidos ${toRemove} itens`)
   }
 
   /**
@@ -314,7 +318,7 @@ export function invalidateDashboardCache(): void {
   memoryCache.invalidateByPrefix('dashboard')
   memoryCache.invalidateByPrefix('metricas')
   memoryCache.invalidateByPrefix('analises')
-  console.log('[Cache] Dashboard cache invalidado')
+  log.debug('Dashboard cache invalidado')
 }
 
 /**
@@ -322,7 +326,7 @@ export function invalidateDashboardCache(): void {
  */
 export function invalidateFiltrosCache(): void {
   memoryCache.invalidateByPrefix('filtros')
-  console.log('[Cache] Filtros cache invalidado')
+  log.debug('Filtros cache invalidado')
 }
 
 /**
@@ -355,7 +359,7 @@ if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const removed = memoryCache.cleanExpired()
     if (removed > 0) {
-      console.log(`[Cache] Limpeza automática: ${removed} itens expirados removidos`)
+      log.debug(`Limpeza automatica: ${removed} itens expirados removidos`)
     }
   }, 5 * 60 * 1000)
 }

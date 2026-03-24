@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { comparePassword, generateToken } from '@/lib/auth'
 import { checkRateLimit, resetRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
-import { SESSAO } from '@/lib/constants'
+import { SESSAO, PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -93,9 +94,9 @@ export async function POST(request: NextRequest) {
     } catch (dbError: any) {
       const err = dbError as Error & { code?: string }
       console.error('Erro ao consultar banco de dados:', err)
-      console.error('Código do erro:', (err as any).code)
+      console.error('Código do erro:', (err as DatabaseError).code)
       console.error('Mensagem do erro:', (err as Error).message)
-      console.error('Stack trace:', (err as any).stack)
+      console.error('Stack trace:', (err as DatabaseError).stack)
 
       let errorMessage = 'Erro ao conectar com o banco de dados'
       let errorCode = 'DB_ERROR'
@@ -105,19 +106,19 @@ export async function POST(request: NextRequest) {
           (err as Error).message?.includes('not configured')) {
         errorMessage = 'Configuração do banco de dados incompleta. Verifique as variáveis de ambiente no Vercel'
         errorCode = 'DB_CONFIG_ERROR'
-      } else if ((err as any).code === 'ECONNREFUSED') {
+      } else if ((err as DatabaseError).code === PG_ERRORS.CONNECTION_REFUSED) {
         errorMessage = 'Não foi possível conectar ao banco de dados. Verifique se o banco está ativo e acessível'
         errorCode = 'DB_CONNECTION_REFUSED'
-      } else if ((err as any).code === 'ENOTFOUND') {
+      } else if ((err as DatabaseError).code === PG_ERRORS.HOST_NOT_FOUND) {
         errorMessage = 'Host do banco de dados não encontrado. Verifique DB_HOST nas variáveis de ambiente'
         errorCode = 'DB_HOST_NOT_FOUND'
-      } else if ((err as any).code === 'ENETUNREACH') {
+      } else if ((err as DatabaseError).code === PG_ERRORS.NETWORK_UNREACHABLE) {
         errorMessage = 'Rede não alcançável. Verifique a configuração do banco e conexão de rede'
         errorCode = 'DB_NETWORK_ERROR'
-      } else if ((err as any).code === '28P01') {
+      } else if ((err as DatabaseError).code === PG_ERRORS.INVALID_PASSWORD) {
         errorMessage = 'Credenciais do banco de dados inválidas. Verifique DB_USER e DB_PASSWORD'
         errorCode = 'DB_AUTH_ERROR'
-      } else if ((err as any).code === 'ETIMEDOUT') {
+      } else if ((err as DatabaseError).code === PG_ERRORS.CONNECTION_TIMEOUT) {
         errorMessage = 'Timeout ao conectar ao banco de dados. Verifique se o banco está acessível'
         errorCode = 'DB_TIMEOUT'
       }
@@ -237,7 +238,7 @@ export async function POST(request: NextRequest) {
     } catch (tokenError) {
       const err = tokenError as Error
       console.error('Erro ao gerar token:', err)
-      console.error('Stack trace:', (err as any).stack)
+      console.error('Stack trace:', (err as DatabaseError).stack)
       return NextResponse.json(
         {
           mensagem: 'Erro ao gerar token de autenticação',
@@ -293,7 +294,7 @@ export async function POST(request: NextRequest) {
     } catch (cookieError) {
       const err = cookieError as Error
       console.error('Erro ao definir cookie:', err)
-      console.error('Stack trace do cookie:', (err as any).stack)
+      console.error('Stack trace do cookie:', (err as DatabaseError).stack)
       // Continuar mesmo com erro no cookie, o token ainda está na resposta
     }
 
@@ -302,12 +303,12 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const err = error as Error & { code?: string }
     console.error('Erro no login:', err)
-    console.error('Stack trace:', (err as any).stack)
+    console.error('Stack trace:', (err as DatabaseError).stack)
     console.error('Tipo do erro:', err.constructor?.name)
-    console.error('Código do erro:', (err as any).code)
+    console.error('Código do erro:', (err as DatabaseError).code)
 
     // Verificar se é erro de conexão com banco
-    if ((err as any).code === 'ECONNREFUSED' || (err as any).code === 'ENOTFOUND' || (err as any).code === 'ENETUNREACH') {
+    if ((err as DatabaseError).code === PG_ERRORS.CONNECTION_REFUSED || (err as DatabaseError).code === PG_ERRORS.HOST_NOT_FOUND || (err as DatabaseError).code === PG_ERRORS.NETWORK_UNREACHABLE) {
       return NextResponse.json(
         {
           mensagem: 'Erro ao conectar com o banco de dados',

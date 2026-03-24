@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +25,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
     // Se a tabela nao existe ainda (migracao nao executada), retornar array vazio
-    if ((error as any)?.code === '42P01') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json([])
     }
     console.error('Erro ao listar configuracoes do site:', (error as Error)?.message || error)

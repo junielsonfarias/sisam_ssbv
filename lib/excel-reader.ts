@@ -34,7 +34,7 @@ export async function lerPlanilha(
 ): Promise<ExcelRow[]> {
   const ExcelJS = await getExcelJS()
   const workbook = new ExcelJS.Workbook()
-  await workbook.xlsx.load(Buffer.from(buffer) as any)
+  await workbook.xlsx.load(Buffer.from(buffer) as Buffer & ArrayBuffer)
 
   const sheetIndex = options?.sheetIndex ?? 0
   const worksheet = workbook.worksheets[sheetIndex]
@@ -97,6 +97,6 @@ export async function lerPlanilha(
 export async function listarAbas(buffer: ArrayBuffer): Promise<string[]> {
   const ExcelJS = await getExcelJS()
   const workbook = new ExcelJS.Workbook()
-  await workbook.xlsx.load(Buffer.from(buffer) as any)
+  await workbook.xlsx.load(Buffer.from(buffer) as Buffer & ArrayBuffer)
   return workbook.worksheets.map(ws => ws.name)
 }

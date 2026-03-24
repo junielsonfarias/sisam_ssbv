@@ -39,7 +39,9 @@ export function useSync({
         if (result.enviados > 0) {
           await limparPresencasEnviadas()
         }
-      } catch { /* Retry no proximo ciclo */ }
+      } catch (err) {
+        console.warn('[Sync] Falha na sincronização, retry no próximo ciclo:', (err as Error).message)
+      }
       setPendentesSync(await contarPresencasPendentes())
       sincronizandoRef.current = false
       setSincronizando(false)

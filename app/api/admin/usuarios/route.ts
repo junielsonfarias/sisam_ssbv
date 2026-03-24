@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { hashPassword } from '@/lib/auth'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
 import { usuarioSchema, validateRequest, validateId } from '@/lib/schemas'
 import { invalidateUsuarioCache } from '@/lib/cache/memory'
 import { z } from 'zod'
+import { DatabaseError } from '@/lib/validation'
 
 // Schema para criação de usuário (senha obrigatória)
 const criarUsuarioSchema = usuarioSchema.extend({
@@ -51,7 +53,7 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Email já cadastrado' },
         { status: 400 }
@@ -120,7 +122,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Email já cadastrado para outro usuário' },
         { status: 400 }

@@ -115,7 +115,9 @@ export default function AlunoDetalhePage() {
           .sort((a: any, b: any) => a.nome.localeCompare(b.nome))
         setEscolasLista(lista)
       }
-    } catch { /* silencia */ }
+    } catch (err) {
+      console.error('[AlunoDetalhe] Erro ao carregar escolas para transferência:', (err as Error).message)
+    }
   }
 
   const executarTransferencia = async () => {

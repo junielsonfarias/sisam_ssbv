@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest) {
       escolas: escolasResult,
     })
   } catch (error: unknown) {
-    if ((error as any)?.code === '42P01') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json({ secoes: [], stats: null, escolas: [] })
     }
     console.error('Erro ao buscar configuracao do site:', (error as Error)?.message || error)

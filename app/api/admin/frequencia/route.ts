@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { parseSearchParams } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,9 +11,8 @@ export const dynamic = 'force-dynamic'
  * Params: turma_id, periodo_id
  */
 export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
-  const { searchParams } = new URL(request.url)
-  const turmaId = searchParams.get('turma_id')
-  const periodoId = searchParams.get('periodo_id')
+  const searchParams = request.nextUrl.searchParams
+  const { turma_id: turmaId, periodo_id: periodoId } = parseSearchParams(searchParams, ['turma_id', 'periodo_id'])
   const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
   if (!turmaId || !periodoId) {

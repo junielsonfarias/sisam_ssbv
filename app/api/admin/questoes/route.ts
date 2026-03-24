@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +47,7 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
@@ -107,19 +109,19 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
   } catch (error: unknown) {
     console.error('Erro completo ao atualizar questão:', {
       message: (error as Error).message,
-      code: (error as any).code,
-      detail: (error as any).detail,
-      stack: (error as any).stack,
+      code: (error as DatabaseError).code,
+      detail: (error as DatabaseError).detail,
+      stack: (error as DatabaseError).stack,
     })
 
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
       )
     }
 
-    if ((error as any).code === '22P02') {
+    if ((error as DatabaseError).code === PG_ERRORS.INVALID_TEXT_REPRESENTATION) {
       return NextResponse.json(
         { mensagem: 'ID inválido. Verifique se o ID está correto.' },
         { status: 400 }
@@ -129,8 +131,8 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
     return NextResponse.json(
       {
         mensagem: (error as Error).message || 'Erro interno do servidor',
-        detalhes: (error as any).code,
-        stack: process.env.NODE_ENV === 'development' ? (error as any).stack : undefined
+        detalhes: (error as DatabaseError).code,
+        stack: process.env.NODE_ENV === 'development' ? (error as DatabaseError).stack : undefined
       },
       { status: 500 }
     )

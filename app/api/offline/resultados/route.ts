@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,14 +131,14 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: unknown) {
     console.error('[OfflineResultados] Erro:', (error as Error)?.message)
-    console.error('[OfflineResultados] Stack:', (error as any)?.stack)
-    console.error('[OfflineResultados] Código:', (error as any)?.code)
+    console.error('[OfflineResultados] Stack:', (error as DatabaseError)?.stack)
+    console.error('[OfflineResultados] Código:', (error as DatabaseError)?.code)
 
     return NextResponse.json(
       {
         mensagem: 'Erro ao buscar resultados',
         erro: (error as Error)?.message,
-        codigo: (error as any)?.code
+        codigo: (error as DatabaseError)?.code
       },
       { status: 500 }
     )

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
@@ -254,7 +256,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
   } catch (error: unknown) {
     // Constraint violation (vínculo duplicado)
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Vínculo já existe para esta turma/disciplina' }, { status: 409 })
     }
     console.error('Erro ao criar vínculo:', error)
@@ -208,7 +210,7 @@ export async function PATCH(request: NextRequest) {
       client.release()
     }
   } catch (error: unknown) {
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'O novo professor já possui vínculo ativo com esta turma/disciplina' }, { status: 409 })
     }
     console.error('Erro ao trocar professor:', error)

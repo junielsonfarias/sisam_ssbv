@@ -6,7 +6,7 @@
  */
 
 /** Tipo para valores que podem ser convertidos para número */
-type NumericValue = string | number | null | undefined
+export type NumericValue = string | number | null | undefined
 
 /**
  * Converte qualquer valor para número, tratando NULL, undefined, string vazia e NaN

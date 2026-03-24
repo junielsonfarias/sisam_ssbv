@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Users, BookOpen, CalendarCheck, ArrowLeftRight,
   TrendingUp, TrendingDown, AlertTriangle, GraduationCap,
@@ -61,30 +61,30 @@ function ModalAlunos({ data }: { data: DashboardData }) {
   const [busca, setBusca] = useState('')
   const [filtroSituacao, setFiltroSituacao] = useState('')
 
-  const situacoes = [
+  const situacoes = useMemo(() => [
     { key: 'cursando', label: 'Cursando', valor: data.alunos.cursando, cor: 'bg-blue-500', corTexto: 'text-blue-700 dark:text-blue-300', corFundo: 'bg-blue-50 dark:bg-blue-900/20', icon: Users },
     { key: 'aprovado', label: 'Aprovados', valor: data.alunos.aprovados, cor: 'bg-emerald-500', corTexto: 'text-emerald-700 dark:text-emerald-300', corFundo: 'bg-emerald-50 dark:bg-emerald-900/20', icon: TrendingUp },
     { key: 'reprovado', label: 'Reprovados', valor: data.alunos.reprovados, cor: 'bg-red-500', corTexto: 'text-red-700 dark:text-red-300', corFundo: 'bg-red-50 dark:bg-red-900/20', icon: TrendingDown },
     { key: 'transferido', label: 'Transferidos', valor: data.alunos.transferidos, cor: 'bg-orange-500', corTexto: 'text-orange-700 dark:text-orange-300', corFundo: 'bg-orange-50 dark:bg-orange-900/20', icon: ArrowLeftRight },
     { key: 'abandono', label: 'Abandono', valor: data.alunos.abandono, cor: 'bg-gray-500', corTexto: 'text-gray-700 dark:text-gray-300', corFundo: 'bg-gray-50 dark:bg-gray-700/50', icon: AlertTriangle },
-  ]
+  ], [data.alunos])
   const total = data.alunos.total
 
   // Barra de distribuição visual
-  const barraSegmentos = situacoes.filter(s => s.valor > 0).map(s => ({
+  const barraSegmentos = useMemo(() => situacoes.filter(s => s.valor > 0).map(s => ({
     ...s, pct: total > 0 ? (s.valor / total) * 100 : 0
-  }))
+  })), [situacoes, total])
 
   // Distribuição por série
-  const seriesOrdenadas = [...(data.distribuicao_serie || [])].sort((a, b) => b.total - a.total)
+  const seriesOrdenadas = useMemo(() => [...(data.distribuicao_serie || [])].sort((a, b) => b.total - a.total), [data.distribuicao_serie])
   const maxSerie = seriesOrdenadas.length > 0 ? seriesOrdenadas[0].total : 1
 
   // Filtrar alunos
-  const alunosFiltrados = (data.alunos_situacao || []).filter(a => {
+  const alunosFiltrados = useMemo(() => (data.alunos_situacao || []).filter(a => {
     const matchBusca = !busca || a.nome.toLowerCase().includes(busca.toLowerCase()) || a.turma_codigo?.toLowerCase().includes(busca.toLowerCase())
     const matchSituacao = !filtroSituacao || a.situacao === filtroSituacao
     return matchBusca && matchSituacao
-  })
+  }), [data.alunos_situacao, busca, filtroSituacao])
 
   return (
     <div className="space-y-5">
@@ -397,12 +397,12 @@ function ModalTransferencias({ data }: { data: DashboardData }) {
 function ModalPCD({ data }: { data: DashboardData }) {
   const { formatSerie } = useSeries()
   // Agrupar por escola
-  const porEscola = (data.alunos_pcd || []).reduce<Record<string, AlunoPcd[]>>((acc, aluno) => {
+  const porEscola = useMemo(() => (data.alunos_pcd || []).reduce<Record<string, AlunoPcd[]>>((acc, aluno) => {
     const escola = aluno.escola_nome || 'Sem escola'
     if (!acc[escola]) acc[escola] = []
     acc[escola].push(aluno)
     return acc
-  }, {})
+  }, {}), [data.alunos_pcd])
 
   return (
     <div className="space-y-5">

@@ -93,7 +93,9 @@ export default function TurmasPage() {
             setTipoUsuario(authData.usuario.tipo_usuario === 'administrador' ? 'admin' : authData.usuario.tipo_usuario)
           }
         }
-      } catch { /* silencioso */ }
+      } catch (err) {
+      console.error('[Turmas] Erro ao carregar dados iniciais:', (err as Error).message)
+    }
     }
     carregarIniciais()
   }, [])

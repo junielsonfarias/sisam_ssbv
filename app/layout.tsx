@@ -52,7 +52,9 @@ const themeScript = `
     if (meta) {
       meta.setAttribute('content', resolved === 'dark' ? '#0F172A' : '#F8FAFC');
     }
-  } catch (e) {}
+  } catch (e) {
+    // Expected: theme initialization may fail in some environments
+  }
 })();
 `
 

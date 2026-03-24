@@ -165,7 +165,9 @@ export function SetupPanel({
         if (bytes.length !== 512) continue
         const descriptor = new Float32Array(bytes.buffer)
         alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
-      } catch { /* Ignora embedding invalido */ }
+      } catch {
+        // Expected: skip individual invalid embeddings without breaking the loop
+      }
     }
 
     setAlunos(alunosCarregados)

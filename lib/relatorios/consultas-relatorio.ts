@@ -42,6 +42,7 @@ import {
   EscolaPoloRow,
   ComparativoEscolaRow,
   // Utilitários
+  SerieDisponivel,
   ErroRelatorio,
   CodigoErroRelatorio,
   serieTemProducaoTextual,
@@ -77,7 +78,7 @@ export async function buscarDadosRelatorioEscola(
   avaliacaoId?: string
 ): Promise<DadosRelatorioEscola> {
   // Validar parâmetros de entrada
-  validarFiltroRelatorio({ id: escolaId, ano_letivo: anoLetivo, serie: serie as any });
+  validarFiltroRelatorio({ id: escolaId, ano_letivo: anoLetivo, serie: serie as SerieDisponivel | undefined });
 
   const params: string[] = [escolaId, anoLetivo];
   let paramIdx = 3;
@@ -788,7 +789,7 @@ export async function buscarDadosRelatorioPolo(
   avaliacaoId?: string
 ): Promise<DadosRelatorioPolo> {
   // Validar parâmetros de entrada
-  validarFiltroRelatorio({ id: poloId, ano_letivo: anoLetivo, serie: serie as any });
+  validarFiltroRelatorio({ id: poloId, ano_letivo: anoLetivo, serie: serie as SerieDisponivel | undefined });
 
   const params: string[] = [poloId, anoLetivo];
   let paramIdx = 3;

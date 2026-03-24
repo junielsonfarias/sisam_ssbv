@@ -64,14 +64,14 @@ export default function GraficosPage() {
   }, [filtros.tipo_ensino, filtros.serie])
 
   // Carregar series do banco de dados
-  const carregarSeries = useCallback(async () => {
+  const carregarSeries = useCallback(async (signal?: AbortSignal) => {
     setCarregandoSeries(true)
     try {
       const params = new URLSearchParams()
       params.append('tipo', 'geral')
       if (filtros.ano_letivo) params.append('ano_letivo', filtros.ano_letivo)
 
-      const response = await fetch(`/api/admin/graficos?${params.toString()}`)
+      const response = await fetch(`/api/admin/graficos?${params.toString()}`, { signal })
       if (response.ok) {
         const data = await response.json()
         if (data.series_disponiveis && Array.isArray(data.series_disponiveis)) {
@@ -79,6 +79,7 @@ export default function GraficosPage() {
         }
       }
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return
     } finally {
       setCarregandoSeries(false)
     }
@@ -86,8 +87,10 @@ export default function GraficosPage() {
 
   useEffect(() => {
     if (tipoUsuario) {
-      carregarDadosIniciais()
-      carregarSeries()
+      const controller = new AbortController()
+      carregarDadosIniciais(controller.signal)
+      carregarSeries(controller.signal)
+      return () => controller.abort()
     }
   }, [tipoUsuario])
 
@@ -123,6 +126,7 @@ export default function GraficosPage() {
 
   // Carregar turmas quando escola for selecionada
   useEffect(() => {
+    const controller = new AbortController()
     if (filtros.escola_id && filtros.escola_id !== '' && filtros.escola_id !== 'undefined' && filtros.escola_id.toLowerCase() !== 'todas') {
       const params = new URLSearchParams()
       params.append('escolas_ids', filtros.escola_id)
@@ -136,7 +140,7 @@ export default function GraficosPage() {
       if (process.env.NODE_ENV === 'development') {
       }
 
-      fetch(`/api/admin/turmas?${params.toString()}`)
+      fetch(`/api/admin/turmas?${params.toString()}`, { signal: controller.signal })
         .then(r => {
           if (!r.ok) {
             throw new Error(`Erro ao carregar turmas: ${r.status}`)
@@ -159,6 +163,7 @@ export default function GraficosPage() {
           }
         })
         .catch((error) => {
+          if ((error as Error).name === 'AbortError') return
           if (process.env.NODE_ENV === 'development') {
           }
           setTurmas([])
@@ -168,12 +173,13 @@ export default function GraficosPage() {
       setTurmas([])
       setFiltros(prev => ({ ...prev, turma_id: undefined }))
     }
+    return () => controller.abort()
   }, [filtros.escola_id, filtros.ano_letivo, filtros.serie])
 
-  const carregarDadosIniciais = async () => {
+  const carregarDadosIniciais = async (signal?: AbortSignal) => {
     try {
       if (tipoUsuario === 'polo') {
-        const escolasRes = await fetch('/api/polo/escolas')
+        const escolasRes = await fetch('/api/polo/escolas', { signal })
         const escolasData = await escolasRes.json()
         setEscolas(Array.isArray(escolasData) ? escolasData : [])
         setPolos([])
@@ -182,8 +188,8 @@ export default function GraficosPage() {
         setEscolas([])
       } else {
         const [polosRes, escolasRes] = await Promise.all([
-          fetch('/api/admin/polos'),
-          fetch('/api/admin/escolas'),
+          fetch('/api/admin/polos', { signal }),
+          fetch('/api/admin/escolas', { signal }),
         ])
 
         const polosData = await polosRes.json()
@@ -195,6 +201,7 @@ export default function GraficosPage() {
 
       setSeries([])
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return
       if (process.env.NODE_ENV === 'development') {
       }
     }

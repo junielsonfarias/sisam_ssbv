@@ -7,14 +7,16 @@ import {
   labelClassName,
 } from './types'
 
+type InfraField = 'agua_potavel' | 'energia_eletrica' | 'esgoto_sanitario' | 'coleta_lixo' | 'internet' | 'banda_larga' | 'quadra_esportiva' | 'biblioteca' | 'laboratorio_informatica' | 'laboratorio_ciencias' | 'acessibilidade_deficiente' | 'alimentacao_escolar'
+
 export function AbaInfraestrutura({
   formData,
   updateField,
 }: {
   formData: Partial<EscolaDetalhe>
-  updateField: (field: string, value: any) => void
+  updateField: (field: string, value: boolean | number | string | null) => void
 }) {
-  const toggles = [
+  const toggles: { field: InfraField; label: string; icon: string }[] = [
     { field: 'agua_potavel', label: 'Agua Potavel', icon: '\u{1F4A7}' },
     { field: 'energia_eletrica', label: 'Energia Eletrica', icon: '\u26A1' },
     { field: 'esgoto_sanitario', label: 'Esgoto Sanitario', icon: '\u{1F6B0}' },
@@ -38,7 +40,7 @@ export function AbaInfraestrutura({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {toggles.map(toggle => {
-          const isAtivo = !!(formData as any)[toggle.field]
+          const isAtivo = !!formData[toggle.field]
           return (
             <div
               key={toggle.field}

@@ -137,6 +137,7 @@ export default function SeriesEscolaresPage() {
         setDisciplinas(data)
       }
     } catch (error) {
+      console.error('[SeriesEscolares] Erro ao carregar disciplinas:', (error as Error).message)
     }
   }, [])
 
@@ -149,6 +150,7 @@ export default function SeriesEscolaresPage() {
       if (tiposRes.ok) setTiposAvaliacao(await tiposRes.json())
       if (regrasRes.ok) setRegrasAvaliacao(await regrasRes.json())
     } catch (error) {
+      console.error('[SeriesEscolares] Erro ao carregar tipos/regras:', (error as Error).message)
     }
   }, [])
 
@@ -170,6 +172,7 @@ export default function SeriesEscolaresPage() {
         setDisciplinasForm(form)
       }
     } catch (error) {
+      console.error('[SeriesEscolares] Erro ao carregar disciplinas da série:', (error as Error).message)
     }
   }, [disciplinas])
 

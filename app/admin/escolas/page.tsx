@@ -75,6 +75,7 @@ export default function EscolasPage() {
       setEscolas(escolasData)
       setPolos(polosData)
     } catch (error) {
+      console.error('[Escolas] Erro ao carregar dados:', (error as Error).message)
     } finally {
       setCarregando(false)
     }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -43,7 +45,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     const result = await pool.query(query, params)
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
-    if ((error as any)?.code === '42P01') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json([])
     }
     console.error('Erro ao listar regras de avaliacao:', error)

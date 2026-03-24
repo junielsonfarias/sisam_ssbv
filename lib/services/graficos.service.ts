@@ -8,15 +8,18 @@
  */
 
 import pool from '@/database/connection'
-import { safeQuery as _safeQuery, getMediaGeralSQL } from '@/lib/api-helpers'
+import { safeQuery as _safeQuery, getMediaGeralSQL, getMediaAnosIniciaisSQL, getMediaAnosFinaisSQL } from '@/lib/api-helpers'
 import { NOTAS } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
 import { Usuario } from '@/lib/types'
 import { parseDbInt, parseDbNumber } from '@/lib/utils-numeros'
 
-// Wrapper tipado para safeQuery — retorna any[] para evitar casts em cada chamada
-async function safeQuery(poolRef: typeof pool, sql: string, params: unknown[] = [], label?: string): Promise<any[]> {
-  return _safeQuery(poolRef, sql, params, label)
+/** Tipo genérico para rows retornados do PostgreSQL */
+type DbRow = Record<string, any>
+
+// Wrapper tipado para safeQuery
+async function safeQuery(poolRef: typeof pool, sql: string, params: unknown[] = [], label?: string): Promise<DbRow[]> {
+  return _safeQuery(poolRef, sql, params, label) as Promise<DbRow[]>
 }
 
 const log = createLogger('Graficos')
@@ -347,7 +350,7 @@ export async function fetchDisciplinas(whereClause: string, params: any[], disci
   `
   const rows = await safeQuery(pool, query, params, 'fetchDisciplinas:all')
   if (rows.length > 0 && parseDbInt(rows[0].total_alunos) > 0) {
-    const row = rows[0] as any
+    const row = rows[0]
     const totalAlunos = parseDbInt(row.total_alunos) || 1
     const totalAlunosPT = parseDbInt(row.total_alunos_pt)
     const countAnosIniciais = parseDbInt(row.count_anos_iniciais)
@@ -1217,10 +1220,10 @@ export async function fetchRanking(
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0) THEN CAST(rc.nota_producao AS DECIMAL) ELSE NULL END), 2) as media_producao,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') THEN
-          (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
+          ${getMediaAnosIniciaisSQL('rc')}
         ELSE NULL END), 2) as media_ai,
         ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN
-          (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
+          ${getMediaAnosFinaisSQL('rc')}
         ELSE NULL END), 2) as media_af,
         COUNT(CASE WHEN ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) as count_anos_iniciais,
         COUNT(CASE WHEN ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN 1 END) as count_anos_finais
@@ -1440,7 +1443,7 @@ async function fetchNiveisDisciplina(whereClause: string, params: any[]): Promis
   const rows = await safeQuery(pool, query, params, 'fetchNiveisDisciplina')
 
   if (rows.length > 0) {
-    const row = rows[0] as any
+    const row = rows[0]
     return {
       LP: { N1: parseDbInt(row.lp_n1), N2: parseDbInt(row.lp_n2), N3: parseDbInt(row.lp_n3), N4: parseDbInt(row.lp_n4) },
       MAT: { N1: parseDbInt(row.mat_n1), N2: parseDbInt(row.mat_n2), N3: parseDbInt(row.mat_n3), N4: parseDbInt(row.mat_n4) },
@@ -1468,10 +1471,10 @@ async function fetchMediasEtapa(whereClause: string, params: any[], deveRemoverL
       COALESCE(e.nome, 'Geral') as escola,
       e.id as escola_id,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') THEN
-        (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
+        ${getMediaAnosIniciaisSQL('rc')}
       ELSE NULL END), 2) as media_ai,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('6', '7', '8', '9') THEN
-        (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
+        ${getMediaAnosFinaisSQL('rc')}
       ELSE NULL END), 2) as media_af,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND rc.nota_lp IS NOT NULL THEN (${mediaGeralCalc}) ELSE NULL END), 2) as media_geral,
       COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} IN ('2', '3', '5') THEN 1 END) as total_ai,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { alunoSchema, validateRequest, validateId } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -193,7 +194,14 @@ export async function PUT(
     }
 
     const alunoId = params.id
-    const body = await request.json()
+    const idValidation = validateId(alunoId)
+    if (!idValidation.success) return idValidation.response
+
+    // Validar body com schema parcial (todos os campos opcionais em update)
+    const atualizarAlunoSchema = alunoSchema.partial()
+    const validacao = await validateRequest(request, atualizarAlunoSchema)
+    if (!validacao.success) return validacao.response
+    const body = validacao.data as Record<string, unknown>
 
     // Verificar se aluno existe
     const existeResult = await pool.query('SELECT escola_id FROM alunos WHERE id = $1', [alunoId])

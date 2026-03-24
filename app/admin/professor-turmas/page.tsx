@@ -96,7 +96,9 @@ function GerenciarVinculos() {
       setProfessores(profData.professores || [])
       setTurmas(turmasData.turmas || [])
       setDisciplinas(discData.disciplinas || [])
-    } catch { }
+    } catch (err) {
+      console.error('[ProfessorTurmas] Erro ao carregar dados:', (err as Error).message)
+    }
   }
 
   useEffect(() => {

@@ -295,7 +295,7 @@ export function buildLimitOffset(paginacao: Paginacao): string {
  * Executa uma query capturando erros. Retorna rows vazio em caso de falha.
  * Útil para queries paralelas onde falha individual não deve quebrar tudo.
  */
-export async function safeQuery<T = Record<string, unknown>>(
+export async function safeQuery<T = Record<string, any>>(
   pool: { query: (sql: string, params?: unknown[]) => Promise<{ rows: T[] }> },
   sql: string,
   params: unknown[] = [],
@@ -349,7 +349,8 @@ export function getDivisorSerie(serie: string): number {
 }
 
 /**
- * Gera SQL CASE para cálculo de média geral baseado na série
+ * Gera SQL CASE para cálculo de média geral baseado na série.
+ * Usado quando todas as notas vêm do mesmo alias (ex: rc).
  */
 export function getMediaGeralSQL(alias: string = 'rc'): string {
   return `CASE
@@ -357,6 +358,60 @@ export function getMediaGeralSQL(alias: string = 'rc'): string {
     THEN (COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_producao AS DECIMAL), 0)) / 3.0
     ELSE (COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_cn AS DECIMAL), 0)) / 4.0
   END`
+}
+
+/**
+ * Gera SQL CASE para média geral com aliases diferentes para anos iniciais vs finais.
+ * Usado quando anos iniciais (2,3,5) leem de rc_table e finais leem de rc.
+ * @param serieAlias - alias que tem a coluna serie (ex: 'rc')
+ * @param aiAlias    - alias para notas de anos iniciais (ex: 'rc_table')
+ * @param afAlias    - alias para notas de anos finais (ex: 'rc')
+ */
+export function getMediaGeralMixedSQL(serieAlias: string = 'rc', aiAlias: string = 'rc_table', afAlias: string = 'rc'): string {
+  return `CASE
+    WHEN REGEXP_REPLACE(${serieAlias}.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+      (COALESCE(CAST(${aiAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_producao AS DECIMAL), 0)) / 3.0
+    ELSE
+      (COALESCE(CAST(${afAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_cn AS DECIMAL), 0)) / 4.0
+  END`
+}
+
+/**
+ * Variante ROUND(..., 2) do cálculo de média mista (rc_table/rc).
+ */
+export function getMediaGeralMixedRoundedSQL(serieAlias: string = 'rc', aiAlias: string = 'rc_table', afAlias: string = 'rc'): string {
+  return `CASE
+    WHEN REGEXP_REPLACE(${serieAlias}.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+      ROUND((COALESCE(CAST(${aiAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_producao AS DECIMAL), 0)) / 3.0, 2)
+    ELSE
+      ROUND((COALESCE(CAST(${afAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_cn AS DECIMAL), 0)) / 4.0, 2)
+  END`
+}
+
+/**
+ * Gera SQL ROUND(AVG(CASE WHEN presença='P' THEN media ELSE NULL END), 2)
+ * Usado em queries agregadas para calcular media_geral com filtro de presença.
+ */
+export function getMediaGeralAvgSQL(alias: string = 'rc'): string {
+  return `ROUND(AVG(CASE
+    WHEN (${alias}.presenca = 'P' OR ${alias}.presenca = 'p') THEN
+      ${getMediaGeralSQL(alias)}
+    ELSE NULL
+  END), 2)`
+}
+
+/**
+ * Gera SQL para média de anos iniciais (séries 2,3,5): LP + MAT + PROD / 3
+ */
+export function getMediaAnosIniciaisSQL(alias: string = 'rc'): string {
+  return `(COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_producao AS DECIMAL), 0)) / 3.0`
+}
+
+/**
+ * Gera SQL para média de anos finais (séries 6-9): LP + CH + MAT + CN / 4
+ */
+export function getMediaAnosFinaisSQL(alias: string = 'rc'): string {
+  return `(COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_cn AS DECIMAL), 0)) / 4.0`
 }
 
 /**

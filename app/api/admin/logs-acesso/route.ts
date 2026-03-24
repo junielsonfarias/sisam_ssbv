@@ -1,47 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
-import { parsePaginacao, buildPaginacaoResponse } from '@/lib/api-helpers'
+import {
+  parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
+  parseSearchParams, createWhereBuilder, addCondition, addSearchCondition,
+  addRawCondition, buildWhereString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
 export const GET = withAuth(['administrador'], async (request, usuario) => {
   // Obter parametros de filtro
   const searchParams = request.nextUrl.searchParams
-  const dataInicio = searchParams.get('dataInicio')
-  const dataFim = searchParams.get('dataFim')
-  const email = searchParams.get('email')
-  const tipoUsuario = searchParams.get('tipoUsuario')
+  const { dataInicio, dataFim, email, tipoUsuario } = parseSearchParams(searchParams, ['dataInicio', 'dataFim', 'email', 'tipoUsuario'])
   const paginacao = parsePaginacao(searchParams, { limitePadrao: 50 })
 
-  // Construir query de logs
-  let whereClause = 'WHERE 1=1'
-  const params: (string | number)[] = []
-  let paramIndex = 1
-
-  if (dataInicio) {
-    whereClause += ` AND criado_em >= $${paramIndex}`
-    params.push(dataInicio)
-    paramIndex++
-  }
-
+  // Construir filtros
+  const where = createWhereBuilder()
+  addCondition(where, 'criado_em', dataInicio, '>=')
   if (dataFim) {
-    whereClause += ` AND criado_em <= $${paramIndex}::timestamp + interval '1 day'`
-    params.push(dataFim)
-    paramIndex++
+    addRawCondition(where, `criado_em <= $${where.paramIndex}::timestamp + interval '1 day'`, [dataFim])
   }
+  addSearchCondition(where, ['email'], email)
+  addCondition(where, 'tipo_usuario', tipoUsuario)
 
-  if (email) {
-    whereClause += ` AND email ILIKE $${paramIndex}`
-    params.push(`%${email}%`)
-    paramIndex++
-  }
-
-  if (tipoUsuario) {
-    whereClause += ` AND tipo_usuario = $${paramIndex}`
-    params.push(tipoUsuario)
-    paramIndex++
-  }
+  const whereClause = buildWhereString(where)
 
   // Buscar logs com paginacao
   const logsQuery = `
@@ -57,16 +40,14 @@ export const GET = withAuth(['administrador'], async (request, usuario) => {
     FROM logs_acesso
     ${whereClause}
     ORDER BY criado_em DESC
-    LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    ${buildLimitOffset(paginacao)}
   `
-  params.push(paginacao.limite, paginacao.offset)
 
-  const logsResult = await pool.query(logsQuery, params)
+  const logsResult = await pool.query(logsQuery, where.params)
 
   // Contar total de registros
   const countQuery = `SELECT COUNT(*) as total FROM logs_acesso ${whereClause}`
-  const countParams = params.slice(0, -2) // Remove limite e offset
-  const countResult = await pool.query(countQuery, countParams)
+  const countResult = await pool.query(countQuery, where.params)
   const total = parseInt(countResult.rows[0].total)
 
   // Buscar estatisticas por dia (ultimos 30 dias)

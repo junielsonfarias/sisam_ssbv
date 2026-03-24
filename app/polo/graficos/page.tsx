@@ -54,20 +54,22 @@ export default function GraficosPoloPage() {
   }, [disciplinasDisponiveis, filtros.disciplina, filtros.serie])
 
   useEffect(() => {
-    carregarDadosIniciais()
+    const controller = new AbortController()
+    carregarDadosIniciais(controller.signal)
+    return () => controller.abort()
   }, [])
 
-  const carregarDadosIniciais = async () => {
+  const carregarDadosIniciais = async (signal?: AbortSignal) => {
     try {
       // Verificar usuario e polo_id
-      const authRes = await fetch('/api/auth/verificar')
+      const authRes = await fetch('/api/auth/verificar', { signal })
       const authData = await authRes.json()
 
       if (authData.usuario && authData.usuario.polo_id) {
         setPoloId(authData.usuario.polo_id)
 
         // Carregar nome do polo
-        const poloRes = await fetch(`/api/admin/polos?id=${authData.usuario.polo_id}`)
+        const poloRes = await fetch(`/api/admin/polos?id=${authData.usuario.polo_id}`, { signal })
         const poloData = await poloRes.json()
         if (Array.isArray(poloData) && poloData.length > 0) {
           setPoloNome(poloData[0].nome)
@@ -75,10 +77,12 @@ export default function GraficosPoloPage() {
       }
 
       // Carregar escolas do polo
-      const escolasRes = await fetch('/api/polo/escolas')
+      const escolasRes = await fetch('/api/polo/escolas', { signal })
       const escolasData = await escolasRes.json()
       setEscolas(Array.isArray(escolasData) ? escolasData : [])
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return
+      console.error('[PoloGraficos] Erro ao carregar dados iniciais:', (error as Error).message)
     }
   }
 

@@ -471,7 +471,7 @@ export async function processarLinhas(
 
   for (let i = 0; i < dados.length; i++) {
     try {
-      const linha = dados[i] as any
+      const linha = dados[i] as Record<string, unknown>
 
       const escolaNome = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
       const alunoNome = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
@@ -994,15 +994,53 @@ export async function criarTurmas(
   log.info('[FASE 6] Criando turmas em batch...')
   if (turmasParaInserir.length > 0) {
     const tempToRealTurmas = new Map<string, string>()
-    for (const turma of turmasParaInserir) {
+    const BATCH_SIZE = 50
+
+    for (let i = 0; i < turmasParaInserir.length; i += BATCH_SIZE) {
+      const batch = turmasParaInserir.slice(i, i + BATCH_SIZE)
       try {
+        const values: any[] = []
+        const placeholders: string[] = []
+        batch.forEach((turma, idx) => {
+          const offset = idx * 5
+          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`)
+          values.push(turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo)
+        })
+
         const result = await pool.query(
-          'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie RETURNING id',
-          [turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo]
+          `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo)
+           VALUES ${placeholders.join(', ')}
+           ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie
+           RETURNING id, codigo, escola_id, ano_letivo`,
+          values
         )
-        tempToRealTurmas.set(turma.tempId, result.rows[0].id)
-      } catch (error: unknown) {
-        log.error(`Erro ao criar turma ${turma.codigo}:`, error)
+
+        // Map returned rows back to temp IDs using (codigo, escola_id, ano_letivo) as key
+        const returnedMap = new Map<string, string>()
+        for (const row of result.rows) {
+          returnedMap.set(`${row.codigo}|${row.escola_id}|${row.ano_letivo}`, row.id)
+        }
+        for (const turma of batch) {
+          const key = `${turma.codigo}|${turma.escola_id}|${turma.ano_letivo}`
+          const realId = returnedMap.get(key)
+          if (realId) {
+            tempToRealTurmas.set(turma.tempId, realId)
+          }
+        }
+      } catch (batchError: unknown) {
+        // Fallback: try individually for this batch so one bad record doesn't lose the whole batch
+        log.error(`Erro no batch de turmas (${i}-${i + batch.length}), tentando individualmente:`, batchError)
+        for (const turma of batch) {
+          try {
+            const result = await pool.query(
+              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie RETURNING id',
+              [turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo]
+            )
+            tempToRealTurmas.set(turma.tempId, result.rows[0].id)
+          } catch (error: unknown) {
+            log.error(`Erro ao criar turma ${turma.codigo}:`, error)
+          }
+        }
       }
     }
 
@@ -1046,50 +1084,158 @@ export async function criarAlunos(
     const tempToRealAlunos = new Map<string, string>()
     let alunosComErro = 0
     const alunosComErroList: string[] = []
+    const BATCH_SIZE = 50
 
-    for (const aluno of alunosParaInserir) {
+    for (let i = 0; i < alunosParaInserir.length; i += BATCH_SIZE) {
+      const batch = alunosParaInserir.slice(i, i + BATCH_SIZE)
+
       try {
-        const nomeNormalizado = aluno.nome.toUpperCase().trim()
-        const checkResult = await pool.query(
-          `SELECT id FROM alunos
-           WHERE UPPER(TRIM(nome)) = $1
-           AND escola_id = $2
-           AND (turma_id = $3 OR (turma_id IS NULL AND $3::uuid IS NULL))
-           AND (ano_letivo = $4 OR (ano_letivo IS NULL AND $4 IS NULL))
-           AND ativo = true
-           LIMIT 1`,
-          [nomeNormalizado, aluno.escola_id, aluno.turma_id, aluno.ano_letivo]
+        // Step 1: Batch lookup existing alunos using a VALUES CTE
+        const lookupValues: any[] = []
+        const lookupPlaceholders: string[] = []
+        batch.forEach((aluno, idx) => {
+          const nomeNormalizado = aluno.nome.toUpperCase().trim()
+          const offset = idx * 4
+          lookupPlaceholders.push(`($${offset + 1}, $${offset + 2}::uuid, $${offset + 3}::uuid, $${offset + 4})`)
+          lookupValues.push(nomeNormalizado, aluno.escola_id, aluno.turma_id, aluno.ano_letivo)
+        })
+
+        const lookupResult = await pool.query(
+          `SELECT a.id, UPPER(TRIM(a.nome)) as nome_norm, a.escola_id, a.turma_id, a.ano_letivo
+           FROM alunos a
+           INNER JOIN (VALUES ${lookupPlaceholders.join(', ')}) AS v(nome_norm, escola_id, turma_id, ano_letivo)
+             ON UPPER(TRIM(a.nome)) = v.nome_norm
+             AND a.escola_id = v.escola_id
+             AND (a.turma_id = v.turma_id OR (a.turma_id IS NULL AND v.turma_id IS NULL))
+             AND (a.ano_letivo = v.ano_letivo OR (a.ano_letivo IS NULL AND v.ano_letivo IS NULL))
+             AND a.ativo = true`,
+          lookupValues
         )
 
-        if (checkResult.rows.length > 0) {
-          const alunoIdExistente = checkResult.rows[0].id
-          await pool.query(
-            `UPDATE alunos
-             SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
-             WHERE id = $3`,
-            [aluno.turma_id, aluno.serie, alunoIdExistente]
-          )
-          tempToRealAlunos.set(aluno.tempId, alunoIdExistente)
-          resultado.alunos.existentes++
-        } else {
-          const result = await pool.query(
-            'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-            [aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo]
-          )
-          if (result.rows.length > 0 && result.rows[0].id) {
-            tempToRealAlunos.set(aluno.tempId, result.rows[0].id)
-            resultado.alunos.criados++
+        // Build lookup map: "NOME|escola_id|turma_id|ano_letivo" -> id
+        const existingMap = new Map<string, string>()
+        for (const row of lookupResult.rows) {
+          const key = `${row.nome_norm}|${row.escola_id}|${row.turma_id || ''}|${row.ano_letivo || ''}`
+          existingMap.set(key, row.id)
+        }
+
+        // Step 2: Separate into updates and inserts
+        const toUpdate: { aluno: any; existingId: string }[] = []
+        const toInsert: any[] = []
+
+        for (const aluno of batch) {
+          const nomeNormalizado = aluno.nome.toUpperCase().trim()
+          const key = `${nomeNormalizado}|${aluno.escola_id}|${aluno.turma_id || ''}|${aluno.ano_letivo || ''}`
+          const existingId = existingMap.get(key)
+          if (existingId) {
+            toUpdate.push({ aluno, existingId })
           } else {
-            alunosComErro++
-            alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): Nao retornou ID`)
-            log.error(`Aluno "${aluno.nome}" nao retornou ID apos insercao`)
+            toInsert.push(aluno)
           }
         }
-      } catch (error: unknown) {
-        alunosComErro++
-        alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): ${(error as Error).message}`)
-        log.error(`Erro ao criar/atualizar aluno ${aluno.nome} (${aluno.codigo}):`, error)
-        erros.push(`Aluno "${aluno.nome}": ${(error as Error).message}`)
+
+        // Step 3: Batch UPDATE existing alunos
+        if (toUpdate.length > 0) {
+          const updateValues: any[] = []
+          const updatePlaceholders: string[] = []
+          toUpdate.forEach(({ aluno, existingId }, idx) => {
+            const offset = idx * 3
+            updatePlaceholders.push(`($${offset + 1}::uuid, $${offset + 2}::uuid, $${offset + 3})`)
+            updateValues.push(existingId, aluno.turma_id, aluno.serie)
+          })
+
+          await pool.query(
+            `UPDATE alunos SET turma_id = v.turma_id, serie = v.serie, atualizado_em = CURRENT_TIMESTAMP
+             FROM (VALUES ${updatePlaceholders.join(', ')}) AS v(id, turma_id, serie)
+             WHERE alunos.id = v.id`,
+            updateValues
+          )
+
+          for (const { aluno, existingId } of toUpdate) {
+            tempToRealAlunos.set(aluno.tempId, existingId)
+            resultado.alunos.existentes++
+          }
+        }
+
+        // Step 4: Batch INSERT new alunos
+        if (toInsert.length > 0) {
+          const insertValues: any[] = []
+          const insertPlaceholders: string[] = []
+          toInsert.forEach((aluno, idx) => {
+            const offset = idx * 6
+            insertPlaceholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`)
+            insertValues.push(aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo)
+          })
+
+          const insertResult = await pool.query(
+            `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo)
+             VALUES ${insertPlaceholders.join(', ')}
+             RETURNING id, codigo, nome`,
+            insertValues
+          )
+
+          // Map returned rows back to temp IDs by matching (codigo, nome) pairs in order
+          // PostgreSQL RETURNING preserves insertion order
+          for (let j = 0; j < insertResult.rows.length; j++) {
+            const row = insertResult.rows[j]
+            if (row.id) {
+              tempToRealAlunos.set(toInsert[j].tempId, row.id)
+              resultado.alunos.criados++
+            } else {
+              alunosComErro++
+              alunosComErroList.push(`Aluno "${toInsert[j].nome}" (${toInsert[j].codigo}): Nao retornou ID`)
+              log.error(`Aluno "${toInsert[j].nome}" nao retornou ID apos insercao`)
+            }
+          }
+        }
+      } catch (batchError: unknown) {
+        // Fallback: try individually for this batch so one bad record doesn't lose the whole batch
+        log.error(`Erro no batch de alunos (${i}-${i + batch.length}), tentando individualmente:`, batchError)
+        for (const aluno of batch) {
+          try {
+            const nomeNormalizado = aluno.nome.toUpperCase().trim()
+            const checkResult = await pool.query(
+              `SELECT id FROM alunos
+               WHERE UPPER(TRIM(nome)) = $1
+               AND escola_id = $2
+               AND (turma_id = $3 OR (turma_id IS NULL AND $3::uuid IS NULL))
+               AND (ano_letivo = $4 OR (ano_letivo IS NULL AND $4 IS NULL))
+               AND ativo = true
+               LIMIT 1`,
+              [nomeNormalizado, aluno.escola_id, aluno.turma_id, aluno.ano_letivo]
+            )
+
+            if (checkResult.rows.length > 0) {
+              const alunoIdExistente = checkResult.rows[0].id
+              await pool.query(
+                `UPDATE alunos
+                 SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
+                 WHERE id = $3`,
+                [aluno.turma_id, aluno.serie, alunoIdExistente]
+              )
+              tempToRealAlunos.set(aluno.tempId, alunoIdExistente)
+              resultado.alunos.existentes++
+            } else {
+              const result = await pool.query(
+                'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+                [aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo]
+              )
+              if (result.rows.length > 0 && result.rows[0].id) {
+                tempToRealAlunos.set(aluno.tempId, result.rows[0].id)
+                resultado.alunos.criados++
+              } else {
+                alunosComErro++
+                alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): Nao retornou ID`)
+                log.error(`Aluno "${aluno.nome}" nao retornou ID apos insercao`)
+              }
+            }
+          } catch (error: unknown) {
+            alunosComErro++
+            alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): ${(error as Error).message}`)
+            log.error(`Erro ao criar/atualizar aluno ${aluno.nome} (${aluno.codigo}):`, error)
+            erros.push(`Aluno "${aluno.nome}": ${(error as Error).message}`)
+          }
+        }
       }
     }
 

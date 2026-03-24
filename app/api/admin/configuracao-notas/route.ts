@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
 import { configuracaoNotasEscolaSchema, configuracaoNotasEscolaBaseSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Já existe uma configuração para esta escola neste ano letivo' },
         { status: 400 }
@@ -151,7 +153,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Já existe uma configuração para esta escola neste ano letivo' },
         { status: 400 }

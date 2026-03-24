@@ -2,6 +2,7 @@
  * Funções de validação centralizadas
  * Evita duplicação e garante consistência em toda a aplicação
  */
+import { PG_ERRORS } from '@/lib/constants'
 
 // Regex para validação de UUID v4
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -232,7 +233,7 @@ export function getErrorMessage(error: unknown): string {
  */
 export function getDatabaseErrorCode(error: unknown): string | undefined {
   if (isDatabaseError(error)) {
-    return (error as any).code
+    return error.code
   }
   return undefined
 }
@@ -241,7 +242,7 @@ export function getDatabaseErrorCode(error: unknown): string | undefined {
  * Verifica se é um erro de constraint de unicidade (chave duplicada)
  */
 export function isUniqueConstraintError(error: unknown): boolean {
-  return getDatabaseErrorCode(error) === '23505'
+  return getDatabaseErrorCode(error) === PG_ERRORS.UNIQUE_VIOLATION
 }
 
 /**
@@ -249,14 +250,14 @@ export function isUniqueConstraintError(error: unknown): boolean {
  */
 export function isForeignKeyError(error: unknown): boolean {
   const code = getDatabaseErrorCode(error)
-  return code === '23503' || code === '23502'
+  return code === PG_ERRORS.FOREIGN_KEY_VIOLATION || code === '23502'
 }
 
 /**
  * Verifica se é um erro de aborto (fetch cancelado)
  */
 export function isAbortError(error: unknown): boolean {
-  return isError(error) && (error as any).name === 'AbortError'
+  return isError(error) && error.name === 'AbortError'
 }
 
 /**

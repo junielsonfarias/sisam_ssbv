@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useCallback } from 'react'
 import {
   Users, School, GraduationCap, MapPin, TrendingUp, TrendingDown,
   Filter, X, ChevronDown, ChevronUp, RefreshCw, Download,
@@ -94,8 +94,62 @@ export default function DadosPage() {
     totalPaginas,
   } = sorting
 
+  // Memoize static options for FiltroSelect to avoid new arrays every render
+  const opcoesEtapaEnsino = useMemo(() => [
+    { value: 'anos_iniciais', label: 'Anos Iniciais (2º, 3º, 5º)' },
+    { value: 'anos_finais', label: 'Anos Finais (6º, 7º, 8º, 9º)' }
+  ], [])
+
+  const opcoesPresenca = useMemo(() => [
+    { value: 'P', label: 'Presentes' },
+    { value: 'F', label: 'Faltantes' }
+  ], [])
+
+  const abasNavegacao = useMemo(() => [
+    { id: 'visao_geral', label: 'Visão Geral', icon: PieChartIcon },
+    { id: 'escolas', label: 'Escolas', icon: School },
+    { id: 'turmas', label: 'Turmas', icon: Layers },
+    { id: 'alunos', label: 'Alunos', icon: Users },
+    { id: 'analises', label: 'Análises', icon: Target },
+  ], [])
+
+  const opcoesAnoLetivo = useMemo(() =>
+    dados?.filtros.anosLetivos.map(ano => ({ value: ano, label: ano })) || [],
+    [dados?.filtros.anosLetivos]
+  )
+
+  const opcoesPolos = useMemo(() =>
+    dados?.filtros.polos.map(polo => ({ value: polo.id, label: polo.nome })) || [],
+    [dados?.filtros.polos]
+  )
+
+  const opcoesEscolas = useMemo(() =>
+    escolasFiltradas.map(escola => ({ value: escola.id, label: escola.nome })),
+    [escolasFiltradas]
+  )
+
+  const opcoesTurmas = useMemo(() =>
+    turmasFiltradas_select.map(turma => ({ value: turma.id, label: turma.codigo })),
+    [turmasFiltradas_select]
+  )
+
+  const opcoesDisciplinasFiltradas = useMemo(() =>
+    disciplinasDisponiveis.filter(d => d.value !== ''),
+    [disciplinasDisponiveis]
+  )
+
+  const opcoesNiveis = useMemo(() =>
+    dados?.filtros.niveis.map(nivel => ({ value: nivel, label: nivel })) || [],
+    [dados?.filtros.niveis]
+  )
+
+  const opcoesFaixasMedia = useMemo(() =>
+    dados?.filtros.faixasMedia.map(faixa => ({ value: faixa, label: faixa })) || [],
+    [dados?.filtros.faixasMedia]
+  )
+
   // Função para alterar série via chips
-  const handleSerieChipClick = (serie: string) => {
+  const handleSerieChipClick = useCallback((serie: string) => {
     setFiltroSerie(serie)
     setPaginaAtual(1)
     setPaginasAnalises(PAGINACAO_ANALISES_INICIAL)
@@ -114,16 +168,16 @@ export default function DadosPage() {
 
     setUsandoCache(false)
     carregarDadosDebounced(true, undefined, true, serie)
-  }
+  }, [pesquisaRealizada, dadosCache, filtroDisciplina, filtrarDadosLocal, setDados, setUsandoCache, carregarDadosDebounced, setFiltroSerie, setPaginaAtual, setPaginasAnalises, setFiltroTipoEnsino])
 
   // Função para pesquisar
-  const handlePesquisar = () => {
+  const handlePesquisar = useCallback(() => {
     setPesquisaRealizada(true)
     setPaginaAtual(1)
     setPaginasAnalises(PAGINACAO_ANALISES_INICIAL)
     setUsandoCache(false)
     carregarDadosDebounced(true, undefined, false, '')
-  }
+  }, [setPesquisaRealizada, setPaginaAtual, setPaginasAnalises, setUsandoCache, carregarDadosDebounced])
 
   // useEffect para aplicar filtro de série/disciplina após cache ser atualizado
   useEffect(() => {
@@ -213,7 +267,7 @@ export default function DadosPage() {
                 label="Ano Letivo"
                 value={filtroAnoLetivo}
                 onChange={(v) => { setFiltroAnoLetivo(v); setPaginaAtual(1); }}
-                opcoes={dados?.filtros.anosLetivos.map(ano => ({ value: ano, label: ano })) || []}
+                opcoes={opcoesAnoLetivo}
                 placeholder="Todos os anos"
               />
 
@@ -222,7 +276,7 @@ export default function DadosPage() {
                 label="Polo"
                 value={filtroPoloId}
                 onChange={(v) => { setFiltroPoloId(v); setFiltroEscolaId(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                opcoes={dados?.filtros.polos.map(polo => ({ value: polo.id, label: polo.nome })) || []}
+                opcoes={opcoesPolos}
                 placeholder="Todos os polos"
                 fixedValue={(usuario?.tipo_usuario === 'escola' || usuario?.tipo_usuario === 'polo') ? poloNome : undefined}
               />
@@ -232,7 +286,7 @@ export default function DadosPage() {
                 label="Escola"
                 value={filtroEscolaId}
                 onChange={(v) => { setFiltroEscolaId(v); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                opcoes={escolasFiltradas.map(escola => ({ value: escola.id, label: escola.nome }))}
+                opcoes={opcoesEscolas}
                 placeholder="Todas as escolas"
                 disabled={!filtroPoloId && usuario?.tipo_usuario !== 'escola'}
                 disabledMessage="Selecione um polo primeiro"
@@ -244,10 +298,7 @@ export default function DadosPage() {
                 label="Etapa de Ensino"
                 value={filtroTipoEnsino}
                 onChange={(v) => { setFiltroTipoEnsino(v); setFiltroSerie(''); setFiltroTurmaId(''); setPaginaAtual(1); }}
-                opcoes={[
-                  { value: 'anos_iniciais', label: 'Anos Iniciais (2º, 3º, 5º)' },
-                  { value: 'anos_finais', label: 'Anos Finais (6º, 7º, 8º, 9º)' }
-                ]}
+                opcoes={opcoesEtapaEnsino}
                 placeholder="Todas as etapas"
               />
 
@@ -256,7 +307,7 @@ export default function DadosPage() {
                 label="Turma"
                 value={filtroTurmaId}
                 onChange={(v) => { setFiltroTurmaId(v); setPaginaAtual(1); }}
-                opcoes={turmasFiltradas_select.map(turma => ({ value: turma.id, label: turma.codigo }))}
+                opcoes={opcoesTurmas}
                 placeholder="Todas as turmas"
                 disabled={!filtroSerie}
                 disabledMessage="Selecione uma série primeiro"
@@ -267,7 +318,7 @@ export default function DadosPage() {
                 label="Disciplina"
                 value={filtroDisciplina}
                 onChange={(v) => { setFiltroDisciplina(v); setPaginaAtual(1); }}
-                opcoes={disciplinasDisponiveis.filter(d => d.value !== '')}
+                opcoes={opcoesDisciplinasFiltradas}
                 placeholder="Todas as disciplinas"
               />
 
@@ -276,10 +327,7 @@ export default function DadosPage() {
                 label="Presença"
                 value={filtroPresenca}
                 onChange={(v) => { setFiltroPresenca(v); setPaginaAtual(1); }}
-                opcoes={[
-                  { value: 'P', label: 'Presentes' },
-                  { value: 'F', label: 'Faltantes' }
-                ]}
+                opcoes={opcoesPresenca}
                 placeholder="Todos"
               />
 
@@ -288,7 +336,7 @@ export default function DadosPage() {
                 label="Nível"
                 value={filtroNivel}
                 onChange={(v) => { setFiltroNivel(v); setPaginaAtual(1); }}
-                opcoes={dados?.filtros.niveis.map(nivel => ({ value: nivel, label: nivel })) || []}
+                opcoes={opcoesNiveis}
                 placeholder="Todos os níveis"
               />
 
@@ -297,7 +345,7 @@ export default function DadosPage() {
                 label="Faixa de Média"
                 value={filtroFaixaMedia}
                 onChange={(v) => { setFiltroFaixaMedia(v); setPaginaAtual(1); }}
-                opcoes={dados?.filtros.faixasMedia.map(faixa => ({ value: faixa, label: faixa })) || []}
+                opcoes={opcoesFaixasMedia}
                 placeholder="Todas as faixas"
               />
 
@@ -384,13 +432,7 @@ export default function DadosPage() {
               <div className="sticky top-14 sm:top-16 z-20 -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 px-2 sm:px-4 md:px-6 lg:px-8 pt-4 pb-2 bg-gray-50 dark:bg-slate-900 space-y-2 shadow-md" style={{ marginTop: '1rem' }}>
                 {/* Abas de Navegacao */}
                 <AbaNavegacao
-                  abas={[
-                    { id: 'visao_geral', label: 'Visão Geral', icon: PieChartIcon },
-                    { id: 'escolas', label: 'Escolas', icon: School },
-                    { id: 'turmas', label: 'Turmas', icon: Layers },
-                    { id: 'alunos', label: 'Alunos', icon: Users },
-                    { id: 'analises', label: 'Análises', icon: Target },
-                  ]}
+                  abas={abasNavegacao}
                   abaAtiva={abaAtiva}
                   onChange={(novaAba) => {
                     setAbaAtiva(novaAba as typeof abaAtiva)

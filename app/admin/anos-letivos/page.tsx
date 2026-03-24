@@ -116,7 +116,9 @@ export default function AnosLetivosPage() {
           })))
         }
       }
-    } catch { /* usa padrão */ }
+    } catch (err) {
+      console.warn('[AnosLetivos] Falha ao carregar bimestres, usando padrão:', (err as Error).message)
+    }
 
     setMostrarModal(true)
   }

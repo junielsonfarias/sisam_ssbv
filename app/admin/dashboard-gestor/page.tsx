@@ -1,7 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/protected-route'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LayoutGrid, Users, BookOpen, CalendarCheck, ArrowLeftRight,
   TrendingUp, TrendingDown, GraduationCap, Accessibility,
@@ -28,9 +28,10 @@ export default function DashboardGestorPage() {
   const [modalAberto, setModalAberto] = useState<ModalType>(null)
 
   useEffect(() => {
+    const controller = new AbortController()
     const init = async () => {
       try {
-        const authRes = await fetch('/api/auth/verificar')
+        const authRes = await fetch('/api/auth/verificar', { signal: controller.signal })
         if (authRes.ok) {
           const d = await authRes.json()
           if (d.usuario) {
@@ -39,67 +40,81 @@ export default function DashboardGestorPage() {
             if (d.usuario.escola_id) setEscolaId(d.usuario.escola_id)
           }
         }
-      } catch { }
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return
+        console.error('[DashboardGestor] Erro ao carregar auth:', (err as Error).message)
+      }
     }
     init()
+    return () => controller.abort()
   }, [])
 
   useEffect(() => {
     if (tipoUsuario && tipoUsuario !== 'escola') {
-      fetch('/api/admin/escolas')
+      const controller = new AbortController()
+      fetch('/api/admin/escolas', { signal: controller.signal })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => setEscolas(Array.isArray(d) ? d : []))
-        .catch(() => setEscolas([]))
+        .catch((err) => {
+          if ((err as Error).name === 'AbortError') return
+          setEscolas([])
+        })
+      return () => controller.abort()
     }
   }, [tipoUsuario])
 
-  const carregarDashboard = async () => {
+  const carregarDashboard = useCallback(async (signal?: AbortSignal) => {
     setCarregando(true)
     try {
       const params = new URLSearchParams({ ano_letivo: anoLetivo })
       if (escolaId) params.set('escola_id', escolaId)
-      const res = await fetch(`/api/admin/dashboard-gestor?${params}`)
+      const res = await fetch(`/api/admin/dashboard-gestor?${params}`, { signal })
       if (res.ok) {
         setData(await res.json())
       } else {
         toast.error('Erro ao carregar dashboard')
       }
-    } catch {
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return
       toast.error('Erro ao carregar dados')
     } finally {
       setCarregando(false)
     }
-  }
+  }, [anoLetivo, escolaId, toast])
 
   useEffect(() => {
-    if (tipoUsuario) carregarDashboard()
-  }, [tipoUsuario, escolaId, anoLetivo])
+    if (tipoUsuario) {
+      const controller = new AbortController()
+      carregarDashboard(controller.signal)
+      return () => controller.abort()
+    }
+  }, [tipoUsuario, escolaId, anoLetivo, carregarDashboard])
 
   const escolaNome = escolas.find(e => e.id === escolaId)?.nome
 
-  const dadosSituacao = data ? [
+  const dadosSituacao = useMemo(() => data ? [
     { name: 'Cursando', value: data.alunos.cursando },
     { name: 'Aprovados', value: data.alunos.aprovados },
     { name: 'Reprovados', value: data.alunos.reprovados },
     { name: 'Transferidos', value: data.alunos.transferidos },
     { name: 'Abandono', value: data.alunos.abandono },
-  ].filter(d => d.value > 0) : []
+  ].filter(d => d.value > 0) : [], [data])
 
-  const coresSituacao = ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#6b7280']
+  const coresSituacao = useMemo(() => ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#6b7280'], [])
 
-  const dadosFrequencia = data ? [
+  const dadosFrequencia = useMemo(() => data ? [
     { name: '>= 90%', value: data.frequencia.acima_90 },
     { name: '75-89%', value: data.frequencia.entre_75_90 },
     { name: '< 75%', value: data.frequencia.abaixo_75 },
-  ].filter(d => d.value > 0) : []
+  ].filter(d => d.value > 0) : [], [data])
 
-  const coresFrequencia = ['#10b981', '#eab308', '#ef4444']
+  const coresFrequencia = useMemo(() => ['#10b981', '#eab308', '#ef4444'], [])
 
-  const dadosDisciplinas = data?.notas.por_disciplina.map(d => ({
+  const dadosDisciplinas = useMemo(() => data?.notas.por_disciplina.map(d => ({
     name: d.abreviacao || d.disciplina, media: d.media, abaixo: d.abaixo
-  })) || []
+  })) || [], [data])
 
-  const dadosSeries = data?.distribuicao_serie.map(s => ({ name: s.serie, valor: s.total })) || []
+  const dadosSeries = useMemo(() => data?.distribuicao_serie.map(s => ({ name: s.serie, valor: s.total })) || [], [data])
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola']}>
@@ -137,7 +152,7 @@ export default function DashboardGestorPage() {
               <button onClick={() => window.print()} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Imprimir">
                 <Printer className="w-5 h-5" />
               </button>
-              <button onClick={carregarDashboard} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Atualizar">
+              <button onClick={() => carregarDashboard()} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Atualizar">
                 <RefreshCw className="w-5 h-5" />
               </button>
             </div>

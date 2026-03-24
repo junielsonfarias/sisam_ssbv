@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth';
 import pool from '@/database/connection';
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic';
 
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
     console.error('Erro no debug:', error);
     return NextResponse.json({
       erro: (error as Error).message,
-      stack: (error as any).stack
+      stack: (error as DatabaseError).stack
     }, { status: 500 });
   }
 }

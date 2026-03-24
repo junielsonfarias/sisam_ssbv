@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest } from '@/lib/auth'
 import pool, { testConnection } from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic';
 
@@ -76,12 +78,12 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao verificar autenticação:', {
       message: (error as Error)?.message,
-      code: (error as any)?.code,
-      stack: process.env.NODE_ENV === 'development' ? (error as any)?.stack : undefined,
+      code: (error as DatabaseError)?.code,
+      stack: process.env.NODE_ENV === 'development' ? (error as DatabaseError)?.stack : undefined,
     })
     
     // Verificar se é erro de banco de dados
-    if ((error as any)?.code === 'ECONNREFUSED' || (error as any)?.code === 'ENOTFOUND' || (error as any)?.code === 'ETIMEDOUT') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.CONNECTION_REFUSED || (error as DatabaseError)?.code === PG_ERRORS.HOST_NOT_FOUND || (error as DatabaseError)?.code === PG_ERRORS.CONNECTION_TIMEOUT) {
       return NextResponse.json(
         { 
           mensagem: 'Erro ao conectar com o banco de dados',

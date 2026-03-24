@@ -131,6 +131,7 @@ export default function NotasEscolaresPage() {
           setSeriesEscolares(Array.isArray(data) ? data : data.series || [])
         }
       } catch (e) {
+        console.error('[NotasEscolares] Erro ao carregar dados iniciais:', (e as Error).message)
       }
     }
     init()

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 import { matriculaBatchSchema, validateRequest } from '@/lib/schemas'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
       matriculados: 0,
       criados: 0,
       erros: [] as string[],
-      alunos: [] as any[],
+      alunos: [] as Record<string, unknown>[],
     }
 
     // Verificar capacidade da turma antes de iniciar
@@ -166,7 +168,7 @@ export async function POST(request: NextRequest) {
           resultados.alunos.push(result.rows[0])
         }
       } catch (err: unknown) {
-        if ((err as any)?.code === '23505') {
+        if ((err as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
           resultados.erros.push(`Aluno ${aluno.nome}: código ou CPF já cadastrado`)
         } else {
           resultados.erros.push(`Aluno ${aluno.nome}: ${(err as Error)?.message || 'Erro desconhecido'}`)

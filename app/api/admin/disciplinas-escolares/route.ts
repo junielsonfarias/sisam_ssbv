@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
 import { disciplinaEscolarSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
+import { DatabaseError } from '@/lib/validation'
+import { parseBoolParam, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,19 +14,18 @@ const atualizarDisciplinaSchema = disciplinaEscolarSchema.extend({
 })
 
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
-  const { searchParams } = new URL(request.url)
+  const searchParams = request.nextUrl.searchParams
   const apenasAtivas = searchParams.get('ativas') !== 'false'
 
-  let query = 'SELECT * FROM disciplinas_escolares'
-  const params: string[] = []
-
+  const where = createWhereBuilder()
   if (apenasAtivas) {
-    query += ' WHERE ativo = true'
+    addCondition(where, 'ativo', true)
   }
 
-  query += ' ORDER BY ordem, nome'
-
-  const result = await pool.query(query, params)
+  const result = await pool.query(
+    `SELECT * FROM disciplinas_escolares ${buildWhereString(where)} ORDER BY ordem, nome`,
+    where.params
+  )
   return NextResponse.json(result.rows)
 })
 
@@ -43,7 +45,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Código de disciplina já cadastrado' }, { status: 400 })
     }
     console.error('Erro ao criar disciplina:', error)
@@ -72,7 +74,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Código de disciplina já cadastrado' }, { status: 400 })
     }
     console.error('Erro ao atualizar disciplina:', error)

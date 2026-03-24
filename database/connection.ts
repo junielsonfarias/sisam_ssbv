@@ -89,12 +89,7 @@ function detectSupabaseMode(host: string, port: number): {
       // Com 50 usuarios, PRECISA usar Transaction Mode (porta 6543)
       // Manter em 8 para evitar erro MaxClientsInSessionMode
       recommendedMax = 8;
-      console.error('');
-      console.error('╔══════════════════════════════════════════════════════════════╗');
-      console.error('║  AVISO CRITICO: Session Mode nao suporta 50 usuarios!        ║');
-      console.error('║  Altere DB_PORT para 6543 para usar Transaction Mode         ║');
-      console.error('╚══════════════════════════════════════════════════════════════╝');
-      console.error('');
+      log.error('AVISO CRITICO: Session Mode nao suporta 50 usuarios! Altere DB_PORT para 6543 para usar Transaction Mode');
     }
   }
 
@@ -126,18 +121,10 @@ function createPool(): Pool {
   const { isSupabase, isTransactionMode, recommendedMax } = detectSupabaseMode(host, port);
 
   // Log de diagnóstico
-  console.log('=== Configuração de Conexão ===');
-  console.log(`Host: ${host}`);
-  console.log(`Porta: ${port}`);
-  console.log(`Supabase: ${isSupabase ? 'Sim' : 'Não'}`);
-  console.log(`Modo: ${isTransactionMode ? 'Transaction (otimizado)' : 'Session (limitado)'}`);
-  console.log(`Pool máximo: ${recommendedMax}`);
+  log.info('Configuração de Conexão', { data: { host, porta: port, supabase: isSupabase, modo: isTransactionMode ? 'Transaction' : 'Session', poolMax: recommendedMax } });
 
   if (isSupabase && !isTransactionMode) {
-    console.warn('⚠️  AVISO: Usando Session Mode no Supabase!');
-    console.warn('   Para melhor performance com 50+ usuários, use Transaction Mode:');
-    console.warn('   - Altere DB_PORT para 6543');
-    console.warn('   - Use o endpoint pooler.supabase.com');
+    log.warn('Usando Session Mode no Supabase! Para melhor performance com 50+ usuarios, use Transaction Mode: altere DB_PORT para 6543 e use o endpoint pooler.supabase.com');
   }
 
   // Configuracao SSL: sempre usar para Supabase, producao ou quando DB_SSL=true
@@ -184,16 +171,16 @@ function createPool(): Pool {
   }
 
   // Log das configurações (sem senha) para debug
-  console.log('Configurando pool PostgreSQL:', {
-    host: config.host,
-    port: config.port,
-    database: config.database,
-    user: config.user,
+  log.debug('Configurando pool PostgreSQL', { data: {
+    host: config.host as string,
+    port: config.port as number,
+    database: config.database as string,
+    user: config.user as string,
     ssl: !!sslConfig,
     isSupabase,
     nodeEnv: process.env.NODE_ENV,
-    family: config.family || 'auto',
-  });
+    family: (config.family as string) || 'auto',
+  } });
 
   const newPool = new Pool(config);
 
@@ -209,23 +196,22 @@ function createPool(): Pool {
     const errorCode = err?.code;
     const errorMessage = err?.message || '';
     
-    console.error('Erro inesperado no pool de conexões:', {
+    log.error('Erro inesperado no pool de conexoes', undefined, { data: {
       code: errorCode || 'UNKNOWN',
       message: errorMessage,
-      host: config.host,
-    });
+      host: config.host as string,
+    } });
     
     // Tratamento específico para MaxClientsInSessionMode
     if (errorMessage.includes('MaxClientsInSessionMode') || errorMessage.includes('max clients reached')) {
-      console.warn('⚠️ MaxClientsInSessionMode detectado - muitas conexões simultâneas');
-      console.warn('Reduzindo pool e aguardando liberação de conexões...');
+      log.warn('MaxClientsInSessionMode detectado - muitas conexoes simultaneas. Aguardando liberacao de conexoes...');
       // Não resetar o pool imediatamente, apenas logar o problema
       // O retry logic no query wrapper lidará com isso
     }
     
     // Se for erro de conexão, resetar pool para forçar recriação
     if (errorCode === 'ECONNREFUSED' || errorCode === 'ENOTFOUND' || errorCode === 'ETIMEDOUT') {
-      console.log('Erro de conexão detectado, pool será recriado na próxima requisição');
+      log.warn('Erro de conexao detectado, pool sera recriado na proxima requisicao');
       pool = null;
       poolConfig = null;
     }
@@ -258,7 +244,7 @@ function getPool(): Pool {
     if (!process.env.DB_PASSWORD) missingVars.push('DB_PASSWORD')
     
     const errorMsg = `Variáveis de ambiente não configuradas: ${missingVars.join(', ')}`
-    console.error('Erro de configuração:', errorMsg)
+    log.error('Erro de configuracao: ' + errorMsg)
     throw new Error(errorMsg)
   }
   
@@ -271,24 +257,20 @@ function getPool(): Pool {
       poolConfig.port !== currentPort;
     
     if (configChanged) {
-      console.log('Configuração do banco mudou, recriando pool...');
-      pool.end().catch(console.error);
+      log.info('Configuracao do banco mudou, recriando pool...');
+      pool.end().catch((err: unknown) => log.error('Erro ao encerrar pool', err));
       pool = null;
       poolConfig = null;
     }
   }
   
   if (!pool) {
-    console.log('Criando novo pool PostgreSQL...');
+    log.info('Criando novo pool PostgreSQL...');
     try {
       pool = createPool();
     } catch (error) {
       const err = error as DatabaseError
-      console.error('Erro ao criar pool PostgreSQL:', {
-        message: err.message,
-        code: err.code,
-        stack: err.stack
-      });
+      log.error('Erro ao criar pool PostgreSQL', err, { data: { code: err.code } });
       // Resetar pool para permitir nova tentativa
       pool = null;
       poolConfig = null;
@@ -302,7 +284,7 @@ function getPool(): Pool {
 // Função para resetar o pool (útil para testes ou mudanças de configuração)
 export function resetPool() {
   if (pool) {
-    pool.end().catch(console.error);
+    pool.end().catch((err: unknown) => log.error('Erro ao encerrar pool', err));
     pool = null;
     poolConfig = null;
   }
@@ -318,11 +300,7 @@ export async function testConnection(): Promise<{ success: boolean; error?: stri
     return { success: true };
   } catch (error) {
     const err = error as DatabaseError
-    console.error('Erro ao testar conexão:', {
-      code: err.code,
-      message: err.message,
-      host: process.env.DB_HOST,
-    });
+    log.error('Erro ao testar conexao', err, { data: { code: err.code, host: process.env.DB_HOST } });
 
     consecutiveFailures++;
     isHealthy = false;
@@ -359,10 +337,10 @@ async function healthCheck(): Promise<boolean> {
   } catch (error) {
     const err = error as DatabaseError
     consecutiveFailures++;
-    console.warn(`[HealthCheck] Falha ${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}:`, err.message);
+    log.warn(`HealthCheck falha ${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}: ${err.message}`);
 
     if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-      console.error('[HealthCheck] Muitas falhas consecutivas, recriando pool...');
+      log.error('HealthCheck: muitas falhas consecutivas, recriando pool...');
       isHealthy = false;
       resetPool();
     }
@@ -428,7 +406,7 @@ async function queryWithRetry(
 
       // Query bem-sucedida, resetar contadores de falha
       if (attempt > 0) {
-        console.log(`[Query] Sucesso após ${attempt + 1} tentativas`);
+        log.info(`Query sucesso apos ${attempt + 1} tentativas`);
       }
       consecutiveFailures = 0;
       isHealthy = true;
@@ -442,18 +420,18 @@ async function queryWithRetry(
       const isRecoverable = isRecoverableError(error);
       const errorMsg = err.message?.substring(0, 100) || 'Erro desconhecido';
 
-      console.warn(`[Query] Erro (tentativa ${attempt + 1}/${maxRetries}): ${errorMsg}`);
+      log.warn(`Query erro (tentativa ${attempt + 1}/${maxRetries}): ${errorMsg}`);
 
       // Se for erro recuperável, tentar novamente
       if (isRecoverable && attempt < maxRetries - 1) {
         // Backoff exponencial: 300ms, 600ms, 1200ms, 2400ms
         const waitTime = Math.min(300 * Math.pow(2, attempt), 3000);
-        console.warn(`[Query] Aguardando ${waitTime}ms antes de tentar novamente...`);
+        log.warn(`Query aguardando ${waitTime}ms antes de tentar novamente...`);
         await delay(waitTime);
 
         // Se muitas falhas, recriar pool
         if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-          console.warn('[Query] Recriando pool após múltiplas falhas...');
+          log.warn('Query recriando pool apos multiplas falhas...');
           resetPool();
           currentPool = getPool();
         }
@@ -463,7 +441,7 @@ async function queryWithRetry(
 
       // Se não for recuperável ou esgotou tentativas, lançar erro
       if (!isRecoverable) {
-        console.error('[Query] Erro não recuperável:', errorMsg);
+        log.error('Query erro nao recuperavel: ' + errorMsg);
       }
 
       throw error;
@@ -656,16 +634,16 @@ export async function forceHealthCheck(): Promise<{
  */
 export async function warmupPool(): Promise<boolean> {
   try {
-    console.log('[Pool] Iniciando warmup...');
+    log.info('Pool iniciando warmup...');
     const poolInstance = getPool();
     await poolInstance.query('SELECT 1');
-    console.log('[Pool] Warmup concluído com sucesso');
+    log.info('Pool warmup concluido com sucesso');
     isHealthy = true;
     consecutiveFailures = 0;
     return true;
   } catch (error) {
     const err = error as DatabaseError
-    console.error('[Pool] Erro no warmup:', err.message);
+    log.error('Pool erro no warmup', err);
     return false;
   }
 }

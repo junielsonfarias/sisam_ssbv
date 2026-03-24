@@ -74,6 +74,7 @@ export default function ComparativosPolosPage() {
       const polosData = await polosRes.json()
       setPolos(polosData)
     } catch (error) {
+      console.error('[ComparativosPolos] Erro ao carregar polos:', (error as Error).message)
     }
   }
 

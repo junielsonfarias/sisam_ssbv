@@ -53,30 +53,36 @@ export default function UsuariosPage() {
   const [excluindo, setExcluindo] = useState(false)
 
   useEffect(() => {
-    carregarUsuarios()
-    carregarPolosEEscolas()
+    const controller = new AbortController()
+    carregarUsuarios(controller.signal)
+    carregarPolosEEscolas(controller.signal)
+    return () => controller.abort()
   }, [])
 
-  const carregarPolosEEscolas = async () => {
+  const carregarPolosEEscolas = async (signal?: AbortSignal) => {
     try {
       const [polosRes, escolasRes] = await Promise.all([
-        fetch('/api/admin/polos'),
-        fetch('/api/admin/escolas'),
+        fetch('/api/admin/polos', { signal }),
+        fetch('/api/admin/escolas', { signal }),
       ])
       const polosData = await polosRes.json()
       const escolasData = await escolasRes.json()
       setPolos(Array.isArray(polosData) ? polosData : [])
       setEscolas(Array.isArray(escolasData) ? escolasData : [])
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return
+      console.error('[Usuarios] Erro ao carregar polos/escolas:', (error as Error).message)
     }
   }
 
-  const carregarUsuarios = async () => {
+  const carregarUsuarios = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/admin/usuarios')
+      const response = await fetch('/api/admin/usuarios', { signal })
       const data = await response.json()
       setUsuarios(Array.isArray(data) ? data : [])
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return
+      console.error('[Usuarios] Erro ao carregar usuários:', (error as Error).message)
     } finally {
       setCarregando(false)
     }

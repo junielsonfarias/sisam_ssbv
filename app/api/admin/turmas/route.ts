@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +34,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Já existe uma turma com este código nesta escola e ano letivo' }, { status: 409 })
     }
     console.error('Erro ao criar turma:', error)
@@ -82,7 +84,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Já existe uma turma com este código nesta escola e ano letivo' }, { status: 409 })
     }
     console.error('Erro ao atualizar turma:', error)

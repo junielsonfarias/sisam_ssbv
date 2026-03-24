@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 1. Métricas de Alunos
     // ============================================
-    const alunosParams: any[] = [anoLetivo]
+    const alunosParams: unknown[] = [anoLetivo]
     let alunosWhere = `WHERE a.ano_letivo = $1`
     if (escolaId) {
       alunosParams.push(escolaId)
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 2. Métricas de Turmas
     // ============================================
-    const turmasParams: any[] = [anoLetivo]
+    const turmasParams: unknown[] = [anoLetivo]
     let turmasWhere = `WHERE t.ano_letivo = $1`
     if (escolaId) {
       turmasParams.push(escolaId)
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 3. Métricas de Notas (último período com dados)
     // ============================================
-    const notasParams: any[] = [anoLetivo]
+    const notasParams: unknown[] = [anoLetivo]
     let notasWhere = `WHERE ne.ano_letivo = $1`
     if (escolaId) {
       notasParams.push(escolaId)
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     `
 
     // Média por disciplina
-    const mediaDiscParams: any[] = [anoLetivo]
+    const mediaDiscParams: unknown[] = [anoLetivo]
     let mediaDiscWhere = `WHERE ne.ano_letivo = $1`
     if (escolaId) {
       mediaDiscParams.push(escolaId)
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 4. Métricas de Frequência
     // ============================================
-    const freqParams: any[] = [anoLetivo]
+    const freqParams: unknown[] = [anoLetivo]
     let freqWhere = `WHERE fb.ano_letivo = $1`
     if (escolaId) {
       freqParams.push(escolaId)
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 5. Transferências recentes
     // ============================================
-    const transfParams: any[] = [anoLetivo]
+    const transfParams: unknown[] = [anoLetivo]
     let transfWhere = `WHERE a.ano_letivo = $1 AND hs.tipo_movimentacao IS NOT NULL`
     if (escolaId) {
       transfParams.push(escolaId)
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 6. Conselhos de Classe
     // ============================================
-    const conselhoParams: any[] = [anoLetivo]
+    const conselhoParams: unknown[] = [anoLetivo]
     let conselhoWhere = `WHERE cc.ano_letivo = $1`
     if (escolaId) {
       conselhoParams.push(escolaId)
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 7. Alunos por série (distribuição)
     // ============================================
-    const distParams: any[] = [anoLetivo]
+    const distParams: unknown[] = [anoLetivo]
     let distWhere = `WHERE a.ano_letivo = $1 AND (a.situacao = 'cursando' OR a.situacao IS NULL)`
     if (escolaId) {
       distParams.push(escolaId)
@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 8. Lista de alunos PCD
     // ============================================
-    const pcdParams: any[] = [anoLetivo]
+    const pcdParams: unknown[] = [anoLetivo]
     let pcdWhere = `WHERE a.ano_letivo = $1 AND a.pcd = true AND a.ativo = true`
     if (escolaId) {
       pcdParams.push(escolaId)
@@ -238,7 +238,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 9. Lista de alunos por situação (para modal)
     // ============================================
-    const situacaoParams: any[] = [anoLetivo]
+    const situacaoParams: unknown[] = [anoLetivo]
     let situacaoWhere = `WHERE a.ano_letivo = $1 AND a.ativo = true`
     if (escolaId) {
       situacaoParams.push(escolaId)
@@ -259,7 +259,7 @@ export async function GET(request: NextRequest) {
     // ============================================
     // 10. Lista de turmas com detalhes (para modal)
     // ============================================
-    const turmasDetParams: any[] = [anoLetivo]
+    const turmasDetParams: unknown[] = [anoLetivo]
     let turmasDetWhere = `WHERE t.ano_letivo = $1 AND t.ativo = true`
     if (escolaId) {
       turmasDetParams.push(escolaId)
@@ -279,7 +279,7 @@ export async function GET(request: NextRequest) {
     `
 
     // Helper: query tolerante a falha
-    const safeQuery = async (sql: string, params: any[] = []) => {
+    const safeQuery = async (sql: string, params: unknown[] = []) => {
       try {
         return await pool.query(sql, params)
       } catch (err: unknown) {

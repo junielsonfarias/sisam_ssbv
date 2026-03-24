@@ -316,7 +316,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     // Processar cada linha (cada linha = um aluno)
     for (let i = 0; i < dados.length; i++) {
       try {
-        const linha = dados[i] as any
+        const linha = dados[i] as Record<string, any>
 
         // Extrair dados basicos
         const escolaNome = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()

@@ -8,7 +8,7 @@
  */
 
 import pool from '@/database/connection'
-import { safeQuery } from '@/lib/api-helpers'
+import { safeQuery, getMediaGeralSQL, getMediaGeralMixedSQL, getMediaGeralMixedRoundedSQL, getMediaGeralAvgSQL } from '@/lib/api-helpers'
 import { NOTAS, LIMITES } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
 import { parseDbInt, parseDbNumber } from '@/lib/utils-numeros'
@@ -342,14 +342,7 @@ export function buildDashboardFilters(
           paramIndex += 2
         }
       } else {
-        const mediaCalculada = `
-          CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              ROUND((COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) / 3.0, 2)
-            ELSE
-              ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0, 2)
-          END
-        `
+        const mediaCalculada = getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')
         whereConditions.push(`(${mediaCalculada}) >= $${paramIndex} AND (${mediaCalculada}) < $${paramIndex + 1}`)
         params.push(min, max === 10 ? 10.01 : max)
         paramIndex += 2
@@ -375,14 +368,7 @@ export function buildDashboardFilters(
 
   // Filtro de taxa de acerto mínima/máxima
   if (taxaAcertoMin || taxaAcertoMax) {
-    const mediaCalculadaTaxa = `
-      CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-          ROUND((COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) / 3.0, 2)
-        ELSE
-          ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0, 2)
-      END
-    `
+    const mediaCalculadaTaxa = getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')
     if (taxaAcertoMin) {
       const taxaMin = parseFloat(taxaAcertoMin)
       if (!isNaN(taxaMin)) {
@@ -663,25 +649,7 @@ export async function fetchDashboardMetricas(
       COUNT(DISTINCT e.polo_id) as total_polos,
       COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as total_presentes,
       COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as total_faltantes,
-      ROUND(AVG(CASE
-        WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
-          CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-              ) / 3.0
-            ELSE
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) / 4.0
-          END
-        ELSE NULL
-      END), 2) as media_geral,
+      ${getMediaGeralAvgSQL('rc')} as media_geral,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
@@ -756,25 +724,7 @@ export async function fetchMediasPorSerie(
       rc.serie,
       COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
       COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
-      ROUND(AVG(CASE
-        WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
-          CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-              ) / 3.0
-            ELSE
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) / 4.0
-          END
-        ELSE NULL
-      END), 2) as media_geral,
+      ${getMediaGeralAvgSQL('rc')} as media_geral,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
@@ -804,16 +754,7 @@ export async function fetchMediasPorPolo(
       p.id as polo_id,
       p.nome as polo,
       COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
-      ROUND(AVG(CASE
-        WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
-          CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
-            ELSE
-              (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
-          END
-        ELSE NULL
-      END), 2) as media_geral,
+      ${getMediaGeralAvgSQL('rc')} as media_geral,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
       COUNT(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN 1 END) as presentes,
@@ -844,25 +785,7 @@ export async function fetchMediasPorEscola(
       p.nome as polo,
       COUNT(DISTINCT rc.turma_id) as total_turmas,
       COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
-      ROUND(AVG(CASE
-        WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
-          CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-              ) / 3.0
-            ELSE
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) / 4.0
-          END
-        ELSE NULL
-      END), 2) as media_geral,
+      ${getMediaGeralAvgSQL('rc')} as media_geral,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0) THEN CAST(rc.nota_mat AS DECIMAL) ELSE NULL END), 2) as media_mat,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0) THEN CAST(rc.nota_ch AS DECIMAL) ELSE NULL END), 2) as media_ch,
@@ -898,21 +821,7 @@ export async function fetchMediasPorTurma(
       COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
       ROUND(AVG(CASE
         WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
-          CASE
-            WHEN REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-              ) / 3.0
-            ELSE
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) / 4.0
-          END
+          ${getMediaGeralMixedSQL('t', 'rc', 'rc')}
         ELSE NULL
       END), 2) as media_geral,
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0) THEN CAST(rc.nota_lp AS DECIMAL) ELSE NULL END), 2) as media_lp,
@@ -1034,13 +943,7 @@ export async function fetchTopAlunos(
 
   const topOrderBy = presenca === 'F'
     ? 'ORDER BY a.nome ASC'
-    : `ORDER BY
-        CASE
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            ROUND((COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) / 3.0, 2)
-          ELSE
-            ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0, 2)
-        END DESC`
+    : `ORDER BY ${getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')} DESC`
 
   const sql = `
     SELECT
@@ -1048,27 +951,7 @@ export async function fetchTopAlunos(
       e.nome as escola,
       rc.serie,
       t.codigo as turma,
-      CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-          ROUND(
-            (
-              COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) +
-              COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) +
-              COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)
-            ) / 3.0,
-            2
-          )
-        ELSE
-          ROUND(
-            (
-              COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-              COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-              COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-              COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-            ) / 4.0,
-            2
-          )
-      END as media_aluno,
+      ${getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')} as media_aluno,
       CASE WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_lp ELSE rc.nota_lp END as nota_lp,
       CASE WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_mat ELSE rc.nota_mat END as nota_mat,
       rc.nota_ch,
@@ -1098,13 +981,7 @@ export async function fetchAlunosDetalhados(
 ): Promise<{ alunos: any[]; total: number }> {
   const orderBy = presenca === 'F'
     ? 'ORDER BY a.nome ASC'
-    : `ORDER BY
-        CASE
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            ROUND((COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)) / 3.0, 2)
-          ELSE
-            ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0, 2)
-        END DESC NULLS LAST`
+    : `ORDER BY ${getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')} DESC NULLS LAST`
 
   const joinNivelAprendizagem = 'LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo'
 
@@ -1128,27 +1005,7 @@ export async function fetchAlunosDetalhados(
       rc.turma_id,
       t.codigo as turma,
       rc.presenca,
-      CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-          ROUND(
-            (
-              COALESCE(CAST(rc_table.nota_lp AS DECIMAL), 0) +
-              COALESCE(CAST(rc_table.nota_mat AS DECIMAL), 0) +
-              COALESCE(CAST(rc_table.nota_producao AS DECIMAL), 0)
-            ) / 3.0,
-            2
-          )
-        ELSE
-          ROUND(
-            (
-              COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-              COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-              COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-              COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-            ) / 4.0,
-            2
-          )
-      END as media_aluno,
+      ${getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')} as media_aluno,
       CASE
         WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_lp
         ELSE rc.nota_lp
@@ -1198,7 +1055,7 @@ export async function fetchAlunosDetalhados(
 
   return {
     alunos: alunosRows,
-    total: parseDbInt((totalRows[0] as any)?.total)
+    total: parseDbInt((totalRows[0] as {total?: string | number | null})?.total)
   }
 }
 
@@ -1457,7 +1314,7 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'turmasComMaisAcertos')
   ])
 
-  const taxaAcertoGeral = (taxaAcertoGeralRows[0] as any) || null
+  const taxaAcertoGeral = (taxaAcertoGeralRows[0] as Record<string, string | number | null>) || null
 
   return {
     taxaAcertoGeral: taxaAcertoGeral ? {

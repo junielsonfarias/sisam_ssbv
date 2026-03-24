@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { PG_ERRORS } from '@/lib/constants'
 
 /**
  * Códigos de erro padronizados da API
@@ -100,11 +101,11 @@ export function apiServerError(error: unknown, contexto?: string) {
   const code = getErrorCode(error)
   let erro: ApiErrorCode = API_ERRORS.ERRO_INTERNO
 
-  if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'ENETUNREACH') {
+  if (code === PG_ERRORS.CONNECTION_REFUSED || code === PG_ERRORS.HOST_NOT_FOUND || code === PG_ERRORS.NETWORK_UNREACHABLE) {
     erro = API_ERRORS.CONEXAO_BANCO
-  } else if (code === 'ETIMEDOUT' || code === '57014') {
+  } else if (code === PG_ERRORS.CONNECTION_TIMEOUT || code === PG_ERRORS.QUERY_CANCELED) {
     erro = API_ERRORS.TIMEOUT_BANCO
-  } else if (code === '23505') {
+  } else if (code === PG_ERRORS.UNIQUE_VIOLATION) {
     return apiError({
       mensagem: 'Registro duplicado',
       erro: API_ERRORS.REGISTRO_DUPLICADO,

@@ -63,9 +63,9 @@ export async function GET(
       dados.analise_questoes
     );
 
-    // Gerar PDF - usando any para contornar tipagem do react-pdf
+    // Gerar PDF - cast necessário pois react-pdf espera tipo interno diferente de React.ReactElement
     const documento = React.createElement(RelatorioEscolaPDF, { dados, graficos });
-    const pdfBuffer = await renderToBuffer(documento as any);
+    const pdfBuffer = await renderToBuffer(documento as unknown as Parameters<typeof renderToBuffer>[0]);
 
     // Nome do arquivo
     const codigoEscola = dados.escola.codigo || dados.escola.id.substring(0, 8);

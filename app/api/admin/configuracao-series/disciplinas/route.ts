@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { limparCacheConfigSeries } from '@/lib/config-series'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -240,13 +241,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error: unknown) {
     console.error('Erro ao salvar disciplinas:', error)
-    console.error('Stack:', (error as any).stack)
+    console.error('Stack:', (error as DatabaseError).stack)
     console.error('Detalhes:', JSON.stringify(error, null, 2))
     return NextResponse.json(
       {
         mensagem: (error as Error).message || 'Erro interno do servidor',
-        detalhes: (error as any).detail || null,
-        codigo: (error as any).code || null
+        detalhes: (error as DatabaseError).detail || null,
+        codigo: (error as DatabaseError).code || null
       },
       { status: 500 }
     )

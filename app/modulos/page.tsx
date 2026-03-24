@@ -54,7 +54,9 @@ export default function ModulosPage() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
-    } catch { /* silencia */ }
+    } catch (err) {
+      console.warn('[Modulos] Falha no logout:', (err as Error).message)
+    }
     offlineStorage.clearUser()
     offlineStorage.clearModuloAtivo()
     router.push('/login')

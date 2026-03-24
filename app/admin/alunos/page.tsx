@@ -291,6 +291,7 @@ export default function AlunosPage() {
           }))
         }
       } catch (error) {
+        console.error('[Alunos] Erro ao carregar dados do aluno para edição:', (error as Error).message)
       }
     } else {
       setAlunoEditando(null)

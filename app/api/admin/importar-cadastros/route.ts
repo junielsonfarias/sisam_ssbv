@@ -35,7 +35,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
     }
 
     // Detectar colunas
-    const primeiraLinha = dados[0] as any
+    const primeiraLinha = dados[0] as Record<string, unknown>
     const colunasDisponiveis = Object.keys(primeiraLinha)
 
     const encontrarColuna = (nomesPossiveis: string[]): string | null => {

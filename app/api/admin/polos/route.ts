@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
+import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
-  const { searchParams } = new URL(request.url)
-  const id = searchParams.get('id')
+  const searchParams = request.nextUrl.searchParams
+  const { id } = parseSearchParams(searchParams, ['id'])
 
   // Se usuário é polo ou escola, só pode ver seu próprio polo
   if (usuario.tipo_usuario === 'polo' || usuario.tipo_usuario === 'escola') {
@@ -28,17 +31,13 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   }
 
   // Admin e tecnico podem ver todos os polos
-  let query = 'SELECT * FROM polos'
-  const params: (string | number | boolean | null | undefined)[] = []
+  const where = createWhereBuilder()
+  addCondition(where, 'id', id)
 
-  if (id) {
-    query += ' WHERE id = $1'
-    params.push(id)
-  }
-
-  query += ' ORDER BY nome'
-
-  const result = await pool.query(query, params)
+  const result = await pool.query(
+    `SELECT * FROM polos ${buildWhereString(where)} ORDER BY nome`,
+    where.params
+  )
 
   return NextResponse.json(result.rows)
 })
@@ -63,7 +62,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
@@ -95,7 +94,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Código já cadastrado' }, { status: 400 })
     }
     console.error('Erro ao atualizar polo:', error)

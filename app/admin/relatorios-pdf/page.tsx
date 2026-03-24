@@ -16,17 +16,58 @@ interface AlunoSimples { id: string; nome: string; codigo: string; serie: string
 
 type TipoRelatorio = 'boletim' | 'historico' | 'ata_conselho'
 
-interface BoletimData {
-  aluno: any
-  notas: any[]
-  frequencia: any[]
-  config: { nota_maxima: number; media_aprovacao: number }
+interface DisciplinaBoletim {
+  disciplina: string
+  abreviacao?: string
+  ordem: number
+  media: number | null
+  total_faltas: number
+  bimestres?: Record<number, { nota: number | null; final?: number | null }>
 }
 
-interface AtaConselhoData {
-  turma: any
-  alunos: { nome: string; codigo: string; parecer: string; observacao: string }[]
-  data_conselho: string
+interface FrequenciaPeriodo {
+  numero: number
+  periodo: string
+  percentual: number | null
+}
+
+interface AlunoConselho {
+  nome?: string
+  aluno_nome?: string
+  parecer: string
+  observacao?: string
+}
+
+interface HistoricoSituacao {
+  data?: string
+  situacao_anterior: string
+  situacao: string
+  observacao?: string
+}
+
+interface AlunoInfo {
+  nome: string
+  codigo: string
+  serie: string
+  escola_nome?: string
+  turma_codigo?: string
+  polo_nome?: string
+  data_nascimento?: string
+  nome_mae?: string
+  nome_pai?: string
+  naturalidade?: string
+}
+
+interface RelatorioData {
+  tipo: TipoRelatorio
+  aluno?: AlunoInfo
+  notas_por_ano?: Record<string, Record<string, DisciplinaBoletim>>
+  frequencia_por_ano?: Record<string, FrequenciaPeriodo[]>
+  config?: { nota_maxima?: number; media_aprovacao?: number }
+  historico_situacao?: HistoricoSituacao[]
+  turma?: { codigo: string; serie: string }
+  alunos?: AlunoConselho[]
+  data_conselho?: string
 }
 
 export default function RelatoriosPdfPage() {
@@ -49,7 +90,7 @@ export default function RelatoriosPdfPage() {
 
   const [tipoRelatorio, setTipoRelatorio] = useState<TipoRelatorio>('boletim')
   const [carregando, setCarregando] = useState(false)
-  const [dadosRelatorio, setDadosRelatorio] = useState<any>(null)
+  const [dadosRelatorio, setDadosRelatorio] = useState<RelatorioData | null>(null)
   const [escolaNome, setEscolaNome] = useState('')
 
   useEffect(() => {
@@ -91,7 +132,7 @@ export default function RelatoriosPdfPage() {
         const res = await fetch(`/api/admin/historico-escolar?aluno_id=${alunoId}`)
         if (res.ok) {
           const data = await res.json()
-          setDadosRelatorio({ tipo: tipoRelatorio, ...data })
+          setDadosRelatorio({ tipo: tipoRelatorio, ...data } as RelatorioData)
         } else {
           toast.error('Erro ao gerar relatório')
         }
@@ -100,7 +141,7 @@ export default function RelatoriosPdfPage() {
         const res = await fetch(`/api/admin/conselho-classe?turma_id=${turmaId}`)
         if (res.ok) {
           const data = await res.json()
-          setDadosRelatorio({ tipo: 'ata_conselho', ...data })
+          setDadosRelatorio({ tipo: 'ata_conselho', ...data } as RelatorioData)
         } else {
           toast.error('Erro ao gerar relatório')
         }
@@ -234,8 +275,8 @@ export default function RelatoriosPdfPage() {
               </div>
 
               {/* Notas por ano */}
-              {Object.entries(dadosRelatorio.notas_por_ano || {}).map(([ano, disciplinas]: [string, any]) => {
-                const discs = Object.values(disciplinas).sort((a: any, b: any) => a.ordem - b.ordem) as any[]
+              {Object.entries(dadosRelatorio.notas_por_ano || {}).map(([ano, disciplinas]) => {
+                const discs = Object.values(disciplinas).sort((a, b) => a.ordem - b.ordem)
                 const mediaAprovacao = dadosRelatorio.config?.media_aprovacao || 6
 
                 return (
@@ -255,7 +296,7 @@ export default function RelatoriosPdfPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {discs.map((d: any) => {
+                          {discs.map((d) => {
                             const aprovado = d.media !== null && d.media >= mediaAprovacao
                             return (
                               <tr key={d.disciplina}>
@@ -287,11 +328,11 @@ export default function RelatoriosPdfPage() {
               })}
 
               {/* Frequência */}
-              {Object.entries(dadosRelatorio.frequencia_por_ano || {}).map(([ano, freqs]: [string, any]) => (
+              {Object.entries(dadosRelatorio.frequencia_por_ano || {}).map(([ano, freqs]) => (
                 <div key={`freq-${ano}`} className="text-sm">
                   <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Frequência — {ano}</h4>
                   <div className="flex flex-wrap gap-4">
-                    {(freqs as any[]).map((f: any) => (
+                    {freqs.map((f) => (
                       <div key={f.numero} className="flex items-center gap-1">
                         <span className="text-gray-500">{f.periodo}:</span>
                         <span className={`font-medium ${f.percentual !== null && f.percentual < 75 ? 'text-red-600' : 'text-emerald-600'}`}>
@@ -335,8 +376,8 @@ export default function RelatoriosPdfPage() {
                 <div><span className="text-gray-500">Código:</span> <p className="font-medium">{dadosRelatorio.aluno.codigo}</p></div>
               </div>
 
-              {Object.entries(dadosRelatorio.notas_por_ano || {}).map(([ano, disciplinas]: [string, any]) => {
-                const discs = Object.values(disciplinas).sort((a: any, b: any) => a.ordem - b.ordem) as any[]
+              {Object.entries(dadosRelatorio.notas_por_ano || {}).map(([ano, disciplinas]) => {
+                const discs = Object.values(disciplinas).sort((a, b) => a.ordem - b.ordem)
                 const mediaAprovacao = dadosRelatorio.config?.media_aprovacao || 6
 
                 return (
@@ -353,7 +394,7 @@ export default function RelatoriosPdfPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {discs.map((d: any) => (
+                        {discs.map((d) => (
                           <tr key={d.disciplina}>
                             <td className="border dark:border-slate-600 px-2 py-1">{d.abreviacao || d.disciplina}</td>
                             {[1,2,3,4].map(b => {
@@ -376,10 +417,10 @@ export default function RelatoriosPdfPage() {
               })}
 
               {/* Movimentações */}
-              {dadosRelatorio.historico_situacao?.length > 0 && (
+              {dadosRelatorio.historico_situacao && dadosRelatorio.historico_situacao.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Movimentações</h4>
-                  {dadosRelatorio.historico_situacao.map((h: any, i: number) => (
+                  {dadosRelatorio.historico_situacao.map((h, i: number) => (
                     <div key={i} className="text-xs text-gray-600 dark:text-gray-400">
                       {h.data ? new Date(h.data).toLocaleDateString('pt-BR') : '-'} — {h.situacao_anterior} → {h.situacao}
                       {h.observacao && ` (${h.observacao})`}
@@ -429,7 +470,7 @@ export default function RelatoriosPdfPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {dadosRelatorio.alunos.map((a: any, i: number) => (
+                      {dadosRelatorio.alunos.map((a, i: number) => (
                         <tr key={i} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                           <td className="border dark:border-slate-600 px-3 py-2 text-center text-gray-500">{i + 1}</td>
                           <td className="border dark:border-slate-600 px-3 py-2 font-medium">{a.nome || a.aluno_nome}</td>
@@ -451,9 +492,9 @@ export default function RelatoriosPdfPage() {
                   {/* Resumo */}
                   <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600 dark:text-gray-400">
                     <span>Total: <strong>{dadosRelatorio.alunos.length}</strong></span>
-                    <span className="text-emerald-600">Aprovados: <strong>{dadosRelatorio.alunos.filter((a: any) => a.parecer === 'aprovado').length}</strong></span>
-                    <span className="text-red-600">Reprovados: <strong>{dadosRelatorio.alunos.filter((a: any) => a.parecer === 'reprovado').length}</strong></span>
-                    <span className="text-orange-600">Recuperação: <strong>{dadosRelatorio.alunos.filter((a: any) => a.parecer === 'recuperacao').length}</strong></span>
+                    <span className="text-emerald-600">Aprovados: <strong>{dadosRelatorio.alunos.filter(a => a.parecer === 'aprovado').length}</strong></span>
+                    <span className="text-red-600">Reprovados: <strong>{dadosRelatorio.alunos.filter(a => a.parecer === 'reprovado').length}</strong></span>
+                    <span className="text-orange-600">Recuperação: <strong>{dadosRelatorio.alunos.filter(a => a.parecer === 'recuperacao').length}</strong></span>
                   </div>
                 </div>
               ) : (

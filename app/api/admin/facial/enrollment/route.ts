@@ -3,6 +3,8 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { validateRequest } from '@/lib/schemas'
 import { enrollmentFacialSchema } from '@/lib/schemas'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -119,21 +121,21 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro no enrollment facial:', {
       message: (error as Error)?.message,
-      code: (error as any)?.code,
-      detail: (error as any)?.detail,
-      constraint: (error as any)?.constraint,
+      code: (error as DatabaseError)?.code,
+      detail: (error as DatabaseError)?.detail,
+      constraint: (error as DatabaseError)?.constraint,
     })
 
     // Erro de constraint do PostgreSQL (qualidade fora do range, etc)
-    if ((error as any)?.code === '23514') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.CHECK_VIOLATION) {
       return NextResponse.json({
         mensagem: 'Valor de qualidade fora do intervalo permitido (0-100)',
       }, { status: 400 })
     }
 
     return NextResponse.json({
-      mensagem: (error as any)?.detail || (error as Error)?.message || 'Erro interno do servidor',
-      codigo: (error as any)?.code,
+      mensagem: (error as DatabaseError)?.detail || (error as Error)?.message || 'Erro interno do servidor',
+      codigo: (error as DatabaseError)?.code,
     }, { status: 500 })
   }
 }

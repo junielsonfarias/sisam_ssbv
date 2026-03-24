@@ -99,6 +99,7 @@ export default function DispositivosFaciaisPage() {
       const data = await response.json()
       setEscolas(Array.isArray(data) ? data : [])
     } catch (error) {
+      console.error('[DispositivosFaciais] Erro ao carregar escolas:', (error as Error).message)
     }
   }
 
@@ -110,6 +111,7 @@ export default function DispositivosFaciaisPage() {
         setPresencasHoje(data.presenca?.total_presentes || 0)
       }
     } catch (error) {
+      console.error('[DispositivosFaciais] Erro ao carregar presenças:', (error as Error).message)
     }
   }
 

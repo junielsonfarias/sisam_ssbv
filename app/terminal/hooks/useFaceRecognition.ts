@@ -154,7 +154,9 @@ export function useFaceRecognition({
                     salvoNoServidor = true
                     if (data.tipo === 'saida') tipo = 'ja_registrado'
                   }
-                } catch { /* falha de rede */ }
+                } catch {
+                  // Expected: network failure in offline mode, presence saved locally
+                }
               }
 
               if (!salvoNoServidor) {
@@ -180,7 +182,9 @@ export function useFaceRecognition({
                   osc.connect(audioCtx.destination)
                   osc.start()
                   setTimeout(() => { osc.stop(); audioCtx.close() }, tipo === 'ja_registrado' ? 300 : 150)
-                } catch { /* Sem som */ }
+                } catch {
+                  // Expected: AudioContext not supported in all browsers
+                }
               }
             }
           } else {
@@ -196,7 +200,9 @@ export function useFaceRecognition({
             ctx.fillText(label, box.x + 6, box.y - 8)
           }
         }
-      } catch { /* Erro no loop - continua */ } finally {
+      } catch (err) {
+        console.warn('[FaceRecognition] Erro no loop de detecção:', (err as Error).message)
+      } finally {
         detectandoRef.current = false
       }
     }, 500)

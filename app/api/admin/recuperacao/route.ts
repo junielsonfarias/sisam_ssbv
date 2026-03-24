@@ -49,7 +49,9 @@ export async function GET(request: NextRequest) {
       if (configResult.rows.length > 0) {
         mediaAprovacao = configResult.rows[0].media_aprovacao
       }
-    } catch { /* usa padrão */ }
+    } catch (err) {
+      console.warn('[Recuperacao] Falha ao carregar config, usando padrão:', (err as Error).message)
+    }
 
     // Query principal: alunos com nota_final abaixo da média
     const params: any[] = [periodoId, anoLetivo, mediaAprovacao]

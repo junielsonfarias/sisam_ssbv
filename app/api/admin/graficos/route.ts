@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic'
 
 export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
   // Limpar caches expirados (não crítico)
-  try { limparCachesExpirados() } catch { /* ignorar */ }
+  try { limparCachesExpirados() } catch (err) {
+    console.warn('[Graficos] Falha não-crítica ao limpar caches:', (err as Error).message)
+  }
 
   const { searchParams } = new URL(request.url)
   const tipoGrafico = searchParams.get('tipo') || 'geral'

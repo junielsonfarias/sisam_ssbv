@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
 import { periodoLetivoSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
+import { DatabaseError } from '@/lib/validation'
+import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,31 +14,18 @@ const atualizarPeriodoSchema = periodoLetivoSchema.extend({
 })
 
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
-  const { searchParams } = new URL(request.url)
-  const anoLetivo = searchParams.get('ano_letivo')
-  const tipo = searchParams.get('tipo')
+  const searchParams = request.nextUrl.searchParams
+  const { ano_letivo, tipo } = parseSearchParams(searchParams, ['ano_letivo', 'tipo'])
 
-  const whereConditions: string[] = []
-  const params: string[] = []
-  let paramIndex = 1
+  const where = createWhereBuilder()
+  addCondition(where, 'ano_letivo', ano_letivo)
+  addCondition(where, 'tipo', tipo)
 
-  if (anoLetivo) {
-    whereConditions.push(`ano_letivo = $${paramIndex}`)
-    params.push(anoLetivo)
-    paramIndex++
-  }
-
-  if (tipo) {
-    whereConditions.push(`tipo = $${paramIndex}`)
-    params.push(tipo)
-    paramIndex++
-  }
-
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+  const whereClause = buildWhereString(where)
 
   const result = await pool.query(
     `SELECT * FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
-    params
+    where.params
   )
 
   return NextResponse.json(result.rows)
@@ -57,7 +47,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Já existe um período deste tipo e número para este ano letivo' },
         { status: 400 }
@@ -89,7 +79,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    if ((error as any)?.code === '23505') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Já existe um período deste tipo e número para este ano letivo' },
         { status: 400 }

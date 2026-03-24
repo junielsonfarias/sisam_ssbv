@@ -114,6 +114,7 @@ export default function ComparativosPage() {
         }
       }
     } catch (error) {
+      console.error('[Comparativos] Erro ao carregar dados iniciais:', (error as Error).message)
     }
   }
 

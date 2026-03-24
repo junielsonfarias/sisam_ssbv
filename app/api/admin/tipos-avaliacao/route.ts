@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
+import { parseBoolParam, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -16,19 +19,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Nao autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const todos = searchParams.get('todos') === 'true'
+    const searchParams = request.nextUrl.searchParams
+    const todos = parseBoolParam(searchParams, 'todos', false)
 
-    let query = `SELECT * FROM tipos_avaliacao`
+    const where = createWhereBuilder()
     if (!todos) {
-      query += ` WHERE ativo = true`
+      addCondition(where, 'ativo', true)
     }
-    query += ` ORDER BY codigo ASC`
 
-    const result = await pool.query(query)
+    const result = await pool.query(
+      `SELECT * FROM tipos_avaliacao ${buildWhereString(where)} ORDER BY codigo ASC`,
+      where.params
+    )
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
-    if ((error as any)?.code === '42P01') {
+    if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json([])
     }
     console.error('Erro ao listar tipos de avaliacao:', error)
@@ -73,7 +78,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     console.error('Erro ao criar tipo de avaliacao:', error)
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Ja existe um tipo com este codigo' }, { status: 409 })
     }
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
@@ -135,7 +140,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     console.error('Erro ao atualizar tipo de avaliacao:', error)
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Ja existe um tipo com este codigo' }, { status: 409 })
     }
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

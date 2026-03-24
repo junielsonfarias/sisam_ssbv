@@ -47,7 +47,9 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
       } else {
         setEmbedding(null)
       }
-    } catch { /* erro silencioso */ }
+    } catch (err) {
+      console.error('[AbaFacial] Erro ao carregar dados faciais:', (err as Error).message)
+    }
     setCarregando(false)
   }
 

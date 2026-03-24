@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -161,13 +163,13 @@ export async function PUT(
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
       )
     }
-    console.error('Erro ao atualizar escola:', (error as Error)?.message || error, 'Code:', (error as any)?.code, 'Detail:', (error as any)?.detail)
+    console.error('Erro ao atualizar escola:', (error as Error)?.message || error, 'Code:', (error as DatabaseError)?.code, 'Detail:', (error as DatabaseError)?.detail)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

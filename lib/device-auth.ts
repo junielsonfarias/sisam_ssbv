@@ -15,6 +15,10 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import pool from '@/database/connection'
 import { FACIAL } from './constants'
+import { createLogger } from './logger'
+import { DatabaseError } from '@/lib/validation'
+
+const log = createLogger('DeviceAuth')
 
 // ============================================================================
 // TIPOS
@@ -120,9 +124,8 @@ export async function validateDeviceApiKey(
 
     return null
   } catch (error: unknown) {
-    console.error('Erro ao validar API key do dispositivo:', {
-      code: (error as any)?.code,
-      message: (error as Error)?.message,
+    log.error('Erro ao validar API key do dispositivo', error, {
+      data: { code: (error as DatabaseError)?.code },
     })
     return null
   }

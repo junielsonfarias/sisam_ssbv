@@ -1,12 +1,48 @@
 'use client'
 
+import { useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import { AlertTriangle, BarChart3, FileText, Search, Target } from 'lucide-react'
 import { compararSeries as compararSeriesLib } from '@/lib/disciplinas-mapping'
 import { TabelaPaginada, CustomTooltip } from '@/components/dados'
+import type { PaginacaoAnalises } from '@/lib/dados/types'
 import type { AbaAnalisesProps } from './types'
+
+const COLUNAS_QUESTOES = [
+  { key: 'questao_codigo', label: 'Questao', align: 'center' as const },
+  { key: 'questao_descricao', label: 'Descricao', align: 'left' as const },
+  { key: 'disciplina', label: 'Disciplina', align: 'center' as const },
+  { key: 'total_respostas', label: 'Total', align: 'center' as const },
+  { key: 'total_acertos', label: 'Acertos', align: 'center' as const },
+  { key: 'total_erros', label: 'Erros', align: 'center' as const },
+  { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center' as const, format: 'decimal' as const },
+  { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center' as const, format: 'decimal' as const },
+]
+
+const COLUNAS_ESCOLAS = [
+  { key: 'escola', label: 'Escola', align: 'left' as const },
+  { key: 'polo', label: 'Polo', align: 'left' as const },
+  { key: 'total_alunos', label: 'Alunos', align: 'center' as const },
+  { key: 'total_respostas', label: 'Total', align: 'center' as const },
+  { key: 'total_acertos', label: 'Acertos', align: 'center' as const },
+  { key: 'total_erros', label: 'Erros', align: 'center' as const },
+  { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center' as const, format: 'decimal' as const },
+  { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center' as const, format: 'decimal' as const },
+]
+
+const COLUNAS_TURMAS = [
+  { key: 'turma', label: 'Turma', align: 'left' as const },
+  { key: 'escola', label: 'Escola', align: 'left' as const },
+  { key: 'serie', label: 'Serie', align: 'center' as const, format: 'serie' as const },
+  { key: 'total_alunos', label: 'Alunos', align: 'center' as const },
+  { key: 'total_respostas', label: 'Total', align: 'center' as const },
+  { key: 'total_acertos', label: 'Acertos', align: 'center' as const },
+  { key: 'total_erros', label: 'Erros', align: 'center' as const },
+  { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center' as const, format: 'decimal' as const },
+  { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center' as const, format: 'decimal' as const },
+]
 
 export default function AbaAnalises({
   pesquisaRealizada,
@@ -42,7 +78,7 @@ export default function AbaAnalises({
 
         // Calcular estatisticas de Producao Textual para Anos Iniciais
         const alunosComProducao = dados.alunosDetalhados?.filter(a => {
-          const notaProd = parseFloat(a.nota_producao as any)
+          const notaProd = parseFloat(String(a.nota_producao ?? 0))
           const isPresente = a.presenca === 'P' || a.presenca === 'p'
           return isPresente && !isNaN(notaProd) && notaProd >= 0 &&
             (filtroSerie ? compararSeriesLib(a.serie, filtroSerie) : true)
@@ -50,13 +86,13 @@ export default function AbaAnalises({
 
         const estatisticasProducao = alunosComProducao.length > 0 ? {
           total: alunosComProducao.length,
-          media: alunosComProducao.reduce((acc, a) => acc + parseFloat(a.nota_producao as any), 0) / alunosComProducao.length,
-          minima: Math.min(...alunosComProducao.map(a => parseFloat(a.nota_producao as any))),
-          maxima: Math.max(...alunosComProducao.map(a => parseFloat(a.nota_producao as any))),
+          media: alunosComProducao.reduce((acc, a) => acc + parseFloat(String(a.nota_producao ?? 0)), 0) / alunosComProducao.length,
+          minima: Math.min(...alunosComProducao.map(a => parseFloat(String(a.nota_producao ?? 0)))),
+          maxima: Math.max(...alunosComProducao.map(a => parseFloat(String(a.nota_producao ?? 0)))),
           faixas: {
-            baixa: alunosComProducao.filter(a => parseFloat(a.nota_producao as any) < 4).length,
-            media: alunosComProducao.filter(a => parseFloat(a.nota_producao as any) >= 4 && parseFloat(a.nota_producao as any) < 7).length,
-            alta: alunosComProducao.filter(a => parseFloat(a.nota_producao as any) >= 7).length
+            baixa: alunosComProducao.filter(a => parseFloat(String(a.nota_producao ?? 0)) < 4).length,
+            media: alunosComProducao.filter(a => parseFloat(String(a.nota_producao ?? 0)) >= 4 && parseFloat(String(a.nota_producao ?? 0)) < 7).length,
+            alta: alunosComProducao.filter(a => parseFloat(String(a.nota_producao ?? 0)) >= 7).length
           }
         } : null
 
@@ -213,21 +249,12 @@ export default function AbaAnalises({
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <TabelaPaginada
               dados={dados.analiseAcertosErros?.questoesComMaisErros.slice((paginasAnalises.questoesErros - 1) * itensPorPagina, paginasAnalises.questoesErros * itensPorPagina)}
-              colunas={[
-                { key: 'questao_codigo', label: 'Questao', align: 'center' },
-                { key: 'questao_descricao', label: 'Descricao', align: 'left' },
-                { key: 'disciplina', label: 'Disciplina', align: 'center' },
-                { key: 'total_respostas', label: 'Total', align: 'center' },
-                { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                { key: 'total_erros', label: 'Erros', align: 'center' },
-                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-              ]}
+              colunas={COLUNAS_QUESTOES}
               ordenacao={ordenacao}
               onOrdenar={handleOrdenacao}
               paginaAtual={paginasAnalises.questoesErros}
               totalPaginas={Math.ceil(dados.analiseAcertosErros?.questoesComMaisErros.length / itensPorPagina)}
-              onPaginar={(p: number) => setPaginasAnalises((prev: any) => ({ ...prev, questoesErros: p }))}
+              onPaginar={(p: number) => setPaginasAnalises((prev: PaginacaoAnalises) => ({ ...prev, questoesErros: p }))}
               totalRegistros={dados.analiseAcertosErros?.questoesComMaisErros.length}
               itensPorPagina={itensPorPagina}
             />
@@ -242,21 +269,12 @@ export default function AbaAnalises({
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <TabelaPaginada
               dados={dados.analiseAcertosErros?.escolasComMaisErros.slice((paginasAnalises.escolasErros - 1) * itensPorPagina, paginasAnalises.escolasErros * itensPorPagina)}
-              colunas={[
-                { key: 'escola', label: 'Escola', align: 'left' },
-                { key: 'polo', label: 'Polo', align: 'left' },
-                { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                { key: 'total_respostas', label: 'Total', align: 'center' },
-                { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                { key: 'total_erros', label: 'Erros', align: 'center' },
-                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-              ]}
+              colunas={COLUNAS_ESCOLAS}
               ordenacao={ordenacao}
               onOrdenar={handleOrdenacao}
               paginaAtual={paginasAnalises.escolasErros}
               totalPaginas={Math.ceil(dados.analiseAcertosErros?.escolasComMaisErros.length / itensPorPagina)}
-              onPaginar={(p: number) => setPaginasAnalises((prev: any) => ({ ...prev, escolasErros: p }))}
+              onPaginar={(p: number) => setPaginasAnalises((prev: PaginacaoAnalises) => ({ ...prev, escolasErros: p }))}
               totalRegistros={dados.analiseAcertosErros?.escolasComMaisErros.length}
               itensPorPagina={itensPorPagina}
             />
@@ -271,22 +289,12 @@ export default function AbaAnalises({
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <TabelaPaginada
               dados={dados.analiseAcertosErros?.turmasComMaisErros.slice((paginasAnalises.turmasErros - 1) * itensPorPagina, paginasAnalises.turmasErros * itensPorPagina)}
-              colunas={[
-                { key: 'turma', label: 'Turma', align: 'left' },
-                { key: 'escola', label: 'Escola', align: 'left' },
-                { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
-                { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                { key: 'total_respostas', label: 'Total', align: 'center' },
-                { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                { key: 'total_erros', label: 'Erros', align: 'center' },
-                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-              ]}
+              colunas={COLUNAS_TURMAS}
               ordenacao={ordenacao}
               onOrdenar={handleOrdenacao}
               paginaAtual={paginasAnalises.turmasErros}
               totalPaginas={Math.ceil(dados.analiseAcertosErros?.turmasComMaisErros.length / itensPorPagina)}
-              onPaginar={(p: number) => setPaginasAnalises((prev: any) => ({ ...prev, turmasErros: p }))}
+              onPaginar={(p: number) => setPaginasAnalises((prev: PaginacaoAnalises) => ({ ...prev, turmasErros: p }))}
               totalRegistros={dados.analiseAcertosErros?.turmasComMaisErros.length}
               itensPorPagina={itensPorPagina}
             />
@@ -301,21 +309,12 @@ export default function AbaAnalises({
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <TabelaPaginada
               dados={dados.analiseAcertosErros?.questoesComMaisAcertos.slice((paginasAnalises.questoesAcertos - 1) * itensPorPagina, paginasAnalises.questoesAcertos * itensPorPagina)}
-              colunas={[
-                { key: 'questao_codigo', label: 'Questao', align: 'center' },
-                { key: 'questao_descricao', label: 'Descricao', align: 'left' },
-                { key: 'disciplina', label: 'Disciplina', align: 'center' },
-                { key: 'total_respostas', label: 'Total', align: 'center' },
-                { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                { key: 'total_erros', label: 'Erros', align: 'center' },
-                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-              ]}
+              colunas={COLUNAS_QUESTOES}
               ordenacao={ordenacao}
               onOrdenar={handleOrdenacao}
               paginaAtual={paginasAnalises.questoesAcertos}
               totalPaginas={Math.ceil(dados.analiseAcertosErros?.questoesComMaisAcertos.length / itensPorPagina)}
-              onPaginar={(p: number) => setPaginasAnalises((prev: any) => ({ ...prev, questoesAcertos: p }))}
+              onPaginar={(p: number) => setPaginasAnalises((prev: PaginacaoAnalises) => ({ ...prev, questoesAcertos: p }))}
               totalRegistros={dados.analiseAcertosErros?.questoesComMaisAcertos.length}
               itensPorPagina={itensPorPagina}
             />
@@ -330,21 +329,12 @@ export default function AbaAnalises({
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <TabelaPaginada
               dados={dados.analiseAcertosErros?.escolasComMaisAcertos.slice((paginasAnalises.escolasAcertos - 1) * itensPorPagina, paginasAnalises.escolasAcertos * itensPorPagina)}
-              colunas={[
-                { key: 'escola', label: 'Escola', align: 'left' },
-                { key: 'polo', label: 'Polo', align: 'left' },
-                { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                { key: 'total_respostas', label: 'Total', align: 'center' },
-                { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                { key: 'total_erros', label: 'Erros', align: 'center' },
-                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-              ]}
+              colunas={COLUNAS_ESCOLAS}
               ordenacao={ordenacao}
               onOrdenar={handleOrdenacao}
               paginaAtual={paginasAnalises.escolasAcertos}
               totalPaginas={Math.ceil(dados.analiseAcertosErros?.escolasComMaisAcertos.length / itensPorPagina)}
-              onPaginar={(p: number) => setPaginasAnalises((prev: any) => ({ ...prev, escolasAcertos: p }))}
+              onPaginar={(p: number) => setPaginasAnalises((prev: PaginacaoAnalises) => ({ ...prev, escolasAcertos: p }))}
               totalRegistros={dados.analiseAcertosErros?.escolasComMaisAcertos.length}
               itensPorPagina={itensPorPagina}
             />
@@ -359,22 +349,12 @@ export default function AbaAnalises({
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <TabelaPaginada
               dados={dados.analiseAcertosErros?.turmasComMaisAcertos.slice((paginasAnalises.turmasAcertos - 1) * itensPorPagina, paginasAnalises.turmasAcertos * itensPorPagina)}
-              colunas={[
-                { key: 'turma', label: 'Turma', align: 'left' },
-                { key: 'escola', label: 'Escola', align: 'left' },
-                { key: 'serie', label: 'Serie', align: 'center', format: 'serie' },
-                { key: 'total_alunos', label: 'Alunos', align: 'center' },
-                { key: 'total_respostas', label: 'Total', align: 'center' },
-                { key: 'total_acertos', label: 'Acertos', align: 'center' },
-                { key: 'total_erros', label: 'Erros', align: 'center' },
-                { key: 'taxa_acerto', label: 'Taxa Acerto (%)', align: 'center', format: 'decimal' },
-                { key: 'taxa_erro', label: 'Taxa Erro (%)', align: 'center', format: 'decimal' },
-              ]}
+              colunas={COLUNAS_TURMAS}
               ordenacao={ordenacao}
               onOrdenar={handleOrdenacao}
               paginaAtual={paginasAnalises.turmasAcertos}
               totalPaginas={Math.ceil(dados.analiseAcertosErros?.turmasComMaisAcertos.length / itensPorPagina)}
-              onPaginar={(p: number) => setPaginasAnalises((prev: any) => ({ ...prev, turmasAcertos: p }))}
+              onPaginar={(p: number) => setPaginasAnalises((prev: PaginacaoAnalises) => ({ ...prev, turmasAcertos: p }))}
               totalRegistros={dados.analiseAcertosErros?.turmasComMaisAcertos.length}
               itensPorPagina={itensPorPagina}
             />

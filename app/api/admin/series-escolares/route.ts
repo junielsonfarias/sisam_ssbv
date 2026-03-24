@@ -1,33 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
+import { parseSearchParams, createWhereBuilder, addCondition, buildConditionsString } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const { searchParams } = new URL(request.url)
-    const etapa = searchParams.get('etapa')
+    const searchParams = request.nextUrl.searchParams
+    const { etapa } = parseSearchParams(searchParams, ['etapa'])
 
-    let query = `
+    const where = createWhereBuilder()
+    addCondition(where, 'se.etapa', etapa)
+
+    const query = `
       SELECT se.*,
         (SELECT COUNT(*) FROM series_disciplinas sd WHERE sd.serie_id = se.id AND sd.ativo = true) as total_disciplinas
       FROM series_escolares se
-      WHERE 1=1
+      WHERE ${buildConditionsString(where)}
+      ORDER BY se.ordem ASC
     `
-    const params: string[] = []
-    let paramIndex = 1
 
-    if (etapa) {
-      query += ` AND se.etapa = $${paramIndex}`
-      params.push(etapa)
-      paramIndex++
-    }
-
-    query += ' ORDER BY se.ordem ASC'
-
-    const result = await pool.query(query, params)
+    const result = await pool.query(query, where.params)
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error('Erro ao buscar séries escolares:', error)
@@ -58,7 +55,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     console.error('Erro ao criar série escolar:', error)
-    if ((error as any).code === '23505') {
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Já existe uma série com este código' }, { status: 409 })
     }
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
