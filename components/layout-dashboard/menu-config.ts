@@ -51,6 +51,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
   const dashHref = moduloAtivo === 'gestor' ? '/admin/dashboard-gestor' : `/${basePath}/dashboard`
   const items: MenuItem[] = [
     { icon: LayoutGrid, label: 'Dashboard', href: dashHref },
+    { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
   ]
 
   // Menu especifico para ADMINISTRADOR
@@ -102,7 +103,6 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       items.push(
         {
           icon: BookOpen, label: 'Cadastros', children: [
-            { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
             { icon: School, label: 'Escolas', href: '/admin/escolas' },
             { icon: MapPin, label: 'Polos', href: '/admin/polos' },
             { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
@@ -199,7 +199,6 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       items.push(
         {
           icon: BookOpen, label: 'Cadastros', children: [
-            { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
             { icon: School, label: 'Escolas', href: '/admin/escolas' },
             { icon: MapPin, label: 'Polos', href: '/admin/polos' },
             { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
@@ -274,7 +273,6 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       },
       {
         icon: BookOpen, label: 'Cadastros', children: [
-          { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
           { icon: School, label: 'Escolas', href: '/polo/escolas' },
           { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
         ]
@@ -303,7 +301,6 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       items.push(
         {
           icon: BookOpen, label: 'Cadastros', children: [
-            { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
             { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' },
             { icon: UserPlus, label: 'Matrículas', href: '/escola/matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
