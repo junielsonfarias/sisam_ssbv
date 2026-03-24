@@ -51,8 +51,12 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
   const dashHref = moduloAtivo === 'gestor' ? '/admin/dashboard-gestor' : `/${basePath}/dashboard`
   const items: MenuItem[] = [
     { icon: LayoutGrid, label: 'Dashboard', href: dashHref },
-    { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
   ]
+
+  // Pesquisar Aluno — logo abaixo do Dashboard para perfis com acesso
+  if (['admin', 'administrador', 'tecnico', 'polo', 'escola'].includes(tipoUsuarioReal)) {
+    items.push({ icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' })
+  }
 
   // Menu especifico para ADMINISTRADOR
   if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
