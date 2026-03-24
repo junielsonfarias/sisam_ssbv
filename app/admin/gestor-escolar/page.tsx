@@ -2,16 +2,17 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
-import { BookOpen, Calendar, Settings } from 'lucide-react'
+import { BookOpen, Calendar, Settings, Search } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { AbaDisciplinas } from './components/aba-disciplinas'
 import { AbaPeriodos } from './components/aba-periodos'
 import { AbaConfiguracaoNotas } from './components/aba-configuracao-notas'
+import { AbaPesquisarAluno } from './components/aba-pesquisar-aluno'
 import type { Aba } from './components/types'
 
 export default function GestorEscolarPage() {
   const toast = useToast()
-  const [abaAtiva, setAbaAtiva] = useState<Aba>('disciplinas')
+  const [abaAtiva, setAbaAtiva] = useState<Aba>('pesquisar-aluno')
   const [tipoUsuario, setTipoUsuario] = useState<string>('')
   const [escolaIdUsuario, setEscolaIdUsuario] = useState<string>('')
 
@@ -29,6 +30,7 @@ export default function GestorEscolarPage() {
   }, [])
 
   const abas: { id: Aba; label: string; icon: any }[] = [
+    { id: 'pesquisar-aluno', label: 'Pesquisar Aluno', icon: Search },
     { id: 'disciplinas', label: 'Disciplinas', icon: BookOpen },
     { id: 'periodos', label: 'Períodos Letivos', icon: Calendar },
     { id: 'configuracao', label: 'Configuração de Notas', icon: Settings },
@@ -47,7 +49,7 @@ export default function GestorEscolarPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">Gestor Escolar</h1>
-              <p className="text-sm opacity-90">Disciplinas, períodos letivos e configuração de notas</p>
+              <p className="text-sm opacity-90">Pesquisa de alunos, matrículas, disciplinas, períodos e configuração</p>
             </div>
           </div>
         </div>
@@ -75,6 +77,14 @@ export default function GestorEscolarPage() {
           </div>
 
           <div className="p-4 sm:p-6">
+            {abaAtiva === 'pesquisar-aluno' && (
+              <AbaPesquisarAluno
+                podeEditar={podeEditar || tipoUsuario === 'escola'}
+                tipoUsuario={tipoUsuario}
+                escolaIdUsuario={escolaIdUsuario}
+                toast={toast}
+              />
+            )}
             {abaAtiva === 'disciplinas' && (
               <AbaDisciplinas podeEditar={podeEditar} toast={toast} />
             )}

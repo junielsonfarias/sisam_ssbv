@@ -34,7 +34,8 @@ import {
   LayoutList,
   Globe,
   FileSpreadsheet,
-  Lock
+  Lock,
+  Search
 } from 'lucide-react'
 import type { MenuItem } from './types'
 import type { ModuloAtivo } from '@/lib/offline-storage'
@@ -101,6 +102,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       items.push(
         {
           icon: BookOpen, label: 'Cadastros', children: [
+            { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
             { icon: School, label: 'Escolas', href: '/admin/escolas' },
             { icon: MapPin, label: 'Polos', href: '/admin/polos' },
             { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
@@ -197,6 +199,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       items.push(
         {
           icon: BookOpen, label: 'Cadastros', children: [
+            { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
             { icon: School, label: 'Escolas', href: '/admin/escolas' },
             { icon: MapPin, label: 'Polos', href: '/admin/polos' },
             { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
@@ -271,6 +274,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       },
       {
         icon: BookOpen, label: 'Cadastros', children: [
+          { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
           { icon: School, label: 'Escolas', href: '/polo/escolas' },
           { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
         ]
@@ -299,6 +303,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       items.push(
         {
           icon: BookOpen, label: 'Cadastros', children: [
+            { icon: Search, label: 'Pesquisar Aluno', href: '/admin/gestor-escolar' },
             { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' },
             { icon: UserPlus, label: 'Matrículas', href: '/escola/matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },

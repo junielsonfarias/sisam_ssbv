@@ -37,4 +37,4 @@ export interface EscolaSimples {
   nome: string
 }
 
-export type Aba = 'disciplinas' | 'periodos' | 'configuracao'
+export type Aba = 'disciplinas' | 'periodos' | 'configuracao' | 'pesquisar-aluno'
