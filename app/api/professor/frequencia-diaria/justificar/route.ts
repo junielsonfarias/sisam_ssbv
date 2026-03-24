@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { justificarFalta } from '@/lib/services/frequencia'
+import { validateRequest, professorJustificarSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,13 +11,9 @@ export const dynamic = 'force-dynamic'
  * Body: { frequencia_id, justificativa }
  */
 export const PATCH = withAuth('professor', async (request, usuario) => {
-  const { frequencia_id, justificativa } = await request.json()
-  if (!frequencia_id || !justificativa) {
-    return NextResponse.json({ mensagem: 'frequencia_id e justificativa são obrigatórios' }, { status: 400 })
-  }
-  if (typeof justificativa !== 'string' || justificativa.trim().length === 0 || justificativa.length > 500) {
-    return NextResponse.json({ mensagem: 'Justificativa deve ter entre 1 e 500 caracteres' }, { status: 400 })
-  }
+  const result = await validateRequest(request, professorJustificarSchema)
+  if (!result.success) return result.response
+  const { frequencia_id, justificativa } = result.data
 
   // Verificar que a frequência pertence a uma turma vinculada ao professor
   const freqResult = await pool.query(

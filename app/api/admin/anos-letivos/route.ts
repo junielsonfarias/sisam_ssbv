@@ -3,6 +3,42 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { z } from 'zod'
+import { validateRequest, anoLetivoSchema, statusAnoLetivoSchema } from '@/lib/schemas'
+
+// --- Schemas de validação ---
+
+const bimestreSchema = z.object({
+  numero: z.number().int().min(1).max(6),
+  nome: z.string().max(100).optional(),
+  data_inicio: z.string().optional().nullable(),
+  data_fim: z.string().optional().nullable(),
+  dias_letivos: z.number().int().min(0).optional(),
+})
+
+const anoLetivoPostSchema = z.object({
+  ano: anoLetivoSchema,
+  data_inicio: z.string().optional().nullable(),
+  data_fim: z.string().optional().nullable(),
+  dias_letivos_total: z.number().int().min(0).optional(),
+  observacao: z.string().max(2000).optional().nullable(),
+  bimestres: z.array(bimestreSchema).optional(),
+})
+
+const anoLetivoPutSchema = z.object({
+  id: z.string().uuid().optional(),
+  ano: anoLetivoSchema.optional(),
+  data_inicio: z.string().optional().nullable(),
+  data_fim: z.string().optional().nullable(),
+  dias_letivos_total: z.number().int().min(0).optional(),
+  observacao: z.string().max(2000).optional().nullable(),
+  status: statusAnoLetivoSchema.optional(),
+  bimestres: z.array(bimestreSchema).optional(),
+}).passthrough()
+
+const anoLetivoPatchSchema = z.object({
+  ano: anoLetivoSchema,
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -43,12 +79,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { ano, data_inicio, data_fim, dias_letivos_total, observacao, bimestres } = body
-
-    if (!ano || !ano.match(/^\d{4}$/)) {
-      return NextResponse.json({ mensagem: 'Ano deve ter 4 dígitos' }, { status: 400 })
-    }
+    const result = await validateRequest(request, anoLetivoPostSchema)
+    if (!result.success) return result.response
+    const { ano, data_inicio, data_fim, dias_letivos_total, observacao, bimestres } = result.data
 
     const client = await pool.connect()
     try {
@@ -69,13 +102,33 @@ export async function POST(request: NextRequest) {
 
       // Criar bimestres se fornecidos
       if (Array.isArray(bimestres) && bimestres.length > 0) {
+        // Validar datas dos bimestres: data_fim >= data_inicio e sem sobreposição
+        const bimsComData = bimestres.filter((b) => b.data_inicio && b.data_fim) as Array<typeof bimestres[number] & { data_inicio: string; data_fim: string }>
+        for (const bim of bimsComData) {
+          if (bim.data_fim < bim.data_inicio) {
+            await client.query('ROLLBACK')
+            return NextResponse.json({ mensagem: `Bimestre ${bim.numero}: data de fim anterior à data de início` }, { status: 400 })
+          }
+        }
+        // Verificar sobreposição entre períodos
+        const ordenados = [...bimsComData].sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))
+        for (let i = 0; i < ordenados.length - 1; i++) {
+          if (ordenados[i].data_fim > ordenados[i + 1].data_inicio) {
+            await client.query('ROLLBACK')
+            return NextResponse.json({
+              mensagem: `Período ${ordenados[i].numero} (até ${ordenados[i].data_fim}) sobrepõe com período ${ordenados[i + 1].numero} (início ${ordenados[i + 1].data_inicio})`
+            }, { status: 400 })
+          }
+        }
+
         for (const bim of bimestres) {
           await client.query(
             `INSERT INTO periodos_letivos (nome, tipo, numero, ano_letivo, data_inicio, data_fim, dias_letivos, ativo)
              VALUES ($1, 'bimestre', $2, $3, $4, $5, $6, true)
              ON CONFLICT (tipo, numero, ano_letivo) DO UPDATE SET
                nome = EXCLUDED.nome, data_inicio = EXCLUDED.data_inicio,
-               data_fim = EXCLUDED.data_fim, dias_letivos = EXCLUDED.dias_letivos`,
+               data_fim = EXCLUDED.data_fim, dias_letivos = EXCLUDED.dias_letivos,
+               atualizado_em = CURRENT_TIMESTAMP`,
             [bim.nome || `${bim.numero}º Bimestre`, bim.numero, ano, bim.data_inicio || null, bim.data_fim || null, bim.dias_letivos || 50]
           )
         }
@@ -117,8 +170,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { id, ano, data_inicio, data_fim, dias_letivos_total, observacao, status, bimestres } = body
+    const putResult = await validateRequest(request, anoLetivoPutSchema)
+    if (!putResult.success) return putResult.response
+    const { id, ano, data_inicio, data_fim, dias_letivos_total, observacao, status, bimestres } = putResult.data
 
     if (!id && !ano) {
       return NextResponse.json({ mensagem: 'id ou ano é obrigatório' }, { status: 400 })
@@ -189,6 +243,24 @@ export async function PUT(request: NextRequest) {
           await client.query('ROLLBACK')
           return NextResponse.json({ mensagem: 'Não foi possível identificar o ano letivo' }, { status: 400 })
         }
+        // Validar datas dos bimestres antes de atualizar
+        const bimsComData = bimestres.filter((b) => b.data_inicio && b.data_fim) as Array<typeof bimestres[number] & { data_inicio: string; data_fim: string }>
+        for (const bim of bimsComData) {
+          if (bim.data_fim < bim.data_inicio) {
+            await client.query('ROLLBACK')
+            return NextResponse.json({ mensagem: `Bimestre ${bim.numero}: data de fim anterior à data de início` }, { status: 400 })
+          }
+        }
+        const ordenados = [...bimsComData].sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))
+        for (let i = 0; i < ordenados.length - 1; i++) {
+          if (ordenados[i].data_fim > ordenados[i + 1].data_inicio) {
+            await client.query('ROLLBACK')
+            return NextResponse.json({
+              mensagem: `Período ${ordenados[i].numero} sobrepõe com período ${ordenados[i + 1].numero}`
+            }, { status: 400 })
+          }
+        }
+
         for (const bim of bimestres) {
           await client.query(
             `UPDATE periodos_letivos
@@ -221,10 +293,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { ano } = body
-
-    if (!ano) return NextResponse.json({ mensagem: 'ano é obrigatório' }, { status: 400 })
+    const patchResult = await validateRequest(request, anoLetivoPatchSchema)
+    if (!patchResult.success) return patchResult.response
+    const { ano } = patchResult.data
 
     const result = await pool.query(
       `SELECT id, nome, tipo, numero, ano_letivo, data_inicio, data_fim, dias_letivos, ativo

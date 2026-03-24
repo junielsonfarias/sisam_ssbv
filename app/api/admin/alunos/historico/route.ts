@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { DatabaseError } from '@/lib/validation'
+import {
+  parseSearchParams, createWhereBuilder, addRawCondition, addCondition,
+  addAccessControl, buildConditionsString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
@@ -15,126 +19,55 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const alunoId = searchParams.get('aluno_id')
-    const alunoNome = searchParams.get('aluno_nome')
-    const alunoCodigo = searchParams.get('aluno_codigo')
+    const searchParams = request.nextUrl.searchParams
+    const { aluno_id, aluno_nome, aluno_codigo } = parseSearchParams(searchParams, ['aluno_id', 'aluno_nome', 'aluno_codigo'])
 
-    if (!alunoId && !alunoNome && !alunoCodigo) {
+    if (!aluno_id && !aluno_nome && !aluno_codigo) {
       return NextResponse.json(
         { mensagem: 'É necessário informar aluno_id, aluno_nome ou aluno_codigo' },
         { status: 400 }
       )
     }
 
-    let query = `
-      SELECT 
-        a.id,
-        a.codigo,
-        a.nome,
-        a.escola_id,
-        a.turma_id,
-        a.serie,
-        a.ano_letivo,
-        a.ativo,
-        a.criado_em,
-        a.atualizado_em,
-        e.nome as escola_nome,
-        e.polo_id,
-        p.nome as polo_nome,
-        t.codigo as turma_codigo,
-        t.nome as turma_nome,
-        t.serie as turma_serie,
-        t.ano_letivo as turma_ano_letivo,
+    const where = createWhereBuilder()
+    addRawCondition(where, 'e.ativo = true')
+    addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
+
+    if (aluno_id) {
+      addCondition(where, 'a.id', aluno_id)
+    } else if (aluno_nome) {
+      addRawCondition(where, `TRIM(a.nome) ILIKE TRIM($${where.paramIndex})`, [aluno_nome])
+    } else if (aluno_codigo) {
+      addCondition(where, 'a.codigo', aluno_codigo)
+    }
+
+    const result = await pool.query(
+      `SELECT
+        a.id, a.codigo, a.nome, a.escola_id, a.turma_id, a.serie, a.ano_letivo,
+        a.ativo, a.criado_em, a.atualizado_em,
+        e.nome as escola_nome, e.polo_id, p.nome as polo_nome,
+        t.codigo as turma_codigo, t.nome as turma_nome, t.serie as turma_serie, t.ano_letivo as turma_ano_letivo,
         rc.presenca as resultado_presenca,
-        rc.total_acertos_lp,
-        rc.total_acertos_ch,
-        rc.total_acertos_mat,
-        rc.total_acertos_cn,
-        rc.nota_lp,
-        rc.nota_ch,
-        rc.nota_mat,
-        rc.nota_cn,
-        rc.nota_producao,
-        rc.nivel_aprendizagem,
-        -- Media calculada dinamicamente baseada na serie
+        rc.total_acertos_lp, rc.total_acertos_ch, rc.total_acertos_mat, rc.total_acertos_cn,
+        rc.nota_lp, rc.nota_ch, rc.nota_mat, rc.nota_cn, rc.nota_producao, rc.nivel_aprendizagem,
         CASE
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            ROUND(
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
-              1
-            )
+            ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) /
+              NULLIF(CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END + CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END + CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
           ELSE
-            ROUND(
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
-              1
-            )
+            ROUND((COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
+              NULLIF(CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END + CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END + CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END + CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
         END as media_aluno,
-        rc.criado_em as resultado_criado_em,
-        rc.atualizado_em as resultado_atualizado_em
+        rc.criado_em as resultado_criado_em, rc.atualizado_em as resultado_atualizado_em
       FROM alunos a
       INNER JOIN escolas e ON a.escola_id = e.id
       LEFT JOIN polos p ON e.polo_id = p.id
       LEFT JOIN turmas t ON a.turma_id = t.id
       LEFT JOIN resultados_consolidados rc ON a.id = rc.aluno_id AND a.ano_letivo = rc.ano_letivo
-      WHERE e.ativo = true
-    `
-
-    const params: (string | number | boolean | null | undefined)[] = []
-    let paramIndex = 1
-
-    // Aplicar restrições de acesso
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      query += ` AND e.polo_id = $${paramIndex}`
-      params.push(usuario.polo_id)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      query += ` AND e.id = $${paramIndex}`
-      params.push(usuario.escola_id)
-      paramIndex++
-    }
-
-    // Aplicar filtros de busca
-    if (alunoId) {
-      query += ` AND a.id = $${paramIndex}`
-      params.push(alunoId)
-      paramIndex++
-    } else if (alunoNome) {
-      // Busca exata por nome, normalizando espaços
-      query += ` AND TRIM(a.nome) ILIKE TRIM($${paramIndex})`
-      params.push(alunoNome)
-      paramIndex++
-    } else if (alunoCodigo) {
-      query += ` AND a.codigo = $${paramIndex}`
-      params.push(alunoCodigo)
-      paramIndex++
-    }
-
-    query += ' ORDER BY a.ano_letivo DESC, a.serie, a.criado_em DESC'
-
-    const result = await pool.query(query, params)
+      WHERE ${buildConditionsString(where)}
+      ORDER BY a.ano_letivo DESC, a.serie, a.criado_em DESC`,
+      where.params
+    )
 
     // Agrupar por aluno (caso haja múltiplos registros do mesmo aluno)
     const alunosAgrupados = new Map()

@@ -49,7 +49,7 @@ export interface RateLimitResult {
 }
 
 /**
- * Verifica se uma requisicao deve ser permitida baseado no rate limit
+ * Verifica se uma requisição deve ser permitida baseado no rate limit
  *
  * @param identifier - Identificador unico (IP, email, etc)
  * @param maxAttempts - Numero maximo de tentativas (default: 5)
@@ -124,7 +124,7 @@ export function resetRateLimit(identifier: string): void {
 }
 
 /**
- * Extrai o IP do cliente da requisicao
+ * Extrai o IP do cliente da requisição
  */
 export function getClientIP(request: Request): string {
   // Tentar obter IP real (atraves de proxies/load balancers)

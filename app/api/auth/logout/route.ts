@@ -8,13 +8,20 @@ export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
     if (usuario) {
-      console.log(`Logout: ${usuario.email} (${usuario.tipo_usuario})`)
+      console.log(`[AUDIT] Logout | usuario:${usuario.email} (${usuario.tipo_usuario})`)
     }
   } catch {
     // Continuar mesmo sem auth — o objetivo é limpar o cookie
   }
 
   const response = NextResponse.json({ mensagem: 'Logout realizado com sucesso' })
-  response.cookies.delete('token')
+  // Deletar cookie com mesmas flags do login para garantir matching
+  response.cookies.set('token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0, // Expira imediatamente
+  })
   return response
 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateDeviceApiKey } from '@/lib/device-auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
+
+const pingSchema = z.record(z.unknown()).optional()
 
 export const dynamic = 'force-dynamic'
 
@@ -23,11 +26,12 @@ export async function POST(request: NextRequest) {
     let metadata: Record<string, unknown> = {}
     try {
       const body = await request.json()
-      if (body && typeof body === 'object' && !Array.isArray(body)) {
-        const json = JSON.stringify(body)
+      const parsed = pingSchema.safeParse(body)
+      if (parsed.success && parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)) {
+        const json = JSON.stringify(parsed.data)
         // Limitar tamanho do metadata a 10KB para evitar bloat
         if (json.length <= 10240) {
-          metadata = body as Record<string, unknown>
+          metadata = parsed.data as Record<string, unknown>
         }
       }
     } catch {

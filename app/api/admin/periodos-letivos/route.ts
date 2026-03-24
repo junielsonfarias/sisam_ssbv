@@ -2,20 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
-import { periodoLetivoSchema, validateRequest, validateId } from '@/lib/schemas'
+import { periodoLetivoSchema, periodoLetivoUpdateSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
-const atualizarPeriodoSchema = periodoLetivoSchema.extend({
-  id: z.string().uuid('ID inválido'),
-})
+// Cache de períodos (mudam raramente — TTL 60s)
+const periodosCache = new Map<string, { data: any; expiresAt: number }>()
+function invalidarCachePeriodos() { periodosCache.clear() }
 
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   const searchParams = request.nextUrl.searchParams
   const { ano_letivo, tipo } = parseSearchParams(searchParams, ['ano_letivo', 'tipo'])
+
+  const cacheKey = `per:${ano_letivo || 'all'}:${tipo || 'all'}`
+  const cached = periodosCache.get(cacheKey)
+  if (cached && Date.now() < cached.expiresAt) {
+    return NextResponse.json(cached.data)
+  }
 
   const where = createWhereBuilder()
   addCondition(where, 'ano_letivo', ano_letivo)
@@ -28,6 +34,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     where.params
   )
 
+  periodosCache.set(cacheKey, { data: result.rows, expiresAt: Date.now() + 60_000 })
   return NextResponse.json(result.rows)
 })
 
@@ -45,6 +52,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       [nome, tipo, numero, ano_letivo, data_inicio || null, data_fim || null, ativo]
     )
 
+    invalidarCachePeriodos()
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -60,7 +68,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
 export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const validacao = await validateRequest(request, atualizarPeriodoSchema)
+    const validacao = await validateRequest(request, periodoLetivoUpdateSchema)
     if (!validacao.success) return validacao.response
 
     const { id, nome, tipo, numero, ano_letivo, data_inicio, data_fim, ativo } = validacao.data
@@ -77,6 +85,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
       return NextResponse.json({ mensagem: 'Período não encontrado' }, { status: 404 })
     }
 
+    invalidarCachePeriodos()
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -119,6 +128,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
       return NextResponse.json({ mensagem: 'Período não encontrado' }, { status: 404 })
     }
 
+    invalidarCachePeriodos()
     return NextResponse.json({ mensagem: 'Período excluído com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao excluir período letivo:', error)

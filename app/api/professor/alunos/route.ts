@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest } from '@/lib/auth'
-import pool from '@/database/connection'
 import { verificarVinculoProfessor } from '@/lib/professor-auth'
+import { buscarAlunosProfessor } from '@/lib/services/alunos.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,15 +29,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
     }
 
-    const result = await pool.query(
-      `SELECT a.id, a.nome, a.codigo, a.data_nascimento, a.situacao
-       FROM alunos a
-       WHERE a.turma_id = $1 AND a.ativo = true AND a.situacao = 'cursando'
-       ORDER BY a.nome`,
-      [turmaId]
-    )
+    const alunos = await buscarAlunosProfessor(turmaId)
 
-    return NextResponse.json({ alunos: result.rows })
+    return NextResponse.json({ alunos })
   } catch (error: unknown) {
     console.error('Erro ao listar alunos do professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

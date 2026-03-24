@@ -5,6 +5,7 @@ import { PG_ERRORS } from '@/lib/constants'
 import { avaliacaoSchema, validateRequest, uuidSchema } from '@/lib/schemas'
 import { z } from 'zod'
 import { getErrorMessage, DatabaseError } from '@/lib/validation'
+import { createWhereBuilder, addRawCondition, addCondition, buildConditionsString } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,24 +16,19 @@ export const dynamic = 'force-dynamic'
  */
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const { searchParams } = new URL(request.url)
-    const anoLetivo = searchParams.get('ano_letivo')
+    const anoLetivo = request.nextUrl.searchParams.get('ano_letivo')
 
-    let query = `
-      SELECT id, nome, descricao, ano_letivo, tipo, ordem, data_inicio, data_fim, ativo, criado_em
-      FROM avaliacoes
-      WHERE ativo = true
-    `
-    const params: string[] = []
+    const where = createWhereBuilder()
+    addRawCondition(where, 'ativo = true')
+    addCondition(where, 'ano_letivo', anoLetivo)
 
-    if (anoLetivo) {
-      query += ` AND ano_letivo = $1`
-      params.push(anoLetivo)
-    }
-
-    query += ` ORDER BY ano_letivo DESC, ordem`
-
-    const result = await pool.query(query, params)
+    const result = await pool.query(
+      `SELECT id, nome, descricao, ano_letivo, tipo, ordem, data_inicio, data_fim, ativo, criado_em
+       FROM avaliacoes
+       WHERE ${buildConditionsString(where)}
+       ORDER BY ano_letivo DESC, ordem`,
+      where.params
+    )
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
     // Se a tabela não existe ainda (migração não executada), retornar array vazio
@@ -118,6 +114,48 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     console.error('Erro ao atualizar avaliação:', getErrorMessage(error))
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+})
+
+/**
+ * DELETE /api/admin/avaliacoes?id=...
+ *
+ * Soft-delete: desativa a avaliação. Verifica se há resultados vinculados.
+ */
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
+  try {
+    const id = request.nextUrl.searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
+    }
+
+    // Verificar se há resultados vinculados
+    const vinculados = await pool.query(
+      'SELECT COUNT(*) as total FROM resultados_consolidados WHERE avaliacao_id = $1',
+      [id]
+    )
+
+    if (parseInt(vinculados.rows[0].total) > 0) {
+      return NextResponse.json(
+        { mensagem: `Não é possível excluir: existem ${vinculados.rows[0].total} resultado(s) vinculado(s) a esta avaliação. Desative-a em vez de excluir.` },
+        { status: 400 }
+      )
+    }
+
+    const result = await pool.query(
+      'UPDATE avaliacoes SET ativo = false, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, nome',
+      [id]
+    )
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Avaliação não encontrada' }, { status: 404 })
+    }
+
+    return NextResponse.json({ mensagem: 'Avaliação desativada com sucesso' })
+  } catch (error: unknown) {
+    console.error('Erro ao desativar avaliação:', getErrorMessage(error))
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

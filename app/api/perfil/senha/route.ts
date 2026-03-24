@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, hashPassword, comparePassword } from '@/lib/auth
 import pool from '@/database/connection'
 import { validatePassword } from '@/lib/validation'
 import { checkRateLimit, getClientIP, resetRateLimit } from '@/lib/rate-limiter'
+import { validateRequest, perfilSenhaSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,32 +34,9 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { senhaAtual, novaSenha, confirmarSenha } = body
-
-    // Validações
-    if (!senhaAtual || !novaSenha || !confirmarSenha) {
-      return NextResponse.json(
-        { mensagem: 'Todos os campos são obrigatórios' },
-        { status: 400 }
-      )
-    }
-
-    // Validar força da senha (mínimo 12 caracteres, pelo menos letra e número)
-    const senhaValidacao = validatePassword(novaSenha)
-    if (!senhaValidacao.valid) {
-      return NextResponse.json(
-        { mensagem: senhaValidacao.message },
-        { status: 400 }
-      )
-    }
-
-    if (novaSenha !== confirmarSenha) {
-      return NextResponse.json(
-        { mensagem: 'A nova senha e a confirmação não coincidem' },
-        { status: 400 }
-      )
-    }
+    const validacao = await validateRequest(request, perfilSenhaSchema)
+    if (!validacao.success) return validacao.response
+    const { senhaAtual, novaSenha } = validacao.data
 
     // Buscar senha atual do banco
     const result = await pool.query(

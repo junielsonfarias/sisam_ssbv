@@ -3,6 +3,18 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { z } from 'zod'
+import { validateRequest } from '@/lib/schemas'
+
+const matriculaSeriePostSchema = z.object({
+  serie: z.string().min(1, 'Série é obrigatória').max(50),
+  nome_serie: z.string().min(1, 'Nome da série é obrigatório').max(255),
+  avalia_lp: z.boolean().optional(),
+  avalia_mat: z.boolean().optional(),
+  avalia_ch: z.boolean().optional(),
+  avalia_cn: z.boolean().optional(),
+  tem_producao_textual: z.boolean().optional(),
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -36,12 +48,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { serie, nome_serie, avalia_lp, avalia_mat, avalia_ch, avalia_cn, tem_producao_textual } = body
-
-    if (!serie || !nome_serie) {
-      return NextResponse.json({ mensagem: 'Série e nome são obrigatórios' }, { status: 400 })
-    }
+    const validationResult = await validateRequest(request, matriculaSeriePostSchema)
+    if (!validationResult.success) return validationResult.response
+    const { serie, nome_serie, avalia_lp, avalia_mat, avalia_ch, avalia_cn, tem_producao_textual } = validationResult.data
 
     const result = await pool.query(
       `INSERT INTO configuracao_series (serie, nome_serie, avalia_lp, avalia_mat, avalia_ch, avalia_cn, tem_producao_textual)

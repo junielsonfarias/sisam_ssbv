@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
-import pool from '@/database/connection'
+import { buscarResumoMatriculas } from '@/lib/services/matriculas.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,21 +24,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
-    const [turmasResult, alunosResult] = await Promise.all([
-      pool.query(
-        `SELECT COUNT(*) as total FROM turmas WHERE escola_id = $1 AND ano_letivo = $2 AND ativo = true`,
-        [escolaId, anoLetivo]
-      ),
-      pool.query(
-        `SELECT COUNT(*) as total FROM alunos WHERE escola_id = $1 AND ano_letivo = $2 AND ativo = true`,
-        [escolaId, anoLetivo]
-      ),
-    ])
+    const resumo = await buscarResumoMatriculas(escolaId, anoLetivo)
 
-    return NextResponse.json({
-      total_turmas: parseInt(turmasResult.rows[0]?.total) || 0,
-      total_alunos: parseInt(alunosResult.rows[0]?.total) || 0,
-    })
+    return NextResponse.json(resumo)
   } catch (error: unknown) {
     console.error('Erro ao buscar resumo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

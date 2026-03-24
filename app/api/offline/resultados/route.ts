@@ -106,7 +106,8 @@ export async function GET(request: NextRequest) {
       dataQuery += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
       params.push(limit, offset)
     } else {
-      dataQuery += ` LIMIT ${MAX_LIMIT}`
+      dataQuery += ` LIMIT $${paramIndex}`
+      params.push(MAX_LIMIT)
     }
 
     const result = await pool.query(dataQuery, params)

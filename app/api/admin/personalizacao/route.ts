@@ -3,6 +3,20 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import fs from 'fs'
 import path from 'path'
+import { z } from 'zod'
+import { validateRequest } from '@/lib/schemas'
+
+const personalizacaoPutSchema = z.object({
+  login_titulo: z.string().max(255).optional().nullable(),
+  login_subtitulo: z.string().max(500).optional().nullable(),
+  login_imagem_url: z.string().max(1000000).optional().nullable(),
+  login_cor_primaria: z.string().max(50).optional().nullable(),
+  login_cor_secundaria: z.string().max(50).optional().nullable(),
+  rodape_texto: z.string().max(500).optional().nullable(),
+  rodape_link: z.string().max(500).optional().nullable(),
+  rodape_link_texto: z.string().max(255).optional().nullable(),
+  rodape_ativo: z.boolean().optional(),
+}).passthrough()
 
 export const dynamic = 'force-dynamic';
 
@@ -179,11 +193,13 @@ export async function PUT(request: NextRequest) {
 
     if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
       return NextResponse.json(
-        { mensagem: 'Nao autorizado' },
+        { mensagem: 'Não autorizado' },
         { status: 403 }
       )
     }
 
+    const validationResult = await validateRequest(request, personalizacaoPutSchema)
+    if (!validationResult.success) return validationResult.response
     const {
       login_titulo,
       login_subtitulo,
@@ -194,7 +210,7 @@ export async function PUT(request: NextRequest) {
       rodape_link,
       rodape_link_texto,
       rodape_ativo,
-    } = await request.json()
+    } = validationResult.data
 
     // Processar imagem
     let imagemFinal = login_imagem_url
@@ -226,7 +242,7 @@ export async function PUT(request: NextRequest) {
       saveLocalConfig(configData)
     }
 
-    // Salvar no banco de dados (obrigatorio em producao, backup em desenvolvimento)
+    // Salvar no banco de dados (obrigatório em produção, backup em desenvolvimento)
     try {
       const existe = await pool.query(
         'SELECT id FROM personalizacao WHERE tipo = $1',

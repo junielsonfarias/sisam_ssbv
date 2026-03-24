@@ -3,6 +3,7 @@ import { validateDeviceApiKey } from '@/lib/device-auth'
 import { validateRequest } from '@/lib/schemas'
 import { presencaFacialLoteSchema } from '@/lib/schemas'
 import { FACIAL } from '@/lib/constants'
+import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -56,16 +57,12 @@ export async function POST(request: NextRequest) {
       const turmaId = alunosMap.get(aluno_id)
       if (!turmaId) { erros++; continue }
 
-      const dataHora = new Date(timestamp)
-      if (isNaN(dataHora.getTime())) { erros++; continue }
-
-      validos.push({
-        aluno_id,
-        turma_id: turmaId,
-        data: dataHora.toISOString().split('T')[0],
-        hora: dataHora.toTimeString().split(' ')[0],
-        confianca,
-      })
+      try {
+        const { data, hora } = extrairDataHoraLocal(timestamp)
+        validos.push({ aluno_id, turma_id: turmaId, data, hora, confianca })
+      } catch {
+        erros++; continue
+      }
     }
 
     if (validos.length === 0) {

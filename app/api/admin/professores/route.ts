@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao, hashPassword } from '@/lib/auth'
-import pool from '@/database/connection'
+import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { parseSearchParams } from '@/lib/api-helpers'
+import { validateRequest, professorPostSchema, professorPutSchema, professorPatchSchema, professorDeleteSchema } from '@/lib/schemas'
+import { buscarProfessores, criarProfessor, atualizarProfessor, toggleAtivoProfessor, deletarProfessor } from '@/lib/services/professores.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,44 +17,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const escolaId = searchParams.get('escola_id')
-    const filtroAtivo = searchParams.get('ativo') // 'true', 'false', null (todos)
+    const searchParams = request.nextUrl.searchParams
+    const { escola_id, ativo } = parseSearchParams(searchParams, ['escola_id', 'ativo'])
 
-    let query = `
-      SELECT u.id, u.nome, u.email, u.ativo, u.criado_em, u.cpf, u.telefone,
-             COUNT(DISTINCT pt.turma_id) as total_turmas,
-             ARRAY_AGG(DISTINCT e.nome) FILTER (WHERE e.nome IS NOT NULL) as escolas
-      FROM usuarios u
-      LEFT JOIN professor_turmas pt ON pt.professor_id = u.id AND pt.ativo = true
-      LEFT JOIN turmas t ON t.id = pt.turma_id
-      LEFT JOIN escolas e ON e.id = t.escola_id
-      WHERE u.tipo_usuario = 'professor'
-    `
-    const params: string[] = []
-    let paramIndex = 1
+    // Filtro de escola: usa o parâmetro ou a escola do usuário logado
+    const escolaFiltro = escola_id || (usuario.tipo_usuario === 'escola' ? usuario.escola_id : null)
 
-    if (filtroAtivo === 'true') {
-      query += ` AND u.ativo = true`
-    } else if (filtroAtivo === 'false') {
-      query += ` AND u.ativo = false`
-    }
+    const professores = await buscarProfessores({ escolaId: escolaFiltro, ativo })
 
-    if (escolaId) {
-      query += ` AND (t.escola_id = $${paramIndex} OR pt.id IS NULL)`
-      params.push(escolaId)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      query += ` AND (t.escola_id = $${paramIndex} OR pt.id IS NULL)`
-      params.push(usuario.escola_id)
-      paramIndex++
-    }
-
-    query += ` GROUP BY u.id, u.nome, u.email, u.ativo, u.criado_em, u.cpf, u.telefone ORDER BY u.ativo ASC, u.nome`
-
-    const result = await pool.query(query, params)
-
-    return NextResponse.json({ professores: result.rows })
+    return NextResponse.json({ professores })
   } catch (error: unknown) {
     console.error('Erro ao listar professores:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
@@ -71,40 +44,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { nome, email, senha } = await request.json()
+    const validacao = await validateRequest(request, professorPostSchema)
+    if (!validacao.success) return validacao.response
+    const { nome, email, senha } = validacao.data
 
-    if (!nome || !email || !senha) {
-      return NextResponse.json({ mensagem: 'nome, email e senha são obrigatórios' }, { status: 400 })
+    const resultado = await criarProfessor({ nome, email, senha })
+
+    if ('erro' in resultado) {
+      return NextResponse.json({ mensagem: resultado.erro }, { status: resultado.status })
     }
 
-    if (senha.length < 6) {
-      return NextResponse.json({ mensagem: 'Senha deve ter pelo menos 6 caracteres' }, { status: 400 })
-    }
-
-    // Verificar se email já existe
-    const existeResult = await pool.query(
-      'SELECT id FROM usuarios WHERE email = $1',
-      [email.toLowerCase()]
-    )
-    if (existeResult.rows.length > 0) {
-      return NextResponse.json({ mensagem: 'Email já cadastrado' }, { status: 409 })
-    }
-
-    const senhaHash = await hashPassword(senha)
-
-    const result = await pool.query(
-      `INSERT INTO usuarios (nome, email, senha, tipo_usuario, ativo)
-       VALUES ($1, $2, $3, 'professor', true)
-       RETURNING id, nome, email, tipo_usuario, criado_em`,
-      [nome.trim(), email.toLowerCase().trim(), senhaHash]
-    )
-
+    console.log(`[AUDIT] Professor criado | ${email} | por ${usuario.email} (${usuario.tipo_usuario})`)
     return NextResponse.json({
       mensagem: 'Professor criado com sucesso',
-      professor: result.rows[0],
+      professor: resultado.professor,
     }, { status: 201 })
   } catch (error: unknown) {
     console.error('Erro ao criar professor:', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
+}
+
+/**
+ * PUT /api/admin/professores
+ * Editar dados do professor (nome, email, cpf, telefone)
+ * Body: { professor_id, nome?, email?, cpf?, telefone? }
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const usuario = await getUsuarioFromRequest(request)
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
+    const validacao = await validateRequest(request, professorPutSchema)
+    if (!validacao.success) return validacao.response
+    const { professor_id, nome, email, cpf, telefone } = validacao.data
+
+    const resultado = await atualizarProfessor({ professor_id, nome, email, cpf, telefone })
+
+    if ('erro' in resultado) {
+      return NextResponse.json({ mensagem: resultado.erro }, { status: resultado.status })
+    }
+
+    return NextResponse.json({
+      mensagem: 'Professor atualizado com sucesso',
+      professor: resultado.professor,
+    })
+  } catch (error: unknown) {
+    console.error('Erro ao atualizar professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
@@ -121,23 +109,19 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { professor_id, ativo } = await request.json()
-    if (!professor_id || typeof ativo !== 'boolean') {
-      return NextResponse.json({ mensagem: 'professor_id e ativo são obrigatórios' }, { status: 400 })
-    }
+    const validacao = await validateRequest(request, professorPatchSchema)
+    if (!validacao.success) return validacao.response
+    const { professor_id, ativo } = validacao.data
 
-    const result = await pool.query(
-      `UPDATE usuarios SET ativo = $1 WHERE id = $2 AND tipo_usuario = 'professor' RETURNING id, nome, email, ativo`,
-      [ativo, professor_id]
-    )
+    const resultado = await toggleAtivoProfessor(professor_id, ativo)
 
-    if (result.rows.length === 0) {
-      return NextResponse.json({ mensagem: 'Professor não encontrado' }, { status: 404 })
+    if ('erro' in resultado) {
+      return NextResponse.json({ mensagem: resultado.erro }, { status: resultado.status })
     }
 
     return NextResponse.json({
       mensagem: ativo ? 'Professor ativado com sucesso' : 'Professor desativado',
-      professor: result.rows[0],
+      professor: resultado.professor,
     })
   } catch (error: unknown) {
     console.error('Erro ao atualizar professor:', error)
@@ -157,27 +141,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { professor_id } = await request.json()
-    if (!professor_id) {
-      return NextResponse.json({ mensagem: 'professor_id é obrigatório' }, { status: 400 })
-    }
+    const validacao = await validateRequest(request, professorDeleteSchema)
+    if (!validacao.success) return validacao.response
+    const { professor_id } = validacao.data
 
-    // Só permite excluir se inativo e sem vínculos
-    const vinculosResult = await pool.query(
-      'SELECT COUNT(*) as total FROM professor_turmas WHERE professor_id = $1',
-      [professor_id]
-    )
-    if (parseInt(vinculosResult.rows[0].total) > 0) {
-      return NextResponse.json({ mensagem: 'Professor possui vínculos. Desative-o ao invés de excluir.' }, { status: 400 })
-    }
+    const resultado = await deletarProfessor(professor_id)
 
-    const result = await pool.query(
-      `DELETE FROM usuarios WHERE id = $1 AND tipo_usuario = 'professor' AND ativo = false RETURNING id`,
-      [professor_id]
-    )
-
-    if (result.rows.length === 0) {
-      return NextResponse.json({ mensagem: 'Professor não encontrado ou já ativo (só é possível excluir cadastros pendentes)' }, { status: 404 })
+    if ('erro' in resultado) {
+      return NextResponse.json({ mensagem: resultado.erro }, { status: resultado.status })
     }
 
     return NextResponse.json({ mensagem: 'Cadastro rejeitado e excluído' })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { hashPassword } from '@/lib/auth'
 import pool from '@/database/connection'
 import { checkRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
+import { validateRequest, cadastroProfessorSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,39 +25,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let body
-    try {
-      body = await request.json()
-    } catch {
-      return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
-    }
+    const validacao = await validateRequest(request, cadastroProfessorSchema)
+    if (!validacao.success) return validacao.response
+    const { nome, email: emailNorm, senha, cpf, telefone } = validacao.data
 
-    const { nome, email, senha, cpf, telefone } = body
-
-    // Validações
-    if (!nome || !email || !senha) {
-      return NextResponse.json({ mensagem: 'Nome, email e senha são obrigatórios' }, { status: 400 })
-    }
-
-    if (typeof nome !== 'string' || nome.trim().length < 3) {
-      return NextResponse.json({ mensagem: 'Nome deve ter pelo menos 3 caracteres' }, { status: 400 })
-    }
-
-    if (typeof email !== 'string' || !email.includes('@') || !email.includes('.')) {
-      return NextResponse.json({ mensagem: 'Email inválido' }, { status: 400 })
-    }
-
-    if (typeof senha !== 'string' || senha.length < 8) {
-      return NextResponse.json({ mensagem: 'Senha deve ter pelo menos 8 caracteres' }, { status: 400 })
-    }
-
-    // Validar CPF se fornecido (formato básico)
+    // Limpar CPF se fornecido
     const cpfLimpo = cpf ? String(cpf).replace(/\D/g, '') : null
-    if (cpfLimpo && cpfLimpo.length !== 11) {
-      return NextResponse.json({ mensagem: 'CPF inválido (deve ter 11 dígitos)' }, { status: 400 })
-    }
-
-    const emailNorm = email.toLowerCase().trim()
 
     // Verificar se email já existe
     const existeEmail = await pool.query(

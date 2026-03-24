@@ -127,7 +127,7 @@ export function AbaDisciplinas({ podeEditar, toast }: { podeEditar: boolean; toa
 
   const salvar = async () => {
     if (!form.nome.trim()) {
-      toast.error('Nome e obrigatorio')
+      toast.error('Nome é obrigatório')
       return
     }
     setSalvando(true)

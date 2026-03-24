@@ -3,6 +3,23 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { limparCacheConfigSeries } from '@/lib/config-series'
 import { DatabaseError } from '@/lib/validation'
+import { z } from 'zod'
+import { validateRequest, uuidSchema } from '@/lib/schemas'
+
+const disciplinaItemSchema = z.object({
+  disciplina: z.string().min(1).max(255),
+  sigla: z.string().min(1).max(20),
+  ordem: z.number().int().min(0).optional(),
+  questao_inicio: z.number().int().min(0),
+  questao_fim: z.number().int().min(0),
+  valor_questao: z.number().min(0).optional(),
+  nota_maxima: z.number().min(0).optional(),
+})
+
+const configDisciplinasPostSchema = z.object({
+  serie_id: uuidSchema,
+  disciplinas: z.array(disciplinaItemSchema).min(1, 'Informe pelo menos uma disciplina'),
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -92,17 +109,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { serie_id, disciplinas } = body
+    const validationResult = await validateRequest(request, configDisciplinasPostSchema)
+    if (!validationResult.success) return validationResult.response
+    const { serie_id, disciplinas } = validationResult.data
 
     console.log('[API Disciplinas] Recebido:', { serie_id, disciplinas: JSON.stringify(disciplinas) })
-
-    if (!serie_id || !disciplinas || !Array.isArray(disciplinas)) {
-      return NextResponse.json(
-        { mensagem: 'Dados inválidos. Informe serie_id e array de disciplinas.' },
-        { status: 400 }
-      )
-    }
 
     // Validar campos obrigatórios de cada disciplina
     for (let i = 0; i < disciplinas.length; i++) {
@@ -120,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar se as questões não se sobrepõem
-    const sortedDisciplinas = [...disciplinas].sort((a, b) => a.ordem - b.ordem)
+    const sortedDisciplinas = [...disciplinas].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
     for (let i = 0; i < sortedDisciplinas.length - 1; i++) {
       const atual = sortedDisciplinas[i]
       const proxima = sortedDisciplinas[i + 1]

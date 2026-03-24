@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
+import { validateRequest, statusDispositivoSchema } from '@/lib/schemas'
+import { buscarDispositivoDetalhado, excluirDispositivo } from '@/lib/services/facial.service'
+
+const dispositivoPutSchema = z.object({
+  nome: z.string().min(1).max(255).optional(),
+  localizacao: z.string().max(500).optional().nullable(),
+  status: statusDispositivoSchema.optional(),
+}).passthrough()
 
 export const dynamic = 'force-dynamic'
 
@@ -20,36 +29,13 @@ export async function GET(
 
     const { id } = params
 
-    const result = await pool.query(
-      `SELECT d.*, e.nome AS escola_nome
-       FROM dispositivos_faciais d
-       INNER JOIN escolas e ON e.id = d.escola_id
-       WHERE d.id = $1`,
-      [id]
-    )
+    const result = await buscarDispositivoDetalhado(id)
 
-    if (result.rows.length === 0) {
+    if (!result) {
       return NextResponse.json({ mensagem: 'Dispositivo não encontrado' }, { status: 404 })
     }
 
-    // Buscar logs recentes
-    const logsResult = await pool.query(
-      `SELECT evento, detalhes, criado_em
-       FROM logs_dispositivos
-       WHERE dispositivo_id = $1
-       ORDER BY criado_em DESC
-       LIMIT 50`,
-      [id]
-    )
-
-    // Excluir api_key_hash da resposta
-    const dispositivo = result.rows[0]
-    delete dispositivo.api_key_hash
-
-    return NextResponse.json({
-      dispositivo,
-      logs: logsResult.rows,
-    })
+    return NextResponse.json(result)
   } catch (error: unknown) {
     console.error('Erro ao buscar dispositivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
@@ -71,13 +57,9 @@ export async function PUT(
     }
 
     const { id } = params
-    const body = await request.json()
-    const { nome, localizacao, status } = body
-
-    // Validar status se fornecido
-    if (status && !['ativo', 'inativo', 'bloqueado'].includes(status)) {
-      return NextResponse.json({ mensagem: 'Status inválido' }, { status: 400 })
-    }
+    const validationResult = await validateRequest(request, dispositivoPutSchema)
+    if (!validationResult.success) return validationResult.response
+    const { nome, localizacao, status } = validationResult.data
 
     const sets: string[] = []
     const values: (string | null)[] = []
@@ -160,8 +142,17 @@ export async function DELETE(
         )
       }
 
-      await pool.query('DELETE FROM logs_dispositivos WHERE dispositivo_id = $1', [id])
-      await pool.query('DELETE FROM dispositivos_faciais WHERE id = $1', [id])
+      // Verificar se dispositivo pertence à escola do usuário
+      if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+        const escolaCheck = await pool.query(
+          'SELECT escola_id FROM dispositivos_faciais WHERE id = $1', [id]
+        )
+        if (escolaCheck.rows[0]?.escola_id !== usuario.escola_id) {
+          return NextResponse.json({ mensagem: 'Não autorizado para este dispositivo' }, { status: 403 })
+        }
+      }
+
+      await excluirDispositivo(id)
 
       return NextResponse.json({ mensagem: 'Dispositivo excluído permanentemente' })
     }

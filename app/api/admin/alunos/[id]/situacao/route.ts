@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { situacaoAlunoSchema, uuidSchema } from '@/lib/schemas'
+import { z } from 'zod'
 import pool from '@/database/connection'
+import { alterarSituacao } from '@/lib/services/alunos.service'
 
 export const dynamic = 'force-dynamic'
 
 const SITUACOES_VALIDAS = ['cursando', 'transferido', 'abandono', 'aprovado', 'reprovado', 'remanejado']
+
+const situacaoPostSchema = z.object({
+  situacao: situacaoAlunoSchema,
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve ser AAAA-MM-DD').optional().nullable(),
+  observacao: z.string().max(500, 'Observação deve ter no máximo 500 caracteres').optional().nullable(),
+  tipo_transferencia: z.enum(['dentro_municipio', 'fora_municipio']).optional().nullable(),
+  escola_destino_id: uuidSchema.optional().nullable(),
+  escola_destino_nome: z.string().max(255).optional().nullable(),
+  escola_origem_id: uuidSchema.optional().nullable(),
+  escola_origem_nome: z.string().max(255).optional().nullable(),
+})
 
 // GET - Buscar situação atual e histórico do aluno
 export async function GET(
@@ -74,24 +88,22 @@ export async function POST(
     }
 
     const alunoId = params.id
-    const body = await request.json()
+
+    let body: z.infer<typeof situacaoPostSchema>
+    try {
+      const raw = await request.json()
+      const parsed = situacaoPostSchema.safeParse(raw)
+      if (!parsed.success) {
+        const erros = parsed.error.errors.map(e => ({ campo: e.path.join('.'), mensagem: e.message }))
+        return NextResponse.json({ mensagem: 'Dados inválidos', erros }, { status: 400 })
+      }
+      body = parsed.data
+    } catch {
+      return NextResponse.json({ mensagem: 'Erro ao processar dados' }, { status: 400 })
+    }
+
     const { situacao, data, observacao, tipo_transferencia, escola_destino_id,
             escola_destino_nome, escola_origem_id, escola_origem_nome } = body
-
-    if (!situacao || !SITUACOES_VALIDAS.includes(situacao)) {
-      return NextResponse.json(
-        { mensagem: `Situação inválida. Valores permitidos: ${SITUACOES_VALIDAS.join(', ')}` },
-        { status: 400 }
-      )
-    }
-
-    // Validar observação (máximo 500 caracteres)
-    if (observacao && typeof observacao === 'string' && observacao.length > 500) {
-      return NextResponse.json(
-        { mensagem: 'Observação deve ter no máximo 500 caracteres' },
-        { status: 400 }
-      )
-    }
 
     // Validações específicas para transferência
     if (situacao === 'transferido') {
@@ -133,85 +145,27 @@ export async function POST(
       }
     }
 
-    // Buscar situação atual
-    const alunoResult = await pool.query(
-      'SELECT id, situacao, ativo FROM alunos WHERE id = $1',
-      [alunoId]
-    )
+    const resultado = await alterarSituacao(alunoId, {
+      situacao, data, observacao, tipo_transferencia,
+      escola_destino_id, escola_destino_nome, escola_origem_id, escola_origem_nome,
+    }, usuario.id)
 
-    if (alunoResult.rows.length === 0) {
-      return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
-    }
+    console.log(`[AUDIT] Situação alterada | aluno:${alunoId} | ${resultado.situacao_anterior} → ${resultado.situacao_nova} | por ${usuario.email} (${usuario.tipo_usuario})${tipo_transferencia ? ` | transferência:${tipo_transferencia}` : ''}`)
 
-    const situacaoAnterior = alunoResult.rows[0].situacao
-
-    if (situacaoAnterior === situacao) {
-      return NextResponse.json({ mensagem: 'O aluno já possui esta situação' }, { status: 400 })
-    }
-
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-
-      // Atualizar situação na tabela alunos
-      const isAtivo = !['transferido', 'abandono'].includes(situacao)
-
-      if (situacao === 'transferido') {
-        // Desvincular da turma ao transferir
-        await client.query(
-          `UPDATE alunos SET situacao = $2, ativo = $3, turma_id = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1`,
-          [alunoId, situacao, isAtivo]
-        )
-      } else {
-        await client.query(
-          `UPDATE alunos SET situacao = $2, ativo = $3, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1`,
-          [alunoId, situacao, isAtivo]
-        )
-      }
-
-      // Determinar tipo de movimentação
-      let tipoMovimentacao: string | null = null
-      if (situacao === 'transferido') {
-        tipoMovimentacao = 'saida'
-      } else if (situacao === 'cursando' && (escola_origem_id || escola_origem_nome)) {
-        tipoMovimentacao = 'entrada'
-      }
-
-      // Registrar no histórico com dados de transferência
-      await client.query(
-        `INSERT INTO historico_situacao (aluno_id, situacao, situacao_anterior, data, observacao, registrado_por,
-         tipo_transferencia, escola_destino_id, escola_destino_nome, escola_origem_id, escola_origem_nome, tipo_movimentacao)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-        [
-          alunoId,
-          situacao,
-          situacaoAnterior,
-          data || new Date().toISOString().split('T')[0],
-          observacao || null,
-          usuario.id,
-          tipo_transferencia || null,
-          escola_destino_id || null,
-          escola_destino_nome || null,
-          escola_origem_id || null,
-          escola_origem_nome || null,
-          tipoMovimentacao,
-        ]
-      )
-
-      await client.query('COMMIT')
-
-      return NextResponse.json({
-        mensagem: 'Situação atualizada com sucesso',
-        situacao_anterior: situacaoAnterior,
-        situacao_nova: situacao,
-      })
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
-    }
+    return NextResponse.json({
+      mensagem: resultado.mensagem,
+      situacao_anterior: resultado.situacao_anterior,
+      situacao_nova: resultado.situacao_nova,
+    })
   } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'Aluno não encontrado') {
+        return NextResponse.json({ mensagem: error.message }, { status: 404 })
+      }
+      if (error.message === 'O aluno já possui esta situação') {
+        return NextResponse.json({ mensagem: error.message }, { status: 400 })
+      }
+    }
     console.error('Erro ao alterar situação do aluno:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }

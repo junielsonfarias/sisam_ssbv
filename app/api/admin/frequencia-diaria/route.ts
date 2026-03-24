@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import {
+  parseSearchParams, parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
+  createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
+} from '@/lib/api-helpers'
+import { validateRequest, frequenciaDiariaDeleteSchema, frequenciaDiariaPatchSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/admin/frequencia-diaria
  * Lista frequência diária com filtros
- * Params: escola_id, turma_id, data, data_inicio, data_fim, metodo, pagina, limite
  */
 export async function GET(request: NextRequest) {
   try {
@@ -16,142 +20,65 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const escolaId = searchParams.get('escola_id')
-    const turmaId = searchParams.get('turma_id')
-    const data = searchParams.get('data')
-    const dataInicio = searchParams.get('data_inicio')
-    const dataFim = searchParams.get('data_fim')
-    const metodo = searchParams.get('metodo')
-    const status = searchParams.get('status')
-    const anoLetivo = searchParams.get('ano_letivo')
-    const pagina = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
-    const limite = Math.min(200, Math.max(1, parseInt(searchParams.get('limite') || '50', 10)))
+    const searchParams = request.nextUrl.searchParams
+    const { escola_id, turma_id, data, data_inicio, data_fim, metodo, status, ano_letivo } = parseSearchParams(
+      searchParams, ['escola_id', 'turma_id', 'data', 'data_inicio', 'data_fim', 'metodo', 'status', 'ano_letivo']
+    )
+    const paginacao = parsePaginacao(searchParams, { limiteMax: 200, limitePadrao: 50 })
 
-    let query = `
-      SELECT fd.id, fd.aluno_id, fd.data, fd.hora_entrada, fd.hora_saida,
-             fd.metodo, fd.confianca, fd.status, fd.justificativa, fd.criado_em,
-             a.nome AS aluno_nome, a.codigo AS aluno_codigo,
-             t.nome AS turma_nome, t.codigo AS turma_codigo,
-             d.nome AS dispositivo
-      FROM frequencia_diaria fd
-      INNER JOIN alunos a ON a.id = fd.aluno_id
-      LEFT JOIN turmas t ON t.id = fd.turma_id
-      LEFT JOIN dispositivos_faciais d ON d.id = fd.dispositivo_id
-      WHERE 1=1
-    `
-    let countQuery = `
-      SELECT COUNT(*) as total
-      FROM frequencia_diaria fd
-      WHERE 1=1
-    `
-    const params: (string | number)[] = []
-    const countParams: (string | number)[] = []
-    let paramIndex = 1
+    const where = createWhereBuilder()
 
     // Controle de acesso
-    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      const filter = ` AND fd.escola_id = $${paramIndex}`
-      query += filter
-      countQuery += filter
-      params.push(usuario.escola_id)
-      countParams.push(usuario.escola_id)
-      paramIndex++
-    } else if (escolaId) {
-      const filter = ` AND fd.escola_id = $${paramIndex}`
-      query += filter
-      countQuery += filter
-      params.push(escolaId)
-      countParams.push(escolaId)
-      paramIndex++
-    }
-
-    if (turmaId) {
-      const filter = ` AND fd.turma_id = $${paramIndex}`
-      query += filter
-      countQuery += filter
-      params.push(turmaId)
-      countParams.push(turmaId)
-      paramIndex++
-    }
+    const escolaFiltro = (usuario.tipo_usuario === 'escola' && usuario.escola_id) ? usuario.escola_id : escola_id
+    addCondition(where, 'fd.escola_id', escolaFiltro)
+    addCondition(where, 'fd.turma_id', turma_id)
 
     if (data) {
-      const filter = ` AND fd.data = $${paramIndex}`
-      query += filter
-      countQuery += filter
-      params.push(data)
-      countParams.push(data)
-      paramIndex++
+      addCondition(where, 'fd.data', data)
     } else {
-      if (dataInicio) {
-        const filter = ` AND fd.data >= $${paramIndex}`
-        query += filter
-        countQuery += filter
-        params.push(dataInicio)
-        countParams.push(dataInicio)
-        paramIndex++
-      }
-      if (dataFim) {
-        const filter = ` AND fd.data <= $${paramIndex}`
-        query += filter
-        countQuery += filter
-        params.push(dataFim)
-        countParams.push(dataFim)
-        paramIndex++
-      }
+      addCondition(where, 'fd.data', data_inicio, '>=')
+      addCondition(where, 'fd.data', data_fim, '<=')
     }
 
-    if (metodo) {
-      const filter = ` AND fd.metodo = $${paramIndex}`
-      query += filter
-      countQuery += filter
-      params.push(metodo)
-      countParams.push(metodo)
-      paramIndex++
-    }
+    addCondition(where, 'fd.metodo', metodo)
 
     if (status && ['presente', 'ausente'].includes(status)) {
-      const filter = ` AND fd.status = $${paramIndex}`
-      query += filter
-      countQuery += filter
-      params.push(status)
-      countParams.push(status)
-      paramIndex++
+      addCondition(where, 'fd.status', status)
     }
 
-    if (anoLetivo) {
-      const filter = ` AND EXTRACT(YEAR FROM fd.data) = $${paramIndex}`
-      query += filter
-      countQuery += filter
-      params.push(parseInt(anoLetivo, 10))
-      countParams.push(parseInt(anoLetivo, 10))
-      paramIndex++
+    if (ano_letivo) {
+      addRawCondition(where, `EXTRACT(YEAR FROM fd.data) = $${where.paramIndex}`, [parseInt(ano_letivo, 10)])
     }
 
-    // Paginação
-    const offset = (pagina - 1) * limite
-    query += ` ORDER BY fd.data DESC, fd.status ASC, a.nome ASC`
-    query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
-    params.push(limite, offset)
+    const whereClause = `WHERE ${buildConditionsString(where)}`
 
     const [result, countResult] = await Promise.all([
-      pool.query(query, params),
-      pool.query(countQuery, countParams),
+      pool.query(
+        `SELECT fd.id, fd.aluno_id, fd.data, fd.hora_entrada, fd.hora_saida,
+               fd.metodo, fd.confianca, fd.status, fd.justificativa, fd.criado_em,
+               a.nome AS aluno_nome, a.codigo AS aluno_codigo,
+               t.nome AS turma_nome, t.codigo AS turma_codigo,
+               d.nome AS dispositivo
+        FROM frequencia_diaria fd
+        INNER JOIN alunos a ON a.id = fd.aluno_id
+        LEFT JOIN turmas t ON t.id = fd.turma_id
+        LEFT JOIN dispositivos_faciais d ON d.id = fd.dispositivo_id
+        ${whereClause}
+        ORDER BY fd.data DESC, fd.status ASC, a.nome ASC
+        ${buildLimitOffset(paginacao)}`,
+        where.params
+      ),
+      pool.query(
+        `SELECT COUNT(*) as total FROM frequencia_diaria fd ${whereClause}`,
+        where.params
+      ),
     ])
 
     const total = parseInt(countResult.rows[0]?.total || '0', 10)
-    const totalPaginas = Math.ceil(total / limite)
 
     return NextResponse.json({
       frequencias: result.rows,
-      paginacao: {
-        pagina,
-        limite,
-        total,
-        totalPaginas,
-        temProxima: pagina < totalPaginas,
-        temAnterior: pagina > 1,
-      },
+      paginacao: buildPaginacaoResponse(paginacao, total),
     })
   } catch (error: unknown) {
     console.error('Erro ao listar frequência diária:', error)
@@ -171,10 +98,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { id } = await request.json()
-    if (!id) {
-      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
-    }
+    const validacao = await validateRequest(request, frequenciaDiariaDeleteSchema)
+    if (!validacao.success) return validacao.response
+    const { id } = validacao.data
 
     // Buscar dados do registro antes de excluir (para limpar frequencia_hora_aula)
     let selectQuery = 'SELECT id, aluno_id, turma_id, data FROM frequencia_diaria WHERE id = $1'
@@ -193,19 +119,26 @@ export async function DELETE(request: NextRequest) {
 
     const { aluno_id, turma_id, data: dataRegistro } = registro.rows[0]
 
-    // Excluir frequência diária
-    await pool.query('DELETE FROM frequencia_diaria WHERE id = $1', [id])
+    // Excluir em transação atômica (frequencia_diaria + frequencia_hora_aula)
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
 
-    // Limpar frequência por aula do mesmo aluno/data (best-effort)
-    if (aluno_id && turma_id && dataRegistro) {
-      try {
-        await pool.query(
+      await client.query('DELETE FROM frequencia_diaria WHERE id = $1', [id])
+
+      if (aluno_id && turma_id && dataRegistro) {
+        await client.query(
           'DELETE FROM frequencia_hora_aula WHERE aluno_id = $1 AND turma_id = $2 AND data = $3',
           [aluno_id, turma_id, dataRegistro]
         )
-      } catch {
-        // Tabela pode não existir ou não ter registros — não impede a exclusão principal
       }
+
+      await client.query('COMMIT')
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
     }
 
     return NextResponse.json({ mensagem: 'Registro excluído com sucesso' })
@@ -227,10 +160,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { id, justificativa } = await request.json()
-    if (!id) {
-      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
-    }
+    const validacao = await validateRequest(request, frequenciaDiariaPatchSchema)
+    if (!validacao.success) return validacao.response
+    const { id, justificativa } = validacao.data
 
     let query = 'UPDATE frequencia_diaria SET justificativa = $1 WHERE id = $2'
     const params: (string | null)[] = [justificativa || null, id]

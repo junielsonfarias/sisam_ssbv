@@ -3,6 +3,7 @@ import { validateDeviceApiKey } from '@/lib/device-auth'
 import { validateRequest } from '@/lib/schemas'
 import { presencaFacialSchema } from '@/lib/schemas'
 import { FACIAL } from '@/lib/constants'
+import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -71,13 +72,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extrair data e hora do timestamp (com validação)
-    const dataHora = new Date(timestamp)
-    if (isNaN(dataHora.getTime())) {
+    // Extrair data e hora no fuso local (não UTC)
+    let data: string, hora: string
+    try {
+      ({ data, hora } = extrairDataHoraLocal(timestamp))
+    } catch {
       return NextResponse.json({ mensagem: 'Timestamp inválido' }, { status: 400 })
     }
-    const data = dataHora.toISOString().split('T')[0]
-    const hora = dataHora.toTimeString().split(' ')[0]
 
     // Inserir ou atualizar presença
     // Primeiro scan = hora_entrada, scans seguintes = hora_saida

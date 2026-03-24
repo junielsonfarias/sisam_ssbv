@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildConditionsString } from '@/lib/api-helpers'
+import { validateRequest, serieEscolarPostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -34,22 +35,19 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
 export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const body = await request.json()
+    const validation = await validateRequest(request, serieEscolarPostSchema)
+    if (!validation.success) return validation.response
     const {
       codigo, nome, etapa, ordem, media_aprovacao, media_recuperacao,
       nota_maxima, max_dependencias, formula_nota_final, permite_recuperacao,
       idade_minima, idade_maxima
-    } = body
-
-    if (!codigo || !nome || !etapa || ordem === undefined) {
-      return NextResponse.json({ mensagem: 'Campos obrigatórios: codigo, nome, etapa, ordem' }, { status: 400 })
-    }
+    } = validation.data
 
     const result = await pool.query(
       `INSERT INTO series_escolares (codigo, nome, etapa, ordem, media_aprovacao, media_recuperacao, nota_maxima, max_dependencias, formula_nota_final, permite_recuperacao, idade_minima, idade_maxima)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
-      [codigo, nome, etapa, ordem, media_aprovacao ?? 6.0, media_recuperacao ?? 5.0, nota_maxima ?? 10.0, max_dependencias ?? 0, formula_nota_final ?? 'media_aritmetica', permite_recuperacao ?? true, idade_minima, idade_maxima]
+      [codigo, nome, etapa, ordem, media_aprovacao ?? 6.0, media_recuperacao ?? 5.0, nota_maxima ?? 10.0, max_dependencias ?? 0, formula_nota_final ?? 'media_aritmetica', permite_recuperacao ?? true, idade_minima ?? null, idade_maxima ?? null]
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })

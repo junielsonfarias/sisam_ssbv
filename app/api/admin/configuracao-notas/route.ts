@@ -5,6 +5,9 @@ import { PG_ERRORS } from '@/lib/constants'
 import { configuracaoNotasEscolaSchema, configuracaoNotasEscolaBaseSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addAccessControl, buildWhereString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,38 +28,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const escolaId = searchParams.get('escola_id')
-    const anoLetivo = searchParams.get('ano_letivo')
+    const searchParams = request.nextUrl.searchParams
+    const { escola_id, ano_letivo } = parseSearchParams(searchParams, ['escola_id', 'ano_letivo'])
 
-    const whereConditions: string[] = []
-    const params: string[] = []
-    let paramIndex = 1
+    const where = createWhereBuilder()
+    addAccessControl(where, usuario, { escolaIdField: 'c.escola_id', poloIdField: 'e.polo_id' })
+    addCondition(where, 'c.escola_id', escola_id)
+    addCondition(where, 'c.ano_letivo', ano_letivo)
 
-    // Restrição de acesso
-    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      whereConditions.push(`c.escola_id = $${paramIndex}`)
-      params.push(usuario.escola_id as string)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      whereConditions.push(`e.polo_id = $${paramIndex}`)
-      params.push(usuario.polo_id as string)
-      paramIndex++
-    }
-
-    if (escolaId) {
-      whereConditions.push(`c.escola_id = $${paramIndex}`)
-      params.push(escolaId)
-      paramIndex++
-    }
-
-    if (anoLetivo) {
-      whereConditions.push(`c.ano_letivo = $${paramIndex}`)
-      params.push(anoLetivo)
-      paramIndex++
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+    const whereClause = buildWhereString(where)
 
     const result = await pool.query(
       `SELECT c.*, e.nome as escola_nome
@@ -64,7 +44,7 @@ export async function GET(request: NextRequest) {
        INNER JOIN escolas e ON c.escola_id = e.id
        ${whereClause}
        ORDER BY e.nome, c.ano_letivo DESC`,
-      params
+      where.params
     )
 
     return NextResponse.json(result.rows)
@@ -103,6 +83,7 @@ export async function POST(request: NextRequest) {
       [escola_id, ano_letivo, tipo_periodo, nota_maxima, media_aprovacao, media_recuperacao, peso_avaliacao, peso_recuperacao, permite_recuperacao]
     )
 
+    console.log(`[AUDIT] Config notas criada | escola:${escola_id} ano:${ano_letivo} | por ${usuario.email}`)
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {

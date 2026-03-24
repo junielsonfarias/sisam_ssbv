@@ -99,9 +99,9 @@ function LancarNotas() {
   const salvar = async () => {
     const notas = Object.entries(notasEditadas).map(([aluno_id, vals]) => ({
       aluno_id,
-      nota: vals.nota ? parseFloat(vals.nota) : null,
-      nota_recuperacao: vals.nota_recuperacao ? parseFloat(vals.nota_recuperacao) : null,
-      faltas: vals.faltas ? parseInt(vals.faltas) : 0,
+      nota: vals.nota !== '' && vals.nota !== undefined && vals.nota !== null ? parseFloat(vals.nota) : null,
+      nota_recuperacao: vals.nota_recuperacao !== '' && vals.nota_recuperacao !== undefined && vals.nota_recuperacao !== null ? parseFloat(vals.nota_recuperacao) : null,
+      faltas: vals.faltas !== '' && vals.faltas !== undefined && vals.faltas !== null ? parseInt(vals.faltas) : 0,
       observacao: vals.observacao || null,
     })).filter(n => n.nota !== null || n.nota_recuperacao !== null || n.faltas > 0)
 
@@ -131,9 +131,9 @@ function LancarNotas() {
   }
 
   // Resumo
-  const notasPreenchidas = Object.values(notasEditadas).filter(n => n.nota).length
+  const notasPreenchidas = Object.values(notasEditadas).filter(n => n.nota !== '' && n.nota !== undefined && n.nota !== null).length
   const mediasTurma = Object.values(notasEditadas)
-    .filter(n => n.nota)
+    .filter(n => n.nota !== '' && n.nota !== undefined && n.nota !== null)
     .map(n => parseFloat(n.nota))
     .filter(n => !isNaN(n))
   const mediaTurma = mediasTurma.length > 0 ? (mediasTurma.reduce((a, b) => a + b, 0) / mediasTurma.length).toFixed(1) : '-'
@@ -202,7 +202,7 @@ function LancarNotas() {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {alunos.map((aluno, i) => {
                 const edit = notasEditadas[aluno.aluno_id] || { nota: '', nota_recuperacao: '', faltas: '0', observacao: '' }
-                const notaNum = edit.nota ? parseFloat(edit.nota) : null
+                const notaNum = edit.nota !== '' && edit.nota !== undefined && edit.nota !== null ? parseFloat(edit.nota) : null
                 const abaixo = notaNum !== null && notaNum < config.media_aprovacao
                 return (
                   <tr key={aluno.aluno_id} className={abaixo ? 'bg-red-50/50 dark:bg-red-900/10' : ''}>

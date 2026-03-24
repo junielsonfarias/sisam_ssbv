@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { getErrorMessage } from '@/lib/validation'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addRawCondition,
+  addAccessControl, buildConditionsString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,11 +24,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
+    const searchParams = request.nextUrl.searchParams
     const anoLetivo = searchParams.get('ano_letivo')
-    const poloId = searchParams.get('polo_id')
-    const escolaId = searchParams.get('escola_id')
-    const serie = searchParams.get('serie')
 
     if (!anoLetivo) {
       return NextResponse.json({ mensagem: 'ano_letivo é obrigatório' }, { status: 400 })
@@ -48,42 +49,22 @@ export async function GET(request: NextRequest) {
     const avDiagnostica = avaliacoesResult.rows.find((a: any) => a.tipo === 'diagnostica') || avaliacoesResult.rows[0]
     const avFinal = avaliacoesResult.rows.find((a: any) => a.tipo === 'final') || avaliacoesResult.rows[1]
 
+    const { polo_id, escola_id, serie } = parseSearchParams(searchParams, ['polo_id', 'escola_id', 'serie'])
+
     // Buscar resultados comparativos com JOIN
-    let conditions: string[] = ['rc_d.avaliacao_id = $1', 'rc_f.avaliacao_id = $2']
-    const params: any[] = [avDiagnostica.id, avFinal.id]
-    let paramIndex = 3
+    const where = createWhereBuilder()
+    addCondition(where, 'rc_d.avaliacao_id', avDiagnostica.id)
+    addCondition(where, 'rc_f.avaliacao_id', avFinal.id)
+    addAccessControl(where, usuario, { escolaIdField: 'rc_d.escola_id', poloIdField: 'e.polo_id' })
+    addCondition(where, 'e.polo_id', polo_id)
+    addCondition(where, 'rc_d.escola_id', escola_id)
 
-    // Restrições de acesso
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      conditions.push(`e.polo_id = $${paramIndex}`)
-      params.push(usuario.polo_id)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      conditions.push(`rc_d.escola_id = $${paramIndex}`)
-      params.push(usuario.escola_id)
-      paramIndex++
-    }
-
-    if (poloId) {
-      conditions.push(`e.polo_id = $${paramIndex}`)
-      params.push(poloId)
-      paramIndex++
-    }
-    if (escolaId) {
-      conditions.push(`rc_d.escola_id = $${paramIndex}`)
-      params.push(escolaId)
-      paramIndex++
-    }
     if (serie) {
       const num = serie.match(/\d+/)?.[0]
       if (num) {
-        conditions.push(`REGEXP_REPLACE(rc_d.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
-        params.push(num)
-        paramIndex++
+        addRawCondition(where, `REGEXP_REPLACE(rc_d.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [num])
       }
     }
-
-    const whereClause = conditions.join(' AND ')
 
     const query = `
       SELECT
@@ -115,12 +96,12 @@ export async function GET(request: NextRequest) {
       INNER JOIN alunos a ON rc_d.aluno_id = a.id
       INNER JOIN escolas e ON rc_d.escola_id = e.id
       LEFT JOIN polos p ON e.polo_id = p.id
-      WHERE ${whereClause}
+      WHERE ${buildConditionsString(where)}
       ORDER BY a.nome
       LIMIT 500
     `
 
-    const result = await pool.query(query, params)
+    const result = await pool.query(query, where.params)
 
     // Calcular resumo
     const alunos = result.rows

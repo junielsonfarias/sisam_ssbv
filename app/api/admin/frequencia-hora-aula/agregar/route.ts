@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
+import { validateRequest, uuidSchema } from '@/lib/schemas'
+
+const agregarFrequenciaHoraAulaSchema = z.object({
+  turma_id: uuidSchema,
+  periodo_id: uuidSchema,
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -16,12 +23,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { turma_id, periodo_id } = body
-
-    if (!turma_id || !periodo_id) {
-      return NextResponse.json({ mensagem: 'turma_id e periodo_id são obrigatórios' }, { status: 400 })
-    }
+    const validationResult = await validateRequest(request, agregarFrequenciaHoraAulaSchema)
+    if (!validationResult.success) return validationResult.response
+    const { turma_id, periodo_id } = validationResult.data
 
     // Buscar turma
     const turmaResult = await pool.query(
@@ -45,53 +49,36 @@ export async function POST(request: NextRequest) {
 
     const { data_inicio, data_fim } = periodoResult.rows[0]
 
-    // Contar faltas por (aluno_id, disciplina_id) no período
-    const faltasResult = await pool.query(
-      `SELECT
+    // Agregar faltas em 1 INSERT...SELECT (sem loop N+1)
+    const result = await pool.query(
+      `INSERT INTO notas_escolares
+        (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, faltas, registrado_por)
+       SELECT
         fha.aluno_id,
         fha.disciplina_id,
-        COUNT(*) FILTER (WHERE fha.presente = false) AS total_faltas
+        $2 AS periodo_id,
+        $4 AS escola_id,
+        $5 AS ano_letivo,
+        COUNT(*) FILTER (WHERE fha.presente = false) AS faltas,
+        $6 AS registrado_por
        FROM frequencia_hora_aula fha
        WHERE fha.turma_id = $1
-         AND fha.data >= $2
-         AND fha.data <= $3
-       GROUP BY fha.aluno_id, fha.disciplina_id`,
-      [turma_id, data_inicio, data_fim]
+         AND fha.data >= $3
+         AND fha.data <= $7
+       GROUP BY fha.aluno_id, fha.disciplina_id
+       ON CONFLICT (aluno_id, disciplina_id, periodo_id) DO UPDATE SET
+        faltas = EXCLUDED.faltas,
+        registrado_por = EXCLUDED.registrado_por`,
+      [turma_id, periodo_id, data_inicio, escola_id, ano_letivo, usuario.id, data_fim]
     )
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
+    const atualizados = result.rowCount || 0
 
-      let atualizados = 0
-      for (const row of faltasResult.rows) {
-        const faltas = parseInt(row.total_faltas, 10)
-
-        await client.query(
-          `INSERT INTO notas_escolares
-            (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, faltas, registrado_por)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           ON CONFLICT (aluno_id, disciplina_id, periodo_id) DO UPDATE SET
-            faltas = EXCLUDED.faltas,
-            registrado_por = EXCLUDED.registrado_por`,
-          [row.aluno_id, row.disciplina_id, periodo_id, escola_id, ano_letivo, faltas, usuario.id]
-        )
-        atualizados++
-      }
-
-      await client.query('COMMIT')
-
-      return NextResponse.json({
-        mensagem: `Faltas agregadas: ${atualizados} registro(s) atualizados`,
-        atualizados,
-        periodo: { data_inicio, data_fim },
-      })
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
-    }
+    return NextResponse.json({
+      mensagem: `Faltas agregadas: ${atualizados} registro(s) atualizados`,
+      atualizados,
+      periodo: { data_inicio, data_fim },
+    })
   } catch (error: unknown) {
     console.error('Erro ao agregar frequência por aula:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

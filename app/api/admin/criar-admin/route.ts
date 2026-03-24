@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     if (!process.env.DB_HOST || !process.env.DB_NAME || !process.env.DB_USER || !process.env.DB_PASSWORD) {
       return NextResponse.json({
         erro: true,
-        mensagem: 'Variaveis de ambiente do banco nao configuradas',
+        mensagem: 'Variáveis de ambiente do banco não configuradas',
         codigo: 'DB_CONFIG_ERROR'
       }, { status: 500 })
     }

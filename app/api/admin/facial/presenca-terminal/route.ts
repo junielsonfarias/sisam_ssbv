@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { validateRequest, presencaFacialSchema } from '@/lib/schemas'
 import { FACIAL } from '@/lib/constants'
+import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -46,10 +47,8 @@ export async function POST(request: NextRequest) {
 
     const aluno = alunoResult.rows[0]
 
-    // Extrair data e hora
-    const dataHora = new Date(timestamp)
-    const data = dataHora.toISOString().split('T')[0]
-    const hora = dataHora.toTimeString().split(' ')[0]
+    // Extrair data e hora no fuso local (não UTC)
+    const { data, hora } = extrairDataHoraLocal(timestamp)
 
     // Inserir ou atualizar presença
     const result = await pool.query(

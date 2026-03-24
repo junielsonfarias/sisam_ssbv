@@ -3,8 +3,8 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { validateRequest } from '@/lib/schemas'
 import { dispositivoFacialSchema } from '@/lib/schemas'
 import { generateApiKey } from '@/lib/device-auth'
-import { buildAccessControl } from '@/lib/api-utils'
 import pool from '@/database/connection'
+import { buscarDispositivos } from '@/lib/services/facial.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,49 +19,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const escolaId = searchParams.get('escola_id')
+    const escolaId = request.nextUrl.searchParams.get('escola_id')
 
-    let query = `
-      SELECT d.id, d.nome, d.localizacao, d.status, d.ultimo_ping,
-             d.metadata, d.criado_em, d.atualizado_em, d.api_key_prefix,
-             e.nome AS escola_nome
-      FROM dispositivos_faciais d
-      INNER JOIN escolas e ON e.id = d.escola_id
-      WHERE 1=1
-    `
-    const params: (string | number)[] = []
-    let paramIndex = 1
-
-    // Filtro por escola específica
-    if (escolaId) {
-      query += ` AND d.escola_id = $${paramIndex}`
-      params.push(escolaId)
-      paramIndex++
-    }
-
-    // Controle de acesso por tipo de usuário
-    const acesso = buildAccessControl(usuario, paramIndex, {
-      escolaAlias: 'e',
-      escolaIdField: 'id',
+    const dispositivos = await buscarDispositivos({
+      escolaId,
+      usuario,
     })
 
-    if (acesso.conditions.length > 0) {
-      // Adaptar para filtrar por d.escola_id
-      if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-        query += ` AND d.escola_id = $${paramIndex}`
-        params.push(usuario.escola_id)
-      } else if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-        query += ` AND e.polo_id = $${paramIndex}`
-        params.push(usuario.polo_id)
-      }
-    }
-
-    query += ` ORDER BY d.criado_em DESC`
-
-    const result = await pool.query(query, params)
-
-    return NextResponse.json({ dispositivos: result.rows })
+    return NextResponse.json({ dispositivos })
   } catch (error: unknown) {
     console.error('Erro ao listar dispositivos:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

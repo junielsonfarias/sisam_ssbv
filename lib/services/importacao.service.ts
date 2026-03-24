@@ -529,7 +529,7 @@ export async function processarLinhas(
       const escolaId = escolasMap.get(escolaNome.toUpperCase().trim())
       if (!escolaId) {
         resultado.resultados.erros++
-        const mensagemErro = `Linha ${i + 2}: Escola nao encontrada: "${escolaNome}"`
+        const mensagemErro = `Linha ${i + 2}: Escola não encontrada: "${escolaNome}"`
         erros.push(mensagemErro)
         if (erros.length <= 20) {
           log.error(mensagemErro)

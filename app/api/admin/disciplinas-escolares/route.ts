@@ -9,6 +9,10 @@ import { parseBoolParam, createWhereBuilder, addCondition, buildWhereString } fr
 
 export const dynamic = 'force-dynamic'
 
+// Cache de disciplinas (mudam raramente — TTL 60s)
+let disciplinasCache: { data: any; expiresAt: number; key: string } | null = null
+function invalidarCache() { disciplinasCache = null }
+
 const atualizarDisciplinaSchema = disciplinaEscolarSchema.extend({
   id: z.string().uuid('ID inválido'),
 })
@@ -16,6 +20,12 @@ const atualizarDisciplinaSchema = disciplinaEscolarSchema.extend({
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   const searchParams = request.nextUrl.searchParams
   const apenasAtivas = searchParams.get('ativas') !== 'false'
+  const cacheKey = `disc:${apenasAtivas}`
+
+  // Cache hit
+  if (disciplinasCache && disciplinasCache.key === cacheKey && Date.now() < disciplinasCache.expiresAt) {
+    return NextResponse.json(disciplinasCache.data)
+  }
 
   const where = createWhereBuilder()
   if (apenasAtivas) {
@@ -26,6 +36,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     `SELECT * FROM disciplinas_escolares ${buildWhereString(where)} ORDER BY ordem, nome`,
     where.params
   )
+
+  // Cache por 60s
+  disciplinasCache = { data: result.rows, expiresAt: Date.now() + 60_000, key: cacheKey }
   return NextResponse.json(result.rows)
 })
 
@@ -43,6 +56,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       [nome, codigo || null, abreviacao || null, ordem, ativo]
     )
 
+    invalidarCache()
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -72,6 +86,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
       return NextResponse.json({ mensagem: 'Disciplina não encontrada' }, { status: 404 })
     }
 
+    invalidarCache()
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -111,6 +126,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
       return NextResponse.json({ mensagem: 'Disciplina não encontrada' }, { status: 404 })
     }
 
+    invalidarCache()
     return NextResponse.json({ mensagem: 'Disciplina excluída com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao excluir disciplina:', error)

@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (!process.env.DB_HOST || !process.env.DB_NAME || !process.env.DB_USER || !process.env.DB_PASSWORD) {
       return NextResponse.json({
         erro: true,
-        mensagem: 'Variaveis de ambiente do banco nao configuradas',
+        mensagem: 'Variáveis de ambiente do banco não configuradas',
         codigo: 'DB_CONFIG_ERROR'
       }, { status: 500 })
     }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     if (!tableCheck.rows[0].exists) {
       return NextResponse.json({
         erro: true,
-        mensagem: 'Tabela usuarios nao encontrada. Execute o schema SQL primeiro.',
+        mensagem: 'Tabela usuários não encontrada. Execute o schema SQL primeiro.',
         codigo: 'TABLE_NOT_FOUND'
       }, { status: 500 })
     }
@@ -147,8 +147,8 @@ export async function GET(request: NextRequest) {
         sistema_inicializado: adminExiste,
         conexao_banco: conexaoOk,
         mensagem: adminExiste
-          ? 'Sistema ja inicializado. Faca login como administrador para mais detalhes.'
-          : 'Sistema nao inicializado. Use POST para criar o primeiro administrador.'
+          ? 'Sistema já inicializado. Faça login como administrador para mais detalhes.'
+          : 'Sistema não inicializado. Use POST para criar o primeiro administrador.'
       })
     }
 

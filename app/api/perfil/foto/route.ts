@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest } from '@/lib/auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
+import { validateRequest } from '@/lib/schemas'
+
+const fotoPostSchema = z.object({
+  foto_url: z.string().max(1000).optional().nullable(),
+  foto_base64: z.string().max(800000).optional().nullable(),
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -16,8 +23,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { foto_url, foto_base64 } = body
+    const validationResult = await validateRequest(request, fotoPostSchema)
+    if (!validationResult.success) return validationResult.response
+    const { foto_url, foto_base64 } = validationResult.data
 
     let urlFinal = foto_url
 

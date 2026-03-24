@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { parseSearchParams } from '@/lib/api-helpers'
+import { z } from 'zod'
+import { validateRequest, uuidSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,18 +56,24 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
  * POST /api/admin/frequencia
  * Salva frequência em lote para uma turma/período
  */
+const adminFrequenciaPostSchema = z.object({
+  turma_id: uuidSchema,
+  periodo_id: uuidSchema,
+  dias_letivos: z.number().int().min(0, 'Dias letivos inválido'),
+  frequencias: z.array(z.object({
+    aluno_id: uuidSchema,
+    presencas: z.number().int().min(0).optional().default(0),
+    faltas: z.number().int().min(0).optional().default(0),
+    faltas_justificadas: z.number().int().min(0).optional().default(0),
+    observacao: z.string().max(500).optional().nullable(),
+  })).min(1, 'Informe pelo menos uma frequência'),
+})
+
 export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const body = await request.json()
-    const { turma_id, periodo_id, dias_letivos, frequencias } = body
-
-    if (!turma_id || !periodo_id || !Array.isArray(frequencias)) {
-      return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
-    }
-
-    if (typeof dias_letivos !== 'number' || dias_letivos < 0) {
-      return NextResponse.json({ mensagem: 'Dias letivos inválido' }, { status: 400 })
-    }
+    const result = await validateRequest(request, adminFrequenciaPostSchema)
+    if (!result.success) return result.response
+    const { turma_id, periodo_id, dias_letivos, frequencias } = result.data
 
     // Buscar escola_id e ano_letivo da turma
     const turmaResult = await pool.query(

@@ -60,13 +60,16 @@ export async function POST(request: NextRequest) {
 
     const { turma_id, horarios } = validacao.data
 
-    // Verificar se turma existe e é 6º-9º
+    // Verificar se turma existe, é 6º-9º e pertence à escola do usuário
     const turmaResult = await pool.query(
-      'SELECT id, serie FROM turmas WHERE id = $1',
+      'SELECT id, serie, escola_id FROM turmas WHERE id = $1',
       [turma_id]
     )
     if (turmaResult.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+    }
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && turmaResult.rows[0].escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta turma' }, { status: 403 })
     }
 
     const serie = turmaResult.rows[0].serie

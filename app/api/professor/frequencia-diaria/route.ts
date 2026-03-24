@@ -3,6 +3,7 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { verificarVinculoProfessor, validarData } from '@/lib/professor-auth'
 import { buscarFrequenciaDiaria, registrarFrequenciaDiaria, excluirFrequenciaDiaria } from '@/lib/services/frequencia'
+import { validateRequest, professorFrequenciaDiariaPostSchema, professorFrequenciaDiariaDeleteSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,14 +36,9 @@ export const GET = withAuth('professor', async (request, usuario) => {
  * Body: { turma_id, data, registros: [{aluno_id, status}] }
  */
 export const POST = withAuth('professor', async (request, usuario) => {
-  const { turma_id, data, registros } = await request.json()
-
-  if (!turma_id || !data || !registros || !Array.isArray(registros)) {
-    return NextResponse.json({ mensagem: 'turma_id, data e registros são obrigatórios' }, { status: 400 })
-  }
-  if (!validarData(data)) {
-    return NextResponse.json({ mensagem: 'Formato de data inválido (use YYYY-MM-DD)' }, { status: 400 })
-  }
+  const result = await validateRequest(request, professorFrequenciaDiariaPostSchema)
+  if (!result.success) return result.response
+  const { turma_id, data, registros } = result.data
 
   const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
   if (!temVinculo) {
@@ -58,10 +54,9 @@ export const POST = withAuth('professor', async (request, usuario) => {
  * Body: { frequencia_id }
  */
 export const DELETE = withAuth('professor', async (request, usuario) => {
-  const { frequencia_id } = await request.json()
-  if (!frequencia_id) {
-    return NextResponse.json({ mensagem: 'frequencia_id é obrigatório' }, { status: 400 })
-  }
+  const result = await validateRequest(request, professorFrequenciaDiariaDeleteSchema)
+  if (!result.success) return result.response
+  const { frequencia_id } = result.data
 
   // Verificar que a frequência pertence a uma turma do professor
   const freqResult = await pool.query(

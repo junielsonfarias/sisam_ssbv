@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addRawCondition,
+  addAccessControl, buildConditionsString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,33 +23,38 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const escolaId = searchParams.get('escola_id')
-    const poloId = searchParams.get('polo_id')
-    const anoLetivo = searchParams.get('ano_letivo')
-    const serie = searchParams.get('serie')
-    const avaliacaoId = searchParams.get('avaliacao_id')
+    const searchParams = request.nextUrl.searchParams
+    const { escola_id, polo_id, ano_letivo, serie, avaliacao_id } = parseSearchParams(
+      searchParams, ['escola_id', 'polo_id', 'ano_letivo', 'serie', 'avaliacao_id']
+    )
 
-    // Query base para estatísticas por série
-    let baseQuery = `
-      SELECT
+    const where = createWhereBuilder()
+    addRawCondition(where, 'rc.serie IS NOT NULL')
+    addAccessControl(where, usuario, { escolaIdField: 'rc.escola_id', poloIdField: 'e.polo_id' })
+    addCondition(where, 'rc.escola_id', escola_id)
+    addCondition(where, 'e.polo_id', polo_id)
+    addCondition(where, 'rc.ano_letivo', ano_letivo)
+    addCondition(where, 'rc.avaliacao_id', avaliacao_id)
+
+    if (serie) {
+      const numSerie = serie.match(/(\d+)/)?.[1] || serie
+      addRawCondition(where, `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
+    }
+
+    const result = await pool.query(
+      `SELECT
         REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') as numero_serie,
         rc.serie as nome_serie,
         COUNT(DISTINCT rc.aluno_id) as total_alunos,
         COUNT(DISTINCT rc.escola_id) as total_escolas,
         COUNT(DISTINCT rc.turma_id) as total_turmas,
-
-        -- Presença
         COUNT(CASE WHEN UPPER(rc.presenca) = 'P' THEN 1 END) as presentes,
         COUNT(CASE WHEN UPPER(rc.presenca) = 'F' THEN 1 END) as faltas,
-
-        -- Médias por disciplina (apenas presentes)
         ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nota_lp IS NOT NULL THEN rc.nota_lp END)::numeric, 2) as media_lp,
         ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nota_mat IS NOT NULL THEN rc.nota_mat END)::numeric, 2) as media_mat,
         ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nota_ch IS NOT NULL THEN rc.nota_ch END)::numeric, 2) as media_ch,
         ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nota_cn IS NOT NULL THEN rc.nota_cn END)::numeric, 2) as media_cn,
         ROUND(AVG(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nota_producao IS NOT NULL THEN rc.nota_producao END)::numeric, 2) as media_producao,
-        -- Média geral com divisor fixo: Anos Iniciais (2,3,5) = 3 disciplinas, Anos Finais (6,7,8,9) = 4 disciplinas
         ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P' THEN
             CASE
@@ -56,87 +65,23 @@ export async function GET(request: NextRequest) {
             END
           ELSE NULL
         END)::numeric, 2) as media_geral,
-
-        -- Distribuição por nível de aprendizagem
         COUNT(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nivel_aprendizagem ILIKE '%insuficiente%' THEN 1 END) as qtd_insuficiente,
         COUNT(CASE WHEN UPPER(rc.presenca) = 'P' AND (rc.nivel_aprendizagem ILIKE '%básico%' OR rc.nivel_aprendizagem ILIKE '%basico%') THEN 1 END) as qtd_basico,
         COUNT(CASE WHEN UPPER(rc.presenca) = 'P' AND rc.nivel_aprendizagem ILIKE '%adequado%' THEN 1 END) as qtd_adequado,
         COUNT(CASE WHEN UPPER(rc.presenca) = 'P' AND (rc.nivel_aprendizagem ILIKE '%avançado%' OR rc.nivel_aprendizagem ILIKE '%avancado%') THEN 1 END) as qtd_avancado,
-
-        -- Configuração da série
-        cs.tem_producao_textual,
-        cs.qtd_itens_producao,
-        cs.avalia_ch,
-        cs.avalia_cn,
-        cs.usa_nivel_aprendizagem,
-        cs.total_questoes_objetivas
-
+        cs.tem_producao_textual, cs.qtd_itens_producao, cs.avalia_ch, cs.avalia_cn,
+        cs.usa_nivel_aprendizagem, cs.total_questoes_objetivas
       FROM resultados_consolidados rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       LEFT JOIN configuracao_series cs ON cs.serie = REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')
-      WHERE rc.serie IS NOT NULL
-    `
-
-    const params: (string | number | boolean | null | undefined)[] = []
-    let paramIndex = 1
-
-    // Aplicar restrições de acesso
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      baseQuery += ` AND e.polo_id = $${paramIndex}`
-      params.push(usuario.polo_id)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      baseQuery += ` AND rc.escola_id = $${paramIndex}`
-      params.push(usuario.escola_id)
-      paramIndex++
-    }
-
-    // Aplicar filtros
-    if (escolaId) {
-      baseQuery += ` AND rc.escola_id = $${paramIndex}`
-      params.push(escolaId)
-      paramIndex++
-    }
-
-    if (poloId) {
-      baseQuery += ` AND e.polo_id = $${paramIndex}`
-      params.push(poloId)
-      paramIndex++
-    }
-
-    if (anoLetivo) {
-      baseQuery += ` AND rc.ano_letivo = $${paramIndex}`
-      params.push(anoLetivo)
-      paramIndex++
-    }
-
-    if (avaliacaoId) {
-      baseQuery += ` AND rc.avaliacao_id = $${paramIndex}`
-      params.push(avaliacaoId)
-      paramIndex++
-    }
-
-    if (serie) {
-      const numSerie = serie.match(/(\d+)/)?.[1] || serie
-      baseQuery += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`
-      params.push(numSerie)
-      paramIndex++
-    }
-
-    baseQuery += `
+      WHERE ${buildConditionsString(where)}
       GROUP BY
-        REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'),
-        rc.serie,
-        cs.tem_producao_textual,
-        cs.qtd_itens_producao,
-        cs.avalia_ch,
-        cs.avalia_cn,
-        cs.usa_nivel_aprendizagem,
-        cs.total_questoes_objetivas
-      ORDER BY REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer
-    `
-
-    const result = await pool.query(baseQuery, params)
+        REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'), rc.serie,
+        cs.tem_producao_textual, cs.qtd_itens_producao, cs.avalia_ch, cs.avalia_cn,
+        cs.usa_nivel_aprendizagem, cs.total_questoes_objetivas
+      ORDER BY REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer`,
+      where.params
+    )
 
     // Processar resultados para adicionar informações extras
     const estatisticas = result.rows.map((row: any) => ({

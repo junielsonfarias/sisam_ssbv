@@ -295,14 +295,14 @@ describe('POST /api/auth/login', () => {
       const response = await POST(loginRequest({ senha: '123456' }))
       expect(response.status).toBe(400)
       const body = await response.json()
-      expect(body.mensagem).toContain('obrigat')
+      expect(body.mensagem).toMatch(/obrigat|inválid/i)
     })
 
     it('retorna 400 quando senha ausente', async () => {
       const response = await POST(loginRequest({ email: 'admin@test.com' }))
       expect(response.status).toBe(400)
       const body = await response.json()
-      expect(body.mensagem).toContain('obrigat')
+      expect(body.mensagem).toMatch(/obrigat|inválid/i)
     })
 
     it('retorna 400 quando campos vazios', async () => {

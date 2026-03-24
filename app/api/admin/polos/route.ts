@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
+import { validateRequest, poloSchema, poloPutSchema } from '@/lib/schemas'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
@@ -44,14 +45,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
 export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const { nome, codigo, descricao } = await request.json()
-
-    if (!nome) {
-      return NextResponse.json(
-        { mensagem: 'Campo obrigatório: nome' },
-        { status: 400 }
-      )
-    }
+    const validation = await validateRequest(request, poloSchema)
+    if (!validation.success) return validation.response
+    const { nome, codigo, descricao } = validation.data
 
     const result = await pool.query(
       `INSERT INTO polos (nome, codigo, descricao)
@@ -78,10 +74,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
 export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const { id, nome, codigo, descricao } = await request.json()
-    if (!id || !nome) {
-      return NextResponse.json({ mensagem: 'Campos obrigatórios: id, nome' }, { status: 400 })
-    }
+    const validation = await validateRequest(request, poloPutSchema)
+    if (!validation.success) return validation.response
+    const { id, nome, codigo, descricao } = validation.data
 
     const result = await pool.query(
       `UPDATE polos SET nome = $1, codigo = $2, descricao = $3 WHERE id = $4 RETURNING *`,

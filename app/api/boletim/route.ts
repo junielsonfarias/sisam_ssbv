@@ -3,8 +3,9 @@ import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 
-// Rate limiting específico para boletim (dados pessoais — LGPD)
-// 30 consultas por IP a cada 15 minutos
+// ============================================================================
+// RATE LIMITING (LGPD — 30 req/15min por IP)
+// ============================================================================
 const boletimLimiter = new Map<string, { count: number; resetAt: number }>()
 const BOLETIM_MAX = 30
 const BOLETIM_WINDOW = 15 * 60 * 1000
@@ -21,11 +22,52 @@ function checkBoletimRate(ip: string): boolean {
   return true
 }
 
-// Cleanup a cada 10 minutos
+// ============================================================================
+// CACHE EM MEMÓRIA (5 min TTL — reduz 7 queries para 0 em consultas repetidas)
+// ============================================================================
+const boletimCache = new Map<string, { data: any; expiresAt: number }>()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+const CACHE_MAX_ENTRIES = 2000   // Limite de memória (~2000 alunos * ~5KB = ~10MB)
+
+function getCacheKey(codigo: string | null, cpf: string | null, dataNascimento: string | null, anoLetivo: string): string {
+  if (codigo) return `cod:${codigo}:${anoLetivo}`
+  return `cpf:${cpf}:${dataNascimento}:${anoLetivo}`
+}
+
+function getFromCache(key: string): any | null {
+  const entry = boletimCache.get(key)
+  if (!entry) return null
+  if (Date.now() > entry.expiresAt) {
+    boletimCache.delete(key)
+    return null
+  }
+  return entry.data
+}
+
+function setInCache(key: string, data: any): void {
+  // Evictar entradas antigas se atingir limite
+  if (boletimCache.size >= CACHE_MAX_ENTRIES) {
+    const now = Date.now()
+    for (const [k, v] of boletimCache) {
+      if (now > v.expiresAt) boletimCache.delete(k)
+    }
+    // Se ainda cheio, remover as mais antigas (FIFO)
+    if (boletimCache.size >= CACHE_MAX_ENTRIES) {
+      const keysToDelete = Array.from(boletimCache.keys()).slice(0, Math.floor(CACHE_MAX_ENTRIES * 0.2))
+      for (const k of keysToDelete) boletimCache.delete(k)
+    }
+  }
+  boletimCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL })
+}
+
+// Cleanup a cada 10 minutos (rate limiter + cache)
 setInterval(() => {
   const now = Date.now()
   for (const [ip, entry] of boletimLimiter) {
     if (now > entry.resetAt) boletimLimiter.delete(ip)
+  }
+  for (const [key, entry] of boletimCache) {
+    if (now > entry.expiresAt) boletimCache.delete(key)
   }
 }, 10 * 60 * 1000)
 
@@ -91,6 +133,18 @@ export async function GET(request: NextRequest) {
     }
 
     // ============================================
+    // CACHE: verificar se já temos resultado em memória
+    // ============================================
+    const cacheKey = getCacheKey(codigo || null, cpf, dataNascimento || null, anoLetivo)
+    const cached = getFromCache(cacheKey)
+    if (cached) {
+      const response = NextResponse.json(cached)
+      response.headers.set('X-Cache', 'HIT')
+      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300')
+      return response
+    }
+
+    // ============================================
     // 1. Buscar aluno
     // ============================================
     let alunoQuery: string
@@ -124,7 +178,7 @@ export async function GET(request: NextRequest) {
 
     if (alunoResult.rows.length === 0) {
       return NextResponse.json(
-        { mensagem: 'Aluno nao encontrado. Verifique os dados informados.' },
+        { mensagem: 'Aluno não encontrado. Verifique os dados informados.' },
         { status: 404 }
       )
     }
@@ -275,7 +329,7 @@ export async function GET(request: NextRequest) {
     // Frequencia diaria resumo
     const freqDiaria = freqDiariaResult.rows[0]
 
-    return NextResponse.json({
+    const responseData = {
       aluno: {
         nome: aluno.nome,
         codigo: aluno.codigo,
@@ -301,7 +355,15 @@ export async function GET(request: NextRequest) {
         primeira_data: freqDiaria?.primeira_data,
         ultima_data: freqDiaria?.ultima_data,
       },
-    })
+    }
+
+    // Salvar no cache (5 min TTL)
+    setInCache(cacheKey, responseData)
+
+    const response = NextResponse.json(responseData)
+    response.headers.set('X-Cache', 'MISS')
+    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300')
+    return response
   } catch (error: unknown) {
     console.error('Erro ao consultar boletim:', (error as Error)?.message || error)
     return NextResponse.json(

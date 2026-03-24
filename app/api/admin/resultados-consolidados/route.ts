@@ -555,7 +555,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   try {
     salvarCache(cacheOptions, resultado, 'resultados-consolidados')
   } catch (cacheError) {
-    console.error('Erro ao salvar cache (nao critico):', cacheError)
+    console.error('Erro ao salvar cache (não crítico):', cacheError)
   }
 
   return NextResponse.json(resultado)

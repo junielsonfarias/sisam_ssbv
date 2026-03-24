@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { lancarFaltas } from '@/lib/services/frequencia'
+import { validateRequest, lancarFaltasSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,10 +11,9 @@ export const dynamic = 'force-dynamic'
  * Lança falta para alunos da turma sem registro no dia
  */
 export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
-  const { turma_id, data } = await request.json()
-  if (!turma_id || !data) {
-    return NextResponse.json({ mensagem: 'turma_id e data são obrigatórios' }, { status: 400 })
-  }
+  const validacao = await validateRequest(request, lancarFaltasSchema)
+  if (!validacao.success) return validacao.response
+  const { turma_id, data } = validacao.data
 
   // Verificar permissão de escola
   if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {

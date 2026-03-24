@@ -25,10 +25,11 @@ export async function POST(request: NextRequest) {
     try {
       await client.query('BEGIN')
 
-      // 1. Purgar logs antigos
+      // 1. Purgar logs antigos (parametrizado — sem template literal em SQL)
       const logsResult = await client.query(
         `DELETE FROM logs_dispositivos
-         WHERE criado_em < NOW() - INTERVAL '${FACIAL.RETENCAO_LOGS_DIAS} days'`
+         WHERE criado_em < NOW() - make_interval(days => $1)`,
+        [FACIAL.RETENCAO_LOGS_DIAS]
       )
 
       // 2. Purgar embeddings de alunos inativos

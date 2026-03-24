@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { validateRequest, questaoPostSchema, questaoPutSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic';
 
@@ -21,27 +22,23 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
 
 export const POST = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const { codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao } = await request.json()
-
-    // Normalizar valores vazios para null
-    const normalizeValue = (value: any) => {
-      if (value === '' || value === undefined) return null
-      return value
-    }
+    const validation = await validateRequest(request, questaoPostSchema)
+    if (!validation.success) return validation.response
+    const { codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao } = validation.data
 
     const result = await pool.query(
       `INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
-        normalizeValue(codigo),
-        normalizeValue(descricao),
-        normalizeValue(disciplina),
-        normalizeValue(area_conhecimento),
-        normalizeValue(dificuldade),
-        normalizeValue(gabarito),
-        normalizeValue(serie_aplicavel),
-        normalizeValue(tipo_questao) || 'objetiva',
+        codigo,
+        descricao || null,
+        disciplina || null,
+        area_conhecimento || null,
+        dificuldade || null,
+        gabarito || null,
+        serie_aplicavel || null,
+        tipo_questao || 'objetiva',
       ]
     )
 
@@ -63,21 +60,9 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
 
 export const PUT = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const body = await request.json()
-    const { id, codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao } = body
-
-    if (!id) {
-      return NextResponse.json(
-        { mensagem: 'ID da questão é obrigatório' },
-        { status: 400 }
-      )
-    }
-
-    // Normalizar valores vazios para null
-    const normalizeValue = (value: any) => {
-      if (value === '' || value === undefined) return null
-      return value
-    }
+    const validation = await validateRequest(request, questaoPutSchema)
+    if (!validation.success) return validation.response
+    const { id, codigo, descricao, disciplina, area_conhecimento, dificuldade, gabarito, serie_aplicavel, tipo_questao } = validation.data
 
     const result = await pool.query(
       `UPDATE questoes
@@ -86,14 +71,14 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
        WHERE id = $9
        RETURNING *`,
       [
-        normalizeValue(codigo),
-        normalizeValue(descricao),
-        normalizeValue(disciplina),
-        normalizeValue(area_conhecimento),
-        normalizeValue(dificuldade),
-        normalizeValue(gabarito),
-        normalizeValue(serie_aplicavel),
-        normalizeValue(tipo_questao) || 'objetiva',
+        codigo || null,
+        descricao || null,
+        disciplina || null,
+        area_conhecimento || null,
+        dificuldade || null,
+        gabarito || null,
+        serie_aplicavel || null,
+        tipo_questao || 'objetiva',
         id,
       ]
     )

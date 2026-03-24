@@ -3,6 +3,10 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
+} from '@/lib/api-helpers'
+import { validateRequest, turmaPostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,29 +17,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const escolaId = searchParams.get('escola_id')
-    const serie = searchParams.get('serie')
+    const searchParams = request.nextUrl.searchParams
+    const { escola_id, serie } = parseSearchParams(searchParams, ['escola_id', 'serie'])
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
-    if (!escolaId) {
+    if (!escola_id) {
       return NextResponse.json({ mensagem: 'escola_id é obrigatório' }, { status: 400 })
     }
 
-    // Escola só pode listar turmas da própria escola
-    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escolaId !== usuario.escola_id) {
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
-    const conditions = ['t.escola_id = $1', 't.ano_letivo = $2', 't.ativo = true']
-    const params: any[] = [escolaId, anoLetivo]
-    let idx = 3
+    const where = createWhereBuilder()
+    addCondition(where, 't.escola_id', escola_id)
+    addCondition(where, 't.ano_letivo', anoLetivo)
+    addRawCondition(where, 't.ativo = true')
 
     if (serie) {
       const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-      conditions.push(`REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${idx}`)
-      params.push(numSerie)
-      idx++
+      addRawCondition(where, `REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
     }
 
     const result = await pool.query(
@@ -44,11 +45,11 @@ export async function GET(request: NextRequest) {
               COUNT(a.id) FILTER (WHERE a.ativo = true) as total_alunos
        FROM turmas t
        LEFT JOIN alunos a ON a.turma_id = t.id AND a.ativo = true
-       WHERE ${conditions.join(' AND ')}
+       WHERE ${buildConditionsString(where)}
        GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
                 t.capacidade_maxima, t.multiserie, t.multietapa
        ORDER BY t.serie, t.codigo`,
-      params
+      where.params
     )
 
     return NextResponse.json(result.rows.map(r => ({
@@ -68,12 +69,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { codigo, nome, escola_id, serie, ano_letivo } = body
-
-    if (!codigo || !escola_id || !ano_letivo) {
-      return NextResponse.json({ mensagem: 'Código, escola e ano letivo são obrigatórios' }, { status: 400 })
-    }
+    const validationResult = await validateRequest(request, turmaPostSchema)
+    if (!validationResult.success) return validationResult.response
+    const { codigo, nome, escola_id, serie, ano_letivo } = validationResult.data
 
     // Escola só pode criar turma na própria escola
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {

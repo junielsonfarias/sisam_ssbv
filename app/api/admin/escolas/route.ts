@@ -3,119 +3,76 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import {
+  parseSearchParams, parseBoolParam,
+  createWhereBuilder, addCondition, addRawCondition, addAccessControl,
+  buildConditionsString,
+} from '@/lib/api-helpers'
+import { z } from 'zod'
+import { validateRequest, uuidSchema, nomeSchema } from '@/lib/schemas'
+import { excluirEscola } from '@/lib/services/escolas.service'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
-  const { searchParams } = new URL(request.url)
-  const poloId = searchParams.get('polo_id')
-  const escolaId = searchParams.get('id')
-  const serie = searchParams.get('serie')
-  const anoLetivo = searchParams.get('ano_letivo')
-  const comEstatisticas = searchParams.get('com_estatisticas') === 'true'
+  const searchParams = request.nextUrl.searchParams
+  const { polo_id, id: escolaId, serie, ano_letivo } = parseSearchParams(
+    searchParams, ['polo_id', 'id', 'serie', 'ano_letivo']
+  )
+  const comEstatisticas = parseBoolParam(searchParams, 'com_estatisticas')
 
   // Se não precisa de estatísticas, usar query simples
   if (!comEstatisticas) {
-    let query = `
-      SELECT e.*, p.nome as polo_nome
-      FROM escolas e
-      LEFT JOIN polos p ON e.polo_id = p.id
-      WHERE e.ativo = true
-    `
-    const params: (string | number | boolean | null | undefined)[] = []
-    let paramIndex = 1
+    const where = createWhereBuilder()
+    addRawCondition(where, 'e.ativo = true')
+    addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
+    addCondition(where, 'e.polo_id', polo_id)
+    addCondition(where, 'e.id', escolaId)
 
-    // Aplicar restrições de acesso
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      query += ` AND e.polo_id = $${paramIndex}`
-      params.push(usuario.polo_id)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      query += ` AND e.id = $${paramIndex}`
-      params.push(usuario.escola_id)
-      paramIndex++
-    }
-
-    // Aplicar filtros
-    if (poloId) {
-      query += ` AND e.polo_id = $${paramIndex}`
-      params.push(poloId)
-      paramIndex++
-    }
-
-    if (escolaId) {
-      query += ` AND e.id = $${paramIndex}`
-      params.push(escolaId)
-      paramIndex++
-    }
-
-    // Filtrar apenas escolas que possuem turmas no ano letivo selecionado
-    if (anoLetivo && anoLetivo.trim() !== '') {
-      query += ` AND EXISTS (
+    if (ano_letivo && ano_letivo.trim() !== '') {
+      addRawCondition(where, `EXISTS (
         SELECT 1 FROM turmas t
-        WHERE t.escola_id = e.id AND t.ano_letivo = $${paramIndex} AND t.ativo = true
-      )`
-      params.push(anoLetivo.trim())
-      paramIndex++
+        WHERE t.escola_id = e.id AND t.ano_letivo = $${where.paramIndex} AND t.ativo = true
+      )`, [ano_letivo.trim()])
     }
 
-    query += ' ORDER BY e.nome'
-
-    const result = await pool.query(query, params)
+    const result = await pool.query(
+      `SELECT e.*, p.nome as polo_nome
+       FROM escolas e LEFT JOIN polos p ON e.polo_id = p.id
+       WHERE ${buildConditionsString(where)}
+       ORDER BY e.nome`,
+      where.params
+    )
     return NextResponse.json(result.rows)
   }
 
   // Query com estatísticas (médias por disciplina)
-  const whereConditions: string[] = ['e.ativo = true']
-  const params: (string | number | boolean | null | undefined)[] = []
-  let paramIndex = 1
-
-  // Aplicar restrições de acesso
-  if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-    whereConditions.push(`e.polo_id = $${paramIndex}`)
-    params.push(usuario.polo_id)
-    paramIndex++
-  } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-    whereConditions.push(`e.id = $${paramIndex}`)
-    params.push(usuario.escola_id)
-    paramIndex++
-  }
-
-  // Aplicar filtros
-  if (poloId) {
-    whereConditions.push(`e.polo_id = $${paramIndex}`)
-    params.push(poloId)
-    paramIndex++
-  }
-
-  if (escolaId) {
-    whereConditions.push(`e.id = $${paramIndex}`)
-    params.push(escolaId)
-    paramIndex++
-  }
+  const where = createWhereBuilder()
+  addRawCondition(where, 'e.ativo = true')
+  addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
+  addCondition(where, 'e.polo_id', polo_id)
+  addCondition(where, 'e.id', escolaId)
 
   if (serie && serie.trim() !== '') {
     const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
-    params.push(numSerie)
-    paramIndex++
+    addRawCondition(where, `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
   }
 
-  if (anoLetivo && anoLetivo.trim() !== '') {
-    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
-    params.push(anoLetivo.trim())
-    paramIndex++
+  if (ano_letivo && ano_letivo.trim() !== '') {
+    addRawCondition(where, `rc.ano_letivo = $${where.paramIndex}`, [ano_letivo.trim()])
   }
 
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+  const whereClause = `WHERE ${buildConditionsString(where)}`
 
-  // Adicionar parâmetro da série para a query de turmas (usado no LEFT JOIN)
+  // Parâmetro extra da série para o LEFT JOIN de turmas
+  let turmasJoinSerie = ''
   if (serie && serie.trim() !== '') {
     const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-    params.push(numSerie)
-    paramIndex++
+    where.params.push(numSerie)
+    turmasJoinSerie = `AND REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = $${where.paramIndex}`
+    where.paramIndex++
   }
 
   // Detectar se é filtro de anos iniciais (2, 3, 5) ou finais (6, 7, 8, 9)
@@ -167,7 +124,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       COUNT(CASE WHEN (rc.presenca = 'F' OR rc.presenca = 'f') THEN 1 END) as faltantes
     FROM escolas e
     LEFT JOIN polos p ON e.polo_id = p.id
-    LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${serie && serie.trim() !== '' ? `AND REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = $${paramIndex}` : ''}
+    LEFT JOIN turmas t ON t.escola_id = e.id AND t.ativo = true ${turmasJoinSerie}
     LEFT JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
       AND (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')
     ${whereClause}
@@ -176,7 +133,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     ORDER BY media_geral DESC NULLS LAST, e.nome
   `
 
-  const result = await pool.query(query, params)
+  const result = await pool.query(query, where.params)
 
   // Converter campos numéricos para garantir consistência
   // Quando filtro de série está ativo, ocultar disciplinas não aplicáveis
@@ -202,17 +159,16 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   return NextResponse.json(escolas)
 })
 
+const escolaPostSchema = z.object({
+  nome: nomeSchema,
+  polo_id: uuidSchema,
+}).passthrough()
+
 export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const body = await request.json()
-    const { nome, polo_id } = body
-
-    if (!nome || !polo_id) {
-      return NextResponse.json(
-        { mensagem: 'Campos obrigatórios: nome, polo_id' },
-        { status: 400 }
-      )
-    }
+    const validacao = await validateRequest(request, escolaPostSchema)
+    if (!validacao.success) return validacao.response
+    const body = validacao.data as Record<string, string | number | boolean | null | undefined>
 
     // All allowed fields for INSERT (base + INEP)
     const allowedFields = [
@@ -282,51 +238,20 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request, usu
       )
     }
 
-    // Verificar vínculos e excluir em transação atômica (evita race condition)
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
+    const resultado = await excluirEscola(escolaId)
 
-      const vinculosResult = await client.query(`
-        SELECT
-          (SELECT COUNT(*) FROM alunos WHERE escola_id = $1) as total_alunos,
-          (SELECT COUNT(*) FROM turmas WHERE escola_id = $1) as total_turmas,
-          (SELECT COUNT(*) FROM resultados_provas WHERE escola_id = $1) as total_resultados,
-          (SELECT COUNT(*) FROM resultados_consolidados_unificada WHERE escola_id = $1) as total_consolidados,
-          (SELECT COUNT(*) FROM usuarios WHERE escola_id = $1) as total_usuarios
-      `, [escolaId])
-
-      const vinculos = vinculosResult.rows[0]
-
-      if (vinculos.total_alunos > 0 || vinculos.total_turmas > 0 ||
-          vinculos.total_resultados > 0 || vinculos.total_consolidados > 0 ||
-          vinculos.total_usuarios > 0) {
-        await client.query('ROLLBACK')
-        return NextResponse.json(
-          {
-            mensagem: 'Não é possível excluir a escola pois possui vínculos',
-            vinculos: {
-              totalAlunos: parseInt(vinculos.total_alunos) || 0,
-              totalTurmas: parseInt(vinculos.total_turmas) || 0,
-              totalResultados: parseInt(vinculos.total_resultados) || 0,
-              totalConsolidados: parseInt(vinculos.total_consolidados) || 0,
-              totalUsuarios: parseInt(vinculos.total_usuarios) || 0,
-            }
-          },
-          { status: 400 }
-        )
-      }
-
-      const delResult = await client.query('DELETE FROM escolas WHERE id = $1 RETURNING nome', [escolaId])
-      await client.query('COMMIT')
-      console.log(`[AUDIT] Escola excluída: ${delResult.rows[0]?.nome} (${escolaId}) por ${usuario.email} (${usuario.tipo_usuario})`)
-      return NextResponse.json({ mensagem: 'Escola excluída com sucesso' }, { status: 200 })
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
+    if (!resultado.sucesso) {
+      return NextResponse.json(
+        {
+          mensagem: 'Não é possível excluir a escola pois possui vínculos',
+          vinculos: resultado.vinculos,
+        },
+        { status: 400 }
+      )
     }
+
+    console.log(`[AUDIT] ${resultado.mensagem} (${escolaId}) por ${usuario.email} (${usuario.tipo_usuario})`)
+    return NextResponse.json({ mensagem: 'Escola excluída com sucesso' }, { status: 200 })
   } catch (error: unknown) {
     console.error('Erro ao excluir escola:', error)
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest } from '@/lib/auth'
 import pool from '@/database/connection'
+import { validateRequest, perfilUpdateSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,8 +81,9 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { nome } = body
+    const validacao = await validateRequest(request, perfilUpdateSchema)
+    if (!validacao.success) return validacao.response
+    const { nome } = validacao.data
 
     if (!nome || nome.trim().length < 3) {
       return NextResponse.json(

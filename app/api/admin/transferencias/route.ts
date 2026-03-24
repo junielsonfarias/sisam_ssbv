@@ -1,71 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { parsePaginacao, buildPaginacaoResponse } from '@/lib/api-helpers'
+import {
+  parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
+  parseSearchParams, createWhereBuilder, addCondition, addRawCondition,
+  addAccessControl, buildConditionsString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
 // GET - Listar transferências com filtros
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const { searchParams } = new URL(request.url)
-    const dataInicio = searchParams.get('data_inicio')
-    const dataFim = searchParams.get('data_fim')
-    const escolaId = searchParams.get('escola_id')
-    const poloId = searchParams.get('polo_id')
-    const tipoMovimentacao = searchParams.get('tipo_movimentacao')
-    const tipoTransferencia = searchParams.get('tipo_transferencia')
+    const searchParams = request.nextUrl.searchParams
+    const { data_inicio, data_fim, escola_id, polo_id, tipo_movimentacao, tipo_transferencia } = parseSearchParams(
+      searchParams, ['data_inicio', 'data_fim', 'escola_id', 'polo_id', 'tipo_movimentacao', 'tipo_transferencia']
+    )
     const paginacao = parsePaginacao(searchParams, { limitePadrao: 50 })
 
-    const params: any[] = []
-    const conditions: string[] = ['hs.tipo_movimentacao IS NOT NULL']
-    let paramIdx = 1
+    const where = createWhereBuilder()
+    addRawCondition(where, 'hs.tipo_movimentacao IS NOT NULL')
+    addCondition(where, 'hs.data', data_inicio, '>=')
+    addCondition(where, 'hs.data', data_fim, '<=')
+    addCondition(where, 'a.escola_id', escola_id)
+    addCondition(where, 'e.polo_id', polo_id)
 
-    // Filtros dinâmicos
-    if (dataInicio) {
-      conditions.push(`hs.data >= $${paramIdx}`)
-      params.push(dataInicio)
-      paramIdx++
+    if (tipo_movimentacao && ['saida', 'entrada'].includes(tipo_movimentacao)) {
+      addCondition(where, 'hs.tipo_movimentacao', tipo_movimentacao)
     }
-    if (dataFim) {
-      conditions.push(`hs.data <= $${paramIdx}`)
-      params.push(dataFim)
-      paramIdx++
-    }
-    if (escolaId) {
-      conditions.push(`a.escola_id = $${paramIdx}`)
-      params.push(escolaId)
-      paramIdx++
-    }
-    if (poloId) {
-      conditions.push(`e.polo_id = $${paramIdx}`)
-      params.push(poloId)
-      paramIdx++
-    }
-    if (tipoMovimentacao && ['saida', 'entrada'].includes(tipoMovimentacao)) {
-      conditions.push(`hs.tipo_movimentacao = $${paramIdx}`)
-      params.push(tipoMovimentacao)
-      paramIdx++
-    }
-    if (tipoTransferencia && ['dentro_municipio', 'fora_municipio'].includes(tipoTransferencia)) {
-      conditions.push(`hs.tipo_transferencia = $${paramIdx}`)
-      params.push(tipoTransferencia)
-      paramIdx++
+    if (tipo_transferencia && ['dentro_municipio', 'fora_municipio'].includes(tipo_transferencia)) {
+      addCondition(where, 'hs.tipo_transferencia', tipo_transferencia)
     }
 
-    // Restrições por permissão
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      conditions.push(`e.polo_id = $${paramIdx}`)
-      params.push(usuario.polo_id)
-      paramIdx++
-    }
-    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      conditions.push(`a.escola_id = $${paramIdx}`)
-      params.push(usuario.escola_id)
-      paramIdx++
-    }
+    addAccessControl(where, usuario, { escolaIdField: 'a.escola_id', poloIdField: 'e.polo_id' })
 
-    const whereClause = conditions.join(' AND ')
+    const whereClause = `WHERE ${buildConditionsString(where)}`
 
     const baseQuery = `
       FROM historico_situacao hs
@@ -74,41 +43,32 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       LEFT JOIN polos p ON e.polo_id = p.id
       LEFT JOIN escolas ed ON hs.escola_destino_id = ed.id
       LEFT JOIN escolas eo ON hs.escola_origem_id = eo.id
-      WHERE ${whereClause}
+      ${whereClause}
     `
-
-    // Query principal com paginação
-    const dataQuery = `
-      SELECT hs.id, hs.data, hs.tipo_movimentacao, hs.tipo_transferencia,
-             hs.observacao, hs.situacao, hs.situacao_anterior,
-             hs.escola_destino_nome, hs.escola_origem_nome,
-             a.id as aluno_id, a.nome as aluno_nome, a.serie, a.ano_letivo,
-             e.nome as escola_nome, e.id as escola_id,
-             p.nome as polo_nome, p.id as polo_id,
-             ed.nome as escola_destino_ref_nome,
-             eo.nome as escola_origem_ref_nome
-      ${baseQuery}
-      ORDER BY hs.data DESC, hs.criado_em DESC
-      LIMIT $${paramIdx} OFFSET $${paramIdx + 1}
-    `
-
-    // Query de contagem
-    const countQuery = `SELECT COUNT(*) as total ${baseQuery}`
-
-    // Query de resumo
-    const resumoQuery = `
-      SELECT
-        COUNT(*) FILTER (WHERE hs.tipo_movimentacao = 'saida') as total_saidas,
-        COUNT(*) FILTER (WHERE hs.tipo_movimentacao = 'entrada') as total_entradas
-      ${baseQuery}
-    `
-
-    const dataParams = [...params, paginacao.limite, paginacao.offset]
 
     const [dataResult, countResult, resumoResult] = await Promise.all([
-      pool.query(dataQuery, dataParams),
-      pool.query(countQuery, params),
-      pool.query(resumoQuery, params),
+      pool.query(
+        `SELECT hs.id, hs.data, hs.tipo_movimentacao, hs.tipo_transferencia,
+               hs.observacao, hs.situacao, hs.situacao_anterior,
+               hs.escola_destino_nome, hs.escola_origem_nome,
+               a.id as aluno_id, a.nome as aluno_nome, a.serie, a.ano_letivo,
+               e.nome as escola_nome, e.id as escola_id,
+               p.nome as polo_nome, p.id as polo_id,
+               ed.nome as escola_destino_ref_nome,
+               eo.nome as escola_origem_ref_nome
+        ${baseQuery}
+        ORDER BY hs.data DESC, hs.criado_em DESC
+        ${buildLimitOffset(paginacao)}`,
+        where.params
+      ),
+      pool.query(`SELECT COUNT(*) as total ${baseQuery}`, where.params),
+      pool.query(
+        `SELECT
+          COUNT(*) FILTER (WHERE hs.tipo_movimentacao = 'saida') as total_saidas,
+          COUNT(*) FILTER (WHERE hs.tipo_movimentacao = 'entrada') as total_entradas
+        ${baseQuery}`,
+        where.params
+      ),
     ])
 
     const total = parseInt(countResult.rows[0].total)

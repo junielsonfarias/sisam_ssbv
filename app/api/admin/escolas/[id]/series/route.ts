@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { validateRequest, serieEscolaPostSchema } from '@/lib/schemas'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -67,13 +68,15 @@ export async function POST(
     }
 
     const escolaId = params.id
-    const { serie, ano_letivo } = await request.json()
 
-    if (!serie || !ano_letivo) {
-      return NextResponse.json(
-        { mensagem: 'Campos obrigatórios: serie, ano_letivo' },
-        { status: 400 }
-      )
+    const validacao = await validateRequest(request, serieEscolaPostSchema)
+    if (!validacao.success) return validacao.response
+    const { serie, ano_letivo } = validacao.data
+
+    // Verificar se escola existe
+    const escolaCheck = await pool.query('SELECT id FROM escolas WHERE id = $1 AND ativo = true', [escolaId])
+    if (escolaCheck.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Escola não encontrada' }, { status: 404 })
     }
 
     const result = await pool.query(

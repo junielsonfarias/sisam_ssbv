@@ -7,7 +7,23 @@
       "Bash(cd:*)",
       "Bash(cat:*)",
       "Bash(grep:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(wc:*)",
+      "Bash(npx vitest:*)",
+      "Bash(node -e \":*)",
+      "Bash(npx next:*)",
+      "Bash(find 'C:\\\\Users\\\\JUNIELSON\\\\Documents\\\\Project 2026\\\\SISAM' -name *turma* -type f)",
+      "Bash(for file:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/JUNIELSON/Documents/Project 2026/SISAM/**)",
+      "Bash(done)",
+      "Bash(xargs ls:*)",
+      "Bash(find '/c/Users/JUNIELSON/Documents/Project 2026/SISAM/app/admin/gestor-escolar/components' -name types* -o -name *.ts)",
+      "Bash(node:*)",
+      "Bash(xargs basename:*)",
+      "Bash(find app/api -name \"route.ts\" -type f -exec grep -l \"^export async function\" {})",
+      "Bash(find app/api -name \"route.ts\" -exec grep -l \"export async function POST\\\\|export async function PUT\\\\|export async function DELETE\" {})",
+      "Bash(find \"C:\\\\Users\\\\JUNIELSON\\\\Documents\\\\Project 2026\\\\SISAM\\\\app\\\\api\\\\admin\" -name \"route.ts\" -exec wc -l {})"
     ]
   }
 }

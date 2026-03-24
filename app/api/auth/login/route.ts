@@ -4,6 +4,12 @@ import { comparePassword, generateToken } from '@/lib/auth'
 import { checkRateLimit, resetRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
 import { SESSAO, PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { z } from 'zod'
+
+const loginBodySchema = z.object({
+  email: z.string().min(1, 'Email é obrigatório').max(254),
+  senha: z.string().min(1, 'Senha é obrigatória'),
+})
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -17,19 +23,24 @@ export async function POST(request: NextRequest) {
     } catch (jsonError) {
       console.error('Erro ao parsear JSON:', jsonError)
       return NextResponse.json(
-        { mensagem: 'Erro ao processar dados da requisicao' },
+        { mensagem: 'Erro ao processar dados da requisição' },
         { status: 400 }
       )
     }
 
-    const { email, senha } = body
-
-    if (!email || !senha) {
+    const parsed = loginBodySchema.safeParse(body)
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map(err => ({
+        campo: err.path.join('.'),
+        mensagem: err.message
+      }))
       return NextResponse.json(
-        { mensagem: 'Email e senha sao obrigatorios' },
+        { mensagem: 'Dados inválidos', erros: errors },
         { status: 400 }
       )
     }
+
+    const { email, senha } = parsed.data
 
     // Verificar rate limit ANTES de processar login
     // Usar combinacao de IP + email para evitar ataques distribuidos
@@ -186,6 +197,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!senhaValida) {
+      console.warn(`[AUDIT] Login falhou (senha incorreta) | usuario:${email} | IP:${maskedIP}`)
       return NextResponse.json(
         { mensagem: 'Email ou senha incorretos' },
         { status: 401 }
@@ -216,7 +228,7 @@ export async function POST(request: NextRequest) {
     // Login bem sucedido - resetar rate limit para este usuario
     resetRateLimit(rateLimitKey)
 
-    console.log('Login bem sucedido para:', tokenPayload.email)
+    console.log(`[AUDIT] Login bem-sucedido | usuario:${tokenPayload.email} (${tokenPayload.tipoUsuario}) | IP:${maskedIP}`)
 
     // Registrar log de acesso (em background para nao impactar performance)
     const userAgent = request.headers.get('user-agent') || 'Desconhecido'

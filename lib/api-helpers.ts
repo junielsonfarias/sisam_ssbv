@@ -456,3 +456,47 @@ export function validarArquivoUpload(
 
   return null
 }
+
+// ============================================================================
+// TIMEZONE HELPERS
+// ============================================================================
+
+/**
+ * Fuso horário padrão do sistema (Belém/PA - UTC-3).
+ * Usado para extrair data/hora local corretamente ao registrar presença.
+ */
+export const TIMEZONE_PADRAO = 'America/Belem'
+
+/**
+ * Extrai data (YYYY-MM-DD) e hora (HH:MM:SS) de um timestamp ISO
+ * usando o fuso horário local do sistema (não UTC).
+ *
+ * Resolve o bug onde toISOString().split('T')[0] retornava data UTC,
+ * fazendo registros após 21h (UTC-3) caírem no dia seguinte.
+ */
+export function extrairDataHoraLocal(timestamp: string | Date, timezone: string = TIMEZONE_PADRAO): { data: string; hora: string } {
+  const dt = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
+
+  if (isNaN(dt.getTime())) {
+    throw new Error('Timestamp inválido')
+  }
+
+  // Usar Intl.DateTimeFormat para converter para o fuso correto
+  const partes = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(dt)
+
+  const get = (type: string) => partes.find(p => p.type === type)?.value || '00'
+
+  const data = `${get('year')}-${get('month')}-${get('day')}`
+  const hora = `${get('hour')}:${get('minute')}:${get('second')}`
+
+  return { data, hora }
+}

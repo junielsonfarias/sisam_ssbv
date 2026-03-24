@@ -2,17 +2,14 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { verificarVinculoProfessor, validarData } from '@/lib/professor-auth'
 import { lancarFaltas } from '@/lib/services/frequencia'
+import { validateRequest, lancarFaltasSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
 export const POST = withAuth('professor', async (request, usuario) => {
-  const { turma_id, data } = await request.json()
-  if (!turma_id || !data) {
-    return NextResponse.json({ mensagem: 'turma_id e data são obrigatórios' }, { status: 400 })
-  }
-  if (!validarData(data)) {
-    return NextResponse.json({ mensagem: 'Formato de data inválido (use YYYY-MM-DD)' }, { status: 400 })
-  }
+  const result = await validateRequest(request, lancarFaltasSchema)
+  if (!result.success) return result.response
+  const { turma_id, data } = result.data
 
   const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
   if (!temVinculo) {

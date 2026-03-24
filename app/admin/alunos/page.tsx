@@ -23,6 +23,9 @@ interface Aluno {
   ano_letivo: string | null
   ativo: boolean
   situacao?: Situacao
+  cpf?: string | null
+  data_nascimento?: string | null
+  pcd?: boolean
   escola_nome?: string
   polo_nome?: string
   turma_codigo?: string
@@ -37,6 +40,9 @@ const formDataInicial = {
   turma_id: '',
   serie: '',
   ano_letivo: new Date().getFullYear().toString(),
+  cpf: '',
+  data_nascimento: '',
+  pcd: false,
 }
 
 export default function AlunosPage() {
@@ -277,6 +283,9 @@ export default function AlunosPage() {
         turma_id: aluno.turma_id || '',
         serie: '',
         ano_letivo: aluno.ano_letivo || new Date().getFullYear().toString(),
+        cpf: aluno.cpf || '',
+        data_nascimento: aluno.data_nascimento ? aluno.data_nascimento.split('T')[0] : '',
+        pcd: aluno.pcd || false,
       })
 
       try {
@@ -320,7 +329,14 @@ export default function AlunosPage() {
 
     setSalvando(true)
     try {
-      const body = alunoEditando ? { id: alunoEditando.id, ...formData } : formData
+      // Converter strings vazias para null (evita "" no banco em vez de NULL)
+      const dadosLimpos = { ...formData }
+      for (const key of ['turma_id', 'serie', 'ano_letivo', 'cpf', 'data_nascimento', 'codigo'] as const) {
+        if ((dadosLimpos as any)[key] === '') (dadosLimpos as any)[key] = null
+      }
+      // Remover polo_id (não pertence ao schema do backend)
+      const { polo_id, ...dadosSemPolo } = dadosLimpos
+      const body = alunoEditando ? { id: alunoEditando.id, ...dadosSemPolo } : dadosSemPolo
       const response = await fetch('/api/admin/alunos', {
         method: alunoEditando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },

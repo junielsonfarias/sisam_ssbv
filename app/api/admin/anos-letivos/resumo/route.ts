@@ -9,12 +9,12 @@ export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
     if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado' }, { status: 403 })
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
     const ano = request.nextUrl.searchParams.get('ano')
     if (!ano) {
-      return NextResponse.json({ mensagem: 'Parametro ano e obrigatorio' }, { status: 400 })
+      return NextResponse.json({ mensagem: 'Parâmetro ano é obrigatório' }, { status: 400 })
     }
 
     const result = await pool.query(

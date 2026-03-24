@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 
 export interface UseBuscaDadosOptions<T> {
-  /** URL base para a requisicao */
+  /** URL base para a requisição */
   endpoint: string
   /** Transformar dados antes de retornar */
   transformar?: (dados: any) => T
@@ -81,7 +81,7 @@ export function useBuscaDados<T>({
 
       const response = await fetch(url.toString())
 
-      // Verificar se ainda e a requisicao mais recente
+      // Verificar se ainda e a requisição mais recente
       if (currentRequestId !== requestIdRef.current) {
         return null
       }
@@ -99,7 +99,7 @@ export function useBuscaDados<T>({
 
       return dadosTransformados
     } catch (error) {
-      // Verificar se ainda e a requisicao mais recente
+      // Verificar se ainda e a requisição mais recente
       if (currentRequestId !== requestIdRef.current) {
         return null
       }

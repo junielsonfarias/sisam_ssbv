@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         [secao]
       )
       if (result.rows.length === 0) {
-        return NextResponse.json({ mensagem: 'Secao nao encontrada' }, { status: 404 })
+        return NextResponse.json({ mensagem: 'Seção não encontrada' }, { status: 404 })
       }
       return NextResponse.json(result.rows[0])
     }

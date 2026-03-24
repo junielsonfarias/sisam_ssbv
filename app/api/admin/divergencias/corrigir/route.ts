@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { executarCorrecao } from '@/lib/divergencias/corretores'
 import { TipoDivergencia, CONFIGURACOES_DIVERGENCIAS } from '@/lib/divergencias/tipos'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +30,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const correcaoSchema = z.object({
+      tipo: z.string().min(1, 'Tipo é obrigatório'),
+      ids: z.array(z.string()).optional(),
+      corrigirTodos: z.boolean().optional(),
+      dadosCorrecao: z.any().optional(),
+    })
+    let body: z.infer<typeof correcaoSchema>
+    try {
+      const raw = await request.json()
+      const parsed = correcaoSchema.safeParse(raw)
+      if (!parsed.success) {
+        return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.errors }, { status: 400 })
+      }
+      body = parsed.data
+    } catch {
+      return NextResponse.json({ mensagem: 'Erro ao processar dados' }, { status: 400 })
+    }
     const { tipo, ids, corrigirTodos, dadosCorrecao } = body
 
     // Validar tipo

@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, comparePassword } from '@/lib/auth'
 import pool from '@/database/connection'
 import { isValidEmail } from '@/lib/validation'
 import { checkRateLimit, resetRateLimit } from '@/lib/rate-limiter'
+import { validateRequest, perfilEmailSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,24 +34,9 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { novoEmail, senhaAtual } = body
-
-    // Validações
-    if (!novoEmail || !senhaAtual) {
-      return NextResponse.json(
-        { mensagem: 'Email e senha são obrigatórios' },
-        { status: 400 }
-      )
-    }
-
-    // Validar formato do email usando validação RFC 5322
-    if (!isValidEmail(novoEmail.trim())) {
-      return NextResponse.json(
-        { mensagem: 'Formato de email inválido' },
-        { status: 400 }
-      )
-    }
+    const validacao = await validateRequest(request, perfilEmailSchema)
+    if (!validacao.success) return validacao.response
+    const { novoEmail, senhaAtual } = validacao.data
 
     // Buscar senha atual do banco
     const result = await pool.query(

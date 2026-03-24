@@ -203,12 +203,12 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     // Usar service layer centralizado para UPSERT
     const resultado = await lancarNotas({
       turmaId: turma_id,
-      disciplinaId: disciplina_id || '',
+      disciplinaId: disciplina_id || null,
       periodoId: periodo_id,
       escolaId: escola_id,
       anoLetivo: ano_letivo,
       notas: notasPreparadas,
-      config: { nota_maxima: config.nota_maxima, media_aprovacao: config.media_aprovacao, permite_recuperacao: config.permite_recuperacao },
+      config: { nota_maxima: config.nota_maxima, media_aprovacao: config.media_aprovacao, permite_recuperacao: config.permite_recuperacao, peso_avaliacao: config.peso_avaliacao, peso_recuperacao: config.peso_recuperacao },
       registradoPor: usuario.id,
       tipoAvaliacaoId: turma.tipo_avaliacao_id || null,
     })

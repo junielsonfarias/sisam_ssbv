@@ -40,7 +40,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Validar JWT_SECRET na inicializacao
 if (!JWT_SECRET) {
-  log.error('JWT_SECRET nao esta configurado! Configure com pelo menos 32 caracteres.');
+  log.error('JWT_SECRET não está configurado! Configure com pelo menos 32 caracteres.');
 }
 
 if (JWT_SECRET && JWT_SECRET.length < 32) {
@@ -130,7 +130,7 @@ export async function comparePassword(senha: string, hash: string): Promise<bool
 export function generateToken(payload: TokenPayload): string {
   try {
     if (!JWT_SECRET) {
-      throw new Error('JWT_SECRET nao esta configurado. Configure a variavel de ambiente JWT_SECRET.')
+      throw new Error('JWT_SECRET não está configurado. Configure a variável de ambiente JWT_SECRET.')
     }
 
     if (JWT_SECRET.length < 32) {
@@ -138,7 +138,7 @@ export function generateToken(payload: TokenPayload): string {
     }
 
     if (!payload.userId || !payload.email || !payload.tipoUsuario) {
-      throw new Error('Payload do token incompleto. userId, email e tipoUsuario sao obrigatorios.')
+      throw new Error('Payload do token incompleto. userId, email e tipoUsuario são obrigatórios.')
     }
 
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
@@ -163,7 +163,7 @@ export function generateToken(payload: TokenPayload): string {
 export function verifyToken(token: string): TokenPayload | null {
   try {
     if (!JWT_SECRET) {
-      log.error('JWT_SECRET nao esta configurado')
+      log.error('JWT_SECRET não está configurado')
       return null;
     }
     return jwt.verify(token, JWT_SECRET) as TokenPayload;

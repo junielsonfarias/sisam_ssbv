@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { createWhereBuilder, addRawCondition, addCondition, buildConditionsString } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,24 +17,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let query = 'SELECT id, nome, codigo FROM polos WHERE ativo = true'
-    const params: (string | number | boolean | null | undefined)[] = []
-    let paramIndex = 1
+    const where = createWhereBuilder()
+    addRawCondition(where, 'ativo = true')
 
-    // Aplicar restrições de acesso
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      query += ` AND id = $${paramIndex}`
-      params.push(usuario.polo_id)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.polo_id) {
-      query += ` AND id = $${paramIndex}`
-      params.push(usuario.polo_id)
-      paramIndex++
+    // Polo e escola veem apenas seu polo
+    if ((usuario.tipo_usuario === 'polo' || usuario.tipo_usuario === 'escola') && usuario.polo_id) {
+      addCondition(where, 'id', usuario.polo_id)
     }
 
-    query += ' ORDER BY nome'
-
-    const result = await pool.query(query, params)
+    const result = await pool.query(
+      `SELECT id, nome, codigo FROM polos
+       WHERE ${buildConditionsString(where)}
+       ORDER BY nome`,
+      where.params
+    )
 
     return NextResponse.json({
       dados: result.rows,

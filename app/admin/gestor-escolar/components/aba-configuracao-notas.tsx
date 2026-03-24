@@ -1,9 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Edit, Save, X, Settings } from 'lucide-react'
+import { Plus, Edit, Save, X, Settings, Trash2 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ConfiguracaoNotas, EscolaSimples } from './types'
+
+/** parseFloat que aceita 0 como valor válido (0 é falsy em JS, || default o ignora) */
+function parseNum(value: string, fallback: number): number {
+  const parsed = parseFloat(value)
+  return isNaN(parsed) ? fallback : parsed
+}
 
 function FormConfiguracao({
   form,
@@ -75,7 +81,7 @@ function FormConfiguracao({
           <input
             type="number"
             value={form.nota_maxima}
-            onChange={e => setForm({ ...form, nota_maxima: parseFloat(e.target.value) || 10 })}
+            onChange={e => setForm({ ...form, nota_maxima: parseNum(e.target.value, 10) })}
             min={1}
             max={100}
             step={0.5}
@@ -88,7 +94,7 @@ function FormConfiguracao({
           <input
             type="number"
             value={form.media_aprovacao}
-            onChange={e => setForm({ ...form, media_aprovacao: parseFloat(e.target.value) || 6 })}
+            onChange={e => setForm({ ...form, media_aprovacao: parseNum(e.target.value, 6) })}
             min={0}
             max={100}
             step={0.5}
@@ -101,7 +107,7 @@ function FormConfiguracao({
           <input
             type="number"
             value={form.media_recuperacao}
-            onChange={e => setForm({ ...form, media_recuperacao: parseFloat(e.target.value) || 5 })}
+            onChange={e => setForm({ ...form, media_recuperacao: parseNum(e.target.value, 5) })}
             min={0}
             max={100}
             step={0.5}
@@ -129,7 +135,7 @@ function FormConfiguracao({
                 type="number"
                 value={form.peso_avaliacao}
                 onChange={e => {
-                  const val = parseFloat(e.target.value) || 0.6
+                  const val = parseNum(e.target.value, 0.6)
                   setForm({ ...form, peso_avaliacao: val, peso_recuperacao: Math.round((1 - val) * 100) / 100 })
                 }}
                 min={0}
@@ -144,7 +150,7 @@ function FormConfiguracao({
                 type="number"
                 value={form.peso_recuperacao}
                 onChange={e => {
-                  const val = parseFloat(e.target.value) || 0.4
+                  const val = parseNum(e.target.value, 0.4)
                   setForm({ ...form, peso_recuperacao: val, peso_avaliacao: Math.round((1 - val) * 100) / 100 })
                 }}
                 min={0}
@@ -225,7 +231,8 @@ export function AbaConfiguracaoNotas({
     }
   }
 
-  useEffect(() => { carregarDados() }, [filtroAno])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { carregarDados() }, [filtroAno, tipoUsuario, escolaIdUsuario])
 
   const iniciarCriacao = () => {
     setCriando(true)
@@ -252,6 +259,19 @@ export function AbaConfiguracaoNotas({
   const cancelar = () => {
     setEditando(null)
     setCriando(false)
+  }
+
+  const excluir = async (configId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta configuração de notas?')) return
+    try {
+      const res = await fetch(`/api/admin/configuracao-notas?id=${configId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.mensagem)
+      toast.success('Configuração excluída')
+      await carregarDados()
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir')
+    }
   }
 
   const salvar = async () => {
@@ -334,9 +354,14 @@ export function AbaConfiguracaoNotas({
                 <p className="text-xs text-gray-500 dark:text-gray-400">Ano: {c.ano_letivo} | Tipo: {({'bimestre':'Bimestre','trimestre':'Trimestre','semestre':'Semestre','anual':'Anual','bimestral':'Bimestral','trimestral':'Trimestral','semestral':'Semestral'} as any)[c.tipo_periodo] || c.tipo_periodo}</p>
               </div>
               {podeEditar && (
-                <button onClick={() => iniciarEdicao(c)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg" title="Editar">
-                  <Edit className="w-4 h-4" />
-                </button>
+                <div className="flex gap-1">
+                  <button onClick={() => iniciarEdicao(c)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg" title="Editar">
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => excluir(c.id)} className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg" title="Excluir">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">

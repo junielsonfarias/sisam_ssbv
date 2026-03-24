@@ -3,6 +3,15 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { z } from 'zod'
+import { validateRequest } from '@/lib/schemas'
+
+const siteConfigPutSchema = z.object({
+  secao: z.string().min(1, 'Campo "seção" é obrigatório').max(100),
+  conteudo: z.record(z.unknown()).refine(val => typeof val === 'object' && val !== null, {
+    message: 'Campo "conteúdo" é obrigatório e deve ser um objeto',
+  }),
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -42,16 +51,9 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
  */
 export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const body = await request.json()
-    const { secao, conteudo } = body
-
-    if (!secao || typeof secao !== 'string') {
-      return NextResponse.json({ mensagem: 'Campo "secao" e obrigatorio' }, { status: 400 })
-    }
-
-    if (!conteudo || typeof conteudo !== 'object') {
-      return NextResponse.json({ mensagem: 'Campo "conteudo" e obrigatorio e deve ser um objeto' }, { status: 400 })
-    }
+    const validationResult = await validateRequest(request, siteConfigPutSchema)
+    if (!validationResult.success) return validationResult.response
+    const { secao, conteudo } = validationResult.data
 
     const result = await pool.query(
       `UPDATE site_config
@@ -64,7 +66,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     )
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ mensagem: 'Secao nao encontrada' }, { status: 404 })
+      return NextResponse.json({ mensagem: 'Seção não encontrada' }, { status: 404 })
     }
 
     return NextResponse.json(result.rows[0])

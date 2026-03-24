@@ -39,7 +39,20 @@ export async function buscarFrequenciaDiaria(turmaId: string, data: string) {
 }
 
 /**
- * Registra frequência diária em lote (presente/ausente) para uma turma
+ * Valida que a data não é futura
+ */
+function validarDataNaoFutura(data: string): void {
+  const dataObj = new Date(data + 'T23:59:59')
+  const hoje = new Date()
+  hoje.setHours(23, 59, 59, 999)
+  if (dataObj > hoje) {
+    throw new Error('Não é permitido lançar frequência para data futura')
+  }
+}
+
+/**
+ * Registra frequência diária em lote (presente/ausente) para uma turma.
+ * Usa batch multi-row INSERT (1 query em vez de N).
  */
 export async function registrarFrequenciaDiaria(
   turmaId: string,
@@ -47,27 +60,40 @@ export async function registrarFrequenciaDiaria(
   registros: Array<{ aluno_id: string; status: string }>,
   registradoPor: string
 ): Promise<number> {
-  // Buscar escola_id da turma
+  validarDataNaoFutura(data)
+
   const turmaResult = await pool.query('SELECT escola_id FROM turmas WHERE id = $1', [turmaId])
   if (turmaResult.rows.length === 0) throw new Error('Turma não encontrada')
   const escolaId = turmaResult.rows[0].escola_id
 
+  // Filtrar registros válidos
+  const validos = registros.filter(r => r.aluno_id && r.status)
+  if (validos.length === 0) return 0
+
   return withTransaction(async (client) => {
-    let salvos = 0
-    for (const reg of registros) {
-      if (!reg.aluno_id || !reg.status) continue
-      await client.query(
-        `INSERT INTO frequencia_diaria (aluno_id, turma_id, escola_id, data, metodo, status, registrado_por)
-         VALUES ($1, $2, $3, $4, 'manual', $5, $6)
-         ON CONFLICT (aluno_id, data) DO UPDATE SET
-           status = EXCLUDED.status,
-           metodo = 'manual',
-           registrado_por = EXCLUDED.registrado_por`,
-        [reg.aluno_id, turmaId, escolaId, data, reg.status, registradoPor]
-      )
-      salvos++
+    // Batch multi-row INSERT (1 query para todos os alunos)
+    const COLS = 6
+    const placeholders: string[] = []
+    const values: (string | null)[] = []
+
+    for (let i = 0; i < validos.length; i++) {
+      const o = i * COLS
+      placeholders.push(`($${o+1},$${o+2},$${o+3},$${o+4},'manual',$${o+5},$${o+6})`)
+      values.push(validos[i].aluno_id, turmaId, escolaId, data, validos[i].status, registradoPor)
     }
-    return salvos
+
+    const result = await client.query(
+      `INSERT INTO frequencia_diaria (aluno_id, turma_id, escola_id, data, metodo, status, registrado_por)
+       VALUES ${placeholders.join(', ')}
+       ON CONFLICT (aluno_id, data) DO UPDATE SET
+         status = EXCLUDED.status,
+         metodo = 'manual',
+         registrado_por = EXCLUDED.registrado_por,
+         atualizado_em = CURRENT_TIMESTAMP`,
+      values
+    )
+
+    return result.rowCount || 0
   })
 }
 
@@ -79,6 +105,8 @@ export async function lancarFaltas(
   data: string,
   registradoPor: string
 ): Promise<number> {
+  validarDataNaoFutura(data)
+
   const turmaResult = await pool.query('SELECT escola_id FROM turmas WHERE id = $1', [turmaId])
   if (turmaResult.rows.length === 0) throw new Error('Turma não encontrada')
 
@@ -166,7 +194,8 @@ export async function buscarFrequenciaHoraAula(turmaId: string, data: string) {
 }
 
 /**
- * Registra frequência por hora-aula em lote
+ * Registra frequência por hora-aula em lote.
+ * Usa batch multi-row INSERT (1 query em vez de N).
  */
 export async function registrarFrequenciaHoraAula(
   turmaId: string,
@@ -176,27 +205,39 @@ export async function registrarFrequenciaHoraAula(
   registros: Array<{ aluno_id: string; presente: boolean }>,
   registradoPor: string
 ): Promise<number> {
+  validarDataNaoFutura(data)
+
   const turmaResult = await pool.query('SELECT escola_id FROM turmas WHERE id = $1', [turmaId])
   if (turmaResult.rows.length === 0) throw new Error('Turma não encontrada')
   const escolaId = turmaResult.rows[0].escola_id
 
+  const validos = registros.filter(r => r.aluno_id && r.presente !== undefined)
+  if (validos.length === 0) return 0
+
   return withTransaction(async (client) => {
-    let salvos = 0
-    for (const reg of registros) {
-      if (!reg.aluno_id || reg.presente === undefined) continue
-      await client.query(
-        `INSERT INTO frequencia_hora_aula
-          (aluno_id, turma_id, escola_id, data, numero_aula, disciplina_id, presente, metodo, registrado_por)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'manual', $8)
-         ON CONFLICT (aluno_id, data, numero_aula) DO UPDATE SET
-          presente = EXCLUDED.presente,
-          disciplina_id = EXCLUDED.disciplina_id,
-          metodo = 'manual',
-          registrado_por = EXCLUDED.registrado_por`,
-        [reg.aluno_id, turmaId, escolaId, data, numeroAula, disciplinaId, reg.presente, registradoPor]
-      )
-      salvos++
+    const COLS = 8
+    const placeholders: string[] = []
+    const values: (string | number | boolean | null)[] = []
+
+    for (let i = 0; i < validos.length; i++) {
+      const o = i * COLS
+      placeholders.push(`($${o+1},$${o+2},$${o+3},$${o+4},$${o+5},$${o+6},$${o+7},'manual',$${o+8})`)
+      values.push(validos[i].aluno_id, turmaId, escolaId, data, numeroAula, disciplinaId, validos[i].presente, registradoPor)
     }
-    return salvos
+
+    const result = await client.query(
+      `INSERT INTO frequencia_hora_aula
+        (aluno_id, turma_id, escola_id, data, numero_aula, disciplina_id, presente, metodo, registrado_por)
+       VALUES ${placeholders.join(', ')}
+       ON CONFLICT (aluno_id, data, numero_aula) DO UPDATE SET
+        presente = EXCLUDED.presente,
+        disciplina_id = EXCLUDED.disciplina_id,
+        metodo = 'manual',
+        registrado_por = EXCLUDED.registrado_por,
+        atualizado_em = CURRENT_TIMESTAMP`,
+      values
+    )
+
+    return result.rowCount || 0
   })
 }

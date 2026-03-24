@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { validateRequest, modulosTecnicoUpdateSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,14 +42,9 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { modulos } = await request.json()
-
-    if (!Array.isArray(modulos)) {
-      return NextResponse.json(
-        { mensagem: 'Formato inválido. Esperado array de módulos.' },
-        { status: 400 }
-      )
-    }
+    const validation = await validateRequest(request, modulosTecnicoUpdateSchema)
+    if (!validation.success) return validation.response
+    const { modulos } = validation.data
 
     const client = await pool.connect()
     try {

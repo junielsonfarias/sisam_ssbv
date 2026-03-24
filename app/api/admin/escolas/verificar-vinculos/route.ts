@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
-import pool from '@/database/connection'
+import { verificarVinculosEscola } from '@/lib/services/escolas.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,24 +25,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verificar vínculos
-    const vinculosResult = await pool.query(`
-      SELECT 
-        (SELECT COUNT(*) FROM alunos WHERE escola_id = $1) as total_alunos,
-        (SELECT COUNT(*) FROM turmas WHERE escola_id = $1) as total_turmas,
-        (SELECT COUNT(*) FROM resultados_provas WHERE escola_id = $1) as total_resultados,
-        (SELECT COUNT(*) FROM resultados_consolidados_unificada WHERE escola_id = $1) as total_consolidados,
-        (SELECT COUNT(*) FROM usuarios WHERE escola_id = $1) as total_usuarios
-    `, [escolaId])
-
-    const vinculos = vinculosResult.rows[0]
+    const vinculos = await verificarVinculosEscola(escolaId)
 
     return NextResponse.json({
-      totalAlunos: parseInt(vinculos.total_alunos) || 0,
-      totalTurmas: parseInt(vinculos.total_turmas) || 0,
-      totalResultados: parseInt(vinculos.total_resultados) || 0,
-      totalConsolidados: parseInt(vinculos.total_consolidados) || 0,
-      totalUsuarios: parseInt(vinculos.total_usuarios) || 0,
+      totalAlunos: vinculos.totalAlunos,
+      totalTurmas: vinculos.totalTurmas,
+      totalResultados: vinculos.totalResultados,
+      totalConsolidados: vinculos.totalConsolidados,
+      totalUsuarios: vinculos.totalUsuarios,
     })
   } catch (error: unknown) {
     console.error('Erro ao verificar vínculos:', error)

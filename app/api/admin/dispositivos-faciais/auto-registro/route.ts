@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { generateApiKey } from '@/lib/device-auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
+import { validateRequest, uuidSchema } from '@/lib/schemas'
+
+const autoRegistroSchema = z.object({
+  escola_id: uuidSchema,
+  nome: z.string().min(1, 'Nome é obrigatório').max(255),
+  localizacao: z.string().max(500).optional().nullable(),
+  tipo_dispositivo: z.enum(['terminal_web', 'kiosk', 'totem', 'tablet']).optional(),
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -17,12 +26,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { escola_id, nome, localizacao, tipo_dispositivo } = body
-
-    if (!escola_id || !nome) {
-      return NextResponse.json({ mensagem: 'escola_id e nome são obrigatórios' }, { status: 400 })
-    }
+    const validationResult = await validateRequest(request, autoRegistroSchema)
+    if (!validationResult.success) return validationResult.response
+    const { escola_id, nome, localizacao, tipo_dispositivo } = validationResult.data
 
     // Verificar permissão de escola: só pode registrar para sua própria escola
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id !== escola_id) {

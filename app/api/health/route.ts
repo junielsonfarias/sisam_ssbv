@@ -12,14 +12,6 @@ export async function GET() {
       database: 'unknown',
       jwt: 'unknown',
     },
-    config: {
-      db_host: process.env.DB_HOST ? 'configured' : 'missing',
-      db_port: process.env.DB_PORT ? 'configured' : 'missing',
-      db_name: process.env.DB_NAME ? 'configured' : 'missing',
-      db_user: process.env.DB_USER ? 'configured' : 'missing',
-      db_password: process.env.DB_PASSWORD ? 'configured' : 'missing',
-      jwt_secret: process.env.JWT_SECRET ? 'configured' : 'missing',
-    },
   }
 
   // Verificar conexão com health check completo

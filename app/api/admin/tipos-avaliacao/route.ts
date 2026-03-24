@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseBoolParam, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
+import { validateRequest, tipoAvaliacaoPostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
     if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado' }, { status: 403 })
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -49,20 +50,12 @@ export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
     if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado - apenas administradores' }, { status: 403 })
+      return NextResponse.json({ mensagem: 'Não autorizado - apenas administradores' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { codigo, nome, descricao, tipo_resultado, escala_conceitos, nota_minima, nota_maxima, permite_decimal } = body
-
-    if (!codigo || !nome || !tipo_resultado) {
-      return NextResponse.json({ mensagem: 'Campos obrigatorios: codigo, nome, tipo_resultado' }, { status: 400 })
-    }
-
-    const validos = ['parecer', 'conceito', 'numerico', 'misto']
-    if (!validos.includes(tipo_resultado)) {
-      return NextResponse.json({ mensagem: `tipo_resultado deve ser um de: ${validos.join(', ')}` }, { status: 400 })
-    }
+    const validation = await validateRequest(request, tipoAvaliacaoPostSchema)
+    if (!validation.success) return validation.response
+    const { codigo, nome, descricao, tipo_resultado, escala_conceitos, nota_minima, nota_maxima, permite_decimal } = validation.data
 
     const result = await pool.query(
       `INSERT INTO tipos_avaliacao (codigo, nome, descricao, tipo_resultado, escala_conceitos, nota_minima, nota_maxima, permite_decimal)
@@ -93,14 +86,27 @@ export async function PUT(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
     if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Nao autorizado - apenas administradores' }, { status: 403 })
+      return NextResponse.json({ mensagem: 'Não autorizado - apenas administradores' }, { status: 403 })
     }
 
     const body = await request.json()
     const { id, ...campos } = body
 
     if (!id) {
-      return NextResponse.json({ mensagem: 'ID e obrigatorio' }, { status: 400 })
+      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
+    }
+
+    // Impedir desativação se há regras de avaliação vinculadas
+    if (campos.ativo === false) {
+      const uso = await pool.query(
+        'SELECT COUNT(*) as total FROM regras_avaliacao WHERE tipo_avaliacao_id = $1 AND ativo = true',
+        [id]
+      )
+      if (parseInt(uso.rows[0].total) > 0) {
+        return NextResponse.json({
+          mensagem: `Não é possível desativar: ${uso.rows[0].total} regra(s) de avaliação vinculada(s). Desvincule-as primeiro.`
+        }, { status: 400 })
+      }
     }
 
     const camposPermitidos = ['nome', 'descricao', 'tipo_resultado', 'escala_conceitos', 'nota_minima', 'nota_maxima', 'permite_decimal', 'ativo']
@@ -134,7 +140,7 @@ export async function PUT(request: NextRequest) {
     )
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ mensagem: 'Tipo de avaliacao nao encontrado' }, { status: 404 })
+      return NextResponse.json({ mensagem: 'Tipo de avaliacao não encontrado' }, { status: 404 })
     }
 
     return NextResponse.json(result.rows[0])

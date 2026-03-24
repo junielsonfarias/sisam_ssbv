@@ -3,6 +3,10 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import {
+  parseBoolParam, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
+} from '@/lib/api-helpers'
+import { validateRequest, regraAvaliacaoPostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -13,36 +17,28 @@ export const revalidate = 0
  */
 export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const { searchParams } = new URL(request.url)
-    const todos = searchParams.get('todos') === 'true'
+    const searchParams = request.nextUrl.searchParams
+    const todos = parseBoolParam(searchParams, 'todos')
     const tipoAvaliacaoId = searchParams.get('tipo_avaliacao_id')
 
-    let query = `
-      SELECT ra.*,
+    const where = createWhereBuilder()
+    if (!todos) {
+      addRawCondition(where, 'ra.ativo = true')
+    }
+    addCondition(where, 'ra.tipo_avaliacao_id', tipoAvaliacaoId)
+
+    const result = await pool.query(
+      `SELECT ra.*,
         ta.nome as tipo_avaliacao_nome,
         ta.codigo as tipo_avaliacao_codigo,
         ta.tipo_resultado,
         (SELECT COUNT(*) FROM series_escolares se WHERE se.regra_avaliacao_id = ra.id) as total_series
       FROM regras_avaliacao ra
       JOIN tipos_avaliacao ta ON ta.id = ra.tipo_avaliacao_id
-      WHERE 1=1
-    `
-    const params: any[] = []
-    let paramIndex = 1
-
-    if (!todos) {
-      query += ` AND ra.ativo = true`
-    }
-
-    if (tipoAvaliacaoId) {
-      query += ` AND ra.tipo_avaliacao_id = $${paramIndex}`
-      params.push(tipoAvaliacaoId)
-      paramIndex++
-    }
-
-    query += ` ORDER BY ra.nome ASC`
-
-    const result = await pool.query(query, params)
+      WHERE ${buildConditionsString(where)}
+      ORDER BY ra.nome ASC`,
+      where.params
+    )
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
@@ -59,17 +55,15 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
  */
 export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const body = await request.json()
+    const validacao = await validateRequest(request, regraAvaliacaoPostSchema)
+    if (!validacao.success) return validacao.response
+
     const {
       nome, descricao, tipo_avaliacao_id, tipo_periodo, qtd_periodos,
       media_aprovacao, media_recuperacao, nota_maxima, permite_recuperacao,
       recuperacao_por_periodo, max_dependencias, formula_media,
       pesos_periodos, arredondamento, casas_decimais, aprovacao_automatica
-    } = body
-
-    if (!nome || !tipo_avaliacao_id) {
-      return NextResponse.json({ mensagem: 'Campos obrigatorios: nome, tipo_avaliacao_id' }, { status: 400 })
-    }
+    } = validacao.data
 
     const result = await pool.query(
       `INSERT INTO regras_avaliacao (
@@ -108,7 +102,20 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     const { id, ...campos } = body
 
     if (!id) {
-      return NextResponse.json({ mensagem: 'ID e obrigatorio' }, { status: 400 })
+      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
+    }
+
+    // Impedir desativação se há séries vinculadas
+    if (campos.ativo === false) {
+      const uso = await pool.query(
+        'SELECT COUNT(*) as total FROM series_escolares WHERE regra_avaliacao_id = $1',
+        [id]
+      )
+      if (parseInt(uso.rows[0].total) > 0) {
+        return NextResponse.json({
+          mensagem: `Não é possível desativar: ${uso.rows[0].total} série(s) vinculada(s). Desvincule-as primeiro.`
+        }, { status: 400 })
+      }
     }
 
     const camposPermitidos = [
@@ -148,7 +155,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     )
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ mensagem: 'Regra de avaliacao nao encontrada' }, { status: 404 })
+      return NextResponse.json({ mensagem: 'Regra de avaliacao não encontrada' }, { status: 404 })
     }
 
     return NextResponse.json(result.rows[0])
@@ -168,7 +175,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     const id = searchParams.get('id')
 
     if (!id) {
-      return NextResponse.json({ mensagem: 'ID e obrigatorio' }, { status: 400 })
+      return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
     }
 
     // Verificar se a regra esta em uso por alguma serie
@@ -189,7 +196,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     )
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ mensagem: 'Regra de avaliacao nao encontrada' }, { status: 404 })
+      return NextResponse.json({ mensagem: 'Regra de avaliacao não encontrada' }, { status: 404 })
     }
 
     return NextResponse.json({ mensagem: 'Regra desativada com sucesso' })

@@ -1,20 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
+} from '@/lib/api-helpers'
+import { validateRequest, controleVagasPutSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
 export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
-  const { searchParams } = new URL(request.url)
-  const escolaId = searchParams.get('escola_id')
-  const poloId = searchParams.get('polo_id')
+  const searchParams = request.nextUrl.searchParams
+  const { escola_id, polo_id } = parseSearchParams(searchParams, ['escola_id', 'polo_id'])
   const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
-  // Filtro de acesso
-  const escolaFiltro = usuario.tipo_usuario === 'escola' ? usuario.escola_id : escolaId
+  const where = createWhereBuilder()
+  addRawCondition(where, 't.ativo = true')
+  addCondition(where, 't.ano_letivo', anoLetivo)
 
-  let query = `
-    SELECT t.id, t.codigo, t.serie, t.ano_letivo,
+  // Filtro de acesso
+  const escolaFiltro = usuario.tipo_usuario === 'escola' ? usuario.escola_id : escola_id
+  addCondition(where, 't.escola_id', escolaFiltro)
+
+  const poloFiltro = usuario.tipo_usuario === 'polo' ? usuario.polo_id : polo_id
+  addCondition(where, 'e.polo_id', poloFiltro)
+
+  const result = await pool.query(
+    `SELECT t.id, t.codigo, t.serie, t.ano_letivo,
            t.capacidade_maxima,
            e.nome as escola_nome, e.id as escola_id,
            COUNT(DISTINCT a.id) FILTER (WHERE a.ativo = true AND (a.situacao IS NULL OR a.situacao = 'cursando')) as alunos_matriculados,
@@ -29,30 +40,11 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       WHERE status = 'aguardando'
       GROUP BY turma_id
     ) fe ON fe.turma_id = t.id
-    WHERE t.ativo = true AND t.ano_letivo = $1
-  `
-
-  const params: any[] = [anoLetivo]
-  let paramIdx = 2
-
-  if (escolaFiltro) {
-    query += ` AND t.escola_id = $${paramIdx}`
-    params.push(escolaFiltro)
-    paramIdx++
-  }
-
-  // Filtro por polo: do parâmetro ou do usuário tipo polo
-  const poloFiltro = usuario.tipo_usuario === 'polo' ? usuario.polo_id : poloId
-  if (poloFiltro) {
-    query += ` AND e.polo_id = $${paramIdx}`
-    params.push(poloFiltro)
-    paramIdx++
-  }
-
-  query += ` GROUP BY t.id, t.codigo, t.serie, t.ano_letivo, t.capacidade_maxima, e.nome, e.id, fe.fila_count
-             ORDER BY e.nome, t.serie, t.codigo`
-
-  const result = await pool.query(query, params)
+    WHERE ${buildConditionsString(where)}
+    GROUP BY t.id, t.codigo, t.serie, t.ano_letivo, t.capacidade_maxima, e.nome, e.id, fe.fila_count
+    ORDER BY e.nome, t.serie, t.codigo`,
+    where.params
+  )
 
   // Resumo
   const turmas = result.rows.map(r => ({
@@ -97,8 +89,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 // Atualizar capacidade (individual ou em lote)
 export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const body = await request.json()
-    const { turma_id, capacidade_maxima, lote } = body
+    const validation = await validateRequest(request, controleVagasPutSchema)
+    if (!validation.success) return validation.response
+    const { turma_id, capacidade_maxima, lote } = validation.data
 
     // Edição em lote
     if (Array.isArray(lote) && lote.length > 0) {

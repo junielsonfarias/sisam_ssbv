@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,13 +12,6 @@ export const dynamic = 'force-dynamic'
  *
  * Retorna dados comparativos entre notas SISAM (resultados_consolidados)
  * e notas escolares (notas_escolares) para uma turma/escola/ano.
- *
- * Params: escola_id, turma_id, ano_letivo, serie
- *
- * Retorna:
- * - alunos: lista com notas SISAM + médias escolares por aluno
- * - resumo: médias gerais e estatísticas comparativas
- * - disciplinas: mapeamento SISAM (LP, MAT) ↔ Escolar (Língua Portuguesa, Matemática)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,66 +20,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const escolaId = searchParams.get('escola_id')
-    const turmaId = searchParams.get('turma_id')
+    const searchParams = request.nextUrl.searchParams
+    const { escola_id, turma_id, serie } = parseSearchParams(searchParams, ['escola_id', 'turma_id', 'serie'])
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
-    const serie = searchParams.get('serie')
 
     // Restrição de acesso escola
     const escolaFiltro = usuario.tipo_usuario === 'escola' && usuario.escola_id
       ? usuario.escola_id as string
-      : escolaId
+      : escola_id
 
-    if (!escolaFiltro && !turmaId) {
+    if (!escolaFiltro && !turma_id) {
       return NextResponse.json({ mensagem: 'Informe escola_id ou turma_id' }, { status: 400 })
     }
 
     // 1. Buscar alunos com resultados SISAM
-    const whereAlunos: string[] = ['a.ativo = true']
-    const params: (string | null)[] = []
-    let idx = 1
+    const where = createWhereBuilder()
+    addRawCondition(where, 'a.ativo = true')
 
-    if (turmaId) {
-      whereAlunos.push(`a.turma_id = $${idx}`)
-      params.push(turmaId)
-      idx++
+    if (turma_id) {
+      addCondition(where, 'a.turma_id', turma_id)
     } else if (escolaFiltro) {
-      whereAlunos.push(`a.escola_id = $${idx}`)
-      params.push(escolaFiltro)
-      idx++
+      addCondition(where, 'a.escola_id', escolaFiltro)
     }
 
     if (serie) {
-      whereAlunos.push(`REGEXP_REPLACE(a.serie, '[^0-9]', '', 'g') = $${idx}`)
-      params.push(serie.replace(/\D/g, ''))
-      idx++
+      addRawCondition(where, `REGEXP_REPLACE(a.serie, '[^0-9]', '', 'g') = $${where.paramIndex}`, [serie.replace(/\D/g, '')])
     }
 
-    whereAlunos.push(`a.ano_letivo = $${idx}`)
-    params.push(anoLetivo)
-    idx++
+    addCondition(where, 'a.ano_letivo', anoLetivo)
 
-    // Query: dados SISAM por aluno
     const sisamResult = await pool.query(
       `SELECT
-         a.id as aluno_id,
-         a.nome as aluno_nome,
-         a.codigo as aluno_codigo,
-         a.serie,
+         a.id as aluno_id, a.nome as aluno_nome, a.codigo as aluno_codigo, a.serie,
          t.codigo as turma_codigo,
-         rc.nota_lp as sisam_lp,
-         rc.nota_mat as sisam_mat,
-         rc.nota_ch as sisam_ch,
-         rc.nota_cn as sisam_cn,
-         rc.media_aluno as sisam_media,
-         rc.nota_producao as sisam_producao
+         rc.nota_lp as sisam_lp, rc.nota_mat as sisam_mat,
+         rc.nota_ch as sisam_ch, rc.nota_cn as sisam_cn,
+         rc.media_aluno as sisam_media, rc.nota_producao as sisam_producao
        FROM alunos a
        LEFT JOIN turmas t ON a.turma_id = t.id
        LEFT JOIN resultados_consolidados rc ON rc.aluno_id = a.id AND rc.ano_letivo = a.ano_letivo
-       WHERE ${whereAlunos.join(' AND ')}
+       WHERE ${buildConditionsString(where)}
        ORDER BY a.nome`,
-      params
+      where.params
     )
 
     if (sisamResult.rows.length === 0) {

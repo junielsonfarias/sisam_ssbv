@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
+import { z } from 'zod'
+import { validateRequest } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,20 +32,23 @@ export const GET = withAuth(['administrador', 'tecnico', 'editor'], async (reque
  * Atualiza as notícias do site
  * Body: { titulo?, descricao?, noticias: [{titulo, resumo, conteudo, data, imagem_url?, link?}] }
  */
+const editorNoticiaPutSchema = z.object({
+  titulo: z.string().max(255).optional().nullable(),
+  descricao: z.string().max(1000).optional().nullable(),
+  noticias: z.array(z.object({
+    titulo: z.string().min(1, 'Cada notícia deve ter um título').max(255),
+    resumo: z.string().max(1000).optional().nullable(),
+    conteudo: z.string().max(10000).optional().nullable(),
+    data: z.string().optional().nullable(),
+    imagem_url: z.string().max(500).optional().nullable(),
+    link: z.string().max(500).optional().nullable(),
+  })).min(1, 'Campo "noticias" é obrigatório (array)'),
+})
+
 export const PUT = withAuth(['administrador', 'tecnico', 'editor'], async (request, usuario) => {
-  const body = await request.json()
-  const { titulo, descricao, noticias } = body
-
-  if (!noticias || !Array.isArray(noticias)) {
-    return NextResponse.json({ mensagem: 'Campo "noticias" é obrigatório (array)' }, { status: 400 })
-  }
-
-  // Validar cada notícia
-  for (const noticia of noticias) {
-    if (!noticia.titulo || typeof noticia.titulo !== 'string') {
-      return NextResponse.json({ mensagem: 'Cada notícia deve ter um título' }, { status: 400 })
-    }
-  }
+  const result = await validateRequest(request, editorNoticiaPutSchema)
+  if (!result.success) return result.response
+  const { titulo, descricao, noticias } = result.data
 
   const conteudo = {
     titulo: titulo || 'Notícias e Eventos',

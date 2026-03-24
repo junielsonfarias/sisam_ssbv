@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import {
+  createWhereBuilder, addRawCondition, addSearchCondition, addCondition, buildConditionsString,
+} from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,22 +14,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const busca = searchParams.get('busca')
+    const busca = request.nextUrl.searchParams.get('busca')
 
     if (!busca || busca.trim().length < 2) {
       return NextResponse.json([])
     }
 
-    const searchTerm = `%${busca.trim()}%`
+    const where = createWhereBuilder()
+    addRawCondition(where, 'a.ativo = true')
+    addSearchCondition(where, ['a.nome', 'a.codigo', 'a.cpf'], busca)
 
-    // Escola só pode buscar alunos da própria escola
-    const escolaFilter = (usuario.tipo_usuario === 'escola' && usuario.escola_id)
-      ? 'AND a.escola_id = $4'
-      : ''
-    const params: any[] = [searchTerm, searchTerm, searchTerm]
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      params.push(usuario.escola_id)
+      addCondition(where, 'a.escola_id', usuario.escola_id)
     }
 
     const result = await pool.query(
@@ -37,12 +36,10 @@ export async function GET(request: NextRequest) {
        FROM alunos a
        INNER JOIN escolas e ON a.escola_id = e.id
        LEFT JOIN turmas t ON a.turma_id = t.id
-       WHERE a.ativo = true
-         AND (a.nome ILIKE $1 OR a.codigo ILIKE $2 OR a.cpf ILIKE $3)
-         ${escolaFilter}
+       WHERE ${buildConditionsString(where)}
        ORDER BY a.nome
        LIMIT 20`,
-      params
+      where.params
     )
 
     return NextResponse.json(result.rows)

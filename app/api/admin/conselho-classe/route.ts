@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { parseSearchParams } from '@/lib/api-helpers'
+import { validateRequest, conselhoClassePostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,12 +56,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
  */
 export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const body = await request.json()
-    const { turma_id, periodo_id, data_reuniao, ata_geral, pareceres } = body
-
-    if (!turma_id || !periodo_id) {
-      return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
-    }
+    const validacao = await validateRequest(request, conselhoClassePostSchema)
+    if (!validacao.success) return validacao.response
+    const { turma_id, periodo_id, data_reuniao, ata_geral, pareceres } = validacao.data
 
     // Buscar escola_id e ano_letivo da turma
     const turmaResult = await pool.query(

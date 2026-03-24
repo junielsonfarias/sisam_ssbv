@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { createWhereBuilder, addRawCondition, addAccessControl, buildConditionsString } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,39 +17,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let query = `
-      SELECT
-        a.id,
-        a.nome,
-        a.codigo,
-        a.escola_id,
-        a.turma_id,
-        e.nome as escola_nome,
-        e.polo_id,
-        t.codigo as turma_codigo
-      FROM alunos a
-      INNER JOIN escolas e ON a.escola_id = e.id
-      LEFT JOIN turmas t ON a.turma_id = t.id
-      WHERE a.ativo = true AND e.ativo = true
-    `
+    const where = createWhereBuilder()
+    addRawCondition(where, 'a.ativo = true AND e.ativo = true')
+    addAccessControl(where, usuario, { escolaIdField: 'a.escola_id', poloIdField: 'e.polo_id' })
 
-    const params: (string | number | boolean | null | undefined)[] = []
-    let paramIndex = 1
-
-    // Aplicar restrições de acesso
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      query += ` AND e.polo_id = $${paramIndex}`
-      params.push(usuario.polo_id)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      query += ` AND a.escola_id = $${paramIndex}`
-      params.push(usuario.escola_id)
-      paramIndex++
-    }
-
-    query += ' ORDER BY a.nome LIMIT 10000' // Limitar para não sobrecarregar
-
-    const result = await pool.query(query, params)
+    const result = await pool.query(
+      `SELECT a.id, a.nome, a.codigo, a.escola_id, a.turma_id,
+              e.nome as escola_nome, e.polo_id, t.codigo as turma_codigo
+       FROM alunos a
+       INNER JOIN escolas e ON a.escola_id = e.id
+       LEFT JOIN turmas t ON a.turma_id = t.id
+       WHERE ${buildConditionsString(where)}
+       ORDER BY a.nome LIMIT 10000`,
+      where.params
+    )
 
     return NextResponse.json({
       dados: result.rows,

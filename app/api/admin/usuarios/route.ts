@@ -51,6 +51,7 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
       [nome, email, senhaHash, tipo_usuario, polo_id || null, escola_id || null]
     )
 
+    console.log(`[AUDIT] Usuário criado | ${email} (${tipo_usuario}) | por ${usuario.email}`)
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {

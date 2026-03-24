@@ -3,18 +3,22 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addRawCondition,
+  addAccessControl, addSearchCondition, addInCondition, buildConditionsString,
+} from '@/lib/api-helpers'
+import { validateRequest, turmaPostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic';
 
 // POST - Criar nova turma
 export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const body = await request.json()
-    const { codigo, nome, escola_id, serie, ano_letivo, capacidade_maxima, multiserie, multietapa } = body
+    const validation = await validateRequest(request, turmaPostSchema)
+    if (!validation.success) return validation.response
+    const { codigo, nome, escola_id, serie, ano_letivo, capacidade_maxima, multiserie, multietapa } = validation.data
 
-    if (!codigo || !escola_id || !serie || !ano_letivo) {
-      return NextResponse.json({ mensagem: 'Campos obrigatórios: codigo, escola_id, serie, ano_letivo' }, { status: 400 })
-    }
+    const capMax = capacidade_maxima ?? 35
 
     const result = await pool.query(
       `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, capacidade_maxima, multiserie, multietapa, ativo)
@@ -26,7 +30,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
         escola_id,
         serie.trim(),
         ano_letivo.trim(),
-        capacidade_maxima || 35,
+        capMax,
         multiserie || false,
         multietapa || false
       ]
@@ -132,60 +136,31 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 })
 
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
-  const { searchParams } = new URL(request.url)
-  const mode = searchParams.get('mode')
-  const serie = searchParams.get('serie')
-  const escolaId = searchParams.get('escola_id')
+  const searchParams = request.nextUrl.searchParams
+  const { mode, serie, escola_id, ano_letivo, busca } = parseSearchParams(
+    searchParams, ['mode', 'serie', 'escola_id', 'ano_letivo', 'busca']
+  )
   const escolasIds = searchParams.get('escolas_ids')?.split(',').filter(Boolean) || []
-  const anoLetivo = searchParams.get('ano_letivo')
-  const busca = searchParams.get('busca')
 
   // Modo listagem simples: retorna turmas com contagem de alunos (sem precisar de resultados)
   if (mode === 'listagem') {
-    const whereConditions: string[] = ['t.ativo = true']
-    const params: string[] = []
-    let paramIndex = 1
-
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      whereConditions.push(`e.polo_id = $${paramIndex}`)
-      params.push(usuario.polo_id as string)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      whereConditions.push(`e.id = $${paramIndex}`)
-      params.push(usuario.escola_id as string)
-      paramIndex++
-    }
-
-    if (anoLetivo && anoLetivo.trim() !== '') {
-      whereConditions.push(`t.ano_letivo = $${paramIndex}`)
-      params.push(anoLetivo.trim())
-      paramIndex++
-    }
-
-    if (escolaId && escolaId.trim() !== '') {
-      whereConditions.push(`t.escola_id = $${paramIndex}`)
-      params.push(escolaId.trim())
-      paramIndex++
-    }
+    const where = createWhereBuilder()
+    addRawCondition(where, 't.ativo = true')
+    addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
+    addCondition(where, 't.ano_letivo', ano_letivo?.trim() || null)
+    addCondition(where, 't.escola_id', escola_id?.trim() || null)
 
     if (serie && serie.trim() !== '') {
       const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-      whereConditions.push(`REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
-      params.push(numSerie)
-      paramIndex++
+      addRawCondition(where, `REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
     }
 
-    if (busca && busca.trim() !== '') {
-      whereConditions.push(`(t.codigo ILIKE $${paramIndex} OR t.nome ILIKE $${paramIndex + 1} OR e.nome ILIKE $${paramIndex + 2})`)
-      const buscaParam = `%${busca.trim()}%`
-      params.push(buscaParam, buscaParam, buscaParam)
-      paramIndex += 3
-    }
+    addSearchCondition(where, ['t.codigo', 't.nome', 'e.nome'], busca)
 
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+    const whereClause = `WHERE ${buildConditionsString(where)}`
 
-    const query = `
-      SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
+    const result = await pool.query(
+      `SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
              COALESCE(t.capacidade_maxima, 35) as capacidade_maxima,
              COALESCE(t.multiserie, false) as multiserie,
              COALESCE(t.multietapa, false) as multietapa,
@@ -198,10 +173,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       ${whereClause}
       GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
                t.capacidade_maxima, t.multiserie, t.multietapa, e.nome, p.nome
-      ORDER BY t.ano_letivo DESC, e.nome, t.serie, t.codigo
-    `
-
-    const result = await pool.query(query, params)
+      ORDER BY t.ano_letivo DESC, e.nome, t.serie, t.codigo`,
+      where.params
+    )
     return NextResponse.json(result.rows.map(row => ({
       ...row,
       total_alunos: parseInt(row.total_alunos) || 0,
@@ -211,44 +185,20 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     })))
   }
 
-  // Construir condições WHERE
-  const whereConditions: string[] = ['t.ativo = true']
-  const params: (string | number | boolean | null | undefined)[] = []
-  let paramIndex = 1
-
-  // Aplicar restrições de acesso
-  if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-    whereConditions.push(`e.polo_id = $${paramIndex}`)
-    params.push(usuario.polo_id)
-    paramIndex++
-  } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-    whereConditions.push(`e.id = $${paramIndex}`)
-    params.push(usuario.escola_id)
-    paramIndex++
-  }
-
-  // Aplicar filtros
-  if (escolasIds.length > 0) {
-    const placeholders = escolasIds.map((_, i) => `$${paramIndex + i}`).join(',')
-    whereConditions.push(`e.id IN (${placeholders})`)
-    params.push(...escolasIds)
-    paramIndex += escolasIds.length
-  }
+  // Modo detalhado com médias
+  const where = createWhereBuilder()
+  addRawCondition(where, 't.ativo = true')
+  addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
+  addInCondition(where, 'e.id', escolasIds)
 
   if (serie && serie.trim() !== '') {
     const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
-    params.push(numSerie)
-    paramIndex++
+    addRawCondition(where, `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
   }
 
-  if (anoLetivo && anoLetivo.trim() !== '') {
-    whereConditions.push(`t.ano_letivo = $${paramIndex}`)
-    params.push(anoLetivo.trim())
-    paramIndex++
-  }
+  addCondition(where, 't.ano_letivo', ano_letivo?.trim() || null)
 
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+  const whereClause = `WHERE ${buildConditionsString(where)}`
 
   // Detectar se é filtro de anos iniciais (2, 3, 5) ou finais (6, 7, 8, 9)
   const serieNumero = serie ? serie.replace(/[^0-9]/g, '') : ''
@@ -308,7 +258,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     ORDER BY t.serie, t.codigo, e.nome
   `
 
-  const result = await pool.query(query, params)
+  const result = await pool.query(query, where.params)
 
   // Converter campos numéricos para garantir consistência
   // Quando filtro de série está ativo, ocultar disciplinas não aplicáveis

@@ -3,6 +3,11 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { z } from 'zod'
+import { validateRequest } from '@/lib/schemas'
+import { buscarEscolaDetalhada } from '@/lib/services/escolas.service'
+
+const escolaPutSchema = z.object({}).passthrough()
 
 export const dynamic = 'force-dynamic'
 
@@ -35,32 +40,15 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url)
-    const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
+    const anoLetivo = searchParams.get('ano_letivo') || undefined
 
-    const result = await pool.query(
-      `SELECT e.*,
-        (SELECT COUNT(*) FROM turmas t WHERE t.escola_id = e.id AND t.ano_letivo = $2 AND t.ativo = true) as total_turmas,
-        (SELECT COUNT(*) FROM alunos a WHERE a.escola_id = e.id AND a.ano_letivo = $2 AND a.ativo = true) as total_alunos,
-        (SELECT COUNT(*) FROM alunos a WHERE a.escola_id = e.id AND a.ano_letivo = $2 AND a.pcd = true) as total_pcd,
-        p.nome as polo_nome
-      FROM escolas e
-      LEFT JOIN polos p ON e.polo_id = p.id
-      WHERE e.id = $1`,
-      [escolaId, anoLetivo]
-    )
+    const escola = await buscarEscolaDetalhada(escolaId, anoLetivo)
 
-    if (result.rows.length === 0) {
+    if (!escola) {
       return NextResponse.json(
         { mensagem: 'Escola não encontrada' },
         { status: 404 }
       )
-    }
-
-    const escola = {
-      ...result.rows[0],
-      total_turmas: parseInt(result.rows[0].total_turmas) || 0,
-      total_alunos: parseInt(result.rows[0].total_alunos) || 0,
-      total_pcd: parseInt(result.rows[0].total_pcd) || 0,
     }
 
     return NextResponse.json(escola)
@@ -92,7 +80,9 @@ export async function PUT(
     }
 
     const escolaId = params.id
-    const body = await request.json()
+    const validationResult = await validateRequest(request, escolaPutSchema)
+    if (!validationResult.success) return validationResult.response
+    const body = validationResult.data as Record<string, unknown>
 
     // Only allow real escola columns
     const allowedFields = [
@@ -129,7 +119,9 @@ export async function PUT(
         sanitized = Array.isArray(value) ? value : (value ? [value] : [])
       }
       if (key === 'latitude' || key === 'longitude') {
-        sanitized = value ? parseFloat(value as string) || null : null
+        // Usar ?? para permitir coordenada 0.0 (|| null converteria 0 para null)
+        const parsed = value !== null && value !== undefined && value !== '' ? parseFloat(value as string) : null
+        sanitized = parsed !== null && !isNaN(parsed) ? parsed : null
       }
 
       setClauses.push(`${key} = $${paramIndex}`)

@@ -79,7 +79,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
   try {
     salvarCache(cacheOptions, resultado, 'graficos')
   } catch (cacheError) {
-    console.error('Erro ao salvar cache (nao critico):', cacheError)
+    console.error('Erro ao salvar cache (não crítico):', cacheError)
   }
 
   return NextResponse.json({

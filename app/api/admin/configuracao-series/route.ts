@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { limparCacheConfigSeries } from '@/lib/config-series'
+import {
+  parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
+} from '@/lib/api-helpers'
+import { validateRequest, configuracaoSeriePostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,12 +24,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const serie = searchParams.get('serie')
-    const anoLetivo = searchParams.get('ano_letivo')
+    const searchParams = request.nextUrl.searchParams
+    const { serie, ano_letivo } = parseSearchParams(searchParams, ['serie', 'ano_letivo'])
 
-    let query = `
-      SELECT
+    const where = createWhereBuilder()
+    addRawCondition(where, 'cs.ativo = true')
+
+    if (serie) {
+      const numeroSerie = serie.match(/(\d+)/)?.[1]
+      if (numeroSerie) {
+        addCondition(where, 'cs.serie', numeroSerie)
+      }
+    }
+
+    if (ano_letivo) {
+      addRawCondition(where, `EXISTS (
+        SELECT 1 FROM turmas t
+        WHERE t.serie = cs.serie AND t.ano_letivo = $${where.paramIndex} AND t.ativo = true
+      )`, [ano_letivo])
+    }
+
+    const result = await pool.query(
+      `SELECT
         cs.id, cs.serie, cs.nome_serie, cs.tipo_ensino,
         cs.qtd_questoes_lp, cs.qtd_questoes_mat, cs.qtd_questoes_ch, cs.qtd_questoes_cn,
         cs.total_questoes_objetivas,
@@ -37,33 +57,10 @@ export async function GET(request: NextRequest) {
         cs.max_dependencias, cs.formula_nota_final,
         cs.criado_em, cs.atualizado_em
       FROM configuracao_series cs
-      WHERE cs.ativo = true
-    `
-    const params: (string | number | boolean | null | undefined)[] = []
-    let paramIndex = 1
-
-    if (serie) {
-      const numeroSerie = serie.match(/(\d+)/)?.[1]
-      if (numeroSerie) {
-        query += ` AND cs.serie = $${paramIndex}`
-        params.push(numeroSerie)
-        paramIndex++
-      }
-    }
-
-    // Filtrar apenas séries que possuem turmas no ano letivo selecionado
-    if (anoLetivo) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM turmas t
-        WHERE t.serie = cs.serie AND t.ano_letivo = $${paramIndex} AND t.ativo = true
-      )`
-      params.push(anoLetivo)
-      paramIndex++
-    }
-
-    query += ` ORDER BY cs.serie::integer`
-
-    const result = await pool.query(query, params)
+      WHERE ${buildConditionsString(where)}
+      ORDER BY cs.serie::integer`,
+      where.params
+    )
 
     if (serie && result.rows.length === 0) {
       return NextResponse.json(
@@ -319,35 +316,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const {
-      serie,
-      nome_serie,
-      tipo_ensino = 'anos_iniciais',
-      qtd_questoes_lp = 0,
-      qtd_questoes_mat = 0,
-      qtd_questoes_ch = 0,
-      qtd_questoes_cn = 0,
-      tem_producao_textual = false,
-      qtd_itens_producao = 0,
-      avalia_lp = true,
-      avalia_mat = true,
-      avalia_ch = false,
-      avalia_cn = false,
-      usa_nivel_aprendizagem = false,
-      media_aprovacao = 6.0,
-      media_recuperacao = 5.0,
-      nota_maxima = 10.0,
-      max_dependencias = 0,
-      formula_nota_final = null
-    } = body
+    const validacao = await validateRequest(request, configuracaoSeriePostSchema)
+    if (!validacao.success) return validacao.response
 
-    if (!serie || !nome_serie) {
-      return NextResponse.json(
-        { mensagem: 'Série e nome são obrigatórios' },
-        { status: 400 }
-      )
-    }
+    const {
+      serie, nome_serie, tipo_ensino,
+      qtd_questoes_lp, qtd_questoes_mat, qtd_questoes_ch, qtd_questoes_cn,
+      tem_producao_textual, qtd_itens_producao,
+      avalia_lp, avalia_mat, avalia_ch, avalia_cn,
+      usa_nivel_aprendizagem, media_aprovacao, media_recuperacao,
+      nota_maxima, max_dependencias, formula_nota_final
+    } = validacao.data
 
     // Verificar se série já existe
     const existente = await pool.query(

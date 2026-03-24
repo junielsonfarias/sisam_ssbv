@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest } from '@/lib/auth'
 import pool from '@/database/connection'
+import { validateRequest, professorSyncPostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,7 +96,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const { frequencias = [], notas = [] } = await request.json()
+    const syncResult = await validateRequest(request, professorSyncPostSchema)
+    if (!syncResult.success) return syncResult.response
+    const { frequencias = [], notas = [] } = syncResult.data
     let freqSalvas = 0
     let notasSalvas = 0
     const erros: string[] = []

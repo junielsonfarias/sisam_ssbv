@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { validateRequest } from '@/lib/schemas'
 import { consentimentoFacialSchema } from '@/lib/schemas'
 import pool from '@/database/connection'
+import { buscarConsentimentos, buscarConsentimentoAluno, revogarConsentimento } from '@/lib/services/facial.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,59 +26,19 @@ export async function GET(request: NextRequest) {
 
     // Busca por aluno específico (usado na aba facial do perfil)
     if (alunoIdParam) {
-      const result = await pool.query(`
-        SELECT
-          a.id AS aluno_id,
-          a.nome AS aluno_nome,
-          cf.responsavel_nome,
-          cf.responsavel_cpf,
-          cf.consentido,
-          cf.data_consentimento,
-          cf.data_revogacao,
-          CASE WHEN ef.id IS NOT NULL THEN true ELSE false END AS tem_embedding
-        FROM alunos a
-        LEFT JOIN consentimentos_faciais cf ON cf.aluno_id = a.id
-        LEFT JOIN embeddings_faciais ef ON ef.aluno_id = a.id
-        WHERE a.id = $1
-      `, [alunoIdParam])
-
-      return NextResponse.json({ alunos: result.rows })
+      const alunos = await buscarConsentimentoAluno(alunoIdParam)
+      return NextResponse.json({ alunos })
     }
 
     if (!escolaId) {
       return NextResponse.json({ mensagem: 'escola_id é obrigatório' }, { status: 400 })
     }
 
-    let query = `
-      SELECT
-        a.id AS aluno_id,
-        a.nome AS aluno_nome,
-        a.codigo AS aluno_codigo,
-        cf.id AS consentimento_id,
-        cf.responsavel_nome,
-        cf.consentido,
-        cf.data_consentimento,
-        cf.data_revogacao,
-        CASE WHEN ef.id IS NOT NULL THEN true ELSE false END AS tem_embedding
-      FROM alunos a
-      LEFT JOIN consentimentos_faciais cf ON cf.aluno_id = a.id
-      LEFT JOIN embeddings_faciais ef ON ef.aluno_id = a.id
-      WHERE a.escola_id = $1 AND a.ativo = true
-        AND a.ano_letivo = $2
-    `
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
-    const params: string[] = [escolaId, anoLetivo]
 
-    if (turmaId) {
-      query += ` AND a.turma_id = $3`
-      params.push(turmaId)
-    }
+    const alunos = await buscarConsentimentos(escolaId, anoLetivo, turmaId)
 
-    query += ` ORDER BY a.nome`
-
-    const result = await pool.query(query, params)
-
-    return NextResponse.json({ alunos: result.rows })
+    return NextResponse.json({ alunos })
   } catch (error: unknown) {
     console.error('Erro ao listar consentimentos:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
@@ -154,39 +115,22 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: 'aluno_id é obrigatório' }, { status: 400 })
     }
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-
-      // Revogar consentimento
-      await client.query(
-        `UPDATE consentimentos_faciais
-         SET consentido = false, data_revogacao = CURRENT_TIMESTAMP
-         WHERE aluno_id = $1`,
-        [alunoId]
+    // Validar que aluno existe e pertence à escola do usuário (se tipo escola)
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      const alunoCheck = await pool.query(
+        'SELECT id FROM alunos WHERE id = $1 AND escola_id = $2',
+        [alunoId, usuario.escola_id]
       )
-
-      // Remover embedding
-      await client.query('DELETE FROM embeddings_faciais WHERE aluno_id = $1', [alunoId])
-
-      // Manter frequências mas remover vínculo facial
-      await client.query(
-        `UPDATE frequencia_diaria SET metodo = 'manual', dispositivo_id = NULL, confianca = NULL
-         WHERE aluno_id = $1 AND metodo = 'facial'`,
-        [alunoId]
-      )
-
-      await client.query('COMMIT')
-
-      return NextResponse.json({
-        mensagem: 'Consentimento revogado e dados faciais removidos',
-      })
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
+      if (alunoCheck.rows.length === 0) {
+        return NextResponse.json({ mensagem: 'Aluno não encontrado nesta escola' }, { status: 403 })
+      }
     }
+
+    await revogarConsentimento(alunoId)
+
+    return NextResponse.json({
+      mensagem: 'Consentimento revogado e dados faciais removidos',
+    })
   } catch (error: unknown) {
     console.error('Erro ao revogar consentimento:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

@@ -515,7 +515,7 @@ export async function GET(request: NextRequest) {
     try {
       salvarCache(cacheOptions, dadosResposta, 'comparativos')
     } catch (cacheError) {
-      console.error('Erro ao salvar cache (nao critico):', cacheError)
+      console.error('Erro ao salvar cache (não crítico):', cacheError)
     }
 
     return NextResponse.json({

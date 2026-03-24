@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
-import pool from '@/database/connection'
+import { buscarTurmaComEscola, buscarAlunosDaTurma } from '@/lib/services/turmas.service'
 
 export const dynamic = 'force-dynamic';
 
@@ -16,52 +16,21 @@ export async function GET(
 
     const turmaId = params.id
 
-    // Buscar dados da turma com verificação de acesso
-    const whereConditions = ['t.id = $1']
-    const queryParams: string[] = [turmaId]
-    let paramIndex = 2
+    const turma = await buscarTurmaComEscola(turmaId)
 
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-      whereConditions.push(`e.polo_id = $${paramIndex}`)
-      queryParams.push(usuario.polo_id as string)
-      paramIndex++
-    } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-      whereConditions.push(`e.id = $${paramIndex}`)
-      queryParams.push(usuario.escola_id as string)
-      paramIndex++
-    }
-
-    const turmaResult = await pool.query(
-      `SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
-              e.nome as escola_nome, p.nome as polo_nome
-       FROM turmas t
-       INNER JOIN escolas e ON t.escola_id = e.id
-       LEFT JOIN polos p ON e.polo_id = p.id
-       WHERE ${whereConditions.join(' AND ')}`,
-      queryParams
-    )
-
-    if (turmaResult.rows.length === 0) {
+    if (!turma) {
       return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
     }
 
-    const turma = turmaResult.rows[0]
+    // Controle de acesso por polo/escola
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id && turma.polo_id !== usuario.polo_id) {
+      return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+    }
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && turma.escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+    }
 
-    // Buscar alunos da turma (incluindo transferidos/inativos)
-    const alunosResult = await pool.query(
-      `SELECT a.id, a.codigo, a.nome, a.serie, a.ano_letivo, a.ativo,
-              a.data_nascimento, a.pcd, a.situacao, a.data_matricula,
-              (SELECT hs.data FROM historico_situacao hs
-               WHERE hs.aluno_id = a.id AND hs.situacao = 'transferido'
-               ORDER BY hs.data DESC, hs.criado_em DESC LIMIT 1
-              ) as data_transferencia
-       FROM alunos a
-       WHERE a.turma_id = $1
-       ORDER BY
-         CASE WHEN a.situacao IN ('transferido', 'abandono') THEN 1 ELSE 0 END,
-         a.nome`,
-      [turmaId]
-    )
+    const alunos = await buscarAlunosDaTurma(turmaId)
 
     return NextResponse.json({
       turma: {
@@ -74,8 +43,8 @@ export async function GET(
         escola_nome: turma.escola_nome,
         polo_nome: turma.polo_nome,
       },
-      alunos: alunosResult.rows,
-      total: alunosResult.rows.length,
+      alunos,
+      total: alunos.length,
     })
   } catch (error: unknown) {
     console.error('Erro ao buscar alunos da turma:', error)

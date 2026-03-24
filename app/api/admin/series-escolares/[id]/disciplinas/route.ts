@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
+import { validateRequest, uuidSchema } from '@/lib/schemas'
+
+const disciplinaSerieItemSchema = z.object({
+  disciplina_id: uuidSchema,
+  obrigatoria: z.boolean().optional(),
+  carga_horaria_semanal: z.number().int().min(0).optional(),
+})
+
+const serieEscolarDisciplinasPostSchema = z.object({
+  disciplinas: z.array(disciplinaSerieItemSchema).min(1, 'Informe pelo menos uma disciplina'),
+})
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -45,12 +57,9 @@ export async function POST(
     }
 
     const serieId = params.id
-    const body = await request.json()
-    const { disciplinas } = body
-
-    if (!disciplinas || !Array.isArray(disciplinas)) {
-      return NextResponse.json({ mensagem: 'Campo disciplinas (array) é obrigatório' }, { status: 400 })
-    }
+    const validationResult = await validateRequest(request, serieEscolarDisciplinasPostSchema)
+    if (!validationResult.success) return validationResult.response
+    const { disciplinas } = validationResult.data
 
     // Verificar se a série existe
     const serieCheck = await pool.query('SELECT id FROM series_escolares WHERE id = $1', [serieId])
