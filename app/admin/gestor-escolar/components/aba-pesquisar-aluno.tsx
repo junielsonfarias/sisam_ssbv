@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Search, UserPlus, GraduationCap, User, School, MapPin, AlertCircle, CheckCircle, X } from 'lucide-react'
+import { Search, UserPlus, GraduationCap, User, School, MapPin, AlertCircle, CheckCircle, X, Eye } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useDebounce } from '@/lib/hooks/useDebounce'
 import { EscolaSimples } from './types'
@@ -44,6 +45,8 @@ export function AbaPesquisarAluno({
   escolaIdUsuario: string
   toast: any
 }) {
+  const router = useRouter()
+
   // Estados de busca
   const [busca, setBusca] = useState('')
   const buscaDebounced = useDebounce(busca, 400)
@@ -402,14 +405,22 @@ export function AbaPesquisarAluno({
             </div>
           </div>
 
-          {podeEditar && !mostrarMatricula && (
-            <div className="flex gap-2">
+          {!mostrarMatricula && (
+            <div className="flex flex-wrap gap-2">
               <button
-                onClick={iniciarMatricula}
-                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm transition-colors"
+                onClick={() => router.push(`/admin/alunos?busca=${encodeURIComponent(alunoSelecionado.nome)}`)}
+                className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm transition-colors"
               >
-                <GraduationCap className="w-4 h-4" /> Matricular em Turma
+                <Eye className="w-4 h-4" /> Visualizar Aluno
               </button>
+              {podeEditar && (
+                <button
+                  onClick={iniciarMatricula}
+                  className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm transition-colors"
+                >
+                  <GraduationCap className="w-4 h-4" /> Matricular em Turma
+                </button>
+              )}
             </div>
           )}
         </div>
