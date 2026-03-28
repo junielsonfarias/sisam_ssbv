@@ -250,48 +250,76 @@ function addFiltroSerie(
 }
 
 /**
- * Busca total de escolas com alunos matriculados
- * Prioriza dados do gestor escolar (tabela alunos) para contagem de escolas
+ * Busca total de escolas com alunos no SISAM.
+ * Usa MAX entre escolas com resultados e escolas com alunos matriculados nas séries SISAM.
  */
 async function buscarTotalEscolas(
   escopo: EscopoEstatisticas,
   filtros: FiltrosEstatisticas
 ): Promise<number> {
-  const params: (string | null)[] = []
-  let paramIndex = 1
-  const whereConditions: string[] = ['a.ativo = true']
+  // 1) Escolas com resultados consolidados
+  const rcWhere: string[] = []
+  const rcParams: (string | null)[] = []
+  let rcIdx = 1
 
   if (escopo === 'polo' && filtros.poloId) {
-    whereConditions.push(`e.polo_id = $${paramIndex}`)
-    params.push(filtros.poloId)
-    paramIndex++
+    rcWhere.push(`e.polo_id = $${rcIdx}`)
+    rcParams.push(filtros.poloId); rcIdx++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    whereConditions.push(`a.escola_id = $${paramIndex}`)
-    params.push(filtros.escolaId)
-    paramIndex++
+    rcWhere.push(`rc.escola_id = $${rcIdx}`)
+    rcParams.push(filtros.escolaId); rcIdx++
   }
-
   if (filtros.anoLetivo) {
-    whereConditions.push(`a.ano_letivo = $${paramIndex}`)
-    params.push(filtros.anoLetivo)
-    paramIndex++
+    rcWhere.push(`rc.ano_letivo = $${rcIdx}`)
+    rcParams.push(filtros.anoLetivo); rcIdx++
   }
-
   if (filtros.serie) {
-    paramIndex = addFiltroSerie(whereConditions, params, paramIndex, filtros.serie, 'a')
+    rcWhere.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${rcIdx}`)
+    rcParams.push(extrairNumeroSerie(filtros.serie)); rcIdx++
   }
 
-  const whereClause = `WHERE ${whereConditions.join(' AND ')}`
+  const rcClause = rcWhere.length > 0 ? `WHERE ${rcWhere.join(' AND ')}` : ''
+  const needsJoinRc = escopo === 'polo' && filtros.poloId
+  const rcResult = await pool.query(`
+    SELECT COUNT(DISTINCT rc.escola_id) as total
+    FROM resultados_consolidados rc
+    ${needsJoinRc ? 'INNER JOIN escolas e ON rc.escola_id = e.id' : ''}
+    ${rcClause}
+  `, rcParams)
+  const totalRc = parseDbInt(rcResult.rows[0]?.total)
 
-  const query = `
-    SELECT COUNT(DISTINCT a.escola_id) as total
-    FROM alunos a
-    INNER JOIN escolas e ON a.escola_id = e.id AND e.ativo = true
-    ${whereClause}
-  `
+  // 2) Escolas com alunos matriculados nas séries SISAM
+  let totalMat = 0
+  if (filtros.anoLetivo) {
+    const matWhere: string[] = [
+      `a.ano_letivo = $1`, `a.situacao = 'cursando'`,
+      `a.serie IN (SELECT serie FROM sisam_series_participantes WHERE ano_letivo = $1 AND ativo = true)`
+    ]
+    const matParams: (string | null)[] = [filtros.anoLetivo]
+    let matIdx = 2
 
-  const result = await pool.query(query, params)
-  return parseDbInt(result.rows[0]?.total)
+    if (escopo === 'polo' && filtros.poloId) {
+      matWhere.push(`e.polo_id = $${matIdx}`)
+      matParams.push(filtros.poloId); matIdx++
+    } else if (escopo === 'escola' && filtros.escolaId) {
+      matWhere.push(`a.escola_id = $${matIdx}`)
+      matParams.push(filtros.escolaId); matIdx++
+    }
+    if (filtros.serie) {
+      matWhere.push(`REGEXP_REPLACE(a.serie::text, '[^0-9]', '', 'g') = $${matIdx}`)
+      matParams.push(extrairNumeroSerie(filtros.serie)); matIdx++
+    }
+
+    const matResult = await pool.query(`
+      SELECT COUNT(DISTINCT a.escola_id) as total
+      FROM alunos a
+      INNER JOIN escolas e ON a.escola_id = e.id AND e.ativo = true
+      WHERE ${matWhere.join(' AND ')}
+    `, matParams)
+    totalMat = parseDbInt(matResult.rows[0]?.total)
+  }
+
+  return Math.max(totalRc, totalMat)
 }
 
 /**
