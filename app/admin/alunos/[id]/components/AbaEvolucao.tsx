@@ -134,7 +134,7 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
   return (
     <div className="space-y-6">
       {/* ===== COMPARATIVO Educatec x ESCOLA ===== */}
-      <Secao titulo="Comparativo Educatec x Avaliação Escolar" icon={TrendingUp}>
+      <Secao titulo="Comparativo SISAM x Avaliação Escolar" icon={TrendingUp}>
         <div className="overflow-x-auto -mx-5 px-5">
           <table className="w-full text-sm">
             <thead>
@@ -144,9 +144,9 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
                 <th className="text-center py-1 px-3 text-xs font-semibold text-emerald-600 uppercase border-b border-emerald-200" colSpan={2}>Matemática</th>
               </tr>
               <tr className="border-b border-gray-200 dark:border-slate-600">
-                <th className="text-center py-1 px-2 text-[10px] font-medium text-indigo-500">Educatec</th>
+                <th className="text-center py-1 px-2 text-[10px] font-medium text-indigo-500">SISAM</th>
                 <th className="text-center py-1 px-2 text-[10px] font-medium text-indigo-500">Escola</th>
-                <th className="text-center py-1 px-2 text-[10px] font-medium text-emerald-500">Educatec</th>
+                <th className="text-center py-1 px-2 text-[10px] font-medium text-emerald-500">SISAM</th>
                 <th className="text-center py-1 px-2 text-[10px] font-medium text-emerald-500">Escola</th>
               </tr>
             </thead>
@@ -173,12 +173,12 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
           <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 text-xs">
             {tendLP && (
               <span className={tendLP.cor}>
-                LP Educatec: {tendLP.icon} {tendLP.label} pts
+                LP SISAM: {tendLP.icon} {tendLP.label} pts
               </span>
             )}
             {tendMAT && (
               <span className={tendMAT.cor}>
-                MAT Educatec: {tendMAT.icon} {tendMAT.label} pts
+                MAT SISAM: {tendMAT.icon} {tendMAT.label} pts
               </span>
             )}
           </div>
@@ -189,29 +189,29 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
       {anos.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gráfico Linha: Educatec x Escola LP */}
-          <Secao titulo="Evolução LP — Educatec x Escola" icon={TrendingUp} cor="indigo">
+          <Secao titulo="Evolução LP — SISAM x Escola" icon={TrendingUp} cor="indigo">
             <EvolucaoLineChart
-              data={comparativo.lp.map((c: any) => ({ ano: c.ano, 'Educatec LP': c.sisam, 'Escola LP': c.escola }))}
+              data={comparativo.lp.map((c: any) => ({ ano: c.ano, 'SISAM LP': c.sisam, 'Escola LP': c.escola }))}
               linhas={[
-                { key: 'Educatec LP', cor: '#6366f1', nome: 'Educatec' },
+                { key: 'SISAM LP', cor: '#6366f1', nome: 'SISAM' },
                 { key: 'Escola LP', cor: '#8b5cf6', nome: 'Escola', dash: '5 5' },
               ]}
             />
           </Secao>
 
           {/* Gráfico Linha: Educatec x Escola MAT */}
-          <Secao titulo="Evolução MAT — Educatec x Escola" icon={TrendingUp} cor="emerald">
+          <Secao titulo="Evolução MAT — SISAM x Escola" icon={TrendingUp} cor="emerald">
             <EvolucaoLineChart
-              data={comparativo.mat.map((c: any) => ({ ano: c.ano, 'Educatec MAT': c.sisam, 'Escola MAT': c.escola }))}
+              data={comparativo.mat.map((c: any) => ({ ano: c.ano, 'SISAM MAT': c.sisam, 'Escola MAT': c.escola }))}
               linhas={[
-                { key: 'Educatec MAT', cor: '#10b981', nome: 'Educatec' },
+                { key: 'SISAM MAT', cor: '#10b981', nome: 'SISAM' },
                 { key: 'Escola MAT', cor: '#14b8a6', nome: 'Escola', dash: '5 5' },
               ]}
             />
           </Secao>
 
           {/* Gráfico Barras: Média Educatec por ano */}
-          <Secao titulo="Média Educatec por Avaliação" icon={FileText} cor="purple">
+          <Secao titulo="Média SISAM por Avaliação" icon={FileText} cor="purple">
             {(() => {
               const dadosBarras = anos.flatMap((ano: string) =>
                 (sisam[ano] || []).map((r: any) => ({
@@ -244,19 +244,19 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
 
               if (sisamUltimo?.avalia_lp || escolaUltimo.find((e: any) => e.codigo === 'LP')) {
                 const escolaLP = escolaUltimo.find((e: any) => e.codigo === 'LP' || e.abreviacao === 'LP' || e.disciplina?.toLowerCase().includes('portuguesa'))
-                radarData.push({ disciplina: 'LP', Educatec: sisamUltimo?.nota_lp ?? 0, Escola: escolaLP?.media_final ?? 0 })
+                radarData.push({ disciplina: 'LP', SISAM: sisamUltimo?.nota_lp ?? 0, Escola: escolaLP?.media_final ?? 0 })
               }
               if (sisamUltimo?.avalia_mat || escolaUltimo.find((e: any) => e.codigo === 'MAT')) {
                 const escolaMAT = escolaUltimo.find((e: any) => e.codigo === 'MAT' || e.abreviacao === 'MAT' || e.disciplina?.toLowerCase().includes('matem'))
-                radarData.push({ disciplina: 'MAT', Educatec: sisamUltimo?.nota_mat ?? 0, Escola: escolaMAT?.media_final ?? 0 })
+                radarData.push({ disciplina: 'MAT', SISAM: sisamUltimo?.nota_mat ?? 0, Escola: escolaMAT?.media_final ?? 0 })
               }
               if (sisamUltimo?.avalia_ch) {
                 const escolaCH = escolaUltimo.find((e: any) => e.disciplina?.toLowerCase().includes('human') || e.codigo === 'HIS')
-                radarData.push({ disciplina: 'CH', Educatec: sisamUltimo?.nota_ch ?? 0, Escola: escolaCH?.media_final ?? 0 })
+                radarData.push({ disciplina: 'CH', SISAM: sisamUltimo?.nota_ch ?? 0, Escola: escolaCH?.media_final ?? 0 })
               }
               if (sisamUltimo?.avalia_cn) {
                 const escolaCN = escolaUltimo.find((e: any) => e.disciplina?.toLowerCase().includes('natureza') || e.codigo === 'CIE')
-                radarData.push({ disciplina: 'CN', Educatec: sisamUltimo?.nota_cn ?? 0, Escola: escolaCN?.media_final ?? 0 })
+                radarData.push({ disciplina: 'CN', SISAM: sisamUltimo?.nota_cn ?? 0, Escola: escolaCN?.media_final ?? 0 })
               }
 
               if (radarData.length === 0) return <p className="text-sm text-gray-400 text-center py-8">Sem dados para comparação</p>
@@ -266,7 +266,7 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
                   <EvolucaoRadarChart
                     data={radarData}
                     radares={[
-                      { key: 'Educatec', cor: '#6366f1', nome: 'Educatec' },
+                      { key: 'SISAM', cor: '#6366f1', nome: 'SISAM' },
                       { key: 'Escola', cor: '#10b981', nome: 'Escola' },
                     ]}
                   />
@@ -279,7 +279,7 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
       )}
 
       {/* ===== EVOLUÇÃO Educatec ANO A ANO ===== */}
-      <Secao titulo="Resultados Educatec por Avaliação" icon={FileText} cor="purple">
+      <Secao titulo="Resultados SISAM por Avaliação" icon={FileText} cor="purple">
         <div className="overflow-x-auto -mx-5 px-5">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-slate-700/50">
@@ -325,7 +325,7 @@ export function AbaEvolucao({ alunoId }: { alunoId: string }) {
                 ))
               )}
               {anos.every((ano: string) => !sisam[ano] || sisam[ano].length === 0) && (
-                <tr><td colSpan={11} className="py-6 text-center text-gray-400">Sem resultados Educatec</td></tr>
+                <tr><td colSpan={11} className="py-6 text-center text-gray-400">Sem resultados SISAM</td></tr>
               )}
             </tbody>
           </table>

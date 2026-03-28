@@ -339,7 +339,7 @@ export function RelatorioEscolaWeb({ dados }: Props) {
       <footer className="rodape-relatorio text-center text-sm text-gray-500 dark:text-gray-400 py-6 border-t border-gray-200 dark:border-slate-700 mt-8">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Building2 className="w-4 h-4" />
-          <p className="font-medium">Relatório gerado pelo Educatec - SEMED SSBV</p>
+          <p className="font-medium">Relatório gerado pelo SISAM - SEMED SSBV</p>
         </div>
         <p>Data de geração: {dados.data_geracao} | Escola: {dados.escola.nome} | Ano Letivo: {dados.ano_letivo}</p>
       </footer>

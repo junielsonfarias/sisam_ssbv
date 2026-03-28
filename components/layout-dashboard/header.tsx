@@ -89,7 +89,7 @@ export function Header({
             {/* Nome do Sistema */}
             <div className="flex flex-col min-w-0">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 dark:text-white truncate">
-                {personalizacao.nome_sistema || 'Educatec'}
+                {personalizacao.nome_sistema || 'SISAM'}
               </h1>
               <span className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 truncate">
                 Sistema de Avaliação Municipal
@@ -111,10 +111,10 @@ export function Header({
                     ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
                     : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
                 }`}
-                title={`Módulo ativo: ${moduloAtivo === 'educatec' ? 'Educatec' : 'Gestor Escolar'}. Clique para alternar.`}
+                title={`Módulo ativo: ${moduloAtivo === 'educatec' ? 'SISAM' : 'Gestor Escolar'}. Clique para alternar.`}
               >
                 {moduloAtivo === 'educatec' ? <Database className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-                <span>{moduloAtivo === 'educatec' ? 'Educatec' : 'Gestor'}</span>
+                <span>{moduloAtivo === 'educatec' ? 'SISAM' : 'Gestor'}</span>
                 <ArrowLeftRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-50" />
               </button>
             )}

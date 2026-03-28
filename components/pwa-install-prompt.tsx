@@ -95,7 +95,7 @@ export function PWAInstallPrompt() {
 
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Instalar Educatec
+            Instalar SISAM
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Instale o aplicativo para acessar offline e ter uma experiência mais rápida.

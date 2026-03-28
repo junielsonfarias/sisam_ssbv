@@ -75,13 +75,13 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: FileText, label: 'Resultados Consolidados', href: '/admin/resultados' },
             { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
             { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
-            { icon: BarChart3, label: 'Educatec x Escola', href: '/admin/comparativo-notas' },
+            { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
             { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
           ]
         },
         {
           icon: ClipboardList, label: 'Avaliações', children: [
-            { icon: ClipboardList, label: 'Avaliações Educatec', href: '/admin/avaliacoes' },
+            { icon: ClipboardList, label: 'Avaliações SISAM', href: '/admin/avaliacoes' },
             { icon: FileCheck, label: 'Questões', href: '/admin/questoes' },
             { icon: FileScan, label: 'Cartão-Resposta', href: '/admin/cartao-resposta' },
           ]
@@ -95,8 +95,8 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
           ]
         },
         {
-          icon: Settings, label: 'Configurações Educatec', children: [
-            { icon: Settings, label: 'Séries Educatec', href: '/admin/configuracao-series' },
+          icon: Settings, label: 'Configurações SISAM', children: [
+            { icon: Settings, label: 'Séries SISAM', href: '/admin/configuracao-series' },
             { icon: Settings, label: 'Módulos Técnico', href: '/admin/modulos-tecnico' },
           ]
         },
@@ -193,7 +193,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: FileText, label: 'Resultados Consolidados', href: '/tecnico/analise' },
             { icon: BarChart3, label: 'Comparativos Escolas', href: '/admin/comparativos' },
             { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
-            { icon: BarChart3, label: 'Educatec x Escola', href: '/admin/comparativo-notas' },
+            { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
             { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
           ]
         },
@@ -296,7 +296,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
         {
           icon: FileText, label: 'Resultados', children: [
             { icon: FileText, label: 'Resultados Consolidados', href: '/escola/resultados' },
-            { icon: BarChart3, label: 'Educatec x Escola', href: '/admin/comparativo-notas' },
+            { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
           ]
         },
       )
