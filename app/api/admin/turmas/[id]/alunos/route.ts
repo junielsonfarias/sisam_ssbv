@@ -42,6 +42,8 @@ export async function GET(
         escola_id: turma.escola_id,
         escola_nome: turma.escola_nome,
         polo_nome: turma.polo_nome,
+        multiserie: turma.multiserie,
+        multietapa: turma.multietapa,
       },
       alunos,
       total: alunos.length,

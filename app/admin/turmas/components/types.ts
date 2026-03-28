@@ -39,6 +39,8 @@ export interface TurmaDetalhe {
     escola_id: string
     escola_nome: string
     polo_nome: string | null
+    multiserie?: boolean
+    multietapa?: boolean
   }
   alunos: Aluno[]
   total: number

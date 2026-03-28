@@ -5,6 +5,7 @@ export function imprimirRelacaoAlunos(
   formatSerie: (serie: string) => string,
 ) {
   const { turma, alunos } = detalhesTurma
+  const isMulti = turma.multiserie || turma.multietapa
   const printWindow = window.open('', '_blank')
   if (!printWindow) return
 
@@ -34,13 +35,14 @@ export function imprimirRelacaoAlunos(
     <body>
       <h1>Relação de Alunos - Turma ${escapeHtml(turma.codigo)}${turma.nome ? ' (' + escapeHtml(turma.nome) + ')' : ''}</h1>
       <div class="info">
-        <p>Escola: ${escapeHtml(turma.escola_nome)} | Série: ${escapeHtml(formatSerie(turma.serie))} | Ano Letivo: ${escapeHtml(turma.ano_letivo)}</p>
+        <p>Escola: ${escapeHtml(turma.escola_nome)} | Série: ${escapeHtml(formatSerie(turma.serie))} | Ano Letivo: ${escapeHtml(turma.ano_letivo)}${turma.multiserie ? ' | <strong>Multisseriada</strong>' : ''}${turma.multietapa ? ' | <strong>Multietapa</strong>' : ''}</p>
       </div>
       <table>
         <thead>
           <tr>
             <th style="width:35px">Ord.</th>
             <th>Nome do Aluno</th>
+            ${isMulti ? '<th style="width:80px; text-align:center">Série</th>' : ''}
             <th style="width:55px; text-align:center">Idade</th>
             <th style="width:80px; text-align:center">Matrícula</th>
             <th style="width:90px; text-align:center">Situação</th>
@@ -58,6 +60,7 @@ export function imprimirRelacaoAlunos(
             <tr class="${isInativo ? 'inativo' : ''}">
               <td>${i + 1}</td>
               <td><span class="${isInativo ? 'nome' : ''}">${escapeHtml(a.nome)}</span>${isInativo && dataTransf ? '<span class="data-saida">' + escapeHtml(sit) + ' em ' + dataTransf + '</span>' : ''}</td>
+              ${isMulti ? '<td style="text-align:center">' + (a.serie ? escapeHtml(formatSerie(a.serie)) : '-') + '</td>' : ''}
               <td style="text-align:center">${idade !== null ? idade : '-'}</td>
               <td style="text-align:center">${dataMatricula}</td>
               <td style="text-align:center">${escapeHtml(sit)}</td>

@@ -28,6 +28,8 @@ export interface TurmaComEscola {
   escola_nome: string
   polo_id: string | null
   polo_nome: string | null
+  multiserie: boolean
+  multietapa: boolean
 }
 
 export interface TurmaProfessor {
@@ -103,7 +105,9 @@ export async function buscarTurmasDoProfessor(professorId: string): Promise<Turm
 export async function buscarTurmaComEscola(turmaId: string): Promise<TurmaComEscola | null> {
   const result = await pool.query(
     `SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
-            e.nome as escola_nome, e.polo_id, p.nome as polo_nome
+            e.nome as escola_nome, e.polo_id, p.nome as polo_nome,
+            COALESCE(t.multiserie, false) as multiserie,
+            COALESCE(t.multietapa, false) as multietapa
      FROM turmas t
      INNER JOIN escolas e ON t.escola_id = e.id
      LEFT JOIN polos p ON e.polo_id = p.id
