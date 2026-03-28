@@ -73,14 +73,20 @@ export async function GET() {
   health.redis = { url_present: !!redisUrl, token_present: !!redisToken }
   if (redisUrl && redisToken) {
     try {
-      const { cacheSet, cacheGet } = await import('@/lib/cache/redis')
-      await cacheSet('sisam:health:ping', { ok: true, ts: Date.now() }, 60)
-      const val = await cacheGet('sisam:health:ping')
-      ;(health.redis as any).connected = !!val
-      ;(health.redis as any).test = val
+      const { Redis } = await import('@upstash/redis')
+      const r = new Redis({ url: redisUrl, token: redisToken })
+      const pong = await r.ping()
+      await r.set('sisam:health:ping', 'ok', { ex: 60 })
+      const val = await r.get('sisam:health:ping')
+      const size = await r.dbsize()
+      ;(health.redis as any).connected = true
+      ;(health.redis as any).ping = pong
+      ;(health.redis as any).test_value = val
+      ;(health.redis as any).dbsize = size
     } catch (err: any) {
       ;(health.redis as any).connected = false
       ;(health.redis as any).error = err?.message
+      ;(health.redis as any).stack = err?.stack?.split('\n').slice(0, 3)
     }
   }
 
