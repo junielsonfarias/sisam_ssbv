@@ -11,42 +11,21 @@
 import { Redis as UpstashRedis } from '@upstash/redis'
 
 let redis: UpstashRedis | null = null
-let initAttempted = false
 
 function getRedis(): UpstashRedis | null {
   if (redis) return redis
-  if (initAttempted) return null
 
-  initAttempted = true
-
-  // Opção 1: Upstash REST (recomendado para Vercel)
   const restUrl = process.env.UPSTASH_REDIS_REST_URL
   const restToken = process.env.UPSTASH_REDIS_REST_TOKEN
 
-  if (restUrl && restToken) {
-    try {
-      redis = new UpstashRedis({ url: restUrl, token: restToken })
-      console.log('[Redis] Conectado via Upstash REST')
-      return redis
-    } catch (err) {
-      console.error('[Redis] Erro ao conectar Upstash:', err)
-      return null
-    }
-  }
+  if (!restUrl || !restToken) return null
 
-  // Opção 2: REDIS_URL genérico via Upstash from URL
-  const redisUrl = process.env.REDIS_URL
-  if (redisUrl) {
-    try {
-      redis = new UpstashRedis({ url: redisUrl, token: '' })
-      console.log('[Redis] Conectado via REDIS_URL')
-      return redis
-    } catch {
-      return null
-    }
+  try {
+    redis = new UpstashRedis({ url: restUrl, token: restToken })
+    return redis
+  } catch {
+    return null
   }
-
-  return null
 }
 
 /**
