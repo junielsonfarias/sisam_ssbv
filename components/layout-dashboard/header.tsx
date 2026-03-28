@@ -12,6 +12,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react'
 import { OfflineSyncManager } from '../offline-sync-manager'
+import { SyncStatusBadge } from '../sync-status-badge'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from '../theme-toggle'
 import type { Personalizacao } from './types'
@@ -158,6 +159,9 @@ export function Header({
                 autoSync={true}
                 showStatus={true}
               />
+
+              {/* Fila de sync offline */}
+              <SyncStatusBadge />
             </div>
 
             {/* Separador visual */}

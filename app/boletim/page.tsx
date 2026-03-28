@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   Search, GraduationCap, BookOpen, CalendarCheck, Printer,
   ArrowLeft, Accessibility, AlertTriangle, Award, BarChart3,
-  ClipboardCheck, User, School, Clock
+  ClipboardCheck, User, School, Clock, MessageSquare, Bell
 } from 'lucide-react'
 import Link from 'next/link'
 import { useSeries } from '@/lib/use-series'
@@ -80,6 +80,10 @@ export default function BoletimPage() {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
   const [dados, setDados] = useState<BoletimData | null>(null)
+  const [abaAtiva, setAbaAtiva] = useState<'boletim' | 'frequencia' | 'comunicados'>('boletim')
+  const [freqDetalhada, setFreqDetalhada] = useState<any>(null)
+  const [comunicados, setComunicados] = useState<any[]>([])
+  const [carregandoExtra, setCarregandoExtra] = useState(false)
 
   const buscar = async () => {
     setErro('')
@@ -109,6 +113,36 @@ export default function BoletimPage() {
     } finally {
       setCarregando(false)
     }
+  }
+
+  const carregarFrequencia = async () => {
+    if (freqDetalhada) return
+    setCarregandoExtra(true)
+    try {
+      const params = new URLSearchParams({ ano_letivo: anoLetivo })
+      if (modo === 'codigo') params.set('codigo', codigo.trim())
+      else { params.set('cpf', cpf.trim()); params.set('data_nascimento', dataNasc) }
+      const res = await fetch(`/api/boletim/frequencia?${params}`)
+      if (res.ok) setFreqDetalhada(await res.json())
+    } catch {} finally { setCarregandoExtra(false) }
+  }
+
+  const carregarComunicados = async () => {
+    if (comunicados.length > 0) return
+    setCarregandoExtra(true)
+    try {
+      const res = await fetch('/api/comunicados?limite=10')
+      if (res.ok) {
+        const data = await res.json()
+        setComunicados(Array.isArray(data) ? data : data.comunicados || [])
+      }
+    } catch {} finally { setCarregandoExtra(false) }
+  }
+
+  const handleTabChange = (tab: 'boletim' | 'frequencia' | 'comunicados') => {
+    setAbaAtiva(tab)
+    if (tab === 'frequencia') carregarFrequencia()
+    if (tab === 'comunicados') carregarComunicados()
   }
 
   const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all'
@@ -263,6 +297,138 @@ export default function BoletimPage() {
               </div>
             </div>
 
+            {/* Tabs de navegação */}
+            <div className="flex bg-white rounded-xl p-1 shadow-sm border border-gray-100 print:hidden">
+              {[
+                { key: 'boletim' as const, label: 'Boletim', icon: BookOpen },
+                { key: 'frequencia' as const, label: 'Frequência', icon: CalendarCheck },
+                { key: 'comunicados' as const, label: 'Comunicados', icon: Bell },
+              ].map(tab => (
+                <button key={tab.key} onClick={() => handleTabChange(tab.key)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                    abaAtiva === tab.key ? 'bg-emerald-50 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}>
+                  <tab.icon className="w-4 h-4" /> {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Conteúdo da aba Frequência Detalhada */}
+            {abaAtiva === 'frequencia' && (
+              <div className="space-y-4">
+                {carregandoExtra ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                  </div>
+                ) : freqDetalhada ? (
+                  <>
+                    {/* Resumo geral */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {[
+                        { label: 'Dias Letivos', value: freqDetalhada.totais.dias_letivos, color: 'text-slate-700' },
+                        { label: 'Presenças', value: freqDetalhada.totais.presencas, color: 'text-emerald-600' },
+                        { label: 'Faltas', value: freqDetalhada.totais.faltas, color: 'text-red-600' },
+                        { label: 'Frequência', value: freqDetalhada.totais.percentual !== null ? `${freqDetalhada.totais.percentual}%` : '-', color: freqDetalhada.totais.percentual >= 75 ? 'text-emerald-600' : 'text-red-600' },
+                      ].map((item, i) => (
+                        <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 text-center shadow-sm">
+                          <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
+                          <p className="text-xs text-slate-500 mt-1">{item.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Por bimestre */}
+                    {freqDetalhada.frequencia_bimestral.length > 0 && (
+                      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                          <BarChart3 className="w-5 h-5 text-emerald-600" /> Frequência por Bimestre
+                        </h3>
+                        <div className="space-y-4">
+                          {freqDetalhada.frequencia_bimestral.map((f: any) => (
+                            <div key={f.bimestre}>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-sm font-medium text-slate-700">{f.periodo_nome || `${f.bimestre}o Bimestre`}</span>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="text-slate-500">{f.dias_letivos} dias</span>
+                                  <span className="text-emerald-600 font-medium">{f.presencas}P</span>
+                                  <span className="text-red-500 font-medium">{f.faltas}F</span>
+                                  <span className={`font-bold text-sm ${f.percentual >= 75 ? 'text-emerald-600' : f.percentual >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                                    {f.percentual !== null ? `${f.percentual}%` : '-'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full transition-all duration-500 ${
+                                  f.percentual >= 75 ? 'bg-emerald-500' : f.percentual >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                                }`} style={{ width: `${Math.min(f.percentual || 0, 100)}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Últimos dias */}
+                    {freqDetalhada.frequencia_diaria?.length > 0 && (
+                      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                          <CalendarCheck className="w-5 h-5 text-emerald-600" /> Últimos Registros
+                        </h3>
+                        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                          {freqDetalhada.frequencia_diaria.map((d: any, i: number) => (
+                            <div key={i} className={`p-2 rounded-lg text-center text-xs ${
+                              d.presente ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                            }`}>
+                              <p className="font-bold">{d.presente ? 'P' : 'F'}</p>
+                              <p className="text-[10px] opacity-70">{new Date(d.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-slate-400">
+                    <CalendarCheck className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p>Dados de frequência não disponíveis</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Conteúdo da aba Comunicados */}
+            {abaAtiva === 'comunicados' && (
+              <div className="space-y-4">
+                {carregandoExtra ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                  </div>
+                ) : comunicados.length > 0 ? (
+                  comunicados.map((c: any, i: number) => (
+                    <div key={c.id || i} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-bold text-slate-800">{c.titulo || c.assunto || 'Comunicado'}</h4>
+                        <span className="text-xs text-slate-400 flex-shrink-0 ml-2">
+                          {c.criado_em ? new Date(c.criado_em).toLocaleDateString('pt-BR') : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed">{c.conteudo || c.mensagem || ''}</p>
+                      {c.professor_nome && (
+                        <p className="text-xs text-slate-400 mt-2">Prof. {c.professor_nome}</p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-slate-400">
+                    <MessageSquare className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p>Nenhum comunicado no momento</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Conteúdo da aba Boletim (original) */}
+            {abaAtiva === 'boletim' && (<>
             {/* Disciplinas e Notas */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
@@ -460,6 +626,7 @@ export default function BoletimPage() {
                 <span className="flex items-center gap-1.5">F = Faltas</span>
               </div>
             </div>
+            </>)}
           </div>
         )}
       </main>

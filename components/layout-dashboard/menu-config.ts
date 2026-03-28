@@ -135,6 +135,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
         {
           icon: UserPlus, label: 'Matrículas e Vagas', children: [
             { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
+            { icon: UserPlus, label: 'Pré-Matrículas', href: '/admin/pre-matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
             { icon: Clock, label: 'Fila de Espera', href: '/admin/fila-espera' },
@@ -238,6 +239,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
         {
           icon: UserPlus, label: 'Matrículas e Vagas', children: [
             { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
+            { icon: UserPlus, label: 'Pré-Matrículas', href: '/admin/pre-matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
             { icon: Clock, label: 'Fila de Espera', href: '/admin/fila-espera' },
