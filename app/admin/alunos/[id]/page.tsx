@@ -24,6 +24,7 @@ import {
 } from './components'
 import type { Aba } from './components'
 import { imprimirFichaMatricula } from './components/printFichaMatricula'
+import { imprimirHistoricoEscolar } from './components/printHistoricoEscolar'
 
 export default function AlunoDetalhePage() {
   const toast = useToast()
@@ -196,6 +197,10 @@ export default function AlunoDetalhePage() {
                 <button onClick={() => imprimirFichaMatricula(aluno)}
                   className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium backdrop-blur-sm transition">
                   <Printer className="w-4 h-4" /> Imprimir Ficha
+                </button>
+                <button onClick={() => imprimirHistoricoEscolar(alunoId)}
+                  className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium backdrop-blur-sm transition">
+                  <FileText className="w-4 h-4" /> Historico Escolar
                 </button>
                 {aluno.situacao !== 'transferido' && (
                   <button onClick={abrirModalTransferencia}

@@ -61,6 +61,9 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
 
   // Menu especifico para ADMINISTRADOR
   if (tipoUsuarioReal === 'admin' || tipoUsuarioReal === 'administrador') {
+    // Painel Executivo — logo abaixo do Dashboard (ambos módulos)
+    items.push({ icon: BarChart3, label: 'Painel Executivo', href: '/admin/executivo' })
+
     // Grupos Educatec (só no módulo Educatec)
     if (moduloAtivo === 'educatec') {
       items.push(
@@ -182,6 +185,9 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
 
   // Menu especifico para TECNICO
   if (tipoUsuarioReal === 'tecnico') {
+    // Painel Executivo
+    items.push({ icon: BarChart3, label: 'Painel Executivo', href: '/admin/executivo' })
+
     if (moduloAtivo === 'educatec') {
       items.push(
         {

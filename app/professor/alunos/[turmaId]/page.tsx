@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, AlertTriangle, CalendarCheck, FileText } from 'lucide-react'
+import { ArrowLeft, Users, AlertTriangle, CalendarCheck, FileText, TrendingUp, BarChart3 } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts'
 
 interface Aluno {
   id: string; nome: string; codigo: string; data_nascimento: string
@@ -15,6 +18,22 @@ interface TurmaInfo {
   turma_id: string; turma_nome: string; serie: string; turno: string; escola_nome: string
 }
 
+interface DisciplinaDesempenho {
+  disciplina: string
+  abreviacao: string
+  media: string
+  total_alunos: string
+  acima_media: string
+  abaixo_media: string
+}
+
+interface ResumoDesempenho {
+  total_alunos: string
+  media_turma: string | null
+  acima_media: string
+  abaixo_media: string
+}
+
 function ListaAlunos() {
   const params = useParams()
   const router = useRouter()
@@ -22,15 +41,18 @@ function ListaAlunos() {
 
   const [turmaInfo, setTurmaInfo] = useState<TurmaInfo | null>(null)
   const [alunos, setAlunos] = useState<Aluno[]>([])
+  const [disciplinas, setDisciplinas] = useState<DisciplinaDesempenho[]>([])
+  const [resumo, setResumo] = useState<ResumoDesempenho | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
   useEffect(() => {
     const fetchDados = async () => {
       try {
-        const [turmasRes, alunosRes] = await Promise.all([
+        const [turmasRes, alunosRes, desempenhoRes] = await Promise.all([
           fetch('/api/professor/turmas'),
           fetch(`/api/professor/alunos/resumo?turma_id=${turmaId}`),
+          fetch(`/api/professor/turma-desempenho?turma_id=${turmaId}`),
         ])
         const turmasData = await turmasRes.json()
         const alunosData = await alunosRes.json()
@@ -38,6 +60,12 @@ function ListaAlunos() {
         const turma = turmasData.turmas?.find((t: any) => t.turma_id === turmaId)
         if (turma) setTurmaInfo(turma)
         setAlunos(alunosData.alunos || [])
+
+        if (desempenhoRes.ok) {
+          const desempenhoData = await desempenhoRes.json()
+          setDisciplinas(desempenhoData.disciplinas || [])
+          setResumo(desempenhoData.resumo || null)
+        }
       } catch (err: any) {
         setErro(err.message)
       } finally {
@@ -82,6 +110,61 @@ function ListaAlunos() {
           )}
         </div>
       </div>
+
+      {/* Resumo de Desempenho */}
+      {resumo && resumo.media_turma !== null && (
+        <div className="space-y-4">
+          {/* Cards resumo */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-blue-500" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">Media da Turma</span>
+              </div>
+              <p className={`text-xl font-bold mt-1 ${
+                parseFloat(resumo.media_turma!) >= 6 ? 'text-emerald-600' : 'text-red-600'
+              }`}>
+                {resumo.media_turma}
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-emerald-500" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">Acima da Media</span>
+              </div>
+              <p className="text-xl font-bold mt-1 text-emerald-600">{resumo.acima_media}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">Abaixo da Media</span>
+              </div>
+              <p className="text-xl font-bold mt-1 text-red-600">{resumo.abaixo_media}</p>
+            </div>
+          </div>
+
+          {/* Gráfico de barras por disciplina */}
+          {disciplinas.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-blue-500" /> Media por Disciplina
+              </h3>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={disciplinas.map(d => ({
+                  nome: d.abreviacao || d.disciplina.substring(0, 6),
+                  media: parseFloat(d.media),
+                }))} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nome" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="media" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
 
       {alunos.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
