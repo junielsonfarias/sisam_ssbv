@@ -36,7 +36,9 @@ import {
   FileSpreadsheet,
   Lock,
   Search,
-  Shield
+  Shield,
+  Target,
+  Building2
 } from 'lucide-react'
 import type { MenuItem } from './types'
 import type { ModuloAtivo } from '@/lib/offline-storage'
@@ -81,6 +83,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
             { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
             { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
+            { icon: School, label: 'Evolução Escolas', href: '/admin/evolucao-escolas' },
           ]
         },
         {
@@ -96,6 +99,12 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: UserPlus, label: 'Importar Cadastros', href: '/admin/importar-cadastros' },
             { icon: FilePlus, label: 'Importar Resultados', href: '/admin/importar-resultados' },
             { icon: History, label: 'Histórico', href: '/admin/importacoes' },
+          ]
+        },
+        {
+          icon: Target, label: 'Gestão', children: [
+            { icon: Target, label: 'Indicadores e Metas', href: '/admin/metas' },
+            { icon: Building2, label: 'Relatórios Conselhos', href: '/admin/relatorios-conselhos' },
           ]
         },
         {
@@ -203,6 +212,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: MapPin, label: 'Comparativo Polos', href: '/admin/comparativos-polos' },
             { icon: BarChart3, label: 'SISAM x Escola', href: '/admin/comparativo-notas' },
             { icon: TrendingUp, label: 'Evolução', href: '/admin/evolucao' },
+            { icon: School, label: 'Evolução Escolas', href: '/admin/evolucao-escolas' },
           ]
         },
       )
