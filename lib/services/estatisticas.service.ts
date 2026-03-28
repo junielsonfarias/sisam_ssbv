@@ -776,8 +776,8 @@ async function buscarMediasPorTipoEnsino(
     }
   }
 
-  // Fallback: se não há resultados SISAM, usar alunos matriculados nas séries participantes
-  if (totalAnosIniciais === 0 && totalAnosFinais === 0 && filtros.anoLetivo) {
+  // Complementar com matrículas: usar o MAIOR por tipo entre resultados e matriculados
+  if (filtros.anoLetivo) {
     const matParams: string[] = [filtros.anoLetivo]
     let matWhere = `a.ano_letivo = $1 AND a.situacao = 'cursando'
       AND a.serie IN (SELECT serie FROM sisam_series_participantes WHERE ano_letivo = $1 AND ativo = true)`
@@ -805,8 +805,8 @@ async function buscarMediasPorTipoEnsino(
     `, matParams)
 
     for (const row of matResult.rows) {
-      if (row.tipo_ensino === 'anos_iniciais') totalAnosIniciais = parseDbInt(row.total)
-      else if (row.tipo_ensino === 'anos_finais') totalAnosFinais = parseDbInt(row.total)
+      if (row.tipo_ensino === 'anos_iniciais') totalAnosIniciais = Math.max(totalAnosIniciais, parseDbInt(row.total))
+      else if (row.tipo_ensino === 'anos_finais') totalAnosFinais = Math.max(totalAnosFinais, parseDbInt(row.total))
     }
   }
 
