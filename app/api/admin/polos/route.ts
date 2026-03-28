@@ -5,6 +5,7 @@ import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 import { validateRequest, poloSchema, poloPutSchema } from '@/lib/schemas'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
@@ -32,15 +33,20 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   }
 
   // Admin e tecnico podem ver todos os polos
-  const where = createWhereBuilder()
-  addCondition(where, 'id', id)
+  const redisKey = cacheKey('polos', id || 'all')
+  const data = await withRedisCache(redisKey, 300, async () => {
+    const where = createWhereBuilder()
+    addCondition(where, 'id', id)
 
-  const result = await pool.query(
-    `SELECT * FROM polos ${buildWhereString(where)} ORDER BY nome`,
-    where.params
-  )
+    const result = await pool.query(
+      `SELECT * FROM polos ${buildWhereString(where)} ORDER BY nome`,
+      where.params
+    )
 
-  return NextResponse.json(result.rows)
+    return result.rows
+  })
+
+  return NextResponse.json(data)
 })
 
 export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {

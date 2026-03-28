@@ -6,36 +6,31 @@ import { periodoLetivoSchema, periodoLetivoUpdateSchema, validateRequest, valida
 import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
-
-// Cache de períodos (mudam raramente — TTL 60s)
-const periodosCache = new Map<string, { data: any; expiresAt: number }>()
-function invalidarCachePeriodos() { periodosCache.clear() }
 
 export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   const searchParams = request.nextUrl.searchParams
   const { ano_letivo, tipo } = parseSearchParams(searchParams, ['ano_letivo', 'tipo'])
 
-  const cacheKey = `per:${ano_letivo || 'all'}:${tipo || 'all'}`
-  const cached = periodosCache.get(cacheKey)
-  if (cached && Date.now() < cached.expiresAt) {
-    return NextResponse.json(cached.data)
-  }
+  const redisKey = cacheKey('periodos', ano_letivo || 'all', tipo || 'all')
+  const data = await withRedisCache(redisKey, 600, async () => {
+    const where = createWhereBuilder()
+    addCondition(where, 'ano_letivo', ano_letivo)
+    addCondition(where, 'tipo', tipo)
 
-  const where = createWhereBuilder()
-  addCondition(where, 'ano_letivo', ano_letivo)
-  addCondition(where, 'tipo', tipo)
+    const whereClause = buildWhereString(where)
 
-  const whereClause = buildWhereString(where)
+    const result = await pool.query(
+      `SELECT * FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
+      where.params
+    )
 
-  const result = await pool.query(
-    `SELECT * FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
-    where.params
-  )
+    return result.rows
+  })
 
-  periodosCache.set(cacheKey, { data: result.rows, expiresAt: Date.now() + 60_000 })
-  return NextResponse.json(result.rows)
+  return NextResponse.json(data)
 })
 
 export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
@@ -52,7 +47,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       [nome, tipo, numero, ano_letivo, data_inicio || null, data_fim || null, ativo]
     )
 
-    invalidarCachePeriodos()
+    await cacheDelPattern('periodos:*')
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -85,7 +80,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
       return NextResponse.json({ mensagem: 'Período não encontrado' }, { status: 404 })
     }
 
-    invalidarCachePeriodos()
+    await cacheDelPattern('periodos:*')
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -128,7 +123,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
       return NextResponse.json({ mensagem: 'Período não encontrado' }, { status: 404 })
     }
 
-    invalidarCachePeriodos()
+    await cacheDelPattern('periodos:*')
     return NextResponse.json({ mensagem: 'Período excluído com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao excluir período letivo:', error)

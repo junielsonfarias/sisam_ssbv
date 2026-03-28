@@ -3,6 +3,7 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { verificarVinculoProfessor } from '@/lib/professor-auth'
 import { z } from 'zod'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +70,7 @@ export const POST = withAuth('professor', async (request, usuario) => {
     RETURNING *
   `, [turma_id, usuario.id, titulo, mensagem, tipo])
 
+  await cacheDelPattern('comunicados:*')
   return NextResponse.json({ comunicado: result.rows[0], mensagem: 'Comunicado publicado com sucesso' })
 })
 
@@ -92,5 +94,6 @@ export const DELETE = withAuth('professor', async (request, usuario) => {
     return NextResponse.json({ mensagem: 'Comunicado não encontrado' }, { status: 404 })
   }
 
+  await cacheDelPattern('comunicados:*')
   return NextResponse.json({ mensagem: 'Comunicado removido com sucesso' })
 })

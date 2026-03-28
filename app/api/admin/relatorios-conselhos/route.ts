@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,8 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request: NextRe
       return NextResponse.json({ mensagem: 'Conselho inválido. Use: CACSFUNDEB, CAE ou CME' }, { status: 400 })
     }
 
+    const redisKey = cacheKey('conselhos', conselho, ano_letivo)
+    const data = await withRedisCache(redisKey, 300, async () => {
     // Dados base: escolas com contagens
     const escolasBase = await pool.query(
       `SELECT
@@ -174,11 +177,14 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request: NextRe
       }
     }
 
-    return NextResponse.json({
+    return {
       conselho,
       ano_letivo,
       ...dadosEspecificos,
-    })
+    }
+    }) // end withRedisCache
+
+    return NextResponse.json(data)
   } catch (error) {
     console.error('[relatorios-conselhos] Erro:', (error as Error).message)
     return NextResponse.json({ mensagem: 'Erro ao gerar relatório do conselho' }, { status: 500 })

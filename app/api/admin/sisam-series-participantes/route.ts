@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const anoLetivo = request.nextUrl.searchParams.get('ano_letivo')
     const contagem = request.nextUrl.searchParams.get('contagem') === 'true'
 
-    // Modo contagem: retorna total de alunos por série
+    // Modo contagem: retorna total de alunos por série (not cached)
     if (contagem && anoLetivo) {
       const result = await pool.query(
         `SELECT a.serie, COUNT(*) as quantidade
@@ -30,23 +31,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ contagem: contagemMap })
     }
 
-    let query = `
-      SELECT sp.id, sp.ano_letivo, sp.serie, sp.ativo,
-             se.nome as serie_nome, se.etapa
-      FROM sisam_series_participantes sp
-      LEFT JOIN series_escolares se ON se.codigo = sp.serie
-    `
-    const params: string[] = []
+    const redisKey = cacheKey('series-part', anoLetivo || 'all')
+    const data = await withRedisCache(redisKey, 300, async () => {
+      let query = `
+        SELECT sp.id, sp.ano_letivo, sp.serie, sp.ativo,
+               se.nome as serie_nome, se.etapa
+        FROM sisam_series_participantes sp
+        LEFT JOIN series_escolares se ON se.codigo = sp.serie
+      `
+      const params: string[] = []
 
-    if (anoLetivo) {
-      query += ' WHERE sp.ano_letivo = $1'
-      params.push(anoLetivo)
-    }
+      if (anoLetivo) {
+        query += ' WHERE sp.ano_letivo = $1'
+        params.push(anoLetivo)
+      }
 
-    query += ' ORDER BY sp.ano_letivo DESC, se.ordem, sp.serie'
+      query += ' ORDER BY sp.ano_letivo DESC, se.ordem, sp.serie'
 
-    const result = await pool.query(query, params)
-    return NextResponse.json(result.rows)
+      const result = await pool.query(query, params)
+      return result.rows
+    })
+
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Erro ao buscar séries participantes:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
@@ -82,6 +88,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    await cacheDelPattern('series-part:*')
     return NextResponse.json({ mensagem: 'Séries atualizadas com sucesso', total: series.length })
   } catch (error) {
     console.error('Erro ao salvar séries participantes:', error)

@@ -8,6 +8,7 @@ import {
   addAccessControl, addSearchCondition, addInCondition, buildConditionsString,
 } from '@/lib/api-helpers'
 import { validateRequest, turmaPostSchema } from '@/lib/schemas'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       ]
     )
 
+    await cacheDelPattern('turmas:*')
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -86,6 +88,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
     }
 
+    await cacheDelPattern('turmas:*')
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -128,6 +131,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
       return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
     }
 
+    await cacheDelPattern('turmas:*')
     return NextResponse.json({ mensagem: 'Turma excluída com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao excluir turma:', error)
@@ -144,45 +148,49 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
   // Modo listagem simples: retorna turmas com contagem de alunos (sem precisar de resultados)
   if (mode === 'listagem') {
-    const where = createWhereBuilder()
-    addRawCondition(where, 't.ativo = true')
-    addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
-    addCondition(where, 't.ano_letivo', ano_letivo?.trim() || null)
-    addCondition(where, 't.escola_id', escola_id?.trim() || null)
+    const redisKey = cacheKey('turmas', ano_letivo || '', escola_id || '', serie || '', busca || '', mode)
+    const data = await withRedisCache(redisKey, 60, async () => {
+      const where = createWhereBuilder()
+      addRawCondition(where, 't.ativo = true')
+      addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
+      addCondition(where, 't.ano_letivo', ano_letivo?.trim() || null)
+      addCondition(where, 't.escola_id', escola_id?.trim() || null)
 
-    if (serie && serie.trim() !== '') {
-      const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-      addRawCondition(where, `REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
-    }
+      if (serie && serie.trim() !== '') {
+        const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
+        addRawCondition(where, `REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
+      }
 
-    addSearchCondition(where, ['t.codigo', 't.nome', 'e.nome'], busca)
+      addSearchCondition(where, ['t.codigo', 't.nome', 'e.nome'], busca)
 
-    const whereClause = `WHERE ${buildConditionsString(where)}`
+      const whereClause = `WHERE ${buildConditionsString(where)}`
 
-    const result = await pool.query(
-      `SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
-             COALESCE(t.capacidade_maxima, 35) as capacidade_maxima,
-             COALESCE(t.multiserie, false) as multiserie,
-             COALESCE(t.multietapa, false) as multietapa,
-             e.nome as escola_nome, p.nome as polo_nome,
-             COUNT(a.id) FILTER (WHERE a.ativo = true) as total_alunos
-      FROM turmas t
-      INNER JOIN escolas e ON t.escola_id = e.id
-      LEFT JOIN polos p ON e.polo_id = p.id
-      LEFT JOIN alunos a ON a.turma_id = t.id
-      ${whereClause}
-      GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
-               t.capacidade_maxima, t.multiserie, t.multietapa, e.nome, p.nome
-      ORDER BY t.ano_letivo DESC, e.nome, t.serie, t.codigo`,
-      where.params
-    )
-    return NextResponse.json(result.rows.map(row => ({
-      ...row,
-      total_alunos: parseInt(row.total_alunos) || 0,
-      capacidade_maxima: parseInt(row.capacidade_maxima) || 35,
-      multiserie: row.multiserie === true,
-      multietapa: row.multietapa === true,
-    })))
+      const result = await pool.query(
+        `SELECT t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
+               COALESCE(t.capacidade_maxima, 35) as capacidade_maxima,
+               COALESCE(t.multiserie, false) as multiserie,
+               COALESCE(t.multietapa, false) as multietapa,
+               e.nome as escola_nome, p.nome as polo_nome,
+               COUNT(a.id) FILTER (WHERE a.ativo = true) as total_alunos
+        FROM turmas t
+        INNER JOIN escolas e ON t.escola_id = e.id
+        LEFT JOIN polos p ON e.polo_id = p.id
+        LEFT JOIN alunos a ON a.turma_id = t.id
+        ${whereClause}
+        GROUP BY t.id, t.codigo, t.nome, t.serie, t.ano_letivo, t.escola_id,
+                 t.capacidade_maxima, t.multiserie, t.multietapa, e.nome, p.nome
+        ORDER BY t.ano_letivo DESC, e.nome, t.serie, t.codigo`,
+        where.params
+      )
+      return result.rows.map(row => ({
+        ...row,
+        total_alunos: parseInt(row.total_alunos) || 0,
+        capacidade_maxima: parseInt(row.capacidade_maxima) || 35,
+        multiserie: row.multiserie === true,
+        multietapa: row.multietapa === true,
+      }))
+    })
+    return NextResponse.json(data)
   }
 
   // Modo detalhado com médias

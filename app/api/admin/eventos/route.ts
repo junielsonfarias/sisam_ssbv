@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,6 +59,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'editor', 'publicador'
     [titulo, descricao || null, tipo, data_inicio, data_fim || null, local || null, publico, usuario.id]
   )
 
+  await cacheDelPattern('eventos:*')
   return NextResponse.json(result.rows[0], { status: 201 })
 })
 
@@ -95,6 +97,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'editor', 'publicador']
     return NextResponse.json({ error: 'Evento não encontrado' }, { status: 404 })
   }
 
+  await cacheDelPattern('eventos:*')
   return NextResponse.json(result.rows[0])
 })
 
@@ -111,5 +114,6 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request) => 
 
   await pool.query('DELETE FROM eventos WHERE id = $1', [id])
 
+  await cacheDelPattern('eventos:*')
   return NextResponse.json({ sucesso: true })
 })

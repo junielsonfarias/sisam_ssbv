@@ -5,6 +5,7 @@ import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest, anoLetivoSchema, statusAnoLetivoSchema } from '@/lib/schemas'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 // --- Schemas de validação ---
 
@@ -50,21 +51,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
-    const result = await pool.query(`
-      SELECT al.*,
-             (SELECT COUNT(*) FROM turmas t WHERE t.ano_letivo = al.ano AND t.ativo = true) as total_turmas,
-             (SELECT COUNT(*) FROM alunos a WHERE a.ano_letivo = al.ano AND a.ativo = true) as total_alunos,
-             (SELECT COUNT(*) FROM periodos_letivos pl WHERE pl.ano_letivo = al.ano AND pl.ativo = true) as total_periodos
-      FROM anos_letivos al
-      ORDER BY al.ano DESC
-    `)
+    const redisKey = cacheKey('anos-letivos')
+    const data = await withRedisCache(redisKey, 600, async () => {
+      const result = await pool.query(`
+        SELECT al.*,
+               (SELECT COUNT(*) FROM turmas t WHERE t.ano_letivo = al.ano AND t.ativo = true) as total_turmas,
+               (SELECT COUNT(*) FROM alunos a WHERE a.ano_letivo = al.ano AND a.ativo = true) as total_alunos,
+               (SELECT COUNT(*) FROM periodos_letivos pl WHERE pl.ano_letivo = al.ano AND pl.ativo = true) as total_periodos
+        FROM anos_letivos al
+        ORDER BY al.ano DESC
+      `)
 
-    return NextResponse.json(result.rows.map(r => ({
-      ...r,
-      total_turmas: parseInt(r.total_turmas) || 0,
-      total_alunos: parseInt(r.total_alunos) || 0,
-      total_periodos: parseInt(r.total_periodos) || 0,
-    })))
+      return result.rows.map(r => ({
+        ...r,
+        total_turmas: parseInt(r.total_turmas) || 0,
+        total_alunos: parseInt(r.total_alunos) || 0,
+        total_periodos: parseInt(r.total_periodos) || 0,
+      }))
+    })
+
+    return NextResponse.json(data)
   } catch (error: unknown) {
     console.error('Erro ao listar anos letivos:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })

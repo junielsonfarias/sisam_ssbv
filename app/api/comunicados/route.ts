@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,18 +23,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await pool.query(`
-      SELECT c.id, c.titulo, c.mensagem, c.tipo, c.data_publicacao,
-             u.nome AS professor_nome, t.nome AS turma_nome
-      FROM comunicados_turma c
-      JOIN usuarios u ON u.id = c.professor_id
-      JOIN turmas t ON t.id = c.turma_id
-      WHERE c.turma_id = $1 AND c.ativo = true
-      ORDER BY c.data_publicacao DESC
-      LIMIT 10
-    `, [turmaId])
+    const redisKey = cacheKey('comunicados', turmaId)
+    const data = await withRedisCache(redisKey, 60, async () => {
+      const result = await pool.query(`
+        SELECT c.id, c.titulo, c.mensagem, c.tipo, c.data_publicacao,
+               u.nome AS professor_nome, t.nome AS turma_nome
+        FROM comunicados_turma c
+        JOIN usuarios u ON u.id = c.professor_id
+        JOIN turmas t ON t.id = c.turma_id
+        WHERE c.turma_id = $1 AND c.ativo = true
+        ORDER BY c.data_publicacao DESC
+        LIMIT 10
+      `, [turmaId])
 
-    return NextResponse.json({ comunicados: result.rows })
+      return { comunicados: result.rows }
+    })
+
+    return NextResponse.json(data)
   } catch {
     return NextResponse.json({ mensagem: 'Erro ao buscar comunicados' }, { status: 500 })
   }

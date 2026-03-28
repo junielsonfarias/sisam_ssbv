@@ -6,6 +6,7 @@ import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
 } from '@/lib/api-helpers'
 import { validateRequest, configuracaoSeriePostSchema } from '@/lib/schemas'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,25 +45,30 @@ export async function GET(request: NextRequest) {
       )`, [ano_letivo])
     }
 
-    const result = await pool.query(
-      `SELECT
-        cs.id, cs.serie, cs.nome_serie, cs.tipo_ensino,
-        cs.qtd_questoes_lp, cs.qtd_questoes_mat, cs.qtd_questoes_ch, cs.qtd_questoes_cn,
-        cs.total_questoes_objetivas,
-        cs.tem_producao_textual, cs.qtd_itens_producao,
-        cs.avalia_lp, cs.avalia_mat, cs.avalia_ch, cs.avalia_cn,
-        cs.peso_lp, cs.peso_mat, cs.peso_ch, cs.peso_cn, cs.peso_producao,
-        cs.usa_nivel_aprendizagem, cs.ativo,
-        cs.media_aprovacao, cs.media_recuperacao, cs.nota_maxima,
-        cs.max_dependencias, cs.formula_nota_final,
-        cs.criado_em, cs.atualizado_em
-      FROM configuracao_series cs
-      WHERE ${buildConditionsString(where)}
-      ORDER BY cs.serie::integer`,
-      where.params
-    )
+    const redisKey = cacheKey('config-series', serie || 'all', ano_letivo || 'all')
+    const data = await withRedisCache(redisKey, 300, async () => {
+      const result = await pool.query(
+        `SELECT
+          cs.id, cs.serie, cs.nome_serie, cs.tipo_ensino,
+          cs.qtd_questoes_lp, cs.qtd_questoes_mat, cs.qtd_questoes_ch, cs.qtd_questoes_cn,
+          cs.total_questoes_objetivas,
+          cs.tem_producao_textual, cs.qtd_itens_producao,
+          cs.avalia_lp, cs.avalia_mat, cs.avalia_ch, cs.avalia_cn,
+          cs.peso_lp, cs.peso_mat, cs.peso_ch, cs.peso_cn, cs.peso_producao,
+          cs.usa_nivel_aprendizagem, cs.ativo,
+          cs.media_aprovacao, cs.media_recuperacao, cs.nota_maxima,
+          cs.max_dependencias, cs.formula_nota_final,
+          cs.criado_em, cs.atualizado_em
+        FROM configuracao_series cs
+        WHERE ${buildConditionsString(where)}
+        ORDER BY cs.serie::integer`,
+        where.params
+      )
 
-    if (serie && result.rows.length === 0) {
+      return result.rows
+    })
+
+    if (serie && data.length === 0) {
       return NextResponse.json(
         { mensagem: 'Série não encontrada' },
         { status: 404 }
@@ -70,8 +76,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      series: result.rows,
-      total: result.rows.length
+      series: data,
+      total: data.length
     })
   } catch (error: unknown) {
     console.error('Erro ao buscar configuração de séries:', error)

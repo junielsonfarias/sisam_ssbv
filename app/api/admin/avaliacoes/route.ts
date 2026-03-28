@@ -6,6 +6,7 @@ import { avaliacaoSchema, validateRequest, uuidSchema } from '@/lib/schemas'
 import { z } from 'zod'
 import { getErrorMessage, DatabaseError } from '@/lib/validation'
 import { createWhereBuilder, addRawCondition, addCondition, buildConditionsString } from '@/lib/api-helpers'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,18 +19,23 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   try {
     const anoLetivo = request.nextUrl.searchParams.get('ano_letivo')
 
-    const where = createWhereBuilder()
-    addRawCondition(where, 'ativo = true')
-    addCondition(where, 'ano_letivo', anoLetivo)
+    const redisKey = cacheKey('avaliacoes', anoLetivo || 'all')
+    const data = await withRedisCache(redisKey, 300, async () => {
+      const where = createWhereBuilder()
+      addRawCondition(where, 'ativo = true')
+      addCondition(where, 'ano_letivo', anoLetivo)
 
-    const result = await pool.query(
-      `SELECT id, nome, descricao, ano_letivo, tipo, ordem, data_inicio, data_fim, ativo, criado_em
-       FROM avaliacoes
-       WHERE ${buildConditionsString(where)}
-       ORDER BY ano_letivo DESC, ordem`,
-      where.params
-    )
-    return NextResponse.json(result.rows)
+      const result = await pool.query(
+        `SELECT id, nome, descricao, ano_letivo, tipo, ordem, data_inicio, data_fim, ativo, criado_em
+         FROM avaliacoes
+         WHERE ${buildConditionsString(where)}
+         ORDER BY ano_letivo DESC, ordem`,
+        where.params
+      )
+      return result.rows
+    })
+
+    return NextResponse.json(data)
   } catch (error: unknown) {
     // Se a tabela não existe ainda (migração não executada), retornar array vazio
     if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
@@ -59,6 +65,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       [nome, descricao || null, ano_letivo, tipo, ordem, data_inicio || null, data_fim || null, ativo]
     )
 
+    await cacheDelPattern('avaliacoes:*')
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -111,6 +118,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
       return NextResponse.json({ mensagem: 'Avaliação não encontrada' }, { status: 404 })
     }
 
+    await cacheDelPattern('avaliacoes:*')
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     console.error('Erro ao atualizar avaliação:', getErrorMessage(error))
@@ -153,6 +161,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
       return NextResponse.json({ mensagem: 'Avaliação não encontrada' }, { status: 404 })
     }
 
+    await cacheDelPattern('avaliacoes:*')
     return NextResponse.json({ mensagem: 'Avaliação desativada com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao desativar avaliação:', getErrorMessage(error))

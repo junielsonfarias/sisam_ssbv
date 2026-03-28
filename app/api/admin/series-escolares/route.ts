@@ -5,6 +5,7 @@ import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildConditionsString } from '@/lib/api-helpers'
 import { validateRequest, serieEscolarPostSchema } from '@/lib/schemas'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -14,19 +15,24 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     const searchParams = request.nextUrl.searchParams
     const { etapa } = parseSearchParams(searchParams, ['etapa'])
 
-    const where = createWhereBuilder()
-    addCondition(where, 'se.etapa', etapa)
+    const redisKey = cacheKey('series-escolares', etapa || 'all')
+    const data = await withRedisCache(redisKey, 600, async () => {
+      const where = createWhereBuilder()
+      addCondition(where, 'se.etapa', etapa)
 
-    const query = `
-      SELECT se.*,
-        (SELECT COUNT(*) FROM series_disciplinas sd WHERE sd.serie_id = se.id AND sd.ativo = true) as total_disciplinas
-      FROM series_escolares se
-      WHERE ${buildConditionsString(where)}
-      ORDER BY se.ordem ASC
-    `
+      const query = `
+        SELECT se.*,
+          (SELECT COUNT(*) FROM series_disciplinas sd WHERE sd.serie_id = se.id AND sd.ativo = true) as total_disciplinas
+        FROM series_escolares se
+        WHERE ${buildConditionsString(where)}
+        ORDER BY se.ordem ASC
+      `
 
-    const result = await pool.query(query, where.params)
-    return NextResponse.json(result.rows)
+      const result = await pool.query(query, where.params)
+      return result.rows
+    })
+
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Erro ao buscar séries escolares:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
