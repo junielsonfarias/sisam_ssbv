@@ -31,6 +31,7 @@ import {
   ScanFace,
   Tablet,
   CalendarClock,
+  Clock,
   LayoutList,
   Globe,
   FileSpreadsheet,
@@ -38,7 +39,8 @@ import {
   Search,
   Shield,
   Target,
-  Building2
+  Building2,
+  MessageSquare
 } from 'lucide-react'
 import type { MenuItem } from './types'
 import type { ModuloAtivo } from '@/lib/offline-storage'
@@ -131,6 +133,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
+            { icon: Clock, label: 'Fila de Espera', href: '/admin/fila-espera' },
           ]
         },
         {
@@ -232,6 +235,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
+            { icon: Clock, label: 'Fila de Espera', href: '/admin/fila-espera' },
           ]
         },
         {
@@ -327,6 +331,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: UserPlus, label: 'Matrículas', href: '/escola/matriculas' },
             { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
             { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
+            { icon: Clock, label: 'Fila de Espera', href: '/admin/fila-espera' },
           ]
         },
         {
@@ -384,6 +389,9 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
           { icon: FileText, label: 'Lançar Notas', href: '/professor/notas' },
         ]
       },
+      { icon: BookOpen, label: 'Diário de Classe', href: '/professor/diario' },
+      { icon: ClipboardList, label: 'Planejamento', href: '/professor/planos' },
+      { icon: MessageSquare, label: 'Comunicados', href: '/professor/comunicados' },
     )
   }
 
