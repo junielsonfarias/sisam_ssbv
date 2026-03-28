@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, ChevronDown, School, Users, BarChart3, BookOpen, Award, GraduationCap } from 'lucide-react'
+import { ArrowRight, ChevronDown, School, Users, BookOpen, GraduationCap, PenTool, Globe, Star } from 'lucide-react'
 import Link from 'next/link'
 
 interface SiteHeroProps {
@@ -11,12 +11,12 @@ interface SiteHeroProps {
 export default function SiteHero({ data }: SiteHeroProps) {
   const [visible, setVisible] = useState(false)
 
-  const title = data?.title || 'Educacao publica de qualidade para todos'
-  const subtitle = data?.subtitle || 'SEMED - Sao Sebastiao da Boa Vista'
+  const title = data?.title || 'Transformando vidas pela educação'
+  const subtitle = data?.subtitle || 'SEMED - São Sebastião da Boa Vista'
   const description = data?.description ||
-    'A Secretaria Municipal de Educacao trabalha para garantir uma educacao inclusiva, equitativa e de qualidade, promovendo oportunidades de aprendizagem ao longo da vida para todos os alunos do municipio.'
+    'A Secretaria Municipal de Educação trabalha para garantir uma educação inclusiva, equitativa e de qualidade, promovendo oportunidades de aprendizagem ao longo da vida para todos os alunos do município.'
   const ctaPrimary = data?.ctaPrimary || { label: 'Portal do Educador', href: '/login' }
-  const ctaSecondary = data?.ctaSecondary || { label: 'Conheca a SEMED', href: '#sobre' }
+  const ctaSecondary = data?.ctaSecondary || { label: 'Consultar Boletim', href: '/boletim' }
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 100)
@@ -28,141 +28,116 @@ export default function SiteHero({ data }: SiteHeroProps) {
     if (sobre) sobre.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const floatingCards = [
-    { icon: School, label: 'Nossas Escolas', color: 'from-emerald-400 to-emerald-500', delay: '0s' },
-    { icon: Users, label: 'Nossos Alunos', color: 'from-blue-400 to-blue-500', delay: '0.5s' },
-    { icon: BookOpen, label: 'Ensino', color: 'from-amber-400 to-amber-500', delay: '1s' },
-    { icon: Award, label: 'Qualidade', color: 'from-purple-400 to-purple-500', delay: '1.5s' },
+  const gridIcons = [
+    { icon: School, label: 'Escolas' },
+    { icon: Users, label: 'Alunos' },
+    { icon: BookOpen, label: 'Ensino' },
+    { icon: GraduationCap, label: 'Formação' },
+    { icon: PenTool, label: 'Avaliação' },
+    { icon: Globe, label: 'Inclusão' },
+    { icon: Star, label: 'Qualidade' },
+    { icon: GraduationCap, label: 'SEMED' },
+    { icon: BookOpen, label: 'Currículo' },
   ]
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-white pt-20">
-      {/* Subtle background pattern */}
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-emerald-50/60 to-white pt-20" aria-label="Seção principal">
+      {/* Subtle dot pattern */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #059669 1px, transparent 0)',
-        backgroundSize: '32px 32px'
+        backgroundSize: '40px 40px'
       }} />
 
-      {/* Decorative shapes */}
-      <div className="absolute top-32 right-0 w-96 h-96 bg-emerald-50 rounded-full blur-3xl opacity-60" />
-      <div className="absolute bottom-20 left-0 w-80 h-80 bg-blue-50 rounded-full blur-3xl opacity-60" />
-      <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-amber-50 rounded-full blur-3xl opacity-40" />
+      {/* Decorative blurs */}
+      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-emerald-100/40 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-50/30 rounded-full blur-3xl" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-12 lg:py-0">
-        <div className="grid lg:grid-cols-5 gap-12 lg:gap-16 items-center">
-          {/* Left content - 60% */}
-          <div className={`lg:col-span-3 transition-all duration-1000 ${
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          {/* Left content */}
+          <div className={`transition-all duration-1000 ease-out ${
             visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-sm font-semibold mb-8">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Secretaria Municipal de Educacao
+              {subtitle}
             </div>
 
             {/* Title */}
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]">
-              <span className="text-slate-900">{title.includes('qualidade') ? 'Educacao publica de ' : ''}</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-500">{title.includes('qualidade') ? 'qualidade' : title}</span>
-              <span className="text-slate-900">{title.includes('qualidade') ? ' para todos' : ''}</span>
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900">
+              {title}
             </h1>
 
-            {/* Subtitle badge */}
-            <p className="text-lg sm:text-xl text-slate-500 mb-8 leading-relaxed max-w-2xl">
+            {/* Description */}
+            <p className="text-lg sm:text-xl text-slate-500 mb-10 leading-relaxed max-w-xl">
               {description}
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-start gap-4 mb-12">
+            <div className="flex flex-col sm:flex-row items-start gap-4 mb-16">
               <Link
                 href={ctaPrimary.href}
-                className="inline-flex items-center gap-2.5 px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-full text-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2.5 px-8 py-4 bg-emerald-600 text-white font-bold rounded-full text-lg hover:bg-emerald-700 transition-all duration-300 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 hover:-translate-y-0.5"
               >
                 {ctaPrimary.label}
                 <ArrowRight className="w-5 h-5" />
               </Link>
-              <a
+              <Link
                 href={ctaSecondary.href}
-                onClick={(e) => {
-                  if (ctaSecondary.href.startsWith('#')) {
-                    e.preventDefault()
-                    const target = document.querySelector(ctaSecondary.href)
-                    if (target) target.scrollIntoView({ behavior: 'smooth' })
-                  }
-                }}
-                className="inline-flex items-center gap-2 px-8 py-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-full text-lg hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50 transition-all duration-300"
+                className="inline-flex items-center gap-2 px-8 py-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-full text-lg hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all duration-300"
               >
                 {ctaSecondary.label}
-              </a>
-            </div>
-
-            {/* Boletim link */}
-            <div className="mb-8">
-              <Link
-                href="/boletim"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
-              >
-                <BookOpen className="w-4 h-4" />
-                Consultar Boletim Escolar
-                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             {/* Stats bar */}
-            <div className="flex flex-wrap gap-8 sm:gap-12">
+            <div className="flex flex-wrap gap-10 sm:gap-14 border-t border-slate-200/80 pt-8">
               {[
                 { value: '30+', label: 'Escolas' },
                 { value: '5.000+', label: 'Alunos' },
                 { value: '200+', label: 'Turmas' },
               ].map((stat, i) => (
                 <div key={i}>
-                  <p className="text-2xl sm:text-3xl font-extrabold text-slate-900">{stat.value}</p>
-                  <p className="text-sm font-medium text-slate-400">{stat.label}</p>
+                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">{stat.value}</p>
+                  <p className="text-sm font-medium text-slate-400 mt-1">{stat.label}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Right side - floating cards */}
-          <div className={`lg:col-span-2 hidden lg:block relative transition-all duration-1000 delay-300 ${
+          {/* Right side - Icon grid illustration (desktop only) */}
+          <div className={`hidden lg:block transition-all duration-1000 delay-300 ease-out ${
             visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-          }`}>
-            <div className="relative w-full aspect-square max-w-md mx-auto">
-              {/* Central circle */}
-              <div className="absolute inset-16 rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200/50 flex items-center justify-center">
-                <div className="text-center">
-                  <GraduationCap className="w-16 h-16 text-emerald-500 mx-auto mb-2" />
-                  <span className="text-lg font-extrabold text-emerald-700">SEMED</span>
-                </div>
+          }`} aria-hidden="true">
+            <div className="relative w-full max-w-md mx-auto">
+              {/* Background circle */}
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/50 to-emerald-50/30 rounded-3xl" />
+
+              {/* 3x3 Icon Grid */}
+              <div className="relative grid grid-cols-3 gap-4 p-8">
+                {gridIcons.map((item, i) => {
+                  const Icon = item.icon
+                  const isCenter = i === 4
+                  return (
+                    <div
+                      key={i}
+                      className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-500 ${
+                        isCenter
+                          ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/30'
+                          : 'bg-white border border-slate-100 text-slate-600 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-1'
+                      }`}
+                    >
+                      <Icon className={`w-7 h-7 ${isCenter ? 'text-white' : 'text-emerald-600'}`} />
+                      <span className={`text-xs font-bold ${isCenter ? 'text-emerald-100' : 'text-slate-500'}`}>{item.label}</span>
+                    </div>
+                  )
+                })}
               </div>
 
-              {/* Floating cards */}
-              {floatingCards.map((card, i) => {
-                const positions = [
-                  'top-0 left-4',
-                  'top-4 right-0',
-                  'bottom-4 right-4',
-                  'bottom-0 left-0',
-                ]
-                return (
-                  <div
-                    key={i}
-                    className={`absolute ${positions[i]} bg-white rounded-2xl p-4 shadow-xl shadow-slate-900/10 border border-slate-100 flex items-center gap-3 hover:-translate-y-1 transition-transform duration-300`}
-                    style={{
-                      animation: `float 6s ease-in-out infinite`,
-                      animationDelay: card.delay,
-                    }}
-                  >
-                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center shadow-lg`}>
-                      <card.icon className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="text-sm font-bold text-slate-700">{card.label}</span>
-                  </div>
-                )
-              })}
-
-              {/* Decorative ring */}
-              <div className="absolute inset-8 rounded-full border-2 border-dashed border-emerald-200/40 animate-spin" style={{ animationDuration: '30s' }} />
+              {/* Decorative dots */}
+              <div className="absolute -top-4 -right-4 w-8 h-8 bg-amber-400 rounded-full opacity-60" />
+              <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-emerald-400 rounded-full opacity-40" />
             </div>
           </div>
         </div>
@@ -171,18 +146,11 @@ export default function SiteHero({ data }: SiteHeroProps) {
       {/* Scroll Down Indicator */}
       <button
         onClick={handleScrollDown}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-slate-400 hover:text-emerald-500 transition-colors animate-bounce"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-slate-300 hover:text-emerald-500 transition-colors animate-bounce"
+        aria-label="Rolar para baixo"
       >
         <ChevronDown className="w-8 h-8" />
       </button>
-
-      {/* Float animation keyframes via inline style */}
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-12px); }
-        }
-      `}</style>
     </section>
   )
 }
