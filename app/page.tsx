@@ -7,6 +7,7 @@ import SiteAbout from '@/components/site/site-about'
 import SiteStats from '@/components/site/site-stats'
 import SiteServices from '@/components/site/site-services'
 import SiteNews from '@/components/site/site-news'
+import SitePublicacoes from '@/components/site/site-publicacoes'
 import SiteSchools from '@/components/site/site-schools'
 import SiteContact from '@/components/site/site-contact'
 import SiteFooter from '@/components/site/site-footer'
@@ -15,6 +16,7 @@ interface SiteData {
   config: Record<string, any>
   stats: { escolas: number; alunos: number; turmas: number; professores: number }
   escolas: any[]
+  publicacoes: any[]
 }
 
 const defaultStats = { escolas: 0, alunos: 0, turmas: 0, professores: 0 }
@@ -31,24 +33,25 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
-    fetch('/api/site-config')
-      .then(r => r.json())
-      .then(d => {
-        const config: Record<string, any> = {}
-        if (Array.isArray(d.secoes)) {
-          for (const s of d.secoes) {
-            config[s.secao] = s.conteudo
-          }
+    Promise.all([
+      fetch('/api/site-config').then(r => r.json()).catch(() => ({})),
+      fetch('/api/publicacoes?limit=6').then(r => r.json()).catch(() => ({ publicacoes: [] })),
+    ]).then(([d, pubData]) => {
+      const config: Record<string, any> = {}
+      if (Array.isArray(d.secoes)) {
+        for (const s of d.secoes) {
+          config[s.secao] = s.conteudo
         }
-        setData({
-          config,
-          stats: d.stats || defaultStats,
-          escolas: d.escolas || [],
-        })
+      }
+      setData({
+        config,
+        stats: d.stats || defaultStats,
+        escolas: d.escolas || [],
+        publicacoes: pubData.publicacoes || [],
       })
-      .catch(() => {
-        setData({ config: {}, stats: defaultStats, escolas: [] })
-      })
+    }).catch(() => {
+      setData({ config: {}, stats: defaultStats, escolas: [], publicacoes: [] })
+    })
   }, [])
 
   if (!data) {
@@ -66,7 +69,7 @@ export default function HomePage() {
     )
   }
 
-  const { config, stats, escolas } = data
+  const { config, stats, escolas, publicacoes } = data
 
   return (
     <div className="min-h-screen bg-white">
@@ -76,6 +79,7 @@ export default function HomePage() {
       <SiteStats data={config.stats || {}} stats={stats} />
       <SiteServices data={config.services || {}} />
       <SiteNews data={config.news || {}} />
+      <SitePublicacoes publicacoes={publicacoes} />
       <SiteSchools data={config.schools || {}} escolas={escolas} />
       <SiteContact data={config.contact || {}} />
       <SiteFooter data={config.footer || {}} />

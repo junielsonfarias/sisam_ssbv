@@ -376,6 +376,13 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
     )
   }
 
+  // Menu para PUBLICADOR
+  if (tipoUsuarioReal === 'publicador') {
+    items.push(
+      { icon: FileText, label: 'Publicações', href: '/publicador/publicacoes' },
+    )
+  }
+
   return items
 }
 
@@ -388,7 +395,8 @@ export function getBadgeConfig(tipo: string) {
     escola: { label: 'Escola', bgColor: 'bg-orange-100 dark:bg-orange-900/50', textColor: 'text-orange-700 dark:text-orange-300' },
     professor: { label: 'Professor', bgColor: 'bg-emerald-100 dark:bg-emerald-900/50', textColor: 'text-emerald-700 dark:text-emerald-300' },
     gestor: { label: 'Gestor Escolar', bgColor: 'bg-teal-100 dark:bg-teal-900/50', textColor: 'text-teal-700 dark:text-teal-300' },
-    editor: { label: 'Editor', bgColor: 'bg-pink-100 dark:bg-pink-900/50', textColor: 'text-pink-700 dark:text-pink-300' }
+    editor: { label: 'Editor', bgColor: 'bg-pink-100 dark:bg-pink-900/50', textColor: 'text-pink-700 dark:text-pink-300' },
+    publicador: { label: 'Publicador', bgColor: 'bg-indigo-100 dark:bg-indigo-900/50', textColor: 'text-indigo-700 dark:text-indigo-300' }
   }
   return configs[tipo] || { label: tipo, bgColor: 'bg-gray-100 dark:bg-gray-900/50', textColor: 'text-gray-700 dark:text-gray-300' }
 }

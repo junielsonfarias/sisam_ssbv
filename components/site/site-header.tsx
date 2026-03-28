@@ -13,6 +13,7 @@ const defaultNav = [
   { label: 'Serviços', href: '#servicos' },
   { label: 'Escolas', href: '#escolas' },
   { label: 'Notícias', href: '#noticias' },
+  { label: 'Publicações', href: '/publicacoes' },
   { label: 'Contato', href: '#contato' },
   { label: 'Boletim', href: '/boletim' },
 ]
