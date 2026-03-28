@@ -3,9 +3,38 @@
 import { X, Printer, Layers, Users, School } from 'lucide-react'
 import { Turma, escapeHtml } from './types'
 
+const SERIE_COLORS: Record<string, string> = {
+  CRE: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+  PRE1: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  PRE2: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
+  '1': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  '2': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
+  '3': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
+  '4': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  '5': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  '6': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  '7': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  '8': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  '9': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+}
+
+const SERIE_PRINT_COLORS: Record<string, string> = {
+  CRE: '#fce7f3', PRE1: '#f3e8ff', PRE2: '#ede9fe',
+  '1': '#dbeafe', '2': '#cffafe', '3': '#ccfbf1',
+  '4': '#d1fae5', '5': '#dcfce7', '6': '#fef3c7',
+  '7': '#ffedd5', '8': '#fee2e2', '9': '#ffe4e6',
+}
+
+export interface ComposicaoSerie {
+  serie: string
+  quantidade: number
+}
+
 interface ModalMultiserieProps {
   aberto: boolean
   turmas: Turma[]
+  composicao: Record<string, ComposicaoSerie[]>
+  carregandoComposicao: boolean
   formatSerie: (serie: string) => string
   onFechar: () => void
 }
@@ -17,12 +46,21 @@ interface EscolaGrupo {
   totalAlunos: number
 }
 
-export function ModalMultiserie({ aberto, turmas, formatSerie, onFechar }: ModalMultiserieProps) {
+const SERIE_ORDER: Record<string, number> = {
+  CRE: 0, PRE1: 1, PRE2: 2,
+  '1': 3, '2': 4, '3': 5, '4': 6, '5': 7,
+  '6': 8, '7': 9, '8': 10, '9': 11,
+}
+
+function sortSeries(a: ComposicaoSerie, b: ComposicaoSerie) {
+  return (SERIE_ORDER[a.serie] ?? 99) - (SERIE_ORDER[b.serie] ?? 99)
+}
+
+export function ModalMultiserie({ aberto, turmas, composicao, carregandoComposicao, formatSerie, onFechar }: ModalMultiserieProps) {
   if (!aberto) return null
 
   const turmasMulti = turmas.filter(t => t.multiserie || t.multietapa)
 
-  // Agrupar por escola
   const gruposMap = new Map<string, EscolaGrupo>()
   for (const t of turmasMulti) {
     const key = t.escola_nome
@@ -40,6 +78,34 @@ export function ModalMultiserie({ aberto, turmas, formatSerie, onFechar }: Modal
   const totalMultiserie = turmasMulti.filter(t => t.multiserie).length
   const totalMultietapa = turmasMulti.filter(t => t.multietapa).length
 
+  function renderComposicao(turmaId: string) {
+    const series = composicao[turmaId]
+    if (!series || series.length === 0) return null
+    const sorted = [...series].sort(sortSeries)
+    return (
+      <div className="flex flex-wrap gap-1.5 mt-1.5">
+        {sorted.map(s => (
+          <span
+            key={s.serie}
+            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${SERIE_COLORS[s.serie] || 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}
+          >
+            {s.quantidade} {formatSerie(s.serie)}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  function renderComposicaoPrint(turmaId: string) {
+    const series = composicao[turmaId]
+    if (!series || series.length === 0) return ''
+    const sorted = [...series].sort(sortSeries)
+    return sorted.map(s => {
+      const bg = SERIE_PRINT_COLORS[s.serie] || '#f3f4f6'
+      return `<span style="display:inline-block;background:${bg};padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;margin:1px 2px;">${s.quantidade} ${escapeHtml(formatSerie(s.serie))}</span>`
+    }).join(' ')
+  }
+
   const handleImprimir = () => {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
@@ -53,17 +119,17 @@ export function ModalMultiserie({ aberto, turmas, formatSerie, onFechar }: Modal
           body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
           h1 { font-size: 18px; margin-bottom: 4px; }
           h2 { font-size: 14px; margin: 18px 0 6px; color: #4338ca; border-bottom: 2px solid #e0e7ff; padding-bottom: 4px; }
-          .info { font-size: 12px; color: #555; margin-bottom: 16px; }
           .resumo { display: flex; gap: 24px; margin-bottom: 16px; font-size: 13px; }
           .resumo span { font-weight: 600; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px; }
-          th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; }
+          th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; vertical-align: top; }
           th { background: #f3f4f6; font-weight: 600; }
           tr:nth-child(even) { background: #f9fafb; }
-          .badge { padding: 1px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+          .badge { padding: 1px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-block; }
           .multi { background: #fef3c7; color: #92400e; }
           .etapa { background: #dbeafe; color: #1e40af; }
           .escola-total { font-size: 12px; color: #666; margin-bottom: 8px; }
+          .composicao { margin-top: 4px; line-height: 1.8; }
           .grand-total { margin-top: 16px; font-size: 14px; font-weight: 700; border-top: 2px solid #333; padding-top: 8px; }
           @media print { body { margin: 10mm; } }
         </style>
@@ -84,10 +150,10 @@ export function ModalMultiserie({ aberto, turmas, formatSerie, onFechar }: Modal
             <thead>
               <tr>
                 <th style="width:80px">Codigo</th>
-                <th>Nome</th>
+                <th style="width:140px">Nome</th>
                 <th style="width:60px;text-align:center">Tipo</th>
-                <th style="width:120px">Serie Ref.</th>
-                <th style="width:70px;text-align:center">Alunos</th>
+                <th>Composicao por Serie</th>
+                <th style="width:55px;text-align:center">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -96,8 +162,8 @@ export function ModalMultiserie({ aberto, turmas, formatSerie, onFechar }: Modal
                   <td>${escapeHtml(t.codigo)}</td>
                   <td>${t.nome ? escapeHtml(t.nome) : '-'}</td>
                   <td style="text-align:center"><span class="badge ${t.multiserie ? 'multi' : 'etapa'}">${t.multiserie ? 'Multi' : 'Etapa'}</span></td>
-                  <td>${escapeHtml(formatSerie(t.serie))}</td>
-                  <td style="text-align:center">${t.total_alunos}</td>
+                  <td><div class="composicao">${renderComposicaoPrint(t.id)}</div></td>
+                  <td style="text-align:center;font-weight:700">${t.total_alunos}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -114,7 +180,7 @@ export function ModalMultiserie({ aberto, turmas, formatSerie, onFechar }: Modal
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4" onClick={onFechar}>
       <div
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -198,42 +264,36 @@ export function ModalMultiserie({ aberto, turmas, formatSerie, onFechar }: Modal
                 </div>
 
                 {/* Turmas da escola */}
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-t border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
-                      <th className="text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-2 w-24">Codigo</th>
-                      <th className="text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2">Nome</th>
-                      <th className="text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2 w-28">Tipo</th>
-                      <th className="text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2 w-24">Serie Ref.</th>
-                      <th className="text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2 w-20">Alunos</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grupo.turmas.map((t, idx) => (
-                      <tr key={t.id} className={`border-t border-gray-100 dark:border-slate-700/40 ${idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-gray-50/50 dark:bg-slate-800/60'}`}>
-                        <td className="px-4 py-2.5 text-sm font-mono font-medium text-gray-700 dark:text-gray-200">{t.codigo}</td>
-                        <td className="px-2 py-2.5 text-sm text-gray-600 dark:text-gray-300">{t.nome || '-'}</td>
-                        <td className="px-2 py-2.5 text-center">
+                <div className="divide-y divide-gray-100 dark:divide-slate-700/40">
+                  {grupo.turmas.map((t, idx) => (
+                    <div key={t.id} className={`px-4 py-3 ${idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-gray-50/50 dark:bg-slate-800/60'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-mono font-bold text-gray-700 dark:text-gray-200 w-20">{t.codigo}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">{t.nome || '-'}</span>
                           {t.multiserie ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-500/30">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-500/30">
                               Multisseriada
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:ring-blue-500/30">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:ring-blue-500/30">
                               Multietapa
                             </span>
                           )}
-                        </td>
-                        <td className="px-2 py-2.5 text-sm text-gray-600 dark:text-gray-300">{formatSerie(t.serie)}</td>
-                        <td className="px-2 py-2.5 text-center">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                            {t.total_alunos}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                        <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                          {t.total_alunos}
+                        </span>
+                      </div>
+                      {/* Composição por série */}
+                      {carregandoComposicao ? (
+                        <div className="mt-1.5 text-[10px] text-gray-400 animate-pulse">Carregando...</div>
+                      ) : (
+                        renderComposicao(t.id)
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))
           )}

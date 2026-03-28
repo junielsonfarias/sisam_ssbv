@@ -16,7 +16,7 @@ import { ModalAlunos } from './components/ModalAlunos'
 import { ModalSituacao } from './components/ModalSituacao'
 import { KpiCards } from './components/KpiCards'
 import { TurmaListItem } from './components/TurmaListItem'
-import { ModalMultiserie } from './components/ModalMultiserie'
+import { ModalMultiserie, ComposicaoSerie } from './components/ModalMultiserie'
 
 export default function TurmasPage() {
   const toast = useToast()
@@ -61,6 +61,8 @@ export default function TurmasPage() {
 
   // Modal multiserie
   const [mostrarMultiserie, setMostrarMultiserie] = useState(false)
+  const [composicaoSeries, setComposicaoSeries] = useState<Record<string, ComposicaoSerie[]>>({})
+  const [carregandoComposicao, setCarregandoComposicao] = useState(false)
 
   // Modal CRUD
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -375,7 +377,15 @@ export default function TurmasPage() {
         </div>
 
         {/* KPI Cards */}
-        <KpiCards turmas={turmas} seriesUnicas={seriesUnicas} escolas={escolas} onVerMultiserie={() => setMostrarMultiserie(true)} />
+        <KpiCards turmas={turmas} seriesUnicas={seriesUnicas} escolas={escolas} onVerMultiserie={async () => {
+          setMostrarMultiserie(true)
+          setCarregandoComposicao(true)
+          try {
+            const res = await fetch(`/api/admin/turmas/composicao-series?ano_letivo=${filtroAno || new Date().getFullYear()}`)
+            if (res.ok) setComposicaoSeries(await res.json())
+          } catch { /* silencioso */ }
+          finally { setCarregandoComposicao(false) }
+        }} />
 
         {/* Filtros */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
@@ -454,6 +464,8 @@ export default function TurmasPage() {
         <ModalMultiserie
           aberto={mostrarMultiserie}
           turmas={turmas}
+          composicao={composicaoSeries}
+          carregandoComposicao={carregandoComposicao}
           formatSerie={formatSerie}
           onFechar={() => setMostrarMultiserie(false)}
         />
