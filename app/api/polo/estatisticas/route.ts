@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Extrair filtros da query string
     const { searchParams } = new URL(request.url)
     const serie = searchParams.get('serie') || undefined
-    const anoLetivo = searchParams.get('ano_letivo') || undefined
+    const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
     const avaliacaoId = searchParams.get('avaliacao_id') || undefined
 
     // Buscar estatísticas usando o serviço centralizado
