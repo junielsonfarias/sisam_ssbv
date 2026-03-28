@@ -4,6 +4,33 @@ import { X, GraduationCap, School, Calendar, Users, Printer } from 'lucide-react
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Aluno, TurmaDetalhe, getSituacaoConfig, calcularIdade } from './types'
 
+const SERIE_COLORS: Record<string, string> = {
+  CRE: 'bg-pink-100 text-pink-700 ring-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:ring-pink-500/30',
+  PRE1: 'bg-purple-100 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:ring-purple-500/30',
+  PRE2: 'bg-violet-100 text-violet-700 ring-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:ring-violet-500/30',
+  '1': 'bg-blue-100 text-blue-700 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:ring-blue-500/30',
+  '2': 'bg-cyan-100 text-cyan-700 ring-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:ring-cyan-500/30',
+  '3': 'bg-teal-100 text-teal-700 ring-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:ring-teal-500/30',
+  '4': 'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-500/30',
+  '5': 'bg-green-100 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-500/30',
+  '6': 'bg-amber-100 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-500/30',
+  '7': 'bg-orange-100 text-orange-700 ring-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:ring-orange-500/30',
+  '8': 'bg-red-100 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-500/30',
+  '9': 'bg-rose-100 text-rose-700 ring-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-500/30',
+}
+
+function getSerieColor(serie: string | null): string {
+  if (!serie) return 'bg-gray-100 text-gray-500 ring-gray-200 dark:bg-slate-700 dark:text-gray-400 dark:ring-slate-600'
+  return SERIE_COLORS[serie] || 'bg-gray-100 text-gray-600 ring-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:ring-slate-600'
+}
+
+function formatNascimento(data: string | null): string {
+  if (!data) return '-'
+  const d = new Date(data)
+  if (isNaN(d.getTime())) return '-'
+  return d.toLocaleDateString('pt-BR')
+}
+
 interface ModalAlunosProps {
   mostrarModalAlunos: boolean
   detalhesTurma: TurmaDetalhe | null
@@ -27,10 +54,12 @@ export function ModalAlunos({
 }: ModalAlunosProps) {
   if (!mostrarModalAlunos) return null
 
+  const isMulti = detalhesTurma?.turma.multiserie || detalhesTurma?.turma.multietapa
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4" onClick={onFechar}>
       <div
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header com gradiente */}
@@ -79,7 +108,7 @@ export function ModalAlunos({
                 <Calendar className="w-3.5 h-3.5" />
                 {formatSerie(detalhesTurma.turma.serie)} - {detalhesTurma.turma.ano_letivo}
               </div>
-              {(detalhesTurma.turma.multiserie || detalhesTurma.turma.multietapa) && (
+              {isMulti && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400/25 backdrop-blur-sm text-xs font-semibold text-amber-100">
                   {detalhesTurma.turma.multiserie ? 'Multisseriada' : 'Multietapa'}
                 </div>
@@ -114,12 +143,15 @@ export function ModalAlunos({
                   <th className="text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2.5">
                     Nome do Aluno
                   </th>
-                  {(detalhesTurma.turma.multiserie || detalhesTurma.turma.multietapa) && (
+                  {isMulti && (
                     <th className="text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2.5 w-24">
                       Série
                     </th>
                   )}
-                  <th className="text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2.5 w-20">
+                  <th className="text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2.5 w-24">
+                    Nascimento
+                  </th>
+                  <th className="text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2.5 w-16">
                     Idade
                   </th>
                   <th className="text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-2.5 w-24">
@@ -171,18 +203,25 @@ export function ModalAlunos({
                         )}
                       </td>
 
-                      {/* Série (só em multiserie/multietapa) */}
-                      {(detalhesTurma.turma.multiserie || detalhesTurma.turma.multietapa) && (
+                      {/* Série (só em multiserie/multietapa) — cores por série */}
+                      {isMulti && (
                         <td className="px-2 py-3 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-1 ${
                             isInativo
-                              ? 'bg-gray-100 text-gray-400 dark:bg-slate-700 dark:text-gray-500'
-                              : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-500/30'
+                              ? 'bg-gray-100 text-gray-400 ring-gray-200 dark:bg-slate-700 dark:text-gray-500 dark:ring-slate-600'
+                              : getSerieColor(aluno.serie)
                           }`}>
                             {aluno.serie ? formatSerie(aluno.serie) : '-'}
                           </span>
                         </td>
                       )}
+
+                      {/* Data de Nascimento */}
+                      <td className="px-2 py-3 text-center">
+                        <span className={`text-xs ${isInativo ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-300'}`}>
+                          {formatNascimento(aluno.data_nascimento)}
+                        </span>
+                      </td>
 
                       {/* Idade */}
                       <td className="px-2 py-3 text-center">

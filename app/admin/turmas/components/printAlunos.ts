@@ -1,5 +1,25 @@
 import { TurmaDetalhe, escapeHtml, calcularIdade } from './types'
 
+const SERIE_PRINT_COLORS: Record<string, string> = {
+  CRE: '#fce7f3', PRE1: '#f3e8ff', PRE2: '#ede9fe',
+  '1': '#dbeafe', '2': '#cffafe', '3': '#ccfbf1',
+  '4': '#d1fae5', '5': '#dcfce7', '6': '#fef3c7',
+  '7': '#ffedd5', '8': '#fee2e2', '9': '#ffe4e6',
+}
+
+function getSerieStyle(serie: string | null): string {
+  if (!serie) return ''
+  const bg = SERIE_PRINT_COLORS[serie] || '#f3f4f6'
+  return `background:${bg}; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600;`
+}
+
+function formatNascimento(data: string | null): string {
+  if (!data) return '-'
+  const d = new Date(data)
+  if (isNaN(d.getTime())) return '-'
+  return d.toLocaleDateString('pt-BR')
+}
+
 export function imprimirRelacaoAlunos(
   detalhesTurma: TurmaDetalhe,
   formatSerie: (serie: string) => string,
@@ -43,7 +63,8 @@ export function imprimirRelacaoAlunos(
             <th style="width:35px">Ord.</th>
             <th>Nome do Aluno</th>
             ${isMulti ? '<th style="width:80px; text-align:center">Série</th>' : ''}
-            <th style="width:55px; text-align:center">Idade</th>
+            <th style="width:85px; text-align:center">Nascimento</th>
+            <th style="width:45px; text-align:center">Idade</th>
             <th style="width:80px; text-align:center">Matrícula</th>
             <th style="width:90px; text-align:center">Situação</th>
             <th style="width:50px; text-align:center">PCD</th>
@@ -54,13 +75,16 @@ export function imprimirRelacaoAlunos(
             const idade = a.data_nascimento ? calcularIdade(a.data_nascimento) : null
             const sit = a.situacao ? a.situacao.charAt(0).toUpperCase() + a.situacao.slice(1) : 'Cursando'
             const isInativo = ['transferido', 'abandono'].includes(a.situacao || '')
+            const dataNasc = formatNascimento(a.data_nascimento)
             const dataMatricula = a.data_matricula ? new Date(a.data_matricula).toLocaleDateString('pt-BR') : '-'
             const dataTransf = a.data_transferencia ? new Date(a.data_transferencia).toLocaleDateString('pt-BR') : ''
+            const serieStyle = a.serie ? getSerieStyle(a.serie) : ''
             return `
             <tr class="${isInativo ? 'inativo' : ''}">
               <td>${i + 1}</td>
               <td><span class="${isInativo ? 'nome' : ''}">${escapeHtml(a.nome)}</span>${isInativo && dataTransf ? '<span class="data-saida">' + escapeHtml(sit) + ' em ' + dataTransf + '</span>' : ''}</td>
-              ${isMulti ? '<td style="text-align:center">' + (a.serie ? escapeHtml(formatSerie(a.serie)) : '-') + '</td>' : ''}
+              ${isMulti ? '<td style="text-align:center"><span style="' + serieStyle + '">' + (a.serie ? escapeHtml(formatSerie(a.serie)) : '-') + '</span></td>' : ''}
+              <td style="text-align:center">${dataNasc}</td>
               <td style="text-align:center">${idade !== null ? idade : '-'}</td>
               <td style="text-align:center">${dataMatricula}</td>
               <td style="text-align:center">${escapeHtml(sit)}</td>
