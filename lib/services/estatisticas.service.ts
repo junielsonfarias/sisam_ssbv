@@ -340,51 +340,74 @@ async function buscarTotalTurmas(
 }
 
 /**
- * Busca total de alunos que participaram do SISAM (baseado nos resultados consolidados).
- * Conta alunos distintos com resultado no ano, independente de o registro
- * na tabela alunos ter sido migrado para outro ano_letivo.
+ * Busca total de alunos do SISAM.
+ * Usa o MAIOR entre:
+ *   - Alunos com resultados consolidados (prova já aplicada)
+ *   - Alunos matriculados nas séries participantes do SISAM (gestor escolar)
+ * Isso garante que o KPI reflita a realidade mesmo antes da prova ser aplicada.
  */
 async function buscarTotalAlunos(
   escopo: EscopoEstatisticas,
   filtros: FiltrosEstatisticas
 ): Promise<number> {
-  const whereConditions: string[] = []
-  const params: (string | null)[] = []
-  let paramIndex = 1
+  // 1) Contar alunos com resultados consolidados
+  const rcWhere: string[] = []
+  const rcParams: (string | null)[] = []
+  let rcIdx = 1
 
   if (escopo === 'polo' && filtros.poloId) {
-    whereConditions.push(`rc.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex})`)
-    params.push(filtros.poloId)
-    paramIndex++
+    rcWhere.push(`rc.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${rcIdx})`)
+    rcParams.push(filtros.poloId); rcIdx++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    whereConditions.push(`rc.escola_id = $${paramIndex}`)
-    params.push(filtros.escolaId)
-    paramIndex++
+    rcWhere.push(`rc.escola_id = $${rcIdx}`)
+    rcParams.push(filtros.escolaId); rcIdx++
   }
-
   if (filtros.anoLetivo) {
-    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
-    params.push(filtros.anoLetivo)
-    paramIndex++
+    rcWhere.push(`rc.ano_letivo = $${rcIdx}`)
+    rcParams.push(filtros.anoLetivo); rcIdx++
   }
-
   if (filtros.serie) {
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
-    params.push(extrairNumeroSerie(filtros.serie))
-    paramIndex++
+    rcWhere.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${rcIdx}`)
+    rcParams.push(extrairNumeroSerie(filtros.serie)); rcIdx++
   }
-
   if (filtros.avaliacaoId) {
-    whereConditions.push(`rc.avaliacao_id = $${paramIndex}::uuid`)
-    params.push(filtros.avaliacaoId)
-    paramIndex++
+    rcWhere.push(`rc.avaliacao_id = $${rcIdx}::uuid`)
+    rcParams.push(filtros.avaliacaoId); rcIdx++
   }
 
-  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+  const rcClause = rcWhere.length > 0 ? `WHERE ${rcWhere.join(' AND ')}` : ''
+  const rcResult = await pool.query(`SELECT COUNT(DISTINCT rc.aluno_id) as total FROM resultados_consolidados rc ${rcClause}`, rcParams)
+  const totalResultados = parseDbInt(rcResult.rows[0]?.total)
 
-  const query = `SELECT COUNT(DISTINCT rc.aluno_id) as total FROM resultados_consolidados rc ${whereClause}`
-  const result = await pool.query(query, params)
-  return parseDbInt(result.rows[0]?.total)
+  // 2) Contar alunos matriculados nas séries SISAM
+  let totalMatriculados = 0
+  if (filtros.anoLetivo) {
+    const matWhere: string[] = [
+      `a.ano_letivo = $1`,
+      `a.situacao = 'cursando'`,
+      `a.serie IN (SELECT serie FROM sisam_series_participantes WHERE ano_letivo = $1 AND ativo = true)`
+    ]
+    const matParams: (string | null)[] = [filtros.anoLetivo]
+    let matIdx = 2
+
+    if (escopo === 'polo' && filtros.poloId) {
+      matWhere.push(`a.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${matIdx})`)
+      matParams.push(filtros.poloId); matIdx++
+    } else if (escopo === 'escola' && filtros.escolaId) {
+      matWhere.push(`a.escola_id = $${matIdx}`)
+      matParams.push(filtros.escolaId); matIdx++
+    }
+    if (filtros.serie) {
+      matWhere.push(`REGEXP_REPLACE(a.serie::text, '[^0-9]', '', 'g') = $${matIdx}`)
+      matParams.push(extrairNumeroSerie(filtros.serie)); matIdx++
+    }
+
+    const matResult = await pool.query(`SELECT COUNT(*) as total FROM alunos a WHERE ${matWhere.join(' AND ')}`, matParams)
+    totalMatriculados = parseDbInt(matResult.rows[0]?.total)
+  }
+
+  // Retornar o maior dos dois
+  return Math.max(totalResultados, totalMatriculados)
 }
 
 /**
