@@ -7,6 +7,7 @@ import { useConfiguracaoSeries } from './useConfiguracaoSeries'
 import SerieCard from './components/SerieCard'
 import ConfirmarExclusaoModal from './components/ConfirmarExclusaoModal'
 import NovaSerieModal from './components/NovaSerieModal'
+import SeriesParticipantesSection from './components/SeriesParticipantesSection'
 
 export default function ConfiguracaoSeriesPage() {
   const {
@@ -61,6 +62,9 @@ export default function ConfiguracaoSeriesPage() {
               Nova Série
             </button>
           </div>
+
+          {/* Séries Participantes do SISAM por Ano */}
+          <SeriesParticipantesSection />
 
           {/* Mensagem de feedback */}
           {mensagem && (

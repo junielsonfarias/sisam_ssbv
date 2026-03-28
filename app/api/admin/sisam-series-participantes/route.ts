@@ -12,6 +12,23 @@ export async function GET(request: NextRequest) {
     }
 
     const anoLetivo = request.nextUrl.searchParams.get('ano_letivo')
+    const contagem = request.nextUrl.searchParams.get('contagem') === 'true'
+
+    // Modo contagem: retorna total de alunos por série
+    if (contagem && anoLetivo) {
+      const result = await pool.query(
+        `SELECT a.serie, COUNT(*) as quantidade
+         FROM alunos a
+         WHERE a.ano_letivo = $1 AND a.situacao = 'cursando' AND a.serie IN ('1','2','3','4','5','6','7','8','9')
+         GROUP BY a.serie ORDER BY a.serie`,
+        [anoLetivo]
+      )
+      const contagemMap: Record<string, number> = {}
+      for (const row of result.rows) {
+        contagemMap[row.serie] = parseInt(row.quantidade)
+      }
+      return NextResponse.json({ contagem: contagemMap })
+    }
 
     let query = `
       SELECT sp.id, sp.ano_letivo, sp.serie, sp.ativo,
