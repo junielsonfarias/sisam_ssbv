@@ -275,9 +275,13 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     // PROCESSAR DADOS E PREPARAR BATCHES
     // =====================================================
 
-    // Buffer para batch insert
+    // Buffer para batch insert de resultados_provas
     let batchValues: any[][] = []
     let totalQuestoesImportadas = 0
+
+    // Buffer para batch insert de resultados_consolidados (evita N+1)
+    const consolidadosBatch: any[][] = []
+    const CONSOLIDADOS_BATCH_SIZE = 100
 
     // Funcao para executar batch insert
     const executarBatch = async () => {
@@ -311,6 +315,73 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       await pool.query(query, params)
       totalQuestoesImportadas += batchValues.length
       batchValues = []
+    }
+
+    // Funcao para executar batch insert de consolidados (evita N+1)
+    const executarBatchConsolidados = async () => {
+      if (consolidadosBatch.length === 0) return
+
+      const COLS = 33 // numero de colunas por registro
+      const placeholders: string[] = []
+      const params: any[] = []
+
+      for (let idx = 0; idx < consolidadosBatch.length; idx++) {
+        const row = consolidadosBatch[idx]
+        const base = idx * COLS
+        const rowPlaceholders = row.map((_: any, colIdx: number) => `$${base + colIdx + 1}`).join(', ')
+        placeholders.push(`(${rowPlaceholders})`)
+        params.push(...row)
+      }
+
+      const query = `
+        INSERT INTO resultados_consolidados (
+          aluno_id, escola_id, turma_id, ano_letivo, serie, presenca,
+          total_acertos_lp, total_acertos_ch, total_acertos_mat, total_acertos_cn,
+          nota_lp, nota_ch, nota_mat, nota_cn, media_aluno,
+          nota_producao, nivel_aprendizagem,
+          item_producao_1, item_producao_2, item_producao_3, item_producao_4,
+          item_producao_5, item_producao_6, item_producao_7, item_producao_8,
+          total_questoes_respondidas, total_questoes_esperadas, tipo_avaliacao,
+          nivel_lp, nivel_mat, nivel_prod, nivel_aluno,
+          avaliacao_id
+        ) VALUES ${placeholders.join(', ')}
+        ON CONFLICT (aluno_id, avaliacao_id)
+        DO UPDATE SET
+          escola_id = EXCLUDED.escola_id,
+          turma_id = EXCLUDED.turma_id,
+          serie = EXCLUDED.serie,
+          presenca = EXCLUDED.presenca,
+          total_acertos_lp = EXCLUDED.total_acertos_lp,
+          total_acertos_ch = EXCLUDED.total_acertos_ch,
+          total_acertos_mat = EXCLUDED.total_acertos_mat,
+          total_acertos_cn = EXCLUDED.total_acertos_cn,
+          nota_lp = EXCLUDED.nota_lp,
+          nota_ch = EXCLUDED.nota_ch,
+          nota_mat = EXCLUDED.nota_mat,
+          nota_cn = EXCLUDED.nota_cn,
+          media_aluno = EXCLUDED.media_aluno,
+          nota_producao = EXCLUDED.nota_producao,
+          nivel_aprendizagem = EXCLUDED.nivel_aprendizagem,
+          item_producao_1 = EXCLUDED.item_producao_1,
+          item_producao_2 = EXCLUDED.item_producao_2,
+          item_producao_3 = EXCLUDED.item_producao_3,
+          item_producao_4 = EXCLUDED.item_producao_4,
+          item_producao_5 = EXCLUDED.item_producao_5,
+          item_producao_6 = EXCLUDED.item_producao_6,
+          item_producao_7 = EXCLUDED.item_producao_7,
+          item_producao_8 = EXCLUDED.item_producao_8,
+          total_questoes_respondidas = EXCLUDED.total_questoes_respondidas,
+          total_questoes_esperadas = EXCLUDED.total_questoes_esperadas,
+          tipo_avaliacao = EXCLUDED.tipo_avaliacao,
+          nivel_lp = EXCLUDED.nivel_lp,
+          nivel_mat = EXCLUDED.nivel_mat,
+          nivel_prod = EXCLUDED.nivel_prod,
+          nivel_aluno = EXCLUDED.nivel_aluno,
+          atualizado_em = CURRENT_TIMESTAMP
+      `
+
+      await pool.query(query, params)
+      consolidadosBatch.length = 0
     }
 
     // Processar cada linha (cada linha = um aluno)
@@ -694,62 +765,8 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
             nivelAlunoCalc = calcularNivelAluno(nivelLp, nivelMat, nivelProd)
           }
 
-          // Upsert em resultados_consolidados
-          await pool.query(`
-            INSERT INTO resultados_consolidados (
-              aluno_id, escola_id, turma_id, ano_letivo, serie, presenca,
-              total_acertos_lp, total_acertos_ch, total_acertos_mat, total_acertos_cn,
-              nota_lp, nota_ch, nota_mat, nota_cn, media_aluno,
-              nota_producao, nivel_aprendizagem,
-              item_producao_1, item_producao_2, item_producao_3, item_producao_4,
-              item_producao_5, item_producao_6, item_producao_7, item_producao_8,
-              total_questoes_respondidas, total_questoes_esperadas, tipo_avaliacao,
-              nivel_lp, nivel_mat, nivel_prod, nivel_aluno,
-              avaliacao_id
-            ) VALUES (
-              $1, $2, $3, $4, $5, $6,
-              $7, $8, $9, $10,
-              $11, $12, $13, $14, $15,
-              $16, $17,
-              $18, $19, $20, $21, $22, $23, $24, $25,
-              $26, $27, $28,
-              $29, $30, $31, $32,
-              $33
-            )
-            ON CONFLICT (aluno_id, avaliacao_id)
-            DO UPDATE SET
-              escola_id = EXCLUDED.escola_id,
-              turma_id = EXCLUDED.turma_id,
-              serie = EXCLUDED.serie,
-              presenca = EXCLUDED.presenca,
-              total_acertos_lp = EXCLUDED.total_acertos_lp,
-              total_acertos_ch = EXCLUDED.total_acertos_ch,
-              total_acertos_mat = EXCLUDED.total_acertos_mat,
-              total_acertos_cn = EXCLUDED.total_acertos_cn,
-              nota_lp = EXCLUDED.nota_lp,
-              nota_ch = EXCLUDED.nota_ch,
-              nota_mat = EXCLUDED.nota_mat,
-              nota_cn = EXCLUDED.nota_cn,
-              media_aluno = EXCLUDED.media_aluno,
-              nota_producao = EXCLUDED.nota_producao,
-              nivel_aprendizagem = EXCLUDED.nivel_aprendizagem,
-              item_producao_1 = EXCLUDED.item_producao_1,
-              item_producao_2 = EXCLUDED.item_producao_2,
-              item_producao_3 = EXCLUDED.item_producao_3,
-              item_producao_4 = EXCLUDED.item_producao_4,
-              item_producao_5 = EXCLUDED.item_producao_5,
-              item_producao_6 = EXCLUDED.item_producao_6,
-              item_producao_7 = EXCLUDED.item_producao_7,
-              item_producao_8 = EXCLUDED.item_producao_8,
-              total_questoes_respondidas = EXCLUDED.total_questoes_respondidas,
-              total_questoes_esperadas = EXCLUDED.total_questoes_esperadas,
-              tipo_avaliacao = EXCLUDED.tipo_avaliacao,
-              nivel_lp = EXCLUDED.nivel_lp,
-              nivel_mat = EXCLUDED.nivel_mat,
-              nivel_prod = EXCLUDED.nivel_prod,
-              nivel_aluno = EXCLUDED.nivel_aluno,
-              atualizado_em = CURRENT_TIMESTAMP
-          `, [
+          // Coletar consolidado para batch insert (evita N+1)
+          consolidadosBatch.push([
             alunoId, escolaId, turmaId, anoLetivo, serie, presencaFinal,
             acertosLP, acertosCH, acertosMAT, acertosCN,
             notaLPCalc.toFixed(2), notaCHCalc.toFixed(2), notaMATCalc.toFixed(2), notaCNCalc.toFixed(2),
@@ -767,6 +784,11 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
             nivelLp, nivelMat, nivelProd, nivelAlunoCalc,
             avaliacaoId
           ])
+
+          // Flush consolidados batch quando atingir o tamanho maximo
+          if (consolidadosBatch.length >= CONSOLIDADOS_BATCH_SIZE) {
+            await executarBatchConsolidados()
+          }
         }
 
         linhasProcessadas++
@@ -781,8 +803,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       }
     }
 
-    // Executar batch restante
+    // Executar batches restantes
     await executarBatch()
+    await executarBatchConsolidados()
 
     // Atualizar importacao
     await pool.query(
