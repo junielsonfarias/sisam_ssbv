@@ -54,11 +54,15 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
  */
 export async function cacheSet(key: string, data: unknown, ttlSeconds: number = 300): Promise<void> {
   const r = getRedis()
-  if (!r) return
+  if (!r) {
+    console.log('[Redis] cacheSet skip — Redis não disponível. URL:', !!process.env.UPSTASH_REDIS_REST_URL, 'Token:', !!process.env.UPSTASH_REDIS_REST_TOKEN)
+    return
+  }
   try {
     await r.set(key, JSON.stringify(data), { ex: ttlSeconds })
-  } catch {
-    /* non-blocking */
+    console.log('[Redis] SET', key, 'TTL:', ttlSeconds + 's')
+  } catch (err) {
+    console.error('[Redis] SET error:', err)
   }
 }
 
