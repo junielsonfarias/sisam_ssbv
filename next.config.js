@@ -151,6 +151,9 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    serverComponentsExternalPackages: ['ioredis'],
+  },
   // Headers de cache para assets estáticos
   async headers() {
     return [
@@ -172,6 +175,9 @@ const nextConfig = {
         fs: false,
         path: false,
         crypto: false,
+        net: false,
+        tls: false,
+        dns: false,
         'iconv-lite': false,
       }
 

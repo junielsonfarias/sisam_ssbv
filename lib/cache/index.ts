@@ -32,6 +32,16 @@ export {
   obterInfoCache
 } from './file'
 
+// Redis cache (server-side, optional)
+export {
+  cacheKey,
+  cacheGet,
+  cacheSet,
+  cacheDel,
+  cacheDelPattern,
+  withRedisCache,
+} from './redis'
+
 // Session storage cache (client-side)
 export {
   isCacheValid,

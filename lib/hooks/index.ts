@@ -23,6 +23,9 @@ export { useModal } from './useModal'
 // Hooks de tipo de usuario
 export { useUserType } from './useUserType'
 
+// Hooks de impressao
+export { usePrint } from './usePrint'
+
 // Hooks de dados com cache
 export { useEscolas } from './useEscolas'
 export { useTurmas } from './useTurmas'

@@ -5,6 +5,7 @@ import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 const siteConfigPutSchema = z.object({
   secao: z.string().min(1, 'Campo "seção" é obrigatório').max(100),
@@ -68,6 +69,9 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Seção não encontrada' }, { status: 404 })
     }
+
+    // Invalidar cache do site-config publico
+    await cacheDelPattern('site-config:*')
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {

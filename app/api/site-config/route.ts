@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,28 +20,36 @@ export async function GET(request: NextRequest) {
 
     // Secao especifica
     if (secao) {
-      const result = await pool.query(
-        'SELECT id, secao, conteudo, atualizado_em FROM site_config WHERE secao = $1',
-        [secao]
-      )
-      if (result.rows.length === 0) {
+      const redisKey = cacheKey('site-config', secao)
+      const data = await withRedisCache(redisKey, 300, async () => {
+        const result = await pool.query(
+          'SELECT id, secao, conteudo, atualizado_em FROM site_config WHERE secao = $1',
+          [secao]
+        )
+        return result.rows.length > 0 ? result.rows[0] : null
+      })
+      if (!data) {
         return NextResponse.json({ mensagem: 'Seção não encontrada' }, { status: 404 })
       }
-      return NextResponse.json(result.rows[0])
+      return NextResponse.json(data)
     }
 
     // Todas as secoes + dados complementares
-    const [secoesResult, statsResult, escolasResult] = await Promise.all([
-      pool.query('SELECT id, secao, conteudo, atualizado_em FROM site_config ORDER BY criado_em'),
-      getAutoStats(),
-      getEscolasPublicas(),
-    ])
-
-    return NextResponse.json({
-      secoes: secoesResult.rows,
-      stats: statsResult,
-      escolas: escolasResult,
+    const redisKey = cacheKey('site-config', 'all')
+    const data = await withRedisCache(redisKey, 300, async () => {
+      const [secoesResult, statsResult, escolasResult] = await Promise.all([
+        pool.query('SELECT id, secao, conteudo, atualizado_em FROM site_config ORDER BY criado_em'),
+        getAutoStats(),
+        getEscolasPublicas(),
+      ])
+      return {
+        secoes: secoesResult.rows,
+        stats: statsResult,
+        escolas: escolasResult,
+      }
     })
+
+    return NextResponse.json(data)
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json({ secoes: [], stats: null, escolas: [] })

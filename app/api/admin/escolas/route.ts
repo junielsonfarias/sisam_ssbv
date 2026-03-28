@@ -11,6 +11,7 @@ import {
 import { z } from 'zod'
 import { validateRequest, uuidSchema, nomeSchema } from '@/lib/schemas'
 import { excluirEscola } from '@/lib/services/escolas.service'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
@@ -23,29 +24,33 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   )
   const comEstatisticas = parseBoolParam(searchParams, 'com_estatisticas')
 
-  // Se não precisa de estatísticas, usar query simples
+  // Se não precisa de estatísticas, usar query simples (com cache Redis)
   if (!comEstatisticas) {
-    const where = createWhereBuilder()
-    addRawCondition(where, 'e.ativo = true')
-    addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
-    addCondition(where, 'e.polo_id', polo_id)
-    addCondition(where, 'e.id', escolaId)
+    const redisKey = cacheKey('escolas', ano_letivo || '', usuario.tipo_usuario, polo_id || '', escolaId || '')
+    const rows = await withRedisCache(redisKey, 120, async () => {
+      const where = createWhereBuilder()
+      addRawCondition(where, 'e.ativo = true')
+      addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })
+      addCondition(where, 'e.polo_id', polo_id)
+      addCondition(where, 'e.id', escolaId)
 
-    if (ano_letivo && ano_letivo.trim() !== '') {
-      addRawCondition(where, `EXISTS (
-        SELECT 1 FROM turmas t
-        WHERE t.escola_id = e.id AND t.ano_letivo = $${where.paramIndex} AND t.ativo = true
-      )`, [ano_letivo.trim()])
-    }
+      if (ano_letivo && ano_letivo.trim() !== '') {
+        addRawCondition(where, `EXISTS (
+          SELECT 1 FROM turmas t
+          WHERE t.escola_id = e.id AND t.ano_letivo = $${where.paramIndex} AND t.ativo = true
+        )`, [ano_letivo.trim()])
+      }
 
-    const result = await pool.query(
-      `SELECT e.*, p.nome as polo_nome
-       FROM escolas e LEFT JOIN polos p ON e.polo_id = p.id
-       WHERE ${buildConditionsString(where)}
-       ORDER BY e.nome`,
-      where.params
-    )
-    return NextResponse.json(result.rows)
+      const result = await pool.query(
+        `SELECT e.*, p.nome as polo_nome
+         FROM escolas e LEFT JOIN polos p ON e.polo_id = p.id
+         WHERE ${buildConditionsString(where)}
+         ORDER BY e.nome`,
+        where.params
+      )
+      return result.rows
+    })
+    return NextResponse.json(rows)
   }
 
   // Query com estatísticas (médias por disciplina)
@@ -210,6 +215,11 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       values
     )
 
+    // Invalidar caches de escolas e transparencia
+    await cacheDelPattern('escolas:*')
+    await cacheDelPattern('transparencia:*')
+    await cacheDelPattern('site-config:*')
+
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -251,6 +261,12 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request, usu
     }
 
     console.log(`[AUDIT] ${resultado.mensagem} (${escolaId}) por ${usuario.email} (${usuario.tipo_usuario})`)
+
+    // Invalidar caches de escolas e transparencia
+    await cacheDelPattern('escolas:*')
+    await cacheDelPattern('transparencia:*')
+    await cacheDelPattern('site-config:*')
+
     return NextResponse.json({ mensagem: 'Escola excluída com sucesso' }, { status: 200 })
   } catch (error: unknown) {
     console.error('Erro ao excluir escola:', error)

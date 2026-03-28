@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,6 +113,8 @@ export const POST = withAuth(['administrador', 'tecnico', 'publicador'], async (
     ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
   })
 
+  await cacheDelPattern('publicacoes:*')
+
   return NextResponse.json(insertResult.rows[0], { status: 201 })
 })
 
@@ -159,6 +162,8 @@ export const PUT = withAuth(['administrador', 'tecnico', 'publicador'], async (r
     ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
   })
 
+  await cacheDelPattern('publicacoes:*')
+
   return NextResponse.json(updateResult.rows[0])
 })
 
@@ -194,6 +199,8 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'publicador'], async
     detalhes: { titulo: deleteResult.rows[0].titulo },
     ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
   })
+
+  await cacheDelPattern('publicacoes:*')
 
   return NextResponse.json({ mensagem: 'Publicação excluída com sucesso' })
 })

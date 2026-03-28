@@ -12,6 +12,7 @@ import { NextRequest } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { getEstatisticas, getEstatisticasPadrao } from '@/lib/services/estatisticas.service'
 import { forbidden, okComCache, okComFallback } from '@/lib/api-utils'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -28,8 +29,10 @@ export async function GET(request: NextRequest) {
     const anoLetivo = request.nextUrl.searchParams.get('ano_letivo') || new Date().getFullYear().toString()
     const avaliacaoId = request.nextUrl.searchParams.get('avaliacao_id') || undefined
 
-    // Sempre buscar do banco — dados atualizados sem cache stale
-    const estatisticas = await getEstatisticas(usuario, { serie, anoLetivo, avaliacaoId })
+    const redisKey = cacheKey('stats', anoLetivo, serie, avaliacaoId)
+    const estatisticas = await withRedisCache(redisKey, 60, () =>
+      getEstatisticas(usuario, { serie, anoLetivo, avaliacaoId })
+    )
 
     return okComCache(estatisticas, 'banco')
   } catch (error: unknown) {
