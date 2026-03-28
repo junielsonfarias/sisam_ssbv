@@ -340,40 +340,49 @@ async function buscarTotalTurmas(
 }
 
 /**
- * Busca total de alunos
+ * Busca total de alunos que participaram do SISAM (baseado nos resultados consolidados).
+ * Conta alunos distintos com resultado no ano, independente de o registro
+ * na tabela alunos ter sido migrado para outro ano_letivo.
  */
 async function buscarTotalAlunos(
   escopo: EscopoEstatisticas,
   filtros: FiltrosEstatisticas
 ): Promise<number> {
-  let query = 'SELECT COUNT(*) as total FROM alunos WHERE ativo = true'
+  const whereConditions: string[] = []
   const params: (string | null)[] = []
   let paramIndex = 1
 
   if (escopo === 'polo' && filtros.poloId) {
-    query += ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex})`
+    whereConditions.push(`rc.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndex})`)
     params.push(filtros.poloId)
     paramIndex++
   } else if (escopo === 'escola' && filtros.escolaId) {
-    query += ` AND escola_id = $${paramIndex}`
+    whereConditions.push(`rc.escola_id = $${paramIndex}`)
     params.push(filtros.escolaId)
     paramIndex++
   }
 
-  // Filtro de ano letivo
   if (filtros.anoLetivo) {
-    query += ` AND ano_letivo = $${paramIndex}`
+    whereConditions.push(`rc.ano_letivo = $${paramIndex}`)
     params.push(filtros.anoLetivo)
     paramIndex++
   }
 
-  // Filtro de série (normalizado para funcionar com '2' ou '2º Ano')
   if (filtros.serie) {
-    query += ` AND REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') = $${paramIndex}`
+    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
     params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
 
+  if (filtros.avaliacaoId) {
+    whereConditions.push(`rc.avaliacao_id = $${paramIndex}::uuid`)
+    params.push(filtros.avaliacaoId)
+    paramIndex++
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
+
+  const query = `SELECT COUNT(DISTINCT rc.aluno_id) as total FROM resultados_consolidados rc ${whereClause}`
   const result = await pool.query(query, params)
   return parseDbInt(result.rows[0]?.total)
 }
