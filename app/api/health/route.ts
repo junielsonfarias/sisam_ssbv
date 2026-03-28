@@ -67,6 +67,23 @@ export async function GET() {
     health.status = 'error'
   }
 
+  // Redis check
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
+  health.redis = { url_present: !!redisUrl, token_present: !!redisToken }
+  if (redisUrl && redisToken) {
+    try {
+      const { cacheSet, cacheGet } = await import('@/lib/cache/redis')
+      await cacheSet('sisam:health:ping', { ok: true, ts: Date.now() }, 60)
+      const val = await cacheGet('sisam:health:ping')
+      ;(health.redis as any).connected = !!val
+      ;(health.redis as any).test = val
+    } catch (err: any) {
+      ;(health.redis as any).connected = false
+      ;(health.redis as any).error = err?.message
+    }
+  }
+
   // Métricas de request do middleware
   try {
     health.request_metrics = getRequestMetrics()
