@@ -78,6 +78,8 @@ export function ModalMultiserie({ aberto, turmas, composicao, carregandoComposic
   const totalMultiserie = turmasMulti.filter(t => t.multiserie).length
   const totalMultietapa = turmasMulti.filter(t => t.multietapa).length
 
+  function pad2(n: number) { return n.toString().padStart(2, '0') }
+
   function renderComposicao(turmaId: string) {
     const series = composicao[turmaId]
     if (!series || series.length === 0) return null
@@ -87,9 +89,9 @@ export function ModalMultiserie({ aberto, turmas, composicao, carregandoComposic
         {sorted.map(s => (
           <span
             key={s.serie}
-            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${SERIE_COLORS[s.serie] || 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${SERIE_COLORS[s.serie] || 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}
           >
-            {s.quantidade} {formatSerie(s.serie)}
+            {formatSerie(s.serie)}: <strong className="text-[11px]">{pad2(s.quantidade)}</strong>
           </span>
         ))}
       </div>
@@ -102,7 +104,7 @@ export function ModalMultiserie({ aberto, turmas, composicao, carregandoComposic
     const sorted = [...series].sort(sortSeries)
     return sorted.map(s => {
       const bg = SERIE_PRINT_COLORS[s.serie] || '#f3f4f6'
-      return `<span style="display:inline-block;background:${bg};padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;margin:1px 2px;">${s.quantidade} ${escapeHtml(formatSerie(s.serie))}</span>`
+      return `<span style="display:inline-block;background:${bg};padding:2px 8px;border-radius:3px;font-size:10px;font-weight:500;margin:1px 2px;">${escapeHtml(formatSerie(s.serie))}: <strong>${pad2(s.quantidade)}</strong></span>`
     }).join(' ')
   }
 
