@@ -190,12 +190,30 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
         },
       )
     }
+    // Gestão — visível em AMBOS os módulos para admin
+    if (moduloAtivo !== 'educatec') {
+      items.push({
+        icon: Target, label: 'Gestão', children: [
+          { icon: Target, label: 'Indicadores e Metas', href: '/admin/metas' },
+          { icon: Building2, label: 'Relatórios Conselhos', href: '/admin/relatorios-conselhos' },
+          { icon: MessageCircle, label: 'Ouvidoria', href: '/admin/ouvidoria' },
+          { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
+        ]
+      })
+    }
+    // Conteúdo — Publicações e Notícias (ambos módulos)
+    items.push({
+      icon: Globe, label: 'Conteúdo', children: [
+        { icon: Globe, label: 'Site Institucional', href: '/admin/site-institucional' },
+        { icon: LayoutGrid, label: 'Notícias', href: '/editor/noticias' },
+        { icon: FileText, label: 'Publicações', href: '/publicador/publicacoes' },
+      ]
+    })
     // Itens comuns (visíveis em ambos módulos)
     items.push(
       { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' },
       { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
       { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
-      { icon: Globe, label: 'Site Institucional', href: '/admin/site-institucional' },
       { icon: Activity, label: 'Logs de Acesso', href: '/admin/logs-acesso' },
       { icon: Shield, label: 'Auditoria', href: '/admin/auditoria' }
     )
@@ -287,10 +305,40 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
         },
       )
     }
+    // Gestão (quando não está no módulo educatec, que já tem)
+    if (moduloAtivo !== 'educatec') {
+      items.push({
+        icon: Target, label: 'Gestão', children: [
+          { icon: Target, label: 'Indicadores e Metas', href: '/admin/metas' },
+          { icon: Building2, label: 'Relatórios Conselhos', href: '/admin/relatorios-conselhos' },
+          { icon: MessageCircle, label: 'Ouvidoria', href: '/admin/ouvidoria' },
+          { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
+        ]
+      })
+    } else {
+      items.push(
+        {
+          icon: Target, label: 'Gestão', children: [
+            { icon: Target, label: 'Indicadores e Metas', href: '/admin/metas' },
+            { icon: Building2, label: 'Relatórios Conselhos', href: '/admin/relatorios-conselhos' },
+            { icon: MessageCircle, label: 'Ouvidoria', href: '/admin/ouvidoria' },
+            { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
+          ]
+        },
+      )
+    }
+    // Conteúdo
+    items.push({
+      icon: Globe, label: 'Conteúdo', children: [
+        { icon: Globe, label: 'Site Institucional', href: '/admin/site-institucional' },
+        { icon: LayoutGrid, label: 'Notícias', href: '/editor/noticias' },
+        { icon: FileText, label: 'Publicações', href: '/publicador/publicacoes' },
+      ]
+    })
     items.push(
-      { icon: MessageCircle, label: 'Ouvidoria', href: '/admin/ouvidoria' },
-      { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
       { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' },
+      { icon: Calendar, label: 'Calendário Escolar', href: '/admin/calendario-escolar' },
+      { icon: Shield, label: 'Auditoria', href: '/admin/auditoria' },
     )
   }
 
@@ -391,7 +439,6 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
   // Menu para PROFESSOR
   if (tipoUsuarioReal === 'professor') {
     items.push(
-      { icon: LayoutGrid, label: 'Dashboard', href: '/professor/dashboard' },
       { icon: Users, label: 'Minhas Turmas', href: '/professor/turmas' },
       {
         icon: CalendarCheck, label: 'Frequência', children: [
