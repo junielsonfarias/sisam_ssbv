@@ -725,6 +725,40 @@ async function buscarMediasPorTipoEnsino(
     }
   }
 
+  // Fallback: se não há resultados SISAM, usar alunos matriculados nas séries participantes
+  if (totalAnosIniciais === 0 && totalAnosFinais === 0 && filtros.anoLetivo) {
+    const matParams: string[] = [filtros.anoLetivo]
+    let matWhere = `a.ano_letivo = $1 AND a.situacao = 'cursando'
+      AND a.serie IN (SELECT serie FROM sisam_series_participantes WHERE ano_letivo = $1 AND ativo = true)`
+    let matParamIndex = 2
+
+    if (escopo === 'polo' && filtros.poloId) {
+      matWhere += ` AND a.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${matParamIndex})`
+      matParams.push(filtros.poloId)
+      matParamIndex++
+    } else if (escopo === 'escola' && filtros.escolaId) {
+      matWhere += ` AND a.escola_id = $${matParamIndex}`
+      matParams.push(filtros.escolaId)
+      matParamIndex++
+    }
+
+    const matResult = await pool.query(`
+      SELECT
+        CASE WHEN a.serie IN ('1','2','3','4','5') THEN 'anos_iniciais'
+             WHEN a.serie IN ('6','7','8','9') THEN 'anos_finais'
+        END as tipo_ensino,
+        COUNT(*) as total
+      FROM alunos a
+      WHERE ${matWhere}
+      GROUP BY tipo_ensino
+    `, matParams)
+
+    for (const row of matResult.rows) {
+      if (row.tipo_ensino === 'anos_iniciais') totalAnosIniciais = parseDbInt(row.total)
+      else if (row.tipo_ensino === 'anos_finais') totalAnosFinais = parseDbInt(row.total)
+    }
+  }
+
   return { mediaAnosIniciais, mediaAnosFinais, totalAnosIniciais, totalAnosFinais }
 }
 
