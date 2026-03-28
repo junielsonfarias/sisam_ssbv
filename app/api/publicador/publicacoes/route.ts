@@ -3,6 +3,7 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,6 +102,16 @@ export const POST = withAuth(['administrador', 'tecnico', 'publicador'], async (
 
   console.log(`[AUDIT] Publicação criada por ${usuario.email}: "${data.titulo}"`)
 
+  registrarAuditoria({
+    usuarioId: usuario.id,
+    usuarioEmail: usuario.email,
+    acao: 'criar',
+    entidade: 'publicacao',
+    entidadeId: insertResult.rows[0].id,
+    detalhes: { titulo: data.titulo, tipo: data.tipo },
+    ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+  })
+
   return NextResponse.json(insertResult.rows[0], { status: 201 })
 })
 
@@ -138,6 +149,16 @@ export const PUT = withAuth(['administrador', 'tecnico', 'publicador'], async (r
 
   console.log(`[AUDIT] Publicação atualizada por ${usuario.email}: "${data.titulo}" (${data.id})`)
 
+  registrarAuditoria({
+    usuarioId: usuario.id,
+    usuarioEmail: usuario.email,
+    acao: 'editar',
+    entidade: 'publicacao',
+    entidadeId: data.id,
+    detalhes: { titulo: data.titulo, tipo: data.tipo },
+    ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+  })
+
   return NextResponse.json(updateResult.rows[0])
 })
 
@@ -163,6 +184,16 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'publicador'], async
   }
 
   console.log(`[AUDIT] Publicação excluída por ${usuario.email}: "${deleteResult.rows[0].titulo}" (${id})`)
+
+  registrarAuditoria({
+    usuarioId: usuario.id,
+    usuarioEmail: usuario.email,
+    acao: 'excluir',
+    entidade: 'publicacao',
+    entidadeId: id,
+    detalhes: { titulo: deleteResult.rows[0].titulo },
+    ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+  })
 
   return NextResponse.json({ mensagem: 'Publicação excluída com sucesso' })
 })

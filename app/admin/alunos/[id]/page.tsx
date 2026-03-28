@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Save, User, BookOpen, CalendarCheck, FileText,
   History, GraduationCap, Edit, AlertTriangle,
-  ArrowLeftRight, TrendingUp, ScanFace
+  ArrowLeftRight, TrendingUp, ScanFace, Printer
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -23,6 +23,7 @@ import {
   AbaFacial,
 } from './components'
 import type { Aba } from './components'
+import { imprimirFichaMatricula } from './components/printFichaMatricula'
 
 export default function AlunoDetalhePage() {
   const toast = useToast()
@@ -192,6 +193,10 @@ export default function AlunoDetalhePage() {
                     </button>
                   </>
                 )}
+                <button onClick={() => imprimirFichaMatricula(aluno)}
+                  className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium backdrop-blur-sm transition">
+                  <Printer className="w-4 h-4" /> Imprimir Ficha
+                </button>
                 {aluno.situacao !== 'transferido' && (
                   <button onClick={abrirModalTransferencia}
                     className="flex items-center gap-2 bg-orange-500/80 hover:bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium backdrop-blur-sm transition">

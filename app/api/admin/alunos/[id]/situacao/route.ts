@@ -4,6 +4,7 @@ import { situacaoAlunoSchema, uuidSchema } from '@/lib/schemas'
 import { z } from 'zod'
 import pool from '@/database/connection'
 import { alterarSituacao } from '@/lib/services/alunos.service'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -151,6 +152,24 @@ export async function POST(
     }, usuario.id)
 
     console.log(`[AUDIT] Situação alterada | aluno:${alunoId} | ${resultado.situacao_anterior} → ${resultado.situacao_nova} | por ${usuario.email} (${usuario.tipo_usuario})${tipo_transferencia ? ` | transferência:${tipo_transferencia}` : ''}`)
+
+    // Registrar auditoria
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null
+    registrarAuditoria({
+      usuarioId: usuario.id,
+      usuarioEmail: usuario.email,
+      acao: situacao === 'transferido' ? 'transferir' : 'alterar_situacao',
+      entidade: 'aluno',
+      entidadeId: alunoId,
+      detalhes: {
+        campo: 'situacao',
+        de: resultado.situacao_anterior,
+        para: resultado.situacao_nova,
+        ...(tipo_transferencia ? { tipo_transferencia } : {}),
+        ...(observacao ? { observacao } : {}),
+      },
+      ip,
+    })
 
     return NextResponse.json({
       mensagem: resultado.mensagem,

@@ -35,7 +35,8 @@ import {
   Globe,
   FileSpreadsheet,
   Lock,
-  Search
+  Search,
+  Shield
 } from 'lucide-react'
 import type { MenuItem } from './types'
 import type { ModuloAtivo } from '@/lib/offline-storage'
@@ -174,7 +175,8 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
       { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
       { icon: Globe, label: 'Site Institucional', href: '/admin/site-institucional' },
-      { icon: Activity, label: 'Logs de Acesso', href: '/admin/logs-acesso' }
+      { icon: Activity, label: 'Logs de Acesso', href: '/admin/logs-acesso' },
+      { icon: Shield, label: 'Auditoria', href: '/admin/auditoria' }
     )
   }
 
