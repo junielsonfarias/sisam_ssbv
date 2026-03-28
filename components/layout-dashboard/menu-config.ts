@@ -40,7 +40,9 @@ import {
   Shield,
   Target,
   Building2,
-  MessageSquare
+  MessageSquare,
+  MessageCircle,
+  Calendar,
 } from 'lucide-react'
 import type { MenuItem } from './types'
 import type { ModuloAtivo } from '@/lib/offline-storage'
@@ -107,6 +109,8 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
           icon: Target, label: 'Gestão', children: [
             { icon: Target, label: 'Indicadores e Metas', href: '/admin/metas' },
             { icon: Building2, label: 'Relatórios Conselhos', href: '/admin/relatorios-conselhos' },
+            { icon: MessageCircle, label: 'Ouvidoria', href: '/admin/ouvidoria' },
+            { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
           ]
         },
         {
@@ -180,6 +184,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
             { icon: Settings, label: 'Períodos Letivos', href: '/admin/gestor-escolar' },
             { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
+            { icon: Calendar, label: 'Calendário Escolar', href: '/admin/calendario-escolar' },
           ]
         },
       )
@@ -275,11 +280,16 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
             { icon: Settings, label: 'Períodos Letivos', href: '/admin/gestor-escolar' },
             { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
+            { icon: Calendar, label: 'Calendário Escolar', href: '/admin/calendario-escolar' },
           ]
         },
       )
     }
-    items.push({ icon: Bell, label: 'Notificações', href: '/admin/notificacoes' })
+    items.push(
+      { icon: MessageCircle, label: 'Ouvidoria', href: '/admin/ouvidoria' },
+      { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
+      { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' },
+    )
   }
 
   // Menu especifico para POLO
@@ -303,6 +313,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
           { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
         ]
       },
+      { icon: Calendar, label: 'Calendário Escolar', href: '/admin/calendario-escolar' },
     )
   }
 
@@ -367,6 +378,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
             { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
             { icon: Settings, label: 'Períodos Letivos', href: '/admin/gestor-escolar' },
             { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
+            { icon: Calendar, label: 'Calendário Escolar', href: '/admin/calendario-escolar' },
           ]
         },
       )
@@ -399,6 +411,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
   if (tipoUsuarioReal === 'editor') {
     items.push(
       { icon: LayoutGrid, label: 'Notícias', href: '/editor/noticias' },
+      { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
     )
   }
 
@@ -406,6 +419,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
   if (tipoUsuarioReal === 'publicador') {
     items.push(
       { icon: FileText, label: 'Publicações', href: '/publicador/publicacoes' },
+      { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
     )
   }
 

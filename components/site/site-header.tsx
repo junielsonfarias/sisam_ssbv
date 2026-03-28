@@ -14,6 +14,9 @@ const defaultNav = [
   { label: 'Escolas', href: '#escolas' },
   { label: 'Notícias', href: '#noticias' },
   { label: 'Publicações', href: '/publicacoes' },
+  { label: 'Transparência', href: '/transparencia' },
+  { label: 'Ouvidoria', href: '/ouvidoria' },
+  { label: 'Eventos', href: '/eventos' },
   { label: 'Contato', href: '#contato' },
   { label: 'Boletim', href: '/boletim' },
 ]
