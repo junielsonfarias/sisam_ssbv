@@ -71,6 +71,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
   }
 
   return (
+    <>
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
@@ -164,75 +165,77 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
         </div>
       </div>
 
-      {/* Mobile Menu - Slide-in panel (z-[60] para ficar ACIMA do header z-50) */}
+    </header>
+
+    {/* Mobile Menu — FORA do header para evitar conflito de stacking context */}
+    <div
+      className={`md:hidden fixed inset-0 z-[9999] transition-all duration-300 ${
+        menuOpen ? 'visible' : 'invisible'
+      }`}
+    >
+      {/* Backdrop */}
       <div
-        className={`md:hidden fixed inset-0 z-[60] transition-all duration-300 ${
-          menuOpen ? 'visible' : 'invisible'
+        className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${
+          menuOpen ? 'opacity-100' : 'opacity-0'
+        }`}
+        onClick={() => setMenuOpen(false)}
+      />
+
+      {/* Panel — full screen no mobile */}
+      <div
+        className={`absolute top-0 right-0 h-full w-full sm:max-w-sm bg-white shadow-2xl transition-transform duration-300 overflow-y-auto ${
+          menuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Backdrop */}
-        <div
-          className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
-            menuOpen ? 'opacity-100' : 'opacity-0'
-          }`}
-          onClick={() => setMenuOpen(false)}
-        />
-
-        {/* Panel — full screen no mobile, max-w-sm no tablet */}
-        <div
-          className={`absolute top-0 right-0 h-full w-full sm:max-w-sm bg-white shadow-2xl transition-transform duration-300 overflow-y-auto ${
-            menuOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-        >
-          {/* Topo do menu — identidade visual com fundo institucional */}
-          <div className="bg-blue-900 px-5 py-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-14 w-auto" />
-                <div className="w-px h-10 bg-white/30" />
-                <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-14 w-auto" />
-              </div>
-              <button
-                onClick={() => setMenuOpen(false)}
-                className="p-2.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                aria-label="Fechar menu"
-              >
-                <X className="w-7 h-7" />
-              </button>
+        {/* Topo do menu — identidade visual */}
+        <div className="bg-blue-900 px-5 py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-14 w-auto" />
+              <div className="w-px h-10 bg-white/30" />
+              <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-14 w-auto" />
             </div>
-            <div className="mt-3 pt-3 border-t border-white/15">
-              <p className="text-sm text-white font-semibold">Secretaria Municipal de Educação</p>
-              <p className="text-xs text-blue-300">São Sebastião da Boa Vista — Pará</p>
-            </div>
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="p-2.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Fechar menu"
+            >
+              <X className="w-7 h-7" />
+            </button>
           </div>
-
-          {/* Links de navegação */}
-          <nav className="px-4 py-3" aria-label="Menu mobile">
-            <div className="space-y-0.5">
-              {navItems.map((item: any, i: number) => (
-                <a
-                  key={i}
-                  href={item.href}
-                  onClick={(e) => handleNavClick(e, item.href)}
-                  className="flex items-center px-4 py-3 rounded-xl text-[15px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 active:bg-blue-100 transition-all duration-150"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-            <div className="mt-4 px-1 pb-6">
-              <Link
-                href="/login"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-blue-800 text-white font-bold text-base shadow-lg shadow-blue-800/25 hover:bg-blue-900 transition-all duration-200"
-              >
-                Entrar
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-            </div>
-          </nav>
+          <div className="mt-3 pt-3 border-t border-white/15">
+            <p className="text-sm text-white font-semibold">Secretaria Municipal de Educação</p>
+            <p className="text-xs text-blue-300">São Sebastião da Boa Vista — Pará</p>
+          </div>
         </div>
+
+        {/* Links de navegação */}
+        <nav className="px-4 py-3" aria-label="Menu mobile">
+          <div className="space-y-0.5">
+            {navItems.map((item: any, i: number) => (
+              <a
+                key={i}
+                href={item.href}
+                onClick={(e) => handleNavClick(e, item.href)}
+                className="flex items-center px-4 py-3 rounded-xl text-[15px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 active:bg-blue-100 transition-all duration-150"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+          <div className="mt-4 px-1 pb-6">
+            <Link
+              href="/login"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-blue-800 text-white font-bold text-base shadow-lg shadow-blue-800/25 hover:bg-blue-900 transition-all duration-200"
+            >
+              Entrar
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </nav>
       </div>
-    </header>
+    </div>
+    </>
   )
 }
