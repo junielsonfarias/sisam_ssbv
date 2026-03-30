@@ -170,14 +170,14 @@ export default function MatriculaPage() {
   const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5'
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo-semed.png" alt="SEMED" className="h-10 sm:h-12 w-auto object-contain" />
-            <div className="w-px h-8 bg-slate-200 flex-shrink-0" />
-            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-10 sm:h-12 w-auto object-contain" />
+            <img src="/logo-semed.png" alt="SEMED" className="h-12 sm:h-14 w-auto object-contain" />
+            <div className="w-px h-10 bg-slate-200 flex-shrink-0" />
+            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-12 sm:h-14 w-auto object-contain" />
             <div className="hidden sm:block">
               <span className="font-bold text-sm text-blue-900">Pré-Matrícula</span>
               <p className="text-[10px] text-slate-400">SEMED — São Sebastião da Boa Vista</p>
@@ -189,7 +189,7 @@ export default function MatriculaPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 py-8 flex-1">
         {/* Título */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/25">

@@ -45,28 +45,28 @@ function cpfMask(v: string) {
 
 function notaColor(n: number | null) {
   if (n === null) return 'text-gray-400'
-  if (n >= 7) return 'text-emerald-600'
+  if (n >= 7) return 'text-blue-800'
   if (n >= 5) return 'text-amber-600'
   return 'text-red-600'
 }
 
 function notaBg(n: number | null) {
   if (n === null) return ''
-  if (n >= 7) return 'bg-emerald-50'
+  if (n >= 7) return 'bg-blue-50'
   if (n >= 5) return 'bg-amber-50'
   return 'bg-red-50'
 }
 
 function freqColor(p: number | null) {
   if (p === null) return 'text-gray-400'
-  if (p >= 75) return 'text-emerald-600'
+  if (p >= 75) return 'text-blue-800'
   if (p >= 50) return 'text-amber-600'
   return 'text-red-600'
 }
 
 function freqBarColor(p: number | null) {
   if (p === null) return 'bg-gray-300'
-  if (p >= 75) return 'bg-emerald-500'
+  if (p >= 75) return 'bg-blue-600'
   if (p >= 50) return 'bg-amber-500'
   return 'bg-red-500'
 }
@@ -146,17 +146,17 @@ export default function BoletimPage() {
     if (tab === 'comunicados') carregarComunicados()
   }
 
-  const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all'
+  const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all'
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 print:hidden">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo-semed.png" alt="SEMED" className="h-10 sm:h-12 w-auto object-contain" />
-            <div className="w-px h-8 bg-slate-200 flex-shrink-0" />
-            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-10 sm:h-12 w-auto object-contain" />
+            <img src="/logo-semed.png" alt="SEMED" className="h-12 sm:h-14 w-auto object-contain" />
+            <div className="w-px h-10 bg-slate-200 flex-shrink-0" />
+            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-12 sm:h-14 w-auto object-contain" />
             <div className="hidden sm:block">
               <span className="font-bold text-sm text-blue-900">Boletim Escolar</span>
               <p className="text-[10px] text-slate-400">SEMED — São Sebastião da Boa Vista</p>
@@ -175,12 +175,12 @@ export default function BoletimPage() {
         <p className="text-lg font-semibold mt-2">Boletim Escolar {anoLetivo}</p>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-8 flex-1">
         {/* Search */}
         {!dados && (
           <div className="max-w-lg mx-auto">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/25">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-xl shadow-blue-600/25">
                 <ClipboardCheck className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-slate-800">Consulta de Boletim</h1>
@@ -191,11 +191,11 @@ export default function BoletimPage() {
               {/* Modo toggle */}
               <div className="flex bg-slate-100 rounded-xl p-1">
                 <button onClick={() => setModo('codigo')}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${modo === 'codigo' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${modo === 'codigo' ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                   Buscar por Codigo
                 </button>
                 <button onClick={() => setModo('cpf')}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${modo === 'cpf' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${modo === 'cpf' ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                   Buscar por CPF
                 </button>
               </div>
@@ -238,7 +238,7 @@ export default function BoletimPage() {
               )}
 
               <button onClick={buscar} disabled={carregando}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-800 text-white font-bold rounded-xl hover:from-blue-800 hover:to-blue-900 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2">
                 {carregando ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
@@ -255,7 +255,7 @@ export default function BoletimPage() {
             {/* Voltar + Imprimir */}
             <div className="flex items-center justify-between print:hidden">
               <button onClick={() => setDados(null)}
-                className="flex items-center gap-2 text-sm text-slate-500 hover:text-emerald-600 transition-colors">
+                className="flex items-center gap-2 text-sm text-slate-500 hover:text-blue-800 transition-colors">
                 <ArrowLeft className="w-4 h-4" /> Nova consulta
               </button>
               <button onClick={() => window.print()}
@@ -265,7 +265,7 @@ export default function BoletimPage() {
             </div>
 
             {/* Card do Aluno */}
-            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-2xl p-6 text-white shadow-xl">
+            <div className="bg-gradient-to-r from-blue-800 to-blue-900 rounded-2xl p-6 text-white shadow-xl">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
@@ -307,7 +307,7 @@ export default function BoletimPage() {
               ].map(tab => (
                 <button key={tab.key} onClick={() => handleTabChange(tab.key)}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    abaAtiva === tab.key ? 'bg-emerald-50 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    abaAtiva === tab.key ? 'bg-blue-50 text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                   }`}>
                   <tab.icon className="w-4 h-4" /> {tab.label}
                 </button>
@@ -319,7 +319,7 @@ export default function BoletimPage() {
               <div className="space-y-4">
                 {carregandoExtra ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
                   </div>
                 ) : freqDetalhada ? (
                   <>
@@ -327,9 +327,9 @@ export default function BoletimPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       {[
                         { label: 'Dias Letivos', value: freqDetalhada.totais.dias_letivos, color: 'text-slate-700' },
-                        { label: 'Presenças', value: freqDetalhada.totais.presencas, color: 'text-emerald-600' },
+                        { label: 'Presenças', value: freqDetalhada.totais.presencas, color: 'text-blue-800' },
                         { label: 'Faltas', value: freqDetalhada.totais.faltas, color: 'text-red-600' },
-                        { label: 'Frequência', value: freqDetalhada.totais.percentual !== null ? `${freqDetalhada.totais.percentual}%` : '-', color: freqDetalhada.totais.percentual >= 75 ? 'text-emerald-600' : 'text-red-600' },
+                        { label: 'Frequência', value: freqDetalhada.totais.percentual !== null ? `${freqDetalhada.totais.percentual}%` : '-', color: freqDetalhada.totais.percentual >= 75 ? 'text-blue-800' : 'text-red-600' },
                       ].map((item, i) => (
                         <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 text-center shadow-sm">
                           <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
@@ -342,7 +342,7 @@ export default function BoletimPage() {
                     {freqDetalhada.frequencia_bimestral.length > 0 && (
                       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                          <BarChart3 className="w-5 h-5 text-emerald-600" /> Frequência por Bimestre
+                          <BarChart3 className="w-5 h-5 text-blue-800" /> Frequência por Bimestre
                         </h3>
                         <div className="space-y-4">
                           {freqDetalhada.frequencia_bimestral.map((f: any) => (
@@ -351,16 +351,16 @@ export default function BoletimPage() {
                                 <span className="text-sm font-medium text-slate-700">{f.periodo_nome || `${f.bimestre}o Bimestre`}</span>
                                 <div className="flex items-center gap-3 text-xs">
                                   <span className="text-slate-500">{f.dias_letivos} dias</span>
-                                  <span className="text-emerald-600 font-medium">{f.presencas}P</span>
+                                  <span className="text-blue-800 font-medium">{f.presencas}P</span>
                                   <span className="text-red-500 font-medium">{f.faltas}F</span>
-                                  <span className={`font-bold text-sm ${f.percentual >= 75 ? 'text-emerald-600' : f.percentual >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                                  <span className={`font-bold text-sm ${f.percentual >= 75 ? 'text-blue-800' : f.percentual >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
                                     {f.percentual !== null ? `${f.percentual}%` : '-'}
                                   </span>
                                 </div>
                               </div>
                               <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
                                 <div className={`h-full rounded-full transition-all duration-500 ${
-                                  f.percentual >= 75 ? 'bg-emerald-500' : f.percentual >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                                  f.percentual >= 75 ? 'bg-blue-600' : f.percentual >= 50 ? 'bg-amber-500' : 'bg-red-500'
                                 }`} style={{ width: `${Math.min(f.percentual || 0, 100)}%` }} />
                               </div>
                             </div>
@@ -373,12 +373,12 @@ export default function BoletimPage() {
                     {freqDetalhada.frequencia_diaria?.length > 0 && (
                       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                          <CalendarCheck className="w-5 h-5 text-emerald-600" /> Últimos Registros
+                          <CalendarCheck className="w-5 h-5 text-blue-800" /> Últimos Registros
                         </h3>
                         <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
                           {freqDetalhada.frequencia_diaria.map((d: any, i: number) => (
                             <div key={i} className={`p-2 rounded-lg text-center text-xs ${
-                              d.presente ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                              d.presente ? 'bg-blue-50 text-blue-900' : 'bg-red-50 text-red-700'
                             }`}>
                               <p className="font-bold">{d.presente ? 'P' : 'F'}</p>
                               <p className="text-[10px] opacity-70">{new Date(d.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
@@ -402,7 +402,7 @@ export default function BoletimPage() {
               <div className="space-y-4">
                 {carregandoExtra ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
                   </div>
                 ) : comunicados.length > 0 ? (
                   comunicados.map((c: any, i: number) => (
@@ -433,7 +433,7 @@ export default function BoletimPage() {
             {/* Disciplinas e Notas */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-emerald-600" />
+                <BookOpen className="w-5 h-5 text-blue-800" />
                 <h3 className="font-bold text-slate-800">Notas por Disciplina</h3>
               </div>
               <div className="overflow-x-auto">
@@ -537,7 +537,7 @@ export default function BoletimPage() {
                           <td className="px-4 py-3 font-medium text-slate-700">{av.avaliacao}</td>
                           <td className="text-center px-3 py-3">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              av.presenca === 'P' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                              av.presenca === 'P' ? 'bg-emerald-100 text-blue-900' : 'bg-red-100 text-red-700'
                             }`}>{av.presenca === 'P' ? 'Presente' : 'Faltou'}</span>
                           </td>
                           <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_lp)}`}>{av.nota_lp?.toFixed(1) ?? '-'}</td>
@@ -549,7 +549,7 @@ export default function BoletimPage() {
                           <td className="text-center px-3 py-3">
                             {av.nivel ? (
                               <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                av.nivel.includes('AVANC') ? 'bg-emerald-100 text-emerald-700' :
+                                av.nivel.includes('AVANC') ? 'bg-emerald-100 text-blue-900' :
                                 av.nivel.includes('ADEQU') ? 'bg-blue-100 text-blue-700' :
                                 av.nivel.includes('BAS') ? 'bg-amber-100 text-amber-700' :
                                 'bg-red-100 text-red-700'
@@ -569,7 +569,7 @@ export default function BoletimPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Frequencia geral */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col items-center justify-center">
-                <CalendarCheck className="w-8 h-8 text-emerald-500 mb-3" />
+                <CalendarCheck className="w-8 h-8 text-blue-600 mb-3" />
                 <p className={`text-5xl font-extrabold ${freqColor(dados.frequencia_geral)}`}>
                   {dados.frequencia_geral !== null ? `${dados.frequencia_geral}%` : '-'}
                 </p>
@@ -585,7 +585,7 @@ export default function BoletimPage() {
               {/* Frequencia por bimestre */}
               <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-5 h-5 text-emerald-600" /> Frequencia por Periodo
+                  <BarChart3 className="w-5 h-5 text-blue-800" /> Frequencia por Periodo
                 </h3>
                 {dados.frequencia.length > 0 ? (
                   <div className="space-y-4">
