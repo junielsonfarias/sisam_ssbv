@@ -164,9 +164,9 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
         </div>
       </div>
 
-      {/* Mobile Menu - Slide-in panel */}
+      {/* Mobile Menu - Slide-in panel (z-[60] para ficar ACIMA do header z-50) */}
       <div
-        className={`md:hidden fixed inset-0 z-50 transition-all duration-300 ${
+        className={`md:hidden fixed inset-0 z-[60] transition-all duration-300 ${
           menuOpen ? 'visible' : 'invisible'
         }`}
       >
