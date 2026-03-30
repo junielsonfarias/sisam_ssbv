@@ -170,23 +170,57 @@ export default function BoletimPage() {
         </div>
       </header>
 
-      {/* Print header */}
-      <div className="hidden print:block text-center py-4 border-b-2 border-gray-300 mb-6">
-        <h1 className="text-xl font-bold">SEMED - Secretaria Municipal de Educacao</h1>
-        <p className="text-sm text-gray-500">Sao Sebastiao da Boa Vista - PA</p>
-        <p className="text-lg font-semibold mt-2">Boletim Escolar {anoLetivo}</p>
+      {/* Print header — com logos e dados da escola */}
+      <div className="hidden print:block py-4 border-b-2 border-gray-300 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <img src="/logo-semed.png" alt="SEMED" className="h-16 w-auto" />
+            <div className="w-px h-12 bg-gray-300" />
+            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-16 w-auto" />
+          </div>
+          <div className="text-right">
+            <h1 className="text-lg font-bold">Secretaria Municipal de Educação</h1>
+            <p className="text-sm text-gray-500">São Sebastião da Boa Vista — Pará</p>
+            <p className="text-base font-semibold mt-1">Boletim Escolar {anoLetivo}</p>
+          </div>
+        </div>
+        {dados && (
+          <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
+            <div className="flex justify-between">
+              <div>
+                <strong>Aluno:</strong> {dados.aluno.nome}
+              </div>
+              <div>
+                <strong>Código:</strong> {dados.aluno.codigo}
+              </div>
+            </div>
+            <div className="flex justify-between mt-1">
+              <div>
+                <strong>Escola:</strong> {dados.aluno.escola_nome}
+              </div>
+              <div>
+                <strong>Turma:</strong> {dados.aluno.turma_codigo} — {formatSerie(dados.aluno.serie)}
+              </div>
+            </div>
+            <div className="flex justify-between mt-1">
+              <div>
+                <strong>Situação:</strong> {dados.aluno.situacao}
+              </div>
+              <div>
+                <strong>Ano Letivo:</strong> {dados.aluno.ano_letivo}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <main className="max-w-6xl mx-auto px-4 py-8 flex-1">
         {/* Search */}
         {!dados && (
-          <div className="max-w-lg mx-auto">
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-xl shadow-blue-600/25">
-                <ClipboardCheck className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold text-slate-800">Consulta de Boletim</h1>
-              <p className="text-slate-500 mt-2">Consulte as notas e frequencia do aluno</p>
+          <div className="max-w-xl mx-auto">
+            <div className="text-center mb-6">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Consulta de Boletim</h1>
+              <p className="text-sm text-slate-500 mt-1">Consulte as notas e frequência do aluno</p>
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-5">
@@ -267,35 +301,33 @@ export default function BoletimPage() {
             </div>
 
             {/* Card do Aluno */}
-            <div className="bg-gradient-to-r from-blue-800 to-blue-900 rounded-2xl p-6 text-white shadow-xl">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
-                    <User className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-bold">{dados.aluno.nome}</h2>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-emerald-100 text-sm">
-                      <span className="flex items-center gap-1"><School className="w-3.5 h-3.5" /> {dados.aluno.escola_nome}</span>
-                      <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {dados.aluno.turma_codigo} - {formatSerie(dados.aluno.serie)}</span>
-                    </div>
-                  </div>
+            <div className="bg-gradient-to-r from-blue-800 to-blue-900 rounded-2xl p-4 sm:p-6 text-white shadow-xl">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold">{dados.aluno.ano_letivo}</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    dados.aluno.situacao === 'cursando' ? 'bg-white/20' :
-                    dados.aluno.situacao === 'aprovado' ? 'bg-emerald-300/30' :
-                    dados.aluno.situacao === 'reprovado' ? 'bg-red-400/30' : 'bg-amber-300/30'
-                  }`}>{dados.aluno.situacao}</span>
-                  {dados.aluno.pcd && (
-                    <span className="px-3 py-1 bg-purple-400/30 rounded-full text-xs font-semibold flex items-center gap-1">
-                      <Accessibility className="w-3 h-3" /> PCD
-                    </span>
-                  )}
-                  {dados.aluno.codigo && (
-                    <span className="px-3 py-1 bg-white/10 rounded-full text-xs">{dados.aluno.codigo}</span>
-                  )}
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base sm:text-2xl font-bold leading-tight">{dados.aluno.nome}</h2>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-blue-200 text-xs sm:text-sm">
+                    <span className="flex items-center gap-1"><School className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {dados.aluno.escola_nome}</span>
+                    <span className="flex items-center gap-1"><BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {dados.aluno.turma_codigo} - {formatSerie(dados.aluno.serie)}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span className="px-2 py-0.5 bg-white/20 rounded-full text-[10px] sm:text-xs font-semibold">{dados.aluno.ano_letivo}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${
+                      dados.aluno.situacao === 'cursando' ? 'bg-white/20' :
+                      dados.aluno.situacao === 'aprovado' ? 'bg-green-300/30' :
+                      dados.aluno.situacao === 'reprovado' ? 'bg-red-400/30' : 'bg-amber-300/30'
+                    }`}>{dados.aluno.situacao}</span>
+                    {dados.aluno.pcd && (
+                      <span className="px-2 py-0.5 bg-purple-400/30 rounded-full text-[10px] sm:text-xs font-semibold flex items-center gap-1">
+                        <Accessibility className="w-3 h-3" /> PCD
+                      </span>
+                    )}
+                    {dados.aluno.codigo && (
+                      <span className="px-2 py-0.5 bg-white/10 rounded-full text-[10px] sm:text-xs">{dados.aluno.codigo}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -308,10 +340,10 @@ export default function BoletimPage() {
                 { key: 'comunicados' as const, label: 'Comunicados', icon: Bell },
               ].map(tab => (
                 <button key={tab.key} onClick={() => handleTabChange(tab.key)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
                     abaAtiva === tab.key ? 'bg-blue-50 text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                   }`}>
-                  <tab.icon className="w-4 h-4" /> {tab.label}
+                  <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {tab.label}
                 </button>
               ))}
             </div>
@@ -434,11 +466,14 @@ export default function BoletimPage() {
             {abaAtiva === 'boletim' && (<>
             {/* Disciplinas e Notas */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-blue-800" />
-                <h3 className="font-bold text-slate-800">Notas por Disciplina</h3>
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-800" />
+                  <h3 className="font-bold text-sm sm:text-base text-slate-800">Notas por Disciplina</h3>
+                </div>
+                <span className="text-[10px] text-slate-400 sm:hidden">← deslize →</span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
                 {dados.disciplinas.length > 0 && dados.periodos.length > 0 ? (
                   <table className="w-full text-sm">
                     <thead>
