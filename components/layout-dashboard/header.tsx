@@ -142,51 +142,53 @@ export function Header({
           </div>
 
           {/* Seção direita: Status + Usuário + Ações */}
-          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-            {/* Indicadores de status */}
-            <div className="flex items-center gap-1">
-              {/* Indicador de modo offline */}
+          <div className="flex items-center gap-0.5 sm:gap-2 min-w-0 flex-shrink-0">
+            {/* Indicadores de status — ocultos no mobile para dar espaço */}
+            <div className="hidden sm:flex items-center gap-1">
               {modoOffline && (
                 <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium animate-pulse">
                   <WifiOff className="w-3 h-3" />
                   <span className="hidden sm:inline">Offline</span>
                 </span>
               )}
-
-              {/* Status de sincronização offline */}
               <OfflineSyncManager
                 userId={usuario?.id?.toString() || usuario?.usuario_id?.toString() || null}
                 autoSync={true}
                 showStatus={true}
               />
-
-              {/* Fila de sync offline */}
               <SyncStatusBadge />
             </div>
 
-            {/* Separador visual */}
+            {/* Indicador offline mobile (apenas ícone) */}
+            {modoOffline && (
+              <span className="sm:hidden flex items-center p-1 text-orange-600 animate-pulse">
+                <WifiOff className="w-4 h-4" />
+              </span>
+            )}
+
+            {/* Separador */}
             <div className="hidden sm:block w-px h-6 bg-gray-200 dark:bg-slate-600 mx-1" />
 
             {/* Badge do tipo (mobile) */}
-            <span className={`md:hidden inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeConfig.bgColor} ${badgeConfig.textColor}`}>
+            <span className={`md:hidden inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${badgeConfig.bgColor} ${badgeConfig.textColor}`}>
               {badgeConfig.label.substring(0, 3)}
             </span>
 
             {/* Link do perfil do usuário */}
             <Link
               href="/perfil"
-              className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-all duration-200 group"
+              className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-all duration-200 group"
               title="Meu Perfil"
             >
               {usuario?.foto_url ? (
                 <img
                   src={usuario.foto_url}
                   alt="Foto do perfil"
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-300 dark:group-hover:ring-indigo-500 transition-all"
+                  className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-300 dark:group-hover:ring-indigo-500 transition-all"
                 />
               ) : (
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-300 dark:group-hover:ring-indigo-500 transition-all">
-                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-300 dark:group-hover:ring-indigo-500 transition-all">
+                  <User className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
               )}
               <div className="hidden sm:flex flex-col min-w-0">
@@ -199,16 +201,16 @@ export function Header({
               </div>
             </Link>
 
-            {/* Separador visual */}
+            {/* Separador */}
             <div className="hidden sm:block w-px h-6 bg-gray-200 dark:bg-slate-600 mx-1" />
 
-            {/* Toggle de Tema */}
-            <ThemeToggleSimple className="flex-shrink-0 p-1.5 sm:p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all duration-200" />
+            {/* Toggle de Tema — oculto no mobile */}
+            <ThemeToggleSimple className="hidden sm:flex flex-shrink-0 p-1.5 sm:p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all duration-200" />
 
-            {/* Botão de Logout */}
+            {/* Botão de Logout — SEMPRE visível */}
             <button
               onClick={handleLogout}
-              className="p-1.5 sm:p-2 text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-all duration-200 flex-shrink-0"
+              className="p-1.5 sm:p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-all duration-200 flex-shrink-0"
               aria-label="Sair"
               title="Sair do sistema"
             >
