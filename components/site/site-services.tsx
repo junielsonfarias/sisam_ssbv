@@ -63,10 +63,10 @@ export default function SiteServices({ data }: SiteServicesProps) {
   const services = data?.services || defaultServices
 
   return (
-    <section id="servicos" className="py-10 sm:py-28 bg-white" aria-labelledby="services-title">
+    <section id="servicos" className="py-8 sm:py-28 bg-white" aria-labelledby="services-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-10 sm:mb-16">
+        <div className="text-center mb-8 sm:mb-16">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">O que oferecemos</p>
           <h2 id="services-title" className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">{title}</h2>
           <div className="flex items-center justify-center gap-2 mb-6">
@@ -84,7 +84,7 @@ export default function SiteServices({ data }: SiteServicesProps) {
             return (
               <div
                 key={i}
-                className={`group relative bg-white rounded-2xl p-4 sm:p-8 border border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-700/5 transition-all duration-300 hover:-translate-y-1 ${i >= 3 && !mobileExpanded ? 'hidden sm:block' : ''}`}
+                className={`group relative bg-white rounded-2xl p-3 sm:p-8 border border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-700/5 transition-all duration-300 hover:-translate-y-1 ${i >= 3 && !mobileExpanded ? 'hidden sm:block' : ''}`}
               >
                 {/* Icon in colored circle */}
                 <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-6 group-hover:bg-blue-800 group-hover:border-blue-800 group-hover:shadow-lg group-hover:shadow-blue-800/25 transition-all duration-300">

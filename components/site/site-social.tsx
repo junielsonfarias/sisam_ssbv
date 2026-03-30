@@ -119,13 +119,13 @@ export default function SiteSocial({ data }: SiteSocialProps) {
   const showFeed = socialData.mostrar_feed_facebook && socialData.facebook_url
 
   return (
-    <section className="py-8 sm:py-12 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900" aria-label="Redes sociais">
+    <section className="py-6 sm:py-12 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900" aria-label="Redes sociais">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Layout: 2 colunas no desktop (ícones + feed), empilhado no mobile */}
         <div className={`grid ${showFeed ? 'lg:grid-cols-2' : ''} gap-8 lg:gap-12 items-start`}>
           {/* Coluna esquerda: título + ícones */}
           <div>
-            <div className={`${showFeed ? 'text-left' : 'text-center'} mb-6`}>
+            <div className={`${showFeed ? 'text-left' : 'text-center'} mb-4 sm:mb-6`}>
               <p className="text-sm font-bold uppercase tracking-widest text-blue-300 mb-2">Siga-nos</p>
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white">
                 Acompanhe a SEMED nas Redes Sociais
@@ -161,11 +161,11 @@ export default function SiteSocial({ data }: SiteSocialProps) {
           {showFeed && (
             <div>
               <p className="text-sm font-bold uppercase tracking-widest text-blue-300 mb-3 hidden lg:block">Últimas publicações</p>
-              <div className="bg-white rounded-xl overflow-hidden shadow-lg">
+              <div className="bg-white rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20">
                 <iframe
-                  src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(socialData.facebook_url)}&tabs=timeline&width=500&height=400&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false`}
+                  src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(socialData.facebook_url)}&tabs=timeline&width=500&height=700&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`}
                   width="500"
-                  height="400"
+                  height="700"
                   className="w-full border-0"
                   allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                   loading="lazy"

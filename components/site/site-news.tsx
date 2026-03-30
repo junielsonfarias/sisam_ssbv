@@ -84,10 +84,10 @@ export default function SiteNews({ data }: SiteNewsProps) {
   const secondary = news.slice(1, 3)
 
   return (
-    <section id="noticias" className="py-10 sm:py-28 bg-slate-50" aria-labelledby="news-title">
+    <section id="noticias" className="py-8 sm:py-28 bg-slate-50" aria-labelledby="news-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-14">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-14">
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Novidades</p>
             <h2 id="news-title" className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">{title}</h2>
@@ -117,7 +117,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
                 <p className="text-xs font-bold text-blue-800 uppercase">{formatMonth(featured.date)}</p>
               </div>
             </div>
-            <div className="p-5 sm:p-8">
+            <div className="p-4 sm:p-8">
               <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
                 <Calendar className="w-3.5 h-3.5" />
                 {formatDate(featured.date)}
@@ -152,7 +152,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
                     <p className="text-[10px] font-bold text-blue-800 uppercase">{formatMonth(item.date)}</p>
                   </div>
                 </div>
-                <div className="p-6 flex flex-col justify-center">
+                <div className="p-4 sm:p-6 flex flex-col justify-center">
                   <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
                     <Calendar className="w-3 h-3" />
                     {formatDate(item.date)}

@@ -242,7 +242,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
         }`}
       >
         {/* Topo */}
-        <div className="bg-white px-5 pt-3 pb-4 border-b border-slate-200">
+        <div className="bg-white px-5 pt-2 pb-3 border-b border-slate-200">
           <div className="flex justify-end mb-2">
             <button
               onClick={() => setMenuOpen(false)}

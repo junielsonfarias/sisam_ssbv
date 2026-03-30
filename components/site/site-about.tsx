@@ -25,7 +25,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
   ]
 
   return (
-    <section id="sobre" className="relative py-10 sm:py-28 bg-white overflow-hidden" aria-labelledby="about-title">
+    <section id="sobre" className="relative py-8 sm:py-28 bg-white overflow-hidden" aria-labelledby="about-title">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.02]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
@@ -34,7 +34,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Two-column layout: image placeholder + text */}
-        <div className="grid lg:grid-cols-2 gap-6 sm:gap-12 lg:gap-20 items-center mb-20">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-12 lg:gap-20 items-center mb-6 sm:mb-20">
           {/* Left - Image placeholder */}
           <div className="hidden lg:block relative" aria-hidden="true">
             <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-100 overflow-hidden">
@@ -75,17 +75,20 @@ export default function SiteAbout({ data }: SiteAboutProps) {
           </div>
         </div>
 
-        {/* Mission, Vision, Values - horizontal cards with left accent border */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Mission, Vision, Values */}
+        <div className="grid md:grid-cols-3 gap-2 sm:gap-6">
           {cards.map((card, i) => (
             <div
               key={i}
-              className={`bg-white rounded-2xl p-5 sm:p-8 border border-slate-100 border-l-4 ${card.accent} hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300`}
+              className={`bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 border border-slate-100 border-l-4 ${card.accent} hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300`}
             >
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 ${card.iconBg} rounded-2xl flex items-center justify-center mb-5`}>
-                <card.icon className={`w-6 h-6 ${card.iconText}`} />
+              {/* Mobile: ícone + título na mesma linha */}
+              <div className="flex items-center gap-3 mb-2 sm:mb-4">
+                <div className={`w-9 h-9 sm:w-12 sm:h-12 ${card.iconBg} rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0`}>
+                  <card.icon className={`w-4 h-4 sm:w-6 sm:h-6 ${card.iconText}`} />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900">{card.title}</h3>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">{card.title}</h3>
               <p className="text-slate-500 leading-relaxed text-sm">{card.text}</p>
             </div>
           ))}

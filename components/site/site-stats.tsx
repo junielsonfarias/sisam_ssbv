@@ -55,7 +55,7 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
   ]
 
   return (
-    <section className="relative py-10 sm:py-28 bg-slate-900 overflow-hidden" aria-label="Estatísticas da rede de ensino">
+    <section className="relative py-8 sm:py-28 bg-slate-900 overflow-hidden" aria-label="Estatísticas da rede de ensino">
       {/* Dot pattern */}
       <div className="absolute inset-0 opacity-[0.06]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
@@ -69,7 +69,7 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 sm:mb-16">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-4">Nossos números</p>
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">{title}</h2>
           <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">{subtitle}</p>

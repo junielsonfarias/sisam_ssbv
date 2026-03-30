@@ -53,10 +53,10 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
   }
 
   return (
-    <section id="publicacoes" className="py-10 sm:py-28 bg-white" aria-labelledby="pub-title">
+    <section id="publicacoes" className="py-8 sm:py-28 bg-white" aria-labelledby="pub-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 sm:mb-14">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-14">
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Transparência</p>
             <h2 id="pub-title" className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">
@@ -80,7 +80,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
           {publicacoes.map((pub: any, i: number) => (
             <article
               key={pub.id || i}
-              className={`group bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:shadow-xl hover:shadow-slate-900/5 hover:border-slate-200 transition-all duration-300 ${i >= 4 && !mobileExpanded ? 'hidden md:block' : ''}`}
+              className={`group bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100 hover:shadow-xl hover:shadow-slate-900/5 hover:border-slate-200 transition-all duration-300 ${i >= 4 && !mobileExpanded ? 'hidden md:block' : ''}`}
             >
               <div className="flex items-start justify-between mb-4">
                 <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${BADGE_COLORS[pub.tipo] || 'bg-slate-100 text-slate-700'}`}>

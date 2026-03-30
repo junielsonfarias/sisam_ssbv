@@ -52,7 +52,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
       <div className="hidden sm:block absolute top-20 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-3xl" />
       <div className="hidden sm:block absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-50/30 rounded-full blur-3xl" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-6 sm:py-12 lg:py-0">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 sm:py-12 lg:py-0">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left content */}
           <div className={`transition-all duration-1000 ease-out ${
@@ -75,7 +75,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2.5 sm:gap-4 mb-6 sm:mb-16">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2.5 sm:gap-4 mb-4 sm:mb-16">
               <Link
                 href={ctaPrimary.href}
                 className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-blue-800 text-white font-bold rounded-full text-sm sm:text-lg hover:bg-blue-900 transition-all duration-300 shadow-lg shadow-blue-800/25 hover:shadow-blue-800/40 hover:-translate-y-0.5"

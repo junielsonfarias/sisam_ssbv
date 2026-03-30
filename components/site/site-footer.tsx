@@ -40,8 +40,8 @@ export default function SiteFooter({ data }: SiteFooterProps) {
       {/* Blue top border */}
       <div className="h-1 bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16 lg:py-20">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 lg:gap-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-16 lg:py-20">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10 lg:gap-16">
           {/* Column 1: About */}
           <div>
             <div className="flex items-center gap-3 mb-5">
