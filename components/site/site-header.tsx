@@ -146,7 +146,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
           </a>
 
           {/* ====== MENU DESKTOP COM DROPDOWNS ====== */}
-          <nav className="hidden md:flex items-center gap-0.5 lg:gap-1" aria-label="Navegação principal">
+          <nav className="hidden md:flex items-center gap-1 lg:gap-1.5" aria-label="Navegação principal">
             {desktopNav.map((item, i) => {
               const isActive = item.href === `#${activeSection}`
               const hasChildren = item.children && item.children.length > 0

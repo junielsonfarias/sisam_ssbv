@@ -33,7 +33,7 @@ export default function SiteSchools({ data, escolas }: SiteSchoolsProps) {
   const displayedSchools = showAll ? escolas : escolas.slice(0, 8)
 
   return (
-    <section id="escolas" className="py-8 sm:py-28 bg-slate-50" aria-labelledby="schools-title">
+    <section id="escolas" className="py-8 sm:py-20 lg:py-24 bg-slate-50" aria-labelledby="schools-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-16">
@@ -43,11 +43,11 @@ export default function SiteSchools({ data, escolas }: SiteSchoolsProps) {
         </div>
 
         {/* Schools Grid - 4 cols desktop, 2 mobile */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           {displayedSchools.map((escola: any, i: number) => (
             <div
               key={escola.id || i}
-              className={`group bg-white rounded-2xl p-3 sm:p-5 border border-slate-100 border-l-4 border-l-blue-700 hover:shadow-lg hover:shadow-blue-700/5 hover:border-l-blue-800 transition-all duration-300 ${i >= 4 && !showAll ? 'hidden sm:block' : ''}`}
+              className={`group bg-white rounded-2xl p-3 sm:p-5 lg:p-6 border border-slate-100 border-l-4 border-l-blue-700 hover:shadow-lg hover:shadow-blue-700/5 hover:border-l-blue-800 transition-all duration-300 ${i >= 4 && !showAll ? 'hidden sm:block' : ''}`}
             >
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors duration-300">

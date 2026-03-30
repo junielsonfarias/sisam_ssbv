@@ -84,7 +84,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
   const secondary = news.slice(1, 3)
 
   return (
-    <section id="noticias" className="py-8 sm:py-28 bg-slate-50" aria-labelledby="news-title">
+    <section id="noticias" className="py-8 sm:py-20 lg:py-24 bg-slate-50" aria-labelledby="news-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-14">
@@ -107,7 +107,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
           {/* Featured article (large) */}
           <article className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl hover:shadow-slate-900/5 transition-all duration-300">
             {/* Image area */}
-            <div className={`relative h-40 sm:h-64 bg-gradient-to-br ${gradientColors[0]} flex items-center justify-center`}>
+            <div className={`relative h-40 sm:h-64 lg:h-80 bg-gradient-to-br ${gradientColors[0]} flex items-center justify-center`}>
               <BookOpen className="w-16 h-16 text-white/20" />
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />

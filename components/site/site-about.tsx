@@ -25,7 +25,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
   ]
 
   return (
-    <section id="sobre" className="relative py-8 sm:py-28 bg-white overflow-hidden" aria-labelledby="about-title">
+    <section id="sobre" className="relative py-8 sm:py-20 lg:py-24 bg-white overflow-hidden" aria-labelledby="about-title">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.02]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
@@ -76,7 +76,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
         </div>
 
         {/* Mission, Vision, Values */}
-        <div className="grid md:grid-cols-3 gap-2 sm:gap-6">
+        <div className="grid md:grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
           {cards.map((card, i) => (
             <div
               key={i}

@@ -63,7 +63,7 @@ export default function SiteServices({ data }: SiteServicesProps) {
   const services = data?.services || defaultServices
 
   return (
-    <section id="servicos" className="py-8 sm:py-28 bg-white" aria-labelledby="services-title">
+    <section id="servicos" className="py-8 sm:py-20 lg:py-24 bg-white" aria-labelledby="services-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-16">
@@ -78,7 +78,7 @@ export default function SiteServices({ data }: SiteServicesProps) {
         </div>
 
         {/* Services Grid - 3x2 on desktop, 2x3 on tablet, 1 col on mobile */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {services.map((service: any, i: number) => {
             const Icon = iconMap[service.icon] || ClipboardCheck
             return (
