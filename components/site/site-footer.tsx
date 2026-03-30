@@ -1,6 +1,6 @@
 'use client'
 
-import { Heart, ArrowUpRight } from 'lucide-react'
+import { Heart, ArrowUpRight, MapPin, Phone, Mail, Clock } from 'lucide-react'
 import Link from 'next/link'
 
 interface SiteFooterProps {
@@ -103,17 +103,28 @@ export default function SiteFooter({ data }: SiteFooterProps) {
             </ul>
           </div>
 
-          {/* Column 3: Contact */}
+          {/* Column 3: Contact with icons */}
           <div>
             <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-5">
               Contato
             </h4>
             <ul className="space-y-3">
-              {contactInfo.map((info: string, i: number) => (
-                <li key={i} className="text-sm text-slate-400">
-                  {info}
-                </li>
-              ))}
+              <li className="flex items-start gap-2.5 text-sm text-slate-400">
+                <MapPin className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <span>{contactInfo[0] || 'São Sebastião da Boa Vista - PA'}</span>
+              </li>
+              <li className="flex items-center gap-2.5 text-sm text-slate-400">
+                <Mail className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <span>{contactInfo[1] || 'semed@ssbv.pa.gov.br'}</span>
+              </li>
+              <li className="flex items-center gap-2.5 text-sm text-slate-400">
+                <Phone className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <span>{contactInfo[2] || '(91) 0000-0000'}</span>
+              </li>
+              <li className="flex items-center gap-2.5 text-sm text-slate-400">
+                <Clock className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <span>Seg a Sex, 08h às 14h</span>
+              </li>
             </ul>
           </div>
         </div>
