@@ -84,14 +84,14 @@ export default function SiteNews({ data }: SiteNewsProps) {
   const secondary = news.slice(1, 3)
 
   return (
-    <section id="noticias" className="py-12 sm:py-28 bg-slate-50" aria-labelledby="news-title">
+    <section id="noticias" className="py-10 sm:py-28 bg-slate-50" aria-labelledby="news-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-14">
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Novidades</p>
-            <h2 id="news-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">{title}</h2>
-            <p className="text-lg text-slate-500 max-w-xl leading-relaxed">{subtitle}</p>
+            <h2 id="news-title" className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">{title}</h2>
+            <p className="text-base sm:text-lg text-slate-500 max-w-xl leading-relaxed">{subtitle}</p>
           </div>
           <a
             href="#"
@@ -122,7 +122,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
                 <Calendar className="w-3.5 h-3.5" />
                 {formatDate(featured.date)}
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-800 transition-colors duration-300 line-clamp-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-800 transition-colors duration-300 line-clamp-2">
                 {featured.title}
               </h3>
               <p className="text-slate-500 leading-relaxed line-clamp-3 mb-6">

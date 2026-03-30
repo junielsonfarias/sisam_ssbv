@@ -29,13 +29,13 @@ export default function SiteContact({ data }: SiteContactProps) {
   ]
 
   return (
-    <section id="contato" className="py-12 sm:py-28 bg-white" aria-labelledby="contact-title">
+    <section id="contato" className="py-10 sm:py-28 bg-white" aria-labelledby="contact-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-10 sm:mb-16">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Contato</p>
-          <h2 id="contact-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">{title}</h2>
-          <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">{subtitle}</p>
+          <h2 id="contact-title" className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">{title}</h2>
+          <p className="text-base sm:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">{subtitle}</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-start">
@@ -46,7 +46,7 @@ export default function SiteContact({ data }: SiteContactProps) {
                 key={i}
                 className="group flex items-start gap-5 bg-white rounded-2xl p-6 border border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-700/5 transition-all duration-300"
               >
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-800 transition-all duration-300">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-800 transition-all duration-300">
                   <card.icon className="w-5 h-5 text-blue-800 group-hover:text-white transition-colors duration-300" />
                 </div>
                 <div>

@@ -53,16 +53,16 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
   }
 
   return (
-    <section id="publicacoes" className="py-12 sm:py-28 bg-white" aria-labelledby="pub-title">
+    <section id="publicacoes" className="py-10 sm:py-28 bg-white" aria-labelledby="pub-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 sm:mb-14">
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Transparência</p>
-            <h2 id="pub-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">
+            <h2 id="pub-title" className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">
               Publicações Oficiais
             </h2>
-            <p className="text-lg text-slate-500 max-w-xl leading-relaxed">
+            <p className="text-base sm:text-lg text-slate-500 max-w-xl leading-relaxed">
               Portarias, resoluções, decretos e outros documentos oficiais da educação municipal
             </p>
           </div>

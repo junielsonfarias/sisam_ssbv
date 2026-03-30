@@ -55,7 +55,7 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
   ]
 
   return (
-    <section className="relative py-12 sm:py-28 bg-slate-900 overflow-hidden" aria-label="Estatísticas da rede de ensino">
+    <section className="relative py-10 sm:py-28 bg-slate-900 overflow-hidden" aria-label="Estatísticas da rede de ensino">
       {/* Dot pattern */}
       <div className="absolute inset-0 opacity-[0.06]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
@@ -71,8 +71,8 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
         {/* Header */}
         <div className="text-center mb-16">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-4">Nossos números</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">{title}</h2>
-          <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">{subtitle}</p>
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">{title}</h2>
+          <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">{subtitle}</p>
         </div>
 
         {/* Stats Grid */}
@@ -80,7 +80,7 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
           {items.map((item, i) => (
             <div
               key={i}
-              className="group text-center p-5 sm:p-8 rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-blue-700/30 transition-all duration-500"
+              className="group text-center p-4 sm:p-8 rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-blue-700/30 transition-all duration-500"
             >
               {/* Icon */}
               <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-blue-700/15 border border-blue-700/20 flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-700/25 group-hover:border-blue-700/40 transition-all duration-300">
@@ -88,7 +88,7 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
               </div>
 
               {/* Number */}
-              <p className="text-3xl sm:text-5xl font-extrabold text-white mb-2 tracking-tight">
+              <p className="text-2xl sm:text-3xl font-extrabold text-white mb-2 tracking-tight">
                 <AnimatedCounter target={item.value} />
               </p>
 

@@ -41,7 +41,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
   ]
 
   return (
-    <section className="relative sm:min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-24 sm:pt-32" aria-label="Seção principal">
+    <section className="relative sm:min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-20 sm:pt-32" aria-label="Seção principal">
       {/* Subtle dot pattern */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
@@ -65,12 +65,12 @@ export default function SiteHero({ data }: SiteHeroProps) {
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-3 sm:mb-6 leading-[1.15] text-blue-900">
+            <h1 className="text-xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-3 sm:mb-6 leading-[1.15] text-blue-900">
               {title}
             </h1>
 
             {/* Description */}
-            <p className="text-sm sm:text-xl text-slate-500 mb-6 sm:mb-10 leading-relaxed max-w-xl line-clamp-2 sm:line-clamp-none">
+            <p className="text-sm sm:text-xl text-slate-500 mb-6 sm:mb-10 leading-relaxed max-w-xl line-clamp-3 sm:line-clamp-none">
               {description}
             </p>
 
@@ -99,7 +99,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
                 { value: '200+', label: 'Turmas' },
               ].map((stat, i) => (
                 <div key={i} className="text-center sm:text-left">
-                  <p className="text-xl sm:text-4xl font-extrabold tracking-tight text-slate-900">{stat.value}</p>
+                  <p className="text-lg sm:text-4xl font-extrabold tracking-tight text-slate-900">{stat.value}</p>
                   <p className="text-xs sm:text-sm font-medium text-slate-400 mt-0.5 sm:mt-1">{stat.label}</p>
                 </div>
               ))}

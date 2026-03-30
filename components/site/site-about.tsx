@@ -25,7 +25,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
   ]
 
   return (
-    <section id="sobre" className="relative py-12 sm:py-28 bg-white overflow-hidden" aria-labelledby="about-title">
+    <section id="sobre" className="relative py-10 sm:py-28 bg-white overflow-hidden" aria-labelledby="about-title">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.02]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
@@ -61,10 +61,10 @@ export default function SiteAbout({ data }: SiteAboutProps) {
           {/* Right - Text content */}
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3">Quem somos</p>
-            <h2 id="about-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
+            <h2 id="about-title" className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
               {title}
             </h2>
-            <p className="text-lg text-slate-500 leading-relaxed mb-6">
+            <p className="text-base sm:text-lg text-slate-500 leading-relaxed mb-6">
               {description}
             </p>
             {paragraphs.map((p: string, i: number) => (
@@ -82,7 +82,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
               key={i}
               className={`bg-white rounded-2xl p-5 sm:p-8 border border-slate-100 border-l-4 ${card.accent} hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300`}
             >
-              <div className={`w-12 h-12 ${card.iconBg} rounded-2xl flex items-center justify-center mb-5`}>
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 ${card.iconBg} rounded-2xl flex items-center justify-center mb-5`}>
                 <card.icon className={`w-6 h-6 ${card.iconText}`} />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-3">{card.title}</h3>
