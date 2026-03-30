@@ -310,21 +310,30 @@ export async function diagnosticarAluno(
 
   const diagnosticos: DiagnosticoAluno[] = []
 
-  for (const aluno of alunoResult.rows) {
-    // Consentimento
-    const consentResult = await pool.query(
-      'SELECT * FROM consentimentos_faciais WHERE aluno_id = $1',
-      [aluno.id],
-    )
+  // Batch query: buscar consentimentos e embeddings de TODOS os alunos de uma vez (elimina N+1)
+  const alunoIds = alunoResult.rows.map((a: any) => a.id)
 
-    // Embedding
-    const embedResult = await pool.query(
+  const [allConsent, allEmbed] = await Promise.all([
+    pool.query(
+      'SELECT * FROM consentimentos_faciais WHERE aluno_id = ANY($1)',
+      [alunoIds],
+    ),
+    pool.query(
       `SELECT id, aluno_id, qualidade, versao_modelo, registrado_por, criado_em, atualizado_em,
               length(embedding_data) as tamanho_bytes,
               encode(embedding_data, 'base64') as embedding_base64
-       FROM embeddings_faciais WHERE aluno_id = $1`,
-      [aluno.id],
-    )
+       FROM embeddings_faciais WHERE aluno_id = ANY($1)`,
+      [alunoIds],
+    ),
+  ])
+
+  // Montar mapas para lookup O(1)
+  const consentMap = new Map(allConsent.rows.map((r: any) => [r.aluno_id, r]))
+  const embedMap = new Map(allEmbed.rows.map((r: any) => [r.aluno_id, r]))
+
+  for (const aluno of alunoResult.rows) {
+    const consentResult = { rows: consentMap.has(aluno.id) ? [consentMap.get(aluno.id)] : [] }
+    const embedResult = { rows: embedMap.has(aluno.id) ? [embedMap.get(aluno.id)] : [] }
 
     // Verificar embedding
     let embeddingValido = false

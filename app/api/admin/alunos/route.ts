@@ -68,6 +68,22 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
     const whereClause = `WHERE ${buildConditionsString(where)}`
 
+    // Keyset pagination: se cursor vier, usa para paginação eficiente (O(1) vs O(n) do OFFSET)
+    const cursor = searchParams.get('cursor')
+    const dataParams = [...where.params]
+    let cursorClause = ''
+    if (cursor) {
+      // cursor = "nome|id" codificado em base64
+      try {
+        const decoded = Buffer.from(cursor, 'base64').toString()
+        const [cursorNome, cursorId] = decoded.split('|')
+        if (cursorNome && cursorId) {
+          cursorClause = ` AND (a.nome, a.id) > ($${dataParams.length + 1}, $${dataParams.length + 2})`
+          dataParams.push(cursorNome, cursorId)
+        }
+      } catch { /* fallback para OFFSET */ }
+    }
+
     const [countResult, dataResult] = await Promise.all([
       pool.query(
         `SELECT COUNT(*) as total FROM alunos a INNER JOIN escolas e ON a.escola_id = e.id ${whereClause}`,
@@ -85,18 +101,27 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
         INNER JOIN escolas e ON a.escola_id = e.id
         LEFT JOIN polos p ON e.polo_id = p.id
         LEFT JOIN turmas t ON a.turma_id = t.id
-        ${whereClause}
-        ORDER BY a.nome
-        ${buildLimitOffset(paginacao)}`,
-        where.params
+        ${whereClause}${cursorClause}
+        ORDER BY a.nome, a.id
+        ${cursorClause ? `LIMIT ${paginacao.limite}` : buildLimitOffset(paginacao)}`,
+        dataParams
       ),
     ])
 
     const total = parseInt(countResult.rows[0]?.total || '0')
 
+    // Gerar cursor para próxima página (keyset pagination)
+    const rows = dataResult.rows
+    let nextCursor: string | undefined
+    if (rows.length === paginacao.limite) {
+      const last = rows[rows.length - 1]
+      nextCursor = Buffer.from(`${last.nome}|${last.id}`).toString('base64')
+    }
+
     return NextResponse.json({
-      alunos: dataResult.rows,
-      paginacao: buildPaginacaoResponse(paginacao, total)
+      alunos: rows,
+      paginacao: buildPaginacaoResponse(paginacao, total),
+      ...(nextCursor && { next_cursor: nextCursor }),
     })
   } catch (error: unknown) {
     console.error('Erro ao buscar alunos:', error)

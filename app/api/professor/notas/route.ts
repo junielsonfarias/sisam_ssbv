@@ -33,13 +33,17 @@ export const GET = withAuth('professor', async (request, usuario) => {
     return NextResponse.json({ mensagem: 'turma_id, disciplina_id e periodo_id são obrigatórios' }, { status: 400 })
   }
 
-  const temVinculo = await verificarVinculoProfessor(usuario.id, turmaId)
+  // Executar verificação de vínculo, busca de notas e turma em paralelo
+  const [temVinculo, alunos, turma] = await Promise.all([
+    verificarVinculoProfessor(usuario.id, turmaId),
+    buscarNotas(turmaId, disciplinaId, periodoId),
+    buscarTurma(turmaId),
+  ])
+
   if (!temVinculo) {
     return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
   }
 
-  const alunos = await buscarNotas(turmaId, disciplinaId, periodoId)
-  const turma = await buscarTurma(turmaId)
   const config = turma
     ? await buscarConfigNotas(turma.escola_id, turma.ano_letivo)
     : { nota_maxima: 10, media_aprovacao: 6, permite_recuperacao: true }
@@ -63,19 +67,21 @@ export const POST = withAuth('professor', async (request, usuario) => {
 
   const { turma_id, disciplina_id, periodo_id, notas } = validacao.data
 
-  // Verificar vínculo com turma
-  const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
-  if (!temVinculo) {
+  // Executar verificações e busca de turma em paralelo (3 queries → 1 round-trip)
+  const [vinculoResult, turma] = await Promise.all([
+    pool.query(
+      `SELECT tipo_vinculo, disciplina_id FROM professor_turmas
+       WHERE professor_id = $1 AND turma_id = $2 AND ativo = true`,
+      [usuario.id, turma_id]
+    ),
+    buscarTurma(turma_id),
+  ])
+
+  const vinculos = vinculoResult.rows
+  if (vinculos.length === 0) {
     return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
   }
 
-  // Verificar vínculo com disciplina
-  const vinculoResult = await pool.query(
-    `SELECT tipo_vinculo, disciplina_id FROM professor_turmas
-     WHERE professor_id = $1 AND turma_id = $2 AND ativo = true`,
-    [usuario.id, turma_id]
-  )
-  const vinculos = vinculoResult.rows
   const isPolivalente = vinculos.some((v: any) => v.tipo_vinculo === 'polivalente')
   const temDisciplina = vinculos.some((v: any) => v.disciplina_id === disciplina_id)
 
@@ -83,8 +89,6 @@ export const POST = withAuth('professor', async (request, usuario) => {
     return NextResponse.json({ mensagem: 'Sem vínculo com esta disciplina' }, { status: 403 })
   }
 
-  // Buscar turma e config
-  const turma = await buscarTurma(turma_id)
   if (!turma) {
     return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
   }

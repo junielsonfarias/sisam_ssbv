@@ -59,22 +59,24 @@ export async function GET(request: NextRequest) {
     }
 
     const turmasQuery = `
+      WITH turmas_contagem AS (
+        SELECT t.id, t.serie,
+               COUNT(a.id) FILTER (WHERE a.situacao = 'cursando' OR a.situacao IS NULL) as total_alunos
+        FROM turmas t
+        LEFT JOIN alunos a ON a.turma_id = t.id AND a.ano_letivo = t.ano_letivo
+        ${turmasWhere}
+        GROUP BY t.id, t.serie
+      )
       SELECT
-        COUNT(DISTINCT t.id) as total_turmas,
-        COUNT(DISTINCT t.serie) as total_series,
+        COUNT(*) as total_turmas,
+        COUNT(DISTINCT serie) as total_series,
         json_agg(
           json_build_object(
-            'serie', t.serie,
-            'total', sub.total_alunos
-          ) ORDER BY t.serie
+            'serie', serie,
+            'total', total_alunos
+          ) ORDER BY serie
         ) as por_serie
-      FROM turmas t
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*) as total_alunos
-        FROM alunos a
-        WHERE a.turma_id = t.id AND (a.situacao = 'cursando' OR a.situacao IS NULL)
-      ) sub ON true
-      ${turmasWhere}
+      FROM turmas_contagem
     `
 
     // ============================================
