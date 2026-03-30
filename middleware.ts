@@ -308,12 +308,14 @@ function addSecurityHeaders(response: NextResponse, requestId?: string, pathname
   if (isTerminal) {
     // Terminal: câmera obrigatória, WASM para face-api, mediastream para vídeo
     // unsafe-eval necessário para face-api.js (TensorFlow.js runtime)
+    // unsafe-inline necessário para Next.js hydration scripts
     response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
-    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: mediastream:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-ancestors 'none'")
+    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: mediastream:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-ancestors 'none'")
   } else {
     // Demais páginas: sem unsafe-eval, câmera desabilitada
+    // unsafe-inline necessário para Next.js (inline scripts de hydration/chunks)
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'")
+    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'")
   }
 
   if (requestId) {
