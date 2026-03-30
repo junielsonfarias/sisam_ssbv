@@ -75,13 +75,18 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
           ? 'bg-white/95 backdrop-blur-xl shadow-lg shadow-slate-900/5 border-b border-slate-100'
-          : 'bg-transparent'
+          : 'bg-white/80 backdrop-blur-sm'
       }`}
       role="banner"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Barra institucional superior — apenas mobile */}
+      <div className={`md:hidden bg-blue-900 text-white text-center transition-all duration-500 ${scrolled ? 'py-0.5 text-[9px]' : 'py-1 text-[10px]'} font-medium tracking-wide`}>
+        Secretaria Municipal de Educação — São Sebastião da Boa Vista/PA
+      </div>
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className={`flex items-center justify-between transition-all duration-500 ${
-          scrolled ? 'h-14 sm:h-16' : 'h-16 sm:h-20'
+          scrolled ? 'h-12 sm:h-16' : 'h-14 sm:h-20'
         }`}>
           {/* Logo */}
           <a
@@ -93,18 +98,24 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             className="flex items-center gap-2 sm:gap-3 group min-w-0"
             aria-label="Voltar ao topo"
           >
-            {/* Logos lado a lado com tamanho adequado para mobile */}
+            {/* Logo SEMED */}
             <img
               src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
-              alt="SEMED - São Sebastião da Boa Vista"
-              className={`w-auto transition-all duration-500 ${scrolled ? 'h-7 sm:h-10' : 'h-8 sm:h-14'}`}
+              alt="SEMED"
+              className={`w-auto transition-all duration-500 ${scrolled ? 'h-8 sm:h-10' : 'h-10 sm:h-14'}`}
             />
-            <div className="hidden sm:block w-px h-8 bg-slate-200 flex-shrink-0" />
+            {/* Separador + Logo Prefeitura */}
+            <div className="w-px h-6 sm:h-8 bg-slate-300 flex-shrink-0" />
             <img
               src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
-              alt="Prefeitura Municipal de São Sebastião da Boa Vista"
-              className={`w-auto transition-all duration-500 ${scrolled ? 'h-7 sm:h-10' : 'h-8 sm:h-14'}`}
+              alt="Prefeitura de São Sebastião da Boa Vista"
+              className={`w-auto transition-all duration-500 ${scrolled ? 'h-8 sm:h-10' : 'h-10 sm:h-14'}`}
             />
+            {/* Texto institucional — apenas desktop */}
+            <div className="hidden lg:flex flex-col min-w-0 ml-1">
+              <span className="text-sm font-bold text-blue-900 leading-tight">SEMED</span>
+              <span className="text-[10px] text-slate-500 leading-tight">São Sebastião da Boa Vista</span>
+            </div>
           </a>
 
           {/* Desktop Nav */}
@@ -173,23 +184,26 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             menuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          <div className="px-6 py-4 border-b border-slate-100">
-            <div className="flex items-center justify-between mb-3">
+          {/* Topo do menu mobile — identidade visual */}
+          <div className="bg-blue-900 px-5 py-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-12 w-auto" />
-                <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-12 w-auto" />
+                <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-10 w-auto brightness-0 invert" />
+                <div className="w-px h-8 bg-white/30" />
+                <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-10 w-auto brightness-0 invert" />
               </div>
               <button
                 onClick={() => setMenuOpen(false)}
-                className="p-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors"
+                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
                 aria-label="Fechar menu"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <p className="text-xs font-semibold text-blue-800">SEMED — São Sebastião da Boa Vista/PA</p>
+            <p className="text-[11px] text-blue-200 font-medium mt-2">Secretaria Municipal de Educação</p>
+            <p className="text-[10px] text-blue-300/70">São Sebastião da Boa Vista — Pará</p>
           </div>
-          <nav className="px-6 py-8 space-y-2" aria-label="Menu mobile">
+          <nav className="px-4 py-4 space-y-1" aria-label="Menu mobile">
             {navItems.map((item: any, i: number) => (
               <a
                 key={i}
@@ -200,11 +214,11 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                 {item.label}
               </a>
             ))}
-            <div className="pt-4">
+            <div className="pt-3 px-1">
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-blue-800 text-white font-bold text-lg shadow-lg shadow-blue-800/25 transition-all duration-200"
+                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-blue-800 text-white font-bold text-base shadow-lg shadow-blue-800/25 transition-all duration-200"
               >
                 Entrar
                 <ArrowRight className="w-5 h-5" />
