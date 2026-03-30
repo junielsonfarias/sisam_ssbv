@@ -25,7 +25,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
   ]
 
   return (
-    <section id="sobre" className="relative py-8 sm:py-20 lg:py-24 bg-white overflow-hidden" aria-labelledby="about-title">
+    <section id="sobre" className="relative py-10 sm:py-20 lg:py-24 bg-white overflow-hidden" aria-labelledby="about-title">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.02]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
@@ -76,11 +76,11 @@ export default function SiteAbout({ data }: SiteAboutProps) {
         </div>
 
         {/* Mission, Vision, Values */}
-        <div className="grid md:grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
+        <div className="grid md:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
           {cards.map((card, i) => (
             <div
               key={i}
-              className={`bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 border border-slate-100 border-l-4 ${card.accent} hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300`}
+              className={`bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-100 border-l-4 ${card.accent} hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300`}
             >
               {/* Mobile: ícone + título na mesma linha */}
               <div className="flex items-center gap-3 mb-2 sm:mb-4">

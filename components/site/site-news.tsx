@@ -84,7 +84,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
   const secondary = news.slice(1, 3)
 
   return (
-    <section id="noticias" className="py-8 sm:py-20 lg:py-24 bg-slate-50" aria-labelledby="news-title">
+    <section id="noticias" className="py-10 sm:py-20 lg:py-24 bg-slate-50" aria-labelledby="news-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-14">

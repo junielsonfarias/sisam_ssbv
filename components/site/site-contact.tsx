@@ -29,7 +29,7 @@ export default function SiteContact({ data }: SiteContactProps) {
   ]
 
   return (
-    <section id="contato" className="py-8 sm:py-20 lg:py-24 bg-white" aria-labelledby="contact-title">
+    <section id="contato" className="py-10 sm:py-20 lg:py-24 bg-white" aria-labelledby="contact-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-16">
