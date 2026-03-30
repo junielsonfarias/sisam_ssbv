@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogIn, Eye, EyeOff, WifiOff, Database, CheckCircle, GraduationCap, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import Rodape from '@/components/rodape'
+// Rodapé inline para manter consistência visual na tela de login
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from '@/components/theme-toggle'
@@ -245,45 +245,49 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
-      {/* Barra superior com botão voltar e toggle tema */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-800 dark:hover:text-blue-400 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar ao site
-        </Link>
-        <ThemeToggleSimple />
+    <div className="min-h-screen flex flex-col bg-white dark:bg-slate-900 transition-colors duration-300">
+      {/* Topo institucional azul com voltar + tema */}
+      <div className="bg-blue-900 text-white">
+        <div className="flex items-center justify-between px-4 py-2.5 max-w-md mx-auto w-full">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-100 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Voltar ao site
+          </Link>
+          <ThemeToggleSimple className="text-blue-200 hover:text-white" />
+        </div>
       </div>
 
       {/* Indicador de modo offline */}
       {modoOffline && (
-        <div className="bg-orange-500 dark:bg-orange-600 text-white py-2 px-4 text-center text-sm font-medium flex items-center justify-center gap-2">
+        <div className="bg-orange-500 text-white py-2 px-4 text-center text-sm font-medium flex items-center justify-center gap-2">
           <WifiOff className="w-4 h-4" />
           Você está offline
         </div>
       )}
 
-      <div className="flex-1 flex items-center justify-center px-4 py-6 sm:p-6">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl dark:shadow-slate-900/50 w-full max-w-md border border-slate-200 dark:border-slate-700 transition-colors duration-300 overflow-hidden">
-          {/* Cabeçalho — fundo branco para logos legíveis */}
-          <div className="px-6 pt-6 pb-4 text-center border-b border-slate-100 dark:border-slate-700">
-            <div className="flex items-center justify-center gap-5 mb-4">
-              <img
-                src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
-                alt="SEMED"
-                className="h-16 sm:h-20 w-auto object-contain"
-              />
-              <div className="w-px h-14 bg-slate-200 dark:bg-slate-600 flex-shrink-0" />
-              <img
-                src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
-                alt="Prefeitura de São Sebastião da Boa Vista"
-                className="h-16 sm:h-20 w-auto object-contain"
-              />
-            </div>
-            <h1 className="text-xl font-bold text-blue-900 dark:text-white">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:p-6">
+        <div className="w-full max-w-md">
+          {/* Logos centralizadas */}
+          <div className="flex items-center justify-center gap-6 mb-6">
+            <img
+              src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
+              alt="SEMED"
+              className="h-20 sm:h-24 w-auto object-contain"
+            />
+            <div className="w-px h-16 bg-slate-200 dark:bg-slate-600 flex-shrink-0" />
+            <img
+              src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
+              alt="Prefeitura de São Sebastião da Boa Vista"
+              className="h-20 sm:h-24 w-auto object-contain"
+            />
+          </div>
+
+          {/* Título */}
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-blue-900 dark:text-white">
               {personalizacao.titulo}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -291,9 +295,9 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Formulário */}
-          <div className="px-6 py-6 sm:px-8 sm:py-8">
-            <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Card do formulário */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 px-5 py-6 sm:px-8 sm:py-8">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
                   Email
@@ -304,7 +308,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 transition-colors"
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 outline-none bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-base transition-colors"
                   placeholder="seu@email.com"
                 />
               </div>
@@ -320,7 +324,7 @@ export default function LoginPage() {
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 pr-10 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 transition-colors"
+                    className="w-full px-4 py-3 pr-10 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 outline-none bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-base transition-colors"
                     placeholder="••••••••"
                   />
                   <button
@@ -343,28 +347,37 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={carregando}
-                className="w-full bg-blue-800 hover:bg-blue-900 text-white py-3 px-4 rounded-xl font-bold text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-800/25"
+                className="w-full bg-blue-800 hover:bg-blue-900 text-white py-3.5 px-4 rounded-xl font-bold text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-800/20 hover:shadow-blue-900/30 active:scale-[0.98]"
               >
-                {carregando ? 'Entrando...' : 'Entrar'}
+                {carregando ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Entrando...
+                  </span>
+                ) : 'Entrar'}
               </button>
-
-              {/* Link cadastro professor */}
-              <div className="text-center pt-2">
-                <Link
-                  href="/cadastro-professor"
-                  className="inline-flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400 hover:underline font-medium"
-                >
-                  <GraduationCap className="h-4 w-4" />
-                  Sou professor — Criar minha conta
-                </Link>
-              </div>
             </form>
+
+            {/* Link cadastro professor */}
+            <div className="text-center mt-5 pt-4 border-t border-slate-100 dark:border-slate-700">
+              <Link
+                href="/cadastro-professor"
+                className="inline-flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400 hover:underline font-medium"
+              >
+                <GraduationCap className="h-4 w-4" />
+                Sou professor — Criar minha conta
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Rodapé */}
-      <Rodape />
+      {/* Rodapé institucional */}
+      <div className="text-center py-4 px-4">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          © {new Date().getFullYear()} SEMED — São Sebastião da Boa Vista/PA
+        </p>
+      </div>
     </div>
   )
 }
