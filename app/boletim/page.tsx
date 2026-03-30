@@ -148,7 +148,7 @@ export default function BoletimPage() {
     if (tab === 'comunicados') carregarComunicados()
   }
 
-  const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 sm:py-3.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all'
+  const inputClass = 'w-full rounded-xl border border-gray-200 bg-slate-50 px-5 py-4 sm:py-5 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white transition-all'
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -214,24 +214,24 @@ export default function BoletimPage() {
         )}
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 flex-1">
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-8 flex-1">
         {/* Search */}
         {!dados && (
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-6 sm:mb-8">
-              <h1 className="text-xl sm:text-3xl font-bold text-slate-800">Consulta de Boletim</h1>
-              <p className="text-sm sm:text-base text-slate-500 mt-1 sm:mt-2">Consulte as notas e frequência do aluno</p>
+          <div className="w-full max-w-none">
+            <div className="text-center mb-6 sm:mb-10">
+              <h1 className="text-xl sm:text-4xl font-bold text-slate-800">Consulta de Boletim</h1>
+              <p className="text-sm sm:text-lg text-slate-500 mt-1 sm:mt-3">Consulte as notas e frequência do aluno</p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 sm:p-8 space-y-5 sm:space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 sm:p-10 lg:p-16 space-y-5 sm:space-y-8">
               {/* Modo toggle */}
               <div className="flex bg-slate-100 rounded-xl p-1">
                 <button onClick={() => setModo('codigo')}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${modo === 'codigo' ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  className={`flex-1 py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all ${modo === 'codigo' ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                   Buscar por Codigo
                 </button>
                 <button onClick={() => setModo('cpf')}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${modo === 'cpf' ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  className={`flex-1 py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all ${modo === 'cpf' ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                   Buscar por CPF
                 </button>
               </div>
@@ -274,7 +274,7 @@ export default function BoletimPage() {
               )}
 
               <button onClick={buscar} disabled={carregando}
-                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-800 text-white font-bold rounded-xl hover:from-blue-800 hover:to-blue-900 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full py-4 sm:py-5 bg-gradient-to-r from-blue-600 to-blue-800 text-white font-bold text-base sm:text-lg rounded-xl hover:from-blue-800 hover:to-blue-900 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2">
                 {carregando ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
