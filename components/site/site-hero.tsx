@@ -59,48 +59,48 @@ export default function SiteHero({ data }: SiteHeroProps) {
             visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200/80 text-blue-800 text-sm font-semibold mb-8">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-blue-50 border border-blue-200/80 text-blue-800 text-xs sm:text-sm font-semibold mb-6 sm:mb-8">
               <span className="w-2 h-2 rounded-full bg-blue-700 animate-pulse" />
               {subtitle}
             </div>
 
             {/* Title */}
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900">
+            <h1 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 sm:mb-6 leading-[1.1] text-slate-900">
               {title}
             </h1>
 
             {/* Description */}
-            <p className="text-lg sm:text-xl text-slate-500 mb-10 leading-relaxed max-w-xl">
+            <p className="text-base sm:text-xl text-slate-500 mb-8 sm:mb-10 leading-relaxed max-w-xl">
               {description}
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-start gap-4 mb-16">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 sm:gap-4 mb-12 sm:mb-16">
               <Link
                 href={ctaPrimary.href}
-                className="inline-flex items-center gap-2.5 px-8 py-4 bg-blue-800 text-white font-bold rounded-full text-lg hover:bg-blue-900 transition-all duration-300 shadow-lg shadow-blue-800/25 hover:shadow-blue-800/40 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-blue-800 text-white font-bold rounded-full text-base sm:text-lg hover:bg-blue-900 transition-all duration-300 shadow-lg shadow-blue-800/25 hover:shadow-blue-800/40 hover:-translate-y-0.5"
               >
                 {ctaPrimary.label}
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
                 href={ctaSecondary.href}
-                className="inline-flex items-center gap-2 px-8 py-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-full text-lg hover:border-blue-300 hover:text-blue-800 hover:bg-blue-50/50 transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-full text-base sm:text-lg hover:border-blue-300 hover:text-blue-800 hover:bg-blue-50/50 transition-all duration-300"
               >
                 {ctaSecondary.label}
               </Link>
             </div>
 
             {/* Stats bar */}
-            <div className="flex flex-wrap gap-10 sm:gap-14 border-t border-slate-200/80 pt-8">
+            <div className="grid grid-cols-3 gap-4 sm:flex sm:flex-wrap sm:gap-14 border-t border-slate-200/80 pt-6 sm:pt-8">
               {[
                 { value: '30+', label: 'Escolas' },
                 { value: '5.000+', label: 'Alunos' },
                 { value: '200+', label: 'Turmas' },
               ].map((stat, i) => (
-                <div key={i}>
-                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">{stat.value}</p>
-                  <p className="text-sm font-medium text-slate-400 mt-1">{stat.label}</p>
+                <div key={i} className="text-center sm:text-left">
+                  <p className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900">{stat.value}</p>
+                  <p className="text-xs sm:text-sm font-medium text-slate-400 mt-0.5 sm:mt-1">{stat.label}</p>
                 </div>
               ))}
             </div>
