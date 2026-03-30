@@ -19,7 +19,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
   const values = data?.values || 'Compromisso com a qualidade do ensino, inclusão e equidade, transparência na gestão pública, valorização do profissional da educação e respeito à diversidade.'
 
   const cards = [
-    { icon: Target, title: 'Missão', text: mission, accent: 'border-l-emerald-500', iconBg: 'bg-emerald-50', iconText: 'text-emerald-600' },
+    { icon: Target, title: 'Missão', text: mission, accent: 'border-l-blue-700', iconBg: 'bg-blue-50', iconText: 'text-blue-700' },
     { icon: Eye, title: 'Visão', text: vision, accent: 'border-l-blue-500', iconBg: 'bg-blue-50', iconText: 'text-blue-600' },
     { icon: Heart, title: 'Valores', text: values, accent: 'border-l-amber-500', iconBg: 'bg-amber-50', iconText: 'text-amber-600' },
   ]
@@ -28,7 +28,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
     <section id="sobre" className="relative py-20 sm:py-28 bg-white overflow-hidden" aria-labelledby="about-title">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.02]" style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, #059669 1px, transparent 0)',
+        backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
         backgroundSize: '48px 48px'
       }} />
 
@@ -37,30 +37,30 @@ export default function SiteAbout({ data }: SiteAboutProps) {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-20">
           {/* Left - Image placeholder */}
           <div className="relative" aria-hidden="true">
-            <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100 overflow-hidden">
+            <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-100 overflow-hidden">
               <div className="absolute inset-0 flex items-center justify-center">
                 <svg viewBox="0 0 400 300" className="w-full h-full p-12 opacity-30">
                   {/* School building */}
-                  <rect x="100" y="100" width="200" height="150" rx="8" fill="#059669" opacity="0.3" />
-                  <rect x="130" y="130" width="40" height="50" rx="4" fill="#059669" opacity="0.2" />
-                  <rect x="230" y="130" width="40" height="50" rx="4" fill="#059669" opacity="0.2" />
-                  <rect x="175" y="170" width="50" height="80" rx="4" fill="#059669" opacity="0.25" />
+                  <rect x="100" y="100" width="200" height="150" rx="8" fill="#1e40af" opacity="0.3" />
+                  <rect x="130" y="130" width="40" height="50" rx="4" fill="#1e40af" opacity="0.2" />
+                  <rect x="230" y="130" width="40" height="50" rx="4" fill="#1e40af" opacity="0.2" />
+                  <rect x="175" y="170" width="50" height="80" rx="4" fill="#1e40af" opacity="0.25" />
                   {/* Roof */}
-                  <path d="M80 105 L200 40 L320 105" fill="none" stroke="#059669" strokeWidth="4" opacity="0.3" />
+                  <path d="M80 105 L200 40 L320 105" fill="none" stroke="#1e40af" strokeWidth="4" opacity="0.3" />
                   {/* Flag */}
-                  <line x1="200" y1="40" x2="200" y2="15" stroke="#059669" strokeWidth="2" opacity="0.3" />
+                  <line x1="200" y1="40" x2="200" y2="15" stroke="#1e40af" strokeWidth="2" opacity="0.3" />
                   <rect x="200" y="15" width="25" height="15" rx="2" fill="#f59e0b" opacity="0.3" />
                 </svg>
               </div>
             </div>
             {/* Decorative accent */}
             <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-amber-100 rounded-2xl -z-10" />
-            <div className="absolute -top-4 -left-4 w-16 h-16 bg-emerald-100 rounded-2xl -z-10" />
+            <div className="absolute -top-4 -left-4 w-16 h-16 bg-blue-100 rounded-2xl -z-10" />
           </div>
 
           {/* Right - Text content */}
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-3">Quem somos</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3">Quem somos</p>
             <h2 id="about-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
               {title}
             </h2>

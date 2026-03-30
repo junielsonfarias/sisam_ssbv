@@ -25,7 +25,7 @@ const defaultNews = [
 ]
 
 const gradientColors = [
-  'from-emerald-500 to-emerald-700',
+  'from-blue-700 to-blue-900',
   'from-blue-500 to-blue-700',
   'from-amber-500 to-amber-700',
 ]
@@ -66,7 +66,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
     return (
       <section id="noticias" className="py-20 sm:py-28 bg-slate-50" aria-labelledby="news-title-empty">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">Notícias</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Notícias</p>
           <h2 id="news-title-empty" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">{title}</h2>
           <div className="mt-12 bg-white rounded-2xl p-16 border border-slate-100 max-w-lg mx-auto">
             <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-5">
@@ -89,13 +89,13 @@ export default function SiteNews({ data }: SiteNewsProps) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-14">
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">Novidades</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Novidades</p>
             <h2 id="news-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">{title}</h2>
             <p className="text-lg text-slate-500 max-w-xl leading-relaxed">{subtitle}</p>
           </div>
           <a
             href="#"
-            className="hidden sm:inline-flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700 transition-colors mt-4 sm:mt-0"
+            className="hidden sm:inline-flex items-center gap-2 text-blue-800 font-semibold hover:text-blue-900 transition-colors mt-4 sm:mt-0"
           >
             Ver todas as notícias
             <ArrowRight className="w-4 h-4" />
@@ -114,7 +114,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
               {/* Date badge */}
               <div className="absolute top-4 left-4 bg-white rounded-xl px-3 py-2 text-center shadow-lg">
                 <p className="text-xl font-extrabold text-slate-900 leading-none">{formatDay(featured.date)}</p>
-                <p className="text-xs font-bold text-emerald-600 uppercase">{formatMonth(featured.date)}</p>
+                <p className="text-xs font-bold text-blue-800 uppercase">{formatMonth(featured.date)}</p>
               </div>
             </div>
             <div className="p-8">
@@ -122,13 +122,13 @@ export default function SiteNews({ data }: SiteNewsProps) {
                 <Calendar className="w-3.5 h-3.5" />
                 {formatDate(featured.date)}
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-emerald-600 transition-colors duration-300 line-clamp-2">
+              <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-800 transition-colors duration-300 line-clamp-2">
                 {featured.title}
               </h3>
               <p className="text-slate-500 leading-relaxed line-clamp-3 mb-6">
                 {featured.excerpt}
               </p>
-              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 group-hover:gap-3 transition-all duration-300">
+              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-800 group-hover:gap-3 transition-all duration-300">
                 Ler mais
                 <ArrowRight className="w-4 h-4" />
               </span>
@@ -149,7 +149,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
                   {/* Date badge */}
                   <div className="absolute top-3 left-3 bg-white rounded-lg px-2.5 py-1.5 text-center shadow-md">
                     <p className="text-sm font-extrabold text-slate-900 leading-none">{formatDay(item.date)}</p>
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase">{formatMonth(item.date)}</p>
+                    <p className="text-[10px] font-bold text-blue-800 uppercase">{formatMonth(item.date)}</p>
                   </div>
                 </div>
                 <div className="p-6 flex flex-col justify-center">
@@ -157,13 +157,13 @@ export default function SiteNews({ data }: SiteNewsProps) {
                     <Calendar className="w-3 h-3" />
                     {formatDate(item.date)}
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors duration-300 line-clamp-2">
+                  <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-800 transition-colors duration-300 line-clamp-2">
                     {item.title}
                   </h3>
                   <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-3">
                     {item.excerpt}
                   </p>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 group-hover:gap-3 transition-all duration-300">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-800 group-hover:gap-3 transition-all duration-300">
                     Ler mais
                     <ArrowRight className="w-4 h-4" />
                   </span>
@@ -177,7 +177,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
         <div className="flex justify-center mt-10 sm:hidden">
           <a
             href="#"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-emerald-200 text-emerald-600 font-semibold hover:bg-emerald-50 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-blue-200 text-blue-800 font-semibold hover:bg-blue-50 transition-colors"
           >
             Ver todas as notícias
             <ArrowRight className="w-4 h-4" />

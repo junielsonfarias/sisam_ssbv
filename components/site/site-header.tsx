@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Menu, X, GraduationCap, ArrowRight } from 'lucide-react'
+import { Menu, X, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 interface SiteHeaderProps {
@@ -29,7 +29,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
 
   const navItems = data?.nav || defaultNav
   const logoText = data?.logoText || 'SEMED'
-  const logoSubtext = data?.logoSubtext || 'São Sebastião da Boa Vista'
+  const logoSubtext = data?.logoSubtext || 'São Sebastião da Boa Vista - Pará'
 
   useEffect(() => {
     const handleScroll = () => {
@@ -93,11 +93,10 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             className="flex items-center gap-3 group"
             aria-label="Voltar ao topo"
           >
-            <div className="p-2 rounded-xl bg-emerald-600 shadow-lg shadow-emerald-600/25 group-hover:shadow-emerald-600/40 transition-shadow duration-300">
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
+            <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-10 sm:h-12 w-auto" />
+            <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura de São Sebastião da Boa Vista" className="h-10 sm:h-12 w-auto" />
             <div>
-              <span className="text-xl font-extrabold tracking-tight text-emerald-700">
+              <span className="text-xl font-extrabold tracking-tight text-blue-800">
                 {logoText}
               </span>
               <p className={`text-[11px] font-medium hidden sm:block leading-tight transition-colors duration-300 ${
@@ -119,23 +118,23 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                   onClick={(e) => handleNavClick(e, item.href)}
                   className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                     isActive
-                      ? 'text-emerald-700 bg-emerald-50'
+                      ? 'text-blue-800 bg-blue-50'
                       : scrolled
-                        ? 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50/50'
-                        : 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50/50'
+                        ? 'text-slate-600 hover:text-blue-800 hover:bg-blue-50/50'
+                        : 'text-slate-600 hover:text-blue-800 hover:bg-blue-50/50'
                   }`}
                   aria-current={isActive ? 'true' : undefined}
                 >
                   {item.label}
                   {isActive && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-emerald-500 rounded-full" />
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-blue-700 rounded-full" />
                   )}
                 </a>
               )
             })}
             <Link
               href="/login"
-              className="ml-4 inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all duration-300 hover:-translate-y-0.5"
+              className="ml-4 inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold bg-blue-800 text-white hover:bg-blue-900 shadow-lg shadow-blue-800/25 hover:shadow-blue-800/40 transition-all duration-300 hover:-translate-y-0.5"
             >
               Entrar
               <ArrowRight className="w-4 h-4" />
@@ -176,10 +175,9 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
         >
           <div className="flex items-center justify-between px-6 h-20 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-600">
-                <GraduationCap className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-extrabold text-emerald-700">{logoText}</span>
+              <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-10 w-auto" />
+              <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura de São Sebastião da Boa Vista" className="h-10 w-auto" />
+              <span className="text-xl font-extrabold text-blue-800">{logoText}</span>
             </div>
             <button
               onClick={() => setMenuOpen(false)}
@@ -195,7 +193,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                 key={i}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
-                className="block px-5 py-4 rounded-2xl text-lg font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 transition-all duration-200"
+                className="block px-5 py-4 rounded-2xl text-lg font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 transition-all duration-200"
               >
                 {item.label}
               </a>
@@ -204,7 +202,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-emerald-600 text-white font-bold text-lg shadow-lg shadow-emerald-600/25 transition-all duration-200"
+                className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-blue-800 text-white font-bold text-lg shadow-lg shadow-blue-800/25 transition-all duration-200"
               >
                 Entrar
                 <ArrowRight className="w-5 h-5" />

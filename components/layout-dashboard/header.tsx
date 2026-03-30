@@ -93,7 +93,7 @@ export function Header({
                 {personalizacao.nome_sistema || 'SISAM'}
               </h1>
               <span className="text-[9px] sm:text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 truncate leading-tight">
-                SEMED — Castanhal/PA
+                SEMED — São Sebastião da Boa Vista/PA
               </span>
             </div>
 

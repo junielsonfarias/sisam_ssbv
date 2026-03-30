@@ -41,15 +41,15 @@ export default function SiteHero({ data }: SiteHeroProps) {
   ]
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-emerald-50/60 to-white pt-20" aria-label="Seção principal">
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-20" aria-label="Seção principal">
       {/* Subtle dot pattern */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, #059669 1px, transparent 0)',
+        backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
         backgroundSize: '40px 40px'
       }} />
 
       {/* Decorative blurs */}
-      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-emerald-100/40 rounded-full blur-3xl" />
+      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-3xl" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-50/30 rounded-full blur-3xl" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-12 lg:py-0">
@@ -59,8 +59,8 @@ export default function SiteHero({ data }: SiteHeroProps) {
             visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-sm font-semibold mb-8">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200/80 text-blue-800 text-sm font-semibold mb-8">
+              <span className="w-2 h-2 rounded-full bg-blue-700 animate-pulse" />
               {subtitle}
             </div>
 
@@ -78,14 +78,14 @@ export default function SiteHero({ data }: SiteHeroProps) {
             <div className="flex flex-col sm:flex-row items-start gap-4 mb-16">
               <Link
                 href={ctaPrimary.href}
-                className="inline-flex items-center gap-2.5 px-8 py-4 bg-emerald-600 text-white font-bold rounded-full text-lg hover:bg-emerald-700 transition-all duration-300 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2.5 px-8 py-4 bg-blue-800 text-white font-bold rounded-full text-lg hover:bg-blue-900 transition-all duration-300 shadow-lg shadow-blue-800/25 hover:shadow-blue-800/40 hover:-translate-y-0.5"
               >
                 {ctaPrimary.label}
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
                 href={ctaSecondary.href}
-                className="inline-flex items-center gap-2 px-8 py-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-full text-lg hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all duration-300"
+                className="inline-flex items-center gap-2 px-8 py-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-full text-lg hover:border-blue-300 hover:text-blue-800 hover:bg-blue-50/50 transition-all duration-300"
               >
                 {ctaSecondary.label}
               </Link>
@@ -112,7 +112,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
           }`} aria-hidden="true">
             <div className="relative w-full max-w-md mx-auto">
               {/* Background circle */}
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/50 to-emerald-50/30 rounded-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-blue-50/30 rounded-3xl" />
 
               {/* 3x3 Icon Grid */}
               <div className="relative grid grid-cols-3 gap-4 p-8">
@@ -124,12 +124,12 @@ export default function SiteHero({ data }: SiteHeroProps) {
                       key={i}
                       className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-500 ${
                         isCenter
-                          ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/30'
-                          : 'bg-white border border-slate-100 text-slate-600 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-1'
+                          ? 'bg-blue-800 text-white shadow-xl shadow-blue-800/30'
+                          : 'bg-white border border-slate-100 text-slate-600 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-700/10 hover:-translate-y-1'
                       }`}
                     >
-                      <Icon className={`w-7 h-7 ${isCenter ? 'text-white' : 'text-emerald-600'}`} />
-                      <span className={`text-xs font-bold ${isCenter ? 'text-emerald-100' : 'text-slate-500'}`}>{item.label}</span>
+                      <Icon className={`w-7 h-7 ${isCenter ? 'text-white' : 'text-blue-800'}`} />
+                      <span className={`text-xs font-bold ${isCenter ? 'text-blue-100' : 'text-slate-500'}`}>{item.label}</span>
                     </div>
                   )
                 })}
@@ -137,7 +137,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
 
               {/* Decorative dots */}
               <div className="absolute -top-4 -right-4 w-8 h-8 bg-amber-400 rounded-full opacity-60" />
-              <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-emerald-400 rounded-full opacity-40" />
+              <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-blue-400 rounded-full opacity-40" />
             </div>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
       {/* Scroll Down Indicator */}
       <button
         onClick={handleScrollDown}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-slate-300 hover:text-emerald-500 transition-colors animate-bounce"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-slate-300 hover:text-blue-700 transition-colors animate-bounce"
         aria-label="Rolar para baixo"
       >
         <ChevronDown className="w-8 h-8" />

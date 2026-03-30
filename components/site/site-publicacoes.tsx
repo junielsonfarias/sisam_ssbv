@@ -11,7 +11,7 @@ const BADGE_COLORS: Record<string, string> = {
   'Portaria': 'bg-blue-100 text-blue-700',
   'Resolução': 'bg-purple-100 text-purple-700',
   'Decreto': 'bg-red-100 text-red-700',
-  'Calendário Escolar': 'bg-emerald-100 text-emerald-700',
+  'Calendário Escolar': 'bg-blue-100 text-blue-900',
   'Ata': 'bg-amber-100 text-amber-700',
   'Parecer': 'bg-teal-100 text-teal-700',
   'Ofício': 'bg-orange-100 text-orange-700',
@@ -33,7 +33,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
     return (
       <section id="publicacoes" className="py-20 sm:py-28 bg-white" aria-labelledby="pub-title-empty">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">Transparência</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Transparência</p>
           <h2 id="pub-title-empty" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
             Publicações Oficiais
           </h2>
@@ -55,7 +55,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-14">
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">Transparência</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Transparência</p>
             <h2 id="pub-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">
               Publicações Oficiais
             </h2>
@@ -65,7 +65,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
           </div>
           <Link
             href="/publicacoes"
-            className="hidden sm:inline-flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700 transition-colors mt-4 sm:mt-0"
+            className="hidden sm:inline-flex items-center gap-2 text-blue-800 font-semibold hover:text-blue-900 transition-colors mt-4 sm:mt-0"
           >
             Ver todas as publicações
             <ArrowRight className="w-4 h-4" />
@@ -87,7 +87,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
                   <span className="text-xs font-mono text-slate-400">{pub.numero}</span>
                 )}
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors duration-300 line-clamp-2">
+              <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-800 transition-colors duration-300 line-clamp-2">
                 {pub.titulo}
               </h3>
               {pub.descricao && (
@@ -108,7 +108,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
                   href={pub.url_arquivo}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 group-hover:gap-3 transition-all duration-300"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-800 group-hover:gap-3 transition-all duration-300"
                 >
                   Ver documento
                   <ArrowRight className="w-4 h-4" />
@@ -122,7 +122,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
         <div className="flex justify-center mt-10 sm:hidden">
           <Link
             href="/publicacoes"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-emerald-200 text-emerald-600 font-semibold hover:bg-emerald-50 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-blue-200 text-blue-800 font-semibold hover:bg-blue-50 transition-colors"
           >
             Ver todas as publicações
             <ArrowRight className="w-4 h-4" />
