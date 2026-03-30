@@ -466,15 +466,47 @@ export default function BoletimPage() {
             {abaAtiva === 'boletim' && (<>
             {/* Disciplinas e Notas */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-800" />
-                  <h3 className="font-bold text-sm sm:text-base text-slate-800">Notas por Disciplina</h3>
-                </div>
-                <span className="text-[10px] text-slate-400 sm:hidden">← deslize →</span>
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-800" />
+                <h3 className="font-bold text-sm sm:text-base text-slate-800">Notas por Disciplina</h3>
               </div>
-              <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
-                {dados.disciplinas.length > 0 && dados.periodos.length > 0 ? (
+
+              {dados.disciplinas.length > 0 && dados.periodos.length > 0 ? (<>
+                {/* MOBILE: Cards por disciplina (visível apenas em mobile) */}
+                <div className="sm:hidden divide-y divide-gray-100">
+                  {dados.disciplinas.map(disc => {
+                    const notasDisc = dados.notas[disc.id] || {}
+                    const valoresNotas = dados.periodos.map(p => notasDisc[p.numero]?.nota_final).filter((n): n is number => n !== null && n !== undefined)
+                    const media = valoresNotas.length > 0 ? valoresNotas.reduce((a, b) => a + b, 0) / valoresNotas.length : null
+                    return (
+                      <div key={disc.id} className="px-4 py-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-sm text-slate-800">{disc.abreviacao || disc.codigo || disc.nome}</span>
+                          <span className={`text-sm font-bold px-2 py-0.5 rounded ${notaBg(media)} ${notaColor(media)}`}>
+                            Média: {media !== null ? media.toFixed(1) : '-'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {dados.periodos.map(p => {
+                            const celula = notasDisc[p.numero]
+                            const temNota = celula?.nota_final !== null && celula?.nota_final !== undefined
+                            return (
+                              <div key={p.id} className={`text-center py-1.5 rounded-lg ${temNota ? notaBg(celula?.nota_final ?? 0) : 'bg-gray-50'}`}>
+                                <div className="text-[9px] text-slate-400 font-medium">{p.numero}ª Av.</div>
+                                <div className={`text-sm font-bold ${temNota ? notaColor(celula?.nota_final ?? 0) : 'text-gray-300'}`}>
+                                  {temNota && celula?.nota_final != null ? celula.nota_final.toFixed(1) : '-'}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* DESKTOP: Tabela tradicional (oculta em mobile) */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-50 text-slate-500">
@@ -482,7 +514,7 @@ export default function BoletimPage() {
                         {dados.periodos.map(p => (
                           <th key={p.id} className="text-center px-3 py-3 font-semibold whitespace-nowrap">{p.nome}</th>
                         ))}
-                        <th className="text-center px-3 py-3 font-semibold whitespace-nowrap bg-slate-100">Media</th>
+                        <th className="text-center px-3 py-3 font-semibold whitespace-nowrap bg-slate-100">Média</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -529,13 +561,13 @@ export default function BoletimPage() {
                       })}
                     </tbody>
                   </table>
-                ) : (
-                  <div className="px-6 py-8 text-center text-slate-400">
-                    <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                    <p>{dados.disciplinas.length === 0 ? 'Nenhuma disciplina cadastrada' : 'Nenhum periodo letivo configurado'}</p>
-                  </div>
-                )}
-              </div>
+                </div>
+              </>) : (
+                <div className="px-6 py-8 text-center text-slate-400">
+                  <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                  <p>{dados.disciplinas.length === 0 ? 'Nenhuma disciplina cadastrada' : 'Nenhum periodo letivo configurado'}</p>
+                </div>
+              )}
             </div>
 
             {/* Avaliacoes Educatec */}
