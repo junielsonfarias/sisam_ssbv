@@ -187,47 +187,50 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
           menuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Topo do menu — identidade visual */}
-        <div className="bg-blue-900 px-5 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-14 w-auto" />
-              <div className="w-px h-10 bg-white/30" />
-              <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-14 w-auto" />
-            </div>
+        {/* Topo do menu — logos centralizadas + identidade */}
+        <div className="bg-blue-900 px-5 pt-4 pb-4">
+          {/* Botão fechar no canto */}
+          <div className="flex justify-end mb-3">
             <button
               onClick={() => setMenuOpen(false)}
-              className="p-2.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Fechar menu"
             >
-              <X className="w-7 h-7" />
+              <X className="w-6 h-6" />
             </button>
           </div>
-          <div className="mt-3 pt-3 border-t border-white/15">
+          {/* Logos centralizadas */}
+          <div className="flex items-center justify-center gap-5">
+            <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-16 w-auto object-contain" />
+            <div className="w-px h-12 bg-white/30 flex-shrink-0" />
+            <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-16 w-auto object-contain" />
+          </div>
+          {/* Texto institucional centralizado */}
+          <div className="mt-4 pt-3 border-t border-white/15 text-center">
             <p className="text-sm text-white font-semibold">Secretaria Municipal de Educação</p>
-            <p className="text-xs text-blue-300">São Sebastião da Boa Vista — Pará</p>
+            <p className="text-[11px] text-blue-300 mt-0.5">São Sebastião da Boa Vista — Pará</p>
           </div>
         </div>
 
-        {/* Links de navegação */}
-        <nav className="px-4 py-3" aria-label="Menu mobile">
-          <div className="space-y-0.5">
+        {/* Links de navegação — compactos */}
+        <nav className="px-3 py-2" aria-label="Menu mobile">
+          <div className="divide-y divide-slate-100">
             {navItems.map((item: any, i: number) => (
               <a
                 key={i}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
-                className="flex items-center px-4 py-3 rounded-xl text-[15px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 active:bg-blue-100 transition-all duration-150"
+                className="flex items-center px-4 py-2.5 text-[15px] font-medium text-slate-700 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 transition-all duration-150"
               >
                 {item.label}
               </a>
             ))}
           </div>
-          <div className="mt-4 px-1 pb-6">
+          <div className="mt-3 px-2 pb-4">
             <Link
               href="/login"
               onClick={() => setMenuOpen(false)}
-              className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-blue-800 text-white font-bold text-base shadow-lg shadow-blue-800/25 hover:bg-blue-900 transition-all duration-200"
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-800 text-white font-bold text-base shadow-lg shadow-blue-800/25 hover:bg-blue-900 transition-all duration-200"
             >
               Entrar
               <ArrowRight className="w-5 h-5" />
