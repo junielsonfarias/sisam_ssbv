@@ -46,13 +46,10 @@ export default function SiteFooter({ data }: SiteFooterProps) {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10 lg:gap-16">
           {/* Column 1: Logo + redes sociais */}
           <div>
-            <div className="flex items-center gap-3 mb-3 sm:mb-5">
-              <img src="/logo-semed.png" alt="SEMED" className="h-8 sm:h-10 w-auto" />
-              <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-8 sm:h-10 w-auto" />
-              <div>
-                <span className="text-base sm:text-xl font-extrabold text-white tracking-tight">{logoText}</span>
-                <p className="text-[10px] sm:text-xs text-blue-400 font-medium">Educação e Cidadania</p>
-              </div>
+            <div className="flex items-center gap-4 mb-3 sm:mb-5">
+              <img src="/logo-semed.png" alt="SEMED" className="h-12 sm:h-14 w-auto object-contain" />
+              <div className="w-px h-10 bg-slate-700 flex-shrink-0" />
+              <img src="/logo-prefeitura.png" alt="Prefeitura de São Sebastião da Boa Vista" className="h-12 sm:h-14 w-auto object-contain" />
             </div>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed mb-4 sm:mb-6 max-w-xs line-clamp-2 sm:line-clamp-none">
               {description}
@@ -134,13 +131,21 @@ export default function SiteFooter({ data }: SiteFooterProps) {
 
       {/* Bottom Bar */}
       <div className="border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 text-xs sm:text-sm text-slate-500">
             <p>
-              &copy; {year} SEMED - São Sebastião da Boa Vista. Todos os direitos reservados.
+              &copy; {year} SEMED - São Sebastião da Boa Vista
             </p>
             <p className="flex items-center gap-1.5">
-              Desenvolvido com <Heart className="w-3.5 h-3.5 text-blue-700 fill-blue-700" /> para a educação
+              Desenvolvido por{' '}
+              <a
+                href="https://wa.me/5591991666956"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Junielson_Farias
+              </a>
             </p>
           </div>
         </div>
