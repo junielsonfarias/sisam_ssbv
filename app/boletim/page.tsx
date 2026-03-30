@@ -8,7 +8,13 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Rodape from '@/components/rodape'
-import { useSeries } from '@/lib/use-series'
+// Formatação local de série (sem chamar API admin)
+function formatSerie(serie: string | null | undefined): string {
+  if (!serie) return '-'
+  const num = serie.replace(/[^0-9]/g, '')
+  if (num) return `${num}º Ano`
+  return serie
+}
 
 interface Disciplina { id: string; nome: string; codigo: string; abreviacao: string; ordem: number }
 interface Periodo { id: string; nome: string; tipo: string; numero: number }
@@ -72,7 +78,7 @@ function freqBarColor(p: number | null) {
 }
 
 export default function BoletimPage() {
-  const { formatSerie } = useSeries()
+  // formatSerie é função local (definida no topo do arquivo)
   const [modo, setModo] = useState<'codigo' | 'cpf'>('codigo')
   const [codigo, setCodigo] = useState('')
   const [cpf, setCpf] = useState('')
@@ -131,13 +137,9 @@ export default function BoletimPage() {
   const carregarComunicados = async () => {
     if (comunicados.length > 0) return
     setCarregandoExtra(true)
-    try {
-      const res = await fetch('/api/comunicados?limite=10')
-      if (res.ok) {
-        const data = await res.json()
-        setComunicados(Array.isArray(data) ? data : data.comunicados || [])
-      }
-    } catch {} finally { setCarregandoExtra(false) }
+    // Comunicados requerem turma_id (UUID) mas boletim público só tem turma_codigo
+    // Skip silencioso — funcionalidade disponível apenas no portal do professor
+    setCarregandoExtra(false)
   }
 
   const handleTabChange = (tab: 'boletim' | 'frequencia' | 'comunicados') => {

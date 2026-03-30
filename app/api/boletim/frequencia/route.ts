@@ -30,22 +30,20 @@ export async function GET(request: NextRequest) {
 
       if (codigo) {
         alunoQuery = `
-          SELECT a.id, a.nome, a.codigo, m.turma_id, t.serie, t.codigo AS turma_codigo, e.nome AS escola_nome
+          SELECT a.id, a.nome, a.codigo, a.turma_id, t.serie, t.codigo AS turma_codigo, e.nome AS escola_nome
           FROM alunos a
-          JOIN matriculas m ON m.aluno_id = a.id AND m.ano_letivo = $1 AND m.status = 'ativa'
-          JOIN turmas t ON t.id = m.turma_id
-          JOIN escolas e ON e.id = t.escola_id
-          WHERE a.codigo = $2
+          LEFT JOIN turmas t ON t.id = a.turma_id
+          LEFT JOIN escolas e ON e.id = a.escola_id
+          WHERE a.ano_letivo = $1 AND a.codigo = $2 AND a.ativo = true
           LIMIT 1`
         params.push(codigo)
       } else {
         alunoQuery = `
-          SELECT a.id, a.nome, a.codigo, m.turma_id, t.serie, t.codigo AS turma_codigo, e.nome AS escola_nome
+          SELECT a.id, a.nome, a.codigo, a.turma_id, t.serie, t.codigo AS turma_codigo, e.nome AS escola_nome
           FROM alunos a
-          JOIN matriculas m ON m.aluno_id = a.id AND m.ano_letivo = $1 AND m.status = 'ativa'
-          JOIN turmas t ON t.id = m.turma_id
-          JOIN escolas e ON e.id = t.escola_id
-          WHERE a.cpf = $2 AND a.data_nascimento = $3
+          LEFT JOIN turmas t ON t.id = a.turma_id
+          LEFT JOIN escolas e ON e.id = a.escola_id
+          WHERE a.ano_letivo = $1 AND a.cpf = $2 AND a.data_nascimento = $3 AND a.ativo = true
           LIMIT 1`
         params.push(cpf, dataNascimento)
       }
