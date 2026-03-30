@@ -58,7 +58,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     if (serie) {
       const numeroSerie = serie.match(/\d+/)?.[0]
       if (numeroSerie) {
-        addRawCondition(where, `REGEXP_REPLACE(a.serie, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numeroSerie])
+        addRawCondition(where, `COALESCE(a.serie_numero, REGEXP_REPLACE(a.serie, '[^0-9]', '', 'g')) = $${where.paramIndex}`, [numeroSerie])
       } else {
         addCondition(where, 'a.serie', serie, 'ILIKE')
       }

@@ -229,9 +229,9 @@ export function buildGraficosFilters(usuario: Usuario, filtros: GraficosFiltros)
   }
 
   if (filtros.tipoEnsino === 'anos_iniciais') {
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`)
+    whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')`)
   } else if (filtros.tipoEnsino === 'anos_finais') {
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`)
+    whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9')`)
   }
 
   const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
@@ -274,8 +274,8 @@ async function fetchSeriesDisponiveis(usuario: Usuario, filtros: GraficosFiltros
     : `WHERE ${baseSeriesCondition}`
 
   const query = `
-    SELECT DISTINCT REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') || 'º Ano' as serie,
-           REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer as serie_numero
+    SELECT DISTINCT COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')) || 'º Ano' as serie,
+           COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))::integer as serie_numero
     FROM resultados_consolidados_unificada rc
     INNER JOIN escolas e ON rc.escola_id = e.id
     ${whereSeriesClause}
@@ -321,7 +321,7 @@ export async function fetchDisciplinas(whereClause: string, params: any[], disci
   }
 
   // Sem disciplina específica: mostrar todas com indicadores estatísticos
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
   const query = `
     SELECT
@@ -581,7 +581,7 @@ export async function fetchPresenca(whereClause: string, params: any[]): Promise
 // ============================================================================
 
 export async function fetchComparativoEscolas(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<any> {
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
   const mediaGeralCalc = getMediaGeralSQLLocal()
 
   const query = `
@@ -696,9 +696,9 @@ export async function fetchAcertosErros(
     }
 
     if (tipoEnsino === 'anos_iniciais') {
-      whereAcertosQuestao.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`)
+      whereAcertosQuestao.push(`COALESCE(rp.serie_numero, REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')`)
     } else if (tipoEnsino === 'anos_finais') {
-      whereAcertosQuestao.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`)
+      whereAcertosQuestao.push(`COALESCE(rp.serie_numero, REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9')`)
     }
 
     const whereClauseAcertosQuestao = whereAcertosQuestao.length > 0
@@ -775,7 +775,7 @@ export async function fetchAcertosErros(
   }
 
   const getAcertosSQL = (disc: string | null) => {
-    const numeroSerie = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+    const numeroSerie = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
     if (disc === 'LP') return `SUM(COALESCE(CAST(rc.total_acertos_lp AS INTEGER), 0))`
     if (disc === 'CH') return `SUM(CASE WHEN ${numeroSerie} IN ('2', '3', '5') THEN 0 ELSE COALESCE(CAST(rc.total_acertos_ch AS INTEGER), 0) END)`
     if (disc === 'MAT') return `SUM(COALESCE(CAST(rc.total_acertos_mat AS INTEGER), 0))`
@@ -919,9 +919,9 @@ export async function fetchQuestoes(
   }
 
   if (tipoEnsino === 'anos_iniciais') {
-    whereQuestoes.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`)
+    whereQuestoes.push(`COALESCE(rp.serie_numero, REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')`)
   } else if (tipoEnsino === 'anos_finais') {
-    whereQuestoes.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`)
+    whereQuestoes.push(`COALESCE(rp.serie_numero, REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9')`)
   }
 
   const questaoRangeFilter = getQuestaoRangeFilter(serie, disciplina, tipoEnsino)
@@ -978,7 +978,7 @@ export async function fetchQuestoes(
 // ============================================================================
 
 export async function fetchHeatmap(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<any[]> {
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
   const mediaGeralCalc = getMediaGeralSQLLocal()
 
   const query = `
@@ -1022,7 +1022,7 @@ export async function fetchHeatmap(whereClause: string, params: any[], deveRemov
 // ============================================================================
 
 async function fetchRadar(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<any[]> {
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
   const query = `
     SELECT
@@ -1121,7 +1121,7 @@ export async function fetchBoxplot(whereClause: string, params: any[], disciplin
 // ============================================================================
 
 export async function fetchCorrelacao(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<{ correlacao: any[]; correlacao_meta: any }> {
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
   const whereCorrelacaoFinais = whereClause
     ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${numeroSerieSQL} NOT IN ('2', '3', '5') AND rc.nota_lp IS NOT NULL AND rc.nota_ch IS NOT NULL AND rc.nota_mat IS NOT NULL AND rc.nota_cn IS NOT NULL`
@@ -1205,7 +1205,7 @@ export async function fetchRanking(
 ): Promise<{ ranking: any[]; ranking_disciplina: string; ranking_meta?: any }> {
   const tipoRanking = filtros.tipoRanking || 'escolas'
   const notaConfig = getCampoNota(filtros.disciplina)
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
   if (tipoRanking === 'escolas') {
     const query = `
@@ -1413,7 +1413,7 @@ export async function fetchGaps(whereClause: string, params: any[], disciplina: 
 // ============================================================================
 
 async function fetchNiveisDisciplina(whereClause: string, params: any[]): Promise<any> {
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
   const query = `
     SELECT
@@ -1463,7 +1463,7 @@ async function fetchNiveisDisciplina(whereClause: string, params: any[]): Promis
 // ============================================================================
 
 async function fetchMediasEtapa(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<{ medias_etapa: any[]; medias_etapa_totais: any }> {
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
   const mediaGeralCalc = getMediaGeralSQLLocal()
 
   const query = `
@@ -1517,7 +1517,7 @@ async function fetchMediasEtapa(whereClause: string, params: any[], deveRemoverL
 // ============================================================================
 
 export async function fetchNiveisTurma(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<any[]> {
-  const numeroSerieSQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+  const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
   const mediaGeralCalc = getMediaGeralSQLLocal()
 
   const query = `

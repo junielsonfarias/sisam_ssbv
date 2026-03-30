@@ -57,7 +57,7 @@ export async function GET(
               era.permite_recuperacao as escola_permite_recuperacao
        FROM turmas t
        LEFT JOIN series_escolares se ON
-         REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = se.codigo
+         COALESCE(t.serie_numero, REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g')) = se.codigo
          OR se.codigo = CASE
            WHEN t.serie ILIKE '%creche%' THEN 'CRE'
            WHEN t.serie ILIKE '%pré i%' OR t.serie ILIKE '%pre i%' OR t.serie ILIKE '%pré 1%' THEN 'PRE1'
@@ -66,7 +66,7 @@ export async function GET(
            WHEN t.serie ILIKE '%eja%2%' THEN 'EJA2'
            WHEN t.serie ILIKE '%eja%3%' THEN 'EJA3'
            WHEN t.serie ILIKE '%eja%4%' THEN 'EJA4'
-           ELSE REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g')
+           ELSE COALESCE(t.serie_numero, REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g'))
          END
        LEFT JOIN tipos_avaliacao ta ON ta.id = se.tipo_avaliacao_id
        LEFT JOIN regras_avaliacao ra ON ra.id = se.regra_avaliacao_id

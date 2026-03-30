@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
         -- Media calculada dinamicamente baseada na serie (divisor FIXO - disciplinas obrigatórias)
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
           CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
               -- Anos Iniciais: média de LP, MAT, PROD (OBRIGATÓRIAS - divisor fixo 3)
               (
                 COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
@@ -181,9 +181,9 @@ export async function GET(request: NextRequest) {
 
     // Filtro de tipo de ensino (anos_iniciais ou anos_finais)
     if (tipoEnsino === 'anos_iniciais') {
-      query += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`
+      query += ` AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')`
     } else if (tipoEnsino === 'anos_finais') {
-      query += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`
+      query += ` AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9')`
     }
 
     query += `
@@ -223,7 +223,7 @@ export async function GET(request: NextRequest) {
         -- Media calculada dinamicamente baseada na serie (divisor FIXO - disciplinas obrigatórias)
         AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
           CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
               -- Anos Iniciais: média de LP, MAT, PROD (OBRIGATÓRIAS - divisor fixo 3)
               (
                 COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
@@ -308,9 +308,9 @@ export async function GET(request: NextRequest) {
 
     // Filtro de tipo de ensino (anos_iniciais ou anos_finais)
     if (tipoEnsino === 'anos_iniciais') {
-      queryAgregado += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`
+      queryAgregado += ` AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')`
     } else if (tipoEnsino === 'anos_finais') {
-      queryAgregado += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`
+      queryAgregado += ` AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9')`
     }
 
     queryAgregado += `
@@ -351,7 +351,7 @@ export async function GET(request: NextRequest) {
             t.codigo as turma_codigo,
             -- Media calculada dinamicamente baseada na serie
             CASE
-              WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
                 ROUND(
                   (
                     COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +

@@ -62,7 +62,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
   if (serie && serie.trim() !== '') {
     const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-    addRawCondition(where, `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
+    addRawCondition(where, `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${where.paramIndex}`, [numSerie])
   }
 
   if (ano_letivo && ano_letivo.trim() !== '') {
@@ -76,7 +76,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   if (serie && serie.trim() !== '') {
     const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
     where.params.push(numSerie)
-    turmasJoinSerie = `AND REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = $${where.paramIndex}`
+    turmasJoinSerie = `AND COALESCE(t.serie_numero, REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g')) = $${where.paramIndex}`
     where.paramIndex++
   }
 
@@ -103,7 +103,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
         WHEN (rc.presenca = 'P' OR rc.presenca = 'p') THEN
           CASE
             -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD com divisor fixo 3
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
               (
                 COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
                 COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +

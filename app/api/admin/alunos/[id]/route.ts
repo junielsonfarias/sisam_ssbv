@@ -113,7 +113,7 @@ export async function GET(
                 cs.avalia_lp, cs.avalia_mat, cs.avalia_ch, cs.avalia_cn,
                 cs.usa_nivel_aprendizagem
          FROM resultados_consolidados rc
-         LEFT JOIN configuracao_series cs ON cs.serie = REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')
+         LEFT JOIN configuracao_series cs ON cs.serie = COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))
          WHERE rc.aluno_id = $1
          ORDER BY rc.ano_letivo DESC`,
         [alunoId]

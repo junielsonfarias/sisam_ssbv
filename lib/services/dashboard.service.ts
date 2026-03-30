@@ -285,7 +285,7 @@ export function buildDashboardFilters(
   if (serie) {
     const numeroSerie = serie.match(/\d+/)?.[0]
     if (numeroSerie) {
-      whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+      whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${paramIndex}`)
       params.push(numeroSerie)
       paramIndex++
     } else {
@@ -298,9 +298,9 @@ export function buildDashboardFilters(
   // Filtro por tipo de ensino
   if (tipoEnsino) {
     if (tipoEnsino === 'anos_iniciais') {
-      whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')`)
+      whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')`)
     } else if (tipoEnsino === 'anos_finais') {
-      whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')`)
+      whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9')`)
     }
   }
 
@@ -498,7 +498,7 @@ export function buildDashboardFilters(
   if (serie) {
     const numeroSerie = serie.match(/\d+/)?.[0]
     if (numeroSerie) {
-      rpWhereConditions.push(`REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g') = $${rpParamIndex}`)
+      rpWhereConditions.push(`COALESCE(rp.serie_numero, REGEXP_REPLACE(rp.serie::text, '[^0-9]', '', 'g')) = $${rpParamIndex}`)
       rpParams.push(numeroSerie)
       rpParamIndex++
     } else {
@@ -656,7 +656,7 @@ export async function fetchDashboardMetricas(
       ROUND(AVG(CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p') AND (rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0) THEN CAST(rc.nota_cn AS DECIMAL) ELSE NULL END), 2) as media_cn,
       ROUND(AVG(CASE
         WHEN (rc.presenca = 'P' OR rc.presenca = 'p')
-          AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+          AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')
           AND (rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0)
         THEN CAST(rc.nota_producao AS DECIMAL)
         ELSE NULL
@@ -682,7 +682,7 @@ export async function fetchDashboardNiveis(
   // Adicionar condições de anos iniciais e presença
   const baseConditions = whereClauseBase ? whereClauseBase.replace('WHERE ', '') : ''
   const niveisConditions = baseConditions ? [baseConditions] : []
-  niveisConditions.push(`(REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5'))`)
+  niveisConditions.push(`(COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5'))`)
   niveisConditions.push(`(rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f')`)
   const niveisWhere = `WHERE ${niveisConditions.join(' AND ')}`
 
@@ -736,7 +736,7 @@ export async function fetchMediasPorSerie(
     ${whereClauseBase}
     GROUP BY rc.serie
     HAVING rc.serie IS NOT NULL
-    ORDER BY REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer NULLS LAST
+    ORDER BY COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))::integer NULLS LAST
   `
   return safeQuery(pool, sql, paramsBase, 'mediasPorSerie')
 }
@@ -952,8 +952,8 @@ export async function fetchTopAlunos(
       rc.serie,
       t.codigo as turma,
       ${getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')} as media_aluno,
-      CASE WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_lp ELSE rc.nota_lp END as nota_lp,
-      CASE WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_mat ELSE rc.nota_mat END as nota_mat,
+      CASE WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN rc_table.nota_lp ELSE rc.nota_lp END as nota_lp,
+      CASE WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN rc_table.nota_mat ELSE rc.nota_mat END as nota_mat,
       rc.nota_ch,
       rc.nota_cn,
       rc.presenca,
@@ -1007,11 +1007,11 @@ export async function fetchAlunosDetalhados(
       rc.presenca,
       ${getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')} as media_aluno,
       CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_lp
+        WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN rc_table.nota_lp
         ELSE rc.nota_lp
       END as nota_lp,
       CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.nota_mat
+        WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN rc_table.nota_mat
         ELSE rc.nota_mat
       END as nota_mat,
       rc.nota_ch,
@@ -1019,12 +1019,12 @@ export async function fetchAlunosDetalhados(
       COALESCE(rc_table.nota_producao, NULL) as nota_producao,
       COALESCE(rc_table.nivel_aprendizagem, NULL) as nivel_aprendizagem,
       CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.total_acertos_lp
+        WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN rc_table.total_acertos_lp
         ELSE rc.total_acertos_lp
       END as total_acertos_lp,
       rc.total_acertos_ch,
       CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN rc_table.total_acertos_mat
+        WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN rc_table.total_acertos_mat
         ELSE rc.total_acertos_mat
       END as total_acertos_mat,
       rc.total_acertos_cn,
@@ -1042,7 +1042,7 @@ export async function fetchAlunosDetalhados(
     LEFT JOIN polos p ON e.polo_id = p.id
     LEFT JOIN turmas t ON rc.turma_id = t.id
     LEFT JOIN resultados_consolidados rc_table ON rc.aluno_id = rc_table.aluno_id AND rc.ano_letivo = rc_table.ano_letivo
-    LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
+    LEFT JOIN configuracao_series cs ON COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = cs.serie::text
     ${whereClause}
     ${orderBy}
     LIMIT ${paginacao.limite} OFFSET ${paginacao.offset}
@@ -1092,8 +1092,8 @@ export async function fetchFiltrosDisponiveis(
     `, filtrosParams, 'filtros.escolas'),
 
     safeQuery(pool, `
-      SELECT DISTINCT REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') || 'º Ano' as serie,
-             REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer as serie_numero
+      SELECT DISTINCT COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')) || 'º Ano' as serie,
+             COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))::integer as serie_numero
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
       ${seriesWhereClause}

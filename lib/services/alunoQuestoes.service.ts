@@ -97,7 +97,7 @@ const configuracoesHardcoded: Record<string, DisciplinaConfig[]> = {
 /** SQL para calcular media dinamicamente baseada na serie */
 const MEDIA_CASE_SQL = `
   CASE
-    WHEN REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+    WHEN COALESCE(serie_numero, REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
       ROUND(
         (
           COALESCE(CAST(nota_lp AS DECIMAL), 0) +

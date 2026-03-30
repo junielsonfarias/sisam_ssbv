@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     if (serie) {
       const num = serie.match(/\d+/)?.[0]
       if (num) {
-        addRawCondition(where, `REGEXP_REPLACE(rc_d.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [num])
+        addRawCondition(where, `COALESCE(rc_d.serie_numero, REGEXP_REPLACE(rc_d.serie::text, '[^0-9]', '', 'g')) = $${where.paramIndex}`, [num])
       }
     }
 

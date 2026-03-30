@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
       if (!isNaN(min) && !isNaN(max)) {
         // Usar cálculo de média com divisor fixo para filtro de faixa
         const mediaCalc = `CASE
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+          WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
             (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0
           ELSE
             (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_ch, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_cn, 0)) / 4.0
@@ -196,7 +196,7 @@ export async function GET(request: NextRequest) {
           rc.presenca,
           -- Média calculada com divisor fixo
           CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
               (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0
             ELSE
               (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_ch, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_cn, 0)) / 4.0
@@ -225,7 +225,7 @@ export async function GET(request: NextRequest) {
           ROUND(AVG(CASE
             WHEN (presenca = 'P' OR presenca = 'p') THEN
               CASE
-                WHEN REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+                WHEN COALESCE(serie_numero, REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
                   (COALESCE(nota_lp, 0) + COALESCE(nota_mat, 0) + COALESCE(nota_producao, 0)) / 3.0
                 ELSE
                   (COALESCE(nota_lp, 0) + COALESCE(nota_ch, 0) + COALESCE(nota_mat, 0) + COALESCE(nota_cn, 0)) / 4.0
@@ -398,7 +398,7 @@ async function buscarFiltros(usuario: any, presenca: string | null) {
       ) as escolas,
       (SELECT json_agg(s.serie ORDER BY s.serie)
        FROM (
-         SELECT DISTINCT REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') || 'º Ano' as serie
+         SELECT DISTINCT COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')) || 'º Ano' as serie
          FROM resultados_consolidados_unificada rc
          INNER JOIN escolas e ON rc.escola_id = e.id
          ${whereClause} AND rc.serie IS NOT NULL AND rc.serie != ''

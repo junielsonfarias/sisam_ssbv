@@ -75,7 +75,7 @@ export interface ResultadoComparativoPolos {
 // ============================================================================
 
 /** SQL para extrair número da série */
-const NUMERO_SERIE_SQL = `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')`
+const NUMERO_SERIE_SQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
 /**
  * SQL: média geral com divisor fixo por série (AVG agregado).

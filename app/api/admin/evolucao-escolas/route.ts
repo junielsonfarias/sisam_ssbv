@@ -28,7 +28,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo'], async (request
 
     // Filtro por série
     if (serie) {
-      conditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIdx}`)
+      conditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${paramIdx}`)
       params.push(serie.replace(/[^0-9]/g, ''))
       paramIdx++
     }
@@ -38,7 +38,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo'], async (request
     const result = await pool.query(
       `SELECT e.id, e.nome as escola, rc.ano_letivo,
         ROUND(AVG(CASE
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('1','2','3','4','5')
+          WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('1','2','3','4','5')
           THEN (COALESCE(rc.nota_lp::decimal,0) + COALESCE(rc.nota_mat::decimal,0) + COALESCE(rc.nota_producao::decimal,0))/3.0
           ELSE (COALESCE(rc.nota_lp::decimal,0) + COALESCE(rc.nota_ch::decimal,0) + COALESCE(rc.nota_mat::decimal,0) + COALESCE(rc.nota_cn::decimal,0))/4.0
         END), 2) as media,

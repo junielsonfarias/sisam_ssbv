@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
          FROM disciplinas_escolares de
          INNER JOIN series_disciplinas sd ON sd.disciplina_id = de.id
          INNER JOIN series_escolares se ON se.id = sd.serie_id
-         INNER JOIN turmas t ON (t.serie = se.nome OR REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = se.numero::text)
+         INNER JOIN turmas t ON (t.serie = se.nome OR COALESCE(t.serie_numero, REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g')) = se.numero::text)
          WHERE t.id = ANY($1) AND de.ativo = true
          ORDER BY de.ordem`,
         [turmaIds]

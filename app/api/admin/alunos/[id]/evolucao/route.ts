@@ -37,7 +37,7 @@ export async function GET(
               cs.qtd_itens_producao
        FROM resultados_consolidados rc
        LEFT JOIN avaliacoes av ON rc.avaliacao_id = av.id
-       LEFT JOIN configuracao_series cs ON cs.serie = REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')
+       LEFT JOIN configuracao_series cs ON cs.serie = COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))
        WHERE rc.aluno_id = $1
        ORDER BY rc.ano_letivo ASC, COALESCE(av.ordem, 1) ASC`,
       [alunoId]

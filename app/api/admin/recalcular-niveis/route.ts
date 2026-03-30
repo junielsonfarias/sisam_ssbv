@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       FROM resultados_consolidados
       WHERE (
         -- Anos iniciais (2º, 3º e 5º ano)
-        REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+        COALESCE(serie_numero, REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')
       )
       AND (
         -- Tem acertos mas não tem níveis calculados, OU tem nota de produção mas sem nível
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN nivel_aluno IS NULL THEN 1 END) as sem_nivel_aluno
       FROM resultados_consolidados
       WHERE (
-        REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+        COALESCE(serie_numero, REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')
       )
       AND (total_acertos_lp > 0 OR total_acertos_mat > 0 OR (nota_producao IS NOT NULL AND CAST(nota_producao AS DECIMAL) > 0))
       AND presenca = 'P'

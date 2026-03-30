@@ -48,7 +48,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
   // turma_id usa COALESCE — precisa de addRawCondition pattern
   if (turma_id) {
-    where.conditions.push(`COALESCE(n.turma_id, a.turma_id) = $${where.paramIndex}`)
+    where.conditions.push(`n.turma_id = $${where.paramIndex}`)
     where.params.push(turma_id)
     where.paramIndex++
   }
@@ -73,7 +73,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
      INNER JOIN disciplinas_escolares d ON n.disciplina_id = d.id
      INNER JOIN periodos_letivos p ON n.periodo_id = p.id
      INNER JOIN escolas e ON n.escola_id = e.id
-     LEFT JOIN turmas t ON COALESCE(n.turma_id, a.turma_id) = t.id
+     LEFT JOIN turmas t ON n.turma_id = t.id
      ${whereClause}
      ORDER BY a.nome, d.ordem, p.numero`,
     where.params
@@ -111,7 +111,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
               ra.permite_recuperacao as regra_permite_recuperacao, ra.aprovacao_automatica,
               ra.media_aprovacao as regra_media_aprovacao, ra.nota_maxima as regra_nota_maxima
        FROM turmas t
-       LEFT JOIN series_escolares se ON REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g') = se.codigo
+       LEFT JOIN series_escolares se ON COALESCE(t.serie_numero, REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g')) = se.codigo
          OR se.codigo = CASE
            WHEN t.serie ILIKE '%creche%' THEN 'CRE'
            WHEN t.serie ILIKE '%pré i%' OR t.serie ILIKE '%pre i%' OR t.serie ILIKE '%pré 1%' THEN 'PRE1'
@@ -120,7 +120,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
            WHEN t.serie ILIKE '%eja%2%' THEN 'EJA2'
            WHEN t.serie ILIKE '%eja%3%' THEN 'EJA3'
            WHEN t.serie ILIKE '%eja%4%' THEN 'EJA4'
-           ELSE REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g')
+           ELSE COALESCE(t.serie_numero, REGEXP_REPLACE(t.serie, '[^0-9]', '', 'g'))
          END
        LEFT JOIN tipos_avaliacao ta ON ta.id = se.tipo_avaliacao_id
        LEFT JOIN regras_avaliacao ra ON ra.id = se.regra_avaliacao_id

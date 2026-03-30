@@ -38,12 +38,12 @@ export async function GET(request: NextRequest) {
 
     if (serie) {
       const numSerie = serie.match(/(\d+)/)?.[1] || serie
-      addRawCondition(where, `REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
+      addRawCondition(where, `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${where.paramIndex}`, [numSerie])
     }
 
     const result = await pool.query(
       `SELECT
-        REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') as numero_serie,
+        COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')) as numero_serie,
         rc.serie as nome_serie,
         COUNT(DISTINCT rc.aluno_id) as total_alunos,
         COUNT(DISTINCT rc.escola_id) as total_escolas,
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         ROUND(AVG(CASE
           WHEN UPPER(rc.presenca) = 'P' THEN
             CASE
-              WHEN REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+              WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
                 (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0
               ELSE
                 (COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_ch, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_cn, 0)) / 4.0
@@ -73,13 +73,13 @@ export async function GET(request: NextRequest) {
         cs.usa_nivel_aprendizagem, cs.total_questoes_objetivas
       FROM resultados_consolidados rc
       INNER JOIN escolas e ON rc.escola_id = e.id
-      LEFT JOIN configuracao_series cs ON cs.serie = REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')
+      LEFT JOIN configuracao_series cs ON cs.serie = COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))
       WHERE ${buildConditionsString(where)}
       GROUP BY
-        REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'), rc.serie,
+        COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')), rc.serie,
         cs.tem_producao_textual, cs.qtd_itens_producao, cs.avalia_ch, cs.avalia_cn,
         cs.usa_nivel_aprendizagem, cs.total_questoes_objetivas
-      ORDER BY REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')::integer`,
+      ORDER BY COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))::integer`,
       where.params
     )
 

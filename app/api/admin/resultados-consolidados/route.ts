@@ -120,13 +120,13 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       cs.qtd_questoes_cn,
       -- DEBUG: tipo de calculo usado (para verificar se a logica esta correta)
       CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
+        WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN 'anos_iniciais'
         ELSE 'anos_finais'
       END as _debug_tipo_calculo,
       rc.media_aluno as _debug_media_banco,
       -- Media calculada dinamicamente baseada na serie
       CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+        WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
           -- Anos iniciais: media de LP, MAT e PROD (OBRIGATORIAS - divisor fixo 3)
           -- Se aluno presente sem nota de producao, conta como 0 na media
           ROUND(
@@ -154,7 +154,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     INNER JOIN escolas e ON rc.escola_id = e.id
     LEFT JOIN polos p ON e.polo_id = p.id
     LEFT JOIN turmas t ON rc.turma_id = t.id
-    LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
+    LEFT JOIN configuracao_series cs ON COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = cs.serie::text
     LEFT JOIN avaliacoes av ON rc.avaliacao_id = av.id
     WHERE 1=1
   `
@@ -222,7 +222,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     const numeroSerie = serie.match(/\d+/)?.[0]
     if (numeroSerie) {
       // Buscar séries que contenham o mesmo número (ex: "3º", "3º Ano", "3")
-      query += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`
+      query += ` AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${paramIndex}`
       params.push(numeroSerie)
       paramIndex++
     } else {
@@ -268,7 +268,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     INNER JOIN alunos a ON rc.aluno_id = a.id
     INNER JOIN escolas e ON rc.escola_id = e.id
     LEFT JOIN turmas t ON rc.turma_id = t.id
-    LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
+    LEFT JOIN configuracao_series cs ON COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = cs.serie::text
     WHERE 1=1
   `
 
@@ -327,7 +327,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   if (serie) {
     const numeroSerie = serie.match(/\d+/)?.[0]
     if (numeroSerie) {
-      countQuery += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${countParamIndex}`
+      countQuery += ` AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${countParamIndex}`
       countParams.push(numeroSerie)
       countParamIndex++
     } else {
@@ -379,7 +379,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       ROUND(AVG(CASE
         WHEN UPPER(rc.presenca) = 'P' THEN
           CASE
-            WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+            WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
               (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
             ELSE
               (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
@@ -394,25 +394,25 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       -- Estatísticas por tipo de ensino com DIVISOR FIXO
       ROUND(AVG(CASE
         WHEN UPPER(rc.presenca) = 'P'
-        AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+        AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')
         THEN (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
         ELSE NULL
       END), 2) as media_anos_iniciais,
       COUNT(CASE
         WHEN UPPER(rc.presenca) = 'P'
-        AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+        AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5')
         THEN 1
         ELSE NULL
       END) as total_anos_iniciais,
       ROUND(AVG(CASE
         WHEN UPPER(rc.presenca) = 'P'
-        AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')
+        AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9')
         THEN (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
         ELSE NULL
       END), 2) as media_anos_finais,
       COUNT(CASE
         WHEN UPPER(rc.presenca) = 'P'
-        AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9')
+        AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9')
         THEN 1
         ELSE NULL
       END) as total_anos_finais
@@ -420,7 +420,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     INNER JOIN alunos a ON rc.aluno_id = a.id
     INNER JOIN escolas e ON rc.escola_id = e.id
     LEFT JOIN turmas t ON rc.turma_id = t.id
-    LEFT JOIN configuracao_series cs ON REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = cs.serie::text
+    LEFT JOIN configuracao_series cs ON COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = cs.serie::text
     WHERE 1=1
   `
 
@@ -473,7 +473,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   if (serie) {
     const numeroSerie = serie.match(/\d+/)?.[0]
     if (numeroSerie) {
-      estatisticasQuery += ` AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${estatisticasParamIndex}`
+      estatisticasQuery += ` AND COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${estatisticasParamIndex}`
       estatisticasParams.push(numeroSerie)
       estatisticasParamIndex++
     } else {

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (serie) {
-      addRawCondition(where, `REGEXP_REPLACE(a.serie, '[^0-9]', '', 'g') = $${where.paramIndex}`, [serie.replace(/\D/g, '')])
+      addRawCondition(where, `COALESCE(a.serie_numero, REGEXP_REPLACE(a.serie, '[^0-9]', '', 'g')) = $${where.paramIndex}`, [serie.replace(/\D/g, '')])
     }
 
     addCondition(where, 'a.ano_letivo', anoLetivo)

@@ -354,7 +354,7 @@ export function getDivisorSerie(serie: string): number {
  */
 export function getMediaGeralSQL(alias: string = 'rc'): string {
   return `CASE
-    WHEN REGEXP_REPLACE(${alias}.serie::text, '[^0-9]', '', 'g') IN ('2','3','5')
+    WHEN COALESCE(${alias}.serie_numero, REGEXP_REPLACE(${alias}.serie::text, '[^0-9]', '', 'g')) IN ('2','3','5')
     THEN (COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_producao AS DECIMAL), 0)) / 3.0
     ELSE (COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_cn AS DECIMAL), 0)) / 4.0
   END`
@@ -369,7 +369,7 @@ export function getMediaGeralSQL(alias: string = 'rc'): string {
  */
 export function getMediaGeralMixedSQL(serieAlias: string = 'rc', aiAlias: string = 'rc_table', afAlias: string = 'rc'): string {
   return `CASE
-    WHEN REGEXP_REPLACE(${serieAlias}.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+    WHEN COALESCE(${serieAlias}.serie_numero, REGEXP_REPLACE(${serieAlias}.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
       (COALESCE(CAST(${aiAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_producao AS DECIMAL), 0)) / 3.0
     ELSE
       (COALESCE(CAST(${afAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_cn AS DECIMAL), 0)) / 4.0
@@ -381,7 +381,7 @@ export function getMediaGeralMixedSQL(serieAlias: string = 'rc', aiAlias: string
  */
 export function getMediaGeralMixedRoundedSQL(serieAlias: string = 'rc', aiAlias: string = 'rc_table', afAlias: string = 'rc'): string {
   return `CASE
-    WHEN REGEXP_REPLACE(${serieAlias}.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+    WHEN COALESCE(${serieAlias}.serie_numero, REGEXP_REPLACE(${serieAlias}.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
       ROUND((COALESCE(CAST(${aiAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_producao AS DECIMAL), 0)) / 3.0, 2)
     ELSE
       ROUND((COALESCE(CAST(${afAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_cn AS DECIMAL), 0)) / 4.0, 2)

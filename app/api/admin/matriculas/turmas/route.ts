@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     if (serie) {
       const numSerie = serie.match(/(\d+)/)?.[1] || serie.trim()
-      addRawCondition(where, `REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g') = $${where.paramIndex}`, [numSerie])
+      addRawCondition(where, `COALESCE(t.serie_numero, REGEXP_REPLACE(t.serie::text, '[^0-9]', '', 'g')) = $${where.paramIndex}`, [numSerie])
     }
 
     const result = await pool.query(

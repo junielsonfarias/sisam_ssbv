@@ -244,7 +244,7 @@ function addFiltroSerie(
   serie: string,
   alias: string = 'a'
 ): number {
-  whereConditions.push(`REGEXP_REPLACE(${alias}.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+  whereConditions.push(`COALESCE(${alias}.serie_numero, REGEXP_REPLACE(${alias}.serie::text, '[^0-9]', '', 'g')) = $${paramIndex}`)
   params.push(extrairNumeroSerie(serie))
   return paramIndex + 1
 }
@@ -274,7 +274,7 @@ async function buscarTotalEscolas(
     rcParams.push(filtros.anoLetivo); rcIdx++
   }
   if (filtros.serie) {
-    rcWhere.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${rcIdx}`)
+    rcWhere.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${rcIdx}`)
     rcParams.push(extrairNumeroSerie(filtros.serie)); rcIdx++
   }
 
@@ -306,7 +306,7 @@ async function buscarTotalEscolas(
       matParams.push(filtros.escolaId); matIdx++
     }
     if (filtros.serie) {
-      matWhere.push(`REGEXP_REPLACE(a.serie::text, '[^0-9]', '', 'g') = $${matIdx}`)
+      matWhere.push(`COALESCE(a.serie_numero, REGEXP_REPLACE(a.serie::text, '[^0-9]', '', 'g')) = $${matIdx}`)
       matParams.push(extrairNumeroSerie(filtros.serie)); matIdx++
     }
 
@@ -395,7 +395,7 @@ async function buscarTotalAlunos(
     rcParams.push(filtros.anoLetivo); rcIdx++
   }
   if (filtros.serie) {
-    rcWhere.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${rcIdx}`)
+    rcWhere.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${rcIdx}`)
     rcParams.push(extrairNumeroSerie(filtros.serie)); rcIdx++
   }
   if (filtros.avaliacaoId) {
@@ -426,7 +426,7 @@ async function buscarTotalAlunos(
       matParams.push(filtros.escolaId); matIdx++
     }
     if (filtros.serie) {
-      matWhere.push(`REGEXP_REPLACE(a.serie::text, '[^0-9]', '', 'g') = $${matIdx}`)
+      matWhere.push(`COALESCE(a.serie_numero, REGEXP_REPLACE(a.serie::text, '[^0-9]', '', 'g')) = $${matIdx}`)
       matParams.push(extrairNumeroSerie(filtros.serie)); matIdx++
     }
 
@@ -474,7 +474,7 @@ async function buscarTotalResultados(
   // Filtro de série (normalizado)
   if (filtros.serie) {
     query += hasWhere ? ' AND' : ' WHERE'
-    query += ` REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g') = $${paramIndex}`
+    query += ` COALESCE(serie_numero, REGEXP_REPLACE(serie::text, '[^0-9]', '', 'g')) = $${paramIndex}`
     params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
     hasWhere = true
@@ -536,7 +536,7 @@ async function buscarPresenca(
 
   // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${paramIndex}`)
     params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
@@ -608,7 +608,7 @@ async function buscarMediaEAprovacao(
 
   // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${paramIndex}`)
     params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
@@ -629,7 +629,7 @@ async function buscarMediaEAprovacao(
       ROUND(AVG(
         CASE
           -- Anos iniciais (2, 3, 5): média de LP, MAT e PROD (divisor fixo 3)
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+          WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
             (
               COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
               COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
@@ -647,7 +647,7 @@ async function buscarMediaEAprovacao(
       ), 2) as media_geral,
       COUNT(CASE WHEN
         CASE
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+          WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
             (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) / 3.0
           ELSE
             (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) / 4.0
@@ -708,7 +708,7 @@ async function buscarMediasPorTipoEnsino(
 
   // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${paramIndex}`)
     params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
@@ -729,14 +729,14 @@ async function buscarMediasPorTipoEnsino(
   const query = `
     SELECT
       CASE
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
-        WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('6', '7', '8', '9') THEN 'anos_finais'
+        WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN 'anos_iniciais'
+        WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('6', '7', '8', '9') THEN 'anos_finais'
         ELSE 'outro'
       END as tipo_ensino,
       ROUND(AVG(
         CASE
           -- Anos iniciais: divisor fixo 3
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
+          WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
             (
               COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
               COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
@@ -855,7 +855,7 @@ async function buscarMediasPorDisciplina(
 
   // Filtro de série
   if (filtros.serie) {
-    whereConditions.push(`REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') = $${paramIndex}`)
+    whereConditions.push(`COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) = $${paramIndex}`)
     params.push(extrairNumeroSerie(filtros.serie))
     paramIndex++
   }
