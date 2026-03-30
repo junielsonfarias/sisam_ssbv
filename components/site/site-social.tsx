@@ -116,57 +116,65 @@ export default function SiteSocial({ data }: SiteSocialProps) {
 
   if (redesAtivas.length === 0) return null
 
+  const showFeed = socialData.mostrar_feed_facebook && socialData.facebook_url
+
   return (
     <section className="py-8 sm:py-12 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900" aria-label="Redes sociais">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-6 sm:mb-8">
-          <p className="text-sm font-bold uppercase tracking-widest text-blue-300 mb-2">Siga-nos</p>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white">
-            Acompanhe a SEMED nas Redes Sociais
-          </h2>
-        </div>
+        {/* Layout: 2 colunas no desktop (ícones + feed), empilhado no mobile */}
+        <div className={`grid ${showFeed ? 'lg:grid-cols-2' : ''} gap-8 lg:gap-12 items-start`}>
+          {/* Coluna esquerda: título + ícones */}
+          <div>
+            <div className={`${showFeed ? 'text-left' : 'text-center'} mb-6`}>
+              <p className="text-sm font-bold uppercase tracking-widest text-blue-300 mb-2">Siga-nos</p>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white">
+                Acompanhe a SEMED nas Redes Sociais
+              </h2>
+            </div>
 
-        {/* Grid de redes sociais */}
-        <div className={`grid ${redesAtivas.length <= 3 ? `grid-cols-${redesAtivas.length}` : 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-7'} gap-3 sm:gap-4 max-w-4xl mx-auto`}>
-          {redesAtivas.map((rede) => {
-            const url = getUrl(socialData, rede.key)
-            return (
-              <a
-                key={rede.key}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-sm hover:bg-white hover:border-white/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className="text-white group-hover:text-blue-800 transition-colors duration-300">
-                  <div className="group-hover:scale-110 transition-transform duration-300">
-                    {rede.icon}
-                  </div>
-                </div>
-                <span className="text-[10px] sm:text-xs font-semibold text-white/90 group-hover:text-slate-800 transition-colors text-center leading-tight">
-                  {rede.nome}
-                </span>
-              </a>
-            )
-          })}
-        </div>
-
-        {/* Feed do Facebook (embed) */}
-        {socialData.mostrar_feed_facebook && socialData.facebook_url && (
-          <div className="mt-8 sm:mt-10 flex justify-center">
-            <div className="bg-white rounded-xl overflow-hidden shadow-lg w-full max-w-lg">
-              <iframe
-                src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(socialData.facebook_url)}&tabs=timeline&width=500&height=500&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false`}
-                width="500"
-                height="500"
-                className="w-full border-0"
-                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                loading="lazy"
-                title="Feed Facebook SEMED"
-              />
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {redesAtivas.map((rede) => {
+                const url = getUrl(socialData, rede.key)
+                return (
+                  <a
+                    key={rede.key}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl bg-white/10 border border-white/10 backdrop-blur-sm hover:bg-white hover:border-white/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div className="text-white group-hover:text-blue-800 transition-colors duration-300">
+                      <div className="group-hover:scale-110 transition-transform duration-300">
+                        {rede.icon}
+                      </div>
+                    </div>
+                    <span className="text-[10px] sm:text-xs font-semibold text-white/90 group-hover:text-slate-800 transition-colors text-center leading-tight">
+                      {rede.nome}
+                    </span>
+                  </a>
+                )
+              })}
             </div>
           </div>
-        )}
+
+          {/* Coluna direita: feed do Facebook */}
+          {showFeed && (
+            <div>
+              <p className="text-sm font-bold uppercase tracking-widest text-blue-300 mb-3 hidden lg:block">Últimas publicações</p>
+              <div className="bg-white rounded-xl overflow-hidden shadow-lg">
+                <iframe
+                  src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(socialData.facebook_url)}&tabs=timeline&width=500&height=400&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false`}
+                  width="500"
+                  height="400"
+                  className="w-full border-0"
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                  loading="lazy"
+                  title="Feed Facebook SEMED"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   )
