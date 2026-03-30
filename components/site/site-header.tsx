@@ -86,7 +86,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className={`flex items-center justify-between transition-all duration-500 ${
-          scrolled ? 'h-12 sm:h-16' : 'h-14 sm:h-20'
+          scrolled ? 'h-14 sm:h-16' : 'h-16 sm:h-20'
         }`}>
           {/* Logo */}
           <a
@@ -102,14 +102,14 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             <img
               src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
               alt="SEMED"
-              className={`w-auto transition-all duration-500 ${scrolled ? 'h-8 sm:h-10' : 'h-10 sm:h-14'}`}
+              className={`w-auto transition-all duration-500 ${scrolled ? 'h-9 sm:h-11' : 'h-11 sm:h-14'}`}
             />
             {/* Separador + Logo Prefeitura */}
-            <div className="w-px h-6 sm:h-8 bg-slate-300 flex-shrink-0" />
+            <div className={`w-px bg-slate-300 flex-shrink-0 transition-all duration-500 ${scrolled ? 'h-6 sm:h-8' : 'h-8 sm:h-10'}`} />
             <img
               src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
               alt="Prefeitura de São Sebastião da Boa Vista"
-              className={`w-auto transition-all duration-500 ${scrolled ? 'h-8 sm:h-10' : 'h-10 sm:h-14'}`}
+              className={`w-auto transition-all duration-500 ${scrolled ? 'h-9 sm:h-11' : 'h-11 sm:h-14'}`}
             />
             {/* Texto institucional — apenas desktop */}
             <div className="hidden lg:flex flex-col min-w-0 ml-1">
@@ -178,47 +178,53 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
           onClick={() => setMenuOpen(false)}
         />
 
-        {/* Panel */}
+        {/* Panel — full screen no mobile, max-w-sm no tablet */}
         <div
-          className={`absolute top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl transition-transform duration-300 ${
+          className={`absolute top-0 right-0 h-full w-full sm:max-w-sm bg-white shadow-2xl transition-transform duration-300 overflow-y-auto ${
             menuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          {/* Topo do menu mobile — identidade visual */}
-          <div className="bg-blue-900 px-5 py-3">
+          {/* Topo do menu — identidade visual com fundo institucional */}
+          <div className="bg-blue-900 px-5 py-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-10 w-auto brightness-0 invert" />
-                <div className="w-px h-8 bg-white/30" />
-                <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-10 w-auto brightness-0 invert" />
+              <div className="flex items-center gap-4">
+                <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-14 w-auto" />
+                <div className="w-px h-10 bg-white/30" />
+                <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-14 w-auto" />
               </div>
               <button
                 onClick={() => setMenuOpen(false)}
-                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-2.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
                 aria-label="Fechar menu"
               >
-                <X className="w-6 h-6" />
+                <X className="w-7 h-7" />
               </button>
             </div>
-            <p className="text-[11px] text-blue-200 font-medium mt-2">Secretaria Municipal de Educação</p>
-            <p className="text-[10px] text-blue-300/70">São Sebastião da Boa Vista — Pará</p>
+            <div className="mt-3 pt-3 border-t border-white/15">
+              <p className="text-sm text-white font-semibold">Secretaria Municipal de Educação</p>
+              <p className="text-xs text-blue-300">São Sebastião da Boa Vista — Pará</p>
+            </div>
           </div>
-          <nav className="px-4 py-4 space-y-1" aria-label="Menu mobile">
-            {navItems.map((item: any, i: number) => (
-              <a
-                key={i}
-                href={item.href}
-                onClick={(e) => handleNavClick(e, item.href)}
-                className="block px-4 py-3 rounded-xl text-base font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 transition-all duration-200"
-              >
-                {item.label}
-              </a>
-            ))}
-            <div className="pt-3 px-1">
+
+          {/* Links de navegação */}
+          <nav className="px-4 py-3" aria-label="Menu mobile">
+            <div className="space-y-0.5">
+              {navItems.map((item: any, i: number) => (
+                <a
+                  key={i}
+                  href={item.href}
+                  onClick={(e) => handleNavClick(e, item.href)}
+                  className="flex items-center px-4 py-3 rounded-xl text-[15px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 active:bg-blue-100 transition-all duration-150"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+            <div className="mt-4 px-1 pb-6">
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-blue-800 text-white font-bold text-base shadow-lg shadow-blue-800/25 transition-all duration-200"
+                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-blue-800 text-white font-bold text-base shadow-lg shadow-blue-800/25 hover:bg-blue-900 transition-all duration-200"
               >
                 Entrar
                 <ArrowRight className="w-5 h-5" />
