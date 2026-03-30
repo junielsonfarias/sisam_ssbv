@@ -23,7 +23,7 @@ export default function SiteFooter({ data }: SiteFooterProps) {
 
   const contactInfo = data?.contactInfo || [
     'São Sebastião da Boa Vista - PA',
-    'semed@castanhal.pa.gov.br',
+    'semed@ssbv.pa.gov.br',
     '(91) 0000-0000',
   ]
 

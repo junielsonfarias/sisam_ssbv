@@ -10,7 +10,7 @@ interface SiteSchoolsProps {
 
 export default function SiteSchools({ data, escolas }: SiteSchoolsProps) {
   const title = data?.title || 'Nossas Escolas'
-  const subtitle = data?.subtitle || 'Conheça as unidades escolares que fazem parte da rede municipal de ensino'
+  const subtitle = data?.subtitle || 'Conheça as unidades escolares da rede municipal de São Sebastião da Boa Vista'
   const [showAll, setShowAll] = useState(false)
 
   if (!escolas || escolas.length === 0) {

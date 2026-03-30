@@ -9,14 +9,14 @@ interface SiteAboutProps {
 export default function SiteAbout({ data }: SiteAboutProps) {
   const title = data?.title || 'Sobre a SEMED'
   const description = data?.description ||
-    'A Secretaria Municipal de Educação de São Sebastião da Boa Vista - SEMED é o órgão responsável por planejar, coordenar, executar e avaliar a política educacional do município, garantindo o acesso e a permanência de crianças e jovens na escola.'
+    'A Secretaria Municipal de Educação de São Sebastião da Boa Vista atua na gestão das escolas públicas municipais, promovendo educação de qualidade.'
   const paragraphs = data?.paragraphs || [
-    'Atuamos na gestão das escolas municipais de educação infantil e ensino fundamental, promovendo formação continuada dos profissionais da educação, acompanhamento pedagógico e programas de inclusão escolar.',
-    'Com o compromisso de oferecer uma educação pública de qualidade, a SEMED investe em infraestrutura, tecnologia educacional e valorização dos educadores para transformar a realidade da educação no município.'
+    'Atuamos na gestão das escolas municipais, formação de professores, desenvolvimento de políticas educacionais e acompanhamento pedagógico.',
+    'Com o compromisso de transformar vidas pela educação, investimos em tecnologia, formação continuada e infraestrutura escolar.'
   ]
-  const mission = data?.mission || 'Garantir educação pública de qualidade, promovendo o desenvolvimento integral dos alunos por meio de políticas educacionais inclusivas e inovadoras.'
-  const vision = data?.vision || 'Ser referência em educação municipal na região do Marajó, assegurando o pleno desenvolvimento dos alunos e a valorização dos profissionais da educação.'
-  const values = data?.values || 'Compromisso com a qualidade do ensino, inclusão e equidade, transparência na gestão pública, valorização do profissional da educação e respeito à diversidade.'
+  const mission = data?.mission || 'Garantir educação pública de qualidade, inclusiva e equitativa, promovendo o desenvolvimento integral dos estudantes de São Sebastião da Boa Vista.'
+  const vision = data?.vision || 'Ser referência em educação municipal na região do Marajó, reconhecida pela excelência no ensino e valorização dos profissionais da educação.'
+  const values = data?.values || 'Compromisso com a qualidade do ensino, transparência na gestão, valorização dos profissionais, inclusão e respeito à diversidade.'
 
   const cards = [
     { icon: Target, title: 'Missão', text: mission, accent: 'border-l-blue-700', iconBg: 'bg-blue-50', iconText: 'text-blue-700' },

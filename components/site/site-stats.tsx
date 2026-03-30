@@ -45,7 +45,7 @@ function AnimatedCounter({ target, duration = 2000 }: { target: number; duration
 
 export default function SiteStats({ data, stats }: SiteStatsProps) {
   const title = data?.title || 'Educação em Números'
-  const subtitle = data?.subtitle || 'Acompanhe o alcance da rede municipal de ensino'
+  const subtitle = data?.subtitle || 'Acompanhe o alcance da rede municipal de ensino de São Sebastião da Boa Vista'
 
   const items = [
     { icon: School, value: stats.escolas || 0, label: 'Escolas Cadastradas' },

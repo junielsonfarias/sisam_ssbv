@@ -8,8 +8,8 @@ interface SiteContactProps {
 
 const defaultContact = {
   address: 'Secretaria Municipal de Educação - SEMED, São Sebastião da Boa Vista - PA',
-  phone: '(00) 0000-0000',
-  email: 'semed@municipio.gov.br',
+  phone: '(91) 0000-0000',
+  email: 'semed@ssbv.pa.gov.br',
   hours: 'Segunda a Sexta, 08h às 14h',
 }
 

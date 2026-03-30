@@ -42,8 +42,75 @@ export async function GET(request: NextRequest) {
         getAutoStats(),
         getEscolasPublicas(),
       ])
+      // Mapear campos do banco (português) para campos dos componentes (inglês)
+      const secoesMapeadas = secoesResult.rows.map((s: any) => {
+        const c = s.conteudo || {}
+        let conteudoMapeado = { ...c }
+
+        if (s.secao === 'hero') {
+          conteudoMapeado = {
+            title: c.titulo || c.title,
+            subtitle: c.subtitulo || c.subtitle,
+            description: c.descricao || c.description,
+            ctaPrimary: c.botao_primario ? { label: c.botao_primario.label || c.botao_primario.texto, href: c.botao_primario.href || c.botao_primario.link } : c.ctaPrimary,
+            ctaSecondary: c.botao_secundario ? { label: c.botao_secundario.label || c.botao_secundario.texto, href: c.botao_secundario.href || c.botao_secundario.link } : c.ctaSecondary,
+            ...conteudoMapeado,
+          }
+        } else if (s.secao === 'about') {
+          conteudoMapeado = {
+            title: c.titulo || c.title,
+            description: c.descricao || c.description || c.texto,
+            paragraphs: c.paragrafos || c.paragraphs,
+            mission: c.missao || c.mission,
+            vision: c.visao || c.vision,
+            values: c.valores || c.values,
+            ...conteudoMapeado,
+          }
+        } else if (s.secao === 'services') {
+          conteudoMapeado = {
+            title: c.titulo || c.title,
+            services: c.items || c.servicos || c.services,
+            ...conteudoMapeado,
+          }
+        } else if (s.secao === 'news') {
+          conteudoMapeado = {
+            title: c.titulo || c.title,
+            news: c.items || c.noticias || c.news,
+            ...conteudoMapeado,
+          }
+        } else if (s.secao === 'contact') {
+          conteudoMapeado = {
+            title: c.titulo || c.title,
+            subtitle: c.subtitulo || c.subtitle,
+            contact: {
+              address: c.endereco || c.contact?.address,
+              phone: c.telefone || c.contact?.phone,
+              email: c.email || c.contact?.email,
+              hours: c.horario_funcionamento || c.horario || c.contact?.hours,
+            },
+            ...conteudoMapeado,
+          }
+        } else if (s.secao === 'footer') {
+          conteudoMapeado = {
+            quickLinks: c.links_uteis || c.quickLinks,
+            description: c.descricao || c.description,
+            contactInfo: c.contato || c.contactInfo,
+            ...conteudoMapeado,
+          }
+        } else if (s.secao === 'stats') {
+          conteudoMapeado = {
+            title: c.titulo || c.title,
+            subtitle: c.descricao || c.subtitle,
+            auto_count: c.auto_count,
+            ...conteudoMapeado,
+          }
+        }
+
+        return { ...s, conteudo: conteudoMapeado }
+      })
+
       return {
-        secoes: secoesResult.rows,
+        secoes: secoesMapeadas,
         stats: statsResult,
         escolas: escolasResult,
       }
