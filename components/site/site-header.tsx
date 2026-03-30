@@ -187,13 +187,13 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
           menuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Topo do menu — logos centralizadas + identidade */}
-        <div className="bg-blue-900 px-5 pt-4 pb-4">
-          {/* Botão fechar no canto */}
-          <div className="flex justify-end mb-3">
+        {/* Topo do menu — fundo branco para logos legíveis */}
+        <div className="bg-white px-5 pt-3 pb-4 border-b border-slate-200">
+          {/* Botão fechar */}
+          <div className="flex justify-end mb-2">
             <button
               onClick={() => setMenuOpen(false)}
-              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
               aria-label="Fechar menu"
             >
               <X className="w-6 h-6" />
@@ -202,13 +202,13 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
           {/* Logos centralizadas */}
           <div className="flex items-center justify-center gap-5">
             <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-16 w-auto object-contain" />
-            <div className="w-px h-12 bg-white/30 flex-shrink-0" />
+            <div className="w-px h-12 bg-slate-200 flex-shrink-0" />
             <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-16 w-auto object-contain" />
           </div>
-          {/* Texto institucional centralizado */}
-          <div className="mt-4 pt-3 border-t border-white/15 text-center">
-            <p className="text-sm text-white font-semibold">Secretaria Municipal de Educação</p>
-            <p className="text-[11px] text-blue-300 mt-0.5">São Sebastião da Boa Vista — Pará</p>
+          {/* Texto institucional */}
+          <div className="mt-3 pt-2.5 border-t border-slate-100 text-center">
+            <p className="text-sm text-blue-900 font-bold">Secretaria Municipal de Educação</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">São Sebastião da Boa Vista — Pará</p>
           </div>
         </div>
 
