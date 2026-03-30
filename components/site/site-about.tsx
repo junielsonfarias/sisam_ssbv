@@ -25,7 +25,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
   ]
 
   return (
-    <section id="sobre" className="relative py-20 sm:py-28 bg-white overflow-hidden" aria-labelledby="about-title">
+    <section id="sobre" className="relative py-12 sm:py-28 bg-white overflow-hidden" aria-labelledby="about-title">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.02]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
@@ -34,9 +34,9 @@ export default function SiteAbout({ data }: SiteAboutProps) {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Two-column layout: image placeholder + text */}
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-20">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-12 lg:gap-20 items-center mb-20">
           {/* Left - Image placeholder */}
-          <div className="relative" aria-hidden="true">
+          <div className="hidden lg:block relative" aria-hidden="true">
             <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-100 overflow-hidden">
               <div className="absolute inset-0 flex items-center justify-center">
                 <svg viewBox="0 0 400 300" className="w-full h-full p-12 opacity-30">
@@ -54,8 +54,8 @@ export default function SiteAbout({ data }: SiteAboutProps) {
               </div>
             </div>
             {/* Decorative accent */}
-            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-amber-100 rounded-2xl -z-10" />
-            <div className="absolute -top-4 -left-4 w-16 h-16 bg-blue-100 rounded-2xl -z-10" />
+            <div className="hidden sm:block absolute -bottom-4 -right-4 w-24 h-24 bg-amber-100 rounded-2xl -z-10" />
+            <div className="hidden sm:block absolute -top-4 -left-4 w-16 h-16 bg-blue-100 rounded-2xl -z-10" />
           </div>
 
           {/* Right - Text content */}
@@ -80,7 +80,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
           {cards.map((card, i) => (
             <div
               key={i}
-              className={`bg-white rounded-2xl p-8 border border-slate-100 border-l-4 ${card.accent} hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300`}
+              className={`bg-white rounded-2xl p-5 sm:p-8 border border-slate-100 border-l-4 ${card.accent} hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300`}
             >
               <div className={`w-12 h-12 ${card.iconBg} rounded-2xl flex items-center justify-center mb-5`}>
                 <card.icon className={`w-6 h-6 ${card.iconText}`} />

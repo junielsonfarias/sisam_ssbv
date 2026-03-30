@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   School,
   ClipboardCheck,
@@ -56,15 +57,16 @@ const iconMap: Record<string, any> = {
 }
 
 export default function SiteServices({ data }: SiteServicesProps) {
+  const [mobileExpanded, setMobileExpanded] = useState(false)
   const title = data?.title || 'Nossos Serviços'
   const subtitle = data?.subtitle || 'Ferramentas modernas para a gestão educacional do município'
   const services = data?.services || defaultServices
 
   return (
-    <section id="servicos" className="py-20 sm:py-28 bg-white" aria-labelledby="services-title">
+    <section id="servicos" className="py-12 sm:py-28 bg-white" aria-labelledby="services-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 sm:mb-16">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">O que oferecemos</p>
           <h2 id="services-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">{title}</h2>
           <div className="flex items-center justify-center gap-2 mb-6">
@@ -82,7 +84,7 @@ export default function SiteServices({ data }: SiteServicesProps) {
             return (
               <div
                 key={i}
-                className="group relative bg-white rounded-2xl p-8 border border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-700/5 transition-all duration-300 hover:-translate-y-1"
+                className={`group relative bg-white rounded-2xl p-5 sm:p-8 border border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-700/5 transition-all duration-300 hover:-translate-y-1 ${i >= 3 && !mobileExpanded ? 'hidden sm:block' : ''}`}
               >
                 {/* Icon in colored circle */}
                 <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-6 group-hover:bg-blue-800 group-hover:border-blue-800 group-hover:shadow-lg group-hover:shadow-blue-800/25 transition-all duration-300">
@@ -97,6 +99,17 @@ export default function SiteServices({ data }: SiteServicesProps) {
             )
           })}
         </div>
+        {!mobileExpanded && (
+          <div className="flex justify-center mt-6 sm:hidden">
+            <button
+              onClick={() => setMobileExpanded(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-blue-200 text-blue-800 font-semibold hover:bg-blue-50 transition-colors"
+            >
+              Ver mais serviços
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   )

@@ -55,7 +55,7 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
   ]
 
   return (
-    <section className="relative py-20 sm:py-28 bg-slate-900 overflow-hidden" aria-label="Estatísticas da rede de ensino">
+    <section className="relative py-12 sm:py-28 bg-slate-900 overflow-hidden" aria-label="Estatísticas da rede de ensino">
       {/* Dot pattern */}
       <div className="absolute inset-0 opacity-[0.06]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
@@ -64,8 +64,8 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
 
       {/* Blue glow accents */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-700/8 rounded-full blur-3xl" />
-      <div className="absolute top-0 left-0 w-80 h-80 bg-blue-700/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-700/5 rounded-full blur-3xl" />
+      <div className="hidden sm:block absolute top-0 left-0 w-80 h-80 bg-blue-700/5 rounded-full blur-3xl" />
+      <div className="hidden sm:block absolute bottom-0 right-0 w-80 h-80 bg-blue-700/5 rounded-full blur-3xl" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -80,15 +80,15 @@ export default function SiteStats({ data, stats }: SiteStatsProps) {
           {items.map((item, i) => (
             <div
               key={i}
-              className="group text-center p-8 rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-blue-700/30 transition-all duration-500"
+              className="group text-center p-5 sm:p-8 rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-blue-700/30 transition-all duration-500"
             >
               {/* Icon */}
-              <div className="w-14 h-14 rounded-2xl bg-blue-700/15 border border-blue-700/20 flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-700/25 group-hover:border-blue-700/40 transition-all duration-300">
-                <item.icon className="w-7 h-7 text-blue-400" />
+              <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-blue-700/15 border border-blue-700/20 flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-700/25 group-hover:border-blue-700/40 transition-all duration-300">
+                <item.icon className="w-5 h-5 sm:w-7 sm:h-7 text-blue-400" />
               </div>
 
               {/* Number */}
-              <p className="text-4xl sm:text-5xl font-extrabold text-white mb-2 tracking-tight">
+              <p className="text-3xl sm:text-5xl font-extrabold text-white mb-2 tracking-tight">
                 <AnimatedCounter target={item.value} />
               </p>
 

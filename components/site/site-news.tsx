@@ -84,10 +84,10 @@ export default function SiteNews({ data }: SiteNewsProps) {
   const secondary = news.slice(1, 3)
 
   return (
-    <section id="noticias" className="py-20 sm:py-28 bg-slate-50" aria-labelledby="news-title">
+    <section id="noticias" className="py-12 sm:py-28 bg-slate-50" aria-labelledby="news-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-14">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-14">
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Novidades</p>
             <h2 id="news-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">{title}</h2>
@@ -107,7 +107,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
           {/* Featured article (large) */}
           <article className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl hover:shadow-slate-900/5 transition-all duration-300">
             {/* Image area */}
-            <div className={`relative h-64 bg-gradient-to-br ${gradientColors[0]} flex items-center justify-center`}>
+            <div className={`relative h-40 sm:h-64 bg-gradient-to-br ${gradientColors[0]} flex items-center justify-center`}>
               <BookOpen className="w-16 h-16 text-white/20" />
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -117,7 +117,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
                 <p className="text-xs font-bold text-blue-800 uppercase">{formatMonth(featured.date)}</p>
               </div>
             </div>
-            <div className="p-8">
+            <div className="p-5 sm:p-8">
               <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
                 <Calendar className="w-3.5 h-3.5" />
                 {formatDate(featured.date)}
@@ -143,7 +143,7 @@ export default function SiteNews({ data }: SiteNewsProps) {
                 className="group flex-1 bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl hover:shadow-slate-900/5 transition-all duration-300 flex flex-col sm:flex-row"
               >
                 {/* Image area */}
-                <div className={`relative h-48 sm:h-auto sm:w-48 flex-shrink-0 bg-gradient-to-br ${gradientColors[(i + 1) % gradientColors.length]} flex items-center justify-center`}>
+                <div className={`hidden sm:flex relative sm:h-auto sm:w-48 flex-shrink-0 bg-gradient-to-br ${gradientColors[(i + 1) % gradientColors.length]} items-center justify-center`}>
                   <BookOpen className="w-10 h-10 text-white/20" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent sm:bg-gradient-to-r" />
                   {/* Date badge */}

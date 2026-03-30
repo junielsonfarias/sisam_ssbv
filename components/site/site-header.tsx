@@ -81,7 +81,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`flex items-center justify-between transition-all duration-500 ${
-          scrolled ? 'h-16 sm:h-16' : 'h-18 sm:h-20'
+          scrolled ? 'h-14 sm:h-16' : 'h-16 sm:h-20'
         }`}>
           {/* Logo */}
           <a
@@ -97,13 +97,13 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             <img
               src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
               alt="SEMED - São Sebastião da Boa Vista"
-              className={`w-auto transition-all duration-500 ${scrolled ? 'h-9 sm:h-10' : 'h-11 sm:h-14'}`}
+              className={`w-auto transition-all duration-500 ${scrolled ? 'h-7 sm:h-10' : 'h-8 sm:h-14'}`}
             />
             <div className="hidden sm:block w-px h-8 bg-slate-200 flex-shrink-0" />
             <img
               src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
               alt="Prefeitura Municipal de São Sebastião da Boa Vista"
-              className={`w-auto transition-all duration-500 ${scrolled ? 'h-9 sm:h-10' : 'h-11 sm:h-14'}`}
+              className={`w-auto transition-all duration-500 ${scrolled ? 'h-7 sm:h-10' : 'h-8 sm:h-14'}`}
             />
           </a>
 
@@ -195,7 +195,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                 key={i}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
-                className="block px-5 py-4 rounded-2xl text-lg font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 transition-all duration-200"
+                className="block px-4 py-3 rounded-xl text-base font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 transition-all duration-200"
               >
                 {item.label}
               </a>

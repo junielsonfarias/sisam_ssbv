@@ -41,7 +41,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
   ]
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-20" aria-label="Seção principal">
+    <section className="relative sm:min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-20" aria-label="Seção principal">
       {/* Subtle dot pattern */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
@@ -49,10 +49,10 @@ export default function SiteHero({ data }: SiteHeroProps) {
       }} />
 
       {/* Decorative blurs */}
-      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-50/30 rounded-full blur-3xl" />
+      <div className="hidden sm:block absolute top-20 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-3xl" />
+      <div className="hidden sm:block absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-50/30 rounded-full blur-3xl" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-12 lg:py-0">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-6 sm:py-12 lg:py-0">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left content */}
           <div className={`transition-all duration-1000 ease-out ${
@@ -70,12 +70,12 @@ export default function SiteHero({ data }: SiteHeroProps) {
             </h1>
 
             {/* Description */}
-            <p className="text-base sm:text-xl text-slate-500 mb-8 sm:mb-10 leading-relaxed max-w-xl">
+            <p className="text-base sm:text-xl text-slate-500 mb-8 sm:mb-10 leading-relaxed max-w-xl line-clamp-3 sm:line-clamp-none">
               {description}
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 sm:gap-4 mb-12 sm:mb-16">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 sm:gap-4 mb-8 sm:mb-16">
               <Link
                 href={ctaPrimary.href}
                 className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-blue-800 text-white font-bold rounded-full text-base sm:text-lg hover:bg-blue-900 transition-all duration-300 shadow-lg shadow-blue-800/25 hover:shadow-blue-800/40 hover:-translate-y-0.5"
@@ -99,7 +99,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
                 { value: '200+', label: 'Turmas' },
               ].map((stat, i) => (
                 <div key={i} className="text-center sm:text-left">
-                  <p className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900">{stat.value}</p>
+                  <p className="text-xl sm:text-4xl font-extrabold tracking-tight text-slate-900">{stat.value}</p>
                   <p className="text-xs sm:text-sm font-medium text-slate-400 mt-0.5 sm:mt-1">{stat.label}</p>
                 </div>
               ))}
@@ -146,7 +146,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
       {/* Scroll Down Indicator */}
       <button
         onClick={handleScrollDown}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-slate-300 hover:text-blue-700 transition-colors animate-bounce"
+        className="hidden sm:block absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-slate-300 hover:text-blue-700 transition-colors animate-bounce"
         aria-label="Rolar para baixo"
       >
         <ChevronDown className="w-8 h-8" />

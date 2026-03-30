@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { FileText, ArrowRight, Building2, Calendar } from 'lucide-react'
 import Link from 'next/link'
 
@@ -29,6 +30,8 @@ function formatDate(dateStr: string): string {
 }
 
 export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
+  const [mobileExpanded, setMobileExpanded] = useState(false)
+
   if (!publicacoes || publicacoes.length === 0) {
     return (
       <section id="publicacoes" className="py-20 sm:py-28 bg-white" aria-labelledby="pub-title-empty">
@@ -50,10 +53,10 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
   }
 
   return (
-    <section id="publicacoes" className="py-20 sm:py-28 bg-white" aria-labelledby="pub-title">
+    <section id="publicacoes" className="py-12 sm:py-28 bg-white" aria-labelledby="pub-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-14">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 sm:mb-14">
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Transparência</p>
             <h2 id="pub-title" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-2">
@@ -77,7 +80,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
           {publicacoes.map((pub: any, i: number) => (
             <article
               key={pub.id || i}
-              className="group bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:shadow-xl hover:shadow-slate-900/5 hover:border-slate-200 transition-all duration-300"
+              className={`group bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:shadow-xl hover:shadow-slate-900/5 hover:border-slate-200 transition-all duration-300 ${i >= 4 && !mobileExpanded ? 'hidden md:block' : ''}`}
             >
               <div className="flex items-start justify-between mb-4">
                 <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${BADGE_COLORS[pub.tipo] || 'bg-slate-100 text-slate-700'}`}>
@@ -117,6 +120,17 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
             </article>
           ))}
         </div>
+        {!mobileExpanded && publicacoes.length > 4 && (
+          <div className="flex justify-center mt-6 md:hidden">
+            <button
+              onClick={() => setMobileExpanded(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-blue-200 text-blue-800 font-semibold hover:bg-blue-50 transition-colors"
+            >
+              Ver mais publicações
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+          </div>
+        )}
 
         {/* Mobile link */}
         <div className="flex justify-center mt-10 sm:hidden">
