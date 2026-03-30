@@ -41,7 +41,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
   ]
 
   return (
-    <section className="relative lg:min-h-[85vh] flex items-start lg:items-center overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-32 sm:pt-28 lg:pt-28" aria-label="Seção principal">
+    <section className="relative flex items-start overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-28 sm:pt-24 lg:pt-20" aria-label="Seção principal">
       {/* Subtle dot pattern */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',

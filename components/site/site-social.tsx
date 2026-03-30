@@ -119,7 +119,7 @@ export default function SiteSocial({ data }: SiteSocialProps) {
   const showFeed = socialData.mostrar_feed_facebook && socialData.facebook_url
 
   return (
-    <section className="py-6 sm:py-16 lg:py-20 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900" aria-label="Redes sociais">
+    <section className="py-6 sm:py-12 lg:py-16 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900" aria-label="Redes sociais">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Layout: 2 colunas no desktop (ícones + feed), empilhado no mobile */}
         <div className={`grid ${showFeed ? 'lg:grid-cols-2' : ''} gap-8 lg:gap-12 items-start`}>

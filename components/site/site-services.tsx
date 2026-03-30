@@ -63,10 +63,10 @@ export default function SiteServices({ data }: SiteServicesProps) {
   const services = data?.services || defaultServices
 
   return (
-    <section id="servicos" className="py-10 sm:py-20 lg:py-24 bg-white" aria-labelledby="services-title">
+    <section id="servicos" className="py-10 sm:py-16 lg:py-20 bg-white" aria-labelledby="services-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-8 sm:mb-16">
+        <div className="text-center mb-8 sm:mb-12">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">O que oferecemos</p>
           <h2 id="services-title" className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">{title}</h2>
           <div className="flex items-center justify-center gap-2 mb-6">

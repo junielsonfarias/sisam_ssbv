@@ -26,7 +26,7 @@ export default function SiteAbout({ data }: SiteAboutProps) {
   ]
 
   return (
-    <section id="sobre" className="relative py-10 sm:py-20 lg:py-24 bg-white overflow-hidden" aria-labelledby="about-title">
+    <section id="sobre" className="relative py-10 sm:py-16 lg:py-20 bg-white overflow-hidden" aria-labelledby="about-title">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.02]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',

@@ -34,7 +34,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
 
   if (!publicacoes || publicacoes.length === 0) {
     return (
-      <section id="publicacoes" className="py-20 sm:py-28 bg-white" aria-labelledby="pub-title-empty">
+      <section id="publicacoes" className="py-10 sm:py-16 bg-white" aria-labelledby="pub-title-empty">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4">Transparência</p>
           <h2 id="pub-title-empty" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
@@ -53,7 +53,7 @@ export default function SitePublicacoes({ publicacoes }: SitePublicacoesProps) {
   }
 
   return (
-    <section id="publicacoes" className="py-10 sm:py-20 lg:py-24 bg-white" aria-labelledby="pub-title">
+    <section id="publicacoes" className="py-10 sm:py-16 lg:py-20 bg-white" aria-labelledby="pub-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-14">
