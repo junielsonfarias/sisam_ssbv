@@ -78,22 +78,22 @@ export function Header({
               <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            {/* Logo do Sistema - Usa logo estática para evitar problemas com banco de dados */}
-            <div className="flex-shrink-0 hidden sm:block">
+            {/* Logo do Sistema */}
+            <div className="flex-shrink-0">
               <img
                 src="/logo.png"
                 alt="Logo do Sistema"
-                className="h-8 sm:h-9 lg:h-10 w-auto object-contain rounded"
+                className="h-9 sm:h-10 lg:h-12 w-auto object-contain rounded"
               />
             </div>
 
-            {/* Nome do Sistema */}
+            {/* Nome do Sistema + SEMED + Município */}
             <div className="flex flex-col min-w-0">
-              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 dark:text-white truncate">
+              <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-gray-800 dark:text-white truncate leading-tight">
                 {personalizacao.nome_sistema || 'SISAM'}
               </h1>
-              <span className="hidden lg:block text-xs text-gray-500 dark:text-gray-400 truncate">
-                Sistema de Avaliação Municipal
+              <span className="text-[9px] sm:text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 truncate leading-tight">
+                SEMED — Castanhal/PA
               </span>
             </div>
 
