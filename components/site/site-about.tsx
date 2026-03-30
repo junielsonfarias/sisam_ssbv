@@ -16,7 +16,8 @@ export default function SiteAbout({ data }: SiteAboutProps) {
   ]
   const mission = data?.mission || 'Garantir educação pública de qualidade, inclusiva e equitativa, promovendo o desenvolvimento integral dos estudantes de São Sebastião da Boa Vista.'
   const vision = data?.vision || 'Ser referência em educação municipal na região do Marajó, reconhecida pela excelência no ensino e valorização dos profissionais da educação.'
-  const values = data?.values || 'Compromisso com a qualidade do ensino, transparência na gestão, valorização dos profissionais, inclusão e respeito à diversidade.'
+  const rawValues = data?.values || 'Compromisso com a qualidade do ensino, transparência na gestão, valorização dos profissionais, inclusão e respeito à diversidade.'
+  const values = Array.isArray(rawValues) ? rawValues.join(', ') : rawValues
 
   const cards = [
     { icon: Target, title: 'Missão', text: mission, accent: 'border-l-blue-700', iconBg: 'bg-blue-50', iconText: 'text-blue-700' },
