@@ -7,7 +7,7 @@
 - **Port**: `5432`
 - **Database**: `postgres` (Supabase sempre usa "postgres")
 - **User**: `postgres`
-- **Password**: `Master@sisam&&`
+- **Password**: `SUA_SENHA_AQUI`
 
 ## 📝 Configuração do Arquivo `.env`
 
@@ -19,7 +19,7 @@ DB_HOST=db.cjxejpgtuuqnbczpbdfe.supabase.co
 DB_PORT=5432
 DB_NAME=postgres
 DB_USER=postgres
-DB_PASSWORD=Master@sisam&&
+DB_PASSWORD=SUA_SENHA_AQUI
 DB_SSL=true
 
 # JWT Secret (gere uma chave segura)

@@ -112,7 +112,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           resultado.polos.criados++
         }
       } catch (error: unknown) {
-        resultado.polos.erros.push(`Polo "${nomePolo}": ${(error as Error).message}`)
+        resultado.polos.erros.push(`Polo "${nomePolo}": Erro ao processar`)
       }
     }
 
@@ -165,7 +165,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           resultado.escolas.criados++
         }
       } catch (error: unknown) {
-        resultado.escolas.erros.push(`Escola "${nomeEscola}": ${(error as Error).message}`)
+        resultado.escolas.erros.push(`Escola "${nomeEscola}": Erro ao processar`)
       }
     }
 
@@ -196,7 +196,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           resultado.turmas.criados++
         }
       } catch (error: unknown) {
-        resultado.turmas.erros.push(`Turma "${codigoTurma}": ${(error as Error).message}`)
+        resultado.turmas.erros.push(`Turma "${codigoTurma}": erro ao processar`)
       }
     }
 
@@ -243,7 +243,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           resultado.alunos.criados++
         }
       } catch (error: unknown) {
-        resultado.alunos.erros.push(`Aluno "${nomeAluno}": ${(error as Error).message}`)
+        resultado.alunos.erros.push(`Aluno "${nomeAluno}": erro ao processar`)
       }
     }
 
@@ -276,7 +276,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             questoesCriadas.criadas++
           }
         } catch (error: unknown) {
-          console.error(`Erro ao criar questão ${codigo}:`, (error as Error).message)
+          console.error(`Erro ao criar questão ${codigo}:`, error)
         }
       }
     }
@@ -327,7 +327,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
   } catch (error: unknown) {
     console.error('Erro ao importar cadastros:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

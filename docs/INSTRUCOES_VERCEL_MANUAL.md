@@ -28,9 +28,9 @@ O projeto local não está linkado ao projeto no Vercel.
 | `DB_PORT` | `5432` | Production |
 | `DB_NAME` | `postgres` | Production |
 | `DB_USER` | `postgres` | Production |
-| `DB_PASSWORD` | `Master@sisam&&` | Production |
+| `DB_PASSWORD` | `SUA_SENHA_AQUI` | Production |
 | `DB_SSL` | `true` | Production |
-| `JWT_SECRET` | `9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0` | Production |
+| `JWT_SECRET` | `SEU_JWT_SECRET_AQUI` | Production |
 | `NODE_ENV` | `production` | Production |
 
 **Como adicionar:**
@@ -108,13 +108,13 @@ echo "postgres" | vercel env add DB_USER production
 
 # DB_PASSWORD (atenção aos caracteres especiais)
 vercel env add DB_PASSWORD production
-# Quando pedir, digite: Master@sisam&&
+# Quando pedir, digite: SUA_SENHA_AQUI
 
 # DB_SSL
 echo "true" | vercel env add DB_SSL production
 
 # JWT_SECRET
-echo "9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0" | vercel env add JWT_SECRET production
+echo "SEU_JWT_SECRET_AQUI" | vercel env add JWT_SECRET production
 
 # NODE_ENV
 echo "production" | vercel env add NODE_ENV production

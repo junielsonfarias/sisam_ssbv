@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 // RATE LIMITING (LGPD — 30 req/15min por IP)
 // ============================================================================
 const boletimLimiter = new Map<string, { count: number; resetAt: number }>()
-const BOLETIM_MAX = 30
+const BOLETIM_MAX = 10
 const BOLETIM_WINDOW = 15 * 60 * 1000
 
 function checkBoletimRate(ip: string): boolean {

@@ -2,26 +2,35 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// Validar variáveis de ambiente obrigatórias
+const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD'];
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.log(`❌ Variáveis de ambiente ausentes: ${missingVars.join(', ')}`);
+  console.log('   Exporte DB_HOST, DB_USER e DB_PASSWORD antes de executar.');
+  process.exit(1);
+}
+
 // Credenciais do Supabase para PRODUÇÃO (Connection Pooler)
 const configProducao = {
-  DB_HOST: 'aws-0-us-east-1.pooler.supabase.com',
-  DB_PORT: '6543',
-  DB_NAME: 'postgres',
-  DB_USER: 'postgres.cjxejpgtuuqnbczpbdfe', // IMPORTANTE: com project ref para pooler
-  DB_PASSWORD: 'Master@sisam&&',
-  DB_SSL: 'true',
+  DB_HOST: process.env.DB_HOST_POOLER || process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT_POOLER || '6543',
+  DB_NAME: process.env.DB_NAME || 'postgres',
+  DB_USER: process.env.DB_USER_POOLER || process.env.DB_USER,
+  DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_SSL: process.env.DB_SSL || 'true',
   JWT_SECRET: crypto.randomBytes(32).toString('hex'),
   NODE_ENV: 'production',
 };
 
 // Credenciais do Supabase para DESENVOLVIMENTO (Direct Connection)
 const configDesenvolvimento = {
-  DB_HOST: 'db.cjxejpgtuuqnbczpbdfe.supabase.co',
-  DB_PORT: '5432',
-  DB_NAME: 'postgres',
-  DB_USER: 'postgres', // Sem project ref para conexão direta
-  DB_PASSWORD: 'Master@sisam&&',
-  DB_SSL: 'true',
+  DB_HOST: process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT || '5432',
+  DB_NAME: process.env.DB_NAME || 'postgres',
+  DB_USER: process.env.DB_USER,
+  DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_SSL: process.env.DB_SSL || 'true',
   JWT_SECRET: crypto.randomBytes(32).toString('hex'),
   NODE_ENV: 'development',
 };

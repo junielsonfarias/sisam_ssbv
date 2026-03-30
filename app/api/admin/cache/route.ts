@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao gerenciar cache:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro ao gerenciar cache' },
+      { mensagem: 'Erro ao gerenciar cache' },
       { status: 500 }
     )
   }

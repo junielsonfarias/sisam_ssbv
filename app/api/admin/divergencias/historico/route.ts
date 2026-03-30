@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao buscar histórico:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao buscar histórico', erro: (error as Error).message },
+      { mensagem: 'Erro ao buscar histórico' },
       { status: 500 }
     )
   }
@@ -113,7 +113,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao limpar histórico:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao limpar histórico', erro: (error as Error).message },
+      { mensagem: 'Erro ao limpar histórico' },
       { status: 500 }
     )
   }

@@ -90,12 +90,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(historico)
   } catch (error: unknown) {
     console.error('Erro ao buscar histórico do aluno:', error)
-    console.error('Stack trace:', (error as DatabaseError)?.stack)
     return NextResponse.json(
-      { 
-        mensagem: 'Erro interno do servidor',
-        erro: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
-      },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

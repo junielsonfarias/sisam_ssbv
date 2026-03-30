@@ -139,7 +139,7 @@ async function atualizarVercelEnv() {
     console.log('   1. Faça um redeploy: vercel --prod');
     console.log('   2. Verifique: https://sisam-ssbv-junielsonfarias.vercel.app/api/init');
     console.log('   3. Teste login: https://sisam-ssbv-junielsonfarias.vercel.app/login');
-    console.log('      Email: admin@sisam.com | Senha: admin123\n');
+    console.log('      (use as credenciais padrão do sistema)\n');
 
   } catch (error) {
     console.error('\n❌ Erro:', error.message);

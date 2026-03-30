@@ -214,7 +214,7 @@ export async function getUsuarioFromRequest(request: NextRequest): Promise<Usuar
 
   try {
     const result = await pool.query(
-      'SELECT * FROM usuarios WHERE id = $1 AND ativo = true',
+      'SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo FROM usuarios WHERE id = $1 AND ativo = true',
       [payload.userId]
     );
 

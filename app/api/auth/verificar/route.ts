@@ -13,11 +13,7 @@ export async function GET(request: NextRequest) {
     if (!dbTest.success) {
       console.error('Erro de conexão com banco de dados:', dbTest.error);
       return NextResponse.json(
-        { 
-          mensagem: 'Erro ao conectar com o banco de dados',
-          erro: 'DB_CONNECTION_ERROR',
-          detalhes: process.env.NODE_ENV === 'development' ? dbTest.error : undefined
-        },
+        { mensagem: 'Erro ao conectar com o banco de dados' },
         { status: 503 } // Service Unavailable
       )
     }
@@ -76,30 +72,18 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error: unknown) {
-    console.error('Erro ao verificar autenticação:', {
-      message: (error as Error)?.message,
-      code: (error as DatabaseError)?.code,
-      stack: process.env.NODE_ENV === 'development' ? (error as DatabaseError)?.stack : undefined,
-    })
-    
+    console.error('Erro ao verificar autenticação:', error)
+
     // Verificar se é erro de banco de dados
     if ((error as DatabaseError)?.code === PG_ERRORS.CONNECTION_REFUSED || (error as DatabaseError)?.code === PG_ERRORS.HOST_NOT_FOUND || (error as DatabaseError)?.code === PG_ERRORS.CONNECTION_TIMEOUT) {
       return NextResponse.json(
-        { 
-          mensagem: 'Erro ao conectar com o banco de dados',
-          erro: 'DB_CONNECTION_ERROR',
-          detalhes: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
-        },
+        { mensagem: 'Erro ao conectar com o banco de dados' },
         { status: 503 }
       )
     }
-    
+
     return NextResponse.json(
-      { 
-        mensagem: 'Erro interno do servidor',
-        erro: 'INTERNAL_ERROR',
-        detalhes: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
-      },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

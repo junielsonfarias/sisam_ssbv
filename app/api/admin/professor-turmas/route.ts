@@ -128,10 +128,10 @@ export async function PATCH(request: NextRequest) {
     }
     if (error instanceof Error) {
       if (error.message === 'Vínculo não encontrado ou já inativo') {
-        return NextResponse.json({ mensagem: error.message }, { status: 404 })
+        return NextResponse.json({ mensagem: 'Vínculo não encontrado ou já inativo' }, { status: 404 })
       }
       if (error.message === 'O novo professor é o mesmo do vínculo atual') {
-        return NextResponse.json({ mensagem: error.message }, { status: 400 })
+        return NextResponse.json({ mensagem: 'O novo professor é o mesmo do vínculo atual' }, { status: 400 })
       }
     }
     console.error('Erro ao trocar professor:', error)

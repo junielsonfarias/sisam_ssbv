@@ -58,7 +58,7 @@ O Supabase possui dois tipos de conexão:
 
 5. **VERIFIQUE** as outras variáveis estão corretas:
    - `DB_NAME` = `postgres` ✅
-   - `DB_PASSWORD` = `Master@sisam&&` ✅
+   - `DB_PASSWORD` = `SUA_SENHA_AQUI` ✅
    - `DB_SSL` = `true` ✅
    - `JWT_SECRET` = `sisam2024_producao_jwt_secret_key_super_secure_random_string_2024` ✅
    - `NODE_ENV` = `production` ✅

@@ -2,14 +2,23 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// Credenciais do Supabase
+// Validar variáveis de ambiente obrigatórias
+const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD'];
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.log(`❌ Variáveis de ambiente ausentes: ${missingVars.join(', ')}`);
+  console.log('   Exporte DB_HOST, DB_USER e DB_PASSWORD antes de executar.');
+  process.exit(1);
+}
+
+// Credenciais lidas de variáveis de ambiente
 const config = {
-  DB_HOST: 'db.cjxejpgtuuqnbczpbdfe.supabase.co',
-  DB_PORT: '5432',
-  DB_NAME: 'postgres',
-  DB_USER: 'postgres',
-  DB_PASSWORD: 'Master@sisam&&',
-  DB_SSL: 'true',
+  DB_HOST: process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT || '5432',
+  DB_NAME: process.env.DB_NAME || 'postgres',
+  DB_USER: process.env.DB_USER || 'postgres',
+  DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_SSL: process.env.DB_SSL || 'true',
   JWT_SECRET: crypto.randomBytes(32).toString('hex'),
   NODE_ENV: 'development',
 };
@@ -69,7 +78,7 @@ try {
   console.log('   1. Testar conexão: npm run testar-conexao-supabase');
   console.log('   2. Iniciar servidor: npm run dev');
   console.log('   3. Acessar: http://localhost:3000');
-  console.log('   4. Login: admin@sisam.com / admin123');
+  console.log('   4. Login: (use as credenciais padrão do sistema)');
   
 } catch (error) {
   console.error('❌ Erro ao criar arquivo .env:', error.message);

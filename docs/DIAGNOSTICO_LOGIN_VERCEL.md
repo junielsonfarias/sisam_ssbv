@@ -64,7 +64,7 @@ Esta rota retorna:
 ✅ DB_PORT=6543
 ✅ DB_NAME=postgres
 ✅ DB_USER=postgres.cjxejpgtuuqnbczpbdfe
-✅ DB_PASSWORD=Master@sisam&&
+✅ DB_PASSWORD=SUA_SENHA_AQUI
 ✅ DB_SSL=true
 ✅ JWT_SECRET=[sua-chave-com-pelo-menos-20-caracteres]
 ✅ NODE_ENV=production

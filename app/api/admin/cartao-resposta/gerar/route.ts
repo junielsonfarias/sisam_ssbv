@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao gerar cartão-resposta:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao gerar cartão-resposta', erro: (error as Error).message },
+      { mensagem: 'Erro ao gerar cartão-resposta' },
       { status: 500 }
     )
   }

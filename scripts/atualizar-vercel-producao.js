@@ -56,10 +56,8 @@ async function atualizarVercel() {
   }
   
   // Validar se é o banco correto
-  const projectRef = 'cjxejpgtuuqnbczpbdfe';
-  if (!env.DB_HOST.includes(projectRef)) {
-    console.error(`\n⚠️  ATENÇÃO: O DB_HOST não parece ser do projeto correto!`);
-    console.error(`   Esperado: ...${projectRef}.supabase.co`);
+  if (!env.DB_HOST.includes('supabase')) {
+    console.error(`\n⚠️  ATENÇÃO: O DB_HOST não parece ser um host Supabase!`);
     console.error(`   Encontrado: ${env.DB_HOST}`);
     console.error('\n💡 Atualize o .env com o host correto antes de continuar.');
     process.exit(1);
@@ -148,7 +146,7 @@ async function atualizarVercel() {
     console.log('\n📝 Próximos passos:');
     console.log('   1. Aguarde o deploy finalizar (~2 minutos)');
     console.log('   2. Acesse sua aplicação no Vercel');
-    console.log('   3. Teste o login com: admin@sisam.com / admin123');
+    console.log('   3. Teste o login com as credenciais padrão do sistema');
     console.log('   4. Verifique se a logo aparece corretamente');
     console.log('\n🔍 Para verificar as variáveis configuradas:');
     console.log('   vercel env ls production');

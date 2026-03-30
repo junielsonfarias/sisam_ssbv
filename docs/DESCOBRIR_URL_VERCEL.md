@@ -51,9 +51,9 @@ Isso significa que o projeto não está deployado ou a URL está incorreta.
    | `DB_PORT` | `5432` |
    | `DB_NAME` | `postgres` |
    | `DB_USER` | `postgres` |
-   | `DB_PASSWORD` | `Master@sisam&&` |
+   | `DB_PASSWORD` | `SUA_SENHA_AQUI` |
    | `DB_SSL` | `true` |
-   | `JWT_SECRET` | `9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0` |
+   | `JWT_SECRET` | `SEU_JWT_SECRET_AQUI` |
    | `NODE_ENV` | `production` |
 
 5. Clique em **Deploy**
@@ -141,9 +141,9 @@ DB_HOST=db.cjxejpgtuuqnbczpbdfe.supabase.co
 DB_PORT=5432
 DB_NAME=postgres
 DB_USER=postgres
-DB_PASSWORD=Master@sisam&&
+DB_PASSWORD=SUA_SENHA_AQUI
 DB_SSL=true
-JWT_SECRET=9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0
+JWT_SECRET=SEU_JWT_SECRET_AQUI
 NODE_ENV=production
 ```
 

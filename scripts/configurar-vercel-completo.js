@@ -123,14 +123,23 @@ async function main() {
   console.log('\n➕ Adicionando variáveis corretas...');
   console.log('   (Você precisará digitar os valores quando solicitado)\n');
   
+  // Credenciais lidas de variáveis de ambiente locais (.env)
+  const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET'];
+  const missing = requiredEnvVars.filter(v => !process.env[v]);
+  if (missing.length > 0) {
+    console.log(`\n❌ Variáveis de ambiente ausentes: ${missing.join(', ')}`);
+    console.log('   Configure um arquivo .env local ou exporte as variáveis antes de executar.');
+    process.exit(1);
+  }
+
   const variaveis = {
-    'DB_HOST': 'db.cjxejpgtuuqnbczpbdfe.supabase.co',
-    'DB_PORT': '5432',
-    'DB_NAME': 'postgres',
-    'DB_USER': 'postgres',
-    'DB_PASSWORD': 'Master@sisam&&',
-    'DB_SSL': 'true',
-    'JWT_SECRET': '9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0',
+    'DB_HOST': process.env.DB_HOST,
+    'DB_PORT': process.env.DB_PORT || '5432',
+    'DB_NAME': process.env.DB_NAME || 'postgres',
+    'DB_USER': process.env.DB_USER || 'postgres',
+    'DB_PASSWORD': process.env.DB_PASSWORD,
+    'DB_SSL': process.env.DB_SSL || 'true',
+    'JWT_SECRET': process.env.JWT_SECRET,
     'NODE_ENV': 'production'
   };
   

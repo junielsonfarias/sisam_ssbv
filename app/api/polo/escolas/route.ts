@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      'SELECT * FROM escolas WHERE polo_id = $1 AND ativo = true ORDER BY nome',
+      'SELECT id, nome, codigo_inep, endereco, polo_id, ativo, gestor_escolar_habilitado FROM escolas WHERE polo_id = $1 AND ativo = true ORDER BY nome',
       [usuario.polo_id]
     )
 

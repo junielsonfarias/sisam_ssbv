@@ -349,7 +349,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro no dashboard rápido:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor', erro: (error as Error).message },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao buscar módulos do técnico:', error)
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor', erro: (error as Error).message },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -84,7 +84,7 @@ export async function PUT(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao atualizar módulos do técnico:', error)
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor', erro: (error as Error).message },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

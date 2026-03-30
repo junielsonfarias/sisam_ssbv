@@ -92,12 +92,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    console.error('Erro completo ao atualizar questão:', {
-      message: (error as Error).message,
-      code: (error as DatabaseError).code,
-      detail: (error as DatabaseError).detail,
-      stack: (error as DatabaseError).stack,
-    })
+    console.error('Erro ao atualizar questão:', error)
 
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
@@ -114,11 +109,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
     }
 
     return NextResponse.json(
-      {
-        mensagem: (error as Error).message || 'Erro interno do servidor',
-        detalhes: (error as DatabaseError).code,
-        stack: process.env.NODE_ENV === 'development' ? (error as DatabaseError).stack : undefined
-      },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

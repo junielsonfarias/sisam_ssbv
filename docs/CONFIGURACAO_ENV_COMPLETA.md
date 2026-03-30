@@ -24,7 +24,7 @@
 
 - **Project Reference**: `cjxejpgtuuqnbczpbdfe`
 - **Project URL**: `https://cjxejpgtuuqnbczpbdfe.supabase.co`
-- **Password**: `Master@sisam&&`
+- **Password**: `SUA_SENHA_AQUI`
 
 ## 📝 Configuração Automática
 
@@ -50,7 +50,7 @@ DB_HOST=aws-0-us-east-1.pooler.supabase.com
 DB_PORT=6543
 DB_NAME=postgres
 DB_USER=postgres.cjxejpgtuuqnbczpbdfe  ← IMPORTANTE: com project ref!
-DB_PASSWORD=Master@sisam&&
+DB_PASSWORD=SUA_SENHA_AQUI
 DB_SSL=true
 JWT_SECRET=[gere uma chave com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"]
 NODE_ENV=production
@@ -66,7 +66,7 @@ DB_HOST=db.cjxejpgtuuqnbczpbdfe.supabase.co
 DB_PORT=5432
 DB_NAME=postgres
 DB_USER=postgres  ← Sem project ref para conexão direta
-DB_PASSWORD=Master@sisam&&
+DB_PASSWORD=SUA_SENHA_AQUI
 DB_SSL=true
 JWT_SECRET=[gere uma chave com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"]
 NODE_ENV=development

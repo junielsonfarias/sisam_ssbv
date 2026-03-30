@@ -92,8 +92,7 @@ async function configurarVercel() {
     console.log('   1. Faça um redeploy na Vercel: vercel --prod');
     console.log('   2. Verifique o status: https://sisam-ssbv-junielsonfarias.vercel.app/api/init');
     console.log('   3. Teste o login: https://sisam-ssbv-junielsonfarias.vercel.app/login');
-    console.log('      Email: admin@sisam.com');
-    console.log('      Senha: admin123\n');
+    console.log('      (use as credenciais padrão do sistema)\n');
 
   } catch (error) {
     console.error('\n❌ Erro ao configurar variáveis:', error.message);

@@ -131,16 +131,10 @@ export async function GET(request: NextRequest) {
       sincronizado_em: new Date().toISOString()
     })
   } catch (error: unknown) {
-    console.error('[OfflineResultados] Erro:', (error as Error)?.message)
-    console.error('[OfflineResultados] Stack:', (error as DatabaseError)?.stack)
-    console.error('[OfflineResultados] Código:', (error as DatabaseError)?.code)
+    console.error('[OfflineResultados] Erro:', error)
 
     return NextResponse.json(
-      {
-        mensagem: 'Erro ao buscar resultados',
-        erro: (error as Error)?.message,
-        codigo: (error as DatabaseError)?.code
-      },
+      { mensagem: 'Erro ao buscar resultados' },
       { status: 500 }
     )
   }

@@ -161,7 +161,7 @@ export async function PUT(
         { status: 400 }
       )
     }
-    console.error('Erro ao atualizar escola:', (error as Error)?.message || error, 'Code:', (error as DatabaseError)?.code, 'Detail:', (error as DatabaseError)?.detail)
+    console.error('Erro ao atualizar escola:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

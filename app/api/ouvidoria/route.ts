@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const parsed = ouvidoriaSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Dados inválidos', detalhes: parsed.error.flatten().fieldErrors }, { status: 400 })
+      return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     }
 
     const { tipo, nome, email, telefone, escola_id, assunto, mensagem } = parsed.data

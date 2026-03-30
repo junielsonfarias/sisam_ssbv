@@ -287,3 +287,37 @@ export function createErrorResponse(error: unknown, context?: string): { mensage
     detalhes: process.env.NODE_ENV !== 'production' ? message : undefined
   }
 }
+
+/**
+ * Cria resposta de erro SEGURA para API — NUNCA expõe detalhes internos em produção.
+ * Use esta função em TODOS os catch blocks de endpoints.
+ *
+ * Em desenvolvimento: retorna mensagem técnica para debug
+ * Em produção: retorna apenas mensagem genérica ao cliente
+ */
+export function safeErrorResponse(
+  error: unknown,
+  context: string,
+  mensagemPublica: string = 'Erro interno do servidor'
+): { mensagem: string; erro?: string } {
+  // Sempre logar no servidor (sem expor ao cliente)
+  console.error(`[${context}]`, error instanceof Error ? error.message : error)
+
+  // Em produção, NUNCA expor detalhes
+  if (process.env.NODE_ENV === 'production') {
+    // Tratar erros conhecidos com mensagens amigáveis
+    if (isUniqueConstraintError(error)) {
+      return { mensagem: 'Registro duplicado. Este item já existe.' }
+    }
+    if (isForeignKeyError(error)) {
+      return { mensagem: 'Erro de referência. Verifique os dados relacionados.' }
+    }
+    return { mensagem: mensagemPublica }
+  }
+
+  // Em desenvolvimento, incluir detalhes para debug
+  return {
+    mensagem: mensagemPublica,
+    erro: getErrorMessage(error),
+  }
+}

@@ -2,13 +2,21 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-// Configuração do Supabase
+// Configuração do Supabase — use variáveis de ambiente (NUNCA hardcode credenciais)
+const requiredVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD'];
+const missing = requiredVars.filter(v => !process.env[v]);
+if (missing.length > 0) {
+  console.error(`❌ Variáveis de ambiente obrigatórias não configuradas: ${missing.join(', ')}`);
+  console.error('   Configure .env ou passe via linha de comando.');
+  process.exit(1);
+}
+
 const config = {
-  host: process.env.DB_HOST || 'db.cjxejpgtuuqnbczpbdfe.supabase.co',
+  host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'postgres', // Supabase usa sempre 'postgres'
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'Master@sisam&&',
+  database: process.env.DB_NAME || 'postgres',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
   ssl: {
     rejectUnauthorized: false,
   },

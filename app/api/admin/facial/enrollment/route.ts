@@ -119,12 +119,7 @@ export async function POST(request: NextRequest) {
       aluno: alunoResult.rows[0],
     }, { status: 201 })
   } catch (error: unknown) {
-    console.error('Erro no enrollment facial:', {
-      message: (error as Error)?.message,
-      code: (error as DatabaseError)?.code,
-      detail: (error as DatabaseError)?.detail,
-      constraint: (error as DatabaseError)?.constraint,
-    })
+    console.error('Erro no enrollment facial:', error)
 
     // Erro de constraint do PostgreSQL (qualidade fora do range, etc)
     if ((error as DatabaseError)?.code === PG_ERRORS.CHECK_VIOLATION) {
@@ -134,8 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      mensagem: (error as DatabaseError)?.detail || (error as Error)?.message || 'Erro interno do servidor',
-      codigo: (error as DatabaseError)?.code,
+      mensagem: 'Erro interno do servidor',
     }, { status: 500 })
   }
 }

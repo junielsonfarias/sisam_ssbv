@@ -1,7 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const projectRef = 'cjxejpgtuuqnbczpbdfe';
+const projectRef = process.env.SUPABASE_PROJECT_REF || (() => {
+  console.log('❌ SUPABASE_PROJECT_REF não definido. Exporte antes de executar.');
+  process.exit(1);
+})();
 
 // Configurações corretas para o projeto
 const configCorreta = {
@@ -79,7 +82,7 @@ function atualizarEnv(arquivo, isProducao = false) {
 
 function corrigir() {
   console.log('🔧 Corrigindo configuração para o projeto correto...\n');
-  console.log('🎯 Projeto: https://cjxejpgtuuqnbczpbdfe.supabase.co');
+  console.log(`🎯 Projeto: https://${projectRef}.supabase.co`);
   console.log(`📦 Project Ref: ${projectRef}\n`);
   
   // Atualizar .env (produção)

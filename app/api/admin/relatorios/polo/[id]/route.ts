@@ -88,13 +88,8 @@ export async function GET(
   } catch (error: unknown) {
     console.error('Erro ao gerar relatório de polo:', error);
 
-    const errorMessage = error instanceof Error ? (error as Error).message : 'Erro desconhecido';
-
     return NextResponse.json(
-      {
-        error: 'Erro ao gerar relatório',
-        detalhes: errorMessage
-      },
+      { mensagem: 'Erro ao gerar relatório' },
       { status: 500 }
     );
   }

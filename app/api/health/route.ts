@@ -84,9 +84,9 @@ export async function GET() {
       ;(health.redis as any).test_value = val
       ;(health.redis as any).dbsize = size
     } catch (err: any) {
+      console.error('[Health] Redis error:', err)
       ;(health.redis as any).connected = false
-      ;(health.redis as any).error = err?.message
-      ;(health.redis as any).stack = err?.stack?.split('\n').slice(0, 3)
+      ;(health.redis as any).error = 'Falha na conexão com Redis'
     }
   }
 

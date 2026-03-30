@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('[Recalcular Níveis] Erro:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('[Recalcular Níveis] Erro ao verificar status:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

@@ -303,8 +303,8 @@ export async function diagnosticarAluno(
   filtro: { alunoId?: string; alunoNome?: string },
 ): Promise<DiagnosticoAluno[]> {
   const alunoQuery = filtro.alunoId
-    ? 'SELECT * FROM alunos WHERE id = $1'
-    : "SELECT * FROM alunos WHERE nome ILIKE $1 LIMIT 5"
+    ? 'SELECT id, nome, codigo, serie, turma_id, escola_id, ativo, pcd, data_nascimento FROM alunos WHERE id = $1'
+    : "SELECT id, nome, codigo, serie, turma_id, escola_id, ativo, pcd, data_nascimento FROM alunos WHERE nome ILIKE $1 LIMIT 5"
   const alunoParam = filtro.alunoId || `%${filtro.alunoNome}%`
   const alunoResult = await pool.query(alunoQuery, [alunoParam])
 

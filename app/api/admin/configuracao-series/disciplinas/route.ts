@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao buscar disciplinas:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -252,14 +252,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error: unknown) {
     console.error('Erro ao salvar disciplinas:', error)
-    console.error('Stack:', (error as DatabaseError).stack)
-    console.error('Detalhes:', JSON.stringify(error, null, 2))
     return NextResponse.json(
-      {
-        mensagem: (error as Error).message || 'Erro interno do servidor',
-        detalhes: (error as DatabaseError).detail || null,
-        codigo: (error as DatabaseError).code || null
-      },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -303,7 +297,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao remover disciplina:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

@@ -99,5 +99,5 @@ Write-Host "📋 Próximos passos:" -ForegroundColor Cyan
 Write-Host "   1. Faça um redeploy: vercel --prod"
 Write-Host "   2. Verifique: https://sisam-ssbv-junielsonfarias.vercel.app/api/init"
 Write-Host "   3. Teste login: https://sisam-ssbv-junielsonfarias.vercel.app/login"
-Write-Host "      Email: admin@sisam.com | Senha: admin123`n"
+Write-Host "      (use as credenciais padrão do sistema)`n"
 

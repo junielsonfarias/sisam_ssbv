@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao buscar configuração de séries:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -201,7 +201,7 @@ export async function PUT(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao atualizar configuração de série:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -301,7 +301,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao excluir configuração de série:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -391,7 +391,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao criar configuração de série:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

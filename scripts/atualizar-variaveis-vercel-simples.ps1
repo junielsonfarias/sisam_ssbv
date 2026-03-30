@@ -79,13 +79,36 @@ function Add-VercelEnv {
 $sucessos = 0
 $erros = 0
 
-if (Add-VercelEnv -Name "DB_HOST" -Value "db.cjxejpgtuuqnbczpbdfe.supabase.co") { $sucessos++ } else { $erros++ }
-if (Add-VercelEnv -Name "DB_PORT" -Value "5432") { $sucessos++ } else { $erros++ }
-if (Add-VercelEnv -Name "DB_NAME" -Value "postgres") { $sucessos++ } else { $erros++ }
-if (Add-VercelEnv -Name "DB_USER" -Value "postgres") { $sucessos++ } else { $erros++ }
-if (Add-VercelEnv -Name "DB_PASSWORD" -Value "Master@sisam&&") { $sucessos++ } else { $erros++ }
-if (Add-VercelEnv -Name "DB_SSL" -Value "true") { $sucessos++ } else { $erros++ }
-if (Add-VercelEnv -Name "JWT_SECRET" -Value "9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0") { $sucessos++ } else { $erros++ }
+# Validar que as variáveis de ambiente locais existem
+$requiredVars = @("DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD", "JWT_SECRET")
+$missingVars = $requiredVars | Where-Object { -not $env:($_) -and -not [System.Environment]::GetEnvironmentVariable($_) }
+
+# Carregar .env se existir
+$envFile = Join-Path $PSScriptRoot "../.env"
+if (Test-Path $envFile) {
+    Write-Host "   Carregando .env..." -ForegroundColor Yellow
+    Get-Content $envFile | ForEach-Object {
+        if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+            [System.Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim(), "Process")
+        }
+    }
+}
+
+# Revalidar após carregar .env
+$missingVars = $requiredVars | Where-Object { -not [System.Environment]::GetEnvironmentVariable($_) }
+if ($missingVars.Count -gt 0) {
+    Write-Host "❌ Variáveis de ambiente ausentes: $($missingVars -join ', ')" -ForegroundColor Red
+    Write-Host "   Configure um arquivo .env local ou exporte as variáveis antes de executar." -ForegroundColor Yellow
+    exit 1
+}
+
+if (Add-VercelEnv -Name "DB_HOST" -Value $env:DB_HOST) { $sucessos++ } else { $erros++ }
+if (Add-VercelEnv -Name "DB_PORT" -Value ($env:DB_PORT ?? "5432")) { $sucessos++ } else { $erros++ }
+if (Add-VercelEnv -Name "DB_NAME" -Value ($env:DB_NAME ?? "postgres")) { $sucessos++ } else { $erros++ }
+if (Add-VercelEnv -Name "DB_USER" -Value ($env:DB_USER ?? "postgres")) { $sucessos++ } else { $erros++ }
+if (Add-VercelEnv -Name "DB_PASSWORD" -Value $env:DB_PASSWORD) { $sucessos++ } else { $erros++ }
+if (Add-VercelEnv -Name "DB_SSL" -Value ($env:DB_SSL ?? "true")) { $sucessos++ } else { $erros++ }
+if (Add-VercelEnv -Name "JWT_SECRET" -Value $env:JWT_SECRET) { $sucessos++ } else { $erros++ }
 if (Add-VercelEnv -Name "NODE_ENV" -Value "production") { $sucessos++ } else { $erros++ }
 
 # Resumo

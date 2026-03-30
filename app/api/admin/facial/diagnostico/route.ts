@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
 
     // Buscar aluno
     const alunoQuery = alunoId
-      ? 'SELECT * FROM alunos WHERE id = $1'
-      : "SELECT * FROM alunos WHERE nome ILIKE $1 LIMIT 5"
+      ? 'SELECT id, nome, codigo, serie, turma_id, escola_id, ativo FROM alunos WHERE id = $1'
+      : "SELECT id, nome, codigo, serie, turma_id, escola_id, ativo FROM alunos WHERE nome ILIKE $1 LIMIT 5"
     const alunoParam = alunoId || `%${alunoNome}%`
     const alunoResult = await pool.query(alunoQuery, [alunoParam])
 
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     for (const aluno of alunoResult.rows) {
       // Consentimento
       const consentResult = await pool.query(
-        'SELECT * FROM consentimentos_faciais WHERE aluno_id = $1',
+        'SELECT id, aluno_id, consentido, consentido_por, data_consentimento, criado_em FROM consentimentos_faciais WHERE aluno_id = $1',
         [aluno.id]
       )
 
@@ -135,6 +135,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ diagnosticos })
   } catch (error: unknown) {
     console.error('Erro no diagnóstico facial:', error)
-    return NextResponse.json({ mensagem: (error as Error)?.message || 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

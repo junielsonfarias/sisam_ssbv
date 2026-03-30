@@ -71,7 +71,7 @@ Clique no botão **Add New** (ou **Add Variable**) e adicione cada variável aba
 
 #### Variável 5: DB_PASSWORD
 - **Name**: `DB_PASSWORD`
-- **Value**: `Master@sisam&&`
+- **Value**: `SUA_SENHA_AQUI`
 - **Environment**: Marque ✅ **Production**
 - Clique em **Save**
 
@@ -83,7 +83,7 @@ Clique no botão **Add New** (ou **Add Variable**) e adicione cada variável aba
 
 #### Variável 7: JWT_SECRET
 - **Name**: `JWT_SECRET`
-- **Value**: `9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0`
+- **Value**: `SEU_JWT_SECRET_AQUI`
 - **Environment**: Marque ✅ **Production**
 - Clique em **Save**
 
@@ -103,9 +103,9 @@ Após adicionar, você deve ver **exatamente estas 8 variáveis**:
 ✅ `DB_PORT` = `5432`  
 ✅ `DB_NAME` = `postgres`  
 ✅ `DB_USER` = `postgres`  
-✅ `DB_PASSWORD` = `Master@sisam&&`  
+✅ `DB_PASSWORD` = `SUA_SENHA_AQUI`  
 ✅ `DB_SSL` = `true`  
-✅ `JWT_SECRET` = `9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0`  
+✅ `JWT_SECRET` = `SEU_JWT_SECRET_AQUI`  
 ✅ `NODE_ENV` = `production`
 
 ---
@@ -178,7 +178,7 @@ Use esta lista para garantir que fez tudo:
 - **Não digite manualmente** para evitar erros de digitação
 
 ### Caracteres Especiais
-- A senha `Master@sisam&&` tem caracteres especiais
+- A senha `SUA_SENHA_AQUI` tem caracteres especiais
 - Copie e cole exatamente como está
 
 ### Environment

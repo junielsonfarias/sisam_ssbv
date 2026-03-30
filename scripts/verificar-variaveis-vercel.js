@@ -66,7 +66,7 @@ async function verificarVariaveisVercel() {
             console.log('   DB_PORT=5432');
             console.log('   DB_NAME=postgres');
             console.log('   DB_USER=postgres');
-            console.log('   DB_PASSWORD=Master@sisam&&');
+            console.log('   DB_PASSWORD=SUA_SENHA_AQUI');
             console.log('   DB_SSL=true');
             console.log('   JWT_SECRET=sisam2024_producao_jwt_secret_key_super_secure_random_string_2024');
             console.log('   NODE_ENV=production');

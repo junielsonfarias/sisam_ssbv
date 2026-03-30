@@ -131,8 +131,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro no debug:', error);
     return NextResponse.json({
-      erro: (error as Error).message,
-      stack: (error as DatabaseError).stack
+      mensagem: 'Erro interno do servidor'
     }, { status: 500 });
   }
 }

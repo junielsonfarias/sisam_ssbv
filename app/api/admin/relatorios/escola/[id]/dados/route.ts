@@ -61,20 +61,10 @@ export async function GET(
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao buscar dados do relatório:');
-    console.error('- Tipo do erro:', error?.constructor?.name);
-    console.error('- Mensagem:', error instanceof Error ? (error as Error).message : String(error));
-    if (error instanceof Error && (error as DatabaseError).stack) {
-      console.error('- Stack:', (error as DatabaseError).stack);
-    }
-
-    const errorMessage = error instanceof Error ? (error as Error).message : 'Erro desconhecido';
+    console.error('Erro ao buscar dados do relatório:', error);
 
     return NextResponse.json(
-      {
-        error: 'Erro ao buscar dados do relatório',
-        detalhes: errorMessage
-      },
+      { mensagem: 'Erro ao buscar dados do relatório' },
       { status: 500 }
     );
   }

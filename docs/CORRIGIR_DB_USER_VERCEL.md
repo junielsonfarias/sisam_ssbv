@@ -64,7 +64,7 @@ Certifique-se de que TODAS as variáveis estão configuradas corretamente:
 ✅ DB_PORT=6543
 ✅ DB_NAME=postgres
 ✅ DB_USER=postgres.cjxejpgtuuqnbczpbdfe  ← CORRIGIR ESTA!
-✅ DB_PASSWORD=Master@sisam&&
+✅ DB_PASSWORD=SUA_SENHA_AQUI
 ✅ DB_SSL=true
 ✅ JWT_SECRET=[sua-chave-secreta]
 ✅ NODE_ENV=production
@@ -96,7 +96,7 @@ Host: aws-0-us-east-1.pooler.supabase.com
 Port: 6543
 Database: postgres
 User: postgres.cjxejpgtuuqnbczpbdfe  ← DEVE incluir o project ref!
-Password: Master@sisam&&
+Password: SUA_SENHA_AQUI
 ```
 
 **⚠️ ATENÇÃO**: 

@@ -5,17 +5,27 @@ const path = require('path');
 console.log('🚀 Configurando Vercel automaticamente...\n');
 console.log('='.repeat(60));
 
-// Variáveis corretas
+// IMPORTANTE: Preencha com seus valores reais via variáveis de ambiente ou edite antes de executar
+// NUNCA commite credenciais reais neste arquivo
 const variaveis = {
-  'DB_HOST': 'db.cjxejpgtuuqnbczpbdfe.supabase.co',
-  'DB_PORT': '5432',
-  'DB_NAME': 'postgres',
-  'DB_USER': 'postgres',
-  'DB_PASSWORD': 'Master@sisam&&',
+  'DB_HOST': process.env.DB_HOST || 'PREENCHA_DB_HOST',
+  'DB_PORT': process.env.DB_PORT || '5432',
+  'DB_NAME': process.env.DB_NAME || 'postgres',
+  'DB_USER': process.env.DB_USER || 'PREENCHA_DB_USER',
+  'DB_PASSWORD': process.env.DB_PASSWORD || 'PREENCHA_DB_PASSWORD',
   'DB_SSL': 'true',
-  'JWT_SECRET': '9a6b48526c17f76ff1dc471519ff9c95ab3b576c9571d59863de73a7a69e80a0',
+  'JWT_SECRET': process.env.JWT_SECRET || 'PREENCHA_JWT_SECRET',
   'NODE_ENV': 'production'
 };
+
+// Validar que nenhuma variável tem placeholder
+const placeholders = Object.entries(variaveis).filter(([, v]) => v.startsWith('PREENCHA_'));
+if (placeholders.length > 0) {
+  console.error('❌ Configure as variáveis de ambiente antes de executar:');
+  placeholders.forEach(([k]) => console.error(`   ${k}`));
+  console.error('\n   Exemplo: DB_HOST=seu-host DB_PASSWORD=sua-senha node scripts/configurar-vercel-final.js');
+  process.exit(1);
+}
 
 // Variáveis antigas para remover
 const variaveisAntigas = [

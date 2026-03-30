@@ -2,8 +2,12 @@ const { Pool } = require('pg');
 
 console.log('🔍 Testando Connection Pooler com mais detalhes...\n');
 
-const projectRef = 'cjxejpgtuuqnbczpbdfe';
-const password = 'Master@sisam&&';
+if (!process.env.DB_PASSWORD || !process.env.SUPABASE_PROJECT_REF) {
+  console.error('❌ Configure DB_PASSWORD e SUPABASE_PROJECT_REF nas variáveis de ambiente');
+  process.exit(1);
+}
+const projectRef = process.env.SUPABASE_PROJECT_REF;
+const password = process.env.DB_PASSWORD;
 
 // Testar diferentes hosts do pooler
 const poolerHosts = [

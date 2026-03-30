@@ -34,7 +34,7 @@ postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:
 
 **Exemplo real:**
 ```
-postgres://postgres.cjxejpgtuuqnbczpbdfe:Master@sisam&&@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+postgres://postgres.cjxejpgtuuqnbczpbdfe:SUA_SENHA_AQUI@aws-0-us-east-1.pooler.supabase.com:6543/postgres
 ```
 
 ### 5. Extrair Cada Parte
@@ -57,7 +57,7 @@ postgres://postgres.cjxejpgtuuqnbczpbdfe:Master@sisam&&@aws-0-us-east-1.pooler.s
 
 **DB_PASSWORD:**
 - A parte após `:` e antes de `@`
-- Exemplo: `Master@sisam&&`
+- Exemplo: `SUA_SENHA_AQUI`
 
 ### 6. Configurar na Vercel
 
@@ -71,7 +71,7 @@ DB_HOST=aws-0-us-east-1.pooler.supabase.com
 DB_PORT=6543
 DB_NAME=postgres
 DB_USER=postgres.cjxejpgtuuqnbczpbdfe
-DB_PASSWORD=Master@sisam&&
+DB_PASSWORD=SUA_SENHA_AQUI
 DB_SSL=true
 JWT_SECRET=[sua-chave-secreta]
 NODE_ENV=production

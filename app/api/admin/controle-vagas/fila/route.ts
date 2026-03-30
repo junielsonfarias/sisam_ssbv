@@ -66,8 +66,13 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error: unknown) {
-    if (error instanceof Error && (error.message.includes('já está na fila') || error.message.includes('já está matriculado'))) {
-      return NextResponse.json({ mensagem: error.message }, { status: 400 })
+    if (error instanceof Error) {
+      if (error.message.includes('já está na fila')) {
+        return NextResponse.json({ mensagem: 'Aluno já está na fila de espera' }, { status: 400 })
+      }
+      if (error.message.includes('já está matriculado')) {
+        return NextResponse.json({ mensagem: 'Aluno já está matriculado nesta turma' }, { status: 400 })
+      }
     }
     console.error('Erro ao adicionar à fila:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
@@ -92,7 +97,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('não encontrado')) {
-      return NextResponse.json({ mensagem: error.message }, { status: 404 })
+      return NextResponse.json({ mensagem: 'Registro não encontrado na fila' }, { status: 404 })
     }
     console.error('Erro ao atualizar fila:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
@@ -132,7 +137,7 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('não encontrado')) {
-      return NextResponse.json({ mensagem: error.message }, { status: 404 })
+      return NextResponse.json({ mensagem: 'Registro não encontrado na fila' }, { status: 404 })
     }
     console.error('Erro ao remover da fila:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })

@@ -2,8 +2,12 @@
 const requiredEnvVars = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET']
 const missingEnvVars = requiredEnvVars.filter(v => !process.env[v])
 if (missingEnvVars.length > 0) {
-  console.warn(`⚠️  Variáveis de ambiente não configuradas: ${missingEnvVars.join(', ')}`)
-  console.warn('   A aplicação não funcionará corretamente sem estas variáveis.')
+  const msg = `ERRO: Variáveis de ambiente obrigatórias não configuradas: ${missingEnvVars.join(', ')}`
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(msg)
+  }
+  console.warn(`⚠️  ${msg}`)
+  console.warn('   O build de produção será bloqueado sem estas variáveis.')
 }
 
 const withPWA = require('@ducanh2912/next-pwa').default({

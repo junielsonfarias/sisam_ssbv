@@ -15,13 +15,15 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ mensagem: 'Logout realizado com sucesso' })
-  // Deletar cookie com mesmas flags do login para garantir matching
+  // Deletar cookie com mesmas flags IDÊNTICAS ao login para garantir matching
+  const isSecure = process.env.NODE_ENV === 'production' || (process.env.VERCEL_URL || '').includes('https')
   response.cookies.set('token', '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     sameSite: 'lax',
     path: '/',
-    maxAge: 0, // Expira imediatamente
+    maxAge: 0,
+    expires: new Date(0), // Fallback para navegadores antigos
   })
   return response
 }

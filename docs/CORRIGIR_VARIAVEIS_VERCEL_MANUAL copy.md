@@ -39,7 +39,7 @@ O sistema não consegue se conectar ao banco de dados em produção devido a var
 
 #### 5. DB_PASSWORD
 - **Nome:** `DB_PASSWORD` (EXATO, sem espaços)
-- **Valor:** `Master@sisam&&`
+- **Valor:** `SUA_SENHA_AQUI`
 - **Ambiente:** ✅ Production
 
 #### 6. DB_SSL

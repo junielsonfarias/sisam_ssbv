@@ -311,8 +311,8 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       linhasProcessadas++
     } catch (error: unknown) {
       linhasComErro++
-      const mensagemErro = (error as Error).message || 'Erro desconhecido'
-      erros.push(`Linha ${i + 2}: ${mensagemErro}`)
+      console.error(`[Importação] Erro na linha ${i + 2}:`, error)
+      erros.push(`Linha ${i + 2}: Erro ao processar registro`)
       // Limitar quantidade de erros para não sobrecarregar
       if (erros.length >= 100) {
         erros.push(`... e mais ${dados.length - i - 1} erros`)

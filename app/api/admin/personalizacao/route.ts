@@ -314,7 +314,7 @@ export async function PUT(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao atualizar personalizacao:', error)
     return NextResponse.json(
-      { mensagem: 'Erro interno do servidor: ' + (error as Error).message },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

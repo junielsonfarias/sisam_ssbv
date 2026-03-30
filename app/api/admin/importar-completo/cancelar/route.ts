@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao cancelar importação:', error)
     return NextResponse.json(
-      { mensagem: (error as Error).message || 'Erro interno do servidor' },
+      { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

@@ -47,7 +47,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'editor', 'publicador'
   const parsed = eventoSchema.safeParse(body)
 
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados inválidos', detalhes: parsed.error.flatten().fieldErrors }, { status: 400 })
+    return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   }
 
   const { titulo, descricao, tipo, data_inicio, data_fim, local, publico } = parsed.data
@@ -71,7 +71,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'editor', 'publicador']
   const parsed = eventoUpdateSchema.safeParse(body)
 
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados inválidos', detalhes: parsed.error.flatten().fieldErrors }, { status: 400 })
+    return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   }
 
   const { id, ...fields } = parsed.data

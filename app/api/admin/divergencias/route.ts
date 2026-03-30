@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao buscar divergências:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao buscar divergências', erro: (error as Error).message },
+      { mensagem: 'Erro ao buscar divergências' },
       { status: 500 }
     )
   }
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao executar verificação:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao executar verificação', erro: (error as Error).message },
+      { mensagem: 'Erro ao executar verificação' },
       { status: 500 }
     )
   }

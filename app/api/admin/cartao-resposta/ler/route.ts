@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao processar cartão-resposta:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao processar cartão-resposta', erro: (error as Error).message },
+      { mensagem: 'Erro ao processar cartão-resposta' },
       { status: 500 }
     )
   }

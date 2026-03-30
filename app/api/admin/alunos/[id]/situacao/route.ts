@@ -179,10 +179,10 @@ export async function POST(
   } catch (error: unknown) {
     if (error instanceof Error) {
       if (error.message === 'Aluno não encontrado') {
-        return NextResponse.json({ mensagem: error.message }, { status: 404 })
+        return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
       }
       if (error.message === 'O aluno já possui esta situação') {
-        return NextResponse.json({ mensagem: error.message }, { status: 400 })
+        return NextResponse.json({ mensagem: 'O aluno já possui esta situação' }, { status: 400 })
       }
     }
     console.error('Erro ao alterar situação do aluno:', error)

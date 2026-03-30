@@ -99,7 +99,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       paginacao: buildPaginacaoResponse(paginacao, total)
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar alunos:', (error as Error)?.message || error)
+    console.error('Erro ao buscar alunos:', error)
 
     return NextResponse.json({
       alunos: [],
@@ -111,7 +111,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
         temProxima: false,
         temAnterior: false
       },
-      erro: (error as Error)?.message || 'Erro interno do servidor'
+      erro: 'Erro interno do servidor'
     }, { status: 500 })
   }
 })

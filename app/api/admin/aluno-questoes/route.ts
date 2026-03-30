@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Erro ao buscar questões do aluno:', error)
     return NextResponse.json(
-      { mensagem: 'Erro ao buscar questões do aluno', erro: (error as Error).message },
+      { mensagem: 'Erro ao buscar questões do aluno' },
       { status: 500 }
     )
   }
