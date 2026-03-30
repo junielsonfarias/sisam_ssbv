@@ -45,8 +45,8 @@ export default function SiteFooter({ data }: SiteFooterProps) {
           {/* Column 1: About */}
           <div>
             <div className="flex items-center gap-3 mb-5">
-              <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-10 w-auto" />
-              <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura de São Sebastião da Boa Vista" className="h-10 w-auto" />
+              <img src="/logo-semed.png" alt="SEMED" className="h-10 w-auto" />
+              <img src="/logo-prefeitura.png" alt="Prefeitura de São Sebastião da Boa Vista" className="h-10 w-auto" />
               <div>
                 <span className="text-xl font-extrabold text-white tracking-tight">{logoText}</span>
                 <p className="text-xs text-blue-400 font-medium">Educação e Cidadania</p>

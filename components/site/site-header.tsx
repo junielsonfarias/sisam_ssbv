@@ -133,13 +133,13 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             aria-label="Voltar ao topo"
           >
             <img
-              src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
+              src="/logo-semed.png"
               alt="SEMED"
               className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
             />
             <div className={`w-px bg-slate-300 flex-shrink-0 transition-all duration-500 ${scrolled ? 'h-7 sm:h-9' : 'h-12 sm:h-16'}`} />
             <img
-              src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
+              src="/logo-prefeitura.png"
               alt="Prefeitura de São Sebastião da Boa Vista"
               className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
             />
@@ -253,9 +253,9 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             </button>
           </div>
           <div className="flex items-center justify-center gap-5">
-            <img src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png" alt="SEMED" className="h-16 w-auto object-contain" />
+            <img src="/logo-semed.png" alt="SEMED" className="h-16 w-auto object-contain" />
             <div className="w-px h-12 bg-slate-200 flex-shrink-0" />
-            <img src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png" alt="Prefeitura" className="h-16 w-auto object-contain" />
+            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-16 w-auto object-contain" />
           </div>
           <div className="mt-3 pt-2.5 border-t border-slate-100 text-center">
             <p className="text-sm text-blue-900 font-bold">Secretaria Municipal de Educação</p>

@@ -309,8 +309,8 @@ function addSecurityHeaders(response: NextResponse, requestId?: string, pathname
   // Em dev, Next.js precisa de unsafe-eval para hot reload (React Refresh)
   const devEval = isDev ? " 'unsafe-eval'" : ''
 
-  // Domínios permitidos para imagens (logos oficiais da SEMED e Prefeitura)
-  const imgDomains = 'https://www.educacaossbv.com.br https://pmssbv.pa.gov.br'
+  // Logos agora são locais (/logo-semed.png, /logo-prefeitura.png)
+  const imgDomains = ''
 
   if (isTerminal) {
     // Terminal: câmera obrigatória, WASM para face-api, mediastream para vídeo

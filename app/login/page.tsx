@@ -273,13 +273,13 @@ export default function LoginPage() {
           {/* Logos centralizadas */}
           <div className="flex items-center justify-center gap-6 mb-6">
             <img
-              src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
+              src="/logo-semed.png"
               alt="SEMED"
               className="h-20 sm:h-24 w-auto object-contain"
             />
             <div className="w-px h-16 bg-slate-200 dark:bg-slate-600 flex-shrink-0" />
             <img
-              src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
+              src="/logo-prefeitura.png"
               alt="Prefeitura de São Sebastião da Boa Vista"
               className="h-20 sm:h-24 w-auto object-contain"
             />
