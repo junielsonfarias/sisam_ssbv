@@ -87,36 +87,30 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className={`flex items-center justify-between transition-all duration-500 ${
-          scrolled ? 'h-14 sm:h-16' : 'h-16 sm:h-20'
+          scrolled ? 'h-16 sm:h-18' : 'h-24 sm:h-24'
         }`}>
           {/* Logo */}
+          {/* Logos centralizadas — 1 linha, 2 colunas */}
           <a
             href="#"
             onClick={(e) => {
               e.preventDefault()
               window.scrollTo({ top: 0, behavior: 'smooth' })
             }}
-            className="flex items-center gap-2 sm:gap-3 group min-w-0"
+            className="flex-1 flex items-center justify-center gap-4 sm:gap-6 group"
             aria-label="Voltar ao topo"
           >
-            {/* Logo SEMED */}
             <img
               src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
               alt="SEMED"
-              className={`w-auto transition-all duration-500 ${scrolled ? 'h-9 sm:h-11' : 'h-11 sm:h-14'}`}
+              className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-12 sm:h-14' : 'h-20 sm:h-20'}`}
             />
-            {/* Separador + Logo Prefeitura */}
-            <div className={`w-px bg-slate-300 flex-shrink-0 transition-all duration-500 ${scrolled ? 'h-6 sm:h-8' : 'h-8 sm:h-10'}`} />
+            <div className={`w-px bg-slate-300 flex-shrink-0 transition-all duration-500 ${scrolled ? 'h-8 sm:h-10' : 'h-14 sm:h-16'}`} />
             <img
               src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
               alt="Prefeitura de São Sebastião da Boa Vista"
-              className={`w-auto transition-all duration-500 ${scrolled ? 'h-9 sm:h-11' : 'h-11 sm:h-14'}`}
+              className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-12 sm:h-14' : 'h-20 sm:h-20'}`}
             />
-            {/* Texto institucional — apenas desktop */}
-            <div className="hidden lg:flex flex-col min-w-0 ml-1">
-              <span className="text-sm font-bold text-blue-900 leading-tight">SEMED</span>
-              <span className="text-[10px] text-slate-500 leading-tight">São Sebastião da Boa Vista</span>
-            </div>
           </a>
 
           {/* Desktop Nav */}
