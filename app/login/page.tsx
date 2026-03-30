@@ -266,27 +266,27 @@ export default function LoginPage() {
         </div>
       )}
 
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+      <div className="flex-1 flex items-center justify-center px-4 py-6 sm:p-6">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl dark:shadow-slate-900/50 w-full max-w-md border border-slate-200 dark:border-slate-700 transition-colors duration-300 overflow-hidden">
-          {/* Cabeçalho com identidade visual */}
-          <div className="bg-blue-900 px-6 py-6 text-center">
-            <div className="flex items-center justify-center gap-4 mb-4">
+          {/* Cabeçalho — fundo branco para logos legíveis */}
+          <div className="px-6 pt-6 pb-4 text-center border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-center gap-5 mb-4">
               <img
                 src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
                 alt="SEMED"
-                className="h-14 w-auto object-contain"
+                className="h-16 sm:h-20 w-auto object-contain"
               />
-              <div className="w-px h-10 bg-white/30 flex-shrink-0" />
+              <div className="w-px h-14 bg-slate-200 dark:bg-slate-600 flex-shrink-0" />
               <img
                 src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
-                alt="Prefeitura"
-                className="h-14 w-auto object-contain"
+                alt="Prefeitura de São Sebastião da Boa Vista"
+                className="h-16 sm:h-20 w-auto object-contain"
               />
             </div>
-            <h1 className="text-lg font-bold text-white">
+            <h1 className="text-xl font-bold text-blue-900 dark:text-white">
               {personalizacao.titulo}
             </h1>
-            <p className="text-sm text-blue-200 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {personalizacao.subtitulo}
             </p>
           </div>

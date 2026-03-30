@@ -23,16 +23,16 @@ export interface Personalizacao {
 
 // CONFIGURACOES FIXAS - Edite aqui para alterar a personalizacao
 const CONFIG_LOGIN: PersonalizacaoLogin = {
-  titulo: 'Educatec',
-  subtitulo: 'SEMED SSBV',
-  imagem_url: '/logo.png', // Logo fixa em public/logo.png
-  cor_primaria: '#4f46e5',
-  cor_secundaria: '#818cf8'
+  titulo: 'Portal do Educador',
+  subtitulo: 'SEMED — São Sebastião da Boa Vista',
+  imagem_url: '/logo.png',
+  cor_primaria: '#1e3a5f',
+  cor_secundaria: '#2563eb'
 }
 
 function getRodape(): PersonalizacaoRodape {
   return {
-    texto: `${new Date().getFullYear()} Junielson Farias - Todos os direitos reservados Kontrol_tec`,
+    texto: `© ${new Date().getFullYear()} SEMED — São Sebastião da Boa Vista/PA`,
     link: null,
     link_texto: null,
     ativo: true
