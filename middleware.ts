@@ -302,20 +302,21 @@ function addSecurityHeaders(response: NextResponse, requestId?: string, pathname
     response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
   }
 
-  // CSP e Permissions-Policy diferenciados para terminal facial
+  // CSP e Permissions-Policy diferenciados por contexto
   const isTerminal = pathname?.startsWith('/terminal') || pathname?.startsWith('/admin/terminal-facial') || pathname?.startsWith('/admin/facial-enrollment')
+  const isDev = process.env.NODE_ENV !== 'production'
+
+  // Em dev, Next.js precisa de unsafe-eval para hot reload (React Refresh)
+  const devEval = isDev ? " 'unsafe-eval'" : ''
 
   if (isTerminal) {
     // Terminal: câmera obrigatória, WASM para face-api, mediastream para vídeo
-    // unsafe-eval necessário para face-api.js (TensorFlow.js runtime)
-    // unsafe-inline necessário para Next.js hydration scripts
     response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
-    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: mediastream:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-ancestors 'none'")
+    response.headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: mediastream:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-ancestors 'none'`)
   } else {
-    // Demais páginas: sem unsafe-eval, câmera desabilitada
-    // unsafe-inline necessário para Next.js (inline scripts de hydration/chunks)
+    // Demais páginas: sem unsafe-eval em produção, com unsafe-eval em dev (hot reload)
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'")
+    response.headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline'${devEval}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'`)
   }
 
   if (requestId) {
