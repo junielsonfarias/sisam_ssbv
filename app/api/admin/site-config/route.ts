@@ -56,19 +56,17 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     if (!validationResult.success) return validationResult.response
     const { secao, conteudo } = validationResult.data
 
+    // UPSERT: insere se não existe, atualiza se já existe
     const result = await pool.query(
-      `UPDATE site_config
-       SET conteudo = $1,
-           atualizado_por = $2,
+      `INSERT INTO site_config (secao, conteudo, atualizado_por, atualizado_em)
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+       ON CONFLICT (secao) DO UPDATE
+       SET conteudo = EXCLUDED.conteudo,
+           atualizado_por = EXCLUDED.atualizado_por,
            atualizado_em = CURRENT_TIMESTAMP
-       WHERE secao = $3
        RETURNING id, secao, conteudo, atualizado_por, atualizado_em`,
-      [JSON.stringify(conteudo), usuario.id, secao]
+      [secao, JSON.stringify(conteudo), usuario.id]
     )
-
-    if (result.rows.length === 0) {
-      return NextResponse.json({ mensagem: 'Seção não encontrada' }, { status: 404 })
-    }
 
     // Invalidar cache do site-config publico
     await cacheDelPattern('site-config:*')
