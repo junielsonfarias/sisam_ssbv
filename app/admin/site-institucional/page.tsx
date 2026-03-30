@@ -11,6 +11,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 const TABS = [
   { key: 'hero', label: 'Hero' },
   { key: 'sobre', label: 'Sobre' },
+  { key: 'social', label: 'Redes Sociais' },
   { key: 'estatisticas', label: 'Estatisticas' },
   { key: 'servicos', label: 'Servicos' },
   { key: 'noticias', label: 'Noticias' },
@@ -77,6 +78,12 @@ export default function SiteInstitucionalPage() {
         texto: '',
         missao: '',
         visao: '',
+      },
+      social: {
+        facebook_url: 'https://www.facebook.com/semedssbvpa/',
+        instagram_url: '',
+        youtube_url: '',
+        whatsapp_numero: '',
       },
       estatisticas: {
         auto_count: true,
@@ -235,6 +242,30 @@ export default function SiteInstitucionalPage() {
       <div>
         <label className={labelClass}>Visao</label>
         <textarea className={inputClass} rows={3} value={formData.visao || ''} onChange={e => updateField('visao', e.target.value)} placeholder="Visao da instituicao" />
+      </div>
+    </div>
+  )
+
+  const renderSocialTab = () => (
+    <div className="space-y-4">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">Configure os links das redes sociais da SEMED. Apenas redes com URL preenchida serao exibidas no site.</p>
+      </div>
+      <div>
+        <label className={labelClass}>Facebook (URL da pagina)</label>
+        <input type="url" className={inputClass} value={formData.facebook_url || ''} onChange={e => updateField('facebook_url', e.target.value)} placeholder="https://www.facebook.com/semedssbvpa/" />
+      </div>
+      <div>
+        <label className={labelClass}>Instagram (URL do perfil)</label>
+        <input type="url" className={inputClass} value={formData.instagram_url || ''} onChange={e => updateField('instagram_url', e.target.value)} placeholder="https://www.instagram.com/semed_ssbv/" />
+      </div>
+      <div>
+        <label className={labelClass}>YouTube (URL do canal)</label>
+        <input type="url" className={inputClass} value={formData.youtube_url || ''} onChange={e => updateField('youtube_url', e.target.value)} placeholder="https://www.youtube.com/@semed" />
+      </div>
+      <div>
+        <label className={labelClass}>WhatsApp (numero com DDD e codigo do pais)</label>
+        <input type="text" className={inputClass} value={formData.whatsapp_numero || ''} onChange={e => updateField('whatsapp_numero', e.target.value)} placeholder="5591999999999" />
       </div>
     </div>
   )
@@ -467,6 +498,7 @@ export default function SiteInstitucionalPage() {
     switch (activeTab) {
       case 'hero': return renderHeroTab()
       case 'sobre': return renderSobreTab()
+      case 'social': return renderSocialTab()
       case 'estatisticas': return renderEstatisticasTab()
       case 'servicos': return renderServicosTab()
       case 'noticias': return renderNoticiasTab()

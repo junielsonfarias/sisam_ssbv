@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import SiteHeader from '@/components/site/site-header'
 import SiteHero from '@/components/site/site-hero'
 import SiteAbout from '@/components/site/site-about'
+import SiteSocial from '@/components/site/site-social'
 import SiteStats from '@/components/site/site-stats'
 import SiteServices from '@/components/site/site-services'
 import SiteNews from '@/components/site/site-news'
@@ -76,13 +77,14 @@ export default function HomePage() {
       <SiteHeader data={config.header || {}} />
       <SiteHero data={config.hero || {}} />
       <SiteAbout data={config.about || {}} />
+      <SiteSocial data={config.social || {}} />
       <SiteStats data={config.stats || {}} stats={stats} />
       <SiteServices data={config.services || {}} />
       <SiteNews data={config.news || {}} />
       <SitePublicacoes publicacoes={publicacoes} />
       <SiteSchools data={config.schools || {}} escolas={escolas} />
       <SiteContact data={config.contact || {}} />
-      <SiteFooter data={config.footer || {}} />
+      <SiteFooter data={{ ...(config.footer || {}), ...(config.social || {}) }} />
     </div>
   )
 }
