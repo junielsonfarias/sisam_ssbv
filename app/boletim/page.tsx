@@ -7,6 +7,7 @@ import {
   ClipboardCheck, User, School, Clock, MessageSquare, Bell
 } from 'lucide-react'
 import Link from 'next/link'
+import Rodape from '@/components/rodape'
 import { useSeries } from '@/lib/use-series'
 
 interface Disciplina { id: string; nome: string; codigo: string; abreviacao: string; ordem: number }
@@ -630,6 +631,7 @@ export default function BoletimPage() {
           </div>
         )}
       </main>
+      <Rodape />
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Database, BookOpen, LogOut, BarChart3, GraduationCap, Users, FileText, CalendarCheck } from 'lucide-react'
+import Rodape from '@/components/rodape'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from '@/components/theme-toggle'
 
@@ -176,12 +177,9 @@ export default function ModulosPage() {
             </button>
           </div>
 
-          {/* Rodapé */}
-          <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-8">
-            {usuario?.escola_nome || usuario?.polo_nome || 'Administração Municipal'}
-          </p>
         </div>
       </main>
+      <Rodape />
     </div>
   )
 }

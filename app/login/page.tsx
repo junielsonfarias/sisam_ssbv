@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogIn, Eye, EyeOff, WifiOff, Database, CheckCircle, GraduationCap, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-// Rodapé inline para manter consistência visual na tela de login
+import Rodape from '@/components/rodape'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from '@/components/theme-toggle'
@@ -372,12 +372,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Rodapé institucional */}
-      <div className="text-center py-4 px-4">
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          © {new Date().getFullYear()} SEMED — São Sebastião da Boa Vista/PA
-        </p>
-      </div>
+      <Rodape />
     </div>
   )
 }
