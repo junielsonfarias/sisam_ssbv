@@ -41,7 +41,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
   ]
 
   return (
-    <section className="relative sm:min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-20" aria-label="Seção principal">
+    <section className="relative sm:min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-blue-50/60 to-white pt-16 sm:pt-20" aria-label="Seção principal">
       {/* Subtle dot pattern */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, #1e40af 1px, transparent 0)',
@@ -58,34 +58,34 @@ export default function SiteHero({ data }: SiteHeroProps) {
           <div className={`transition-all duration-1000 ease-out ${
             visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-blue-50 border border-blue-200/80 text-blue-800 text-xs sm:text-sm font-semibold mb-6 sm:mb-8">
+            {/* Badge — oculto no mobile (barra institucional já mostra) */}
+            <div className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200/80 text-blue-800 text-sm font-semibold mb-8">
               <span className="w-2 h-2 rounded-full bg-blue-700 animate-pulse" />
               {subtitle}
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 sm:mb-6 leading-[1.1] text-slate-900">
+            <h1 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-3 sm:mb-6 leading-[1.15] text-blue-900">
               {title}
             </h1>
 
             {/* Description */}
-            <p className="text-base sm:text-xl text-slate-500 mb-8 sm:mb-10 leading-relaxed max-w-xl line-clamp-3 sm:line-clamp-none">
+            <p className="text-sm sm:text-xl text-slate-500 mb-6 sm:mb-10 leading-relaxed max-w-xl line-clamp-2 sm:line-clamp-none">
               {description}
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 sm:gap-4 mb-8 sm:mb-16">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2.5 sm:gap-4 mb-6 sm:mb-16">
               <Link
                 href={ctaPrimary.href}
-                className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-blue-800 text-white font-bold rounded-full text-base sm:text-lg hover:bg-blue-900 transition-all duration-300 shadow-lg shadow-blue-800/25 hover:shadow-blue-800/40 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-blue-800 text-white font-bold rounded-full text-sm sm:text-lg hover:bg-blue-900 transition-all duration-300 shadow-lg shadow-blue-800/25 hover:shadow-blue-800/40 hover:-translate-y-0.5"
               >
                 {ctaPrimary.label}
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
               <Link
                 href={ctaSecondary.href}
-                className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-full text-base sm:text-lg hover:border-blue-300 hover:text-blue-800 hover:bg-blue-50/50 transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-full text-sm sm:text-lg hover:border-blue-300 hover:text-blue-800 hover:bg-blue-50/50 transition-all duration-300"
               >
                 {ctaSecondary.label}
               </Link>

@@ -81,8 +81,8 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
       role="banner"
     >
       {/* Barra institucional superior — apenas mobile */}
-      <div className={`md:hidden bg-blue-900 text-white text-center transition-all duration-500 ${scrolled ? 'py-0.5 text-[9px]' : 'py-1 text-[10px]'} font-medium tracking-wide`}>
-        Secretaria Municipal de Educação — São Sebastião da Boa Vista/PA
+      <div className={`md:hidden bg-blue-900 text-white text-center transition-all duration-500 ${scrolled ? 'py-0.5 text-[10px]' : 'py-1.5 text-[11px]'} font-semibold tracking-wide`}>
+        SEMED — São Sebastião da Boa Vista/PA
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
