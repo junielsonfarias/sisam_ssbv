@@ -8,7 +8,10 @@ import {
   FileText,
   UserCircle,
   Camera,
+  MessageSquare,
+  ExternalLink,
 } from 'lucide-react'
+import Link from 'next/link'
 
 interface SiteServicesProps {
   data: any
@@ -16,34 +19,37 @@ interface SiteServicesProps {
 
 const defaultServices = [
   {
-    icon: 'School',
-    title: 'Gestão Escolar',
-    description: 'Sistema completo para gerenciamento das escolas municipais, matrículas, turmas e acompanhamento de toda a rede de ensino.',
+    icon: 'FileText',
+    title: 'Boletim Online',
+    description: 'Consulte notas, frequência e desempenho escolar dos alunos da rede municipal.',
+    href: '/boletim',
   },
   {
     icon: 'ClipboardCheck',
-    title: 'Avaliação SISAM',
-    description: 'Avaliações diagnósticas com análise por disciplina, níveis de aprendizagem e relatórios detalhados de desempenho.',
+    title: 'Pré-Matrícula',
+    description: 'Realize a pré-matrícula dos alunos na rede municipal de ensino.',
+    href: '/matricula',
+  },
+  {
+    icon: 'MessageSquare',
+    title: 'Ouvidoria',
+    description: 'Canal de comunicação para sugestões, elogios e reclamações sobre a educação municipal.',
+    href: '/ouvidoria',
+  },
+  {
+    icon: 'School',
+    title: 'Gestão Escolar',
+    description: 'Sistema de gerenciamento das escolas, matrículas, turmas e acompanhamento da rede de ensino.',
   },
   {
     icon: 'Fingerprint',
     title: 'Frequência Digital',
-    description: 'Controle digital de frequência escolar com alertas de infrequência e ações para garantir a permanência dos alunos.',
-  },
-  {
-    icon: 'FileText',
-    title: 'Boletim Online',
-    description: 'Consulta de boletim escolar online com notas, frequência e desempenho por disciplina acessível para pais e responsáveis.',
+    description: 'Controle de frequência escolar com reconhecimento facial e relatórios em tempo real.',
   },
   {
     icon: 'UserCircle',
     title: 'Portal do Professor',
-    description: 'Portal dedicado para educadores com lançamento de notas, frequência, planejamento e acompanhamento pedagógico.',
-  },
-  {
-    icon: 'Camera',
-    title: 'Reconhecimento Facial',
-    description: 'Tecnologia de reconhecimento facial para registro automático de frequência e identificação segura dos alunos.',
+    description: 'Portal para educadores com lançamento de notas, frequência e planejamento pedagógico.',
   },
 ]
 
@@ -54,6 +60,7 @@ const iconMap: Record<string, any> = {
   FileText,
   UserCircle,
   Camera,
+  MessageSquare,
 }
 
 export default function SiteServices({ data }: SiteServicesProps) {
@@ -77,25 +84,41 @@ export default function SiteServices({ data }: SiteServicesProps) {
           <p className="text-base sm:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">{subtitle}</p>
         </div>
 
-        {/* Services Grid - 3x2 on desktop, 2x3 on tablet, 1 col on mobile */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Services Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {services.map((service: any, i: number) => {
             const Icon = iconMap[service.icon] || ClipboardCheck
-            return (
-              <div
-                key={i}
-                className={`group relative bg-white rounded-2xl p-4 sm:p-8 border border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-700/5 transition-all duration-300 hover:-translate-y-1 ${i >= 3 && !mobileExpanded ? 'hidden sm:block' : ''}`}
-              >
-                {/* Icon in colored circle */}
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-6 group-hover:bg-blue-800 group-hover:border-blue-800 group-hover:shadow-lg group-hover:shadow-blue-800/25 transition-all duration-300">
-                  <Icon className="w-7 h-7 text-blue-800 group-hover:text-white transition-colors duration-300" />
-                </div>
+            const hasLink = !!service.href
+            const Wrapper = hasLink ? Link : 'div'
+            const wrapperProps = hasLink ? { href: service.href } : {}
 
-                <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-blue-900 transition-colors duration-300">
-                  {service.title}
-                </h3>
-                <p className="text-slate-500 leading-relaxed text-sm">{service.description}</p>
-              </div>
+            return (
+              <Wrapper
+                key={i}
+                {...wrapperProps as any}
+                className={`group relative bg-white rounded-2xl p-4 sm:p-6 border border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-700/5 transition-all duration-300 hover:-translate-y-1 ${i >= 3 && !mobileExpanded ? 'hidden sm:block' : ''} ${hasLink ? 'cursor-pointer' : ''}`}
+              >
+                <div className="flex items-start gap-4">
+                  {/* Icon */}
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-800 group-hover:border-blue-800 transition-all duration-300">
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-800 group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1 group-hover:text-blue-900 transition-colors flex items-center gap-2">
+                      {service.title}
+                      {hasLink && <ExternalLink className="w-3.5 h-3.5 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                    </h3>
+                    <p className="text-slate-500 leading-relaxed text-sm line-clamp-2">{service.description}</p>
+                  </div>
+                </div>
+                {hasLink && (
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <span className="text-xs font-semibold text-blue-700 group-hover:text-blue-900 transition-colors">
+                      Acessar serviço →
+                    </span>
+                  </div>
+                )}
+              </Wrapper>
             )
           })}
         </div>
