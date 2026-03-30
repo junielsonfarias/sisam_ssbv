@@ -173,18 +173,18 @@ export default function MatriculaPage() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 text-slate-800 hover:text-emerald-600 transition-colors">
-            <div className="p-2 rounded-xl bg-emerald-50">
-              <GraduationCap className="w-6 h-6 text-emerald-600" />
-            </div>
-            <div>
-              <span className="font-bold text-lg">SEMED</span>
-              <p className="text-xs text-slate-400">Pré-Matrícula Online</p>
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo-semed.png" alt="SEMED" className="h-10 sm:h-12 w-auto object-contain" />
+            <div className="w-px h-8 bg-slate-200 flex-shrink-0" />
+            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-10 sm:h-12 w-auto object-contain" />
+            <div className="hidden sm:block">
+              <span className="font-bold text-sm text-blue-900">Pré-Matrícula</span>
+              <p className="text-[10px] text-slate-400">SEMED — São Sebastião da Boa Vista</p>
             </div>
           </Link>
-          <Link href="/" className="flex items-center gap-2 text-sm text-slate-500 hover:text-emerald-600 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Voltar ao site
+          <Link href="/" className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 hover:text-blue-800 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Voltar
           </Link>
         </div>
       </header>
