@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogIn, Eye, EyeOff, WifiOff, Database, CheckCircle, GraduationCap } from 'lucide-react'
+import { LogIn, Eye, EyeOff, WifiOff, Database, CheckCircle, GraduationCap, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import Rodape from '@/components/rodape'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
@@ -245,9 +245,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
-      {/* Toggle de Tema no canto superior direito */}
-      <div className="absolute top-4 right-4 z-10">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
+      {/* Barra superior com botão voltar e toggle tema */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-800 dark:hover:text-blue-400 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Voltar ao site
+        </Link>
         <ThemeToggleSimple />
       </div>
 
@@ -260,106 +267,99 @@ export default function LoginPage() {
       )}
 
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-lg shadow-xl dark:shadow-slate-900/50 w-full max-w-md border border-gray-200 dark:border-slate-700 transition-colors duration-300">
-          <div className="flex items-center justify-center mb-6">
-            <img
-              src="/logo.png"
-              alt="Logo"
-              className="max-h-20 max-w-full object-contain dark:brightness-110"
-            />
-          </div>
-
-          <h1 className="text-2xl font-bold text-center mb-2 dark:text-white" style={{ color: personalizacao.cor_primaria }}>
-            {personalizacao.titulo}
-          </h1>
-          <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
-            {personalizacao.subtitulo}
-          </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent outline-none bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 transition-colors"
-              placeholder="seu@email.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="senha" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-              Senha
-            </label>
-            <div className="relative">
-              <input
-                id="senha"
-                type={mostrarSenha ? "text" : "password"}
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                required
-                className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent outline-none bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 transition-colors"
-                placeholder="••••••••"
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl dark:shadow-slate-900/50 w-full max-w-md border border-slate-200 dark:border-slate-700 transition-colors duration-300 overflow-hidden">
+          {/* Cabeçalho com identidade visual */}
+          <div className="bg-blue-900 px-6 py-6 text-center">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <img
+                src="https://www.educacaossbv.com.br/wp-content/uploads/2021/11/logo-nova-300x154.png"
+                alt="SEMED"
+                className="h-14 w-auto object-contain"
               />
+              <div className="w-px h-10 bg-white/30 flex-shrink-0" />
+              <img
+                src="https://pmssbv.pa.gov.br/wp-content/uploads/2025/01/Logo-prefeitura-2025-Copia.png"
+                alt="Prefeitura"
+                className="h-14 w-auto object-contain"
+              />
+            </div>
+            <h1 className="text-lg font-bold text-white">
+              {personalizacao.titulo}
+            </h1>
+            <p className="text-sm text-blue-200 mt-1">
+              {personalizacao.subtitulo}
+            </p>
+          </div>
+
+          {/* Formulário */}
+          <div className="px-6 py-6 sm:px-8 sm:py-8">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="email" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 transition-colors"
+                  placeholder="seu@email.com"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="senha" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                  Senha
+                </label>
+                <div className="relative">
+                  <input
+                    id="senha"
+                    type={mostrarSenha ? "text" : "password"}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 pr-10 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 transition-colors"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSenha(!mostrarSenha)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none transition-colors"
+                    aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {mostrarSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {erro && (
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm">
+                  {erro}
+                </div>
+              )}
+
               <button
-                type="button"
-                onClick={() => setMostrarSenha(!mostrarSenha)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none transition-colors"
-                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                type="submit"
+                disabled={carregando}
+                className="w-full bg-blue-800 hover:bg-blue-900 text-white py-3 px-4 rounded-xl font-bold text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-800/25"
               >
-                {mostrarSenha ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
+                {carregando ? 'Entrando...' : 'Entrar'}
               </button>
-            </div>
+
+              {/* Link cadastro professor */}
+              <div className="text-center pt-2">
+                <Link
+                  href="/cadastro-professor"
+                  className="inline-flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400 hover:underline font-medium"
+                >
+                  <GraduationCap className="h-4 w-4" />
+                  Sou professor — Criar minha conta
+                </Link>
+              </div>
+            </form>
           </div>
-
-          {erro && (
-            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">
-              {erro}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={carregando}
-            className="w-full text-white py-2 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            style={{
-              backgroundColor: personalizacao.cor_primaria,
-            } as React.CSSProperties}
-            onMouseEnter={(e) => {
-              const color = personalizacao.cor_primaria
-              const r = parseInt(color.slice(1, 3), 16)
-              const g = parseInt(color.slice(3, 5), 16)
-              const b = parseInt(color.slice(5, 7), 16)
-              const darker = `rgb(${Math.max(0, r - 20)}, ${Math.max(0, g - 20)}, ${Math.max(0, b - 20)})`
-              e.currentTarget.style.backgroundColor = darker
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = personalizacao.cor_primaria
-            }}
-          >
-            {carregando ? 'Entrando...' : 'Entrar'}
-          </button>
-
-          {/* Link cadastro professor */}
-          <div className="mt-4 text-center">
-            <Link
-              href="/cadastro-professor"
-              className="inline-flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
-            >
-              <GraduationCap className="h-4 w-4" />
-              Sou professor — Criar minha conta
-            </Link>
-          </div>
-        </form>
         </div>
       </div>
 
