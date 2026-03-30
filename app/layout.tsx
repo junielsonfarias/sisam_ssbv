@@ -82,7 +82,8 @@ export default function RootLayout({
             <ErrorBoundary>
               <ConnectionStatus />
               {children}
-              <PWAInstallPrompt />
+              {/* PWA install prompt desabilitado temporariamente */}
+              {/* <PWAInstallPrompt /> */}
             </ErrorBoundary>
           </ToastProvider>
         </ThemeProvider>

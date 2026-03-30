@@ -319,7 +319,7 @@ function addSecurityHeaders(response: NextResponse, requestId?: string, pathname
   } else {
     // Demais páginas: sem unsafe-eval em produção, com unsafe-eval em dev (hot reload)
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-    response.headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline'${devEval}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${imgDomains}; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'`)
+    response.headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline'${devEval}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${imgDomains}; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://www.facebook.com; frame-ancestors 'none'`)
   }
 
   if (requestId) {

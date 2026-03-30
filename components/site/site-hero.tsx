@@ -15,7 +15,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
   const subtitle = data?.subtitle || 'SEMED - São Sebastião da Boa Vista'
   const description = data?.description ||
     'A Secretaria Municipal de Educação de São Sebastião da Boa Vista trabalha para garantir uma educação pública de qualidade, inclusiva e transformadora para todos os estudantes do município.'
-  const ctaPrimary = data?.ctaPrimary || { label: 'Portal do Educador', href: '/login' }
+  const ctaPrimary = data?.ctaPrimary || { label: 'Acessar o Portal', href: '/login' }
   const ctaSecondary = data?.ctaSecondary || { label: 'Consultar Boletim', href: '/boletim' }
 
   useEffect(() => {
