@@ -13,9 +13,9 @@ ON professor_turmas(professor_id, turma_id, disciplina_id) WHERE ativo = true;
 CREATE INDEX IF NOT EXISTS idx_alunos_nome_id
 ON alunos(nome, id) WHERE ativo = true;
 
--- Resultados Consolidados Unificada: filtro mais comum em comparativos
-CREATE INDEX IF NOT EXISTS idx_rcu_ano_escola_presenca
-ON resultados_consolidados_unificada(ano_letivo, escola_id, presenca)
+-- resultados_consolidados_unificada é uma VIEW — indexar a tabela base
+CREATE INDEX IF NOT EXISTS idx_rc_ano_escola_presenca
+ON resultados_consolidados(ano_letivo, escola_id, presenca)
 WHERE presenca IS NOT NULL;
 
 -- Notas Escolares: filtro escola + ano (dashboard gestor)
