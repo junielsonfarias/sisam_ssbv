@@ -46,10 +46,10 @@ export default function SiteFooter({ data }: SiteFooterProps) {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10 lg:gap-16">
           {/* Column 1: Logo + redes sociais */}
           <div>
-            <div className="flex items-center gap-4 mb-3 sm:mb-5">
-              <img src="/logo-semed.png" alt="SEMED" className="h-12 sm:h-14 w-auto object-contain" />
-              <div className="w-px h-10 bg-slate-700 flex-shrink-0" />
-              <img src="/logo-prefeitura.png" alt="Prefeitura de São Sebastião da Boa Vista" className="h-12 sm:h-14 w-auto object-contain" />
+            <div className="flex items-center justify-center sm:justify-start gap-5 mb-4 sm:mb-5">
+              <img src="/logo-semed.png" alt="SEMED" className="h-16 sm:h-20 w-auto object-contain" />
+              <div className="w-px h-12 sm:h-16 bg-slate-600 flex-shrink-0" />
+              <img src="/logo-prefeitura.png" alt="Prefeitura de São Sebastião da Boa Vista" className="h-16 sm:h-20 w-auto object-contain" />
             </div>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed mb-4 sm:mb-6 max-w-xs line-clamp-2 sm:line-clamp-none">
               {description}
