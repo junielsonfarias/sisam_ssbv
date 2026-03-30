@@ -148,7 +148,7 @@ export default function BoletimPage() {
     if (tab === 'comunicados') carregarComunicados()
   }
 
-  const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all'
+  const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 sm:py-3.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all'
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -217,13 +217,13 @@ export default function BoletimPage() {
       <main className="max-w-6xl mx-auto px-4 py-8 flex-1">
         {/* Search */}
         {!dados && (
-          <div className="max-w-xl mx-auto">
-            <div className="text-center mb-6">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Consulta de Boletim</h1>
-              <p className="text-sm text-slate-500 mt-1">Consulte as notas e frequência do aluno</p>
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-6 sm:mb-8">
+              <h1 className="text-xl sm:text-3xl font-bold text-slate-800">Consulta de Boletim</h1>
+              <p className="text-sm sm:text-base text-slate-500 mt-1 sm:mt-2">Consulte as notas e frequência do aluno</p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-5">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 sm:p-8 space-y-5 sm:space-y-6">
               {/* Modo toggle */}
               <div className="flex bg-slate-100 rounded-xl p-1">
                 <button onClick={() => setModo('codigo')}
