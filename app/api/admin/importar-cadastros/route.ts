@@ -4,6 +4,9 @@ import pool from '@/database/connection'
 import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches } from '@/lib/cache'
 import { validarArquivoUpload } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ImportarCadastros')
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutos (limite Vercel)
@@ -270,7 +273,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             questoesCriadas.criadas++
           }
         } catch (error: unknown) {
-          console.error(`Erro ao criar questão ${codigo}:`, error)
+          log.error(`Erro ao criar questão ${codigo}`, error)
         }
       }
     }
@@ -278,9 +281,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
     // Invalidar cache do dashboard após importação bem-sucedida
     try {
       limparTodosOsCaches()
-      console.log('[Importação] Cache do dashboard invalidado após importação')
+      log.info('Cache do dashboard invalidado após importação')
     } catch (cacheError) {
-      console.error('[Importação] Erro ao invalidar cache (não crítico):', cacheError)
+      log.error('Erro ao invalidar cache (não crítico)', cacheError)
     }
 
     return NextResponse.json({
@@ -319,7 +322,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       cache_invalidado: true,
     })
   } catch (error: unknown) {
-    console.error('Erro ao importar cadastros:', error)
+    log.error('Erro ao importar cadastros', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

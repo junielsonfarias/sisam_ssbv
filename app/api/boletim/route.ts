@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Boletim')
 
 export const dynamic = 'force-dynamic'
 
@@ -190,7 +193,7 @@ export async function GET(request: NextRequest) {
       try {
         return await pool.query(sql, params)
       } catch (err: unknown) {
-        console.error(`[Boletim] Erro em ${label}:`, (err as Error)?.message)
+        log.error(`Erro em ${label}: ${(err as Error)?.message}`, err)
         return { rows: [] }
       }
     }
@@ -365,7 +368,7 @@ export async function GET(request: NextRequest) {
     response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300')
     return response
   } catch (error: unknown) {
-    console.error('Erro ao consultar boletim:', (error as Error)?.message || error)
+    log.error('Erro ao consultar boletim', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor. Tente novamente mais tarde.' },
       { status: 500 }

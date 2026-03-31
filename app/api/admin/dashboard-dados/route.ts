@@ -13,6 +13,9 @@ import {
   DashboardFiltros,
   PaginacaoAlunos,
 } from '@/lib/services/dashboard.service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DashboardDados')
 
 export const dynamic = 'force-dynamic'
 
@@ -100,7 +103,7 @@ export const GET = withAuth(
     if (USE_MEMORY_CACHE && !forcarAtualizacao) {
       const cachedData = memoryCache.get<any>(memoryCacheKey)
       if (cachedData) {
-        console.log('[Dashboard] Cache em memória encontrado')
+        log.info('Cache em memória encontrado')
         const alunosDetalhados = cachedData.alunosDetalhados || []
         const totalItens = alunosDetalhados.length
         const alunosPaginados = alunosDetalhados.slice(
@@ -131,7 +134,7 @@ export const GET = withAuth(
       if (!forcarAtualizacao && verificarCache(cacheOptions)) {
         const dadosCache = carregarCache<any>(cacheOptions)
         if (dadosCache) {
-          console.log('[Dashboard] Cache em arquivo encontrado')
+          log.info('Cache em arquivo encontrado')
           if (USE_MEMORY_CACHE) {
             memoryCache.set(memoryCacheKey, dadosCache, CACHE_TTL.DASHBOARD)
           }
@@ -145,7 +148,7 @@ export const GET = withAuth(
         }
       }
     } catch {
-      console.log('[Dashboard] Cache de arquivo não disponível, buscando do banco')
+      log.info('Cache de arquivo não disponível, buscando do banco')
     }
 
     // Buscar dados do banco via service
@@ -155,9 +158,9 @@ export const GET = withAuth(
     if (USE_MEMORY_CACHE) {
       try {
         memoryCache.set(memoryCacheKey, dadosResposta, CACHE_TTL.DASHBOARD)
-        console.log('[Dashboard] Cache em memória salvo')
+        log.info('Cache em memória salvo')
       } catch (cacheError) {
-        console.error('[Dashboard] Erro ao salvar cache em memória:', cacheError)
+        log.error('Erro ao salvar cache em memória', cacheError)
       }
     }
 

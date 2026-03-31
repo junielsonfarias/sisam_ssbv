@@ -7,6 +7,9 @@ import { usuarioSchema, validateRequest, validateId } from '@/lib/schemas'
 import { invalidateUsuarioCache } from '@/lib/cache/memory'
 import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminUsuarios')
 
 // Schema para criação de usuário (senha obrigatória)
 const criarUsuarioSchema = usuarioSchema.extend({
@@ -51,7 +54,7 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
       [nome, email, senhaHash, tipo_usuario, polo_id || null, escola_id || null]
     )
 
-    console.log(`[AUDIT] Usuário criado | ${email} (${tipo_usuario}) | por ${usuario.email}`)
+    log.info(`Usuário criado | ${email} (${tipo_usuario}) | por ${usuario.email}`)
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -60,7 +63,7 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
         { status: 400 }
       )
     }
-    console.error('Erro ao criar usuário:', error)
+    log.error('Erro ao criar usuário', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -129,7 +132,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
         { status: 400 }
       )
     }
-    console.error('Erro ao atualizar usuário:', error)
+    log.error('Erro ao atualizar usuário', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -176,7 +179,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
       // Exclusão permanente
       const delResult = await pool.query('DELETE FROM usuarios WHERE id = $1 RETURNING nome, email, tipo_usuario', [id])
       if (delResult.rows[0]) {
-        console.log(`[AUDIT] Usuário excluído: ${delResult.rows[0].email} (${delResult.rows[0].tipo_usuario}) por ${usuario.email}`)
+        log.info(`Usuário excluído: ${delResult.rows[0].email} (${delResult.rows[0].tipo_usuario}) por ${usuario.email}`)
       }
       return NextResponse.json({ mensagem: 'Usuário excluído permanentemente' })
     } else {
@@ -185,12 +188,12 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
         'UPDATE usuarios SET ativo = false, atualizado_em = NOW() WHERE id = $1',
         [id]
       )
-      console.log(`[AUDIT] Usuário desativado: ${id} por ${usuario.email}`)
+      log.info(`Usuário desativado: ${id} por ${usuario.email}`)
       invalidateUsuarioCache(id)
       return NextResponse.json({ mensagem: 'Usuário desativado com sucesso' })
     }
   } catch (error: unknown) {
-    console.error('Erro ao excluir usuário:', error)
+    log.error('Erro ao excluir usuário', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

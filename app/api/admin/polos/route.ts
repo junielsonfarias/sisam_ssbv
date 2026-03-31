@@ -6,6 +6,9 @@ import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 import { validateRequest, poloSchema, poloPutSchema } from '@/lib/schemas'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminPolos')
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
@@ -72,7 +75,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         { status: 400 }
       )
     }
-    console.error('Erro ao criar polo:', error)
+    log.error('Erro ao criar polo', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -102,7 +105,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Código já cadastrado' }, { status: 400 })
     }
-    console.error('Erro ao atualizar polo:', error)
+    log.error('Erro ao atualizar polo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -136,7 +139,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     return NextResponse.json({ mensagem: 'Polo excluído com sucesso' })
   } catch (error: unknown) {
-    console.error('Erro ao excluir polo:', error)
+    log.error('Erro ao excluir polo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

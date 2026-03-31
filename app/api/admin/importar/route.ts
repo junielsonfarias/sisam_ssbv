@@ -5,6 +5,9 @@ import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches } from '@/lib/cache'
 import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import { validarArquivoUpload } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Importar')
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutos (limite Vercel)
@@ -128,7 +131,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   ])
 
   // Log das colunas encontradas para debug
-  console.log('Colunas encontradas:', {
+  log.debug('Colunas encontradas', { data: {
     escola: colEscola,
     aluno: colAluno,
     nomeAluno: colNomeAluno,
@@ -143,7 +146,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     disciplina: colDisciplina,
     area: colArea,
     todasColunas: colunasDisponiveis
-  })
+  }})
 
   // Validar colunas obrigatórias
   if (!colEscola && !colAluno) {
@@ -325,7 +328,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         )
       } catch (batchError: unknown) {
         // Se batch falha, linhas ficam como erro
-        console.error(`[Importação] Erro no batch ${batchStart}:`, (batchError as Error)?.message)
+        log.error(`Erro no batch ${batchStart}: ${(batchError as Error)?.message}`, batchError)
         linhasComErro += placeholders.length
         linhasProcessadas -= placeholders.length
         erros.push(`Batch ${batchStart + 1}-${batchStart + batch.length}: Erro ao inserir`)
@@ -354,9 +357,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   // Invalidar cache do dashboard após importação bem-sucedida
   try {
     limparTodosOsCaches()
-    console.log('[Importação] Cache do dashboard invalidado após importação')
+    log.info('Cache do dashboard invalidado após importação')
   } catch (cacheError) {
-    console.error('[Importação] Erro ao invalidar cache (não crítico):', cacheError)
+    log.error('Erro ao invalidar cache (não crítico)', cacheError)
   }
 
   return NextResponse.json({

@@ -14,6 +14,9 @@ import { getEstatisticas, getEstatisticasPadrao } from '@/lib/services/estatisti
 import { okComCache, okComFallback } from '@/lib/api-utils'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminEstatisticas')
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -31,7 +34,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     return okComCache(estatisticas, 'banco')
   } catch (error: unknown) {
-    console.error('[API Admin Estatisticas] Erro:', error)
+    log.error('Erro ao buscar estatísticas', error)
     return okComFallback(getEstatisticasPadrao(), error)
   }
 })

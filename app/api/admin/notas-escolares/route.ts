@@ -6,6 +6,9 @@ import { z } from 'zod'
 import {
   parseSearchParams, createWhereBuilder, addCondition, addAccessControl, buildWhereString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminNotasEscolares')
 
 export const dynamic = 'force-dynamic'
 
@@ -221,7 +224,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       errosDetalhes: todosErros.length > 0 ? todosErros : undefined,
     })
   } catch (error: unknown) {
-    console.error('Erro ao salvar notas:', error)
+    log.error('Erro ao salvar notas', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

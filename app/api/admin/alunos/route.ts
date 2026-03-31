@@ -10,6 +10,9 @@ import {
 } from '@/lib/api-helpers'
 import { criarAluno, atualizarAluno, deletarAluno } from '@/lib/services/alunos.service'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminAlunos')
 
 // Schema para criação de aluno
 const criarAlunoSchema = alunoSchema.extend({
@@ -124,7 +127,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       ...(nextCursor && { next_cursor: nextCursor }),
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar alunos:', error)
+    log.error('Erro ao buscar alunos', error)
 
     return NextResponse.json({
       alunos: [],
@@ -169,7 +172,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     if (error instanceof Error && error.message === 'Turma não pertence à escola selecionada') {
       return NextResponse.json({ mensagem: error.message }, { status: 400 })
     }
-    console.error('Erro ao criar aluno:', getErrorMessage(error))
+    log.error('Erro ao criar aluno', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -212,7 +215,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     if (error instanceof Error && error.message === 'Turma não pertence à escola selecionada') {
       return NextResponse.json({ mensagem: error.message }, { status: 400 })
     }
-    console.error('Erro ao atualizar aluno:', getErrorMessage(error))
+    log.error('Erro ao atualizar aluno', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -251,10 +254,10 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (re
     }
 
     const { nome } = await deletarAluno(id)
-    console.log(`[AUDIT] Aluno excluído: ${nome} (${id}) por ${usuario.email} (${usuario.tipo_usuario})`)
+    log.info(`Aluno excluído: ${nome} (${id}) por ${usuario.email} (${usuario.tipo_usuario})`)
     return NextResponse.json({ mensagem: 'Aluno excluído com sucesso' })
   } catch (error: unknown) {
-    console.error('Erro ao excluir aluno:', getErrorMessage(error))
+    log.error('Erro ao excluir aluno', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

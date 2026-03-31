@@ -9,6 +9,9 @@ import {
 } from '@/lib/api-helpers'
 import { validateRequest, turmaPostSchema } from '@/lib/schemas'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminTurmas')
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +46,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Já existe uma turma com este código nesta escola e ano letivo' }, { status: 409 })
     }
-    console.error('Erro ao criar turma:', error)
+    log.error('Erro ao criar turma', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -94,7 +97,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Já existe uma turma com este código nesta escola e ano letivo' }, { status: 409 })
     }
-    console.error('Erro ao atualizar turma:', error)
+    log.error('Erro ao atualizar turma', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -134,7 +137,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     await cacheDelPattern('turmas:*')
     return NextResponse.json({ mensagem: 'Turma excluída com sucesso' })
   } catch (error: unknown) {
-    console.error('Erro ao excluir turma:', error)
+    log.error('Erro ao excluir turma', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

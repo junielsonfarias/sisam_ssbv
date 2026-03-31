@@ -5,6 +5,9 @@ import { checkRateLimit, resetRateLimit, getClientIP, createRateLimitKey } from 
 import { SESSAO, PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AuthLogin')
 
 const loginBodySchema = z.object({
   email: z.string().min(1, 'Email é obrigatório').max(254),
@@ -21,7 +24,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json()
     } catch (jsonError) {
-      console.error('Erro ao parsear JSON:', jsonError)
+      log.error('Erro ao parsear JSON', jsonError)
       return NextResponse.json(
         { mensagem: 'Erro ao processar dados da requisição' },
         { status: 400 }
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000) // 5 tentativas em 15 min
 
     if (!rateLimitResult.allowed) {
-      console.warn(`Rate limit excedido para ${rateLimitKey}`)
+      log.warn(`Rate limit excedido para ${rateLimitKey}`)
       return NextResponse.json(
         {
           mensagem: rateLimitResult.message || 'Muitas tentativas de login. Tente novamente mais tarde.',
@@ -62,11 +65,11 @@ export async function POST(request: NextRequest) {
 
     // Log com IP mascarado para privacidade
     const maskedIP = clientIP.split('.').slice(0, 2).join('.') + '.*.*'
-    console.log(`Tentativa de login para: ${email} (IP: ${maskedIP})`)
+    log.info(`Tentativa de login para: ${email} (IP: ${maskedIP})`)
 
     // Verificar se JWT_SECRET está configurado
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 20) {
-      console.error('JWT_SECRET não configurado ou muito curto')
+      log.error('JWT_SECRET não configurado ou muito curto')
       return NextResponse.json(
         { mensagem: 'Erro na configuração do servidor' },
         { status: 500 }
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
       const missingVars = requiredEnvVars.filter(varName => !process.env[varName])
       
       if (missingVars.length > 0) {
-        console.error('Variáveis de ambiente não configuradas:', missingVars)
+        log.error(`Variáveis de ambiente não configuradas: ${missingVars.join(', ')}`)
         return NextResponse.json(
           { mensagem: 'Erro na configuração do servidor' },
           { status: 500 }
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
     } catch (dbError: any) {
       const err = dbError as Error & { code?: string }
       // Log detalhado apenas no servidor
-      console.error('[LOGIN] Erro ao consultar banco:', (err as Error).message, '| código:', (err as DatabaseError).code)
+      log.error(`Erro ao consultar banco: ${(err as Error).message} | código: ${(err as DatabaseError).code}`, err)
 
       // Resposta genérica ao cliente — NUNCA expor detalhes da infra
       return NextResponse.json(
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
     
     // Validar dados do usuário
     if (!usuario.id) {
-      console.error('Usuário sem ID:', usuario)
+      log.error('Usuário sem ID')
       return NextResponse.json(
         { mensagem: 'Erro na configuração da conta. Entre em contato com o administrador.' },
         { status: 500 }
@@ -123,7 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!usuario.email) {
-      console.error('Usuário sem email:', usuario)
+      log.error('Usuário sem email')
       return NextResponse.json(
         { mensagem: 'Erro na configuração da conta. Entre em contato com o administrador.' },
         { status: 500 }
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
     
     // Verificar se usuário tem senha
     if (!usuario.senha) {
-      console.error('Usuário sem senha cadastrada:', usuario.email)
+      log.error(`Usuário sem senha cadastrada: ${usuario.email}`)
       return NextResponse.json(
         { mensagem: 'Erro na configuração da conta. Entre em contato com o administrador.' },
         { status: 500 }
@@ -143,7 +146,7 @@ export async function POST(request: NextRequest) {
     try {
       senhaValida = await comparePassword(senha, usuario.senha)
     } catch (bcryptError) {
-      console.error('[LOGIN] Erro ao comparar senha:', (bcryptError as Error).message)
+      log.error(`Erro ao comparar senha: ${(bcryptError as Error).message}`, bcryptError)
       return NextResponse.json(
         { mensagem: 'Erro ao validar credenciais' },
         { status: 500 }
@@ -151,7 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!senhaValida) {
-      console.warn(`[AUDIT] Login falhou (senha incorreta) | usuario:${email} | IP:${maskedIP}`)
+      log.warn(`Login falhou (senha incorreta) | usuario:${email} | IP:${maskedIP}`)
       return NextResponse.json(
         { mensagem: 'Email ou senha incorretos' },
         { status: 401 }
@@ -163,7 +166,7 @@ export async function POST(request: NextRequest) {
     const tipoUsuario = String(usuario.tipo_usuario || '').toLowerCase()
     
     if (!tipoUsuario || !tiposValidos.includes(tipoUsuario)) {
-      console.error('Tipo de usuário inválido:', usuario.tipo_usuario, 'Tipo normalizado:', tipoUsuario)
+      log.error(`Tipo de usuário inválido: ${usuario.tipo_usuario} (normalizado: ${tipoUsuario})`)
       return NextResponse.json(
         { mensagem: 'Erro na configuração da conta. Entre em contato com o administrador.' },
         { status: 500 }
@@ -182,7 +185,7 @@ export async function POST(request: NextRequest) {
     // Login bem sucedido - resetar rate limit para este usuario
     resetRateLimit(rateLimitKey)
 
-    console.log(`[AUDIT] Login bem-sucedido | usuario:${tokenPayload.email} (${tokenPayload.tipoUsuario}) | IP:${maskedIP}`)
+    log.info(`Login bem-sucedido | usuario:${tokenPayload.email} (${tokenPayload.tipoUsuario}) | IP:${maskedIP}`)
 
     // Registrar log de acesso (em background para nao impactar performance)
     const userAgent = request.headers.get('user-agent') || 'Desconhecido'
@@ -194,15 +197,15 @@ export async function POST(request: NextRequest) {
       ipAddress: maskedIP,
       userAgent: userAgent
     }).catch(err => {
-      console.error('Erro ao registrar log de acesso:', err)
+      log.error('Erro ao registrar log de acesso', err)
     })
 
     let token
     try {
       token = generateToken(tokenPayload)
-      console.log('Token gerado com sucesso')
+      log.info('Token gerado com sucesso')
     } catch (tokenError) {
-      console.error('[LOGIN] Erro ao gerar token:', (tokenError as Error).message)
+      log.error(`Erro ao gerar token: ${(tokenError as Error).message}`, tokenError)
       return NextResponse.json(
         { mensagem: 'Erro ao processar autenticação' },
         { status: 500 }
@@ -237,7 +240,7 @@ export async function POST(request: NextRequest) {
       },
     }
     
-    console.log('Criando resposta de sucesso')
+    log.info('Criando resposta de sucesso')
     
     // Criar resposta
     const response = NextResponse.json(responseData, { status: 200 })
@@ -251,15 +254,15 @@ export async function POST(request: NextRequest) {
         maxAge: SESSAO.COOKIE_MAX_AGE,
         path: '/',
       })
-      console.log('Cookie definido com sucesso')
+      log.info('Cookie definido com sucesso')
     } catch (cookieError) {
-      console.error('[LOGIN] Erro ao definir cookie:', (cookieError as Error).message)
+      log.error(`Erro ao definir cookie: ${(cookieError as Error).message}`, cookieError)
     }
 
-    console.log('Retornando resposta de login')
+    log.info('Retornando resposta de login')
     return response
   } catch (error: unknown) {
-    console.error('[LOGIN] Erro inesperado:', error instanceof Error ? error.message : error)
+    log.error('Erro inesperado', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -291,9 +294,9 @@ async function registrarLogAcesso(params: LogAcessoParams): Promise<void> {
         params.userAgent
       ]
     )
-    console.log('Log de acesso registrado para:', params.email)
+    log.info(`Log de acesso registrado para: ${params.email}`)
   } catch (error) {
     // Nao propagar erro - log de acesso nao deve impedir login
-    console.error('Falha ao registrar log de acesso:', error)
+    log.error('Falha ao registrar log de acesso', error)
   }
 }

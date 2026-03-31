@@ -5,6 +5,9 @@ import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches } from '@/lib/cache'
 import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import { validarArquivoUpload } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ImportarResultados')
 import {
   calcularNivelPorAcertos,
   converterNivelProducao,
@@ -76,7 +79,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       // Se parece com ano letivo (2000-2100), retornar vazio para forçar inferência
       const numero = parseInt(apenasDigitos, 10)
       if (numero >= 2000 && numero <= 2100) {
-        console.warn(`[Importação] Valor "${serie}" parece ano letivo, não série escolar. Ignorando.`)
+        log.warn(`Valor "${serie}" parece ano letivo, não série escolar. Ignorando.`)
         return '' // Provavelmente é ano letivo, não série
       }
       return apenasDigitos
@@ -129,9 +132,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       const disciplinasDaSerie = disciplinasResult.rows.filter(d => d.serie_id === config.id)
 
       // Log para debug
-      console.log(`[Config] Série ${config.serie} (normalizada: ${serieNormalizada}) - ${disciplinasDaSerie.length} disciplinas`)
+      log.info(`Série ${config.serie} (normalizada: ${serieNormalizada}) - ${disciplinasDaSerie.length} disciplinas`)
       disciplinasDaSerie.forEach(d => {
-        console.log(`  - ${d.sigla}: Q${d.questao_inicio}-Q${d.questao_fim}`)
+        log.info(`  - ${d.sigla}: Q${d.questao_inicio}-Q${d.questao_fim}`)
       })
 
       configSeriesMap.set(serieNormalizada, {
@@ -146,13 +149,13 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       const serieNormalizada = normalizarSerie(serie)
       const config = configSeriesMap.get(serieNormalizada)
 
-      console.log(`[Importação] Buscando config para série "${serie}" (normalizada: "${serieNormalizada}")`)
+      log.info(`Buscando config para série "${serie}" (normalizada: "${serieNormalizada}")`)
 
       // Se não encontrou, tentar extrair apenas números
       let configFinal = config
       if (!configFinal) {
         const serieNum = serie.replace(/[^\d]/g, '')
-        console.log(`[Importação] Tentando fallback com número: "${serieNum}"`)
+        log.info(`Tentando fallback com número: "${serieNum}"`)
         configFinal = configSeriesMap.get(serieNum)
       }
 
@@ -162,7 +165,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
         // Anos iniciais: 2º e 3º ano (LP: Q1-Q14, MAT: Q15-Q28)
         if (serieNum === 2 || serieNum === 3) {
-          console.warn(`[Importação] AVISO: Sem config para série "${serie}", usando padrão ANOS INICIAIS (2º/3º)`)
+          log.warn(`Sem config para série "${serie}", usando padrão ANOS INICIAIS (2º/3º)`)
           return [
             { inicio: 1, fim: 14, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa', sigla: 'LP', valor_questao: 0.714 },
             { inicio: 15, fim: 28, area: 'Matemática', disciplina: 'Matemática', sigla: 'MAT', valor_questao: 0.714 },
@@ -171,7 +174,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
         // 5º ano (LP: Q1-Q14, MAT: Q15-Q34)
         if (serieNum === 5) {
-          console.warn(`[Importação] AVISO: Sem config para série "${serie}", usando padrão ANOS INICIAIS (5º)`)
+          log.warn(`Sem config para série "${serie}", usando padrão ANOS INICIAIS (5º)`)
           return [
             { inicio: 1, fim: 14, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa', sigla: 'LP', valor_questao: 0.714 },
             { inicio: 15, fim: 34, area: 'Matemática', disciplina: 'Matemática', sigla: 'MAT', valor_questao: 0.5 },
@@ -179,7 +182,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         }
 
         // Anos finais: 6º ao 9º (LP, CH, MAT, CN)
-        console.warn(`[Importação] AVISO: Sem config para série "${serie}", usando padrão ANOS FINAIS`)
+        log.warn(`Sem config para série "${serie}", usando padrão ANOS FINAIS`)
         return [
           { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa', sigla: 'LP', valor_questao: 0.5 },
           { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas', sigla: 'CH', valor_questao: 1.0 },

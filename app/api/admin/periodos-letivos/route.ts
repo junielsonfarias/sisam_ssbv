@@ -7,6 +7,9 @@ import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminPeriodosLetivos')
 
 export const dynamic = 'force-dynamic'
 
@@ -56,7 +59,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         { status: 400 }
       )
     }
-    console.error('Erro ao criar período letivo:', error)
+    log.error('Erro ao criar período letivo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -89,7 +92,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
         { status: 400 }
       )
     }
-    console.error('Erro ao atualizar período letivo:', error)
+    log.error('Erro ao atualizar período letivo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -126,7 +129,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     await cacheDelPattern('periodos:*')
     return NextResponse.json({ mensagem: 'Período excluído com sucesso' })
   } catch (error: unknown) {
-    console.error('Erro ao excluir período letivo:', error)
+    log.error('Erro ao excluir período letivo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache'
 import { getGraficosData, GraficosFiltros } from '@/lib/services/graficos.service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Graficos')
 
 export const dynamic = 'force-dynamic'
 
 export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
   // Limpar caches expirados (não crítico)
   try { limparCachesExpirados() } catch (err) {
-    console.warn('[Graficos] Falha não-crítica ao limpar caches:', (err as Error).message)
+    log.warn(`Falha não-crítica ao limpar caches: ${(err as Error).message}`)
   }
 
   const { searchParams } = new URL(request.url)
@@ -58,7 +61,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
     if (!forcarAtualizacao && verificarCache(cacheOptions)) {
       const dadosCache = carregarCache<any>(cacheOptions)
       if (dadosCache) {
-        console.log('Retornando gráficos do cache')
+        log.info('Retornando gráficos do cache')
         return NextResponse.json({
           ...dadosCache,
           _cache: {
@@ -69,7 +72,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
       }
     }
   } catch {
-    console.log('[Gráficos] Cache não disponível, buscando do banco')
+    log.info('Cache não disponível, buscando do banco')
   }
 
   // Buscar dados do banco via service
@@ -79,7 +82,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
   try {
     salvarCache(cacheOptions, resultado, 'graficos')
   } catch (cacheError) {
-    console.error('Erro ao salvar cache (não crítico):', cacheError)
+    log.error('Erro ao salvar cache (não crítico)', cacheError)
   }
 
   return NextResponse.json({

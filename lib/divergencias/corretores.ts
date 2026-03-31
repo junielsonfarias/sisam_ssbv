@@ -1,6 +1,5 @@
 // SISAM - Corretores de Divergências
 // Funções para corrigir automaticamente ou com confirmação as divergências encontradas
-// TODO: Refatorar completamente para usar pool.query
 
 import pool from '@/database/connection'
 import {

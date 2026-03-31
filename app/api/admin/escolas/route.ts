@@ -12,6 +12,9 @@ import { z } from 'zod'
 import { validateRequest, uuidSchema, nomeSchema } from '@/lib/schemas'
 import { excluirEscola } from '@/lib/services/escolas.service'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminEscolas')
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
@@ -228,7 +231,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         { status: 400 }
       )
     }
-    console.error('Erro ao criar escola:', error)
+    log.error('Erro ao criar escola', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -260,7 +263,7 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request, usu
       )
     }
 
-    console.log(`[AUDIT] ${resultado.mensagem} (${escolaId}) por ${usuario.email} (${usuario.tipo_usuario})`)
+    log.info(`${resultado.mensagem} (${escolaId}) por ${usuario.email} (${usuario.tipo_usuario})`)
 
     // Invalidar caches de escolas e transparencia
     await cacheDelPattern('escolas:*')
@@ -269,7 +272,7 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request, usu
 
     return NextResponse.json({ mensagem: 'Escola excluída com sucesso' }, { status: 200 })
   } catch (error: unknown) {
-    console.error('Erro ao excluir escola:', error)
+    log.error('Erro ao excluir escola', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
