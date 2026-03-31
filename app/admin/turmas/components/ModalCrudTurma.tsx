@@ -142,21 +142,21 @@ export function ModalCrudTurma({
           </div>
 
           <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.multiserie}
                 onChange={e => setFormData(prev => ({ ...prev, multiserie: e.target.checked }))}
-                className="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
+                className="w-5 h-5 rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
               />
               Multisseriada
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.multietapa}
                 onChange={e => setFormData(prev => ({ ...prev, multietapa: e.target.checked }))}
-                className="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
+                className="w-5 h-5 rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
               />
               Multietapa
             </label>

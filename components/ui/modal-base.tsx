@@ -106,11 +106,11 @@ export function ModalBase({
         {/* Modal */}
         <div
           ref={modalRef}
-          className={`inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all my-4 sm:my-8 sm:align-middle w-full ${larguraClasses[largura]}`}
+          className={`inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left shadow-xl transform transition-all my-4 sm:my-8 sm:align-middle w-full max-h-[85vh] overflow-hidden flex flex-col ${larguraClasses[largura]}`}
         >
-          {/* Header */}
-          <div className="bg-white dark:bg-slate-800 px-4 sm:px-6 py-3 sm:py-4">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
+          {/* Header — fixed at top */}
+          <div className="bg-white dark:bg-slate-800 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
+            <div className="flex items-center justify-between">
               <h3 id="modal-titulo" className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                 {titulo}
               </h3>
@@ -122,8 +122,10 @@ export function ModalBase({
                 <X className="w-6 h-6" />
               </button>
             </div>
+          </div>
 
-            {/* Content */}
+          {/* Content — scrollable */}
+          <div className="px-4 sm:px-6 pb-3 sm:pb-4 overflow-y-auto flex-1">
             {children}
           </div>
         </div>

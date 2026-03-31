@@ -607,6 +607,8 @@ export default function AlunosEscolaPage() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CPF</label>
                     <input
                       type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
                       value={formData.cpf}
                       onChange={e => setFormData({ ...formData, cpf: e.target.value })}
                       placeholder="000.000.000-00"
@@ -674,12 +676,12 @@ export default function AlunosEscolaPage() {
                   </div>
 
                   <div className="flex items-end">
-                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 pb-2">
+                    <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300 pb-2">
                       <input
                         type="checkbox"
                         checked={formData.pcd}
                         onChange={e => setFormData({ ...formData, pcd: e.target.checked })}
-                        className="rounded"
+                        className="w-5 h-5 rounded"
                       />
                       PCD
                     </label>

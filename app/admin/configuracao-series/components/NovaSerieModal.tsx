@@ -99,7 +99,7 @@ export default function NovaSerieModal({
                         max="10"
                         value={novaSerieData.qtd_itens_producao}
                         onChange={(e) => onAtualizarDados({ ...novaSerieData, qtd_itens_producao: parseInt(e.target.value) || 8 })}
-                        className="w-16 px-2 py-1 text-center text-sm border rounded dark:bg-slate-800 dark:border-slate-600"
+                        className="w-16 px-2 py-2 text-center text-sm border rounded dark:bg-slate-800 dark:border-slate-600"
                       />
                     </div>
                   )}

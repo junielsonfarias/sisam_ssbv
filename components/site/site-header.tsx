@@ -113,7 +113,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
       role="banner"
     >
       {/* ====== BARRA INSTITUCIONAL AZUL — todos os tamanhos ====== */}
-      <div className={`bg-blue-900 text-white text-center transition-all duration-500 ${scrolled ? 'py-1 text-[9px] sm:text-xs' : 'py-1.5 text-[10px] sm:text-xs'} font-semibold tracking-wide`}>
+      <div className={`bg-blue-900 text-white text-center transition-all duration-500 ${scrolled ? 'py-1 text-[11px] sm:text-xs' : 'py-1.5 text-xs sm:text-sm'} font-semibold tracking-wide`}>
         Secretaria Municipal de Educação — São Sebastião da Boa Vista/PA
       </div>
 

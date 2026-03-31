@@ -248,7 +248,7 @@ export default function MatriculaPage() {
                   </div>
                   <div>
                     <label className={labelClass}>CPF do aluno (opcional)</label>
-                    <input type="text" value={form.aluno_cpf} onChange={e => setField('aluno_cpf', cpfMask(e.target.value))}
+                    <input type="text" inputMode="numeric" autoComplete="off" value={form.aluno_cpf} onChange={e => setField('aluno_cpf', cpfMask(e.target.value))}
                       placeholder="000.000.000-00" maxLength={14} className={inputClass} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -260,9 +260,9 @@ export default function MatriculaPage() {
                       </select>
                     </div>
                     <div className="flex items-end">
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
                         <input type="checkbox" checked={form.aluno_pcd} onChange={e => setField('aluno_pcd', e.target.checked)}
-                          className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500" />
+                          className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500" />
                         <span className="text-sm text-slate-700">PCD (Pessoa com Deficiência)</span>
                       </label>
                     </div>
@@ -280,18 +280,18 @@ export default function MatriculaPage() {
                   </div>
                   <div>
                     <label className={labelClass}>CPF do responsável (opcional)</label>
-                    <input type="text" value={form.responsavel_cpf} onChange={e => setField('responsavel_cpf', cpfMask(e.target.value))}
+                    <input type="text" inputMode="numeric" autoComplete="off" value={form.responsavel_cpf} onChange={e => setField('responsavel_cpf', cpfMask(e.target.value))}
                       placeholder="000.000.000-00" maxLength={14} className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>Telefone *</label>
-                    <input type="text" value={form.responsavel_telefone}
+                    <input type="tel" inputMode="tel" autoComplete="tel" value={form.responsavel_telefone}
                       onChange={e => setField('responsavel_telefone', phoneMask(e.target.value))}
                       placeholder="(91) 99999-0000" maxLength={15} className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>Email (opcional)</label>
-                    <input type="email" value={form.responsavel_email} onChange={e => setField('responsavel_email', e.target.value)}
+                    <input type="email" inputMode="email" autoComplete="email" value={form.responsavel_email} onChange={e => setField('responsavel_email', e.target.value)}
                       placeholder="email@exemplo.com" className={inputClass} />
                   </div>
                   <div>

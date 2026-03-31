@@ -176,7 +176,7 @@ export function AbaDadosGerais({
           {etapasOpcoes.map(etapa => (
             <label
               key={etapa.value}
-              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
+              className={`flex items-center gap-3 p-3 min-h-[44px] rounded-lg border cursor-pointer transition-all
                 ${etapasAtuais.includes(etapa.value)
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-600'
                   : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'
@@ -186,7 +186,7 @@ export function AbaDadosGerais({
                 type="checkbox"
                 checked={etapasAtuais.includes(etapa.value)}
                 onChange={() => toggleEtapa(etapa.value)}
-                className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
               />
               <span className="text-sm text-gray-700 dark:text-gray-300">{etapa.label}</span>
             </label>

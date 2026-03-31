@@ -174,6 +174,8 @@ function ModalAlunoComponent({
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">CPF</label>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
                     value={formData.cpf || ''}
                     onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                     className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700 placeholder-gray-400"
@@ -193,18 +195,18 @@ function ModalAlunoComponent({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <label htmlFor="pcd-checkbox" className="flex items-center gap-2 min-h-[44px] cursor-pointer">
                 <input
                   type="checkbox"
                   id="pcd-checkbox"
                   checked={formData.pcd || false}
                   onChange={(e) => setFormData({ ...formData, pcd: e.target.checked })}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 dark:border-slate-600 rounded focus:ring-indigo-500 dark:bg-slate-700"
+                  className="w-5 h-5 text-indigo-600 border-gray-300 dark:border-slate-600 rounded focus:ring-indigo-500 dark:bg-slate-700"
                 />
-                <label htmlFor="pcd-checkbox" className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200">
+                <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200">
                   PCD (Pessoa com Deficiência)
-                </label>
-              </div>
+                </span>
+              </label>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4">
                 <button

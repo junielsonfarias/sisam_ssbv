@@ -18,9 +18,9 @@ export function Campo({ label, valor, editando, campo, form, updateForm, tipo = 
     }
     if (tipo === 'boolean') {
       return (
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+        <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
           <input type="checkbox" checked={!!form[campo]} onChange={e => updateForm(campo, e.target.checked)}
-            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
           {label}
         </label>
       )

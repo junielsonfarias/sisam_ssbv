@@ -132,19 +132,22 @@ body {
   }
 }
 
-/* Estilos padronizados para selects em todos os navegadores */
+/* Estilos padronizados para selects — nativo no mobile, custom no desktop */
 @layer components {
-  /* Reset de estilos padrão do navegador para todos os selects */
-  select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 1rem;
-    padding-right: 2.5rem;
+  /* Desktop: custom arrow */
+  @media (min-width: 640px) {
+    select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 1rem;
+      padding-right: 2.5rem;
+    }
   }
+  /* Mobile: manter picker nativo do SO (melhor UX) */
 
   /* Tema escuro - ícone do select mais claro */
   .dark select {
@@ -439,6 +442,44 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out forwards;
+}
+
+/* ========================================
+   ACESSIBILIDADE MOBILE (WCAG 2.2)
+   ======================================== */
+
+/* Reduced Motion — respeitar preferencia do SO */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus Visible — foco apenas por teclado, nao por clique */
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+.dark :focus-visible {
+  outline-color: #818cf8;
+}
+
+/* Safe area para iPhone com notch */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Scrollbar fina em mobile */
+@supports (scrollbar-width: thin) {
+  * { scrollbar-width: thin; scrollbar-color: #94a3b8 transparent; }
+  .dark * { scrollbar-color: #475569 transparent; }
 }
 
 /* ========================================

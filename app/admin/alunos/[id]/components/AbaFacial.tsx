@@ -211,7 +211,7 @@ export function AbaFacial({ alunoId, alunoNome }: Props) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CPF do Responsavel (opcional)</label>
-              <input type="text" value={responsavelCpf} onChange={e => setResponsavelCpf(e.target.value)}
+              <input type="text" inputMode="numeric" autoComplete="off" value={responsavelCpf} onChange={e => setResponsavelCpf(e.target.value)}
                 placeholder="000.000.000-00"
                 className="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none" />
             </div>

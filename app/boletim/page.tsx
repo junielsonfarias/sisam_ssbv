@@ -239,7 +239,7 @@ export default function BoletimPage() {
               {modo === 'codigo' ? (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">Codigo do Aluno</label>
-                  <input type="text" value={codigo} onChange={e => setCodigo(e.target.value)}
+                  <input type="search" inputMode="search" value={codigo} onChange={e => setCodigo(e.target.value)}
                     placeholder="Ex: NSL-2026-0001" className={inputClass}
                     onKeyDown={e => e.key === 'Enter' && buscar()} />
                 </div>
@@ -247,7 +247,7 @@ export default function BoletimPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">CPF do Aluno</label>
-                    <input type="text" value={cpf} onChange={e => setCpf(cpfMask(e.target.value))}
+                    <input type="text" inputMode="numeric" autoComplete="off" value={cpf} onChange={e => setCpf(cpfMask(e.target.value))}
                       placeholder="000.000.000-00" maxLength={14} className={inputClass} />
                   </div>
                   <div>

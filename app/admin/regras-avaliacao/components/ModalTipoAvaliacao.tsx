@@ -116,12 +116,12 @@ export function ModalTipoAvaliacao({
                 />
               </div>
               <div className="flex items-end pb-1">
-                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formTipo.permite_decimal}
                     onChange={e => setFormTipo(prev => ({ ...prev, permite_decimal: e.target.checked }))}
-                    className="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                    className="w-5 h-5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                   />
                   Decimais
                 </label>

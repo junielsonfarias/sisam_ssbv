@@ -279,7 +279,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         />
 
         {/* Main Content - Sem margem, menu funciona como drawer sobrepondo */}
-        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-slate-900 print:p-0 print:bg-white">
+        <main id="main-content" className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 pb-20 sm:pb-4 bg-gray-50 dark:bg-slate-900 print:p-0 print:bg-white">
           {children}
         </main>
       </div>

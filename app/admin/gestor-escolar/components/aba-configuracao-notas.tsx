@@ -117,12 +117,12 @@ function FormConfiguracao({
       </div>
 
       <div className="flex items-center gap-6">
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300">
           <input
             type="checkbox"
             checked={form.permite_recuperacao}
             onChange={e => setForm({ ...form, permite_recuperacao: e.target.checked })}
-            className="rounded border-gray-300 text-indigo-600"
+            className="w-5 h-5 rounded border-gray-300 text-indigo-600"
           />
           Permite Recuperação
         </label>

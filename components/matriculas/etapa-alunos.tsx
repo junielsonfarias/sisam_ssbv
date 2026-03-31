@@ -193,6 +193,8 @@ export default function EtapaAlunos({
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">CPF (opcional)</label>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={novoAluno.cpf || ''}
                   onChange={e => setNovoAluno({ ...novoAluno, cpf: e.target.value })}
                   placeholder="000.000.000-00"
@@ -222,12 +224,12 @@ export default function EtapaAlunos({
                 </div>
               )}
               <div className="flex items-end">
-                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 pb-2">
+                <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300 pb-2">
                   <input
                     type="checkbox"
                     checked={novoAluno.pcd || false}
                     onChange={e => setNovoAluno({ ...novoAluno, pcd: e.target.checked })}
-                    className="rounded"
+                    className="w-5 h-5 rounded"
                   />
                   <Accessibility className="w-4 h-4" />
                   PCD

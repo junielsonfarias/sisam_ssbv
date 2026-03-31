@@ -84,7 +84,7 @@ export default function DisciplinasEditor({
                     <select
                       value={disc.sigla}
                       onChange={(e) => onAtualizarDisciplina(index, 'sigla', e.target.value, isNewSerie)}
-                      className="w-full px-2 py-1.5 text-sm border rounded bg-white dark:bg-slate-800 dark:border-slate-600"
+                      className="w-full px-2 py-2 text-sm border rounded bg-white dark:bg-slate-800 dark:border-slate-600"
                     >
                       <option value="">Selecione...</option>
                       {DISCIPLINAS_DISPONIVEIS.map(d => (
@@ -101,14 +101,14 @@ export default function DisciplinasEditor({
                       min="1"
                       value={disc.qtd_questoes}
                       onChange={(e) => onAtualizarDisciplina(index, 'qtd_questoes', parseInt(e.target.value) || 1, isNewSerie)}
-                      className="w-full px-2 py-1.5 text-sm border rounded bg-white dark:bg-slate-800 dark:border-slate-600"
+                      className="w-full px-2 py-2 text-sm border rounded bg-white dark:bg-slate-800 dark:border-slate-600"
                     />
                   </div>
 
                   {/* Intervalo */}
                   <div>
                     <label className="block text-xs font-medium mb-1 opacity-75">Intervalo</label>
-                    <div className="px-2 py-1.5 text-sm bg-white dark:bg-slate-800 border rounded font-mono">
+                    <div className="px-2 py-2 text-sm bg-white dark:bg-slate-800 border rounded font-mono">
                       Q{disc.questao_inicio} a Q{disc.questao_fim}
                     </div>
                   </div>
@@ -122,7 +122,7 @@ export default function DisciplinasEditor({
                       min="0.01"
                       value={disc.valor_questao}
                       onChange={(e) => onAtualizarDisciplina(index, 'valor_questao', parseFloat(e.target.value) || 0.5, isNewSerie)}
-                      className="w-full px-2 py-1.5 text-sm border rounded bg-white dark:bg-slate-800 dark:border-slate-600"
+                      className="w-full px-2 py-2 text-sm border rounded bg-white dark:bg-slate-800 dark:border-slate-600"
                     />
                   </div>
                 </div>

@@ -147,12 +147,12 @@ export default function DisciplinasPage() {
             >
               <Plus className="w-4 h-4" /> Nova Disciplina
             </button>
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-600 dark:text-gray-400">
               <input
                 type="checkbox"
                 checked={mostrarInativos}
                 onChange={e => setMostrarInativos(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600"
+                className="w-5 h-5 rounded border-gray-300 text-indigo-600"
               />
               Mostrar inativas
             </label>

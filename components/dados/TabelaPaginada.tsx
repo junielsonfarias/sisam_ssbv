@@ -177,7 +177,7 @@ export default function TabelaPaginada({
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-slate-700">
             {dados.map((row: any, i: number) => (
-              <div key={i} className="p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
+              <div key={i} className="p-4 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                 {colunas.map((col: ColunaTabela, colIndex: number) => {
                   const valor = row[col.key]
                   const isNumero = typeof valor === 'number'
@@ -293,15 +293,15 @@ export default function TabelaPaginada({
             <span className="font-bold text-indigo-600 dark:text-indigo-400">{((paginaAtual - 1) * itensPorPagina) + 1}</span>-<span className="font-bold text-indigo-600 dark:text-indigo-400">{Math.min(paginaAtual * itensPorPagina, totalRegistros)}</span> de{' '}
             <span className="font-bold text-gray-900 dark:text-white">{totalRegistros.toLocaleString('pt-BR')}</span>
           </p>
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={() => onPaginar(Math.max(1, paginaAtual - 1))}
               disabled={paginaAtual === 1}
-              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="min-h-[44px] min-w-[44px] px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform transition-colors"
             >
               Ant.
             </button>
-            <div className="flex gap-0.5 sm:gap-1">
+            <div className="flex gap-1.5 sm:gap-1">
               {Array.from({ length: Math.min(3, totalPaginas) }, (_, i) => {
                 let p = i + 1
                 if (totalPaginas > 3) {
@@ -313,7 +313,7 @@ export default function TabelaPaginada({
                   <button
                     key={p}
                     onClick={() => onPaginar(p)}
-                    className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg transition-colors ${
+                    className={`min-h-[44px] min-w-[44px] px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg active:scale-95 transition-transform transition-colors ${
                       paginaAtual === p
                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
                         : 'border-gray-300 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
@@ -327,7 +327,7 @@ export default function TabelaPaginada({
             <button
               onClick={() => onPaginar(Math.min(totalPaginas, paginaAtual + 1))}
               disabled={paginaAtual === totalPaginas}
-              className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="min-h-[44px] min-w-[44px] px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform transition-colors"
             >
               Prox.
             </button>

@@ -251,7 +251,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-between px-4 py-2.5 max-w-md mx-auto w-full">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-100 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-100 hover:text-white transition-colors min-h-[44px] active:scale-95 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" />
             Voltar ao site
@@ -305,6 +305,8 @@ export default function LoginPage() {
                 <input
                   id="email"
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -321,6 +323,7 @@ export default function LoginPage() {
                   <input
                     id="senha"
                     type={mostrarSenha ? "text" : "password"}
+                    autoComplete="current-password"
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                     required
@@ -330,7 +333,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setMostrarSenha(!mostrarSenha)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none transition-colors"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none transition-colors active:scale-95 transition-transform"
                     aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {mostrarSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -362,7 +365,7 @@ export default function LoginPage() {
             <div className="text-center mt-5 pt-4 border-t border-slate-100 dark:border-slate-700">
               <Link
                 href="/cadastro-professor"
-                className="inline-flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400 hover:underline font-medium"
+                className="inline-flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400 hover:underline font-medium min-h-[44px] active:scale-95 transition-transform"
               >
                 <GraduationCap className="h-4 w-4" />
                 Sou professor — Criar minha conta

@@ -552,6 +552,8 @@ export function AbaPesquisarAluno({
                 onChange={e => setNovoAlunoForm(prev => ({ ...prev, cpf: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                 placeholder="000.000.000-00"
+                inputMode="numeric"
+                autoComplete="off"
                 maxLength={14}
               />
             </div>
@@ -602,13 +604,13 @@ export function AbaPesquisarAluno({
               </select>
             </div>
 
-            <div className="flex items-center gap-2 sm:col-span-2">
+            <div className="flex items-center gap-2 min-h-[44px] sm:col-span-2">
               <input
                 type="checkbox"
                 id="novo-pcd"
                 checked={novoAlunoForm.pcd}
                 onChange={e => setNovoAlunoForm(prev => ({ ...prev, pcd: e.target.checked }))}
-                className="w-4 h-4 text-indigo-600 border-gray-300 rounded"
+                className="w-5 h-5 text-indigo-600 border-gray-300 rounded"
               />
               <label htmlFor="novo-pcd" className="text-sm text-gray-700 dark:text-gray-300">PCD (Pessoa com Deficiência)</label>
             </div>

@@ -3,6 +3,16 @@
 import { Suspense, useEffect } from 'react'
 import LayoutDashboard from '@/components/layout-dashboard'
 import LoadingContent from '@/components/loading-content'
+import BottomNavigation from '@/components/bottom-navigation'
+import { LayoutDashboard as DashboardIcon, Users, CalendarCheck, BookOpen, User } from 'lucide-react'
+
+const MENU_MOBILE_PROFESSOR = [
+  { label: 'Dashboard', href: '/professor/dashboard', icon: DashboardIcon },
+  { label: 'Turmas', href: '/professor/turmas', icon: BookOpen },
+  { label: 'Frequencia', href: '/professor/frequencia-diaria', icon: CalendarCheck },
+  { label: 'Notas', href: '/professor/notas', icon: Users },
+  { label: 'Perfil', href: '/perfil', icon: User },
+]
 
 export default function ProfessorLayout({
   children,
@@ -31,6 +41,7 @@ export default function ProfessorLayout({
       <Suspense fallback={<LoadingContent />}>
         {children}
       </Suspense>
+      <BottomNavigation items={MENU_MOBILE_PROFESSOR} />
     </LayoutDashboard>
   )
 }

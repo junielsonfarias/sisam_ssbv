@@ -141,6 +141,8 @@ export default function CadastroProfessorPage() {
               </label>
               <input
                 type="email"
+                inputMode="email"
+                autoComplete="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -156,6 +158,8 @@ export default function CadastroProfessorPage() {
                 </label>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={cpf}
                   onChange={e => setCpf(formatarCPF(e.target.value))}
                   placeholder="000.000.000-00"
@@ -168,7 +172,9 @@ export default function CadastroProfessorPage() {
                   Telefone
                 </label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={telefone}
                   onChange={e => setTelefone(formatarTelefone(e.target.value))}
                   placeholder="(00) 00000-0000"

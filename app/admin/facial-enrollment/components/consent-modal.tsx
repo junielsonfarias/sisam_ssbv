@@ -52,6 +52,8 @@ export function ConsentModal({
             </label>
             <input
               type="text"
+              inputMode="numeric"
+              autoComplete="off"
               value={consentForm.responsavel_cpf}
               onChange={e => setConsentForm(prev => ({ ...prev, responsavel_cpf: e.target.value }))}
               placeholder="000.000.000-00"
@@ -59,13 +61,13 @@ export function ConsentModal({
             />
           </div>
 
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-start gap-3 p-3 min-h-[44px] bg-gray-50 rounded-lg">
             <input
               type="checkbox"
               id="consent-check"
               checked={consentForm.consentido}
               onChange={e => setConsentForm(prev => ({ ...prev, consentido: e.target.checked }))}
-              className="mt-1 h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+              className="mt-1 h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
             />
             <label htmlFor="consent-check" className="text-sm text-gray-700">
               Autorizo o uso de reconhecimento facial para fins de registro de presenca escolar.

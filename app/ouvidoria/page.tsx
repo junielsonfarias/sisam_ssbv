@@ -192,14 +192,14 @@ export default function OuvidoriaPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">E-mail (opcional)</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="seu@email.com" />
+                    <input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="seu@email.com" />
                   </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Telefone (opcional)</label>
-                    <input type="text" value={telefone} onChange={(e) => setTelefone(e.target.value)} className={inputCls} placeholder="(00) 00000-0000" />
+                    <input type="tel" inputMode="tel" autoComplete="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} className={inputCls} placeholder="(00) 00000-0000" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Escola (opcional)</label>

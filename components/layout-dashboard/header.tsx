@@ -92,7 +92,7 @@ export function Header({
               <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-gray-800 dark:text-white truncate leading-tight">
                 {personalizacao.nome_sistema || 'SISAM'}
               </h1>
-              <span className="text-[9px] sm:text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 truncate leading-tight">
+              <span className="text-[11px] sm:text-xs lg:text-sm text-gray-500 dark:text-gray-400 truncate leading-tight">
                 SEMED — São Sebastião da Boa Vista/PA
               </span>
             </div>

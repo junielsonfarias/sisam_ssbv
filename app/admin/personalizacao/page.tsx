@@ -334,12 +334,12 @@ export default function PersonalizacaoPage() {
 
                 {/* Ativar/Desativar Rodapé */}
                 <div>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={formData.rodape_ativo}
                       onChange={(e) => setFormData({ ...formData, rodape_ativo: e.target.checked })}
-                      className="w-4 h-4 text-indigo-600 border-gray-300 dark:border-slate-600 rounded focus:ring-indigo-500"
+                      className="w-5 h-5 text-indigo-600 border-gray-300 dark:border-slate-600 rounded focus:ring-indigo-500"
                     />
                     <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Exibir rodapé no sistema</span>
                   </label>

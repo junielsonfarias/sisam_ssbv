@@ -648,12 +648,12 @@ export default function SeriesEscolaresPage() {
 
                                 {df.habilitada && (
                                   <div className="flex items-center gap-3">
-                                    <label className="flex items-center gap-1 text-xs">
+                                    <label className="flex items-center gap-1 min-h-[44px] text-xs">
                                       <input
                                         type="checkbox"
                                         checked={df.obrigatoria}
                                         onChange={e => atualizarDisciplina(idx, 'obrigatoria', e.target.checked)}
-                                        className="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                                        className="w-5 h-5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                                       />
                                       Obrig.
                                     </label>

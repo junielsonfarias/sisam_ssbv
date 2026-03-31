@@ -339,12 +339,12 @@ export default function SiteInstitucionalPage() {
         <input type="text" className={inputClass} value={formData.whatsapp_numero || ''} onChange={e => updateField('whatsapp_numero', e.target.value)} placeholder="5591999999999" />
       </div>
       <div className="pt-4 border-t border-gray-200 dark:border-slate-700">
-        <label className="flex items-center gap-3 cursor-pointer">
+        <label className="flex items-center gap-3 min-h-[44px] cursor-pointer">
           <input
             type="checkbox"
             checked={formData.mostrar_feed_facebook ?? false}
             onChange={e => updateField('mostrar_feed_facebook', e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
           />
           <span className={labelClass + ' mb-0'}>Exibir feed do Facebook no site (publicacoes recentes)</span>
         </label>
@@ -354,12 +354,12 @@ export default function SiteInstitucionalPage() {
 
   const renderEstatisticasTab = () => (
     <div className="space-y-4">
-      <label className="flex items-center gap-2 cursor-pointer">
+      <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
         <input
           type="checkbox"
           checked={formData.auto_count ?? true}
           onChange={e => updateField('auto_count', e.target.checked)}
-          className="w-4 h-4 text-indigo-600 border-gray-300 dark:border-slate-600 rounded focus:ring-indigo-500"
+          className="w-5 h-5 text-indigo-600 border-gray-300 dark:border-slate-600 rounded focus:ring-indigo-500"
         />
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Calcular automaticamente dos dados do sistema</span>
       </label>
@@ -474,12 +474,12 @@ export default function SiteInstitucionalPage() {
 
   const renderEscolasTab = () => (
     <div className="space-y-4">
-      <label className="flex items-center gap-2 cursor-pointer">
+      <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
         <input
           type="checkbox"
           checked={formData.mostrar_do_banco ?? true}
           onChange={e => updateField('mostrar_do_banco', e.target.checked)}
-          className="w-4 h-4 text-indigo-600 border-gray-300 dark:border-slate-600 rounded focus:ring-indigo-500"
+          className="w-5 h-5 text-indigo-600 border-gray-300 dark:border-slate-600 rounded focus:ring-indigo-500"
         />
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mostrar escolas cadastradas no sistema</span>
       </label>

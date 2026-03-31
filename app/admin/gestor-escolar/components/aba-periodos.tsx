@@ -68,8 +68,8 @@ function FormPeriodo({
           onChange={e => setForm({ ...form, data_fim: e.target.value })}
           className="rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
         />
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-          <input type="checkbox" checked={form.ativo} onChange={e => setForm({ ...form, ativo: e.target.checked })} className="rounded border-gray-300 text-indigo-600" />
+        <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300">
+          <input type="checkbox" checked={form.ativo} onChange={e => setForm({ ...form, ativo: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-indigo-600" />
           Ativo
         </label>
       </div>

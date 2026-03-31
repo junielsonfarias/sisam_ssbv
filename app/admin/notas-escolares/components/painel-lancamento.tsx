@@ -186,12 +186,12 @@ export function PainelLancamento({
       {/* Controles */}
       <div className="flex flex-wrap items-center gap-3">
         {!isParecer && !isConceito && config.permite_recuperacao && (
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg shadow-sm">
+          <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg shadow-sm">
             <input
               type="checkbox"
               checked={mostrarRecuperacao}
               onChange={e => setMostrarRecuperacao(e.target.checked)}
-              className="rounded border-gray-300 text-emerald-600"
+              className="w-5 h-5 rounded border-gray-300 text-emerald-600"
             />
             Mostrar Recuperação
           </label>

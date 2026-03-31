@@ -193,30 +193,30 @@ export function ModalRegraAvaliacao({
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formRegra.permite_recuperacao}
                 onChange={e => setFormRegra(prev => ({ ...prev, permite_recuperacao: e.target.checked }))}
-                className="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                className="w-5 h-5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
               />
               Permite Recuperacao
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formRegra.recuperacao_por_periodo}
                 onChange={e => setFormRegra(prev => ({ ...prev, recuperacao_por_periodo: e.target.checked }))}
-                className="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                className="w-5 h-5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
               />
               Recuperacao por Periodo
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formRegra.aprovacao_automatica}
                 onChange={e => setFormRegra(prev => ({ ...prev, aprovacao_automatica: e.target.checked }))}
-                className="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                className="w-5 h-5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
               />
               Aprovacao Automatica
             </label>

@@ -30,11 +30,12 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#F8FAFC', // Cor do tema claro (será atualizado dinamicamente)
+  themeColor: '#F8FAFC',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover', // Suporte para notch (iPhone X+)
 }
 
 // Script para evitar flash de tema incorreto (executado antes do React)
@@ -77,6 +78,13 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body className="bg-theme-primary text-theme-primary">
+        {/* Skip to content — acessibilidade por teclado */}
+        <a href="#main-content"
+           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100]
+                      focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg
+                      focus:shadow-lg focus:text-sm focus:font-medium">
+          Pular para conteudo principal
+        </a>
         <ThemeProvider defaultTheme="light">
           <ToastProvider>
             <ErrorBoundary>

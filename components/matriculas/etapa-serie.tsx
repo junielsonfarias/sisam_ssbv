@@ -151,16 +151,16 @@ export default function EtapaSerie({ serieSelecionada, onSerieChange, onProximo,
             />
           </div>
           <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <input type="checkbox" checked={novaSerie.avalia_ch} onChange={e => setNovaSerie({ ...novaSerie, avalia_ch: e.target.checked })} className="rounded" />
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" checked={novaSerie.avalia_ch} onChange={e => setNovaSerie({ ...novaSerie, avalia_ch: e.target.checked })} className="w-5 h-5 rounded" />
               Avalia CH
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <input type="checkbox" checked={novaSerie.avalia_cn} onChange={e => setNovaSerie({ ...novaSerie, avalia_cn: e.target.checked })} className="rounded" />
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" checked={novaSerie.avalia_cn} onChange={e => setNovaSerie({ ...novaSerie, avalia_cn: e.target.checked })} className="w-5 h-5 rounded" />
               Avalia CN
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <input type="checkbox" checked={novaSerie.tem_producao_textual} onChange={e => setNovaSerie({ ...novaSerie, tem_producao_textual: e.target.checked })} className="rounded" />
+            <label className="flex items-center gap-2 min-h-[44px] text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" checked={novaSerie.tem_producao_textual} onChange={e => setNovaSerie({ ...novaSerie, tem_producao_textual: e.target.checked })} className="w-5 h-5 rounded" />
               Produção Textual
             </label>
           </div>
