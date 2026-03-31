@@ -213,3 +213,57 @@ Card: bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dar
 - E2E em `e2e/` com `playwright`
 - Mockar `@/database/connection` e `@/lib/cache` nos testes
 - Verificar status HTTP + campos da resposta JSON
+
+---
+
+## Skills Disponiveis (/commands)
+
+### Setup e Inicializacao
+| Comando | Descricao |
+|---------|-----------|
+| `/setup-nextjs` | Projeto Next.js 14 completo com todas dependencias e config |
+| `/setup-supabase` | Conexao Supabase com pool inteligente, retry, health check |
+| `/setup-prisma-vps` | Prisma ORM para PostgreSQL em VPS com Docker |
+| `/setup-ci` | GitHub Actions CI (tsc + lint + vitest + build) |
+| `/setup-pwa` | PWA com service worker, offline-first, manifest |
+| `/setup-testes` | Vitest + Playwright completo |
+
+### Frontend e Design
+| Comando | Descricao |
+|---------|-----------|
+| `/design-system` | Sistema de design: CSS vars, dark mode, componentes base |
+| `/novo-layout` | Layout com sidebar colapsavel, header, dark mode |
+| `/novo-dashboard` | Dashboard com KPIs, graficos Recharts, filtros |
+| `/novo-formulario` | Formulario com secoes, validacao Zod, responsivo |
+| `/nova-tabela-responsiva` | Tabela desktop + cards mobile, paginacao, busca |
+| `/novo-componente` | Componente React reutilizavel com dark mode |
+| `/nova-pagina` | Pagina completa com ProtectedRoute, loading, toast |
+
+### Backend e API
+| Comando | Descricao |
+|---------|-----------|
+| `/nova-api` | Endpoint com withAuth, Zod, pool.query |
+| `/nova-autenticacao-jwt` | Sistema auth completo: JWT, bcrypt, cookies, protected route |
+| `/novo-middleware-seguranca` | Rate limiting, CSRF, CSP, security headers |
+| `/novo-crud-completo` | CRUD completo: API + pagina + service + testes |
+| `/novo-upload-arquivo` | Upload com validacao, leitura Excel, export CSV |
+| `/novo-cache-strategy` | Cache 3 camadas: Redis + memoria + arquivo |
+| `/novo-logger` | Logger estruturado com niveis e contexto |
+| `/novo-service` | Service layer com tipos e WHERE builder |
+
+### Banco de Dados
+| Comando | Descricao |
+|---------|-----------|
+| `/novo-schema-supabase` | Schema SQL com UUID, timestamps, indices, triggers |
+| `/novo-schema-prisma` | Schema Prisma com relacoes, enums, map snake_case |
+| `/nova-migracao` | Migration SQL com header padrao e indices |
+| `/novo-seed` | Seed de dados iniciais (admin, polos, escolas) |
+| `/novo-indice-performance` | Indices de performance, pg_trgm, ANALYZE |
+
+### Utilitarios
+| Comando | Descricao |
+|---------|-----------|
+| `/novo-modulo` | Modulo completo: SQL + API + pagina + testes |
+| `/novo-teste` | Testes unitarios, integracao ou E2E |
+| `/verificar-projeto` | Verificacao completa: TS + testes + lint + metricas |
+| `/atualizar-horas` | Atualizar registro de horas de desenvolvimento |
