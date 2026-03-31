@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams
     const { ano_letivo, status } = parseSearchParams(searchParams, ['ano_letivo', 'status'])
-    const paginacao = parsePaginacao(searchParams, { camposPagina: 'page', camposLimite: 'limit', limitePadrao: 20 })
+    const paginacao = parsePaginacao(searchParams, { camposPagina: 'pagina', camposLimite: 'limite', limitePadrao: 20 })
 
     const where = createWhereBuilder()
     if (usuario.tipo_usuario !== 'administrador') {

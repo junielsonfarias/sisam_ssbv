@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Publicacoes')
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +18,8 @@ export async function GET(request: NextRequest) {
     const tipo = searchParams.get('tipo')
     const orgao = searchParams.get('orgao')
     const ano = searchParams.get('ano')
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+    const page = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') || '20', 10)))
     const offset = (page - 1) * limit
 
     const redisKey = cacheKey('publicacoes', tipo || '', orgao || '', ano || '', String(page))
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data)
   } catch (error: any) {
-    console.error('[API] Erro ao buscar publicações:', error.message)
+    log.error('Erro ao buscar publicações', error)
     return NextResponse.json({ mensagem: 'Erro ao buscar publicações' }, { status: 500 })
   }
 }

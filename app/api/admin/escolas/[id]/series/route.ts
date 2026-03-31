@@ -3,6 +3,9 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { validateRequest, serieEscolaPostSchema } from '@/lib/schemas'
 import pool from '@/database/connection'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('EscolaSeries')
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +45,7 @@ export async function GET(
       total: result.rows.length
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar séries da escola:', error)
+    log.error('Erro ao buscar séries da escola', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -100,7 +103,7 @@ export async function POST(
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    console.error('Erro ao vincular série à escola:', error)
+    log.error('Erro ao vincular série à escola', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -160,7 +163,7 @@ export async function DELETE(
       serie: result.rows[0]
     })
   } catch (error: unknown) {
-    console.error('Erro ao remover série da escola:', error)
+    log.error('Erro ao remover série da escola', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

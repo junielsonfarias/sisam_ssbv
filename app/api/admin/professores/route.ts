@@ -151,7 +151,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: resultado.erro }, { status: resultado.status })
     }
 
-    return NextResponse.json({ mensagem: 'Cadastro rejeitado e excluído' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     console.error('Erro ao excluir professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

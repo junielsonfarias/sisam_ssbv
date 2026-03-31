@@ -100,9 +100,7 @@ export async function DELETE(request: NextRequest) {
       [usuario.id]
     )
 
-    return NextResponse.json({
-      mensagem: 'Foto removida com sucesso'
-    })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     console.error('Erro ao remover foto:', error)
     return NextResponse.json(

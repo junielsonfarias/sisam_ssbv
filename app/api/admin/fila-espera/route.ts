@@ -185,5 +185,5 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request) => 
 
   try { await cacheDelPattern('fila-espera:*') } catch {}
 
-  return NextResponse.json({ mensagem: 'Registro removido da fila' })
+  return new NextResponse(null, { status: 204 })
 })

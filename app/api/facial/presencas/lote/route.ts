@@ -5,6 +5,9 @@ import { presencaFacialLoteSchema } from '@/lib/schemas'
 import { FACIAL } from '@/lib/constants'
 import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('FacialPresencasLote')
 
 export const dynamic = 'force-dynamic'
 
@@ -139,7 +142,7 @@ export async function POST(request: NextRequest) {
       })
     } catch (error: unknown) {
       await client.query('ROLLBACK')
-      console.error('Erro ao registrar presença em lote:', error)
+      log.error('Erro ao registrar presença em lote', error)
       return NextResponse.json(
         { mensagem: 'Erro interno do servidor' },
         { status: 500 }

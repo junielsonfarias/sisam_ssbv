@@ -9,14 +9,14 @@
 
 | Metrica | Valor |
 |---------|-------|
-| **Total de horas** | **268h** |
+| **Total de horas** | **279h** |
 | **Dias trabalhados** | 36 |
-| **Media por dia** | 7.4h |
+| **Media por dia** | 7.8h |
 | **Periodo** | 31/12/2025 — 31/03/2026 |
-| **Total de commits** | 575 |
-| **Linhas de codigo** | 135.315 |
-| **Arquivos TS/TSX** | 650 |
-| **Endpoints API** | 184 |
+| **Total de commits** | 597 |
+| **Linhas de codigo** | 134.950 |
+| **Arquivos TS/TSX** | 656 |
+| **Endpoints API** | 186 |
 | **Testes** | 527 |
 
 ---
@@ -28,7 +28,7 @@
 | Dez/2025 | 11h | 1 | 43 | Commit inicial, estrutura base v1.0 |
 | Jan/2026 | 140h | 18 | 318 | Core do sistema, importacoes, dashboards, analise |
 | Fev/2026 | 41h | 6 | 33 | Ajustes, Supabase, deploy Vercel |
-| Mar/2026 | 76h | 11 | 224 | Gestor escolar, portal professor, site, seguranca, CI |
+| Mar/2026 | 84h | 12 | 239 | Gestor escolar, professor, site, seguranca, CI, 45 skills, code review 4 sprints |
 
 ---
 
@@ -100,9 +100,9 @@
 | 24/03/2026 | 17:19–18:45 | 2.4h | 7 | Service layer, Zod 100%, 515 testes |
 | 28/03/2026 | 10:29–17:36 | 8.1h | 31 | Migracao 2026, 24 melhorias, Redis, publicacoes |
 | 30/03/2026 | 09:01–18:01 | 10.0h | 54 | MEGA sessao: seguranca, performance, redesign site |
-| 31/03/2026 | 08:55–10:59 | 3.1h | 7 | Pendencias: docs API, testes E2E, TS, CI verde |
+| 31/03/2026 | 08:55–19:10 | 11.3h | 22 | Pendencias, 45 skills, mobile #1-#15, audit sec+perf, code review sprints 1-4, CI verde |
 
-**Subtotal Mar/2026: 76h | 12 dias | 224 commits**
+**Subtotal Mar/2026: 84h | 12 dias | 239 commits**
 
 ---
 
@@ -119,6 +119,7 @@
 | Seguranca (24/03/2026) | 231h | 447 | Auditoria 9.6/10, 515 testes, Zod 100% |
 | Completo (30/03/2026) | 249h | 532 | 24 melhorias, Redis, redesign site, publicacoes |
 | CI Verde (31/03/2026) | 268h | 575 | Docs API, E2E, TypeScript, CI 100% verde |
+| Code Review (31/03/2026) | 279h | 597 | 45 skills, mobile WCAG, audit sec+perf, 4 sprints refactor |
 
 ---
 

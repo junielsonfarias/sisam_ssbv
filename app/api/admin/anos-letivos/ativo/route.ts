@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola', 'polo'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const result = await pool.query(
       `SELECT id, ano, status, data_inicio, data_fim, dias_letivos_total, observacao, criado_em, atualizado_em FROM anos_letivos WHERE status = 'ativo' LIMIT 1`
     )
@@ -24,4 +19,4 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao buscar ano letivo ativo:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
-}
+})

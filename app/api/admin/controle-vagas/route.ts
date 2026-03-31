@@ -6,6 +6,9 @@ import {
 } from '@/lib/api-helpers'
 import { validateRequest, controleVagasPutSchema } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminControleVagas')
 
 export const dynamic = 'force-dynamic'
 
@@ -140,7 +143,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     return NextResponse.json({ mensagem: 'Capacidade atualizada' })
   } catch (error: unknown) {
-    console.error('Erro ao atualizar capacidade:', error)
+    log.error('Erro ao atualizar capacidade', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
 })

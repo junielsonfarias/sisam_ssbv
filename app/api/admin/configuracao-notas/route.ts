@@ -9,6 +9,9 @@ import {
   parseSearchParams, createWhereBuilder, addCondition, addAccessControl, buildWhereString,
 } from '@/lib/api-helpers'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminConfiguracaoNotas')
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +72,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       [escola_id, ano_letivo, tipo_periodo, nota_maxima, media_aprovacao, media_recuperacao, peso_avaliacao, peso_recuperacao, permite_recuperacao]
     )
 
-    console.log(`[AUDIT] Config notas criada | escola:${escola_id} ano:${ano_letivo} | por ${usuario.email}`)
+    log.info(`Config notas criada | escola:${escola_id} ano:${ano_letivo} | por ${usuario.email}`)
     try { await cacheDelPattern('config:*') } catch {}
     try { await cacheDelPattern('boletim:*') } catch {}
     return NextResponse.json(result.rows[0], { status: 201 })
@@ -128,5 +131,5 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     try { await cacheDelPattern('config:*') } catch {}
     try { await cacheDelPattern('boletim:*') } catch {}
 
-    return NextResponse.json({ mensagem: 'Configuração removida com sucesso' })
+    return new NextResponse(null, { status: 204 })
 })

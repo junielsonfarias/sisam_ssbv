@@ -21,8 +21,8 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   const escola_id = searchParams.get('escola_id')
   const serie = searchParams.get('serie')
   const ano = searchParams.get('ano') || String(new Date().getFullYear())
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-  const limit = Math.min(100, parseInt(searchParams.get('limit') || '20'))
+  const page = Math.max(1, parseInt(searchParams.get('pagina') || '1'))
+  const limit = Math.min(100, parseInt(searchParams.get('limite') || '20'))
   const offset = (page - 1) * limit
 
   // KPIs

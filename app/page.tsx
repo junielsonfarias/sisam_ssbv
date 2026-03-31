@@ -37,7 +37,7 @@ export default function HomePage() {
   useEffect(() => {
     Promise.all([
       fetch('/api/site-config').then(r => r.json()).catch(() => ({})),
-      fetch('/api/publicacoes?limit=6').then(r => r.json()).catch(() => ({ publicacoes: [] })),
+      fetch('/api/publicacoes?limite=6').then(r => r.json()).catch(() => ({ publicacoes: [] })),
     ]).then(([d, pubData]) => {
       const config: Record<string, any> = {}
       if (Array.isArray(d.secoes)) {

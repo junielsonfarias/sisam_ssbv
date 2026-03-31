@@ -133,7 +133,7 @@ export async function DELETE(request: NextRequest) {
 
     await removerDaFila(id)
 
-    return NextResponse.json({ mensagem: 'Aluno removido da fila' })
+    return new NextResponse(null, { status: 204 })
 
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('não encontrado')) {

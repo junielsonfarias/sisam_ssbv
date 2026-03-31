@@ -9,6 +9,9 @@ import {
   isAnosIniciais,
 } from '@/lib/config-series'
 import { limparTodosOsCaches } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('RecalcularNiveis')
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +19,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     const { searchParams } = new URL(request.url)
     const avaliacaoId = searchParams.get('avaliacao_id')
 
-    console.log('[Recalcular Níveis] Iniciando recálculo de níveis para registros existentes...')
+    log.info('Iniciando recálculo de níveis para registros existentes...')
 
     // Buscar todos os registros de anos iniciais que têm acertos mas não têm níveis calculados
     let registrosQuery = `
@@ -45,7 +48,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
     const registrosResult = await pool.query(registrosQuery, registrosParams)
 
-    console.log(`[Recalcular Níveis] Encontrados ${registrosResult.rows.length} registros para atualizar`)
+    log.info(`Encontrados ${registrosResult.rows.length} registros para atualizar`)
 
     let atualizados = 0
     let erros = 0
@@ -83,7 +86,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
         atualizados++
       } catch (error: unknown) {
-        console.error(`[Recalcular Níveis] Erro ao atualizar registro ${registro.id}:`, (error as Error).message)
+        log.error(`Erro ao atualizar registro ${registro.id}`, error)
         erros++
       }
     }
@@ -91,12 +94,12 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     // Limpar cache após atualização
     try {
       limparTodosOsCaches()
-      console.log('[Recalcular Níveis] Cache invalidado após recálculo')
+      log.info('Cache invalidado após recálculo')
     } catch (cacheError) {
-      console.error('[Recalcular Níveis] Erro ao invalidar cache (não crítico):', cacheError)
+      log.error('Erro ao invalidar cache (não crítico)', cacheError)
     }
 
-    console.log(`[Recalcular Níveis] Concluído: ${atualizados} atualizados, ${erros} erros`)
+    log.info(`Concluído: ${atualizados} atualizados, ${erros} erros`)
 
     return NextResponse.json({
       mensagem: 'Recálculo de níveis concluído',

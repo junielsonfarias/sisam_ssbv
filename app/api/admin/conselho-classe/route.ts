@@ -4,6 +4,9 @@ import pool from '@/database/connection'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { cacheDelPattern } from '@/lib/cache'
 import { validateRequest, conselhoClassePostSchema } from '@/lib/schemas'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminConselhoClasse')
 
 export const dynamic = 'force-dynamic'
 
@@ -127,7 +130,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       client.release()
     }
   } catch (error: unknown) {
-    console.error('Erro ao salvar conselho de classe:', error)
+    log.error('Erro ao salvar conselho de classe', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

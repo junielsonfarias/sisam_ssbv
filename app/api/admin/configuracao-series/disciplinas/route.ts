@@ -290,9 +290,7 @@ export async function DELETE(request: NextRequest) {
     // Limpar cache após remover disciplina
     limparCacheConfigSeries()
 
-    return NextResponse.json({
-      mensagem: 'Disciplina removida com sucesso'
-    })
+    return new NextResponse(null, { status: 204 })
 
   } catch (error: unknown) {
     console.error('Erro ao remover disciplina:', error)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -8,13 +8,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/debug-aluno?nome=julia
  * Retorna dados de debug para um aluno específico
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const nome = searchParams.get('nome') || 'julia'
 
@@ -78,4 +73,4 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

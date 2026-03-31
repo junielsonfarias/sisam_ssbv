@@ -127,7 +127,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     }
 
     await cacheDelPattern('periodos:*')
-    return NextResponse.json({ mensagem: 'Período excluído com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     log.error('Erro ao excluir período letivo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

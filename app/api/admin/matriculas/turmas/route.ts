@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
@@ -8,16 +8,14 @@ import {
 } from '@/lib/api-helpers'
 import { validateRequest, turmaPostSchema } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminMatriculasTurmas')
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const searchParams = request.nextUrl.searchParams
     const { escola_id, serie } = parseSearchParams(searchParams, ['escola_id', 'serie'])
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
@@ -58,18 +56,13 @@ export async function GET(request: NextRequest) {
       total_alunos: parseInt(r.total_alunos) || 0
     })))
   } catch (error: unknown) {
-    console.error('Erro ao listar turmas:', error)
+    log.error('Erro ao listar turmas', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validationResult = await validateRequest(request, turmaPostSchema)
     if (!validationResult.success) return validationResult.response
     const { codigo, nome, escola_id, serie, ano_letivo } = validationResult.data
@@ -94,7 +87,7 @@ export async function POST(request: NextRequest) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Turma com este código já existe para esta escola e ano letivo' }, { status: 400 })
     }
-    console.error('Erro ao criar turma:', error)
+    log.error('Erro ao criar turma', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

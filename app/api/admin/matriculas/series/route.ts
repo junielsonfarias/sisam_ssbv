@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminMatriculasSeries')
 
 const matriculaSeriePostSchema = z.object({
   serie: z.string().min(1, 'Série é obrigatória').max(50),
@@ -19,13 +22,8 @@ const matriculaSeriePostSchema = z.object({
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const result = await pool.query(
       `SELECT id, serie, nome_serie, ativo,
               avalia_lp, avalia_mat, avalia_ch, avalia_cn,
@@ -37,18 +35,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
-    console.error('Erro ao listar séries:', error)
+    log.error('Erro ao listar séries', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validationResult = await validateRequest(request, matriculaSeriePostSchema)
     if (!validationResult.success) return validationResult.response
     const { serie, nome_serie, avalia_lp, avalia_mat, avalia_ch, avalia_cn, tem_producao_textual } = validationResult.data
@@ -76,7 +69,7 @@ export async function POST(request: NextRequest) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Série já cadastrada' }, { status: 400 })
     }
-    console.error('Erro ao criar série:', error)
+    log.error('Erro ao criar série', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

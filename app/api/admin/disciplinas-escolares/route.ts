@@ -108,7 +108,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     }
 
     await cacheDelPattern('disciplinas:*')
-    return NextResponse.json({ mensagem: 'Disciplina removida com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     console.error('Erro ao excluir disciplina:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

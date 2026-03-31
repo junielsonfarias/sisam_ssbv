@@ -79,7 +79,7 @@ describe('GET /api/publicacoes', () => {
       return Promise.resolve({ rows: [], rowCount: 0 } as any)
     })
 
-    const request = createRequest('http://localhost:3000/api/publicacoes?limit=5')
+    const request = createRequest('http://localhost:3000/api/publicacoes?limite=5')
     const response = await GET(request)
     expect(response.status).toBe(200)
 

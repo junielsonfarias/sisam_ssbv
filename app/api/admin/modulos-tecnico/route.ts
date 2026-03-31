@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { validateRequest, modulosTecnicoUpdateSchema } from '@/lib/schemas'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminModulosTecnico')
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     // Buscar todos os módulos ordenados por ordem
     const result = await pool.query(
       `SELECT id, modulo_key, modulo_label, habilitado, ordem, criado_em, atualizado_em FROM modulos_tecnico ORDER BY ordem ASC, modulo_label ASC`
@@ -23,25 +17,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
-    console.error('Erro ao buscar módulos do técnico:', error)
+    log.error('Erro ao buscar módulos do técnico', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})
 
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado. Apenas administradores podem atualizar módulos.' },
-        { status: 403 }
-      )
-    }
-
     const validation = await validateRequest(request, modulosTecnicoUpdateSchema)
     if (!validation.success) return validation.response
     const { modulos } = validation.data
@@ -55,7 +40,7 @@ export async function PUT(request: NextRequest) {
         if (!modulo.modulo_key) continue
 
         await client.query(
-          `UPDATE modulos_tecnico 
+          `UPDATE modulos_tecnico
            SET habilitado = $1, ordem = $2, modulo_label = $3, atualizado_em = CURRENT_TIMESTAMP
            WHERE modulo_key = $4`,
           [
@@ -82,11 +67,10 @@ export async function PUT(request: NextRequest) {
       client.release()
     }
   } catch (error: unknown) {
-    console.error('Erro ao atualizar módulos do técnico:', error)
+    log.error('Erro ao atualizar módulos do técnico', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
-
+})

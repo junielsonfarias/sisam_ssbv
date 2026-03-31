@@ -4,6 +4,9 @@ import pool from '@/database/connection'
 import { z } from 'zod'
 import { validateRequest, uuidSchema } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('SerieEscolarDisciplinas')
 
 const disciplinaSerieItemSchema = z.object({
   disciplina_id: uuidSchema,
@@ -42,7 +45,7 @@ export async function GET(
 
     return NextResponse.json(result.rows)
   } catch (error) {
-    console.error('Erro ao buscar disciplinas da série:', error)
+    log.error('Erro ao buscar disciplinas da série', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
@@ -116,7 +119,7 @@ export async function POST(
       client.release()
     }
   } catch (error) {
-    console.error('Erro ao salvar disciplinas da série:', error)
+    log.error('Erro ao salvar disciplinas da série', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

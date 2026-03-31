@@ -161,7 +161,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Vínculo não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json({ mensagem: 'Vínculo removido com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     console.error('Erro ao remover vínculo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

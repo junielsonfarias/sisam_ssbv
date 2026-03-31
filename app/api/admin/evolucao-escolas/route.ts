@@ -3,6 +3,9 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('EvolucaoEscolas')
 
 export const dynamic = 'force-dynamic'
 
@@ -111,7 +114,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo'], async (request
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('[evolucao-escolas] Erro:', (error as Error).message)
+    log.error('Erro ao buscar evolução das escolas', error)
     return NextResponse.json({ mensagem: 'Erro ao buscar evolução das escolas' }, { status: 500 })
   }
 })

@@ -181,7 +181,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
       if (delResult.rows[0]) {
         log.info(`Usuário excluído: ${delResult.rows[0].email} (${delResult.rows[0].tipo_usuario}) por ${usuario.email}`)
       }
-      return NextResponse.json({ mensagem: 'Usuário excluído permanentemente' })
+      return new NextResponse(null, { status: 204 })
     } else {
       // Apenas desativar (soft delete)
       await pool.query(
@@ -190,7 +190,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
       )
       log.info(`Usuário desativado: ${id} por ${usuario.email}`)
       invalidateUsuarioCache(id)
-      return NextResponse.json({ mensagem: 'Usuário desativado com sucesso' })
+      return new NextResponse(null, { status: 204 })
     }
   } catch (error: unknown) {
     log.error('Erro ao excluir usuário', error)

@@ -6,6 +6,9 @@ import path from 'path'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminPersonalizacao')
 
 const personalizacaoPutSchema = z.object({
   login_titulo: z.string().max(255).optional().nullable(),
@@ -49,7 +52,7 @@ function ensureDirectoryExists(dirPath: string) {
       fs.mkdirSync(dirPath, { recursive: true })
     }
   } catch (error: unknown) {
-    console.error('Erro ao criar diretorio:', error)
+    log.error('Erro ao criar diretorio', error)
   }
 }
 
@@ -63,7 +66,7 @@ function readLocalConfig() {
       return JSON.parse(content)
     }
   } catch (error: unknown) {
-    console.error('Erro ao ler arquivo de configuracao local:', error)
+    log.error('Erro ao ler arquivo de configuracao local', error)
   }
   return null
 }
@@ -76,7 +79,7 @@ function saveLocalConfig(config: any) {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8')
     return true
   } catch (error: unknown) {
-    console.error('Erro ao salvar arquivo de configuracao local:', error)
+    log.error('Erro ao salvar arquivo de configuracao local', error)
     return false
   }
 }
@@ -90,7 +93,7 @@ function saveImageLocally(base64Data: string): string | null {
     // Extrair o tipo e os dados da string base64
     const matches = base64Data.match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/)
     if (!matches) {
-      console.error('Formato de imagem invalido')
+      log.error('Formato de imagem invalido')
       return null
     }
 
@@ -110,7 +113,7 @@ function saveImageLocally(base64Data: string): string | null {
           try {
             fs.unlinkSync(path.join(UPLOADS_PATH, file))
           } catch (e) {
-            console.error('Erro ao remover logo antiga:', e)
+            log.error('Erro ao remover logo antiga', e)
           }
         }
       })
@@ -124,7 +127,7 @@ function saveImageLocally(base64Data: string): string | null {
     // Retornar URL relativa
     return `/uploads/${filename}`
   } catch (error: unknown) {
-    console.error('Erro ao salvar imagem localmente:', error)
+    log.error('Erro ao salvar imagem localmente', error)
     return null
   }
 }
@@ -176,13 +179,13 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(dbConfig)
       }
     } catch (dbError: any) {
-      console.error('Erro ao consultar personalizacao no banco:', dbError)
+      log.error('Erro ao consultar personalizacao no banco', dbError)
     }
 
     // Retornar valores padrao
     return NextResponse.json(DEFAULTS)
   } catch (error: unknown) {
-    console.error('Erro ao buscar personalizacao:', error)
+    log.error('Erro ao buscar personalizacao', error)
     return NextResponse.json(DEFAULTS)
   }
 }
@@ -288,7 +291,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
         )
       }
     } catch (dbError: any) {
-      console.error('Erro ao salvar no banco de dados:', dbError)
+      log.error('Erro ao salvar no banco de dados', dbError)
       // Em producao, falhar se o banco der erro
       if (IS_PRODUCTION) {
         return NextResponse.json(

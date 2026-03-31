@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DashboardGestor')
 
 export const dynamic = 'force-dynamic'
 
@@ -279,7 +282,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       try {
         return await pool.query(sql, params)
       } catch (err: unknown) {
-        console.error('[Dashboard Gestor] Query falhou:', (err as Error)?.message)
+        log.error('Query falhou', err)
         return { rows: [] }
       }
     }

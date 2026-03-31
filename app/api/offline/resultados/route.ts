@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
 
     // Parâmetros de paginação
     const searchParams = request.nextUrl.searchParams
-    const page = parseInt(searchParams.get('page') || '1', 10)
-    const limit = Math.min(parseInt(searchParams.get('limit') || String(DEFAULT_LIMIT), 10), MAX_LIMIT)
+    const page = parseInt(searchParams.get('pagina') || '1', 10)
+    const limit = Math.min(parseInt(searchParams.get('limite') || String(DEFAULT_LIMIT), 10), MAX_LIMIT)
     const offset = (page - 1) * limit
     const syncAll = searchParams.get('sync_all') === 'true'
 

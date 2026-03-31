@@ -3,6 +3,9 @@ import pool from '@/database/connection'
 import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('SiteConfig')
 
 export const dynamic = 'force-dynamic'
 
@@ -121,7 +124,7 @@ export async function GET(request: NextRequest) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json({ secoes: [], stats: null, escolas: [] })
     }
-    console.error('Erro ao buscar configuracao do site:', (error as Error)?.message || error)
+    log.error('Erro ao buscar configuracao do site', error)
     return NextResponse.json({ secoes: [], stats: null, escolas: [] })
   }
 }

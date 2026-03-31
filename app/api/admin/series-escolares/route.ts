@@ -6,6 +6,9 @@ import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildConditionsString } from '@/lib/api-helpers'
 import { validateRequest, serieEscolarPostSchema } from '@/lib/schemas'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminSeriesEscolares')
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -34,7 +37,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Erro ao buscar séries escolares:', error)
+    log.error('Erro ao buscar séries escolares', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -60,7 +63,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    console.error('Erro ao criar série escolar:', error)
+    log.error('Erro ao criar série escolar', error)
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Já existe uma série com este código' }, { status: 409 })
     }
@@ -115,7 +118,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     return NextResponse.json(result.rows[0])
   } catch (error) {
-    console.error('Erro ao atualizar série escolar:', error)
+    log.error('Erro ao atualizar série escolar', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -140,9 +143,9 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     try { await cacheDelPattern('series-escolares:*') } catch {}
 
-    return NextResponse.json({ mensagem: 'Série desativada com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error) {
-    console.error('Erro ao desativar série escolar:', error)
+    log.error('Erro ao desativar série escolar', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

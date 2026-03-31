@@ -4,6 +4,9 @@ import pool from '@/database/connection'
 import { cacheDelPattern } from '@/lib/cache'
 import { z } from 'zod'
 import { uuidSchema, anoLetivoSchema } from '@/lib/schemas'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminMetasEscola')
 
 const metaEscolaSchema = z.object({
   escola_id: uuidSchema,
@@ -114,7 +117,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request: NextRe
       ano_letivo,
     })
   } catch (error) {
-    console.error('[metas-escola GET] Erro:', (error as Error).message)
+    log.error('Erro ao buscar metas', error)
     return NextResponse.json({ mensagem: 'Erro ao buscar metas' }, { status: 500 })
   }
 })
@@ -146,7 +149,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
 
     return NextResponse.json({ mensagem: 'Meta salva com sucesso', meta: result.rows[0] })
   } catch (error) {
-    console.error('[metas-escola POST] Erro:', (error as Error).message)
+    log.error('Erro ao salvar meta', error)
     return NextResponse.json({ mensagem: 'Erro ao salvar meta' }, { status: 500 })
   }
 })

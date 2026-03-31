@@ -162,7 +162,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     }
 
     await cacheDelPattern('avaliacoes:*')
-    return NextResponse.json({ mensagem: 'Avaliação desativada com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     console.error('Erro ao desativar avaliação:', getErrorMessage(error))
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

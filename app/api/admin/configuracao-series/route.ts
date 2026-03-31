@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { limparCacheConfigSeries } from '@/lib/config-series'
 import {
@@ -8,6 +8,9 @@ import {
 import { validateRequest, configuracaoSeriePostSchema } from '@/lib/schemas'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminConfiguracaoSeries')
 
 export const dynamic = 'force-dynamic'
 
@@ -15,17 +18,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/configuracao-series
  * Retorna a configuração de todas as séries ou de uma série específica
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 401 }
-      )
-    }
-
     const searchParams = request.nextUrl.searchParams
     const { serie, ano_letivo } = parseSearchParams(searchParams, ['serie', 'ano_letivo'])
 
@@ -81,29 +75,20 @@ export async function GET(request: NextRequest) {
       total: data.length
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar configuração de séries:', error)
+    log.error('Erro ao buscar configuração de séries', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * PUT /api/admin/configuracao-series
  * Atualiza a configuração de uma série (apenas admin)
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const body = await request.json()
     const {
       id,
@@ -200,29 +185,20 @@ export async function PUT(request: NextRequest) {
       serie: result.rows[0]
     })
   } catch (error: unknown) {
-    console.error('Erro ao atualizar configuração de série:', error)
+    log.error('Erro ao atualizar configuração de série', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * DELETE /api/admin/configuracao-series
  * Exclui uma configuração de série (apenas admin)
  */
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     const serie = searchParams.get('serie')
@@ -300,29 +276,20 @@ export async function DELETE(request: NextRequest) {
       serie: result.rows[0]
     })
   } catch (error: unknown) {
-    console.error('Erro ao excluir configuração de série:', error)
+    log.error('Erro ao excluir configuração de série', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * POST /api/admin/configuracao-series
  * Cria uma nova configuração de série (apenas admin)
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const validacao = await validateRequest(request, configuracaoSeriePostSchema)
     if (!validacao.success) return validacao.response
 
@@ -390,10 +357,10 @@ export async function POST(request: NextRequest) {
       serie: result.rows[0]
     }, { status: 201 })
   } catch (error: unknown) {
-    console.error('Erro ao criar configuração de série:', error)
+    log.error('Erro ao criar configuração de série', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})

@@ -128,9 +128,7 @@ export async function DELETE(request: NextRequest) {
 
     await revogarConsentimento(alunoId)
 
-    return NextResponse.json({
-      mensagem: 'Consentimento revogado e dados faciais removidos',
-    })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     console.error('Erro ao revogar consentimento:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

@@ -15,8 +15,8 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
   const entidade = searchParams.get('entidade')
   const dataInicio = searchParams.get('data_inicio')
   const dataFim = searchParams.get('data_fim')
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
+  const page = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') || '50', 10)))
   const offset = (page - 1) * limit
 
   const conditions: string[] = []

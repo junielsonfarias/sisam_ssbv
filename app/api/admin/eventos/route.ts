@@ -115,5 +115,5 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request) => 
   await pool.query('UPDATE eventos SET ativo = false, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1', [id])
 
   await cacheDelPattern('eventos:*')
-  return NextResponse.json({ sucesso: true })
+  return new NextResponse(null, { status: 204 })
 })

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import { validateRequest } from '@/lib/schemas'
 import { dispositivoFacialSchema } from '@/lib/schemas'
 import { generateApiKey } from '@/lib/device-auth'
 import pool from '@/database/connection'
 import { buscarDispositivos } from '@/lib/services/facial.service'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminDispositivosFaciais')
 
 export const dynamic = 'force-dynamic'
 
@@ -13,13 +16,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/dispositivos-faciais
  * Lista dispositivos de reconhecimento facial
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const escolaId = request.nextUrl.searchParams.get('escola_id')
 
     const dispositivos = await buscarDispositivos({
@@ -29,22 +27,17 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ dispositivos })
   } catch (error: unknown) {
-    console.error('Erro ao listar dispositivos:', error)
+    log.error('Erro ao listar dispositivos', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * POST /api/admin/dispositivos-faciais
  * Registra um novo dispositivo. Retorna a API key em texto UMA VEZ.
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, dispositivoFacialSchema)
     if (!validacao.success) return validacao.response
 
@@ -78,7 +71,7 @@ export async function POST(request: NextRequest) {
       try { await cacheDelPattern('dispositivos:*') } catch {}
 
       // API key é retornada apenas na criação — mascarar parcialmente no log
-      console.log(`Dispositivo facial criado: ${result.rows[0].id}, key prefix: ${apiKeyPrefix}`)
+      log.info(`Dispositivo facial criado: ${result.rows[0].id}, key prefix: ${apiKeyPrefix}`)
       return NextResponse.json({
         mensagem: 'Dispositivo registrado com sucesso',
         dispositivo: result.rows[0],
@@ -91,7 +84,7 @@ export async function POST(request: NextRequest) {
       })
     } catch (error: unknown) {
       await client.query('ROLLBACK')
-      console.error('Erro ao registrar dispositivo:', error)
+      log.error('Erro ao registrar dispositivo', error)
       return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
     } finally {
       client.release()
@@ -100,4 +93,4 @@ export async function POST(request: NextRequest) {
     console.error('Erro ao registrar dispositivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

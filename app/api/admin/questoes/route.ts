@@ -5,6 +5,9 @@ import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { validateRequest, questaoPostSchema, questaoPutSchema } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminQuestoes')
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +56,7 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
         { status: 400 }
       )
     }
-    console.error('Erro ao criar questão:', error)
+    log.error('Erro ao criar questão', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -97,7 +100,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    console.error('Erro ao atualizar questão:', error)
+    log.error('Erro ao atualizar questão', error)
 
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json(
@@ -146,9 +149,9 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     try { await cacheDelPattern('questoes:*') } catch {}
 
-    return NextResponse.json({ mensagem: 'Questão excluída com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
-    console.error('Erro ao excluir questão:', error)
+    log.error('Erro ao excluir questão', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

@@ -3,6 +3,9 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('EscolaRegrasAvaliacao')
 
 export const dynamic = 'force-dynamic'
 
@@ -74,7 +77,7 @@ export async function GET(
 
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
-    console.error('Erro ao buscar regras da escola:', error)
+    log.error('Erro ao buscar regras da escola', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
@@ -140,7 +143,7 @@ export async function POST(
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    console.error('Erro ao salvar regra da escola:', error)
+    log.error('Erro ao salvar regra da escola', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
@@ -179,9 +182,9 @@ export async function DELETE(
     try { await cacheDelPattern('escolas:*') } catch {}
     try { await cacheDelPattern('regras-avaliacao:*') } catch {}
 
-    return NextResponse.json({ mensagem: 'Override removido, usando regra padrão' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
-    console.error('Erro ao remover regra da escola:', error)
+    log.error('Erro ao remover regra da escola', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

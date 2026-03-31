@@ -137,7 +137,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     try { await cacheDelPattern('polos:*') } catch {}
 
-    return NextResponse.json({ mensagem: 'Polo excluído com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     log.error('Erro ao excluir polo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

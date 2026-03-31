@@ -135,7 +135,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     }
 
     await cacheDelPattern('turmas:*')
-    return NextResponse.json({ mensagem: 'Turma excluída com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     log.error('Erro ao excluir turma', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

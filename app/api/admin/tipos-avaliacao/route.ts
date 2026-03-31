@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseBoolParam, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 import { validateRequest, tipoAvaliacaoPostSchema } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminTiposAvaliacao')
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -14,13 +17,8 @@ export const revalidate = 0
  * GET /api/admin/tipos-avaliacao
  * Lista todos os tipos de avaliacao ativos.
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const searchParams = request.nextUrl.searchParams
     const todos = parseBoolParam(searchParams, 'todos', false)
 
@@ -38,22 +36,17 @@ export async function GET(request: NextRequest) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json([])
     }
-    console.error('Erro ao listar tipos de avaliacao:', error)
+    log.error('Erro ao listar tipos de avaliacao', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * POST /api/admin/tipos-avaliacao
  * Cria um novo tipo de avaliacao. Apenas admin.
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado - apenas administradores' }, { status: 403 })
-    }
-
     const validation = await validateRequest(request, tipoAvaliacaoPostSchema)
     if (!validation.success) return validation.response
     const { codigo, nome, descricao, tipo_resultado, escala_conceitos, nota_minima, nota_maxima, permite_decimal } = validation.data
@@ -73,25 +66,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    console.error('Erro ao criar tipo de avaliacao:', error)
+    log.error('Erro ao criar tipo de avaliacao', error)
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Ja existe um tipo com este codigo' }, { status: 409 })
     }
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * PUT /api/admin/tipos-avaliacao
  * Atualiza um tipo de avaliacao. Apenas admin.
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado - apenas administradores' }, { status: 403 })
-    }
-
     const body = await request.json()
     const { id, ...campos } = body
 
@@ -150,10 +138,10 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    console.error('Erro ao atualizar tipo de avaliacao:', error)
+    log.error('Erro ao atualizar tipo de avaliacao', error)
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Ja existe um tipo com este codigo' }, { status: 409 })
     }
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

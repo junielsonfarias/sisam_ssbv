@@ -155,9 +155,7 @@ export async function DELETE(request: NextRequest) {
     // Deletar embedding
     await pool.query('DELETE FROM embeddings_faciais WHERE aluno_id = $1', [alunoId])
 
-    return NextResponse.json({
-      mensagem: 'Dados faciais removidos com sucesso',
-    })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     console.error('Erro ao remover dados faciais:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

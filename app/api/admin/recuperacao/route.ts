@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminRecuperacao')
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +47,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
         mediaAprovacao = configResult.rows[0].media_aprovacao
       }
     } catch (err) {
-      console.warn('[Recuperacao] Falha ao carregar config, usando padrão:', (err as Error).message)
+      log.warn('Falha ao carregar config, usando padrão: ' + (err as Error).message)
     }
 
     // Query principal: alunos com nota_final abaixo da média

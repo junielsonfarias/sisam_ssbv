@@ -129,7 +129,7 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (re
     try { await cacheDelPattern('frequencia:*') } catch {}
     try { await cacheDelPattern('boletim:*') } catch {}
 
-    return NextResponse.json({ mensagem: 'Registro excluído com sucesso' })
+    return new NextResponse(null, { status: 204 })
 })
 
 /**

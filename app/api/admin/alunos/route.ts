@@ -255,7 +255,7 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (re
 
     const { nome } = await deletarAluno(id)
     log.info(`Aluno excluído: ${nome} (${id}) por ${usuario.email} (${usuario.tipo_usuario})`)
-    return NextResponse.json({ mensagem: 'Aluno excluído com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     log.error('Erro ao excluir aluno', error)
     return NextResponse.json(

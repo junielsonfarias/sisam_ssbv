@@ -8,6 +8,9 @@ import {
 } from '@/lib/api-helpers'
 import { validateRequest, regraAvaliacaoPostSchema } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminRegrasAvaliacao')
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -45,7 +48,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json([])
     }
-    console.error('Erro ao listar regras de avaliacao:', error)
+    log.error('Erro ao listar regras de avaliacao', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -90,7 +93,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
-    console.error('Erro ao criar regra de avaliacao:', error)
+    log.error('Erro ao criar regra de avaliacao', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -165,7 +168,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     return NextResponse.json(result.rows[0])
   } catch (error) {
-    console.error('Erro ao atualizar regra de avaliacao:', error)
+    log.error('Erro ao atualizar regra de avaliacao', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -206,9 +209,9 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     try { await cacheDelPattern('regras-avaliacao:*') } catch {}
 
-    return NextResponse.json({ mensagem: 'Regra desativada com sucesso' })
+    return new NextResponse(null, { status: 204 })
   } catch (error) {
-    console.error('Erro ao desativar regra de avaliacao:', error)
+    log.error('Erro ao desativar regra de avaliacao', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

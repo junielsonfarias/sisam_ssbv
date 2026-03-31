@@ -70,5 +70,5 @@ export const DELETE = withAuth('professor', async (request, usuario) => {
   }
 
   await excluirFrequenciaDiaria(frequencia_id)
-  return NextResponse.json({ mensagem: 'Registro excluído com sucesso' })
+  return new NextResponse(null, { status: 204 })
 })

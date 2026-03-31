@@ -3,6 +3,9 @@ import pool from '@/database/connection'
 import { hashPassword, getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import crypto from 'crypto'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('CriarAdmin')
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
         : 'Nenhum administrador encontrado. Use POST para criar.'
     })
   } catch (error: unknown) {
-    console.error('Erro ao verificar usuario:', error)
+    log.error('Erro ao verificar usuario', error)
     return NextResponse.json({
       erro: true,
       mensagem: 'Erro ao verificar usuario',
@@ -116,7 +119,7 @@ export async function POST(request: NextRequest) {
       aviso: 'Por seguranca, a senha temporaria NAO e exibida.'
     })
   } catch (error: unknown) {
-    console.error('Erro ao criar usuario:', error)
+    log.error('Erro ao criar usuario', error)
     return NextResponse.json({
       erro: true,
       mensagem: 'Erro ao criar usuario',

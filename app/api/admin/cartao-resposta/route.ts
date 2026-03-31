@@ -3,6 +3,9 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { cacheDelPattern } from '@/lib/cache'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminCartaoResposta')
 
 export const dynamic = 'force-dynamic'
 
@@ -135,7 +138,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
       atualizados,
     })
   } catch (error: any) {
-    console.error('[CARTAO-RESPOSTA POST]', error.message)
+    log.error('Erro ao salvar respostas', error)
     return NextResponse.json({ mensagem: 'Erro ao salvar respostas.' }, { status: 500 })
   }
 })

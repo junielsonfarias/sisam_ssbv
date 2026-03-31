@@ -33,8 +33,8 @@ export const GET = withAuth(['administrador', 'tecnico', 'publicador'], async (r
   const tipo = searchParams.get('tipo')
   const orgao = searchParams.get('orgao')
   const ano = searchParams.get('ano')
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+  const page = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') || '20', 10)))
   const offset = (page - 1) * limit
 
   const conditions: string[] = []
@@ -202,5 +202,5 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'publicador'], async
 
   await cacheDelPattern('publicacoes:*')
 
-  return NextResponse.json({ mensagem: 'Publicação excluída com sucesso' })
+  return new NextResponse(null, { status: 204 })
 })

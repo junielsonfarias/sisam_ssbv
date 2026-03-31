@@ -145,5 +145,5 @@ export const DELETE = withAuth('professor', async (request, usuario) => {
     return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
   }
 
-  return NextResponse.json({ mensagem: 'Registro removido com sucesso' })
+  return new NextResponse(null, { status: 204 })
 })

@@ -95,5 +95,5 @@ export const DELETE = withAuth('professor', async (request, usuario) => {
   }
 
   await cacheDelPattern('comunicados:*')
-  return NextResponse.json({ mensagem: 'Comunicado removido com sucesso' })
+  return new NextResponse(null, { status: 204 })
 })

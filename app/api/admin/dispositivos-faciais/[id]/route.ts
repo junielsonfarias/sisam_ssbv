@@ -5,6 +5,9 @@ import { z } from 'zod'
 import { validateRequest, statusDispositivoSchema } from '@/lib/schemas'
 import { buscarDispositivoDetalhado, excluirDispositivo } from '@/lib/services/facial.service'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminDispositivoFacialDetalhe')
 
 const dispositivoPutSchema = z.object({
   nome: z.string().min(1).max(255).optional(),
@@ -38,7 +41,7 @@ export async function GET(
 
     return NextResponse.json(result)
   } catch (error: unknown) {
-    console.error('Erro ao buscar dispositivo:', error)
+    log.error('Erro ao buscar dispositivo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
@@ -105,7 +108,7 @@ export async function PUT(
       dispositivo: result.rows[0],
     })
   } catch (error: unknown) {
-    console.error('Erro ao atualizar dispositivo:', error)
+    log.error('Erro ao atualizar dispositivo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
@@ -159,7 +162,7 @@ export async function DELETE(
 
       try { await cacheDelPattern('dispositivos:*') } catch {}
 
-      return NextResponse.json({ mensagem: 'Dispositivo excluído permanentemente' })
+      return new NextResponse(null, { status: 204 })
     }
 
     // Soft-delete: bloquear
@@ -181,7 +184,7 @@ export async function DELETE(
       dispositivo: result.rows[0],
     })
   } catch (error: unknown) {
-    console.error('Erro ao processar dispositivo:', error)
+    log.error('Erro ao processar dispositivo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

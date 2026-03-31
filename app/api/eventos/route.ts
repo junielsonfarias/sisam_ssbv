@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Eventos')
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Erro ao buscar eventos:', error)
+    log.error('Erro ao buscar eventos', error)
     return NextResponse.json({ mensagem: 'Erro ao buscar eventos' }, { status: 500 })
   }
 }

@@ -6,6 +6,9 @@ import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest, anoLetivoSchema, statusAnoLetivoSchema } from '@/lib/schemas'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminAnosLetivos')
 
 // --- Schemas de validação ---
 
@@ -152,7 +155,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Ano letivo já existe' }, { status: 409 })
     }
-    console.error('Erro ao criar ano letivo:', error)
+    log.error('Erro ao criar ano letivo', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
 })
@@ -274,7 +277,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
       client.release()
     }
   } catch (error: unknown) {
-    console.error('Erro ao atualizar ano letivo:', error)
+    log.error('Erro ao atualizar ano letivo', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
 })

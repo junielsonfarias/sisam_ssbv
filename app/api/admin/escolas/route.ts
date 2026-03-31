@@ -270,7 +270,7 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request, usu
     await cacheDelPattern('transparencia:*')
     await cacheDelPattern('site-config:*')
 
-    return NextResponse.json({ mensagem: 'Escola excluída com sucesso' }, { status: 200 })
+    return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
     log.error('Erro ao excluir escola', error)
     return NextResponse.json(

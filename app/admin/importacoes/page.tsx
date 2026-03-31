@@ -57,8 +57,8 @@ export default function ImportacoesPage() {
       const params = new URLSearchParams()
       if (filtros.ano_letivo) params.append('ano_letivo', filtros.ano_letivo)
       if (filtros.status) params.append('status', filtros.status)
-      params.append('page', paginacao.pagina.toString())
-      params.append('limit', paginacao.limite.toString())
+      params.append('pagina', paginacao.pagina.toString())
+      params.append('limite', paginacao.limite.toString())
 
       const response = await fetch(`/api/admin/importacoes?${params.toString()}`)
       const data = await response.json()

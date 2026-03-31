@@ -13,7 +13,7 @@ const updateSchema = z.object({
 })
 
 /**
- * GET /api/admin/ouvidoria?tipo=X&status=Y&page=1&limit=20
+ * GET /api/admin/ouvidoria?tipo=X&status=Y&pagina=1&limite=20
  */
 export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   const { searchParams } = new URL(request.url)
@@ -21,8 +21,8 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
   const status = searchParams.get('status')
   const dataInicio = searchParams.get('data_inicio')
   const dataFim = searchParams.get('data_fim')
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+  const page = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') || '20', 10)))
   const offset = (page - 1) * limit
 
   const conditions: string[] = []
