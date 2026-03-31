@@ -6,6 +6,7 @@ import {
   createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
 } from '@/lib/api-helpers'
 import { validateRequest, frequenciaDiariaDeleteSchema, frequenciaDiariaPatchSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -141,6 +142,9 @@ export async function DELETE(request: NextRequest) {
       client.release()
     }
 
+    try { await cacheDelPattern('frequencia:*') } catch {}
+    try { await cacheDelPattern('boletim:*') } catch {}
+
     return NextResponse.json({ mensagem: 'Registro excluído com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao excluir frequência:', error)
@@ -178,6 +182,8 @@ export async function PATCH(request: NextRequest) {
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
     }
+
+    try { await cacheDelPattern('frequencia:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Justificativa salva com sucesso' })
   } catch (error: unknown) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { PG_ERRORS } from '@/lib/constants'
+import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { disciplinaEscolarSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
@@ -19,7 +19,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   const apenasAtivas = searchParams.get('ativas') !== 'false'
 
   const redisKey = cacheKey('disciplinas', apenasAtivas ? 'ativas' : 'todas')
-  const data = await withRedisCache(redisKey, 600, async () => {
+  const data = await withRedisCache(redisKey, CACHE_TTL.REFERENCIA, async () => {
     const where = createWhereBuilder()
     if (apenasAtivas) {
       addCondition(where, 'ativo', true)
@@ -98,21 +98,8 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     if (!validacaoId.success) return validacaoId.response
     const id = validacaoId.data
 
-    // Verificar se há notas lançadas para esta disciplina
-    const notasVinculadas = await pool.query(
-      'SELECT COUNT(*) as total FROM notas_escolares WHERE disciplina_id = $1',
-      [id]
-    )
-
-    if (parseInt(notasVinculadas.rows[0].total) > 0) {
-      return NextResponse.json(
-        { mensagem: 'Não é possível excluir: existem notas lançadas para esta disciplina. Desative-a em vez de excluir.' },
-        { status: 400 }
-      )
-    }
-
     const result = await pool.query(
-      'DELETE FROM disciplinas_escolares WHERE id = $1 RETURNING id',
+      'UPDATE disciplinas_escolares SET ativo = false, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id',
       [id]
     )
 
@@ -121,7 +108,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     }
 
     await cacheDelPattern('disciplinas:*')
-    return NextResponse.json({ mensagem: 'Disciplina excluída com sucesso' })
+    return NextResponse.json({ mensagem: 'Disciplina removida com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao excluir disciplina:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

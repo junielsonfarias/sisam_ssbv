@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import { z } from 'zod'
 import { validateRequest, statusDispositivoSchema } from '@/lib/schemas'
 import { buscarDispositivoDetalhado, excluirDispositivo } from '@/lib/services/facial.service'
+import { cacheDelPattern } from '@/lib/cache'
 
 const dispositivoPutSchema = z.object({
   nome: z.string().min(1).max(255).optional(),
@@ -97,6 +98,8 @@ export async function PUT(
       return NextResponse.json({ mensagem: 'Dispositivo não encontrado' }, { status: 404 })
     }
 
+    try { await cacheDelPattern('dispositivos:*') } catch {}
+
     return NextResponse.json({
       mensagem: 'Dispositivo atualizado',
       dispositivo: result.rows[0],
@@ -154,6 +157,8 @@ export async function DELETE(
 
       await excluirDispositivo(id)
 
+      try { await cacheDelPattern('dispositivos:*') } catch {}
+
       return NextResponse.json({ mensagem: 'Dispositivo excluído permanentemente' })
     }
 
@@ -168,6 +173,8 @@ export async function DELETE(
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Dispositivo não encontrado' }, { status: 404 })
     }
+
+    try { await cacheDelPattern('dispositivos:*') } catch {}
 
     return NextResponse.json({
       mensagem: 'Dispositivo bloqueado',

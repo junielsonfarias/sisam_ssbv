@@ -4,6 +4,7 @@ import { validateRequest } from '@/lib/schemas'
 import { horarioAulaSchema } from '@/lib/schemas'
 import { isAnosFinais, extrairNumeroSerie } from '@/lib/disciplinas-mapping'
 import pool from '@/database/connection'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,6 +99,8 @@ export async function POST(request: NextRequest) {
       }
 
       await client.query('COMMIT')
+
+      try { await cacheDelPattern('horarios:*') } catch {}
 
       return NextResponse.json({
         mensagem: `Grade horária salva: ${salvos} aula(s)`,

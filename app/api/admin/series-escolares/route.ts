@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { PG_ERRORS } from '@/lib/constants'
+import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildConditionsString } from '@/lib/api-helpers'
 import { validateRequest, serieEscolarPostSchema } from '@/lib/schemas'
-import { withRedisCache, cacheKey } from '@/lib/cache'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -16,7 +16,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     const { etapa } = parseSearchParams(searchParams, ['etapa'])
 
     const redisKey = cacheKey('series-escolares', etapa || 'all')
-    const data = await withRedisCache(redisKey, 600, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.REFERENCIA, async () => {
       const where = createWhereBuilder()
       addCondition(where, 'se.etapa', etapa)
 
@@ -55,6 +55,8 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
        RETURNING *`,
       [codigo, nome, etapa, ordem, media_aprovacao ?? 6.0, media_recuperacao ?? 5.0, nota_maxima ?? 10.0, max_dependencias ?? 0, formula_nota_final ?? 'media_aritmetica', permite_recuperacao ?? true, idade_minima ?? null, idade_maxima ?? null]
     )
+
+    try { await cacheDelPattern('series-escolares:*') } catch {}
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
@@ -109,6 +111,8 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
       return NextResponse.json({ mensagem: 'Série não encontrada' }, { status: 404 })
     }
 
+    try { await cacheDelPattern('series-escolares:*') } catch {}
+
     return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error('Erro ao atualizar série escolar:', error)
@@ -133,6 +137,8 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Série não encontrada' }, { status: 404 })
     }
+
+    try { await cacheDelPattern('series-escolares:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Série desativada com sucesso' })
   } catch (error) {

@@ -5,6 +5,7 @@ import { dispositivoFacialSchema } from '@/lib/schemas'
 import { generateApiKey } from '@/lib/device-auth'
 import pool from '@/database/connection'
 import { buscarDispositivos } from '@/lib/services/facial.service'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +69,8 @@ export async function POST(request: NextRequest) {
        RETURNING id, nome, localizacao, status, criado_em`,
       [nome, escola_id, localizacao || null, apiKeyHash, apiKeyPrefix]
     )
+
+    try { await cacheDelPattern('dispositivos:*') } catch {}
 
     // API key é retornada apenas na criação — mascarar parcialmente no log
     console.log(`Dispositivo facial criado: ${result.rows[0].id}, key prefix: ${apiKeyPrefix}`)

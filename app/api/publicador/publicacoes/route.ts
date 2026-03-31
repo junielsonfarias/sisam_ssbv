@@ -147,7 +147,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'publicador'], async (r
   )
 
   if (updateResult.rows.length === 0) {
-    return NextResponse.json({ erro: 'Publicação não encontrada' }, { status: 404 })
+    return NextResponse.json({ mensagem: 'Publicação não encontrada' }, { status: 404 })
   }
 
   console.log(`[AUDIT] Publicação atualizada por ${usuario.email}: "${data.titulo}" (${data.id})`)
@@ -176,7 +176,7 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'publicador'], async
   const id = searchParams.get('id')
 
   if (!id) {
-    return NextResponse.json({ erro: 'ID é obrigatório' }, { status: 400 })
+    return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
   }
 
   const deleteResult = await pool.query(
@@ -185,7 +185,7 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'publicador'], async
   )
 
   if (deleteResult.rows.length === 0) {
-    return NextResponse.json({ erro: 'Publicação não encontrada' }, { status: 404 })
+    return NextResponse.json({ mensagem: 'Publicação não encontrada' }, { status: 404 })
   }
 
   console.log(`[AUDIT] Publicação excluída por ${usuario.email}: "${deleteResult.rows[0].titulo}" (${id})`)

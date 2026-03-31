@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +16,8 @@ export async function GET(request: NextRequest) {
     const ano = searchParams.get('ano') || String(new Date().getFullYear())
 
     const redisKey = cacheKey('eventos', mes || 'all', ano)
-    const data = await withRedisCache(redisKey, 120, async () => {
-      const conditions: string[] = ['publico = true']
+    const data = await withRedisCache(redisKey, CACHE_TTL.PUBLICO, async () => {
+      const conditions: string[] = ['publico = true', 'ativo = true']
       const params: string[] = []
       let paramIndex = 1
 
@@ -45,6 +46,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data)
   } catch (error) {
     console.error('Erro ao buscar eventos:', error)
-    return NextResponse.json({ error: 'Erro ao buscar eventos' }, { status: 500 })
+    return NextResponse.json({ mensagem: 'Erro ao buscar eventos' }, { status: 500 })
   }
 }

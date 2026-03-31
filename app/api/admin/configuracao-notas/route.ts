@@ -8,6 +8,7 @@ import { DatabaseError } from '@/lib/validation'
 import {
   parseSearchParams, createWhereBuilder, addCondition, addAccessControl, buildWhereString,
 } from '@/lib/api-helpers'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
     addAccessControl(where, usuario, { escolaIdField: 'c.escola_id', poloIdField: 'e.polo_id' })
     addCondition(where, 'c.escola_id', escola_id)
     addCondition(where, 'c.ano_letivo', ano_letivo)
+    addCondition(where, 'c.ativo', true)
 
     const whereClause = buildWhereString(where)
 
@@ -84,6 +86,8 @@ export async function POST(request: NextRequest) {
     )
 
     console.log(`[AUDIT] Config notas criada | escola:${escola_id} ano:${ano_letivo} | por ${usuario.email}`)
+    try { await cacheDelPattern('config:*') } catch {}
+    try { await cacheDelPattern('boletim:*') } catch {}
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -132,6 +136,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Configuração não encontrada' }, { status: 404 })
     }
 
+    try { await cacheDelPattern('config:*') } catch {}
+    try { await cacheDelPattern('boletim:*') } catch {}
+
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
@@ -157,31 +164,19 @@ export async function DELETE(request: NextRequest) {
     if (!validacaoId.success) return validacaoId.response
     const id = validacaoId.data
 
-    // Verificar se há notas lançadas com esta configuração
-    const configResult = await pool.query(
-      'SELECT escola_id, ano_letivo FROM configuracao_notas_escola WHERE id = $1',
+    const result = await pool.query(
+      'UPDATE configuracao_notas_escola SET ativo = false, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id',
       [id]
     )
 
-    if (configResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Configuração não encontrada' }, { status: 404 })
     }
 
-    const { escola_id, ano_letivo } = configResult.rows[0]
-    const notasVinculadas = await pool.query(
-      'SELECT COUNT(*) as total FROM notas_escolares WHERE escola_id = $1 AND ano_letivo = $2',
-      [escola_id, ano_letivo]
-    )
+    try { await cacheDelPattern('config:*') } catch {}
+    try { await cacheDelPattern('boletim:*') } catch {}
 
-    if (parseInt(notasVinculadas.rows[0].total) > 0) {
-      return NextResponse.json(
-        { mensagem: 'Não é possível excluir: existem notas lançadas para esta escola/ano' },
-        { status: 400 }
-      )
-    }
-
-    await pool.query('DELETE FROM configuracao_notas_escola WHERE id = $1', [id])
-    return NextResponse.json({ mensagem: 'Configuração excluída com sucesso' })
+    return NextResponse.json({ mensagem: 'Configuração removida com sucesso' })
   } catch (error: unknown) {
     console.error('Erro ao excluir configuração de notas:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     const redisKey = cacheKey('series-part', anoLetivo || 'all')
-    const data = await withRedisCache(redisKey, 300, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.CONFIGURACAO, async () => {
       let query = `
         SELECT sp.id, sp.ano_letivo, sp.serie, sp.ativo,
                se.nome as serie_nome, se.etapa

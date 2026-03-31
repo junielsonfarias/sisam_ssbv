@@ -7,6 +7,7 @@ import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
 } from '@/lib/api-helpers'
 import { validateRequest, turmaPostSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,9 @@ export async function POST(request: NextRequest) {
        RETURNING *`,
       [codigo, nome || null, escola_id, serie || null, ano_letivo]
     )
+
+    try { await cacheDelPattern('turmas:*') } catch {}
+    try { await cacheDelPattern('dashboard:*') } catch {}
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {

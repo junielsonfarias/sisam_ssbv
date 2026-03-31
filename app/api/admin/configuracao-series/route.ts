@@ -7,6 +7,7 @@ import {
 } from '@/lib/api-helpers'
 import { validateRequest, configuracaoSeriePostSchema } from '@/lib/schemas'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     }
 
     const redisKey = cacheKey('config-series', serie || 'all', ano_letivo || 'all')
-    const data = await withRedisCache(redisKey, 300, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.CONFIGURACAO, async () => {
       const result = await pool.query(
         `SELECT
           cs.id, cs.serie, cs.nome_serie, cs.tipo_ensino,

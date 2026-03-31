@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     const anoLetivo = searchParams.get('ano_letivo') || String(new Date().getFullYear())
 
     const redisKey = cacheKey('executivo', anoLetivo)
-    const data = await withRedisCache(redisKey, 60, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.DASHBOARD, async () => {
       const [
         totalAlunosResult,
         totalEscolasResult,

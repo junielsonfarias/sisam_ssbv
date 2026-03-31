@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request: NextRe
     }
 
     const redisKey = cacheKey('conselhos', conselho, ano_letivo)
-    const data = await withRedisCache(redisKey, 300, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.CONSELHOS, async () => {
     // Dados base: escolas com contagens
     const escolasBase = await pool.query(
       `SELECT

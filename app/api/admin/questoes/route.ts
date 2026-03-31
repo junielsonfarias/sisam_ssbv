@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { validateRequest, questaoPostSchema, questaoPutSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,8 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
         tipo_questao || 'objetiva',
       ]
     )
+
+    try { await cacheDelPattern('questoes:*') } catch {}
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
@@ -90,6 +93,8 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
       )
     }
 
+    try { await cacheDelPattern('questoes:*') } catch {}
+
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     console.error('Erro ao atualizar questão:', error)
@@ -138,6 +143,8 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
         { status: 404 }
       )
     }
+
+    try { await cacheDelPattern('questoes:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Questão excluída com sucesso' })
   } catch (error: unknown) {

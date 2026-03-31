@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
+import { cacheDelPattern } from '@/lib/cache'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -123,6 +124,8 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     RETURNING *
   `, [aluno_nome, responsavel_nome || null, telefone || null, escola_id, serie, ano_letivo, observacao || null, posicao])
 
+  try { await cacheDelPattern('fila-espera:*') } catch {}
+
   return NextResponse.json({ registro: result.rows[0], mensagem: 'Adicionado à fila de espera' })
 })
 
@@ -159,6 +162,8 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     WHERE id = $1 RETURNING *
   `, [id, status, observacao || null])
 
+  try { await cacheDelPattern('fila-espera:*') } catch {}
+
   return NextResponse.json({ registro: result.rows[0], mensagem: `Status atualizado para ${status}` })
 })
 
@@ -177,6 +182,8 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request) => 
   if (result.rows.length === 0) {
     return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
   }
+
+  try { await cacheDelPattern('fila-espera:*') } catch {}
 
   return NextResponse.json({ mensagem: 'Registro removido da fila' })
 })

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
+import { cacheDelPattern } from '@/lib/cache'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -124,6 +125,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
         inseridos++
       }
     }
+
+    try { await cacheDelPattern('resultados:*') } catch {}
+    try { await cacheDelPattern('boletim:*') } catch {}
 
     return NextResponse.json({
       mensagem: `Cartão-resposta salvo! ${inseridos} inserido(s), ${atualizados} atualizado(s).`,

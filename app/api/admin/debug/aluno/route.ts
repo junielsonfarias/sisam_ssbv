@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     `, [`%${nome}%`])
 
     if (alunoResult.rows.length === 0) {
-      return NextResponse.json({ erro: 'Aluno não encontrado', nome })
+      return NextResponse.json({ mensagem: 'Aluno não encontrado', nome })
     }
 
     const aluno = alunoResult.rows[0]

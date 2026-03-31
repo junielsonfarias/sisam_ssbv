@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { PG_ERRORS } from '@/lib/constants'
+import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { periodoLetivoSchema, periodoLetivoUpdateSchema, validateRequest, validateId } from '@/lib/schemas'
 import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
@@ -15,7 +15,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   const { ano_letivo, tipo } = parseSearchParams(searchParams, ['ano_letivo', 'tipo'])
 
   const redisKey = cacheKey('periodos', ano_letivo || 'all', tipo || 'all')
-  const data = await withRedisCache(redisKey, 600, async () => {
+  const data = await withRedisCache(redisKey, CACHE_TTL.REFERENCIA, async () => {
     const where = createWhereBuilder()
     addCondition(where, 'ano_letivo', ano_letivo)
     addCondition(where, 'tipo', tipo)

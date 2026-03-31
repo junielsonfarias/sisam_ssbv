@@ -5,6 +5,7 @@ import fs from 'fs'
 import path from 'path'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 const personalizacaoPutSchema = z.object({
   login_titulo: z.string().max(255).optional().nullable(),
@@ -306,6 +307,9 @@ export async function PUT(request: NextRequest) {
         )
       }
     }
+
+    try { await cacheDelPattern('personalizacao:*') } catch {}
+    try { await cacheDelPattern('config:*') } catch {}
 
     return NextResponse.json({
       ...configData,

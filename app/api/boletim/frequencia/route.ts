@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const alunoQueryStr = codigo ? `codigo:${codigo}` : `cpf:${cpf}:${dataNascimento}`
     const redisKey = cacheKey('boletim-freq', alunoQueryStr, anoLetivo)
 
-    const data = await withRedisCache(redisKey, 60, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.BOLETIM, async () => {
       // Localizar aluno
       let alunoQuery = ''
       let params: any[] = [anoLetivo]

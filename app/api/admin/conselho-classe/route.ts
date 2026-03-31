@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { parseSearchParams } from '@/lib/api-helpers'
+import { cacheDelPattern } from '@/lib/cache'
 import { validateRequest, conselhoClassePostSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
@@ -110,6 +111,9 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       }
 
       await client.query('COMMIT')
+
+      try { await cacheDelPattern('conselho:*') } catch {}
+      try { await cacheDelPattern('boletim:*') } catch {}
 
       return NextResponse.json({
         mensagem: `Conselho de classe salvo com ${salvos} parecer(es)`,

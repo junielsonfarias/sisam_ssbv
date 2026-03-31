@@ -13,6 +13,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { getEstatisticas, getEstatisticasPadrao } from '@/lib/services/estatisticas.service'
 import { forbidden, okComCache, okComFallback } from '@/lib/api-utils'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     const avaliacaoId = request.nextUrl.searchParams.get('avaliacao_id') || undefined
 
     const redisKey = cacheKey('stats', anoLetivo, serie, avaliacaoId)
-    const estatisticas = await withRedisCache(redisKey, 60, () =>
+    const estatisticas = await withRedisCache(redisKey, CACHE_TTL.DASHBOARD, () =>
       getEstatisticas(usuario, { serie, anoLetivo, avaliacaoId })
     )
 

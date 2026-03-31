@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { PG_ERRORS } from '@/lib/constants'
+import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 import { validateRequest, poloSchema, poloPutSchema } from '@/lib/schemas'
-import { withRedisCache, cacheKey } from '@/lib/cache'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 
 // Desabilitar cache para garantir dados sempre atualizados
 export const dynamic = 'force-dynamic';
@@ -34,7 +34,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
   // Admin e tecnico podem ver todos os polos
   const redisKey = cacheKey('polos', id || 'all')
-  const data = await withRedisCache(redisKey, 300, async () => {
+  const data = await withRedisCache(redisKey, CACHE_TTL.CONFIGURACAO, async () => {
     const where = createWhereBuilder()
     addCondition(where, 'id', id)
 
@@ -61,6 +61,8 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
        RETURNING *`,
       [nome, codigo || null, descricao || null]
     )
+
+    try { await cacheDelPattern('polos:*') } catch {}
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
@@ -92,6 +94,8 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Polo não encontrado' }, { status: 404 })
     }
+
+    try { await cacheDelPattern('polos:*') } catch {}
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
@@ -127,6 +131,8 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Polo não encontrado' }, { status: 404 })
     }
+
+    try { await cacheDelPattern('polos:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Polo excluído com sucesso' })
   } catch (error: unknown) {

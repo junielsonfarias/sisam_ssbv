@@ -47,7 +47,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'editor', 'publicador'
   const parsed = eventoSchema.safeParse(body)
 
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
+    return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
   }
 
   const { titulo, descricao, tipo, data_inicio, data_fim, local, publico } = parsed.data
@@ -71,7 +71,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'editor', 'publicador']
   const parsed = eventoUpdateSchema.safeParse(body)
 
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
+    return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
   }
 
   const { id, ...fields } = parsed.data
@@ -94,7 +94,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'editor', 'publicador']
   )
 
   if (result.rows.length === 0) {
-    return NextResponse.json({ error: 'Evento não encontrado' }, { status: 404 })
+    return NextResponse.json({ mensagem: 'Evento não encontrado' }, { status: 404 })
   }
 
   await cacheDelPattern('eventos:*')
@@ -109,10 +109,10 @@ export const DELETE = withAuth(['administrador', 'tecnico'], async (request) => 
   const id = searchParams.get('id')
 
   if (!id) {
-    return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 })
+    return NextResponse.json({ mensagem: 'ID é obrigatório' }, { status: 400 })
   }
 
-  await pool.query('DELETE FROM eventos WHERE id = $1', [id])
+  await pool.query('UPDATE eventos SET ativo = false, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1', [id])
 
   await cacheDelPattern('eventos:*')
   return NextResponse.json({ sucesso: true })

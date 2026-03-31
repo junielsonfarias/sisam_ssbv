@@ -54,6 +54,31 @@ export const CACHE = {
 } as const
 
 /**
+ * TTLs de cache Redis (em segundos)
+ * Usar estas constantes em vez de magic numbers nas rotas
+ */
+export const CACHE_TTL = {
+  /** Dados publicos do site (5 min) */
+  SITE_CONFIG: 300,
+  /** Publicacoes, eventos, transparencia (2 min) */
+  PUBLICO: 120,
+  /** Boletim, frequencia (1 min) */
+  BOLETIM: 60,
+  /** Dashboard, estatisticas, graficos (1 min) */
+  DASHBOARD: 60,
+  /** Evolucao escolas, comparativos (2 min) */
+  RELATORIOS: 120,
+  /** Dados de referencia: series, disciplinas, periodos (10 min) */
+  REFERENCIA: 600,
+  /** Avaliacoes, config-series (5 min) */
+  CONFIGURACAO: 300,
+  /** Escolas, polos (2 min) */
+  ENTIDADES: 120,
+  /** Conselhos, relatorios conselhos (5 min) */
+  CONSELHOS: 300,
+} as const
+
+/**
  * Configurações de sessão/autenticação
  */
 export const SESSAO = {

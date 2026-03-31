@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo'], async (request
     const poloFilter = usuario.tipo_usuario === 'polo' ? usuario.polo_id : polo_id
 
     const redisKey = cacheKey('evolucao', poloFilter || 'all', serie || 'all')
-    const data = await withRedisCache(redisKey, 120, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.RELATORIOS, async () => {
     // Construir filtros
     const conditions: string[] = ["rc.presenca IN ('P','p')"]
     const params: (string | null)[] = []

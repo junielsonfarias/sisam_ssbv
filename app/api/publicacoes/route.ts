@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
 
     const redisKey = cacheKey('publicacoes', tipo || '', orgao || '', ano || '', String(page))
-    const data = await withRedisCache(redisKey, 120, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.PUBLICO, async () => {
       const conditions: string[] = ['ativo = true']
       const params: any[] = []
       let paramIndex = 1
@@ -64,6 +65,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data)
   } catch (error: any) {
     console.error('[API] Erro ao buscar publicações:', error.message)
-    return NextResponse.json({ erro: 'Erro ao buscar publicações' }, { status: 500 })
+    return NextResponse.json({ mensagem: 'Erro ao buscar publicações' }, { status: 500 })
   }
 }

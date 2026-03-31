@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,6 +129,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       RETURNING *`,
       [escola_id, ano_letivo, indicador, parseFloat(meta_valor)]
     )
+
+    try { await cacheDelPattern('metas:*') } catch {}
+    try { await cacheDelPattern('dashboard:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Meta salva com sucesso', meta: result.rows[0] })
   } catch (error) {

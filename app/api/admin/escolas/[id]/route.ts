@@ -6,6 +6,7 @@ import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { buscarEscolaDetalhada } from '@/lib/services/escolas.service'
+import { cacheDelPattern } from '@/lib/cache'
 
 const escolaPutSchema = z.object({}).passthrough()
 
@@ -152,6 +153,9 @@ export async function PUT(
         { status: 404 }
       )
     }
+
+    try { await cacheDelPattern('escolas:*') } catch {}
+    try { await cacheDelPattern('dashboard:*') } catch {}
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {

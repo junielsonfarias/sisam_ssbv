@@ -5,6 +5,7 @@ import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 const matriculaSeriePostSchema = z.object({
   serie: z.string().min(1, 'Série é obrigatória').max(50),
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
         tem_producao_textual ?? false,
       ]
     )
+
+    try { await cacheDelPattern('config:*') } catch {}
+    try { await cacheDelPattern('series:*') } catch {}
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {

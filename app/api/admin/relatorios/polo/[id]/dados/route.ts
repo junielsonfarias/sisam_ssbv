@@ -22,7 +22,7 @@ export async function GET(
     const usuario = await getUsuarioFromRequest(request);
     if (!usuario) {
       return NextResponse.json(
-        { error: 'Não autorizado' },
+        { mensagem: 'Não autorizado' },
         { status: 401 }
       );
     }
@@ -30,7 +30,7 @@ export async function GET(
     // Temporariamente restrito apenas para administradores
     if (usuario.tipo_usuario !== 'administrador') {
       return NextResponse.json(
-        { error: 'Funcionalidade temporariamente disponível apenas para administradores' },
+        { mensagem: 'Funcionalidade temporariamente disponível apenas para administradores' },
         { status: 403 }
       );
     }
@@ -39,7 +39,7 @@ export async function GET(
     const temPermissao = podeAcessarPolo(usuario, poloId);
     if (!temPermissao) {
       return NextResponse.json(
-        { error: 'Sem permissão para acessar este polo' },
+        { mensagem: 'Sem permissão para acessar este polo' },
         { status: 403 }
       );
     }

@@ -22,7 +22,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   const eventos = await pool.query(
     `SELECT id, titulo, descricao, tipo, data_inicio, data_fim, local, publico
      FROM eventos
-     WHERE EXTRACT(YEAR FROM data_inicio) = $1
+     WHERE EXTRACT(YEAR FROM data_inicio) = $1 AND ativo = true
      ORDER BY data_inicio`,
     [parseInt(anoLetivo)]
   )

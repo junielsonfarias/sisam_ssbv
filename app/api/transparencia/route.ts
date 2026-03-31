@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const anoLetivo = searchParams.get('ano_letivo') || String(new Date().getFullYear())
 
     const redisKey = cacheKey('transparencia', anoLetivo)
-    const data = await withRedisCache(redisKey, 300, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.SITE_CONFIG, async () => {
       const result = await pool.query(
         `SELECT e.id, e.nome, e.codigo, e.endereco, e.codigo_inep,
                 e.localizacao, e.situacao_funcionamento,
@@ -35,6 +36,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data)
   } catch (error) {
     console.error('Erro ao buscar transparência:', error)
-    return NextResponse.json({ error: 'Erro ao buscar dados de transparência' }, { status: 500 })
+    return NextResponse.json({ mensagem: 'Erro ao buscar dados de transparência' }, { status: 500 })
   }
 }

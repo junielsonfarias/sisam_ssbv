@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 import { matriculaBatchSchema, validateRequest } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
@@ -177,6 +178,11 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT')
+
+    try { await cacheDelPattern('alunos:*') } catch {}
+    try { await cacheDelPattern('turmas:*') } catch {}
+    try { await cacheDelPattern('dashboard:*') } catch {}
+    try { await cacheDelPattern('estatisticas:*') } catch {}
 
     return NextResponse.json({
       mensagem: `${resultados.matriculados} aluno(s) matriculado(s) com sucesso${resultados.criados > 0 ? ` (${resultados.criados} novo(s))` : ''}`,

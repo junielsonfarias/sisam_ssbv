@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { validateRequest, serieEscolaPostSchema } from '@/lib/schemas'
 import pool from '@/database/connection'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,6 +95,9 @@ export async function POST(
       )
     }
 
+    try { await cacheDelPattern('escolas:*') } catch {}
+    try { await cacheDelPattern('series:*') } catch {}
+
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     console.error('Erro ao vincular série à escola:', error)
@@ -147,6 +151,9 @@ export async function DELETE(
         { status: 404 }
       )
     }
+
+    try { await cacheDelPattern('escolas:*') } catch {}
+    try { await cacheDelPattern('series:*') } catch {}
 
     return NextResponse.json({
       mensagem: 'Série removida com sucesso',

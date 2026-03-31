@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
+import { cacheDelPattern } from '@/lib/cache'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -92,7 +93,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
   const parsed = updateSchema.safeParse(body)
 
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados inválidos', detalhes: parsed.error.flatten().fieldErrors }, { status: 400 })
+    return NextResponse.json({ mensagem: 'Dados inválidos', detalhes: parsed.error.flatten().fieldErrors }, { status: 400 })
   }
 
   const { id, status, resposta } = parsed.data
@@ -118,6 +119,8 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     `UPDATE ouvidoria SET ${sets.join(', ')} WHERE id = $${paramIndex}`,
     params
   )
+
+  try { await cacheDelPattern('ouvidoria:*') } catch {}
 
   return NextResponse.json({ sucesso: true })
 })

@@ -5,6 +5,7 @@ import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
 } from '@/lib/api-helpers'
 import { validateRequest, controleVagasPutSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -109,6 +110,8 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
           atualizadas++
         }
         await client.query('COMMIT')
+        try { await cacheDelPattern('turmas:*') } catch {}
+        try { await cacheDelPattern('dashboard:*') } catch {}
         return NextResponse.json({ mensagem: `${atualizadas} turma(s) atualizada(s)` })
       } catch (err) {
         await client.query('ROLLBACK')
@@ -131,6 +134,9 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
       `UPDATE turmas SET capacidade_maxima = $1, atualizado_em = CURRENT_TIMESTAMP WHERE id = $2`,
       [capacidade_maxima, turma_id]
     )
+
+    try { await cacheDelPattern('turmas:*') } catch {}
+    try { await cacheDelPattern('dashboard:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Capacidade atualizada' })
   } catch (error: unknown) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -134,6 +135,9 @@ export async function POST(
        permite_recuperacao ?? null, observacao || null]
     )
 
+    try { await cacheDelPattern('escolas:*') } catch {}
+    try { await cacheDelPattern('regras-avaliacao:*') } catch {}
+
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
     console.error('Erro ao salvar regra da escola:', error)
@@ -171,6 +175,9 @@ export async function DELETE(
     if (result.rowCount === 0) {
       return NextResponse.json({ mensagem: 'Override não encontrado' }, { status: 404 })
     }
+
+    try { await cacheDelPattern('escolas:*') } catch {}
+    try { await cacheDelPattern('regras-avaliacao:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Override removido, usando regra padrão' })
   } catch (error: unknown) {

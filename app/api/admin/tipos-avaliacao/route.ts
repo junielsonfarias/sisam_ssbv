@@ -5,6 +5,7 @@ import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseBoolParam, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 import { validateRequest, tipoAvaliacaoPostSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -67,6 +68,8 @@ export async function POST(request: NextRequest) {
         nota_minima ?? 0, nota_maxima ?? 10, permite_decimal ?? true
       ]
     )
+
+    try { await cacheDelPattern('tipos-avaliacao:*') } catch {}
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
@@ -142,6 +145,8 @@ export async function PUT(request: NextRequest) {
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Tipo de avaliacao não encontrado' }, { status: 404 })
     }
+
+    try { await cacheDelPattern('tipos-avaliacao:*') } catch {}
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {

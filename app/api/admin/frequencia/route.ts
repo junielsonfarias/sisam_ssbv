@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { parseSearchParams } from '@/lib/api-helpers'
+import { cacheDelPattern } from '@/lib/cache'
 import { z } from 'zod'
 import { validateRequest, uuidSchema } from '@/lib/schemas'
 
@@ -130,6 +131,10 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       }
 
       await client.query('COMMIT')
+
+      try { await cacheDelPattern('frequencia:*') } catch {}
+      try { await cacheDelPattern('boletim:*') } catch {}
+      try { await cacheDelPattern('dashboard:*') } catch {}
 
       return NextResponse.json({
         mensagem: `Frequência salva para ${salvos} aluno(s)`,

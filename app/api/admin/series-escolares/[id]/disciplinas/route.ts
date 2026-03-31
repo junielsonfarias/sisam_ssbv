@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { validateRequest, uuidSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 const disciplinaSerieItemSchema = z.object({
   disciplina_id: uuidSchema,
@@ -93,6 +94,9 @@ export async function POST(
       }
 
       await client.query('COMMIT')
+
+      try { await cacheDelPattern('series-escolares:*') } catch {}
+      try { await cacheDelPattern('disciplinas:*') } catch {}
 
       // Retornar as disciplinas atualizadas
       const result = await pool.query(

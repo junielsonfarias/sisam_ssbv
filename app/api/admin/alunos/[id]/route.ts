@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { alunoSchema, validateRequest, validateId } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -251,6 +252,10 @@ export async function PUT(
       `UPDATE alunos SET ${setClauses.join(', ')} WHERE id = $${idx}`,
       values
     )
+
+    try { await cacheDelPattern('alunos:*') } catch {}
+    try { await cacheDelPattern('dashboard:*') } catch {}
+    try { await cacheDelPattern('estatisticas:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Aluno atualizado com sucesso' })
   } catch (error: unknown) {

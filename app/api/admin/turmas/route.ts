@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { PG_ERRORS } from '@/lib/constants'
+import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition,
@@ -149,7 +149,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   // Modo listagem simples: retorna turmas com contagem de alunos (sem precisar de resultados)
   if (mode === 'listagem') {
     const redisKey = cacheKey('turmas', ano_letivo || '', escola_id || '', serie || '', busca || '', mode)
-    const data = await withRedisCache(redisKey, 60, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.DASHBOARD, async () => {
       const where = createWhereBuilder()
       addRawCondition(where, 't.ativo = true')
       addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })

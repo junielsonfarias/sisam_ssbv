@@ -7,6 +7,7 @@ import {
   parseBoolParam, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
 } from '@/lib/api-helpers'
 import { validateRequest, regraAvaliacaoPostSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -85,6 +86,8 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       ]
     )
 
+    try { await cacheDelPattern('regras-avaliacao:*') } catch {}
+
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
     console.error('Erro ao criar regra de avaliacao:', error)
@@ -158,6 +161,8 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
       return NextResponse.json({ mensagem: 'Regra de avaliacao não encontrada' }, { status: 404 })
     }
 
+    try { await cacheDelPattern('regras-avaliacao:*') } catch {}
+
     return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error('Erro ao atualizar regra de avaliacao:', error)
@@ -198,6 +203,8 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Regra de avaliacao não encontrada' }, { status: 404 })
     }
+
+    try { await cacheDelPattern('regras-avaliacao:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Regra desativada com sucesso' })
   } catch (error) {

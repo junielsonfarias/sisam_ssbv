@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const protocolo = searchParams.get('protocolo')
 
     if (!protocolo) {
-      return NextResponse.json({ error: 'Protocolo é obrigatório' }, { status: 400 })
+      return NextResponse.json({ mensagem: 'Protocolo é obrigatório' }, { status: 400 })
     }
 
     const result = await pool.query(
@@ -43,13 +43,13 @@ export async function GET(request: NextRequest) {
     )
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ error: 'Protocolo não encontrado' }, { status: 404 })
+      return NextResponse.json({ mensagem: 'Protocolo não encontrado' }, { status: 404 })
     }
 
     return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error('Erro ao consultar ouvidoria:', error)
-    return NextResponse.json({ error: 'Erro ao consultar protocolo' }, { status: 500 })
+    return NextResponse.json({ mensagem: 'Erro ao consultar protocolo' }, { status: 500 })
   }
 }
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const parsed = ouvidoriaSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
+      return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
     }
 
     const { tipo, nome, email, telefone, escola_id, assunto, mensagem } = parsed.data
@@ -78,6 +78,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ protocolo, mensagem: 'Manifestação registrada com sucesso' }, { status: 201 })
   } catch (error) {
     console.error('Erro ao criar manifestação:', error)
-    return NextResponse.json({ error: 'Erro ao registrar manifestação' }, { status: 500 })
+    return NextResponse.json({ mensagem: 'Erro ao registrar manifestação' }, { status: 500 })
   }
 }

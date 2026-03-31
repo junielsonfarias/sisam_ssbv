@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
-import { PG_ERRORS } from '@/lib/constants'
+import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest, anoLetivoSchema, statusAnoLetivoSchema } from '@/lib/schemas'
-import { withRedisCache, cacheKey } from '@/lib/cache'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 
 // --- Schemas de validação ---
 
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     const redisKey = cacheKey('anos-letivos')
-    const data = await withRedisCache(redisKey, 600, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.REFERENCIA, async () => {
       const result = await pool.query(`
         SELECT al.*,
                (SELECT COUNT(*) FROM turmas t WHERE t.ano_letivo = al.ano AND t.ativo = true) as total_turmas,
@@ -152,6 +152,10 @@ export async function POST(request: NextRequest) {
       }
 
       await client.query('COMMIT')
+
+      try { await cacheDelPattern('anos-letivos:*') } catch {}
+      try { await cacheDelPattern('periodos:*') } catch {}
+
       return NextResponse.json({ mensagem: 'Ano letivo criado com sucesso', ano: anoResult.rows[0] || { ano } }, { status: 201 })
     } catch (err) {
       await client.query('ROLLBACK')
@@ -278,6 +282,10 @@ export async function PUT(request: NextRequest) {
       }
 
       await client.query('COMMIT')
+
+      try { await cacheDelPattern('anos-letivos:*') } catch {}
+      try { await cacheDelPattern('periodos:*') } catch {}
+
       return NextResponse.json({ mensagem: 'Ano letivo atualizado' })
     } catch (err) {
       await client.query('ROLLBACK')

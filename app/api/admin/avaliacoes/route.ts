@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { PG_ERRORS } from '@/lib/constants'
+import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { avaliacaoSchema, validateRequest, uuidSchema } from '@/lib/schemas'
 import { z } from 'zod'
 import { getErrorMessage, DatabaseError } from '@/lib/validation'
@@ -20,7 +20,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     const anoLetivo = request.nextUrl.searchParams.get('ano_letivo')
 
     const redisKey = cacheKey('avaliacoes', anoLetivo || 'all')
-    const data = await withRedisCache(redisKey, 300, async () => {
+    const data = await withRedisCache(redisKey, CACHE_TTL.CONFIGURACAO, async () => {
       const where = createWhereBuilder()
       addRawCondition(where, 'ativo = true')
       addCondition(where, 'ano_letivo', anoLetivo)

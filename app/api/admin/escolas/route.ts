@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { PG_ERRORS } from '@/lib/constants'
+import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import {
   parseSearchParams, parseBoolParam,
@@ -27,7 +27,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   // Se não precisa de estatísticas, usar query simples (com cache Redis)
   if (!comEstatisticas) {
     const redisKey = cacheKey('escolas', ano_letivo || '', usuario.tipo_usuario, polo_id || '', escolaId || '')
-    const rows = await withRedisCache(redisKey, 120, async () => {
+    const rows = await withRedisCache(redisKey, CACHE_TTL.ENTIDADES, async () => {
       const where = createWhereBuilder()
       addRawCondition(where, 'e.ativo = true')
       addAccessControl(where, usuario, { escolaIdField: 'e.id', poloIdField: 'e.polo_id' })

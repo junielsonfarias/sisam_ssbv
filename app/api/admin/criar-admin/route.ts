@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { hashPassword, getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import crypto from 'crypto'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic';
 
@@ -105,6 +106,8 @@ export async function POST(request: NextRequest) {
        ON CONFLICT (email) DO NOTHING`,
       ['Administrador', 'admin@sisam.com', senhaHash, 'administrador']
     )
+
+    try { await cacheDelPattern('usuarios:*') } catch {}
 
     // NAO retornar a senha - o admin deve resetar via banco de dados
     return NextResponse.json({
