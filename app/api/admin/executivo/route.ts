@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
@@ -10,13 +10,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/executivo?ano_letivo=2026
  * Dados agregados para o Painel Executivo do Secretário
  */
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     const anoLetivo = searchParams.get('ano_letivo') || String(new Date().getFullYear())
 
@@ -150,8 +144,4 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(data)
-  } catch (error: unknown) {
-    console.error('Erro no painel executivo:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})

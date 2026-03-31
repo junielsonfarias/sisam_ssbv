@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import {
   calcularNivelPorAcertos,
@@ -12,17 +12,7 @@ import { limparTodosOsCaches } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     const avaliacaoId = searchParams.get('avaliacao_id')
 
@@ -114,27 +104,10 @@ export async function POST(request: NextRequest) {
       atualizados,
       erros,
     })
-  } catch (error: unknown) {
-    console.error('[Recalcular Níveis] Erro:', error)
-    return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
-      { status: 500 }
-    )
-  }
-}
+})
 
 // Endpoint GET para verificar status
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     const avaliacaoId = searchParams.get('avaliacao_id')
 
@@ -171,11 +144,4 @@ export async function GET(request: NextRequest) {
       sem_nivel_aluno: parseInt(stats.sem_nivel_aluno || '0'),
       necessita_recalculo: parseInt(stats.sem_nivel_aluno || '0') > 0 || parseInt(stats.sem_nivel_prod || '0') > 0,
     })
-  } catch (error: unknown) {
-    console.error('[Recalcular Níveis] Erro ao verificar status:', error)
-    return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
-      { status: 500 }
-    )
-  }
-}
+})

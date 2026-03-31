@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -9,13 +9,7 @@ export const dynamic = 'force-dynamic'
  * Lista alunos em situação de recuperação (nota abaixo da média)
  * Params: periodo_id, escola_id?, turma_id?, serie?, ano_letivo?
  */
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola', 'polo'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     const periodoId = searchParams.get('periodo_id')
     const escolaId = searchParams.get('escola_id')
@@ -155,8 +149,4 @@ export async function GET(request: NextRequest) {
         media_aprovacao: mediaAprovacao,
       },
     })
-  } catch (error: unknown) {
-    console.error('Erro ao buscar recuperação:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})

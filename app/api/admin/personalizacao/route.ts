@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import fs from 'fs'
 import path from 'path'
@@ -188,17 +188,7 @@ export async function GET(request: NextRequest) {
 }
 
 // PUT - Atualizar configuracoes de personalizacao
-export async function PUT(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
+export const PUT = withAuth(['administrador'], async (request, usuario) => {
     const validationResult = await validateRequest(request, personalizacaoPutSchema)
     if (!validationResult.success) return validationResult.response
     const {
@@ -315,11 +305,4 @@ export async function PUT(request: NextRequest) {
       ...configData,
       mensagem: 'Personalizacao salva com sucesso'
     })
-  } catch (error: unknown) {
-    console.error('Erro ao atualizar personalizacao:', error)
-    return NextResponse.json(
-      { mensagem: 'Erro interno do servidor' },
-      { status: 500 }
-    )
-  }
-}
+})

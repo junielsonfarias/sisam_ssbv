@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import { validateRequest } from '@/lib/schemas'
 import { horarioAulaSchema } from '@/lib/schemas'
 import { isAnosFinais, extrairNumeroSerie } from '@/lib/disciplinas-mapping'
@@ -13,13 +13,7 @@ export const dynamic = 'force-dynamic'
  * Retorna grade horária de uma turma (30 slots: 5 dias × 6 aulas)
  * Params: turma_id
  */
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     const turmaId = searchParams.get('turma_id')
 
@@ -38,24 +32,14 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json({ horarios: result.rows, turma_id: turmaId })
-  } catch (error: unknown) {
-    console.error('Erro ao buscar horários:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})
 
 /**
  * POST /api/admin/horarios-aula
  * Salva grade horária em lote para uma turma
  * Valida que a turma é 6º-9º Ano
  */
-export async function POST(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const validacao = await validateRequest(request, horarioAulaSchema)
     if (!validacao.success) return validacao.response
 
@@ -112,8 +96,4 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: unknown) {
-    console.error('Erro ao salvar horários:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})

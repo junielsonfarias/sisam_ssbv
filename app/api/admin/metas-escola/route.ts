@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { cacheDelPattern } from '@/lib/cache'
+import { z } from 'zod'
+import { uuidSchema, anoLetivoSchema } from '@/lib/schemas'
+
+const metaEscolaSchema = z.object({
+  escola_id: uuidSchema,
+  ano_letivo: anoLetivoSchema,
+  indicador: z.enum(['frequencia', 'media_sisam', 'aprovacao', 'evasao'], {
+    errorMap: () => ({ message: 'Indicador inválido. Use: frequencia, media_sisam, aprovacao, evasao' })
+  }),
+  meta_valor: z.number({ coerce: true, message: 'meta_valor deve ser um número' })
+    .min(0, 'meta_valor não pode ser negativo')
+    .max(100, 'meta_valor não pode ser maior que 100'),
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -109,16 +122,14 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request: NextRe
 export const POST = withAuth(['administrador', 'tecnico'], async (request: NextRequest, usuario) => {
   try {
     const body = await request.json()
-    const { escola_id, ano_letivo, indicador, meta_valor } = body
-
-    if (!escola_id || !ano_letivo || !indicador || meta_valor === undefined) {
-      return NextResponse.json({ mensagem: 'Campos obrigatórios: escola_id, ano_letivo, indicador, meta_valor' }, { status: 400 })
+    const parsed = metaEscolaSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({
+        mensagem: 'Dados invalidos',
+        erros: parsed.error.errors.map(e => ({ campo: e.path.join('.'), mensagem: e.message }))
+      }, { status: 400 })
     }
-
-    const indicadoresValidos = ['frequencia', 'media_sisam', 'aprovacao', 'evasao']
-    if (!indicadoresValidos.includes(indicador)) {
-      return NextResponse.json({ mensagem: `Indicador inválido. Use: ${indicadoresValidos.join(', ')}` }, { status: 400 })
-    }
+    const { escola_id, ano_letivo, indicador, meta_valor } = parsed.data
 
     // Upsert
     const result = await pool.query(
@@ -127,7 +138,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       ON CONFLICT (escola_id, ano_letivo, indicador)
       DO UPDATE SET meta_valor = $4, atualizado_em = NOW()
       RETURNING *`,
-      [escola_id, ano_letivo, indicador, parseFloat(meta_valor)]
+      [escola_id, ano_letivo, indicador, meta_valor]
     )
 
     try { await cacheDelPattern('metas:*') } catch {}

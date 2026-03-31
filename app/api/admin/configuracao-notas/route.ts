@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { configuracaoNotasEscolaSchema, configuracaoNotasEscolaBaseSchema, validateRequest, validateId } from '@/lib/schemas'
@@ -22,13 +22,7 @@ const atualizarConfigSchema = configuracaoNotasEscolaBaseSchema.extend({
   return data.media_recuperacao <= data.media_aprovacao
 }, { message: 'Média de recuperação deve ser menor ou igual à média de aprovação', path: ['media_recuperacao'] })
 
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
     const searchParams = request.nextUrl.searchParams
     const { escola_id, ano_letivo } = parseSearchParams(searchParams, ['escola_id', 'ano_letivo'])
 
@@ -50,19 +44,9 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error: unknown) {
-    console.error('Erro ao buscar configurações de notas:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})
 
-export async function POST(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const validacao = await validateRequest(request, configuracaoNotasEscolaSchema)
     if (!validacao.success) return validacao.response
 
@@ -89,25 +73,9 @@ export async function POST(request: NextRequest) {
     try { await cacheDelPattern('config:*') } catch {}
     try { await cacheDelPattern('boletim:*') } catch {}
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error: unknown) {
-    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
-      return NextResponse.json(
-        { mensagem: 'Já existe uma configuração para esta escola neste ano letivo' },
-        { status: 400 }
-      )
-    }
-    console.error('Erro ao criar configuração de notas:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})
 
-export async function PUT(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const validacao = await validateRequest(request, atualizarConfigSchema)
     if (!validacao.success) return validacao.response
 
@@ -140,25 +108,9 @@ export async function PUT(request: NextRequest) {
     try { await cacheDelPattern('boletim:*') } catch {}
 
     return NextResponse.json(result.rows[0])
-  } catch (error: unknown) {
-    if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
-      return NextResponse.json(
-        { mensagem: 'Já existe uma configuração para esta escola neste ano letivo' },
-        { status: 400 }
-      )
-    }
-    console.error('Erro ao atualizar configuração de notas:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     const validacaoId = validateId(searchParams.get('id'))
     if (!validacaoId.success) return validacaoId.response
@@ -177,8 +129,4 @@ export async function DELETE(request: NextRequest) {
     try { await cacheDelPattern('boletim:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Configuração removida com sucesso' })
-  } catch (error: unknown) {
-    console.error('Erro ao excluir configuração de notas:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS, CACHE_TTL } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
@@ -44,13 +44,7 @@ const anoLetivoPatchSchema = z.object({
 export const dynamic = 'force-dynamic'
 
 // Listar anos letivos
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola', 'polo'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
     const redisKey = cacheKey('anos-letivos')
     const data = await withRedisCache(redisKey, CACHE_TTL.REFERENCIA, async () => {
       const result = await pool.query(`
@@ -71,20 +65,11 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(data)
-  } catch (error: unknown) {
-    console.error('Erro ao listar anos letivos:', error)
-    return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
-  }
-}
+})
 
 // Criar ano letivo com bimestres
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const result = await validateRequest(request, anoLetivoPostSchema)
     if (!result.success) return result.response
     const { ano, data_inicio, data_fim, dias_letivos_total, observacao, bimestres } = result.data
@@ -170,16 +155,11 @@ export async function POST(request: NextRequest) {
     console.error('Erro ao criar ano letivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
-}
+})
 
 // Atualizar ano letivo (dados, status, bimestres)
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const putResult = await validateRequest(request, anoLetivoPutSchema)
     if (!putResult.success) return putResult.response
     const { id, ano, data_inicio, data_fim, dias_letivos_total, observacao, status, bimestres } = putResult.data
@@ -297,16 +277,10 @@ export async function PUT(request: NextRequest) {
     console.error('Erro ao atualizar ano letivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
-}
+})
 
 // Buscar bimestres de um ano
-export async function PATCH(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola', 'polo'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const PATCH = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
     const patchResult = await validateRequest(request, anoLetivoPatchSchema)
     if (!patchResult.success) return patchResult.response
     const { ano } = patchResult.data
@@ -320,8 +294,4 @@ export async function PATCH(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows)
-  } catch (error: unknown) {
-    console.error('Erro ao buscar bimestres:', error)
-    return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
-  }
-}
+})

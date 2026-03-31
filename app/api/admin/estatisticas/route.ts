@@ -9,23 +9,17 @@
  */
 
 import { NextRequest } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import { getEstatisticas, getEstatisticasPadrao } from '@/lib/services/estatisticas.service'
-import { forbidden, okComCache, okComFallback } from '@/lib/api-utils'
+import { okComCache, okComFallback } from '@/lib/api-utils'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return forbidden()
-    }
-
     const serie = request.nextUrl.searchParams.get('serie') || undefined
     const anoLetivo = request.nextUrl.searchParams.get('ano_letivo') || new Date().getFullYear().toString()
     const avaliacaoId = request.nextUrl.searchParams.get('avaliacao_id') || undefined
@@ -40,4 +34,4 @@ export async function GET(request: NextRequest) {
     console.error('[API Admin Estatisticas] Erro:', error)
     return okComFallback(getEstatisticasPadrao(), error)
   }
-}
+})

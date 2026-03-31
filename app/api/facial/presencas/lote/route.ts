@@ -75,62 +75,78 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Processar em chunks de 50 para evitar lock prolongado
+    // Processar em chunks de 50 dentro de uma transação
     const CHUNK_SIZE = 50
     let inseridos = 0
     let atualizados = 0
 
-    for (let i = 0; i < validos.length; i += CHUNK_SIZE) {
-      const chunk = validos.slice(i, i + CHUNK_SIZE)
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
 
-      // Construir batch INSERT com múltiplos VALUES
-      const values: (string | number)[] = []
-      const placeholders: string[] = []
-      let paramIdx = 1
+      for (let i = 0; i < validos.length; i += CHUNK_SIZE) {
+        const chunk = validos.slice(i, i + CHUNK_SIZE)
 
-      for (const reg of chunk) {
-        placeholders.push(
-          `($${paramIdx}, $${paramIdx + 1}, $${paramIdx + 2}, $${paramIdx + 3}, $${paramIdx + 4}, 'facial', $${paramIdx + 5}, $${paramIdx + 6})`
+        // Construir batch INSERT com múltiplos VALUES
+        const values: (string | number)[] = []
+        const placeholders: string[] = []
+        let paramIdx = 1
+
+        for (const reg of chunk) {
+          placeholders.push(
+            `($${paramIdx}, $${paramIdx + 1}, $${paramIdx + 2}, $${paramIdx + 3}, $${paramIdx + 4}, 'facial', $${paramIdx + 5}, $${paramIdx + 6})`
+          )
+          values.push(
+            reg.aluno_id, reg.turma_id, dispositivo.escola_id,
+            reg.data, reg.hora, dispositivo.id, reg.confianca
+          )
+          paramIdx += 7
+        }
+
+        const result = await client.query(
+          `INSERT INTO frequencia_diaria
+            (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
+           VALUES ${placeholders.join(', ')}
+           ON CONFLICT (aluno_id, data) DO UPDATE SET
+            hora_saida = EXCLUDED.hora_entrada,
+            confianca = GREATEST(frequencia_diaria.confianca, EXCLUDED.confianca),
+            atualizado_em = CURRENT_TIMESTAMP
+           RETURNING (xmax = 0) AS is_insert`,
+          values
         )
-        values.push(
-          reg.aluno_id, reg.turma_id, dispositivo.escola_id,
-          reg.data, reg.hora, dispositivo.id, reg.confianca
-        )
-        paramIdx += 7
+
+        for (const row of result.rows) {
+          if (row.is_insert) inseridos++
+          else atualizados++
+        }
       }
 
-      const result = await pool.query(
-        `INSERT INTO frequencia_diaria
-          (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
-         VALUES ${placeholders.join(', ')}
-         ON CONFLICT (aluno_id, data) DO UPDATE SET
-          hora_saida = EXCLUDED.hora_entrada,
-          confianca = GREATEST(frequencia_diaria.confianca, EXCLUDED.confianca),
-          atualizado_em = CURRENT_TIMESTAMP
-         RETURNING (xmax = 0) AS is_insert`,
-        values
+      // Log do lote
+      await client.query(
+        `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
+         VALUES ($1, 'presenca_lote', $2)`,
+        [dispositivo.id, JSON.stringify({ total: registros.length, inseridos, atualizados, erros })]
       )
 
-      for (const row of result.rows) {
-        if (row.is_insert) inseridos++
-        else atualizados++
-      }
+      await client.query('COMMIT')
+
+      return NextResponse.json({
+        sucesso: true,
+        total: registros.length,
+        inseridos,
+        atualizados,
+        erros,
+      })
+    } catch (error: unknown) {
+      await client.query('ROLLBACK')
+      console.error('Erro ao registrar presença em lote:', error)
+      return NextResponse.json(
+        { mensagem: 'Erro interno do servidor' },
+        { status: 500 }
+      )
+    } finally {
+      client.release()
     }
-
-    // Log do lote
-    await pool.query(
-      `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
-       VALUES ($1, 'presenca_lote', $2)`,
-      [dispositivo.id, JSON.stringify({ total: registros.length, inseridos, atualizados, erros })]
-    )
-
-    return NextResponse.json({
-      sucesso: true,
-      total: registros.length,
-      inseridos,
-      atualizados,
-      erros,
-    })
   } catch (error: unknown) {
     console.error('Erro ao registrar presença em lote:', error)
     return NextResponse.json(

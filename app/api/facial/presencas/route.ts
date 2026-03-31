@@ -80,36 +80,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Timestamp inválido' }, { status: 400 })
     }
 
-    // Inserir ou atualizar presença
-    // Primeiro scan = hora_entrada, scans seguintes = hora_saida
-    const result = await pool.query(
-      `INSERT INTO frequencia_diaria
-        (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
-       VALUES ($1, $2, $3, $4, $5, 'facial', $6, $7)
-       ON CONFLICT (aluno_id, data) DO UPDATE SET
-        hora_saida = $5,
-        confianca = GREATEST(frequencia_diaria.confianca, $7),
-        atualizado_em = CURRENT_TIMESTAMP
-       RETURNING id, hora_entrada, hora_saida`,
-      [aluno_id, aluno.turma_id, dispositivo.escola_id, data, hora, dispositivo.id, confianca]
-    )
+    // Inserir ou atualizar presença + log em transação
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
 
-    // Log do registro
-    await pool.query(
-      `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
-       VALUES ($1, 'presenca', $2)`,
-      [dispositivo.id, JSON.stringify({ aluno_id, data, hora, confianca })]
-    )
+      // Primeiro scan = hora_entrada, scans seguintes = hora_saida
+      const result = await client.query(
+        `INSERT INTO frequencia_diaria
+          (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
+         VALUES ($1, $2, $3, $4, $5, 'facial', $6, $7)
+         ON CONFLICT (aluno_id, data) DO UPDATE SET
+          hora_saida = $5,
+          confianca = GREATEST(frequencia_diaria.confianca, $7),
+          atualizado_em = CURRENT_TIMESTAMP
+         RETURNING id, hora_entrada, hora_saida`,
+        [aluno_id, aluno.turma_id, dispositivo.escola_id, data, hora, dispositivo.id, confianca]
+      )
 
-    const registro = result.rows[0]
+      // Log do registro
+      await client.query(
+        `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
+         VALUES ($1, 'presenca', $2)`,
+        [dispositivo.id, JSON.stringify({ aluno_id, data, hora, confianca })]
+      )
 
-    return NextResponse.json({
-      sucesso: true,
-      registro_id: registro.id,
-      tipo: registro.hora_saida ? 'saida' : 'entrada',
-      data,
-      hora,
-    })
+      await client.query('COMMIT')
+
+      const registro = result.rows[0]
+
+      return NextResponse.json({
+        sucesso: true,
+        registro_id: registro.id,
+        tipo: registro.hora_saida ? 'saida' : 'entrada',
+        data,
+        hora,
+      })
+    } catch (error: unknown) {
+      await client.query('ROLLBACK')
+      console.error('Erro ao registrar presença facial:', error)
+      return NextResponse.json(
+        { mensagem: 'Erro interno do servidor' },
+        { status: 500 }
+      )
+    } finally {
+      client.release()
+    }
   } catch (error: unknown) {
     console.error('Erro ao registrar presença facial:', error)
     return NextResponse.json(

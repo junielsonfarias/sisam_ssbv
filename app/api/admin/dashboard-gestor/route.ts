@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -9,13 +9,7 @@ export const dynamic = 'force-dynamic'
  * Dashboard consolidado do Gestor Escolar
  * Params: escola_id?, ano_letivo?
  */
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     let escolaId = searchParams.get('escola_id')
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
@@ -410,8 +404,4 @@ export async function GET(request: NextRequest) {
         total_alunos: parseInt(r.total_alunos) || 0,
       })),
     })
-  } catch (error: unknown) {
-    console.error('Erro no dashboard gestor:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})

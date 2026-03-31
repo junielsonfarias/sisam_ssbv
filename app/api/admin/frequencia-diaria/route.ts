@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import {
   parseSearchParams, parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
@@ -14,13 +14,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/frequencia-diaria
  * Lista frequência diária com filtros
  */
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const searchParams = request.nextUrl.searchParams
     const { escola_id, turma_id, data, data_inicio, data_fim, metodo, status, ano_letivo } = parseSearchParams(
       searchParams, ['escola_id', 'turma_id', 'data', 'data_inicio', 'data_fim', 'metodo', 'status', 'ano_letivo']
@@ -81,24 +75,14 @@ export async function GET(request: NextRequest) {
       frequencias: result.rows,
       paginacao: buildPaginacaoResponse(paginacao, total),
     })
-  } catch (error: unknown) {
-    console.error('Erro ao listar frequência diária:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})
 
 /**
  * DELETE /api/admin/frequencia-diaria
  * Exclui um registro de frequência
  * Body: { id }
  */
-export async function DELETE(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const validacao = await validateRequest(request, frequenciaDiariaDeleteSchema)
     if (!validacao.success) return validacao.response
     const { id } = validacao.data
@@ -146,24 +130,14 @@ export async function DELETE(request: NextRequest) {
     try { await cacheDelPattern('boletim:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Registro excluído com sucesso' })
-  } catch (error: unknown) {
-    console.error('Erro ao excluir frequência:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})
 
 /**
  * PATCH /api/admin/frequencia-diaria
  * Atualiza justificativa de um registro de frequência
  * Body: { id, justificativa }
  */
-export async function PATCH(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const validacao = await validateRequest(request, frequenciaDiariaPatchSchema)
     if (!validacao.success) return validacao.response
     const { id, justificativa } = validacao.data
@@ -186,8 +160,4 @@ export async function PATCH(request: NextRequest) {
     try { await cacheDelPattern('frequencia:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Justificativa salva com sucesso' })
-  } catch (error: unknown) {
-    console.error('Erro ao atualizar justificativa:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})

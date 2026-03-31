@@ -59,31 +59,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Escola não encontrada' }, { status: 404 })
     }
 
-    // Gerar API key
-    const { apiKey, apiKeyHash, apiKeyPrefix } = await generateApiKey()
+    // Gerar API key e inserir dispositivo em transação
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
 
-    // Inserir dispositivo
-    const result = await pool.query(
-      `INSERT INTO dispositivos_faciais (nome, escola_id, localizacao, api_key_hash, api_key_prefix)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, nome, localizacao, status, criado_em`,
-      [nome, escola_id, localizacao || null, apiKeyHash, apiKeyPrefix]
-    )
+      const { apiKey, apiKeyHash, apiKeyPrefix } = await generateApiKey()
 
-    try { await cacheDelPattern('dispositivos:*') } catch {}
+      const result = await client.query(
+        `INSERT INTO dispositivos_faciais (nome, escola_id, localizacao, api_key_hash, api_key_prefix)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, nome, localizacao, status, criado_em`,
+        [nome, escola_id, localizacao || null, apiKeyHash, apiKeyPrefix]
+      )
 
-    // API key é retornada apenas na criação — mascarar parcialmente no log
-    console.log(`Dispositivo facial criado: ${result.rows[0].id}, key prefix: ${apiKeyPrefix}`)
-    return NextResponse.json({
-      mensagem: 'Dispositivo registrado com sucesso',
-      dispositivo: result.rows[0],
-      escola: escolaResult.rows[0],
-      api_key: apiKey,
-      aviso: 'IMPORTANTE: Guarde esta API key em local seguro. Ela não será exibida novamente.',
-    }, {
-      status: 201,
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
-    })
+      await client.query('COMMIT')
+
+      try { await cacheDelPattern('dispositivos:*') } catch {}
+
+      // API key é retornada apenas na criação — mascarar parcialmente no log
+      console.log(`Dispositivo facial criado: ${result.rows[0].id}, key prefix: ${apiKeyPrefix}`)
+      return NextResponse.json({
+        mensagem: 'Dispositivo registrado com sucesso',
+        dispositivo: result.rows[0],
+        escola: escolaResult.rows[0],
+        api_key: apiKey,
+        aviso: 'IMPORTANTE: Guarde esta API key em local seguro. Ela não será exibida novamente.',
+      }, {
+        status: 201,
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+      })
+    } catch (error: unknown) {
+      await client.query('ROLLBACK')
+      console.error('Erro ao registrar dispositivo:', error)
+      return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+    } finally {
+      client.release()
+    }
   } catch (error: unknown) {
     console.error('Erro ao registrar dispositivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

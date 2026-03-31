@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
@@ -9,13 +9,7 @@ import { DatabaseError } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
     const validacao = await validateRequest(request, matriculaBatchSchema)
     if (!validacao.success) {
       return validacao.response
@@ -194,8 +188,4 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: unknown) {
-    console.error('Erro ao matricular alunos:', error)
-    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
+})
