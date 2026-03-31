@@ -260,6 +260,17 @@ Card: bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dar
 | `/novo-seed` | Seed de dados iniciais (admin, polos, escolas) |
 | `/novo-indice-performance` | Indices de performance, pg_trgm, ANALYZE |
 
+### Padroes que deram certo (extraidos do projeto)
+| Comando | Descricao |
+|---------|-----------|
+| `/novo-error-boundary` | Error Boundary com retry, fallback, HOC wrapper |
+| `/novo-tema-darkmode` | Tema light/dark/system sem flash, com persistencia |
+| `/novo-print-relatorio` | Sistema de impressao: CSS print, hook usePrint, janela popup |
+| `/novo-codigo-sequencial` | Gerador de codigos unicos com advisory lock (anti-race condition) |
+| `/novo-controle-acesso` | Controle granular por polo/escola com WHERE builder |
+| `/novo-deploy-vercel` | Config Vercel: maxDuration, env vars, headers, webpack |
+| `/novo-formatacao-ptbr` | Helpers pt-BR: datas, numeros, CPF, notas com cores, CSV |
+
 ### Utilitarios
 | Comando | Descricao |
 |---------|-----------|
