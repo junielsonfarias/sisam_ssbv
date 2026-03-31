@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT * FROM tipos_avaliacao ${buildWhereString(where)} ORDER BY codigo ASC`,
+      `SELECT id, codigo, nome, descricao, tipo_resultado, escala_conceitos, nota_minima, nota_maxima, permite_decimal, ativo, criado_em, atualizado_em FROM tipos_avaliacao ${buildWhereString(where)} ORDER BY codigo ASC`,
       where.params
     )
     return NextResponse.json(result.rows)

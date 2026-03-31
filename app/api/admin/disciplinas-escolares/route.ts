@@ -26,7 +26,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     }
 
     const result = await pool.query(
-      `SELECT * FROM disciplinas_escolares ${buildWhereString(where)} ORDER BY ordem, nome`,
+      `SELECT id, nome, codigo, abreviacao, ordem, ativo, criado_em, atualizado_em FROM disciplinas_escolares ${buildWhereString(where)} ORDER BY ordem, nome`,
       where.params
     )
 

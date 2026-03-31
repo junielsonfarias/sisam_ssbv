@@ -26,7 +26,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     }
     // Retornar apenas o polo do usuário
     const result = await pool.query(
-      'SELECT * FROM polos WHERE id = $1',
+      'SELECT id, nome, codigo, descricao, ativo, criado_em, atualizado_em FROM polos WHERE id = $1',
       [poloIdPermitido]
     )
     return NextResponse.json(result.rows)
@@ -39,7 +39,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     addCondition(where, 'id', id)
 
     const result = await pool.query(
-      `SELECT * FROM polos ${buildWhereString(where)} ORDER BY nome`,
+      `SELECT id, nome, codigo, descricao, ativo, criado_em, atualizado_em FROM polos ${buildWhereString(where)} ORDER BY nome`,
       where.params
     )
 

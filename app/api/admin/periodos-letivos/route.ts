@@ -23,7 +23,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     const whereClause = buildWhereString(where)
 
     const result = await pool.query(
-      `SELECT * FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
+      `SELECT id, nome, tipo, numero, ano_letivo, data_inicio, data_fim, ativo, dias_letivos, criado_em, atualizado_em FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
       where.params
     )
 

@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Construir query baseada no tipo de usuário
-    let query = 'SELECT * FROM resultados_provas WHERE 1=1'
+    let query = 'SELECT escola_id, aluno_codigo, aluno_nome, questao_codigo, resposta_aluno, acertou, nota, data_prova, ano_letivo, serie, turma, disciplina, area_conhecimento, avaliacao_id FROM resultados_provas WHERE 1=1'
     const params: (string | number | boolean | null | undefined)[] = []
     let paramIndex = 1
 
@@ -116,6 +116,9 @@ export async function GET(request: NextRequest) {
       params.push(filtros.data_fim)
       paramIndex++
     }
+
+    // Limite de segurança para evitar payloads enormes
+    query += ` LIMIT 50000`
 
     const result = await pool.query(query, params)
     const resultados = result.rows

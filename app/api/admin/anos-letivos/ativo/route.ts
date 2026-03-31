@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT * FROM anos_letivos WHERE status = 'ativo' LIMIT 1`
+      `SELECT id, ano, status, data_inicio, data_fim, dias_letivos_total, observacao, criado_em, atualizado_em FROM anos_letivos WHERE status = 'ativo' LIMIT 1`
     )
 
     if (result.rows.length === 0) {

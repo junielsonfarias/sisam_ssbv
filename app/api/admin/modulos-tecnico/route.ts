@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Buscar todos os módulos ordenados por ordem
     const result = await pool.query(
-      `SELECT * FROM modulos_tecnico ORDER BY ordem ASC, modulo_label ASC`
+      `SELECT id, modulo_key, modulo_label, habilitado, ordem, criado_em, atualizado_em FROM modulos_tecnico ORDER BY ordem ASC, modulo_label ASC`
     )
 
     return NextResponse.json(result.rows)
@@ -71,7 +71,7 @@ export async function PUT(request: NextRequest) {
 
       // Retornar módulos atualizados
       const result = await pool.query(
-        `SELECT * FROM modulos_tecnico ORDER BY ordem ASC, modulo_label ASC`
+        `SELECT id, modulo_key, modulo_label, habilitado, ordem, criado_em, atualizado_em FROM modulos_tecnico ORDER BY ordem ASC, modulo_label ASC`
       )
 
       return NextResponse.json(result.rows)

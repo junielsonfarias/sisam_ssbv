@@ -96,21 +96,27 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       }
     })
 
-    // Criar Polos
+    // Pré-carregar polos existentes (elimina N+1)
+    const polosExistentes = await pool.query('SELECT id, nome, UPPER(TRIM(nome)) as nome_norm FROM polos')
+    const polosMap = new Map<string, string>()
+    for (const p of polosExistentes.rows) {
+      polosMap.set((p.nome_norm || p.nome).toUpperCase().trim(), p.id)
+    }
+
+    // Criar Polos (com pré-cache)
     for (const nomePolo of polosUnicos) {
       try {
-        const existe = await pool.query(
-          'SELECT id FROM polos WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1))',
-          [nomePolo]
-        )
-
-        if (existe.rows.length > 0) {
+        const nomeNorm = nomePolo.toUpperCase().trim()
+        if (polosMap.has(nomeNorm)) {
           resultado.polos.existentes++
         } else {
-          await pool.query(
-            'INSERT INTO polos (nome, codigo) VALUES ($1, $2)',
+          const novoResult = await pool.query(
+            'INSERT INTO polos (nome, codigo) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id',
             [nomePolo, nomePolo.toUpperCase().replace(/\s+/g, '_')]
           )
+          if (novoResult.rows.length > 0) {
+            polosMap.set(nomeNorm, novoResult.rows[0].id)
+          }
           resultado.polos.criados++
         }
       } catch (error: unknown) {
@@ -118,51 +124,37 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       }
     }
 
-    // Criar Escolas
+    // Pré-carregar escolas existentes (elimina N+1)
+    const escolasExistentes = await pool.query('SELECT id, nome, polo_id FROM escolas WHERE ativo = true')
     const escolasMap = new Map<string, string>() // nome escola -> id
+    for (const e of escolasExistentes.rows) {
+      const nomeNorm = e.nome.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+      escolasMap.set(nomeNorm, e.id)
+    }
+
+    // Criar Escolas (com pré-cache de polos)
     for (const [nomeEscola, nomePolo] of escolasUnicas) {
       try {
-        const poloResult = await pool.query(
-          'SELECT id FROM polos WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1))',
-          [nomePolo]
-        )
+        const nomePoloNorm = nomePolo.toUpperCase().trim()
+        const poloId = polosMap.get(nomePoloNorm)
 
-        if (poloResult.rows.length === 0) {
+        if (!poloId) {
           resultado.escolas.erros.push(`Escola "${nomeEscola}": Polo "${nomePolo}" não encontrado`)
           continue
         }
 
-        const poloId = poloResult.rows[0].id
+        const nomeEscolaNormalizado = nomeEscola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
 
-        // Normalizar nome da escola para comparação (remove pontos, espaços extras)
-        const nomeEscolaNormalizado = nomeEscola
-          .toUpperCase()
-          .trim()
-          .replace(/\./g, '')
-          .replace(/\s+/g, ' ')
-
-        // Buscar escola existente usando normalização
-        const existe = await pool.query(
-          `SELECT id FROM escolas 
-           WHERE UPPER(TRIM(REGEXP_REPLACE(REGEXP_REPLACE(nome, '\\.', '', 'g'), '\\s+', ' ', 'g'))) = $1 
-           AND ativo = true 
-           LIMIT 1`,
-          [nomeEscolaNormalizado]
-        )
-
-        if (existe.rows.length > 0) {
-          escolasMap.set(nomeEscola, existe.rows[0].id)
+        if (escolasMap.has(nomeEscolaNormalizado)) {
           resultado.escolas.existentes++
         } else {
           const codigoEscola = nomeEscolaNormalizado.replace(/\s+/g, '_').substring(0, 50)
           const escolaResult = await pool.query(
             'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
-            [
-              nomeEscola.trim(),
-              codigoEscola,
-              poloId
-            ]
+            [nomeEscola.trim(), codigoEscola, poloId]
           )
+          escolasMap.set(nomeEscolaNormalizado, escolaResult.rows[0].id)
+          // Também mapear pelo nome original
           escolasMap.set(nomeEscola, escolaResult.rows[0].id)
           resultado.escolas.criados++
         }

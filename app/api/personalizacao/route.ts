@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     // Buscar do banco de dados
     try {
       const result = await pool.query(
-        'SELECT * FROM personalizacao WHERE tipo = $1',
+        'SELECT id, tipo, login_titulo, login_subtitulo, login_imagem_url, login_cor_primaria, login_cor_secundaria, rodape_texto, rodape_link, rodape_link_texto, rodape_ativo, criado_em, atualizado_em FROM personalizacao WHERE tipo = $1',
         ['principal']
       )
 

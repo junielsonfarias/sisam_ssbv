@@ -7,6 +7,7 @@ import {
   ClipboardCheck, User, School, Clock, MessageSquare, Bell
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import Rodape from '@/components/rodape'
 // Formatação local de série (sem chamar API admin)
 function formatSerie(serie: string | null | undefined): string {
@@ -156,9 +157,9 @@ export default function BoletimPage() {
       <header className="bg-white border-b border-gray-100 print:hidden">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo-semed.png" alt="SEMED" className="h-12 sm:h-14 w-auto object-contain" />
+            <Image src="/logo-semed.png" alt="SEMED" width={56} height={56} className="h-12 sm:h-14 w-auto object-contain" />
             <div className="w-px h-10 bg-slate-200 flex-shrink-0" />
-            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-12 sm:h-14 w-auto object-contain" />
+            <Image src="/logo-prefeitura.png" alt="Prefeitura" width={56} height={56} className="h-12 sm:h-14 w-auto object-contain" />
             <div className="hidden sm:block">
               <span className="font-bold text-sm text-blue-900">Boletim Escolar</span>
               <p className="text-[10px] text-slate-400">SEMED — São Sebastião da Boa Vista</p>

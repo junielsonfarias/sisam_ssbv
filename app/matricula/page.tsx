@@ -8,6 +8,7 @@ import {
   School, Loader2
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const PARENTESCOS = [
   { value: 'mae', label: 'Mãe' },
@@ -175,9 +176,9 @@ export default function MatriculaPage() {
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo-semed.png" alt="SEMED" className="h-12 sm:h-14 w-auto object-contain" />
+            <Image src="/logo-semed.png" alt="SEMED" width={56} height={56} className="h-12 sm:h-14 w-auto object-contain" />
             <div className="w-px h-10 bg-slate-200 flex-shrink-0" />
-            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-12 sm:h-14 w-auto object-contain" />
+            <Image src="/logo-prefeitura.png" alt="Prefeitura" width={56} height={56} className="h-12 sm:h-14 w-auto object-contain" />
             <div className="hidden sm:block">
               <span className="font-bold text-sm text-blue-900">Pré-Matrícula</span>
               <p className="text-[10px] text-slate-400">SEMED — São Sebastião da Boa Vista</p>

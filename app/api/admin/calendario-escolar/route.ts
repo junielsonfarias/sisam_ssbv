@@ -14,7 +14,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
   // Buscar períodos letivos
   const periodos = await pool.query(
-    `SELECT * FROM periodos_letivos WHERE ano_letivo = $1 ORDER BY numero`,
+    `SELECT id, nome, tipo, numero, ano_letivo, data_inicio, data_fim, ativo, dias_letivos, criado_em, atualizado_em FROM periodos_letivos WHERE ano_letivo = $1 ORDER BY numero`,
     [anoLetivo]
   )
 

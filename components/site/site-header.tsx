@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Menu, X, ArrowRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface SiteHeaderProps {
   data: any
@@ -132,15 +133,19 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             className="flex-1 md:flex-none flex items-center justify-center md:justify-start gap-4 sm:gap-5 group"
             aria-label="Voltar ao topo"
           >
-            <img
+            <Image
               src="/logo-semed.png"
               alt="SEMED"
+              width={80}
+              height={80}
               className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
             />
             <div className={`w-px bg-slate-300 flex-shrink-0 transition-all duration-500 ${scrolled ? 'h-7 sm:h-9' : 'h-12 sm:h-16'}`} />
-            <img
+            <Image
               src="/logo-prefeitura.png"
               alt="Prefeitura de São Sebastião da Boa Vista"
+              width={80}
+              height={80}
               className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
             />
           </a>
@@ -253,9 +258,9 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             </button>
           </div>
           <div className="flex items-center justify-center gap-5">
-            <img src="/logo-semed.png" alt="SEMED" className="h-16 w-auto object-contain" />
+            <Image src="/logo-semed.png" alt="SEMED" width={64} height={64} className="h-16 w-auto object-contain" />
             <div className="w-px h-12 bg-slate-200 flex-shrink-0" />
-            <img src="/logo-prefeitura.png" alt="Prefeitura" className="h-16 w-auto object-contain" />
+            <Image src="/logo-prefeitura.png" alt="Prefeitura" width={64} height={64} className="h-16 w-auto object-contain" />
           </div>
           <div className="mt-3 pt-2.5 border-t border-slate-100 text-center">
             <p className="text-sm text-blue-900 font-bold">Secretaria Municipal de Educação</p>
