@@ -278,6 +278,15 @@ Card: bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dar
 | `/novo-pwa-install` | Prompt de instalacao PWA + indicador online/offline |
 | `/novo-grafico-recharts` | Graficos Recharts (barras, pizza, linha) com dark mode |
 
+### Mobile e Performance (5 — padroes modernos 2025-2026)
+| Comando | Descricao |
+|---------|-----------|
+| `/novo-bottom-navigation` | Bottom tab bar para mobile (substitui hamburger) |
+| `/novo-skeleton-loader` | Skeleton por componente (KPI, tabela, grafico, form) |
+| `/novo-bottom-sheet` | Modal que sobe do rodape + AdaptiveModal (auto mobile/desktop) |
+| `/novo-touch-acessibilidade` | Touch 44px, active states, reduced motion, haptic, WCAG 2.2 |
+| `/novo-virtual-scroll` | Lista virtualizada para 1000+ itens (@tanstack/react-virtual) |
+
 ### Utilitarios
 | Comando | Descricao |
 |---------|-----------|
