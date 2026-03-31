@@ -102,7 +102,7 @@ export function usePrint() {
   /**
    * Gera HTML de tabela a partir de definicoes de colunas e dados
    */
-  function gerarTabelaHTML(colunas: ColunaTabela[], dados: any[]): string {
+  function gerarTabelaHTML(colunas: ColunaTabela[], dados: Record<string, unknown>[]): string {
     const ths = colunas
       .map(
         (col) =>

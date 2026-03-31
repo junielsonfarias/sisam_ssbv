@@ -6,7 +6,8 @@ import { limparTodosOsCaches } from '@/lib/cache'
 import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import { validarArquivoUpload } from '@/lib/api-helpers'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
+export const maxDuration = 300 // 5 minutos (limite Vercel)
 
 export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   const formData = await request.formData()
@@ -167,6 +168,45 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     )
   }
 
+  // Pré-carregar escolas e questões em memória (elimina N+1)
+  const [escolasResult, questoesResult] = await Promise.all([
+    pool.query('SELECT id, codigo, nome FROM escolas WHERE ativo = true'),
+    pool.query('SELECT id, codigo FROM questoes'),
+  ])
+
+  const escolasCache = new Map<string, string>()
+  for (const e of escolasResult.rows) {
+    if (e.codigo) escolasCache.set(e.codigo.toLowerCase(), e.id)
+    if (e.nome) {
+      escolasCache.set(e.nome.toLowerCase(), e.id)
+      escolasCache.set(e.nome.toUpperCase(), e.id)
+    }
+  }
+  const escolasRows = escolasResult.rows
+
+  const questoesCache = new Map<string, string>()
+  for (const q of questoesResult.rows) {
+    if (q.codigo) questoesCache.set(q.codigo, q.id)
+  }
+
+  // Função de busca de escola com fallback parcial
+  const buscarEscolaId = (codigo: string): string | null => {
+    const lower = codigo.toLowerCase()
+    if (escolasCache.has(lower)) return escolasCache.get(lower)!
+    // Busca parcial (contains)
+    for (const e of escolasRows) {
+      if (e.nome && e.nome.toLowerCase().includes(lower)) {
+        escolasCache.set(lower, e.id)
+        return e.id
+      }
+      if (e.codigo && e.codigo.toLowerCase().includes(lower)) {
+        escolasCache.set(lower, e.id)
+        return e.id
+      }
+    }
+    return null
+  }
+
   // Criar registro de importação
   const importacaoResult = await pool.query(
     `INSERT INTO importacoes (usuario_id, nome_arquivo, total_linhas, status, ano_letivo, avaliacao_id)
@@ -181,144 +221,118 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   let linhasComErro = 0
   const erros: string[] = []
 
-  // Processar cada linha
-  for (let i = 0; i < dados.length; i++) {
-    try {
-      const linha = dados[i] as Record<string, unknown>
+  // Processar em batches de 100 linhas
+  const BATCH_SIZE = 100
 
-      // Extrair valores usando as colunas detectadas
-      const escolaCodigo = colEscola ? (linha[colEscola] || '').toString().trim() : null
-      const alunoCodigo = colAluno ? (linha[colAluno] || '').toString().trim() : null
-      const alunoNome = colNomeAluno ? (linha[colNomeAluno] || '').toString().trim() : null
-      const questaoCodigo = colQuestao ? (linha[colQuestao] || '').toString().trim() : null
-      const respostaAluno = colResposta ? (linha[colResposta] || '').toString().trim() : null
+  for (let batchStart = 0; batchStart < dados.length; batchStart += BATCH_SIZE) {
+    const batch = dados.slice(batchStart, batchStart + BATCH_SIZE)
+    const values: any[] = []
+    const placeholders: string[] = []
+    let paramIdx = 1
 
-      // Processar acertou
-      let acertou: boolean | null = null
-      if (colAcertou) {
-        const valorAcertou = (linha[colAcertou] || '').toString().toLowerCase().trim()
-        if (valorAcertou === 'sim' || valorAcertou === 's' || valorAcertou === 'true' || valorAcertou === '1' || valorAcertou === 'x' || valorAcertou === '\u2713') {
-          acertou = true
-        } else if (valorAcertou === 'não' || valorAcertou === 'nao' || valorAcertou === 'n' || valorAcertou === 'false' || valorAcertou === '0') {
-          acertou = false
-        }
-      }
+    for (let j = 0; j < batch.length; j++) {
+      const i = batchStart + j
+      try {
+        const linha = batch[j] as Record<string, unknown>
 
-      const nota = colNota ? parseFloat((linha[colNota] || '0').toString().replace(',', '.')) || null : null
+        const escolaCodigo = colEscola ? (linha[colEscola] || '').toString().trim() : null
+        const alunoCodigo = colAluno ? (linha[colAluno] || '').toString().trim() : null
+        const alunoNome = colNomeAluno ? (linha[colNomeAluno] || '').toString().trim() : null
+        const questaoCodigo = colQuestao ? (linha[colQuestao] || '').toString().trim() : null
+        const respostaAluno = colResposta ? (linha[colResposta] || '').toString().trim() : null
 
-      // Processar data
-      let dataProva: Date | null = null
-      if (colData && linha[colData]) {
-        try {
-          const dataStr = linha[colData].toString()
-          // Tentar diferentes formatos de data
-          if (dataStr.includes('/')) {
-            const [dia, mes, ano] = dataStr.split('/')
-            dataProva = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia))
-          } else {
-            dataProva = new Date(dataStr)
-          }
-          if (isNaN(dataProva.getTime())) {
-            dataProva = null
-          }
-        } catch {
-          dataProva = null
-        }
-      }
-
-      const anoLetivo = colAno ? (linha[colAno] || '').toString().trim() : null
-      const serie = colSerie ? (linha[colSerie] || '').toString().trim() : null
-      const turma = colTurma ? (linha[colTurma] || '').toString().trim() : null
-      const disciplina = colDisciplina ? (linha[colDisciplina] || '').toString().trim() : null
-      const areaConhecimento = colArea ? (linha[colArea] || '').toString().trim() : null
-
-      // Validar dados mínimos
-      if (!escolaCodigo && !alunoCodigo) {
-        throw new Error('Linha sem código de escola ou aluno')
-      }
-
-      // Buscar escola pelo código ou nome
-      let escolaId = null
-      if (escolaCodigo) {
-        const escolaResult = await pool.query(
-          'SELECT id FROM escolas WHERE (codigo = $1 OR nome = $1 OR nome ILIKE $1) AND ativo = true LIMIT 1',
-          [escolaCodigo]
-        )
-        if (escolaResult.rows.length > 0) {
-          escolaId = escolaResult.rows[0].id
-        } else {
-          // Tentar buscar por parte do nome
-          const escolaResult2 = await pool.query(
-            'SELECT id FROM escolas WHERE (nome ILIKE $1 OR codigo ILIKE $1) AND ativo = true LIMIT 1',
-            [`%${escolaCodigo}%`]
-          )
-          if (escolaResult2.rows.length > 0) {
-            escolaId = escolaResult2.rows[0].id
+        let acertou: boolean | null = null
+        if (colAcertou) {
+          const valorAcertou = (linha[colAcertou] || '').toString().toLowerCase().trim()
+          if (['sim', 's', 'true', '1', 'x', '\u2713'].includes(valorAcertou)) {
+            acertou = true
+          } else if (['não', 'nao', 'n', 'false', '0'].includes(valorAcertou)) {
+            acertou = false
           }
         }
-      }
 
-      if (!escolaId) {
-        throw new Error(`Escola não encontrada: "${escolaCodigo || 'vazio'}"`)
-      }
+        const nota = colNota ? parseFloat((linha[colNota] || '0').toString().replace(',', '.')) || null : null
 
-      // Buscar questão pelo código (opcional)
-      let questaoId = null
-      if (questaoCodigo) {
-        const questaoResult = await pool.query(
-          'SELECT id FROM questoes WHERE codigo = $1 LIMIT 1',
-          [questaoCodigo]
-        )
-        if (questaoResult.rows.length > 0) {
-          questaoId = questaoResult.rows[0].id
+        let dataProva: Date | null = null
+        if (colData && linha[colData]) {
+          try {
+            const dataStr = linha[colData].toString()
+            if (dataStr.includes('/')) {
+              const [dia, mes, ano] = dataStr.split('/')
+              dataProva = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia))
+            } else {
+              dataProva = new Date(dataStr)
+            }
+            if (isNaN(dataProva.getTime())) dataProva = null
+          } catch { dataProva = null }
         }
-      }
 
-      // Inserir resultado (com tratamento de duplicação)
-      // Se já existe resultado para este aluno/questão/ano, atualiza ao invés de duplicar
-      await pool.query(
-        `INSERT INTO resultados_provas
-         (escola_id, aluno_codigo, aluno_nome, questao_id, questao_codigo,
-          resposta_aluno, acertou, nota, data_prova, ano_letivo, serie,
-          turma, disciplina, area_conhecimento, avaliacao_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-         ON CONFLICT (aluno_id, questao_codigo, avaliacao_id)
-         DO UPDATE SET
-           resposta_aluno = EXCLUDED.resposta_aluno,
-           acertou = EXCLUDED.acertou,
-           nota = EXCLUDED.nota,
-           data_prova = EXCLUDED.data_prova,
-           atualizado_em = CURRENT_TIMESTAMP`,
-        [
-          escolaId,
-          alunoCodigo || null,
-          alunoNome || null,
-          questaoId,
-          questaoCodigo || null,
-          respostaAluno || null,
-          acertou,
-          nota,
-          dataProva,
-          anoLetivo || null,
-          serie || null,
-          turma || null,
-          disciplina || null,
-          areaConhecimento || null,
-          avaliacaoId,
+        const anoLetivo = colAno ? (linha[colAno] || '').toString().trim() : null
+        const serie = colSerie ? (linha[colSerie] || '').toString().trim() : null
+        const turma = colTurma ? (linha[colTurma] || '').toString().trim() : null
+        const disciplina = colDisciplina ? (linha[colDisciplina] || '').toString().trim() : null
+        const areaConhecimento = colArea ? (linha[colArea] || '').toString().trim() : null
+
+        if (!escolaCodigo && !alunoCodigo) {
+          throw new Error('Linha sem código de escola ou aluno')
+        }
+
+        const escolaId = escolaCodigo ? buscarEscolaId(escolaCodigo) : null
+        if (!escolaId) {
+          throw new Error(`Escola não encontrada: "${escolaCodigo || 'vazio'}"`)
+        }
+
+        const questaoId = questaoCodigo ? (questoesCache.get(questaoCodigo) || null) : null
+
+        const rowValues = [
+          escolaId, alunoCodigo || null, alunoNome || null, questaoId,
+          questaoCodigo || null, respostaAluno || null, acertou, nota,
+          dataProva, anoLetivo || null, serie || null, turma || null,
+          disciplina || null, areaConhecimento || null, avaliacaoId,
         ]
-      )
 
-      linhasProcessadas++
-    } catch (error: unknown) {
-      linhasComErro++
-      console.error(`[Importação] Erro na linha ${i + 2}:`, error)
-      erros.push(`Linha ${i + 2}: Erro ao processar registro`)
-      // Limitar quantidade de erros para não sobrecarregar
-      if (erros.length >= 100) {
-        erros.push(`... e mais ${dados.length - i - 1} erros`)
-        break
+        const ph = rowValues.map(() => `$${paramIdx++}`).join(', ')
+        placeholders.push(`(${ph})`)
+        values.push(...rowValues)
+        linhasProcessadas++
+      } catch (error: unknown) {
+        linhasComErro++
+        erros.push(`Linha ${i + 2}: Erro ao processar registro`)
+        if (erros.length >= 100) {
+          erros.push(`... e mais ${dados.length - i - 1} erros`)
+          break
+        }
       }
     }
+
+    // Executar batch INSERT
+    if (placeholders.length > 0) {
+      try {
+        await pool.query(
+          `INSERT INTO resultados_provas
+           (escola_id, aluno_codigo, aluno_nome, questao_id, questao_codigo,
+            resposta_aluno, acertou, nota, data_prova, ano_letivo, serie,
+            turma, disciplina, area_conhecimento, avaliacao_id)
+           VALUES ${placeholders.join(', ')}
+           ON CONFLICT (aluno_id, questao_codigo, avaliacao_id)
+           DO UPDATE SET
+             resposta_aluno = EXCLUDED.resposta_aluno,
+             acertou = EXCLUDED.acertou,
+             nota = EXCLUDED.nota,
+             data_prova = EXCLUDED.data_prova,
+             atualizado_em = CURRENT_TIMESTAMP`,
+          values
+        )
+      } catch (batchError: unknown) {
+        // Se batch falha, linhas ficam como erro
+        console.error(`[Importação] Erro no batch ${batchStart}:`, (batchError as Error)?.message)
+        linhasComErro += placeholders.length
+        linhasProcessadas -= placeholders.length
+        erros.push(`Batch ${batchStart + 1}-${batchStart + batch.length}: Erro ao inserir`)
+      }
+    }
+
+    if (erros.length >= 100) break
   }
 
   // Atualizar importação
@@ -332,7 +346,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       linhasProcessadas,
       linhasComErro,
       linhasComErro === dados.length ? 'erro' : 'concluido',
-      erros.length > 0 ? erros.slice(0, 50).join('\n') : null, // Limitar a 50 erros
+      erros.length > 0 ? erros.slice(0, 50).join('\n') : null,
       importacaoId,
     ]
   )

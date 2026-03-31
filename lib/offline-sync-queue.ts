@@ -10,7 +10,7 @@ export interface SyncItem {
   tipo: 'frequencia' | 'nota' | 'diario'
   endpoint: string
   method: 'POST' | 'PUT'
-  body: any
+  body: Record<string, unknown>
   criadoEm: string
   tentativas: number
 }

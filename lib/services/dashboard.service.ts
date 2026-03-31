@@ -12,9 +12,409 @@ import { safeQuery, getMediaGeralSQL, getMediaGeralMixedSQL, getMediaGeralMixedR
 import { NOTAS, LIMITES } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
 import { parseDbInt, parseDbNumber } from '@/lib/utils-numeros'
-import { Usuario } from '@/lib/types'
+import { Usuario, QueryParamValue } from '@/lib/types'
 
 const log = createLogger('Dashboard')
+
+// ============================================================================
+// TIPOS DE LINHAS DO BANCO DE DADOS (DB ROWS)
+// ============================================================================
+
+/** Linha retornada pela query de métricas do dashboard */
+interface MetricasDbRow {
+  total_alunos: string | null
+  total_escolas: string | null
+  total_turmas: string | null
+  total_polos: string | null
+  total_presentes: string | null
+  total_faltantes: string | null
+  media_geral: string | null
+  media_lp: string | null
+  media_mat: string | null
+  media_ch: string | null
+  media_cn: string | null
+  media_producao: string | null
+  menor_media: string | null
+  maior_media: string | null
+}
+
+/** Linha retornada pela query de níveis de aprendizagem */
+interface NivelDbRow {
+  nivel: string
+  quantidade: string
+}
+
+/** Linha retornada pela query de médias por série */
+interface MediaSerieDbRow {
+  serie: string | null
+  total_alunos: string | null
+  presentes: string | null
+  media_geral: string | null
+  media_lp: string | null
+  media_mat: string | null
+  media_ch: string | null
+  media_cn: string | null
+  media_prod: string | null
+}
+
+/** Linha retornada pela query de médias por polo */
+interface MediaPoloDbRow {
+  polo_id: string
+  polo: string
+  total_alunos: string | null
+  media_geral: string | null
+  media_lp: string | null
+  media_mat: string | null
+  presentes: string | null
+  faltantes: string | null
+}
+
+/** Linha retornada pela query de médias por escola */
+interface MediaEscolaDbRow {
+  escola_id: string
+  escola: string
+  polo: string | null
+  total_turmas: string | null
+  total_alunos: string | null
+  media_geral: string | null
+  media_lp: string | null
+  media_mat: string | null
+  media_ch: string | null
+  media_cn: string | null
+  media_prod: string | null
+  presentes: string | null
+  faltantes: string | null
+}
+
+/** Linha retornada pela query de médias por turma */
+interface MediaTurmaDbRow {
+  turma_id: string
+  turma: string | null
+  escola: string
+  serie: string | null
+  total_alunos: string | null
+  media_geral: string | null
+  media_lp: string | null
+  media_mat: string | null
+  media_ch: string | null
+  media_cn: string | null
+  media_prod: string | null
+  presentes: string | null
+  faltantes: string | null
+}
+
+/** Linha retornada pela query de faixas de nota */
+interface FaixaNotaDbRow {
+  faixa: string
+  quantidade: string
+}
+
+/** Linha retornada pela query de distribuição de presença */
+interface PresencaDbRow {
+  status: string
+  quantidade: string
+}
+
+/** Linha retornada pela query de top alunos */
+interface TopAlunoDbRow {
+  aluno: string
+  escola: string
+  serie: string | null
+  turma: string | null
+  media_aluno: string | null
+  nota_lp: string | null
+  nota_mat: string | null
+  nota_ch: string | null
+  nota_cn: string | null
+  presenca: string | null
+  nivel_aprendizagem: string | null
+}
+
+/** Linha retornada pela query de alunos detalhados */
+interface AlunoDetalhadoDbRow {
+  id: string
+  aluno: string
+  codigo: string | null
+  escola_id: string
+  escola: string
+  polo: string | null
+  serie: string | null
+  turma_id: string | null
+  turma: string | null
+  presenca: string | null
+  media_aluno: string | null
+  nota_lp: string | null
+  nota_mat: string | null
+  nota_ch: string | null
+  nota_cn: string | null
+  nota_producao: string | null
+  nivel_aprendizagem: string | null
+  total_acertos_lp: string | null
+  total_acertos_ch: string | null
+  total_acertos_mat: string | null
+  total_acertos_cn: string | null
+  qtd_questoes_lp: string | null
+  qtd_questoes_mat: string | null
+  qtd_questoes_ch: string | null
+  qtd_questoes_cn: string | null
+  nivel_lp: string | null
+  nivel_mat: string | null
+  nivel_prod: string | null
+  nivel_aluno: string | null
+}
+
+/** Linha retornada pela query de total de alunos */
+interface TotalDbRow {
+  total: string | null
+}
+
+/** Linha retornada pela query de filtro de polos */
+interface PoloFiltroDbRow {
+  id: string
+  nome: string
+}
+
+/** Linha retornada pela query de filtro de escolas */
+interface EscolaFiltroDbRow {
+  id: string
+  nome: string
+  polo_id: string
+}
+
+/** Linha retornada pela query de filtro de séries */
+interface SerieFiltroDbRow {
+  serie: string
+  serie_numero: number
+}
+
+/** Linha retornada pela query de filtro de turmas */
+interface TurmaFiltroDbRow {
+  id: string
+  codigo: string
+  escola_id: string
+}
+
+/** Linha retornada pela query de filtro de anos letivos */
+interface AnoLetivoFiltroDbRow {
+  ano_letivo: string
+}
+
+/** Linha retornada pela query de filtro de níveis */
+interface NivelFiltroDbRow {
+  nivel: string
+}
+
+/** Linha retornada pela query de taxa de acerto por disciplina */
+interface TaxaAcertoDisciplinaDbRow {
+  disciplina: string
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+  taxa_acerto: string | null
+  taxa_erro: string | null
+}
+
+/** Linha retornada pela query de taxa de acerto geral */
+interface TaxaAcertoGeralDbRow {
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+  taxa_acerto_geral: string | null
+  taxa_erro_geral: string | null
+}
+
+/** Linha retornada pela query de questões com acertos/erros */
+interface QuestaoAcertoDbRow {
+  questao_codigo: string | null
+  questao_descricao: string | null
+  disciplina: string
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+  taxa_acerto: string | null
+  taxa_erro: string | null
+}
+
+/** Linha retornada pela query de escolas com acertos/erros */
+interface EscolaAcertoDbRow {
+  escola_id: string
+  escola: string
+  polo: string | null
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+  taxa_acerto: string | null
+  taxa_erro: string | null
+  total_alunos: string | null
+}
+
+/** Linha retornada pela query de turmas com acertos/erros */
+interface TurmaAcertoDbRow {
+  turma_id: string
+  turma: string | null
+  escola: string
+  serie: string | null
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+  taxa_acerto: string | null
+  taxa_erro: string | null
+  total_alunos: string | null
+}
+
+/** Linha retornada pela query de resumo de questões por série */
+interface ResumoQuestaoDbRow {
+  questao_codigo: string | null
+  questao_descricao: string | null
+  disciplina: string
+  serie: string | null
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+}
+
+/** Linha retornada pela query de resumo de escolas por série */
+interface ResumoEscolaDbRow {
+  escola_id: string
+  escola: string
+  polo: string | null
+  serie: string | null
+  disciplina: string
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+  total_alunos: string | null
+}
+
+/** Linha retornada pela query de resumo de turmas por série */
+interface ResumoTurmaDbRow {
+  turma_id: string
+  turma: string | null
+  escola: string
+  serie: string | null
+  disciplina: string
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+  total_alunos: string | null
+}
+
+/** Linha retornada pela query de resumo de disciplinas por série */
+interface ResumoDisciplinaDbRow {
+  disciplina: string
+  serie: string | null
+  total_respostas: string | null
+  total_acertos: string | null
+  total_erros: string | null
+}
+
+// ============================================================================
+// TIPOS E INTERFACES PÚBLICAS
+// ============================================================================
+
+/** Estatísticas de acerto/erro por disciplina */
+export interface TaxaAcertoDisciplina {
+  disciplina: string
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+  taxa_acerto: number
+  taxa_erro: number
+}
+
+/** Estatísticas de acerto/erro de uma questão */
+export interface QuestaoAcertoErro {
+  questao_codigo: string | null
+  questao_descricao: string
+  disciplina: string
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+  taxa_acerto: number
+  taxa_erro: number
+}
+
+/** Estatísticas de acerto/erro de uma escola */
+export interface EscolaAcertoErro {
+  escola_id: string
+  escola: string
+  polo: string | null
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+  taxa_acerto: number
+  taxa_erro: number
+  total_alunos: number
+}
+
+/** Estatísticas de acerto/erro de uma turma */
+export interface TurmaAcertoErro {
+  turma_id: string
+  turma: string | null
+  escola: string
+  serie: string | null
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+  taxa_acerto: number
+  taxa_erro: number
+  total_alunos: number
+}
+
+/** Taxa de acerto geral */
+export interface TaxaAcertoGeral {
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+  taxa_acerto_geral: number
+  taxa_erro_geral: number
+}
+
+/** Resumo de questão por série */
+export interface ResumoQuestaoPorSerie {
+  questao_codigo: string | null
+  questao_descricao: string
+  disciplina: string
+  serie: string | null
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+}
+
+/** Resumo de escola por série */
+export interface ResumoEscolaPorSerie {
+  escola_id: string
+  escola: string
+  polo: string | null
+  serie: string | null
+  disciplina: string
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+  total_alunos: number
+}
+
+/** Resumo de turma por série */
+export interface ResumoPorSerieTurma {
+  turma_id: string
+  turma: string | null
+  escola: string
+  serie: string | null
+  disciplina: string
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+  total_alunos: number
+}
+
+/** Resumo de disciplina por série */
+export interface ResumoDisciplinaPorSerie {
+  disciplina: string
+  serie: string | null
+  total_respostas: number
+  total_acertos: number
+  total_erros: number
+}
 
 // ============================================================================
 // TIPOS E INTERFACES
@@ -81,7 +481,7 @@ export interface NivelDistribuicao {
 }
 
 export interface MediaPorSerie {
-  serie: string
+  serie: string | null
   total_alunos: number
   presentes: number
   media_geral: number
@@ -106,7 +506,7 @@ export interface MediaPorPolo {
 export interface MediaPorEscola {
   escola_id: string
   escola: string
-  polo: string
+  polo: string | null
   total_turmas: number
   total_alunos: number
   media_geral: number
@@ -121,9 +521,9 @@ export interface MediaPorEscola {
 
 export interface MediaPorTurma {
   turma_id: string
-  turma: string
+  turma: string | null
   escola: string
-  serie: string
+  serie: string | null
   total_alunos: number
   media_geral: number
   media_lp: number
@@ -146,31 +546,31 @@ export interface PresencaDistribuicao {
 }
 
 export interface FiltrosDisponiveis {
-  polos: any[]
-  escolas: any[]
+  polos: PoloFiltroDbRow[]
+  escolas: EscolaFiltroDbRow[]
   series: string[]
-  turmas: any[]
+  turmas: TurmaFiltroDbRow[]
   anosLetivos: string[]
   niveis: string[]
   faixasMedia: string[]
 }
 
 export interface AnaliseAcertosErros {
-  taxaAcertoGeral: any
-  taxaAcertoPorDisciplina: any[]
-  questoesComMaisErros: any[]
-  escolasComMaisErros: any[]
-  turmasComMaisErros: any[]
-  questoesComMaisAcertos: any[]
-  escolasComMaisAcertos: any[]
-  turmasComMaisAcertos: any[]
+  taxaAcertoGeral: TaxaAcertoGeral | null
+  taxaAcertoPorDisciplina: TaxaAcertoDisciplina[]
+  questoesComMaisErros: QuestaoAcertoErro[]
+  escolasComMaisErros: EscolaAcertoErro[]
+  turmasComMaisErros: TurmaAcertoErro[]
+  questoesComMaisAcertos: QuestaoAcertoErro[]
+  escolasComMaisAcertos: EscolaAcertoErro[]
+  turmasComMaisAcertos: TurmaAcertoErro[]
 }
 
 export interface ResumosPorSerie {
-  questoes: any[]
-  escolas: any[]
-  turmas: any[]
-  disciplinas: any[]
+  questoes: ResumoQuestaoPorSerie[]
+  escolas: ResumoEscolaPorSerie[]
+  turmas: ResumoPorSerieTurma[]
+  disciplinas: ResumoDisciplinaPorSerie[]
 }
 
 export interface DashboardResponse {
@@ -182,8 +582,8 @@ export interface DashboardResponse {
   mediasPorTurma: MediaPorTurma[]
   faixasNota: FaixaNota[]
   presenca: PresencaDistribuicao[]
-  topAlunos: any[]
-  alunosDetalhados: any[]
+  topAlunos: TopAlunoDbRow[]
+  alunosDetalhados: AlunoDetalhadoDbRow[]
   paginacaoAlunos: PaginacaoAlunosResponse
   filtros: FiltrosDisponiveis
   analiseAcertosErros: AnaliseAcertosErros
@@ -194,16 +594,16 @@ export interface DashboardResponse {
 export interface DashboardFilterResult {
   whereClause: string
   whereClauseBase: string
-  params: any[]
-  paramsBase: any[]
+  params: QueryParamValue[]
+  paramsBase: QueryParamValue[]
   /** Condições para queries de filtros dropdown */
-  filtrosParams: any[]
+  filtrosParams: QueryParamValue[]
   filtrosWhereClauseComPresenca: string
   /** Condições para queries de resultados_provas */
   rpWhereClauseComPresenca: string
-  rpParams: any[]
+  rpParams: QueryParamValue[]
   rpWhereClauseSemSerie: string
-  rpParamsSemSerie: any[]
+  rpParamsSemSerie: QueryParamValue[]
   /** JOIN para nivel_aprendizagem */
   joinNivelAprendizagem: string
   /** Queries de filtro separadas */
@@ -243,7 +643,7 @@ export function buildDashboardFilters(
   } = filtros
 
   let whereConditions: string[] = []
-  const params: any[] = []
+  const params: QueryParamValue[] = []
   let paramIndex = 1
 
   // Aplicar restrições de acesso
@@ -395,7 +795,7 @@ export function buildDashboardFilters(
 
   // ========== FILTROS PARA DROPDOWNS ==========
   const filtrosWhereConditions: string[] = []
-  const filtrosParams: any[] = []
+  const filtrosParams: QueryParamValue[] = []
   let filtrosParamIndex = 1
 
   if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
@@ -464,7 +864,7 @@ export function buildDashboardFilters(
 
   // ========== CONDIÇÕES PARA resultados_provas ==========
   const rpWhereConditions: string[] = []
-  const rpParams: any[] = []
+  const rpParams: QueryParamValue[] = []
   let rpParamIndex = 1
 
   if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
@@ -566,7 +966,7 @@ export function buildDashboardFilters(
 
   // ========== CONDIÇÕES PARA resumos sem série ==========
   const rpWhereConditionsSemSerie: string[] = []
-  const rpParamsSemSerie: any[] = []
+  const rpParamsSemSerie: QueryParamValue[] = []
   let rpParamIndexSemSerie = 1
 
   if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
@@ -638,9 +1038,9 @@ export function buildDashboardFilters(
  */
 export async function fetchDashboardMetricas(
   whereClauseBase: string,
-  paramsBase: any[],
+  paramsBase: QueryParamValue[],
   joinNivelAprendizagem: string
-): Promise<any> {
+): Promise<MetricasDbRow[]> {
   const sql = `
     SELECT
       COUNT(DISTINCT CASE WHEN (rc.presenca = 'P' OR rc.presenca = 'p' OR rc.presenca = 'F' OR rc.presenca = 'f') THEN rc.aluno_id END) as total_alunos,
@@ -668,7 +1068,7 @@ export async function fetchDashboardMetricas(
     ${joinNivelAprendizagem}
     ${whereClauseBase}
   `
-  return safeQuery(pool, sql, paramsBase, 'metricas')
+  return safeQuery<MetricasDbRow>(pool, sql, paramsBase, 'metricas')
 }
 
 /**
@@ -676,9 +1076,9 @@ export async function fetchDashboardMetricas(
  */
 export async function fetchDashboardNiveis(
   whereClauseBase: string,
-  paramsBase: any[],
+  paramsBase: QueryParamValue[],
   joinNivelAprendizagem: string
-): Promise<any[]> {
+): Promise<NivelDbRow[]> {
   // Adicionar condições de anos iniciais e presença
   const baseConditions = whereClauseBase ? whereClauseBase.replace('WHERE ', '') : ''
   const niveisConditions = baseConditions ? [baseConditions] : []
@@ -708,7 +1108,7 @@ export async function fetchDashboardNiveis(
         ELSE 5
       END
   `
-  return safeQuery(pool, sql, paramsBase, 'niveis')
+  return safeQuery<NivelDbRow>(pool, sql, paramsBase, 'niveis')
 }
 
 /**
@@ -716,9 +1116,9 @@ export async function fetchDashboardNiveis(
  */
 export async function fetchMediasPorSerie(
   whereClauseBase: string,
-  paramsBase: any[],
+  paramsBase: QueryParamValue[],
   joinNivelAprendizagem: string
-): Promise<any[]> {
+): Promise<MediaSerieDbRow[]> {
   const sql = `
     SELECT
       rc.serie,
@@ -738,7 +1138,7 @@ export async function fetchMediasPorSerie(
     HAVING rc.serie IS NOT NULL
     ORDER BY COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))::integer NULLS LAST
   `
-  return safeQuery(pool, sql, paramsBase, 'mediasPorSerie')
+  return safeQuery<MediaSerieDbRow>(pool, sql, paramsBase, 'mediasPorSerie')
 }
 
 /**
@@ -746,9 +1146,9 @@ export async function fetchMediasPorSerie(
  */
 export async function fetchMediasPorPolo(
   whereClauseBase: string,
-  paramsBase: any[],
+  paramsBase: QueryParamValue[],
   joinNivelAprendizagem: string
-): Promise<any[]> {
+): Promise<MediaPoloDbRow[]> {
   const sql = `
     SELECT
       p.id as polo_id,
@@ -767,7 +1167,7 @@ export async function fetchMediasPorPolo(
     GROUP BY p.id, p.nome
     ORDER BY media_geral DESC NULLS LAST
   `
-  return safeQuery(pool, sql, paramsBase, 'mediasPorPolo')
+  return safeQuery<MediaPoloDbRow>(pool, sql, paramsBase, 'mediasPorPolo')
 }
 
 /**
@@ -775,9 +1175,9 @@ export async function fetchMediasPorPolo(
  */
 export async function fetchMediasPorEscola(
   whereClauseBase: string,
-  paramsBase: any[],
+  paramsBase: QueryParamValue[],
   joinNivelAprendizagem: string
-): Promise<any[]> {
+): Promise<MediaEscolaDbRow[]> {
   const sql = `
     SELECT
       e.id as escola_id,
@@ -801,7 +1201,7 @@ export async function fetchMediasPorEscola(
     GROUP BY e.id, e.nome, p.nome
     ORDER BY media_geral DESC NULLS LAST
   `
-  return safeQuery(pool, sql, paramsBase, 'mediasPorEscola')
+  return safeQuery<MediaEscolaDbRow>(pool, sql, paramsBase, 'mediasPorEscola')
 }
 
 /**
@@ -809,9 +1209,9 @@ export async function fetchMediasPorEscola(
  */
 export async function fetchMediasPorTurma(
   whereClauseBase: string,
-  paramsBase: any[],
+  paramsBase: QueryParamValue[],
   joinNivelAprendizagem: string
-): Promise<any[]> {
+): Promise<MediaTurmaDbRow[]> {
   const sql = `
     SELECT
       t.id as turma_id,
@@ -840,7 +1240,7 @@ export async function fetchMediasPorTurma(
     HAVING t.id IS NOT NULL
     ORDER BY media_geral DESC NULLS LAST
   `
-  return safeQuery(pool, sql, paramsBase, 'mediasPorTurma')
+  return safeQuery<MediaTurmaDbRow>(pool, sql, paramsBase, 'mediasPorTurma')
 }
 
 /**
@@ -848,10 +1248,10 @@ export async function fetchMediasPorTurma(
  */
 export async function fetchFaixasNota(
   whereClause: string,
-  params: any[],
+  params: QueryParamValue[],
   joinNivelAprendizagem: string,
   presenca: string | null
-): Promise<any[]> {
+): Promise<FaixaNotaDbRow[]> {
   // Construir condições de faixas de nota
   const baseConditions = whereClause ? whereClause.replace('WHERE ', '') : ''
   const faixasConditions = baseConditions ? [baseConditions] : []
@@ -889,7 +1289,7 @@ export async function fetchFaixasNota(
     ) sub
     ORDER BY ordem
   `
-  return safeQuery(pool, sql, params, 'faixasNota')
+  return safeQuery<FaixaNotaDbRow>(pool, sql, params, 'faixasNota')
 }
 
 /**
@@ -897,9 +1297,9 @@ export async function fetchFaixasNota(
  */
 export async function fetchPresenca(
   whereClauseBase: string,
-  paramsBase: any[],
+  paramsBase: QueryParamValue[],
   joinNivelAprendizagem: string
-): Promise<any[]> {
+): Promise<PresencaDbRow[]> {
   const sql = `
     SELECT
       CASE
@@ -920,7 +1320,7 @@ export async function fetchPresenca(
       END
     ORDER BY quantidade DESC
   `
-  return safeQuery(pool, sql, paramsBase, 'presenca')
+  return safeQuery<PresencaDbRow>(pool, sql, paramsBase, 'presenca')
 }
 
 /**
@@ -928,9 +1328,9 @@ export async function fetchPresenca(
  */
 export async function fetchTopAlunos(
   whereClause: string,
-  params: any[],
+  params: QueryParamValue[],
   presenca: string | null
-): Promise<any[]> {
+): Promise<TopAlunoDbRow[]> {
   const baseConditions = whereClause ? whereClause.replace('WHERE ', '') : ''
   const topConditions = baseConditions ? [baseConditions] : []
   if (!presenca) {
@@ -967,7 +1367,7 @@ export async function fetchTopAlunos(
     ${topOrderBy}
     LIMIT 10
   `
-  return safeQuery(pool, sql, params, 'topAlunos')
+  return safeQuery<TopAlunoDbRow>(pool, sql, params, 'topAlunos')
 }
 
 /**
@@ -975,10 +1375,10 @@ export async function fetchTopAlunos(
  */
 export async function fetchAlunosDetalhados(
   whereClause: string,
-  params: any[],
+  params: QueryParamValue[],
   paginacao: PaginacaoAlunos,
   presenca: string | null
-): Promise<{ alunos: any[]; total: number }> {
+): Promise<{ alunos: AlunoDetalhadoDbRow[]; total: number }> {
   const orderBy = presenca === 'F'
     ? 'ORDER BY a.nome ASC'
     : `ORDER BY ${getMediaGeralMixedRoundedSQL('rc', 'rc_table', 'rc')} DESC NULLS LAST`
@@ -1049,13 +1449,13 @@ export async function fetchAlunosDetalhados(
   `
 
   const [totalRows, alunosRows] = await Promise.all([
-    safeQuery(pool, totalSql, params, 'totalAlunos'),
-    safeQuery(pool, alunosSql, params, 'alunosDetalhados')
+    safeQuery<TotalDbRow>(pool, totalSql, params, 'totalAlunos'),
+    safeQuery<AlunoDetalhadoDbRow>(pool, alunosSql, params, 'alunosDetalhados')
   ])
 
   return {
     alunos: alunosRows,
-    total: parseDbInt((totalRows[0] as {total?: string | number | null})?.total)
+    total: parseDbInt((totalRows[0] as TotalDbRow | undefined)?.total)
   }
 }
 
@@ -1074,7 +1474,7 @@ export async function fetchFiltrosDisponiveis(
   } = filters
 
   const [polosRows, escolasRows, seriesRows, turmasRows, anosLetivosRows, niveisRows] = await Promise.all([
-    safeQuery(pool, `
+    safeQuery<PoloFiltroDbRow>(pool, `
       SELECT DISTINCT p.id, p.nome
       FROM polos p
       INNER JOIN escolas e ON e.polo_id = p.id
@@ -1083,7 +1483,7 @@ export async function fetchFiltrosDisponiveis(
       ORDER BY p.nome
     `, filtrosParams, 'filtros.polos'),
 
-    safeQuery(pool, `
+    safeQuery<EscolaFiltroDbRow>(pool, `
       SELECT DISTINCT e.id, e.nome, e.polo_id
       FROM escolas e
       INNER JOIN resultados_consolidados_unificada rc ON rc.escola_id = e.id
@@ -1091,7 +1491,7 @@ export async function fetchFiltrosDisponiveis(
       ORDER BY e.nome
     `, filtrosParams, 'filtros.escolas'),
 
-    safeQuery(pool, `
+    safeQuery<SerieFiltroDbRow>(pool, `
       SELECT DISTINCT COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g')) || 'º Ano' as serie,
              COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))::integer as serie_numero
       FROM resultados_consolidados_unificada rc
@@ -1100,7 +1500,7 @@ export async function fetchFiltrosDisponiveis(
       ORDER BY serie_numero
     `, filtrosParams, 'filtros.series'),
 
-    safeQuery(pool, `
+    safeQuery<TurmaFiltroDbRow>(pool, `
       SELECT DISTINCT t.id, t.codigo, t.escola_id
       FROM turmas t
       INNER JOIN resultados_consolidados_unificada rc ON rc.turma_id = t.id
@@ -1109,7 +1509,7 @@ export async function fetchFiltrosDisponiveis(
       ORDER BY t.codigo
     `, filtrosParams, 'filtros.turmas'),
 
-    safeQuery(pool, `
+    safeQuery<AnoLetivoFiltroDbRow>(pool, `
       SELECT DISTINCT rc.ano_letivo
       FROM resultados_consolidados_unificada rc
       INNER JOIN escolas e ON rc.escola_id = e.id
@@ -1117,7 +1517,7 @@ export async function fetchFiltrosDisponiveis(
       ORDER BY rc.ano_letivo DESC
     `, filtrosParams, 'filtros.anosLetivos'),
 
-    safeQuery(pool, `
+    safeQuery<NivelFiltroDbRow>(pool, `
       SELECT DISTINCT
         COALESCE(NULLIF(rc_table.nivel_aprendizagem, ''), 'Não classificado') as nivel
       FROM resultados_consolidados_unificada rc
@@ -1131,10 +1531,10 @@ export async function fetchFiltrosDisponiveis(
   return {
     polos: polosRows,
     escolas: escolasRows,
-    series: seriesRows.map((r: any) => r.serie),
+    series: seriesRows.map((r: SerieFiltroDbRow) => r.serie),
     turmas: turmasRows,
-    anosLetivos: anosLetivosRows.map((r: any) => r.ano_letivo),
-    niveis: niveisRows.map((r: any) => r.nivel),
+    anosLetivos: anosLetivosRows.map((r: AnoLetivoFiltroDbRow) => r.ano_letivo),
+    niveis: niveisRows.map((r: NivelFiltroDbRow) => r.nivel),
     faixasMedia: ['0-2', '2-4', '4-6', '6-8', '8-10']
   }
 }
@@ -1144,7 +1544,7 @@ export async function fetchFiltrosDisponiveis(
  */
 export async function fetchAnaliseAcertosErros(
   rpWhereClauseComPresenca: string,
-  rpParams: any[]
+  rpParams: QueryParamValue[]
 ): Promise<AnaliseAcertosErros> {
   const [
     taxaAcertoPorDisciplinaRows,
@@ -1157,7 +1557,7 @@ export async function fetchAnaliseAcertosErros(
     turmasAcertosRows
   ] = await Promise.all([
     // Taxa de acerto por disciplina
-    safeQuery(pool, `
+    safeQuery<TaxaAcertoDisciplinaDbRow>(pool, `
       SELECT
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
         COUNT(*) as total_respostas,
@@ -1172,7 +1572,7 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'taxaAcertoPorDisciplina'),
 
     // Taxa de acerto geral
-    safeQuery(pool, `
+    safeQuery<TaxaAcertoGeralDbRow>(pool, `
       SELECT
         COUNT(*) as total_respostas,
         COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
@@ -1184,7 +1584,7 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'taxaAcertoGeral'),
 
     // Questões com mais erros
-    safeQuery(pool, `
+    safeQuery<QuestaoAcertoDbRow>(pool, `
       SELECT
         rp.questao_codigo,
         q.descricao as questao_descricao,
@@ -1204,7 +1604,7 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'questoesComMaisErros'),
 
     // Escolas com mais erros
-    safeQuery(pool, `
+    safeQuery<EscolaAcertoDbRow>(pool, `
       SELECT
         e.id as escola_id,
         e.nome as escola,
@@ -1226,7 +1626,7 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'escolasComMaisErros'),
 
     // Turmas com mais erros
-    safeQuery(pool, `
+    safeQuery<TurmaAcertoDbRow>(pool, `
       SELECT
         t.id as turma_id,
         t.codigo as turma,
@@ -1249,7 +1649,7 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'turmasComMaisErros'),
 
     // Questões com mais acertos
-    safeQuery(pool, `
+    safeQuery<QuestaoAcertoDbRow>(pool, `
       SELECT
         rp.questao_codigo,
         q.descricao as questao_descricao,
@@ -1269,7 +1669,7 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'questoesComMaisAcertos'),
 
     // Escolas com mais acertos
-    safeQuery(pool, `
+    safeQuery<EscolaAcertoDbRow>(pool, `
       SELECT
         e.id as escola_id,
         e.nome as escola,
@@ -1291,7 +1691,7 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'escolasComMaisAcertos'),
 
     // Turmas com mais acertos
-    safeQuery(pool, `
+    safeQuery<TurmaAcertoDbRow>(pool, `
       SELECT
         t.id as turma_id,
         t.codigo as turma,
@@ -1314,17 +1714,17 @@ export async function fetchAnaliseAcertosErros(
     `, rpParams, 'turmasComMaisAcertos')
   ])
 
-  const taxaAcertoGeral = (taxaAcertoGeralRows[0] as Record<string, string | number | null>) || null
+  const taxaAcertoGeralRow = taxaAcertoGeralRows[0] as TaxaAcertoGeralDbRow | undefined
 
   return {
-    taxaAcertoGeral: taxaAcertoGeral ? {
-      total_respostas: parseDbInt(taxaAcertoGeral.total_respostas),
-      total_acertos: parseDbInt(taxaAcertoGeral.total_acertos),
-      total_erros: parseDbInt(taxaAcertoGeral.total_erros),
-      taxa_acerto_geral: parseDbNumber(taxaAcertoGeral.taxa_acerto_geral),
-      taxa_erro_geral: parseDbNumber(taxaAcertoGeral.taxa_erro_geral)
+    taxaAcertoGeral: taxaAcertoGeralRow ? {
+      total_respostas: parseDbInt(taxaAcertoGeralRow.total_respostas),
+      total_acertos: parseDbInt(taxaAcertoGeralRow.total_acertos),
+      total_erros: parseDbInt(taxaAcertoGeralRow.total_erros),
+      taxa_acerto_geral: parseDbNumber(taxaAcertoGeralRow.taxa_acerto_geral),
+      taxa_erro_geral: parseDbNumber(taxaAcertoGeralRow.taxa_erro_geral)
     } : null,
-    taxaAcertoPorDisciplina: taxaAcertoPorDisciplinaRows.map((row: any) => ({
+    taxaAcertoPorDisciplina: taxaAcertoPorDisciplinaRows.map((row: TaxaAcertoDisciplinaDbRow) => ({
       disciplina: row.disciplina,
       total_respostas: parseDbInt(row.total_respostas),
       total_acertos: parseDbInt(row.total_acertos),
@@ -1332,7 +1732,7 @@ export async function fetchAnaliseAcertosErros(
       taxa_acerto: parseDbNumber(row.taxa_acerto),
       taxa_erro: parseDbNumber(row.taxa_erro)
     })),
-    questoesComMaisErros: questoesErrosRows.map((row: any) => ({
+    questoesComMaisErros: questoesErrosRows.map((row: QuestaoAcertoDbRow) => ({
       questao_codigo: row.questao_codigo,
       questao_descricao: row.questao_descricao || 'Descrição não disponível',
       disciplina: row.disciplina,
@@ -1342,7 +1742,7 @@ export async function fetchAnaliseAcertosErros(
       taxa_acerto: parseDbNumber(row.taxa_acerto),
       taxa_erro: parseDbNumber(row.taxa_erro)
     })),
-    escolasComMaisErros: escolasErrosRows.map((row: any) => ({
+    escolasComMaisErros: escolasErrosRows.map((row: EscolaAcertoDbRow) => ({
       escola_id: row.escola_id,
       escola: row.escola,
       polo: row.polo,
@@ -1353,7 +1753,7 @@ export async function fetchAnaliseAcertosErros(
       taxa_erro: parseDbNumber(row.taxa_erro),
       total_alunos: parseDbInt(row.total_alunos)
     })),
-    turmasComMaisErros: turmasErrosRows.map((row: any) => ({
+    turmasComMaisErros: turmasErrosRows.map((row: TurmaAcertoDbRow) => ({
       turma_id: row.turma_id,
       turma: row.turma,
       escola: row.escola,
@@ -1365,7 +1765,7 @@ export async function fetchAnaliseAcertosErros(
       taxa_erro: parseDbNumber(row.taxa_erro),
       total_alunos: parseDbInt(row.total_alunos)
     })),
-    questoesComMaisAcertos: questoesAcertosRows.map((row: any) => ({
+    questoesComMaisAcertos: questoesAcertosRows.map((row: QuestaoAcertoDbRow) => ({
       questao_codigo: row.questao_codigo,
       questao_descricao: row.questao_descricao || 'Descrição não disponível',
       disciplina: row.disciplina,
@@ -1375,7 +1775,7 @@ export async function fetchAnaliseAcertosErros(
       taxa_acerto: parseDbNumber(row.taxa_acerto),
       taxa_erro: parseDbNumber(row.taxa_erro)
     })),
-    escolasComMaisAcertos: escolasAcertosRows.map((row: any) => ({
+    escolasComMaisAcertos: escolasAcertosRows.map((row: EscolaAcertoDbRow) => ({
       escola_id: row.escola_id,
       escola: row.escola,
       polo: row.polo,
@@ -1386,7 +1786,7 @@ export async function fetchAnaliseAcertosErros(
       taxa_erro: parseDbNumber(row.taxa_erro),
       total_alunos: parseDbInt(row.total_alunos)
     })),
-    turmasComMaisAcertos: turmasAcertosRows.map((row: any) => ({
+    turmasComMaisAcertos: turmasAcertosRows.map((row: TurmaAcertoDbRow) => ({
       turma_id: row.turma_id,
       turma: row.turma,
       escola: row.escola,
@@ -1406,7 +1806,7 @@ export async function fetchAnaliseAcertosErros(
  */
 export async function fetchResumosPorSerie(
   rpWhereClauseSemSerie: string,
-  rpParamsSemSerie: any[],
+  rpParamsSemSerie: QueryParamValue[],
   serie: string | null
 ): Promise<ResumosPorSerie> {
   // Somente buscar se não há filtro de série (dados de TODAS as séries para cache local)
@@ -1415,7 +1815,7 @@ export async function fetchResumosPorSerie(
   }
 
   const [questoesRows, escolasRows, turmasRows, disciplinasRows] = await Promise.all([
-    safeQuery(pool, `
+    safeQuery<ResumoQuestaoDbRow>(pool, `
       SELECT
         rp.questao_codigo,
         q.descricao as questao_descricao,
@@ -1431,7 +1831,7 @@ export async function fetchResumosPorSerie(
       HAVING COUNT(*) >= 1
     `, rpParamsSemSerie, 'resumoQuestoesPorSerie'),
 
-    safeQuery(pool, `
+    safeQuery<ResumoEscolaDbRow>(pool, `
       SELECT
         e.id as escola_id,
         e.nome as escola,
@@ -1450,7 +1850,7 @@ export async function fetchResumosPorSerie(
       HAVING COUNT(*) >= 1
     `, rpParamsSemSerie, 'resumoEscolasPorSerie'),
 
-    safeQuery(pool, `
+    safeQuery<ResumoTurmaDbRow>(pool, `
       SELECT
         t.id as turma_id,
         t.codigo as turma,
@@ -1469,7 +1869,7 @@ export async function fetchResumosPorSerie(
       HAVING t.id IS NOT NULL AND COUNT(*) >= 10
     `, rpParamsSemSerie, 'resumoTurmasPorSerie'),
 
-    safeQuery(pool, `
+    safeQuery<ResumoDisciplinaDbRow>(pool, `
       SELECT
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
         rp.serie,
@@ -1483,7 +1883,7 @@ export async function fetchResumosPorSerie(
   ])
 
   return {
-    questoes: questoesRows.map((row: any) => ({
+    questoes: questoesRows.map((row: ResumoQuestaoDbRow) => ({
       questao_codigo: row.questao_codigo,
       questao_descricao: row.questao_descricao || 'Descrição não disponível',
       disciplina: row.disciplina,
@@ -1492,7 +1892,7 @@ export async function fetchResumosPorSerie(
       total_acertos: parseDbInt(row.total_acertos),
       total_erros: parseDbInt(row.total_erros)
     })),
-    escolas: escolasRows.map((row: any) => ({
+    escolas: escolasRows.map((row: ResumoEscolaDbRow) => ({
       escola_id: row.escola_id,
       escola: row.escola,
       polo: row.polo,
@@ -1503,7 +1903,7 @@ export async function fetchResumosPorSerie(
       total_erros: parseDbInt(row.total_erros),
       total_alunos: parseDbInt(row.total_alunos)
     })),
-    turmas: turmasRows.map((row: any) => ({
+    turmas: turmasRows.map((row: ResumoTurmaDbRow) => ({
       turma_id: row.turma_id,
       turma: row.turma,
       escola: row.escola,
@@ -1514,7 +1914,7 @@ export async function fetchResumosPorSerie(
       total_erros: parseDbInt(row.total_erros),
       total_alunos: parseDbInt(row.total_alunos)
     })),
-    disciplinas: disciplinasRows.map((row: any) => ({
+    disciplinas: disciplinasRows.map((row: ResumoDisciplinaDbRow) => ({
       disciplina: row.disciplina,
       serie: row.serie,
       total_respostas: parseDbInt(row.total_respostas),
@@ -1577,8 +1977,8 @@ export async function getDashboardData(
     fetchResumosPorSerie(rpWhereClauseSemSerie, rpParamsSemSerie, filtros.serie)
   ])
 
-  const metricas = metricasRows[0] || {}
-  const taxaAcertoGeral = analise.taxaAcertoGeral || {}
+  const metricas: Partial<MetricasDbRow> = metricasRows[0] || {}
+  const taxaAcertoGeral: Partial<TaxaAcertoGeral> = analise.taxaAcertoGeral || {}
 
   // Montar resposta
   return {
@@ -1606,11 +2006,11 @@ export async function getDashboardData(
       taxa_acerto_geral: parseDbNumber(taxaAcertoGeral.taxa_acerto_geral),
       taxa_erro_geral: parseDbNumber(taxaAcertoGeral.taxa_erro_geral)
     },
-    niveis: niveisRows.map((row: any) => ({
+    niveis: niveisRows.map((row: NivelDbRow) => ({
       nivel: row.nivel,
       quantidade: parseDbInt(row.quantidade)
     })),
-    mediasPorSerie: mediasPorSerieRows.map((row: any) => {
+    mediasPorSerie: mediasPorSerieRows.map((row: MediaSerieDbRow) => {
       const numeroSerie = row.serie?.match(/(\d+)/)?.[1]
       const isAnosIniciais = numeroSerie === '2' || numeroSerie === '3' || numeroSerie === '5'
       const isAnosFinais = numeroSerie === '6' || numeroSerie === '7' || numeroSerie === '8' || numeroSerie === '9'
@@ -1627,7 +2027,7 @@ export async function getDashboardData(
         media_prod: isAnosIniciais ? (parseDbNumber(row.media_prod)) : null
       }
     }),
-    mediasPorPolo: mediasPorPoloRows.map((row: any) => ({
+    mediasPorPolo: mediasPorPoloRows.map((row: MediaPoloDbRow) => ({
       polo_id: row.polo_id,
       polo: row.polo,
       total_alunos: parseDbInt(row.total_alunos),
@@ -1637,7 +2037,7 @@ export async function getDashboardData(
       presentes: parseDbInt(row.presentes),
       faltantes: parseDbInt(row.faltantes)
     })),
-    mediasPorEscola: mediasPorEscolaRows.map((row: any) => {
+    mediasPorEscola: mediasPorEscolaRows.map((row: MediaEscolaDbRow) => {
       const numeroSerieFiltro = filtros.serie?.match(/(\d+)/)?.[1]
       const isAnosIniciaisFiltro = numeroSerieFiltro === '2' || numeroSerieFiltro === '3' || numeroSerieFiltro === '5'
       const isAnosFinaisFiltro = numeroSerieFiltro === '6' || numeroSerieFiltro === '7' || numeroSerieFiltro === '8' || numeroSerieFiltro === '9'
@@ -1658,7 +2058,7 @@ export async function getDashboardData(
         faltantes: parseDbInt(row.faltantes)
       }
     }),
-    mediasPorTurma: mediasPorTurmaRows.map((row: any) => {
+    mediasPorTurma: mediasPorTurmaRows.map((row: MediaTurmaDbRow) => {
       const numeroSerieTurma = row.serie?.match(/(\d+)/)?.[1]
       const isAnosIniciaisTurma = numeroSerieTurma === '2' || numeroSerieTurma === '3' || numeroSerieTurma === '5'
       const isAnosFinaisTurma = numeroSerieTurma === '6' || numeroSerieTurma === '7' || numeroSerieTurma === '8' || numeroSerieTurma === '9'
@@ -1679,11 +2079,11 @@ export async function getDashboardData(
         faltantes: parseDbInt(row.faltantes)
       }
     }),
-    faixasNota: faixasNotaRows.map((row: any) => ({
+    faixasNota: faixasNotaRows.map((row: FaixaNotaDbRow) => ({
       faixa: row.faixa,
       quantidade: parseDbInt(row.quantidade)
     })),
-    presenca: presencaRows.map((row: any) => ({
+    presenca: presencaRows.map((row: PresencaDbRow) => ({
       status: row.status,
       quantidade: parseDbInt(row.quantidade)
     })),

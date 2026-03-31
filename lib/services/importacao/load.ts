@@ -46,14 +46,14 @@ export async function carregarDadosExistentes(anoLetivo: string, avaliacaoId: st
 
   // Carregar polos existentes
   const polosDB = await pool.query('SELECT id, nome FROM polos')
-  polosDB.rows.forEach((p: any) => {
+  polosDB.rows.forEach((p: { id: string; nome: string }) => {
     polosMap.set(p.nome.toUpperCase().trim(), p.id)
   })
   log.info(`  -> ${polosDB.rows.length} polos carregados`)
 
   // Carregar escolas existentes (usando normalizacao para evitar duplicatas)
   const escolasDB = await pool.query('SELECT id, nome FROM escolas WHERE ativo = true')
-  escolasDB.rows.forEach((e: any) => {
+  escolasDB.rows.forEach((e: { id: string; nome: string }) => {
     const nomeNormalizado = normalizarNomeEscola(e.nome)
     if (!escolasMap.has(nomeNormalizado)) {
       escolasMap.set(nomeNormalizado, e.id)
@@ -66,7 +66,7 @@ export async function carregarDadosExistentes(anoLetivo: string, avaliacaoId: st
     'SELECT id, codigo, escola_id FROM turmas WHERE ano_letivo = $1',
     [anoLetivo]
   )
-  turmasDB.rows.forEach((t: any) => {
+  turmasDB.rows.forEach((t: { id: string; codigo: string; escola_id: string }) => {
     turmasMap.set(`${t.codigo}_${t.escola_id}`, t.id)
   })
   log.info(`  -> ${turmasDB.rows.length} turmas carregadas (ano ${anoLetivo})`)
@@ -76,7 +76,7 @@ export async function carregarDadosExistentes(anoLetivo: string, avaliacaoId: st
     'SELECT id, nome, escola_id, turma_id, ano_letivo FROM alunos WHERE ano_letivo = $1 AND ativo = true',
     [anoLetivo]
   )
-  alunosDB.rows.forEach((a: any) => {
+  alunosDB.rows.forEach((a: { id: string; nome: string; escola_id: string; turma_id: string | null; ano_letivo: string | null }) => {
     const nomeNormalizado = (a.nome || '').toString().toUpperCase().trim()
     const turmaKey = a.turma_id ? a.turma_id.toString() : 'NULL'
     const alunoKey = `${nomeNormalizado}_${a.escola_id}_${turmaKey}_${a.ano_letivo || ''}`
@@ -86,7 +86,7 @@ export async function carregarDadosExistentes(anoLetivo: string, avaliacaoId: st
 
   // Carregar questoes existentes
   const questoesDB = await pool.query('SELECT id, codigo FROM questoes')
-  questoesDB.rows.forEach((q: any) => {
+  questoesDB.rows.forEach((q: { id: string; codigo: string }) => {
     questoesMap.set(q.codigo, q.id)
   })
   log.info(`  -> ${questoesDB.rows.length} questoes carregadas`)
@@ -230,7 +230,7 @@ export async function carregarQuestoes(
   // Carregar itens de producao
   const itensProducaoMap = new Map<string, string>()
   const itensProducaoDB = await pool.query('SELECT id, codigo FROM itens_producao WHERE ativo = true ORDER BY ordem')
-  itensProducaoDB.rows.forEach((item: any) => {
+  itensProducaoDB.rows.forEach((item: { id: string; codigo: string }) => {
     itensProducaoMap.set(item.codigo, item.id)
   })
   log.info(`  -> ${itensProducaoMap.size} itens de producao carregados`)

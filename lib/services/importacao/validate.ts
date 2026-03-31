@@ -20,7 +20,7 @@ const log = createLogger('Importacao')
 export async function validarImportacao(
   importacaoId: string,
   anoLetivo: string,
-  dados: any[],
+  dados: Record<string, unknown>[],
   resultado: ImportacaoResultado,
   erros: string[],
   startTime: number

@@ -9,15 +9,53 @@
 const CACHE_KEY = 'sisam_dashboard_cache'
 const CACHE_VERSION = '1.0'
 
+export interface EstatisticasCache {
+  totalEscolas: number
+  totalPolos: number
+  totalResultados: number
+  totalAlunos: number
+  totalTurmas: number
+  totalAlunosPresentes: number
+  totalAlunosFaltantes: number
+  mediaGeral: number
+  mediaAnosIniciais: number
+  mediaAnosFinais: number
+  totalAnosIniciais: number
+  totalAnosFinais: number
+  [key: string]: unknown
+}
+
+export interface EscolaCache {
+  id: string
+  nome: string
+  polo_id?: string
+  [key: string]: unknown
+}
+
+export interface TurmaCache {
+  id: string
+  codigo?: string
+  nome?: string
+  serie?: string
+  escola_id?: string
+  [key: string]: unknown
+}
+
+export interface PoloCache {
+  id: string
+  nome: string
+  [key: string]: unknown
+}
+
 export interface DashboardCache {
   version: string
   timestamp: number
   userId: string
   tipoUsuario: string
-  estatisticas: any
-  escolas: any[]
-  turmas: any[]
-  polos: any[]
+  estatisticas: EstatisticasCache
+  escolas: EscolaCache[]
+  turmas: TurmaCache[]
+  polos: PoloCache[]
   series: string[]
 }
 
@@ -99,7 +137,7 @@ export async function syncDashboardData(userId: string, tipoUsuario: string): Pr
   const baseUrl = isAdmin ? '/api/admin' : isPolo ? '/api/polo' : isEscola ? '/api/escola' : '/api/admin'
 
   // Carregar dados em paralelo
-  const promises: Promise<any>[] = []
+  const promises: Promise<unknown>[] = []
 
   // Estatísticas
   promises.push(
@@ -143,14 +181,19 @@ export async function syncDashboardData(userId: string, tipoUsuario: string): Pr
       .then(res => res.ok ? res.json() : { series: [] })
       .then(data => {
         if (data.series && Array.isArray(data.series)) {
-          return data.series.map((s: any) => s.nome_serie || `${s.serie}º Ano`)
+          return data.series.map((s: { nome_serie?: string; serie?: string }) => s.nome_serie || `${s.serie}º Ano`)
         }
         return ['2º Ano', '3º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano']
       })
       .catch(() => ['2º Ano', '3º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'])
   )
 
-  const [estatisticas, escolasData, turmasData, polosData, series] = await Promise.all(promises)
+  const results = await Promise.all(promises)
+  const estatisticas = results[0] as EstatisticasCache | null
+  const escolasData = results[1] as any
+  const turmasData = results[2] as any
+  const polosData = results[3] as any
+  const series = results[4] as string[]
 
   // Processar escolas
   const escolas = Array.isArray(escolasData) ? escolasData : escolasData?.escolas || []
@@ -209,7 +252,7 @@ function getDefaultEstatisticas() {
 /**
  * Obtém estatísticas do cache
  */
-export function getCachedEstatisticas(): any {
+export function getCachedEstatisticas(): EstatisticasCache {
   const cache = getCache()
   return cache?.estatisticas || getDefaultEstatisticas()
 }
@@ -217,7 +260,7 @@ export function getCachedEstatisticas(): any {
 /**
  * Obtém escolas do cache
  */
-export function getCachedEscolas(): any[] {
+export function getCachedEscolas(): EscolaCache[] {
   const cache = getCache()
   return cache?.escolas || []
 }
@@ -225,7 +268,7 @@ export function getCachedEscolas(): any[] {
 /**
  * Obtém turmas do cache
  */
-export function getCachedTurmas(): any[] {
+export function getCachedTurmas(): TurmaCache[] {
   const cache = getCache()
   return cache?.turmas || []
 }
@@ -233,7 +276,7 @@ export function getCachedTurmas(): any[] {
 /**
  * Obtém polos do cache
  */
-export function getCachedPolos(): any[] {
+export function getCachedPolos(): PoloCache[] {
   const cache = getCache()
   return cache?.polos || []
 }

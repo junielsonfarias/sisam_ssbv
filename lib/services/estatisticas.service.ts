@@ -912,7 +912,7 @@ async function buscarSeriesDisponiveis(
 
   const result = await pool.query(query)
 
-  return result.rows.map((row: any) => row.nome_serie as string)
+  return result.rows.map((row: { nome_serie: string }) => row.nome_serie)
 }
 
 // ============================================================================

@@ -1,0 +1,6226 @@
+openapi: 3.0.3
+info:
+  title: SISAM - Sistema de Avaliação Municipal
+  version: 2.0.0
+  description: |
+    API do sistema educacional SISAM / Gestor Escolar da SEMED São Sebastião da Boa Vista.
+
+    O sistema abrange avaliações municipais (SISAM), gestão escolar completa, portal do professor,
+    reconhecimento facial para frequência, site institucional, publicações oficiais e boletim público.
+
+    ## Autenticação
+    A autenticação é feita via cookie JWT httpOnly (`token`) definido no login.
+    Todas as rotas protegidas requerem o cookie `token` válido.
+
+    ## Tipos de Usuário
+    - **administrador** — Acesso total ao sistema
+    - **tecnico** — Acesso total (equivalente ao administrador)
+    - **polo** — Acesso ao seu polo e escolas vinculadas
+    - **escola** — Acesso apenas à sua própria escola
+    - **professor** — Acesso ao portal do professor (turmas vinculadas)
+    - **editor** — Acesso ao editor de notícias do site
+    - **publicador** — Acesso ao módulo de publicações oficiais
+
+    ## Padrões
+    - IDs são UUIDs v4
+    - Respostas de erro: `{ mensagem: string }`
+    - Paginação: `pagina` (default 1), `limite` (default 50, max 200)
+    - Ano letivo: string de 4 dígitos (ex: "2026")
+  contact:
+    name: Junielson Farias
+
+servers:
+  - url: /api
+    description: API base path
+
+tags:
+  - name: Auth
+    description: Autenticação (login, logout, verificação, cadastro de professor)
+  - name: Admin/Alunos
+    description: Gestão de alunos (CRUD, histórico, evolução, situação)
+  - name: Admin/Escolas
+    description: Gestão de escolas (CRUD, séries, regras, vínculos)
+  - name: Admin/Turmas
+    description: Gestão de turmas (CRUD, alunos, avaliações, composição)
+  - name: Admin/Polos
+    description: Gestão de polos educacionais
+  - name: Admin/Importações
+    description: Importação de dados via planilhas (resultados, cadastros, completa)
+  - name: Admin/SISAM
+    description: Avaliações SISAM (avaliações, resultados, níveis, séries participantes, cartão-resposta, questões)
+  - name: Admin/Dashboard
+    description: Dashboards e estatísticas (dados, gráficos, executivo, evolução, comparativos)
+  - name: Admin/Gestão Escolar
+    description: Notas escolares, frequência, períodos, disciplinas, configuração de séries e notas
+  - name: Admin/Facial
+    description: Reconhecimento facial (dispositivos, embeddings, enrollment, presença, LGPD)
+  - name: Admin/Site
+    description: Configuração do site institucional (config, eventos, ouvidoria, calendário)
+  - name: Admin/Usuários
+    description: Gestão de usuários, professores e vínculos professor-turma
+  - name: Admin/Matrículas
+    description: Matrículas, pré-matrículas, controle de vagas, fila de espera
+  - name: Admin/Transferências
+    description: Transferências e histórico de movimentação de alunos
+  - name: Admin/Anos Letivos
+    description: Gestão de anos letivos e fechamento de ano
+  - name: Admin/Diversos
+    description: Auditoria, cache, logs, notificações, personalização, debug, relatórios
+  - name: Professor
+    description: Portal do professor (turmas, notas, frequência, diário, comunicados, planos)
+  - name: Público
+    description: Endpoints públicos (site-config, boletim, publicações, transparência, ouvidoria, eventos, pré-matrícula)
+  - name: Offline
+    description: Sincronização offline (alunos, turmas, escolas, polos, questões, resultados, configuração)
+  - name: Sistema
+    description: Health check, inicialização, perfil, personalização
+  - name: Editor
+    description: Editor de notícias do site
+  - name: Publicador
+    description: Gestão de publicações oficiais (transparência)
+  - name: Facial Terminal
+    description: APIs do terminal facial (autenticação, ping, presença, sync)
+  - name: Polo/Escola
+    description: Endpoints específicos para perfis polo e escola
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+      description: JWT token em cookie httpOnly
+
+  schemas:
+    Erro:
+      type: object
+      properties:
+        mensagem:
+          type: string
+          example: Erro ao processar requisição
+      required: [mensagem]
+
+    ErroValidacao:
+      type: object
+      properties:
+        mensagem:
+          type: string
+          example: Dados inválidos
+        erros:
+          type: array
+          items:
+            type: object
+            properties:
+              campo:
+                type: string
+              mensagem:
+                type: string
+
+    Paginacao:
+      type: object
+      properties:
+        total:
+          type: integer
+        pagina:
+          type: integer
+        limite:
+          type: integer
+        total_paginas:
+          type: integer
+
+    UUID:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    AnoLetivo:
+      type: string
+      pattern: '^\d{4}$'
+      example: "2026"
+
+    TipoUsuario:
+      type: string
+      enum: [administrador, tecnico, polo, escola, professor, editor, publicador]
+
+    # ---- Entidades Principais ----
+
+    Usuario:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        tipo_usuario:
+          $ref: '#/components/schemas/TipoUsuario'
+        polo_id:
+          $ref: '#/components/schemas/UUID'
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        ativo:
+          type: boolean
+        criado_em:
+          type: string
+          format: date-time
+
+    UsuarioCreate:
+      type: object
+      required: [nome, email, senha, tipo_usuario]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        senha:
+          type: string
+          minLength: 12
+          description: Mínimo 12 caracteres, com letras e números
+        tipo_usuario:
+          $ref: '#/components/schemas/TipoUsuario'
+        polo_id:
+          $ref: '#/components/schemas/UUID'
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        ativo:
+          type: boolean
+          default: true
+
+    UsuarioUpdate:
+      allOf:
+        - type: object
+          required: [id]
+          properties:
+            id:
+              $ref: '#/components/schemas/UUID'
+            senha:
+              type: string
+              minLength: 12
+              nullable: true
+        - $ref: '#/components/schemas/UsuarioCreate'
+
+    Polo:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nome:
+          type: string
+        codigo:
+          type: string
+          nullable: true
+        descricao:
+          type: string
+          nullable: true
+        ativo:
+          type: boolean
+        criado_em:
+          type: string
+          format: date-time
+        atualizado_em:
+          type: string
+          format: date-time
+
+    PoloCreate:
+      type: object
+      required: [nome]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        codigo:
+          type: string
+          maxLength: 50
+          nullable: true
+        descricao:
+          type: string
+          maxLength: 1000
+          nullable: true
+        ativo:
+          type: boolean
+          default: true
+
+    Escola:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nome:
+          type: string
+        codigo:
+          type: string
+          nullable: true
+        polo_id:
+          $ref: '#/components/schemas/UUID'
+        polo_nome:
+          type: string
+        endereco:
+          type: string
+          nullable: true
+        telefone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        ativo:
+          type: boolean
+        criado_em:
+          type: string
+          format: date-time
+
+    EscolaCreate:
+      type: object
+      required: [nome, polo_id]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        codigo:
+          type: string
+          maxLength: 50
+          nullable: true
+        polo_id:
+          $ref: '#/components/schemas/UUID'
+        endereco:
+          type: string
+          maxLength: 500
+          nullable: true
+        telefone:
+          type: string
+          maxLength: 50
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        ativo:
+          type: boolean
+          default: true
+
+    Turma:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        codigo:
+          type: string
+        nome:
+          type: string
+          nullable: true
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        serie:
+          type: string
+          nullable: true
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        capacidade_maxima:
+          type: integer
+        multiserie:
+          type: boolean
+        multietapa:
+          type: boolean
+        ativo:
+          type: boolean
+
+    TurmaCreate:
+      type: object
+      required: [codigo, escola_id, serie, ano_letivo]
+      properties:
+        codigo:
+          type: string
+          minLength: 1
+          maxLength: 50
+        nome:
+          type: string
+          maxLength: 255
+          nullable: true
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        serie:
+          type: string
+          maxLength: 50
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        capacidade_maxima:
+          type: integer
+          default: 35
+        multiserie:
+          type: boolean
+          default: false
+        multietapa:
+          type: boolean
+          default: false
+        ativo:
+          type: boolean
+          default: true
+
+    Aluno:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nome:
+          type: string
+        codigo:
+          type: string
+          nullable: true
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        turma_id:
+          $ref: '#/components/schemas/UUID'
+        serie:
+          type: string
+          nullable: true
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        cpf:
+          type: string
+          nullable: true
+        data_nascimento:
+          type: string
+          nullable: true
+        pcd:
+          type: boolean
+        situacao:
+          type: string
+          enum: [cursando, transferido, abandono, aprovado, reprovado, remanejado]
+        nome_mae:
+          type: string
+          nullable: true
+        nome_pai:
+          type: string
+          nullable: true
+        responsavel:
+          type: string
+          nullable: true
+        telefone_responsavel:
+          type: string
+          nullable: true
+        genero:
+          type: string
+          enum: [masculino, feminino, outro, nao_informado]
+          nullable: true
+        raca_cor:
+          type: string
+          enum: [branca, preta, parda, amarela, indigena, nao_declarada]
+          nullable: true
+        ativo:
+          type: boolean
+
+    AlunoCreate:
+      type: object
+      required: [nome, escola_id]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        codigo:
+          type: string
+          maxLength: 100
+          nullable: true
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        turma_id:
+          $ref: '#/components/schemas/UUID'
+        serie:
+          type: string
+          maxLength: 50
+          nullable: true
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        cpf:
+          type: string
+          nullable: true
+          description: 11 dígitos ou formato XXX.XXX.XXX-XX
+        data_nascimento:
+          type: string
+          nullable: true
+        pcd:
+          type: boolean
+          default: false
+        nome_mae:
+          type: string
+          maxLength: 255
+          nullable: true
+        nome_pai:
+          type: string
+          maxLength: 255
+          nullable: true
+        responsavel:
+          type: string
+          maxLength: 255
+          nullable: true
+        telefone_responsavel:
+          type: string
+          maxLength: 20
+          nullable: true
+        genero:
+          type: string
+          enum: [masculino, feminino, outro, nao_informado]
+          nullable: true
+        raca_cor:
+          type: string
+          enum: [branca, preta, parda, amarela, indigena, nao_declarada]
+          nullable: true
+        endereco:
+          type: string
+          maxLength: 500
+          nullable: true
+        bairro:
+          type: string
+          maxLength: 100
+          nullable: true
+        cidade:
+          type: string
+          maxLength: 100
+          nullable: true
+        cep:
+          type: string
+          maxLength: 10
+          nullable: true
+        bolsa_familia:
+          type: boolean
+          default: false
+        nis:
+          type: string
+          maxLength: 20
+          nullable: true
+        tipo_deficiencia:
+          type: string
+          maxLength: 255
+          nullable: true
+        observacoes:
+          type: string
+          maxLength: 2000
+          nullable: true
+
+    # ---- Avaliações SISAM ----
+
+    Avaliacao:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nome:
+          type: string
+        descricao:
+          type: string
+          nullable: true
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        tipo:
+          type: string
+          enum: [diagnostica, final, unica]
+        ordem:
+          type: integer
+        data_inicio:
+          type: string
+          nullable: true
+        data_fim:
+          type: string
+          nullable: true
+        ativo:
+          type: boolean
+        criado_em:
+          type: string
+          format: date-time
+
+    AvaliacaoCreate:
+      type: object
+      required: [nome, ano_letivo, tipo]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        descricao:
+          type: string
+          maxLength: 1000
+          nullable: true
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        tipo:
+          type: string
+          enum: [diagnostica, final, unica]
+        ordem:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 1
+        data_inicio:
+          type: string
+          nullable: true
+        data_fim:
+          type: string
+          nullable: true
+        ativo:
+          type: boolean
+          default: true
+
+    Questao:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        codigo:
+          type: string
+        descricao:
+          type: string
+          nullable: true
+        disciplina:
+          type: string
+        area_conhecimento:
+          type: string
+          nullable: true
+        dificuldade:
+          type: string
+          enum: [facil, medio, dificil]
+          nullable: true
+        gabarito:
+          type: string
+          nullable: true
+
+    QuestaoCreate:
+      type: object
+      required: [codigo, disciplina]
+      properties:
+        codigo:
+          type: string
+          minLength: 1
+          maxLength: 50
+        descricao:
+          type: string
+          maxLength: 1000
+          nullable: true
+        disciplina:
+          type: string
+          maxLength: 100
+        area_conhecimento:
+          type: string
+          maxLength: 100
+          nullable: true
+        dificuldade:
+          type: string
+          enum: [facil, medio, dificil]
+          nullable: true
+        gabarito:
+          type: string
+          maxLength: 10
+          nullable: true
+
+    ResultadoConsolidado:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        aluno_id:
+          $ref: '#/components/schemas/UUID'
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        turma_id:
+          $ref: '#/components/schemas/UUID'
+        ano_letivo:
+          type: string
+        serie:
+          type: string
+          nullable: true
+        presenca:
+          type: string
+          enum: [P, F]
+          nullable: true
+        total_acertos_lp:
+          type: integer
+        total_acertos_ch:
+          type: integer
+        total_acertos_mat:
+          type: integer
+        total_acertos_cn:
+          type: integer
+        nota_lp:
+          type: number
+          nullable: true
+        nota_ch:
+          type: number
+          nullable: true
+        nota_mat:
+          type: number
+          nullable: true
+        nota_cn:
+          type: number
+          nullable: true
+        media_aluno:
+          type: number
+          nullable: true
+        nivel_aprendizagem:
+          type: string
+          nullable: true
+
+    # ---- Gestor Escolar ----
+
+    DisciplinaEscolar:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nome:
+          type: string
+        codigo:
+          type: string
+          nullable: true
+        abreviacao:
+          type: string
+          nullable: true
+        ordem:
+          type: integer
+        ativo:
+          type: boolean
+
+    DisciplinaEscolarCreate:
+      type: object
+      required: [nome]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        codigo:
+          type: string
+          maxLength: 50
+          nullable: true
+        abreviacao:
+          type: string
+          maxLength: 20
+          nullable: true
+        ordem:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 0
+        ativo:
+          type: boolean
+          default: true
+
+    PeriodoLetivo:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nome:
+          type: string
+        tipo:
+          type: string
+          enum: [bimestre, trimestre, semestre, anual]
+        numero:
+          type: integer
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        data_inicio:
+          type: string
+          nullable: true
+        data_fim:
+          type: string
+          nullable: true
+        ativo:
+          type: boolean
+
+    PeriodoLetivoCreate:
+      type: object
+      required: [nome, tipo, numero, ano_letivo]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        tipo:
+          type: string
+          enum: [bimestre, trimestre, semestre, anual]
+        numero:
+          type: integer
+          minimum: 1
+          maximum: 12
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        data_inicio:
+          type: string
+          nullable: true
+        data_fim:
+          type: string
+          nullable: true
+        ativo:
+          type: boolean
+          default: true
+
+    NotaEscolar:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        aluno_id:
+          $ref: '#/components/schemas/UUID'
+        disciplina_id:
+          $ref: '#/components/schemas/UUID'
+        periodo_id:
+          $ref: '#/components/schemas/UUID'
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        turma_id:
+          $ref: '#/components/schemas/UUID'
+        ano_letivo:
+          type: string
+        nota:
+          type: number
+          nullable: true
+        nota_recuperacao:
+          type: number
+          nullable: true
+        nota_final:
+          type: number
+          nullable: true
+        faltas:
+          type: integer
+          nullable: true
+        observacao:
+          type: string
+          nullable: true
+        conceito:
+          type: string
+          nullable: true
+        parecer_descritivo:
+          type: string
+          nullable: true
+        aluno_nome:
+          type: string
+        disciplina_nome:
+          type: string
+        periodo_nome:
+          type: string
+
+    NotaLote:
+      type: object
+      required: [turma_id, periodo_id, notas]
+      properties:
+        turma_id:
+          $ref: '#/components/schemas/UUID'
+        disciplina_id:
+          $ref: '#/components/schemas/UUID'
+        periodo_id:
+          $ref: '#/components/schemas/UUID'
+        notas:
+          type: array
+          items:
+            type: object
+            required: [aluno_id]
+            properties:
+              aluno_id:
+                $ref: '#/components/schemas/UUID'
+              nota:
+                type: number
+                minimum: 0
+                maximum: 100
+                nullable: true
+              nota_recuperacao:
+                type: number
+                minimum: 0
+                maximum: 100
+                nullable: true
+              faltas:
+                type: integer
+                minimum: 0
+              observacao:
+                type: string
+                maxLength: 500
+                nullable: true
+              conceito:
+                type: string
+                maxLength: 5
+                nullable: true
+              parecer_descritivo:
+                type: string
+                maxLength: 5000
+                nullable: true
+
+    ConfiguracaoSerie:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        serie:
+          type: string
+        nome_serie:
+          type: string
+        tipo_ensino:
+          type: string
+        qtd_questoes_lp:
+          type: integer
+        qtd_questoes_mat:
+          type: integer
+        qtd_questoes_ch:
+          type: integer
+        qtd_questoes_cn:
+          type: integer
+        total_questoes_objetivas:
+          type: integer
+        tem_producao_textual:
+          type: boolean
+        qtd_itens_producao:
+          type: integer
+        avalia_lp:
+          type: boolean
+        avalia_mat:
+          type: boolean
+        avalia_ch:
+          type: boolean
+        avalia_cn:
+          type: boolean
+        usa_nivel_aprendizagem:
+          type: boolean
+        ativo:
+          type: boolean
+
+    ConfiguracaoNotasEscola:
+      type: object
+      required: [escola_id, ano_letivo]
+      properties:
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        ano_letivo:
+          $ref: '#/components/schemas/AnoLetivo'
+        tipo_periodo:
+          type: string
+          enum: [bimestre, trimestre, semestre]
+          default: bimestre
+        nota_maxima:
+          type: number
+          default: 10
+        media_aprovacao:
+          type: number
+          default: 6
+        media_recuperacao:
+          type: number
+          default: 5
+        peso_avaliacao:
+          type: number
+          default: 0.6
+        peso_recuperacao:
+          type: number
+          default: 0.4
+        permite_recuperacao:
+          type: boolean
+          default: true
+
+    NivelAprendizagem:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        codigo:
+          type: string
+        nome:
+          type: string
+        descricao:
+          type: string
+          nullable: true
+        cor:
+          type: string
+          nullable: true
+        nota_minima:
+          type: number
+        nota_maxima:
+          type: number
+        ordem:
+          type: integer
+        serie_aplicavel:
+          type: string
+          nullable: true
+        ativo:
+          type: boolean
+
+    # ---- Facial ----
+
+    DispositivoFacial:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        nome:
+          type: string
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        localizacao:
+          type: string
+          nullable: true
+        status:
+          type: string
+        ultimo_ping:
+          type: string
+          format: date-time
+          nullable: true
+        chave_api:
+          type: string
+
+    DispositivoFacialCreate:
+      type: object
+      required: [nome, escola_id]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+          maxLength: 255
+        escola_id:
+          $ref: '#/components/schemas/UUID'
+        localizacao:
+          type: string
+          maxLength: 255
+          nullable: true
+
+    PresencaFacial:
+      type: object
+      required: [aluno_id, timestamp, confianca]
+      properties:
+        aluno_id:
+          $ref: '#/components/schemas/UUID'
+        timestamp:
+          type: string
+          format: date-time
+        confianca:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    PresencaFacialLote:
+      type: object
+      required: [registros]
+      properties:
+        registros:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/PresencaFacial'
+
+    # ---- Publicações ----
+
+    Publicacao:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        tipo:
+          type: string
+        numero:
+          type: string
+          nullable: true
+        titulo:
+          type: string
+        descricao:
+          type: string
+          nullable: true
+        orgao:
+          type: string
+        data_publicacao:
+          type: string
+        ano_referencia:
+          type: string
+          nullable: true
+        url_arquivo:
+          type: string
+          nullable: true
+
+    PublicacaoCreate:
+      type: object
+      required: [tipo, titulo, orgao, data_publicacao]
+      properties:
+        tipo:
+          type: string
+          minLength: 1
+          maxLength: 50
+        numero:
+          type: string
+          maxLength: 50
+          nullable: true
+        titulo:
+          type: string
+          minLength: 1
+          maxLength: 255
+        descricao:
+          type: string
+          maxLength: 5000
+          nullable: true
+        orgao:
+          type: string
+          minLength: 1
+          maxLength: 100
+        data_publicacao:
+          type: string
+        ano_referencia:
+          type: string
+          maxLength: 10
+          nullable: true
+        url_arquivo:
+          type: string
+          maxLength: 2000
+          nullable: true
+
+    # ---- Pré-matrícula ----
+
+    PreMatricula:
+      type: object
+      required: [aluno_nome, aluno_data_nascimento, responsavel_nome, responsavel_telefone, serie_pretendida, ano_letivo]
+      properties:
+        aluno_nome:
+          type: string
+          minLength: 3
+        aluno_data_nascimento:
+          type: string
+        aluno_cpf:
+          type: string
+          nullable: true
+        aluno_genero:
+          type: string
+          nullable: true
+        aluno_pcd:
+          type: boolean
+          default: false
+        responsavel_nome:
+          type: string
+          minLength: 3
+        responsavel_cpf:
+          type: string
+          nullable: true
+        responsavel_telefone:
+          type: string
+          minLength: 8
+        responsavel_email:
+          type: string
+          format: email
+          nullable: true
+        parentesco:
+          type: string
+          nullable: true
+        endereco:
+          type: string
+          nullable: true
+        bairro:
+          type: string
+          nullable: true
+        escola_pretendida_id:
+          $ref: '#/components/schemas/UUID'
+        serie_pretendida:
+          type: string
+        ano_letivo:
+          type: string
+
+    # ---- Professor: Planos e Diário ----
+
+    PlanoAula:
+      type: object
+      required: [turma_id, data_inicio, objetivo, conteudo]
+      properties:
+        turma_id:
+          $ref: '#/components/schemas/UUID'
+        disciplina_id:
+          $ref: '#/components/schemas/UUID'
+        periodo:
+          type: string
+          enum: [semanal, mensal, bimestral]
+          default: semanal
+        data_inicio:
+          type: string
+          format: date
+        data_fim:
+          type: string
+          format: date
+          nullable: true
+        objetivo:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        conteudo:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        metodologia:
+          type: string
+          maxLength: 5000
+          nullable: true
+        recursos:
+          type: string
+          maxLength: 5000
+          nullable: true
+        avaliacao:
+          type: string
+          maxLength: 5000
+          nullable: true
+        observacoes:
+          type: string
+          maxLength: 5000
+          nullable: true
+        status:
+          type: string
+          enum: [rascunho, finalizado]
+          default: rascunho
+
+    DiarioClasse:
+      type: object
+      required: [turma_id, data_aula, conteudo]
+      properties:
+        turma_id:
+          $ref: '#/components/schemas/UUID'
+        disciplina_id:
+          $ref: '#/components/schemas/UUID'
+        data_aula:
+          type: string
+          format: date
+        conteudo:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        metodologia:
+          type: string
+          maxLength: 2000
+          nullable: true
+        observacoes:
+          type: string
+          maxLength: 2000
+          nullable: true
+
+  parameters:
+    AnoLetivo:
+      name: ano_letivo
+      in: query
+      schema:
+        $ref: '#/components/schemas/AnoLetivo'
+      description: Filtro por ano letivo (ex. 2026)
+    EscolaId:
+      name: escola_id
+      in: query
+      schema:
+        $ref: '#/components/schemas/UUID'
+      description: Filtro por ID da escola
+    PoloId:
+      name: polo_id
+      in: query
+      schema:
+        $ref: '#/components/schemas/UUID'
+      description: Filtro por ID do polo
+    TurmaId:
+      name: turma_id
+      in: query
+      schema:
+        $ref: '#/components/schemas/UUID'
+      description: Filtro por ID da turma
+    Serie:
+      name: serie
+      in: query
+      schema:
+        type: string
+      description: Filtro por série escolar
+    Pagina:
+      name: pagina
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Número da página
+    Limite:
+      name: limite
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+      description: Itens por página
+    Busca:
+      name: busca
+      in: query
+      schema:
+        type: string
+        maxLength: 200
+      description: Busca textual por nome ou código
+
+  responses:
+    '400':
+      description: Requisição inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    '401':
+      description: Não autorizado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            mensagem: Não autorizado
+    '403':
+      description: Acesso negado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            mensagem: Acesso negado
+    '429':
+      description: Rate limit excedido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            mensagem: Muitas tentativas. Tente novamente mais tarde.
+    '500':
+      description: Erro interno do servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            mensagem: Erro interno do servidor
+
+# ============================================================================
+# PATHS
+# ============================================================================
+
+paths:
+
+  # ========== AUTH ==========
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Realizar login
+      description: |
+        Autentica o usuário com email e senha. Define cookie JWT httpOnly.
+        Rate limit: 5 tentativas em 15 minutos por IP+email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, senha]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+                senha:
+                  type: string
+                  minLength: 1
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          headers:
+            Set-Cookie:
+              description: Cookie JWT httpOnly
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  usuario:
+                    type: object
+                    properties:
+                      id:
+                        $ref: '#/components/schemas/UUID'
+                      nome:
+                        type: string
+                      email:
+                        type: string
+                      tipo_usuario:
+                        $ref: '#/components/schemas/TipoUsuario'
+                      polo_id:
+                        $ref: '#/components/schemas/UUID'
+                      escola_id:
+                        $ref: '#/components/schemas/UUID'
+                      gestor_escolar_habilitado:
+                        type: boolean
+        '401':
+          description: Email ou senha incorretos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '429':
+          $ref: '#/components/responses/429'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Realizar logout
+      description: Remove o cookie JWT de autenticação.
+      responses:
+        '200':
+          description: Logout realizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                    example: Logout realizado com sucesso
+
+  /auth/verificar:
+    get:
+      tags: [Auth]
+      summary: Verificar autenticação
+      description: |
+        Retorna dados do usuário autenticado a partir do cookie JWT.
+        Para professores, inclui lista de escolas vinculadas.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Usuário autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario:
+                    type: object
+                    properties:
+                      id:
+                        $ref: '#/components/schemas/UUID'
+                      nome:
+                        type: string
+                      email:
+                        type: string
+                      tipo_usuario:
+                        $ref: '#/components/schemas/TipoUsuario'
+                      polo_id:
+                        $ref: '#/components/schemas/UUID'
+                      escola_id:
+                        $ref: '#/components/schemas/UUID'
+                      gestor_escolar_habilitado:
+                        type: boolean
+                      professor_escolas:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            escola_id:
+                              $ref: '#/components/schemas/UUID'
+                            escola_nome:
+                              type: string
+        '401':
+          $ref: '#/components/responses/401'
+        '503':
+          description: Banco de dados indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+
+  /auth/cadastro-professor:
+    post:
+      tags: [Auth]
+      summary: Cadastro público de professor
+      description: |
+        Cria professor com ativo=false, aguardando ativação pelo administrador.
+        Rate limit: 3 tentativas por 15 minutos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, email, senha]
+              properties:
+                nome:
+                  type: string
+                  minLength: 2
+                email:
+                  type: string
+                  format: email
+                senha:
+                  type: string
+                  minLength: 12
+                cpf:
+                  type: string
+                  nullable: true
+                telefone:
+                  type: string
+                  nullable: true
+      responses:
+        '201':
+          description: Cadastro realizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  professor:
+                    type: object
+                    properties:
+                      id:
+                        $ref: '#/components/schemas/UUID'
+                      nome:
+                        type: string
+                      email:
+                        type: string
+        '409':
+          description: Email ou CPF já cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '429':
+          $ref: '#/components/responses/429'
+        '500':
+          $ref: '#/components/responses/500'
+
+  # ========== ADMIN/ALUNOS ==========
+
+  /admin/alunos:
+    get:
+      tags: [Admin/Alunos]
+      summary: Listar alunos com paginação
+      description: Lista alunos ativos com filtros, busca e paginação. Suporta keyset pagination via cursor.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/TurmaId'
+        - $ref: '#/components/parameters/Serie'
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/PoloId'
+        - $ref: '#/components/parameters/Busca'
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Cursor base64 para keyset pagination
+      responses:
+        '200':
+          description: Lista de alunos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dados:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Aluno'
+                  paginacao:
+                    $ref: '#/components/schemas/Paginacao'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+    post:
+      tags: [Admin/Alunos]
+      summary: Criar aluno
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlunoCreate'
+      responses:
+        '201':
+          description: Aluno criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aluno'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+    put:
+      tags: [Admin/Alunos]
+      summary: Atualizar aluno
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                    ativo:
+                      type: boolean
+                - $ref: '#/components/schemas/AlunoCreate'
+      responses:
+        '200':
+          description: Aluno atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aluno'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+    delete:
+      tags: [Admin/Alunos]
+      summary: Desativar aluno
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Aluno desativado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+
+  /admin/alunos/{id}:
+    get:
+      tags: [Admin/Alunos]
+      summary: Buscar aluno por ID
+      description: Retorna dados completos de um aluno específico com escola, turma e polo.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados do aluno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aluno'
+        '404':
+          description: Aluno não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+    put:
+      tags: [Admin/Alunos]
+      summary: Atualizar aluno por ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlunoCreate'
+      responses:
+        '200':
+          description: Aluno atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aluno'
+
+  /admin/alunos/{id}/historico:
+    get:
+      tags: [Admin/Alunos]
+      summary: Histórico do aluno
+      description: Retorna histórico de movimentações e situações do aluno.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Histórico do aluno
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /admin/alunos/{id}/evolucao:
+    get:
+      tags: [Admin/Alunos]
+      summary: Evolução do aluno
+      description: Retorna dados de evolução de desempenho do aluno ao longo do tempo.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Evolução do aluno
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /admin/alunos/{id}/resultados-sisam:
+    get:
+      tags: [Admin/Alunos]
+      summary: Resultados SISAM do aluno
+      description: Retorna resultados consolidados das avaliações SISAM de um aluno.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Resultados SISAM
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /admin/alunos/{id}/situacao:
+    get:
+      tags: [Admin/Alunos]
+      summary: Situação atual do aluno
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Situação do aluno
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      tags: [Admin/Alunos]
+      summary: Alterar situação do aluno
+      description: Registra mudança de situação (transferência, abandono, etc).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                situacao:
+                  type: string
+                  enum: [cursando, transferido, abandono, aprovado, reprovado, remanejado]
+                observacao:
+                  type: string
+                tipo_movimentacao:
+                  type: string
+                tipo_transferencia:
+                  type: string
+      responses:
+        '200':
+          description: Situação atualizada
+        '400':
+          $ref: '#/components/responses/400'
+
+  /admin/alunos/historico:
+    get:
+      tags: [Admin/Alunos]
+      summary: Histórico geral de alunos
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Histórico
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /admin/aluno-questoes:
+    get:
+      tags: [Admin/SISAM]
+      summary: Respostas de alunos por questão
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/TurmaId'
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Dados de respostas por questão
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ========== ADMIN/ESCOLAS ==========
+
+  /admin/escolas:
+    get:
+      tags: [Admin/Escolas]
+      summary: Listar escolas
+      description: Lista escolas com filtros. Suporta estatísticas opcionais via com_estatisticas=true.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PoloId'
+        - name: id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Filtrar por ID específico
+        - $ref: '#/components/parameters/Serie'
+        - $ref: '#/components/parameters/AnoLetivo'
+        - name: com_estatisticas
+          in: query
+          schema:
+            type: boolean
+          description: Incluir médias por disciplina
+      responses:
+        '200':
+          description: Lista de escolas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Escola'
+        '401':
+          $ref: '#/components/responses/401'
+    post:
+      tags: [Admin/Escolas]
+      summary: Criar escola
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscolaCreate'
+      responses:
+        '201':
+          description: Escola criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Escola'
+        '400':
+          $ref: '#/components/responses/400'
+    delete:
+      tags: [Admin/Escolas]
+      summary: Excluir escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Escola excluída
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+
+  /admin/escolas/{id}:
+    get:
+      tags: [Admin/Escolas]
+      summary: Buscar escola por ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados da escola
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Escola'
+    put:
+      tags: [Admin/Escolas]
+      summary: Atualizar escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscolaCreate'
+      responses:
+        '200':
+          description: Escola atualizada
+
+  /admin/escolas/{id}/series:
+    get:
+      tags: [Admin/Escolas]
+      summary: Listar séries da escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Séries da escola
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+    post:
+      tags: [Admin/Escolas]
+      summary: Vincular série à escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serie, ano_letivo]
+              properties:
+                serie:
+                  type: string
+                ano_letivo:
+                  $ref: '#/components/schemas/AnoLetivo'
+      responses:
+        '201':
+          description: Série vinculada
+    delete:
+      tags: [Admin/Escolas]
+      summary: Desvincular série da escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Série desvinculada
+
+  /admin/escolas/{id}/regras-avaliacao:
+    get:
+      tags: [Admin/Escolas]
+      summary: Regras de avaliação da escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Regras de avaliação
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+    post:
+      tags: [Admin/Escolas]
+      summary: Criar regra de avaliação para a escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Regra criada
+    delete:
+      tags: [Admin/Escolas]
+      summary: Excluir regra de avaliação da escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Regra excluída
+
+  /admin/escolas/verificar-vinculos:
+    get:
+      tags: [Admin/Escolas]
+      summary: Verificar vínculos de uma escola antes de exclusão
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Vínculos da escola
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ========== ADMIN/TURMAS ==========
+
+  /admin/turmas:
+    get:
+      tags: [Admin/Turmas]
+      summary: Listar turmas
+      description: Lista turmas com filtros por escola, série, ano letivo etc.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/Serie'
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/PoloId'
+        - $ref: '#/components/parameters/Busca'
+      responses:
+        '200':
+          description: Lista de turmas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Turma'
+    post:
+      tags: [Admin/Turmas]
+      summary: Criar turma
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TurmaCreate'
+      responses:
+        '201':
+          description: Turma criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Turma'
+        '409':
+          description: Turma com código duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+    put:
+      tags: [Admin/Turmas]
+      summary: Atualizar turma
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/TurmaCreate'
+      responses:
+        '200':
+          description: Turma atualizada
+
+  /admin/turmas/{id}/alunos:
+    get:
+      tags: [Admin/Turmas]
+      summary: Listar alunos de uma turma
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Lista de alunos da turma
+
+  /admin/turmas/{id}/avaliacao:
+    get:
+      tags: [Admin/Turmas]
+      summary: Dados de avaliação de uma turma
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados de avaliação
+
+  /admin/turmas/composicao-series:
+    get:
+      tags: [Admin/Turmas]
+      summary: Composição de séries das turmas
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Composição de séries
+
+  # ========== ADMIN/POLOS ==========
+
+  /admin/polos:
+    get:
+      tags: [Admin/Polos]
+      summary: Listar polos
+      description: Admins/técnicos veem todos. Polo/escola vê apenas o seu.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Lista de polos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Polo'
+    post:
+      tags: [Admin/Polos]
+      summary: Criar polo
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PoloCreate'
+      responses:
+        '201':
+          description: Polo criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Polo'
+        '400':
+          description: Código duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+    put:
+      tags: [Admin/Polos]
+      summary: Atualizar polo
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/PoloCreate'
+      responses:
+        '200':
+          description: Polo atualizado
+
+  # ========== ADMIN/USUARIOS ==========
+
+  /admin/usuarios:
+    get:
+      tags: [Admin/Usuários]
+      summary: Listar usuários
+      description: Apenas administradores. Retorna todos os usuários.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de usuários
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Usuario'
+    post:
+      tags: [Admin/Usuários]
+      summary: Criar usuário
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioCreate'
+      responses:
+        '201':
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+        '400':
+          description: Email duplicado
+    put:
+      tags: [Admin/Usuários]
+      summary: Atualizar usuário
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioUpdate'
+      responses:
+        '200':
+          description: Usuário atualizado
+    delete:
+      tags: [Admin/Usuários]
+      summary: Excluir usuário
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Usuário excluído
+
+  /admin/professores:
+    get:
+      tags: [Admin/Usuários]
+      summary: Listar professores
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/Busca'
+      responses:
+        '200':
+          description: Lista de professores
+    post:
+      tags: [Admin/Usuários]
+      summary: Criar professor
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, email, senha]
+              properties:
+                nome:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                senha:
+                  type: string
+                  minLength: 8
+      responses:
+        '201':
+          description: Professor criado
+    put:
+      tags: [Admin/Usuários]
+      summary: Atualizar professor
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [professor_id]
+              properties:
+                professor_id:
+                  $ref: '#/components/schemas/UUID'
+                nome:
+                  type: string
+                email:
+                  type: string
+                cpf:
+                  type: string
+                  nullable: true
+                telefone:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Professor atualizado
+    patch:
+      tags: [Admin/Usuários]
+      summary: Ativar/desativar professor
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [professor_id, ativo]
+              properties:
+                professor_id:
+                  $ref: '#/components/schemas/UUID'
+                ativo:
+                  type: boolean
+      responses:
+        '200':
+          description: Status atualizado
+    delete:
+      tags: [Admin/Usuários]
+      summary: Excluir professor
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Professor excluído
+
+  /admin/professor-turmas:
+    get:
+      tags: [Admin/Usuários]
+      summary: Listar vínculos professor-turma
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: professor_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - $ref: '#/components/parameters/TurmaId'
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Lista de vínculos
+    post:
+      tags: [Admin/Usuários]
+      summary: Criar vínculo professor-turma
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [professor_id, turma_id]
+              properties:
+                professor_id:
+                  $ref: '#/components/schemas/UUID'
+                turma_id:
+                  $ref: '#/components/schemas/UUID'
+                disciplina_id:
+                  $ref: '#/components/schemas/UUID'
+      responses:
+        '201':
+          description: Vínculo criado
+    patch:
+      tags: [Admin/Usuários]
+      summary: Atualizar vínculo professor-turma
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Vínculo atualizado
+    delete:
+      tags: [Admin/Usuários]
+      summary: Remover vínculo professor-turma
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Vínculo removido
+
+  # ========== ADMIN/SISAM ==========
+
+  /admin/avaliacoes:
+    get:
+      tags: [Admin/SISAM]
+      summary: Listar avaliações
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Lista de avaliações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Avaliacao'
+    post:
+      tags: [Admin/SISAM]
+      summary: Criar avaliação
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvaliacaoCreate'
+      responses:
+        '201':
+          description: Avaliação criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Avaliacao'
+    put:
+      tags: [Admin/SISAM]
+      summary: Atualizar avaliação
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/AvaliacaoCreate'
+      responses:
+        '200':
+          description: Avaliação atualizada
+    delete:
+      tags: [Admin/SISAM]
+      summary: Excluir avaliação
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Avaliação excluída
+
+  /admin/questoes:
+    get:
+      tags: [Admin/SISAM]
+      summary: Listar questões
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: disciplina
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Lista de questões
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Questao'
+    post:
+      tags: [Admin/SISAM]
+      summary: Criar questão
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestaoCreate'
+      responses:
+        '201':
+          description: Questão criada
+    put:
+      tags: [Admin/SISAM]
+      summary: Atualizar questão
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/QuestaoCreate'
+      responses:
+        '200':
+          description: Questão atualizada
+    delete:
+      tags: [Admin/SISAM]
+      summary: Excluir questão
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Questão excluída
+
+  /admin/resultados-consolidados:
+    get:
+      tags: [Admin/SISAM]
+      summary: Resultados consolidados
+      description: Retorna resultados consolidados das avaliações SISAM com filtros.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/PoloId'
+        - $ref: '#/components/parameters/Serie'
+        - $ref: '#/components/parameters/TurmaId'
+        - name: avaliacao_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Resultados consolidados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResultadoConsolidado'
+
+  /admin/niveis-aprendizagem:
+    get:
+      tags: [Admin/SISAM]
+      summary: Listar níveis de aprendizagem
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Níveis de aprendizagem
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  niveis:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NivelAprendizagem'
+
+  /admin/sisam-series-participantes:
+    get:
+      tags: [Admin/SISAM]
+      summary: Listar séries participantes do SISAM
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Séries participantes
+    post:
+      tags: [Admin/SISAM]
+      summary: Cadastrar séries participantes
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Séries cadastradas
+
+  /admin/recalcular-niveis:
+    get:
+      tags: [Admin/SISAM]
+      summary: Verificar status do recálculo de níveis
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Status do recálculo
+    post:
+      tags: [Admin/SISAM]
+      summary: Recalcular níveis de aprendizagem
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ano_letivo:
+                  $ref: '#/components/schemas/AnoLetivo'
+                serie:
+                  type: string
+                avaliacao_id:
+                  $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Recálculo executado
+
+  /admin/cartao-resposta:
+    get:
+      tags: [Admin/SISAM]
+      summary: Listar cartões-resposta
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de cartões
+    post:
+      tags: [Admin/SISAM]
+      summary: Criar cartão-resposta
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Cartão criado
+
+  /admin/cartao-resposta/gerar:
+    get:
+      tags: [Admin/SISAM]
+      summary: Gerar cartão-resposta em PDF
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Serie'
+        - name: avaliacao_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: PDF do cartão-resposta
+
+  /admin/cartao-resposta/ler:
+    post:
+      tags: [Admin/SISAM]
+      summary: Ler cartão-resposta digitalizado
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                arquivo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Resultados da leitura
+
+  /admin/itens-producao:
+    get:
+      tags: [Admin/SISAM]
+      summary: Listar itens de produção textual
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Itens de produção
+
+  # ========== ADMIN/DASHBOARD ==========
+
+  /admin/dashboard-dados:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Dados consolidados do dashboard
+      description: Retorna dados consolidados para o dashboard estilo Power BI com filtros variados.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PoloId'
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+        - name: avaliacao_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - $ref: '#/components/parameters/Serie'
+        - $ref: '#/components/parameters/TurmaId'
+        - name: presenca
+          in: query
+          schema:
+            type: string
+            enum: [P, F]
+        - name: tipo_ensino
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+      responses:
+        '200':
+          description: Dados do dashboard
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /admin/dashboard-gestor:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Dashboard do gestor escolar
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Dados do dashboard gestor
+
+  /admin/dashboard-rapido:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Dashboard rápido (resumo)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Resumo rápido
+
+  /admin/estatisticas:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Estatísticas gerais
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/PoloId'
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Estatísticas
+
+  /admin/estatisticas-serie:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Estatísticas por série
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Estatísticas por série
+
+  /admin/graficos:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Dados para gráficos
+      description: |
+        Retorna dados formatados para gráficos. Tipo: geral, disciplinas, ranking, evolucao.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+            enum: [geral, disciplinas, ranking, evolucao]
+            default: geral
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/PoloId'
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/Serie'
+        - name: disciplina
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/TurmaId'
+        - name: tipo_ensino
+          in: query
+          schema:
+            type: string
+        - name: tipo_ranking
+          in: query
+          schema:
+            type: string
+            enum: [escolas, turmas]
+            default: escolas
+      responses:
+        '200':
+          description: Dados para gráficos
+
+  /admin/executivo:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Relatório executivo
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Dados do relatório executivo
+
+  /admin/evolucao:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Dados de evolução de desempenho
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Dados de evolução
+
+  /admin/evolucao-escolas:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Evolução por escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/PoloId'
+      responses:
+        '200':
+          description: Evolução por escola
+
+  /admin/comparativos:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Comparativos entre escolas
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Dados comparativos
+
+  /admin/comparativos-polos:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Comparativos entre polos
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Comparativos por polo
+
+  /admin/comparativo-notas:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Comparativo de notas entre avaliações
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Comparativo de notas
+
+  /admin/painel-turma:
+    get:
+      tags: [Admin/Dashboard]
+      summary: Painel detalhado de uma turma
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TurmaId'
+        - name: avaliacao_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados do painel da turma
+
+  # ========== ADMIN/GESTÃO ESCOLAR ==========
+
+  /admin/notas-escolares:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Buscar notas escolares
+      description: Busca notas de uma turma para disciplina e período específicos.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TurmaId'
+        - name: disciplina_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: periodo_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - $ref: '#/components/parameters/EscolaId'
+        - name: aluno_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Notas escolares
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotaEscolar'
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Lançar notas em lote
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotaLote'
+      responses:
+        '200':
+          description: Notas lançadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  total:
+                    type: integer
+
+  /admin/notas-escolares/boletim:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Boletim escolar completo de um aluno
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: aluno_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Boletim do aluno
+
+  /admin/frequencia:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Buscar frequência bimestral
+      description: Retorna frequência de uma turma para um período específico.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TurmaId'
+        - name: periodo_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Dados de frequência
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alunos:
+                    type: array
+                    items:
+                      type: object
+                  frequencias:
+                    type: object
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Salvar frequência bimestral em lote
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [turma_id, periodo_id, frequencias]
+              properties:
+                turma_id:
+                  $ref: '#/components/schemas/UUID'
+                periodo_id:
+                  $ref: '#/components/schemas/UUID'
+                frequencias:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      aluno_id:
+                        $ref: '#/components/schemas/UUID'
+                      dias_letivos:
+                        type: integer
+                      presencas:
+                        type: integer
+                      faltas:
+                        type: integer
+      responses:
+        '200':
+          description: Frequência salva
+
+  /admin/frequencia-diaria:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar frequência diária
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/TurmaId'
+        - name: data
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: data_inicio
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: data_fim
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: metodo
+          in: query
+          schema:
+            type: string
+            enum: [manual, facial, qrcode]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [presente, ausente]
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+      responses:
+        '200':
+          description: Frequência diária
+
+  /admin/frequencia-diaria/lancar-faltas:
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Lançar faltas em lote
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Faltas lançadas
+
+  /admin/frequencia-diaria/resumo:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Resumo de frequência diária
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TurmaId'
+        - name: data_inicio
+          in: query
+          schema:
+            type: string
+        - name: data_fim
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resumo de frequência
+
+  /admin/frequencia-diaria/agregar:
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Agregar frequência diária em bimestral
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                turma_id:
+                  $ref: '#/components/schemas/UUID'
+                periodo_id:
+                  $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Frequência agregada
+
+  /admin/frequencia-hora-aula:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar frequência por hora-aula
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TurmaId'
+        - name: data
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Frequência por hora-aula
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Registrar frequência por hora-aula
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [turma_id, data, numero_aula, disciplina_id, registros]
+              properties:
+                turma_id:
+                  $ref: '#/components/schemas/UUID'
+                data:
+                  type: string
+                numero_aula:
+                  type: integer
+                  minimum: 1
+                  maximum: 6
+                disciplina_id:
+                  $ref: '#/components/schemas/UUID'
+                registros:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      aluno_id:
+                        $ref: '#/components/schemas/UUID'
+                      presente:
+                        type: boolean
+      responses:
+        '200':
+          description: Frequência registrada
+
+  /admin/frequencia-hora-aula/agregar:
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Agregar frequência hora-aula em bimestral
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Frequência agregada
+
+  /admin/infrequencia:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Relatório de infrequência
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/TurmaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Dados de infrequência
+
+  /admin/periodos-letivos:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar períodos letivos
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Lista de períodos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PeriodoLetivo'
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Criar período letivo
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeriodoLetivoCreate'
+      responses:
+        '201':
+          description: Período criado
+    put:
+      tags: [Admin/Gestão Escolar]
+      summary: Atualizar período letivo
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/PeriodoLetivoCreate'
+      responses:
+        '200':
+          description: Período atualizado
+    delete:
+      tags: [Admin/Gestão Escolar]
+      summary: Excluir período letivo
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Período excluído
+
+  /admin/disciplinas-escolares:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar disciplinas escolares
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: ativas
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Filtrar apenas ativas (default true)
+      responses:
+        '200':
+          description: Lista de disciplinas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DisciplinaEscolar'
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Criar disciplina escolar
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisciplinaEscolarCreate'
+      responses:
+        '201':
+          description: Disciplina criada
+    put:
+      tags: [Admin/Gestão Escolar]
+      summary: Atualizar disciplina escolar
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/DisciplinaEscolarCreate'
+      responses:
+        '200':
+          description: Disciplina atualizada
+    delete:
+      tags: [Admin/Gestão Escolar]
+      summary: Excluir disciplina escolar
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Disciplina excluída
+
+  /admin/configuracao-series:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar configurações de séries
+      description: Configuração de quantidade de questões, disciplinas avaliadas etc. por série.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Serie'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Configurações de séries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfiguracaoSerie'
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Criar configuração de série
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serie, nome_serie]
+              properties:
+                serie:
+                  type: string
+                nome_serie:
+                  type: string
+                tipo_ensino:
+                  type: string
+                  default: anos_iniciais
+                qtd_questoes_lp:
+                  type: integer
+                  default: 0
+                qtd_questoes_mat:
+                  type: integer
+                  default: 0
+                qtd_questoes_ch:
+                  type: integer
+                  default: 0
+                qtd_questoes_cn:
+                  type: integer
+                  default: 0
+                tem_producao_textual:
+                  type: boolean
+                  default: false
+                avalia_lp:
+                  type: boolean
+                  default: true
+                avalia_mat:
+                  type: boolean
+                  default: true
+                avalia_ch:
+                  type: boolean
+                  default: false
+                avalia_cn:
+                  type: boolean
+                  default: false
+                usa_nivel_aprendizagem:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Configuração criada
+
+  /admin/configuracao-series/disciplinas:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar disciplinas por configuração de série
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Disciplinas por série
+
+  /admin/configuracao-notas:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Buscar configuração de notas da escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Configuração de notas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfiguracaoNotasEscola'
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Salvar configuração de notas
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfiguracaoNotasEscola'
+      responses:
+        '200':
+          description: Configuração salva
+
+  /admin/series-escolares:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar séries escolares
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Séries escolares
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Criar série escolar
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: Série criada
+    put:
+      tags: [Admin/Gestão Escolar]
+      summary: Atualizar série escolar
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Série atualizada
+    delete:
+      tags: [Admin/Gestão Escolar]
+      summary: Excluir série escolar
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Série excluída
+
+  /admin/series-escolares/{id}/disciplinas:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar disciplinas de uma série
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Disciplinas da série
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Vincular disciplina à série
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '201':
+          description: Disciplina vinculada
+
+  /admin/regras-avaliacao:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar regras de avaliação
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Regras de avaliação
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Criar regra de avaliação
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: Regra criada
+    put:
+      tags: [Admin/Gestão Escolar]
+      summary: Atualizar regra de avaliação
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Regra atualizada
+    delete:
+      tags: [Admin/Gestão Escolar]
+      summary: Excluir regra de avaliação
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Regra excluída
+
+  /admin/tipos-avaliacao:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar tipos de avaliação escolar
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Tipos de avaliação
+
+  /admin/horarios-aula:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Listar grade horária
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TurmaId'
+      responses:
+        '200':
+          description: Grade horária
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Salvar grade horária em lote
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [turma_id, horarios]
+              properties:
+                turma_id:
+                  $ref: '#/components/schemas/UUID'
+                horarios:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      dia_semana:
+                        type: integer
+                        minimum: 1
+                        maximum: 5
+                      numero_aula:
+                        type: integer
+                        minimum: 1
+                        maximum: 6
+                      disciplina_id:
+                        $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Grade salva
+
+  /admin/conselho-classe:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Buscar dados do conselho de classe
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TurmaId'
+        - name: periodo_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados do conselho de classe
+    post:
+      tags: [Admin/Gestão Escolar]
+      summary: Salvar ata/pareceres do conselho de classe
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [turma_id, periodo_id]
+              properties:
+                turma_id:
+                  $ref: '#/components/schemas/UUID'
+                periodo_id:
+                  $ref: '#/components/schemas/UUID'
+                data_reuniao:
+                  type: string
+                  nullable: true
+                ata_geral:
+                  type: string
+                  maxLength: 5000
+                  nullable: true
+                pareceres:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      aluno_id:
+                        $ref: '#/components/schemas/UUID'
+                      parecer:
+                        type: string
+                        maxLength: 2000
+                      observacao:
+                        type: string
+                        maxLength: 2000
+      responses:
+        '200':
+          description: Conselho salvo
+
+  /admin/recuperacao:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Dados de recuperação de alunos
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TurmaId'
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Dados de recuperação
+
+  /admin/historico-escolar:
+    get:
+      tags: [Admin/Gestão Escolar]
+      summary: Histórico escolar do aluno
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: aluno_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Histórico escolar
+
+  # ========== ADMIN/FACIAL ==========
+
+  /admin/dispositivos-faciais:
+    get:
+      tags: [Admin/Facial]
+      summary: Listar dispositivos faciais
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Lista de dispositivos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DispositivoFacial'
+    post:
+      tags: [Admin/Facial]
+      summary: Registrar dispositivo facial
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DispositivoFacialCreate'
+      responses:
+        '201':
+          description: Dispositivo registrado
+
+  /admin/dispositivos-faciais/{id}:
+    get:
+      tags: [Admin/Facial]
+      summary: Buscar dispositivo facial por ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados do dispositivo
+    put:
+      tags: [Admin/Facial]
+      summary: Atualizar dispositivo facial
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dispositivo atualizado
+    delete:
+      tags: [Admin/Facial]
+      summary: Excluir dispositivo facial
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dispositivo excluído
+
+  /admin/dispositivos-faciais/{id}/estatisticas:
+    get:
+      tags: [Admin/Facial]
+      summary: Estatísticas de um dispositivo facial
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Estatísticas do dispositivo
+
+  /admin/dispositivos-faciais/{id}/qrcode:
+    get:
+      tags: [Admin/Facial]
+      summary: Gerar QR code de ativação do dispositivo
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: QR code em base64
+
+  /admin/dispositivos-faciais/{id}/regenerar-chave:
+    post:
+      tags: [Admin/Facial]
+      summary: Regenerar chave API do dispositivo
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Nova chave gerada
+
+  /admin/dispositivos-faciais/auto-registro:
+    post:
+      tags: [Admin/Facial]
+      summary: Auto-registro de dispositivo facial
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Dispositivo auto-registrado
+
+  /admin/facial/embeddings:
+    get:
+      tags: [Admin/Facial]
+      summary: Listar embeddings faciais
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Lista de embeddings
+
+  /admin/facial/enrollment:
+    get:
+      tags: [Admin/Facial]
+      summary: Listar enrollments faciais
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Lista de enrollments
+    post:
+      tags: [Admin/Facial]
+      summary: Registrar enrollment facial
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [aluno_id, embedding_data]
+              properties:
+                aluno_id:
+                  $ref: '#/components/schemas/UUID'
+                embedding_data:
+                  type: string
+                  description: Embedding facial em base64
+                qualidade:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+      responses:
+        '201':
+          description: Enrollment registrado
+    delete:
+      tags: [Admin/Facial]
+      summary: Excluir enrollment facial
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: aluno_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Enrollment excluído
+
+  /admin/facial/consentimento:
+    get:
+      tags: [Admin/Facial]
+      summary: Listar consentimentos LGPD para facial
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Lista de consentimentos
+    post:
+      tags: [Admin/Facial]
+      summary: Registrar consentimento LGPD
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [aluno_id, responsavel_nome, consentido]
+              properties:
+                aluno_id:
+                  $ref: '#/components/schemas/UUID'
+                responsavel_nome:
+                  type: string
+                responsavel_cpf:
+                  type: string
+                  nullable: true
+                consentido:
+                  type: boolean
+      responses:
+        '200':
+          description: Consentimento registrado
+    delete:
+      tags: [Admin/Facial]
+      summary: Revogar consentimento LGPD
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: aluno_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Consentimento revogado
+
+  /admin/facial/presenca-terminal:
+    post:
+      tags: [Admin/Facial]
+      summary: Registrar presença via terminal facial
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresencaFacial'
+      responses:
+        '200':
+          description: Presença registrada
+
+  /admin/facial/lgpd:
+    delete:
+      tags: [Admin/Facial]
+      summary: Excluir todos os dados faciais de um aluno (LGPD)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: aluno_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados faciais excluídos
+
+  /admin/facial/retencao:
+    post:
+      tags: [Admin/Facial]
+      summary: Aplicar política de retenção de dados faciais
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Política aplicada
+
+  /admin/facial/diagnostico:
+    get:
+      tags: [Admin/Facial]
+      summary: Diagnóstico do sistema facial
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Diagnóstico do sistema
+
+  # ========== ADMIN/SITE ==========
+
+  /admin/site-config:
+    get:
+      tags: [Admin/Site]
+      summary: Buscar configuração do site institucional
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Configuração do site
+    put:
+      tags: [Admin/Site]
+      summary: Atualizar configuração do site
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Configuração atualizada
+
+  /admin/eventos:
+    get:
+      tags: [Admin/Site]
+      summary: Listar eventos
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de eventos
+    post:
+      tags: [Admin/Site]
+      summary: Criar evento
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Evento criado
+    put:
+      tags: [Admin/Site]
+      summary: Atualizar evento
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Evento atualizado
+    delete:
+      tags: [Admin/Site]
+      summary: Excluir evento
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Evento excluído
+
+  /admin/ouvidoria:
+    get:
+      tags: [Admin/Site]
+      summary: Listar manifestações da ouvidoria
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [aberto, em_analise, respondido, encerrado]
+        - name: data_inicio
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: data_fim
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Manifestações da ouvidoria
+    put:
+      tags: [Admin/Site]
+      summary: Atualizar/responder manifestação da ouvidoria
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  $ref: '#/components/schemas/UUID'
+                status:
+                  type: string
+                  enum: [aberto, em_analise, respondido, encerrado]
+                resposta:
+                  type: string
+                  maxLength: 5000
+                  nullable: true
+      responses:
+        '200':
+          description: Manifestação atualizada
+
+  /admin/calendario-escolar:
+    get:
+      tags: [Admin/Site]
+      summary: Buscar calendário escolar
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Calendário escolar
+
+  # ========== ADMIN/MATRÍCULAS ==========
+
+  /admin/matriculas/alunos:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Listar alunos matriculados
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/TurmaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Alunos matriculados
+
+  /admin/matriculas/alunos/buscar:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Buscar aluno para matrícula
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Busca'
+      responses:
+        '200':
+          description: Resultados da busca
+
+  /admin/matriculas/turmas:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Listar turmas para matrícula
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Turmas disponíveis
+
+  /admin/matriculas/series:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Listar séries para matrícula
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Séries disponíveis
+
+  /admin/matriculas/resumo:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Resumo de matrículas
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Resumo de matrículas
+
+  /admin/pre-matriculas:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Listar pré-matrículas
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Pré-matrículas
+
+  /admin/controle-vagas:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Controle de vagas por turma
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Controle de vagas
+    put:
+      tags: [Admin/Matrículas]
+      summary: Atualizar capacidade de vagas
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Vagas atualizadas
+
+  /admin/controle-vagas/fila:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Listar fila de espera de vagas
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Fila de espera
+    post:
+      tags: [Admin/Matrículas]
+      summary: Adicionar à fila de espera
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: Adicionado à fila
+    put:
+      tags: [Admin/Matrículas]
+      summary: Atualizar status na fila
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Status atualizado
+    delete:
+      tags: [Admin/Matrículas]
+      summary: Remover da fila de espera
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Removido da fila
+
+  /admin/fila-espera:
+    get:
+      tags: [Admin/Matrículas]
+      summary: Listar fila de espera geral
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Fila de espera
+    post:
+      tags: [Admin/Matrículas]
+      summary: Adicionar à fila de espera
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [aluno_id, turma_id, escola_id]
+              properties:
+                aluno_id:
+                  $ref: '#/components/schemas/UUID'
+                turma_id:
+                  $ref: '#/components/schemas/UUID'
+                escola_id:
+                  $ref: '#/components/schemas/UUID'
+                observacao:
+                  type: string
+                  maxLength: 500
+                  nullable: true
+      responses:
+        '201':
+          description: Adicionado à fila
+    put:
+      tags: [Admin/Matrículas]
+      summary: Atualizar item na fila
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, status]
+              properties:
+                id:
+                  $ref: '#/components/schemas/UUID'
+                status:
+                  type: string
+                  enum: [aguardando, convocado, matriculado, desistente]
+                observacao:
+                  type: string
+                  maxLength: 500
+                  nullable: true
+      responses:
+        '200':
+          description: Atualizado
+    delete:
+      tags: [Admin/Matrículas]
+      summary: Remover da fila de espera
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Removido
+
+  # ========== ADMIN/TRANSFERÊNCIAS ==========
+
+  /admin/transferencias:
+    get:
+      tags: [Admin/Transferências]
+      summary: Listar transferências
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: data_inicio
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: data_fim
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/PoloId'
+        - name: tipo_movimentacao
+          in: query
+          schema:
+            type: string
+            enum: [saida, entrada]
+        - name: tipo_transferencia
+          in: query
+          schema:
+            type: string
+            enum: [dentro_municipio, fora_municipio]
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+      responses:
+        '200':
+          description: Lista de transferências
+
+  /admin/divergencias:
+    get:
+      tags: [Admin/Transferências]
+      summary: Listar divergências de dados
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Divergências
+
+  /admin/divergencias/corrigir:
+    post:
+      tags: [Admin/Transferências]
+      summary: Corrigir divergência
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Divergência corrigida
+
+  /admin/divergencias/exportar:
+    get:
+      tags: [Admin/Transferências]
+      summary: Exportar divergências
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Arquivo de exportação
+
+  /admin/divergencias/historico:
+    get:
+      tags: [Admin/Transferências]
+      summary: Histórico de correções de divergências
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Histórico de correções
+
+  # ========== ADMIN/IMPORTAÇÕES ==========
+
+  /admin/importar:
+    post:
+      tags: [Admin/Importações]
+      summary: Importar resultados via planilha
+      description: Upload de planilha Excel com resultados de avaliação SISAM.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [arquivo]
+              properties:
+                arquivo:
+                  type: string
+                  format: binary
+                ano_letivo:
+                  type: string
+                avaliacao_id:
+                  $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Importação realizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  importacao:
+                    type: object
+
+  /admin/importar-resultados:
+    post:
+      tags: [Admin/Importações]
+      summary: Importar resultados SISAM
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                arquivo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Importação realizada
+
+  /admin/importar-cadastros:
+    post:
+      tags: [Admin/Importações]
+      summary: Importar cadastros de alunos via planilha
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                arquivo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Importação realizada
+
+  /admin/importar-completo:
+    post:
+      tags: [Admin/Importações]
+      summary: Importação completa com processamento em background
+      description: Importação com suporte a pausar, retomar, cancelar e acompanhar progresso.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                arquivo:
+                  type: string
+                  format: binary
+                ano_letivo:
+                  type: string
+                avaliacao_id:
+                  $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Importação iniciada
+
+  /admin/importar-completo/progresso:
+    get:
+      tags: [Admin/Importações]
+      summary: Consultar progresso da importação
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Progresso da importação
+
+  /admin/importar-completo/resultado:
+    get:
+      tags: [Admin/Importações]
+      summary: Consultar resultado final da importação
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Resultado da importação
+
+  /admin/importar-completo/pausar:
+    post:
+      tags: [Admin/Importações]
+      summary: Pausar importação em andamento
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Importação pausada
+
+  /admin/importar-completo/retomar:
+    post:
+      tags: [Admin/Importações]
+      summary: Retomar importação pausada
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Importação retomada
+
+  /admin/importar-completo/cancelar:
+    post:
+      tags: [Admin/Importações]
+      summary: Cancelar importação em andamento
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Importação cancelada
+
+  /admin/importacoes:
+    get:
+      tags: [Admin/Importações]
+      summary: Listar histórico de importações
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Histórico de importações
+
+  /admin/importacoes/cancelar-todas:
+    post:
+      tags: [Admin/Importações]
+      summary: Cancelar todas as importações em andamento
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Importações canceladas
+
+  # ========== ADMIN/ANOS LETIVOS ==========
+
+  /admin/anos-letivos:
+    get:
+      tags: [Admin/Anos Letivos]
+      summary: Listar anos letivos
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de anos letivos
+    post:
+      tags: [Admin/Anos Letivos]
+      summary: Criar ano letivo
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ano]
+              properties:
+                ano:
+                  type: string
+                ativo:
+                  type: boolean
+      responses:
+        '201':
+          description: Ano letivo criado
+    put:
+      tags: [Admin/Anos Letivos]
+      summary: Atualizar ano letivo
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Ano letivo atualizado
+    patch:
+      tags: [Admin/Anos Letivos]
+      summary: Ativar/desativar ano letivo
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Status atualizado
+
+  /admin/anos-letivos/ativo:
+    get:
+      tags: [Admin/Anos Letivos]
+      summary: Buscar ano letivo ativo
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Ano letivo ativo
+
+  /admin/anos-letivos/resumo:
+    get:
+      tags: [Admin/Anos Letivos]
+      summary: Resumo de dados por ano letivo
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Resumo
+
+  /admin/fechamento-ano:
+    get:
+      tags: [Admin/Anos Letivos]
+      summary: Preview do fechamento de ano
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Preview do fechamento
+    post:
+      tags: [Admin/Anos Letivos]
+      summary: Executar fechamento de ano letivo
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ano_letivo:
+                  $ref: '#/components/schemas/AnoLetivo'
+                escola_id:
+                  $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Fechamento executado
+
+  # ========== ADMIN/DIVERSOS ==========
+
+  /admin/auditoria:
+    get:
+      tags: [Admin/Diversos]
+      summary: Listar registros de auditoria
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+      responses:
+        '200':
+          description: Registros de auditoria
+
+  /admin/cache:
+    get:
+      tags: [Admin/Diversos]
+      summary: Informações e gestão de cache Redis
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Informações de cache
+
+  /admin/logs-acesso:
+    get:
+      tags: [Admin/Diversos]
+      summary: Listar logs de acesso
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Logs de acesso
+
+  /admin/notificacoes:
+    get:
+      tags: [Admin/Diversos]
+      summary: Listar notificações
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Notificações
+    post:
+      tags: [Admin/Diversos]
+      summary: Criar notificação
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: Notificação criada
+    put:
+      tags: [Admin/Diversos]
+      summary: Marcar notificação como lida
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Notificação atualizada
+
+  /admin/personalizacao:
+    get:
+      tags: [Admin/Diversos]
+      summary: Buscar personalização do sistema
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Configurações de personalização
+    put:
+      tags: [Admin/Diversos]
+      summary: Atualizar personalização
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Personalização atualizada
+
+  /admin/metas-escola:
+    get:
+      tags: [Admin/Diversos]
+      summary: Buscar metas de desempenho por escola
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Metas
+
+  /admin/modulos-tecnico:
+    get:
+      tags: [Admin/Diversos]
+      summary: Listar módulos habilitados para técnico
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Módulos
+
+  /admin/criar-admin:
+    get:
+      tags: [Admin/Diversos]
+      summary: Verificar se admin existe
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Status
+    post:
+      tags: [Admin/Diversos]
+      summary: Criar administrador (protegido)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Admin criado
+
+  /admin/relatorios/escola/{id}:
+    get:
+      tags: [Admin/Diversos]
+      summary: Relatório de escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Relatório da escola
+
+  /admin/relatorios/escola/{id}/dados:
+    get:
+      tags: [Admin/Diversos]
+      summary: Dados do relatório de escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados do relatório
+
+  /admin/relatorios/polo/{id}:
+    get:
+      tags: [Admin/Diversos]
+      summary: Relatório de polo
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Relatório do polo
+
+  /admin/relatorios/polo/{id}/dados:
+    get:
+      tags: [Admin/Diversos]
+      summary: Dados do relatório de polo
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados do relatório
+
+  /admin/relatorios-conselhos:
+    get:
+      tags: [Admin/Diversos]
+      summary: Relatórios de conselhos de classe
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Relatórios
+
+  /admin/debug/aluno:
+    get:
+      tags: [Admin/Diversos]
+      summary: Debug de dados do aluno
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados de debug
+
+  /admin/debug/relatorio:
+    get:
+      tags: [Admin/Diversos]
+      summary: Debug de relatório
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Dados de debug
+
+  # ========== PROFESSOR ==========
+
+  /professor/turmas:
+    get:
+      tags: [Professor]
+      summary: Listar turmas do professor
+      description: Retorna turmas vinculadas ao professor com info de escola, série e disciplina.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Turmas do professor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  turmas:
+                    type: array
+                    items:
+                      type: object
+
+  /professor/notas:
+    get:
+      tags: [Professor]
+      summary: Buscar notas de uma turma/disciplina/período
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: turma_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: disciplina_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: periodo_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Notas e configuração
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alunos:
+                    type: array
+                    items:
+                      type: object
+                  config:
+                    type: object
+        '403':
+          description: Sem vínculo com a turma
+    post:
+      tags: [Professor]
+      summary: Lançar notas em lote
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotaLote'
+      responses:
+        '200':
+          description: Notas lançadas
+
+  /professor/frequencia-diaria:
+    get:
+      tags: [Professor]
+      summary: Buscar frequência diária
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: turma_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: data
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Frequência diária
+    post:
+      tags: [Professor]
+      summary: Registrar frequência diária
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Frequência registrada
+    delete:
+      tags: [Professor]
+      summary: Excluir registro de frequência
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Registro excluído
+
+  /professor/frequencia-diaria/lancar-faltas:
+    post:
+      tags: [Professor]
+      summary: Lançar faltas em lote
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Faltas lançadas
+
+  /professor/frequencia-diaria/justificar:
+    post:
+      tags: [Professor]
+      summary: Justificar falta
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Falta justificada
+
+  /professor/frequencia-hora-aula:
+    get:
+      tags: [Professor]
+      summary: Buscar frequência por hora-aula
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: turma_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: data
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Frequência por hora-aula
+    post:
+      tags: [Professor]
+      summary: Registrar frequência por hora-aula
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Frequência registrada
+
+  /professor/diario:
+    get:
+      tags: [Professor]
+      summary: Buscar registros do diário de classe
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: turma_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: mes
+          in: query
+          schema:
+            type: string
+            description: Formato YYYY-MM
+        - name: data_inicio
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: data_fim
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Registros do diário
+    post:
+      tags: [Professor]
+      summary: Criar registro no diário
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiarioClasse'
+      responses:
+        '201':
+          description: Registro criado
+    put:
+      tags: [Professor]
+      summary: Atualizar registro do diário
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/DiarioClasse'
+      responses:
+        '200':
+          description: Registro atualizado
+    delete:
+      tags: [Professor]
+      summary: Excluir registro do diário
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Registro excluído
+
+  /professor/planos:
+    get:
+      tags: [Professor]
+      summary: Buscar planos de aula
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: turma_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: periodo
+          in: query
+          schema:
+            type: string
+            enum: [semanal, mensal, bimestral]
+        - name: disciplina_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Planos de aula
+    post:
+      tags: [Professor]
+      summary: Criar plano de aula
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanoAula'
+      responses:
+        '201':
+          description: Plano criado
+    put:
+      tags: [Professor]
+      summary: Atualizar plano de aula
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/PlanoAula'
+      responses:
+        '200':
+          description: Plano atualizado
+    delete:
+      tags: [Professor]
+      summary: Excluir plano de aula
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Plano excluído
+
+  /professor/comunicados:
+    get:
+      tags: [Professor]
+      summary: Listar comunicados
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: turma_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Comunicados
+    post:
+      tags: [Professor]
+      summary: Criar comunicado
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [turma_id, titulo, mensagem]
+              properties:
+                turma_id:
+                  $ref: '#/components/schemas/UUID'
+                titulo:
+                  type: string
+                mensagem:
+                  type: string
+      responses:
+        '201':
+          description: Comunicado criado
+    delete:
+      tags: [Professor]
+      summary: Excluir comunicado
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Comunicado excluído
+
+  /professor/alunos:
+    get:
+      tags: [Professor]
+      summary: Listar alunos das turmas do professor
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: turma_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Alunos
+
+  /professor/alunos/resumo:
+    get:
+      tags: [Professor]
+      summary: Resumo dos alunos
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Resumo
+
+  /professor/periodos:
+    get:
+      tags: [Professor]
+      summary: Listar períodos letivos
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Períodos letivos
+
+  /professor/disciplinas:
+    get:
+      tags: [Professor]
+      summary: Listar disciplinas do professor
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Disciplinas
+
+  /professor/dashboard:
+    get:
+      tags: [Professor]
+      summary: Dashboard do professor
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Dados do dashboard
+
+  /professor/turma-desempenho:
+    get:
+      tags: [Professor]
+      summary: Desempenho por turma
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: turma_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Dados de desempenho
+
+  /professor/sync:
+    get:
+      tags: [Professor]
+      summary: Dados para sincronização offline
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Dados para sync
+    post:
+      tags: [Professor]
+      summary: Enviar dados sincronizados
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Dados sincronizados
+
+  # ========== EDITOR ==========
+
+  /editor/noticias:
+    get:
+      tags: [Editor]
+      summary: Buscar notícias do site
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Notícias
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  titulo:
+                    type: string
+                  descricao:
+                    type: string
+                  noticias:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        titulo:
+                          type: string
+                        resumo:
+                          type: string
+                        conteudo:
+                          type: string
+                        data:
+                          type: string
+                        imagem_url:
+                          type: string
+                        link:
+                          type: string
+    put:
+      tags: [Editor]
+      summary: Atualizar notícias do site
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [noticias]
+              properties:
+                titulo:
+                  type: string
+                  maxLength: 255
+                descricao:
+                  type: string
+                  maxLength: 1000
+                noticias:
+                  type: array
+                  items:
+                    type: object
+                    required: [titulo]
+                    properties:
+                      titulo:
+                        type: string
+                        maxLength: 255
+                      resumo:
+                        type: string
+                        maxLength: 1000
+                      conteudo:
+                        type: string
+                        maxLength: 10000
+                      data:
+                        type: string
+                      imagem_url:
+                        type: string
+                        maxLength: 500
+                      link:
+                        type: string
+                        maxLength: 500
+      responses:
+        '200':
+          description: Notícias atualizadas
+
+  # ========== PUBLICADOR ==========
+
+  /publicador/publicacoes:
+    get:
+      tags: [Publicador]
+      summary: Listar publicações oficiais
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+        - name: orgao
+          in: query
+          schema:
+            type: string
+        - name: ano
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Publicações
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  publicacoes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Publicacao'
+                  total:
+                    type: integer
+                  pagina:
+                    type: integer
+                  total_paginas:
+                    type: integer
+    post:
+      tags: [Publicador]
+      summary: Criar publicação oficial
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicacaoCreate'
+      responses:
+        '201':
+          description: Publicação criada
+    put:
+      tags: [Publicador]
+      summary: Atualizar publicação
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [id]
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/UUID'
+                - $ref: '#/components/schemas/PublicacaoCreate'
+      responses:
+        '200':
+          description: Publicação atualizada
+    delete:
+      tags: [Publicador]
+      summary: Excluir publicação
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Publicação excluída
+
+  # ========== PÚBLICO ==========
+
+  /boletim:
+    get:
+      tags: [Público]
+      summary: Consultar boletim escolar (público)
+      description: |
+        Endpoint público para consulta de boletim completo.
+        Busca por código do aluno OU cpf + data_nascimento.
+        Rate limit: 10 requisições por 15 minutos por IP (proteção LGPD).
+        Retorna dados do aluno, disciplinas, notas por período, resultados SISAM e frequência.
+      parameters:
+        - name: codigo
+          in: query
+          schema:
+            type: string
+          description: Código do aluno
+        - name: cpf
+          in: query
+          schema:
+            type: string
+          description: CPF do aluno (11 dígitos)
+        - name: data_nascimento
+          in: query
+          schema:
+            type: string
+          description: Data de nascimento (YYYY-MM-DD)
+        - name: ano_letivo
+          in: query
+          schema:
+            type: string
+          description: Ano letivo (default atual)
+      responses:
+        '200':
+          description: Boletim completo
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Parâmetros insuficientes
+        '404':
+          description: Aluno não encontrado
+        '429':
+          $ref: '#/components/responses/429'
+
+  /boletim/frequencia:
+    get:
+      tags: [Público]
+      summary: Consultar frequência do aluno (público)
+      parameters:
+        - name: aluno_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Frequência do aluno
+
+  /site-config:
+    get:
+      tags: [Público]
+      summary: Configuração pública do site
+      description: Retorna configuração do site institucional (cabeçalho, rodapé, redes sociais).
+      responses:
+        '200':
+          description: Configuração do site
+
+  /eventos:
+    get:
+      tags: [Público]
+      summary: Listar eventos públicos
+      responses:
+        '200':
+          description: Eventos
+
+  /comunicados:
+    get:
+      tags: [Público]
+      summary: Listar comunicados públicos
+      responses:
+        '200':
+          description: Comunicados
+
+  /ouvidoria:
+    get:
+      tags: [Público]
+      summary: Consultar protocolo de manifestação
+      parameters:
+        - name: protocolo
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dados da manifestação
+    post:
+      tags: [Público]
+      summary: Registrar manifestação na ouvidoria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo, nome, mensagem]
+              properties:
+                tipo:
+                  type: string
+                nome:
+                  type: string
+                email:
+                  type: string
+                telefone:
+                  type: string
+                mensagem:
+                  type: string
+      responses:
+        '201':
+          description: Manifestação registrada
+
+  /publicacoes:
+    get:
+      tags: [Público]
+      summary: Listar publicações oficiais (público)
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Publicações
+
+  /transparencia:
+    get:
+      tags: [Público]
+      summary: Dados de transparência
+      responses:
+        '200':
+          description: Dados de transparência
+
+  /pre-matricula:
+    get:
+      tags: [Público]
+      summary: Consultar pré-matrícula por protocolo
+      parameters:
+        - name: protocolo
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dados da pré-matrícula
+        '404':
+          description: Protocolo não encontrado
+    post:
+      tags: [Público]
+      summary: Criar pré-matrícula (público)
+      description: Rate limit de 10 requisições por 15 minutos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreMatricula'
+      responses:
+        '201':
+          description: Pré-matrícula criada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  protocolo:
+                    type: string
+        '429':
+          $ref: '#/components/responses/429'
+
+  # ========== OFFLINE ==========
+
+  /offline/alunos:
+    get:
+      tags: [Offline]
+      summary: Dados de alunos para sincronização offline
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Alunos para sync
+
+  /offline/turmas:
+    get:
+      tags: [Offline]
+      summary: Dados de turmas para sincronização offline
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Turmas para sync
+
+  /offline/escolas:
+    get:
+      tags: [Offline]
+      summary: Dados de escolas para sincronização offline
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Escolas para sync
+
+  /offline/polos:
+    get:
+      tags: [Offline]
+      summary: Dados de polos para sincronização offline
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Polos para sync
+
+  /offline/questoes:
+    get:
+      tags: [Offline]
+      summary: Dados de questões para sincronização offline
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Serie'
+      responses:
+        '200':
+          description: Questões para sync
+
+  /offline/resultados:
+    get:
+      tags: [Offline]
+      summary: Dados de resultados para sincronização offline
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Resultados para sync
+
+  /offline/configuracao-series:
+    get:
+      tags: [Offline]
+      summary: Configuração de séries para sincronização offline
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Configuração para sync
+
+  # ========== FACIAL TERMINAL ==========
+
+  /facial/auth:
+    post:
+      tags: [Facial Terminal]
+      summary: Autenticação de dispositivo facial
+      description: Autentica dispositivo usando chave API e retorna token de sessão.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chave_api]
+              properties:
+                chave_api:
+                  type: string
+      responses:
+        '200':
+          description: Dispositivo autenticado
+
+  /facial/ping:
+    post:
+      tags: [Facial Terminal]
+      summary: Ping de dispositivo facial
+      description: Heartbeat para manter status online.
+      responses:
+        '200':
+          description: Pong
+
+  /facial/presencas:
+    post:
+      tags: [Facial Terminal]
+      summary: Registrar presença individual via facial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresencaFacial'
+      responses:
+        '200':
+          description: Presença registrada
+
+  /facial/presencas/lote:
+    post:
+      tags: [Facial Terminal]
+      summary: Registrar presenças em lote (sync offline)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresencaFacialLote'
+      responses:
+        '200':
+          description: Presenças registradas
+
+  /facial/sync/alunos:
+    get:
+      tags: [Facial Terminal]
+      summary: Sincronizar dados de alunos para o terminal facial
+      parameters:
+        - $ref: '#/components/parameters/EscolaId'
+      responses:
+        '200':
+          description: Dados de alunos para sync
+
+  # ========== POLO/ESCOLA ==========
+
+  /polo/escolas:
+    get:
+      tags: [Polo/Escola]
+      summary: Listar escolas do polo
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Escolas do polo
+
+  /polo/estatisticas:
+    get:
+      tags: [Polo/Escola]
+      summary: Estatísticas do polo
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Estatísticas
+
+  /escola/estatisticas:
+    get:
+      tags: [Polo/Escola]
+      summary: Estatísticas da escola
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Estatísticas
+
+  /tecnico/estatisticas:
+    get:
+      tags: [Polo/Escola]
+      summary: Estatísticas do técnico
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnoLetivo'
+      responses:
+        '200':
+          description: Estatísticas
+
+  # ========== SISTEMA ==========
+
+  /health:
+    get:
+      tags: [Sistema]
+      summary: Health check do sistema
+      description: |
+        Verifica saúde do sistema: banco de dados, JWT, Redis, dispositivos faciais.
+        Retorna status 200 se ok ou 500 se algum componente falhar.
+      responses:
+        '200':
+          description: Sistema saudável
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, error]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                      jwt:
+                        type: string
+                  database_latency_ms:
+                    type: number
+                  database_pool:
+                    type: object
+                  redis:
+                    type: object
+                  dispositivos_faciais:
+                    type: object
+        '500':
+          description: Sistema com falhas
+
+  /init:
+    get:
+      tags: [Sistema]
+      summary: Verificar status de inicialização
+      description: Retorna se o sistema está inicializado (admin existe).
+      responses:
+        '200':
+          description: Status de inicialização
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sistema_inicializado:
+                    type: boolean
+                  conexao_banco:
+                    type: boolean
+    post:
+      tags: [Sistema]
+      summary: Inicializar sistema (criar primeiro admin)
+      description: |
+        Cria o primeiro administrador do sistema. Protegido: só funciona
+        se nenhum admin existir ou se o usuário autenticado for admin.
+      responses:
+        '200':
+          description: Sistema inicializado
+
+  /perfil:
+    get:
+      tags: [Sistema]
+      summary: Buscar perfil do usuário autenticado
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Dados do perfil
+    put:
+      tags: [Sistema]
+      summary: Atualizar perfil
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+      responses:
+        '200':
+          description: Perfil atualizado
+
+  /perfil/senha:
+    put:
+      tags: [Sistema]
+      summary: Alterar senha
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [senha_atual, nova_senha]
+              properties:
+                senha_atual:
+                  type: string
+                nova_senha:
+                  type: string
+                  minLength: 12
+      responses:
+        '200':
+          description: Senha alterada
+        '401':
+          description: Senha atual incorreta
+
+  /perfil/email:
+    put:
+      tags: [Sistema]
+      summary: Alterar email
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Email alterado
+
+  /perfil/foto:
+    post:
+      tags: [Sistema]
+      summary: Upload de foto de perfil
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                foto:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Foto atualizada
+    delete:
+      tags: [Sistema]
+      summary: Remover foto de perfil
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Foto removida
+
+  /personalizacao:
+    get:
+      tags: [Sistema]
+      summary: Buscar personalização do sistema (público)
+      responses:
+        '200':
+          description: Personalização
+
+  /analise/dados:
+    get:
+      tags: [Sistema]
+      summary: Análise de dados para IA
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Dados para análise

@@ -26,7 +26,7 @@ export function inferirSerieDaTurma(turma: string): string {
 /**
  * Detecta serie baseada na maior questao respondida
  */
-export function detectarSeriePorQuestoes(linha: any): string {
+export function detectarSeriePorQuestoes(linha: Record<string, unknown>): string {
   let maiorQuestao = 0
   for (let q = 1; q <= 60; q++) {
     const valor = linha[`Q${q}`]
@@ -44,7 +44,7 @@ export function detectarSeriePorQuestoes(linha: any): string {
 /**
  * Le serie do Excel com multiplas variacoes de coluna e fallbacks
  */
-export function lerSerieDoExcel(linha: any, turma: string): string {
+export function lerSerieDoExcel(linha: Record<string, unknown>, turma: string): string {
   let serieOriginal = (
     linha['ANO/SÉRIE'] || linha['ANO/SERIE'] || linha['Série'] || linha['SÉRIE'] ||
     linha['serie'] || linha['Serie'] || linha['Ano'] || linha['ANO'] || linha['ano'] ||
@@ -78,7 +78,7 @@ export function lerSerieDoExcel(linha: any, turma: string): string {
 /**
  * Fase 1: Extrai entidades unicas do arquivo Excel
  */
-export function extrairDadosExcel(dados: any[]): DadosExtraidos {
+export function extrairDadosExcel(dados: Record<string, unknown>[]): DadosExtraidos {
   log.info('[FASE 1] Extraindo dados unicos do arquivo...')
 
   const polosUnicos = new Set<string>()
@@ -86,7 +86,7 @@ export function extrairDadosExcel(dados: any[]): DadosExtraidos {
   const turmasUnicas = new Map<string, { escola: string; serie: string }>()
   const alunosUnicos = new Map<string, { escola: string; turma: string; serie: string }>()
 
-  dados.forEach((linha: any) => {
+  dados.forEach((linha: Record<string, unknown>) => {
     const polo = (linha['POLO'] || linha['Polo'] || linha['polo'] || '').toString().trim()
     const escola = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
     const turma = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()

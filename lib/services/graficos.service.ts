@@ -12,10 +12,19 @@ import { safeQuery as _safeQuery, getMediaGeralSQL, getMediaAnosIniciaisSQL, get
 import { NOTAS } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
 import { Usuario } from '@/lib/types'
-import { parseDbInt, parseDbNumber } from '@/lib/utils-numeros'
+import { NumericValue, parseDbInt as _parseDbInt, parseDbNumber as _parseDbNumber } from '@/lib/utils-numeros'
 
 /** Tipo genérico para rows retornados do PostgreSQL */
-type DbRow = Record<string, any>
+type DbValue = string | number | boolean | null
+type DbRow = Record<string, DbValue>
+
+/** Wrappers que aceitam DbValue (inclui boolean do PostgreSQL) */
+function parseDbInt(valor: DbValue, valorPadrao: number = 0): number {
+  return _parseDbInt(valor as NumericValue, valorPadrao)
+}
+function parseDbNumber(valor: DbValue, valorPadrao: number = 0): number {
+  return _parseDbNumber(valor as NumericValue, valorPadrao)
+}
 
 // Wrapper tipado para safeQuery
 async function safeQuery(poolRef: typeof pool, sql: string, params: unknown[] = [], label?: string): Promise<DbRow[]> {
@@ -40,35 +49,312 @@ export interface GraficosFiltros {
   tipoRanking?: string | null
 }
 
+/** Dados de média por disciplina (gráfico disciplinas) */
+interface DisciplinasDataSingle {
+  labels: string[]
+  dados: number[]
+  totalAlunos: number
+}
+
+interface DisciplinasDataAll extends DisciplinasDataSingle {
+  desvios: number[]
+  taxas_aprovacao: number[]
+  totalAlunosPT: number
+  anosIniciais: number
+  anosFinais: number
+  faixas: {
+    insuficiente: number[]
+    regular: number[]
+    bom: number[]
+    excelente: number[]
+  }
+}
+
+type DisciplinasData = DisciplinasDataSingle | DisciplinasDataAll
+
+/** Dados de gráfico com labels/dados/totais/disciplina */
+interface LabelDadosTotaisData {
+  labels: string[]
+  dados: number[]
+  totais: number[]
+  disciplina: string
+}
+
+/** Dados do gráfico de escolas (com rankings) */
+interface EscolasData extends LabelDadosTotaisData {
+  rankings: number[]
+}
+
+/** Dados de distribuição de notas */
+interface DistribuicaoData {
+  labels: string[]
+  dados: number[]
+  disciplina: string
+}
+
+/** Dados de presença */
+interface PresencaData {
+  labels: string[]
+  dados: number[]
+}
+
+/** Dados do comparativo de escolas */
+interface ComparativoEscolasData {
+  escolas: string[]
+  mediaGeral: number[]
+  mediaLP: number[]
+  mediaCH: number[]
+  mediaMAT: number[]
+  mediaCN: number[]
+  mediaPT: number[]
+  totais: number[]
+  temAnosIniciais: boolean
+  temAnosFinais: boolean
+}
+
+/** Item de acertos/erros por questão */
+interface AcertosErrosQuestaoItem {
+  nome: string
+  questao: string
+  acertos: number
+  erros: number
+  total_alunos: number
+  tipo: string
+}
+
+/** Item de acertos/erros por escola ou turma */
+interface AcertosErrosAgregadoItem {
+  nome: string
+  serie?: string
+  turma?: string | null
+  escola?: string
+  acertos: number
+  erros: number
+  total_alunos: number
+  total_questoes?: number
+}
+
+type AcertosErrosItem = AcertosErrosQuestaoItem | AcertosErrosAgregadoItem
+
+/** Metadados de acertos/erros */
+interface AcertosErrosMeta {
+  tipo: string
+  disciplina: string | null
+  total_questoes: number
+  total_alunos_cadastrados: number
+  total_presentes: number
+  total_faltantes: number
+}
+
+/** Item do gráfico de questões */
+interface QuestaoItem {
+  codigo: string
+  numero: number
+  descricao: string
+  disciplina: string | number | boolean | null
+  area_conhecimento: string | number | boolean | null
+  total_respostas: number
+  total_acertos: number
+  taxa_acerto: number
+}
+
+/** Item do heatmap */
+interface HeatmapItem {
+  escola: string | number | boolean | null
+  escola_id: string | number | boolean | null
+  anos_iniciais: string | number | boolean | null
+  LP: number
+  CH: number | null
+  MAT: number
+  CN: number | null
+  PT: number | null
+  Geral: number
+}
+
+/** Item do radar */
+interface RadarItem {
+  nome: string | number | boolean | null
+  anos_iniciais: string | number | boolean | null
+  LP: number
+  CH: number | null
+  MAT: number
+  CN: number | null
+  PT: number | null
+}
+
+/** Item do boxplot */
+interface BoxplotItem {
+  categoria: string
+  min: number
+  q1: number
+  mediana: number
+  q3: number
+  max: number
+  media: number
+  total: number
+}
+
+/** Item de correlação */
+interface CorrelacaoItem {
+  tipo: string
+  LP: number
+  CH: number | null
+  MAT: number
+  CN: number | null
+  PT: number | null
+}
+
+/** Metadados de correlação */
+interface CorrelacaoMeta {
+  tem_anos_finais: boolean
+  tem_anos_iniciais: boolean
+  total_anos_finais: number
+  total_anos_iniciais: number
+}
+
+/** Item de ranking (escolas) */
+interface RankingEscolaItem {
+  posicao: number
+  id: string | number | boolean | null
+  nome: string | number | boolean | null
+  total_alunos: number
+  media_geral: number
+  media_lp: number
+  media_ch: number
+  media_mat: number
+  media_cn: number
+  media_producao: number
+  media_ai: number
+  media_af: number
+}
+
+/** Item de ranking (turmas) */
+interface RankingTurmaItem {
+  posicao: number
+  id: string | number | boolean | null
+  nome: string | number | boolean | null
+  serie: string | number | boolean | null
+  escola: string | number | boolean | null
+  total_alunos: number
+  media_geral: number
+  media_lp: number
+  media_mat: number
+  media_ch: number
+  media_cn: number
+  media_producao: number
+  anos_iniciais: string | number | boolean | null
+}
+
+type RankingItem = RankingEscolaItem | RankingTurmaItem
+
+/** Metadados do ranking */
+interface RankingMeta {
+  tem_anos_iniciais: boolean
+  tem_anos_finais: boolean
+}
+
+/** Item de aprovação */
+interface AprovacaoItem {
+  categoria: string | number | boolean | null
+  total_alunos: number
+  aprovados_6: number
+  aprovados_7: number
+  aprovados_8: number
+  taxa_6: number
+  taxa_7: number
+  taxa_8: number
+  media_geral: number
+}
+
+/** Item de gaps */
+interface GapsItem {
+  categoria: string | number | boolean | null
+  melhor_media: number
+  pior_media: number
+  media_geral: number
+  gap: number
+  total_alunos: number
+}
+
+/** Distribuição de níveis por disciplina */
+interface NiveisCounts {
+  N1: number
+  N2: number
+  N3: number
+  N4: number
+}
+
+interface NiveisDisciplinaData {
+  LP: NiveisCounts
+  MAT: NiveisCounts
+  PROD: NiveisCounts
+  GERAL: NiveisCounts
+  total_presentes: number
+  tem_anos_iniciais: boolean
+  tem_anos_finais: boolean
+}
+
+/** Item de médias por etapa */
+interface MediasEtapaItem {
+  escola: string | number | boolean | null
+  escola_id: string | number | boolean | null
+  media_ai: number | null
+  media_af: number | null
+  media_geral: number
+  total_ai: number
+  total_af: number
+  total_alunos: number
+}
+
+/** Totais gerais de médias por etapa */
+interface MediasEtapaTotais {
+  total_ai: number
+  total_af: number
+  total_alunos: number
+}
+
+/** Item de níveis por turma */
+interface NiveisTurmaItem {
+  turma_id: string | number | boolean | null
+  turma: string | number | boolean | null
+  serie: string | number | boolean | null
+  escola: string | number | boolean | null
+  anos_iniciais: string | number | boolean | null
+  niveis: NiveisCounts
+  media_turma: number
+  total_alunos: number
+  nivel_predominante: string
+}
+
 export interface GraficosResponse {
   series_disponiveis: string[]
-  disciplinas?: any
-  escolas?: any
-  series?: any
-  polos?: any
-  distribuicao?: any
-  presenca?: any
-  comparativo_escolas?: any
-  acertos_erros?: any
-  acertos_erros_meta?: any
-  questoes?: any
-  heatmap?: any
-  radar?: any
-  boxplot?: any
+  disciplinas?: DisciplinasData | null
+  escolas?: EscolasData | null
+  series?: LabelDadosTotaisData | null
+  polos?: LabelDadosTotaisData | null
+  distribuicao?: DistribuicaoData | null
+  presenca?: PresencaData | null
+  comparativo_escolas?: ComparativoEscolasData | null
+  acertos_erros?: AcertosErrosItem[]
+  acertos_erros_meta?: AcertosErrosMeta
+  questoes?: QuestaoItem[]
+  heatmap?: HeatmapItem[]
+  radar?: RadarItem[]
+  boxplot?: BoxplotItem[]
   boxplot_disciplina?: string
-  correlacao?: any
-  correlacao_meta?: any
-  ranking?: any
+  correlacao?: CorrelacaoItem[]
+  correlacao_meta?: CorrelacaoMeta
+  ranking?: RankingItem[]
   ranking_disciplina?: string
-  ranking_meta?: any
-  aprovacao?: any
+  ranking_meta?: RankingMeta
+  aprovacao?: AprovacaoItem[]
   aprovacao_disciplina?: string
-  gaps?: any
+  gaps?: GapsItem[]
   gaps_disciplina?: string
-  niveis_disciplina?: any
-  medias_etapa?: any
-  medias_etapa_totais?: any
-  niveis_turma?: any
+  niveis_disciplina?: NiveisDisciplinaData | null
+  medias_etapa?: MediasEtapaItem[]
+  medias_etapa_totais?: MediasEtapaTotais
+  niveis_turma?: NiveisTurmaItem[]
 }
 
 // ============================================================================
@@ -171,7 +457,7 @@ function isEscolaIdValida(escolaId: string | null): boolean {
 
 interface BuildFiltersResult {
   whereClause: string
-  params: any[]
+  params: (string | null)[]
   paramIndex: number
   deveRemoverLimites: boolean
 }
@@ -182,7 +468,7 @@ interface BuildFiltersResult {
  */
 export function buildGraficosFilters(usuario: Usuario, filtros: GraficosFiltros): BuildFiltersResult {
   const whereConditions: string[] = []
-  const params: any[] = []
+  const params: (string | null)[] = []
   let paramIndex = 1
 
   // Restrições baseadas no tipo de usuário
@@ -246,7 +532,7 @@ export function buildGraficosFilters(usuario: Usuario, filtros: GraficosFiltros)
 
 async function fetchSeriesDisponiveis(usuario: Usuario, filtros: GraficosFiltros): Promise<string[]> {
   const whereSeriesConditions: string[] = []
-  const paramsSeries: any[] = []
+  const paramsSeries: (string | null)[] = []
   let paramSeriesIndex = 1
 
   if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
@@ -283,14 +569,14 @@ async function fetchSeriesDisponiveis(usuario: Usuario, filtros: GraficosFiltros
   `
 
   const rows = await safeQuery(pool, query, paramsSeries, 'fetchSeriesDisponiveis')
-  return rows.map((r: any) => r.serie).filter((s: string) => s && s.trim() !== '')
+  return rows.map((r) => String(r.serie ?? '')).filter((s) => s.trim() !== '')
 }
 
 // ============================================================================
 // GRÁFICO: DISCIPLINAS
 // ============================================================================
 
-export async function fetchDisciplinas(whereClause: string, params: any[], disciplina: string | null): Promise<any> {
+export async function fetchDisciplinas(whereClause: string, params: (string | null)[], disciplina: string | null): Promise<DisciplinasData | null> {
   if (disciplina && ['LP', 'CH', 'MAT', 'CN', 'PT'].includes(disciplina)) {
     const campoMap: Record<string, { campo: string; label: string }> = {
       LP: { campo: 'rc.nota_lp', label: 'Língua Portuguesa' },
@@ -412,7 +698,7 @@ export async function fetchDisciplinas(whereClause: string, params: any[], disci
 // GRÁFICO: ESCOLAS
 // ============================================================================
 
-export async function fetchEscolas(whereClause: string, params: any[], disciplina: string | null): Promise<any> {
+export async function fetchEscolas(whereClause: string, params: (string | null)[], disciplina: string | null): Promise<EscolasData | null> {
   const notaConfig = getCampoNota(disciplina)
   const query = `
     SELECT
@@ -429,10 +715,10 @@ export async function fetchEscolas(whereClause: string, params: any[], disciplin
   const rows = await safeQuery(pool, query, params, 'fetchEscolas')
   if (rows.length > 0) {
     return {
-      labels: rows.map((r: any, index: number) => `${index + 1}º ${r.escola}`),
-      dados: rows.map((r: any) => parseDbNumber(r.media)),
-      totais: rows.map((r: any) => parseDbInt(r.total_alunos)),
-      rankings: rows.map((_: any, index: number) => index + 1),
+      labels: rows.map((r, index) => `${index + 1}º ${r.escola}`),
+      dados: rows.map((r) => parseDbNumber(r.media)),
+      totais: rows.map((r) => parseDbInt(r.total_alunos)),
+      rankings: rows.map((_, index) => index + 1),
       disciplina: notaConfig.label
     }
   }
@@ -443,7 +729,7 @@ export async function fetchEscolas(whereClause: string, params: any[], disciplin
 // GRÁFICO: SÉRIES
 // ============================================================================
 
-export async function fetchSeries(whereClause: string, params: any[], disciplina: string | null): Promise<any> {
+export async function fetchSeries(whereClause: string, params: (string | null)[], disciplina: string | null): Promise<LabelDadosTotaisData | null> {
   const notaConfig = getCampoNota(disciplina)
   const query = `
     SELECT
@@ -460,9 +746,9 @@ export async function fetchSeries(whereClause: string, params: any[], disciplina
   const rows = await safeQuery(pool, query, params, 'fetchSeries')
   if (rows.length > 0) {
     return {
-      labels: rows.map((r: any) => r.serie),
-      dados: rows.map((r: any) => parseDbNumber(r.media)),
-      totais: rows.map((r: any) => parseDbInt(r.total_alunos)),
+      labels: rows.map((r) => String(r.serie ?? '')),
+      dados: rows.map((r) => parseDbNumber(r.media)),
+      totais: rows.map((r) => parseDbInt(r.total_alunos)),
       disciplina: notaConfig.label
     }
   }
@@ -473,7 +759,7 @@ export async function fetchSeries(whereClause: string, params: any[], disciplina
 // GRÁFICO: POLOS
 // ============================================================================
 
-export async function fetchPolos(whereClause: string, params: any[], disciplina: string | null): Promise<any> {
+export async function fetchPolos(whereClause: string, params: (string | null)[], disciplina: string | null): Promise<LabelDadosTotaisData | null> {
   const notaConfig = getCampoNota(disciplina)
   const query = `
     SELECT
@@ -491,9 +777,9 @@ export async function fetchPolos(whereClause: string, params: any[], disciplina:
   const rows = await safeQuery(pool, query, params, 'fetchPolos')
   if (rows.length > 0) {
     return {
-      labels: rows.map((r: any) => r.polo),
-      dados: rows.map((r: any) => parseDbNumber(r.media)),
-      totais: rows.map((r: any) => parseDbInt(r.total_alunos)),
+      labels: rows.map((r) => String(r.polo ?? '')),
+      dados: rows.map((r) => parseDbNumber(r.media)),
+      totais: rows.map((r) => parseDbInt(r.total_alunos)),
       disciplina: notaConfig.label
     }
   }
@@ -504,7 +790,7 @@ export async function fetchPolos(whereClause: string, params: any[], disciplina:
 // GRÁFICO: DISTRIBUIÇÃO
 // ============================================================================
 
-export async function fetchDistribuicao(whereClause: string, params: any[], disciplina: string | null): Promise<any> {
+export async function fetchDistribuicao(whereClause: string, params: (string | null)[], disciplina: string | null): Promise<DistribuicaoData | null> {
   let campoNota = getMediaGeralSQLLocal()
   let labelDisciplina = 'Geral'
   let usandoMediaGeral = true
@@ -544,8 +830,8 @@ export async function fetchDistribuicao(whereClause: string, params: any[], disc
   const rows = await safeQuery(pool, query, params, 'fetchDistribuicao')
   if (rows.length > 0) {
     return {
-      labels: rows.map((r: any) => r.faixa),
-      dados: rows.map((r: any) => parseDbInt(r.quantidade)),
+      labels: rows.map((r) => String(r.faixa ?? '')),
+      dados: rows.map((r) => parseDbInt(r.quantidade)),
       disciplina: labelDisciplina
     }
   }
@@ -556,7 +842,7 @@ export async function fetchDistribuicao(whereClause: string, params: any[], disc
 // GRÁFICO: PRESENÇA
 // ============================================================================
 
-export async function fetchPresenca(whereClause: string, params: any[]): Promise<any> {
+export async function fetchPresenca(whereClause: string, params: (string | null)[]): Promise<PresencaData | null> {
   const query = `
     SELECT
       CASE WHEN rc.presenca IN ('P', 'p') THEN 'Presentes' ELSE 'Faltas' END as status,
@@ -569,8 +855,8 @@ export async function fetchPresenca(whereClause: string, params: any[]): Promise
   const rows = await safeQuery(pool, query, params, 'fetchPresenca')
   if (rows.length > 0) {
     return {
-      labels: rows.map((r: any) => r.status),
-      dados: rows.map((r: any) => parseDbInt(r.quantidade))
+      labels: rows.map((r) => String(r.status ?? '')),
+      dados: rows.map((r) => parseDbInt(r.quantidade))
     }
   }
   return null
@@ -580,7 +866,7 @@ export async function fetchPresenca(whereClause: string, params: any[]): Promise
 // GRÁFICO: COMPARATIVO ESCOLAS
 // ============================================================================
 
-export async function fetchComparativoEscolas(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<any> {
+export async function fetchComparativoEscolas(whereClause: string, params: (string | null)[], deveRemoverLimites: boolean): Promise<ComparativoEscolasData | null> {
   const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
   const mediaGeralCalc = getMediaGeralSQLLocal()
 
@@ -611,18 +897,18 @@ export async function fetchComparativoEscolas(whereClause: string, params: any[]
   `
   const rows = await safeQuery(pool, query, params, 'fetchComparativoEscolas')
   if (rows.length > 0) {
-    const totalAnosIniciais = rows.reduce((acc: number, r: any) => acc + parseDbInt(r.count_anos_iniciais), 0)
-    const totalAnosFinais = rows.reduce((acc: number, r: any) => acc + parseDbInt(r.count_anos_finais), 0)
+    const totalAnosIniciais = rows.reduce((acc: number, r) => acc + parseDbInt(r.count_anos_iniciais), 0)
+    const totalAnosFinais = rows.reduce((acc: number, r) => acc + parseDbInt(r.count_anos_finais), 0)
 
     return {
-      escolas: rows.map((r: any) => r.escola),
-      mediaGeral: rows.map((r: any) => parseDbNumber(r.media_geral)),
-      mediaLP: rows.map((r: any) => parseDbNumber(r.media_lp)),
-      mediaCH: rows.map((r: any) => parseDbNumber(r.media_ch)),
-      mediaMAT: rows.map((r: any) => parseDbNumber(r.media_mat)),
-      mediaCN: rows.map((r: any) => parseDbNumber(r.media_cn)),
-      mediaPT: rows.map((r: any) => parseDbNumber(r.media_pt)),
-      totais: rows.map((r: any) => parseDbInt(r.total_alunos)),
+      escolas: rows.map((r) => String(r.escola ?? '')),
+      mediaGeral: rows.map((r) => parseDbNumber(r.media_geral)),
+      mediaLP: rows.map((r) => parseDbNumber(r.media_lp)),
+      mediaCH: rows.map((r) => parseDbNumber(r.media_ch)),
+      mediaMAT: rows.map((r) => parseDbNumber(r.media_mat)),
+      mediaCN: rows.map((r) => parseDbNumber(r.media_cn)),
+      mediaPT: rows.map((r) => parseDbNumber(r.media_pt)),
+      totais: rows.map((r) => parseDbInt(r.total_alunos)),
       temAnosIniciais: totalAnosIniciais > 0,
       temAnosFinais: totalAnosFinais > 0
     }
@@ -636,17 +922,17 @@ export async function fetchComparativoEscolas(whereClause: string, params: any[]
 
 export async function fetchAcertosErros(
   whereClause: string,
-  params: any[],
+  params: (string | null)[],
   filtros: GraficosFiltros,
   usuario: Usuario,
   deveRemoverLimites: boolean
-): Promise<{ acertos_erros: any; acertos_erros_meta?: any }> {
+): Promise<{ acertos_erros: AcertosErrosItem[]; acertos_erros_meta?: AcertosErrosMeta }> {
   const { disciplina, anoLetivo, poloId, escolaId, serie, turmaId, tipoEnsino } = filtros
 
   // SE DISCIPLINA ESPECÍFICA: Mostrar acertos/erros POR QUESTÃO
   if (disciplina) {
     const whereAcertosQuestao: string[] = []
-    const paramsAcertosQuestao: any[] = []
+    const paramsAcertosQuestao: (string | null)[] = []
     let paramIndexAcertos = 1
 
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
@@ -738,9 +1024,9 @@ export async function fetchAcertosErros(
       const totalAlunos = parseDbInt(totaisAlunos.total_alunos)
 
       return {
-        acertos_erros: rowsQuestao.map((r: any) => ({
-          nome: `Q${r.questao.replace(/[^0-9]/g, '')}`,
-          questao: r.questao,
+        acertos_erros: rowsQuestao.map((r) => ({
+          nome: `Q${String(r.questao ?? '').replace(/[^0-9]/g, '')}`,
+          questao: String(r.questao ?? ''),
           acertos: parseDbInt(r.acertos),
           erros: parseDbInt(r.erros),
           total_alunos: parseDbInt(r.total_presentes),
@@ -809,10 +1095,10 @@ export async function fetchAcertosErros(
     const rows = await safeQuery(pool, query, params, 'fetchAcertosErros:turma')
     return {
       acertos_erros: rows.length > 0
-        ? rows.map((r: any) => ({
-            nome: r.nome || `Série ${r.serie}`,
-            serie: r.serie,
-            turma: r.turma_codigo || null,
+        ? rows.map((r) => ({
+            nome: String(r.nome ?? '') || `Série ${r.serie}`,
+            serie: String(r.serie ?? ''),
+            turma: r.turma_codigo ? String(r.turma_codigo) : null,
             acertos: parseDbInt(r.total_acertos),
             erros: Math.max(0, parseDbInt(r.total_erros)),
             total_alunos: parseDbInt(r.total_alunos),
@@ -840,9 +1126,9 @@ export async function fetchAcertosErros(
   const rows = await safeQuery(pool, query, params, 'fetchAcertosErros:escola')
   return {
     acertos_erros: rows.length > 0
-      ? rows.map((r: any) => ({
-          nome: r.nome,
-          ...(!(isEscolaIdValida(escolaId)) && { escola: r.nome }),
+      ? rows.map((r) => ({
+          nome: String(r.nome ?? ''),
+          ...(!(isEscolaIdValida(escolaId)) && { escola: String(r.nome ?? '') }),
           acertos: parseDbInt(r.total_acertos),
           erros: Math.max(0, parseDbInt(r.total_erros)),
           total_alunos: parseDbInt(r.total_alunos),
@@ -858,15 +1144,15 @@ export async function fetchAcertosErros(
 
 export async function fetchQuestoes(
   whereClause: string,
-  params: any[],
+  params: (string | null)[],
   filtros: GraficosFiltros,
   usuario: Usuario,
   deveRemoverLimites: boolean
-): Promise<any[]> {
+): Promise<QuestaoItem[]> {
   const { disciplina, anoLetivo, poloId, escolaId, serie, tipoEnsino } = filtros
 
   const whereQuestoes: string[] = []
-  const paramsQuestoes: any[] = []
+  const paramsQuestoes: (string | null)[] = []
   let paramIndexQuestoes = 1
 
   if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
@@ -960,10 +1246,10 @@ export async function fetchQuestoes(
   `
   const rows = await safeQuery(pool, query, paramsQuestoes, 'fetchQuestoes')
   return rows.length > 0
-    ? rows.map((r: any) => ({
-        codigo: r.codigo,
+    ? rows.map((r) => ({
+        codigo: String(r.codigo ?? ''),
         numero: parseDbInt(r.numero_questao),
-        descricao: r.descricao || r.codigo,
+        descricao: String(r.descricao ?? r.codigo ?? ''),
         disciplina: r.disciplina,
         area_conhecimento: r.area_conhecimento,
         total_respostas: parseDbInt(r.total_respostas),
@@ -977,7 +1263,7 @@ export async function fetchQuestoes(
 // GRÁFICO: HEATMAP
 // ============================================================================
 
-export async function fetchHeatmap(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<any[]> {
+export async function fetchHeatmap(whereClause: string, params: (string | null)[], deveRemoverLimites: boolean): Promise<HeatmapItem[]> {
   const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
   const mediaGeralCalc = getMediaGeralSQLLocal()
 
@@ -1003,7 +1289,7 @@ export async function fetchHeatmap(whereClause: string, params: any[], deveRemov
   `
   const rows = await safeQuery(pool, query, params, 'fetchHeatmap')
   return rows.length > 0
-    ? rows.map((r: any) => ({
+    ? rows.map((r) => ({
         escola: r.escola_nome,
         escola_id: r.escola_id,
         anos_iniciais: r.anos_iniciais,
@@ -1021,7 +1307,7 @@ export async function fetchHeatmap(whereClause: string, params: any[], deveRemov
 // GRÁFICO: RADAR
 // ============================================================================
 
-async function fetchRadar(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<any[]> {
+async function fetchRadar(whereClause: string, params: (string | null)[], deveRemoverLimites: boolean): Promise<RadarItem[]> {
   const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
   const query = `
@@ -1044,7 +1330,7 @@ async function fetchRadar(whereClause: string, params: any[], deveRemoverLimites
   `
   const rows = await safeQuery(pool, query, params, 'fetchRadar')
   return rows.length > 0
-    ? rows.map((r: any) => ({
+    ? rows.map((r) => ({
         nome: r.nome,
         anos_iniciais: r.anos_iniciais,
         LP: parseDbNumber(r.lp),
@@ -1060,7 +1346,7 @@ async function fetchRadar(whereClause: string, params: any[], deveRemoverLimites
 // GRÁFICO: BOXPLOT
 // ============================================================================
 
-export async function fetchBoxplot(whereClause: string, params: any[], disciplina: string | null): Promise<{ boxplot: any[]; boxplot_disciplina: string }> {
+export async function fetchBoxplot(whereClause: string, params: (string | null)[], disciplina: string | null): Promise<{ boxplot: BoxplotItem[]; boxplot_disciplina: string }> {
   const notaConfig = getCampoNota(disciplina)
   const whereBoxPlot = whereClause
     ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfig.campo} IS NOT NULL AND CAST(${notaConfig.campo} AS DECIMAL) > 0`
@@ -1078,10 +1364,10 @@ export async function fetchBoxplot(whereClause: string, params: any[], disciplin
   const rows = await safeQuery(pool, query, params, 'fetchBoxplot')
 
   const categorias: { [key: string]: number[] } = {}
-  rows.forEach((r: any) => {
-    const cat = r.categoria || 'Geral'
+  rows.forEach((r) => {
+    const cat = String(r.categoria ?? 'Geral')
     if (!categorias[cat]) categorias[cat] = []
-    const nota = parseFloat(r.nota)
+    const nota = parseFloat(String(r.nota))
     if (!isNaN(nota)) {
       categorias[cat].push(nota)
     }
@@ -1120,7 +1406,7 @@ export async function fetchBoxplot(whereClause: string, params: any[], disciplin
 // GRÁFICO: CORRELAÇÃO
 // ============================================================================
 
-export async function fetchCorrelacao(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<{ correlacao: any[]; correlacao_meta: any }> {
+export async function fetchCorrelacao(whereClause: string, params: (string | null)[], deveRemoverLimites: boolean): Promise<{ correlacao: CorrelacaoItem[]; correlacao_meta: CorrelacaoMeta }> {
   const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
   const whereCorrelacaoFinais = whereClause
@@ -1164,7 +1450,7 @@ export async function fetchCorrelacao(whereClause: string, params: any[], deveRe
     safeQuery(pool, queryIniciais, params, 'fetchCorrelacao:iniciais')
   ])
 
-  const dadosFinais = rowsFinais.map((r: any) => ({
+  const dadosFinais: CorrelacaoItem[] = rowsFinais.map((r) => ({
     tipo: 'anos_finais',
     LP: parseDbNumber(r.lp),
     CH: parseDbNumber(r.ch),
@@ -1173,7 +1459,7 @@ export async function fetchCorrelacao(whereClause: string, params: any[], deveRe
     PT: null
   }))
 
-  const dadosIniciais = rowsIniciais.map((r: any) => ({
+  const dadosIniciais: CorrelacaoItem[] = rowsIniciais.map((r) => ({
     tipo: 'anos_iniciais',
     LP: parseDbNumber(r.lp),
     CH: null,
@@ -1199,10 +1485,10 @@ export async function fetchCorrelacao(whereClause: string, params: any[], deveRe
 
 export async function fetchRanking(
   whereClause: string,
-  params: any[],
+  params: (string | null)[],
   filtros: GraficosFiltros,
   deveRemoverLimites: boolean
-): Promise<{ ranking: any[]; ranking_disciplina: string; ranking_meta?: any }> {
+): Promise<{ ranking: RankingItem[]; ranking_disciplina: string; ranking_meta?: RankingMeta }> {
   const tipoRanking = filtros.tipoRanking || 'escolas'
   const notaConfig = getCampoNota(filtros.disciplina)
   const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
@@ -1236,12 +1522,12 @@ export async function fetchRanking(
       ${deveRemoverLimites ? '' : 'LIMIT 50'}
     `
     const rows = await safeQuery(pool, query, params, 'fetchRanking:escolas')
-    const totalAnosIniciais = rows.reduce((acc: number, r: any) => acc + parseDbInt(r.count_anos_iniciais), 0)
-    const totalAnosFinais = rows.reduce((acc: number, r: any) => acc + parseDbInt(r.count_anos_finais), 0)
+    const totalAnosIniciais = rows.reduce((acc: number, r) => acc + parseDbInt(r.count_anos_iniciais), 0)
+    const totalAnosFinais = rows.reduce((acc: number, r) => acc + parseDbInt(r.count_anos_finais), 0)
 
     return {
       ranking: rows.length > 0
-        ? rows.map((r: any, index: number) => ({
+        ? rows.map((r, index) => ({
             posicao: index + 1,
             id: r.id,
             nome: r.nome,
@@ -1295,7 +1581,7 @@ export async function fetchRanking(
     `
     const rows = await safeQuery(pool, query, params, 'fetchRanking:turmas')
     return {
-      ranking: rows.map((r: any, index: number) => ({
+      ranking: rows.map((r, index) => ({
         posicao: index + 1,
         id: r.id,
         nome: r.codigo || r.nome || 'Turma',
@@ -1322,7 +1608,7 @@ export async function fetchRanking(
 // GRÁFICO: APROVAÇÃO
 // ============================================================================
 
-export async function fetchAprovacao(whereClause: string, params: any[], disciplina: string | null, deveRemoverLimites: boolean): Promise<{ aprovacao: any[]; aprovacao_disciplina: string }> {
+export async function fetchAprovacao(whereClause: string, params: (string | null)[], disciplina: string | null, deveRemoverLimites: boolean): Promise<{ aprovacao: AprovacaoItem[]; aprovacao_disciplina: string }> {
   const notaConfig = getCampoNota(disciplina)
   const whereAprovacao = whereClause
     ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfig.campo} IS NOT NULL AND CAST(${notaConfig.campo} AS DECIMAL) > 0`
@@ -1347,7 +1633,7 @@ export async function fetchAprovacao(whereClause: string, params: any[], discipl
   const rows = await safeQuery(pool, query, params, 'fetchAprovacao')
   return {
     aprovacao: rows.length > 0
-      ? rows.map((r: any) => {
+      ? rows.map((r) => {
           const totalAlunos = parseDbInt(r.total_alunos) || 1
           return {
             categoria: r.categoria,
@@ -1370,7 +1656,7 @@ export async function fetchAprovacao(whereClause: string, params: any[], discipl
 // GRÁFICO: GAPS
 // ============================================================================
 
-export async function fetchGaps(whereClause: string, params: any[], disciplina: string | null, deveRemoverLimites: boolean): Promise<{ gaps: any[]; gaps_disciplina: string }> {
+export async function fetchGaps(whereClause: string, params: (string | null)[], disciplina: string | null, deveRemoverLimites: boolean): Promise<{ gaps: GapsItem[]; gaps_disciplina: string }> {
   const notaConfig = getCampoNota(disciplina)
   const whereGaps = whereClause
     ? `${whereClause} AND (rc.presenca = 'P' OR rc.presenca = 'p') AND ${notaConfig.campo} IS NOT NULL AND CAST(${notaConfig.campo} AS DECIMAL) > 0`
@@ -1395,7 +1681,7 @@ export async function fetchGaps(whereClause: string, params: any[], disciplina: 
   const rows = await safeQuery(pool, query, params, 'fetchGaps')
   return {
     gaps: rows.length > 0
-      ? rows.map((r: any) => ({
+      ? rows.map((r) => ({
           categoria: r.categoria,
           melhor_media: parseDbNumber(r.melhor_media),
           pior_media: parseDbNumber(r.pior_media),
@@ -1412,7 +1698,7 @@ export async function fetchGaps(whereClause: string, params: any[], disciplina: 
 // GRÁFICO: NÍVEIS POR DISCIPLINA
 // ============================================================================
 
-async function fetchNiveisDisciplina(whereClause: string, params: any[]): Promise<any> {
+async function fetchNiveisDisciplina(whereClause: string, params: (string | null)[]): Promise<NiveisDisciplinaData | null> {
   const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
 
   const query = `
@@ -1462,7 +1748,7 @@ async function fetchNiveisDisciplina(whereClause: string, params: any[]): Promis
 // GRÁFICO: MÉDIAS POR ETAPA
 // ============================================================================
 
-async function fetchMediasEtapa(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<{ medias_etapa: any[]; medias_etapa_totais: any }> {
+async function fetchMediasEtapa(whereClause: string, params: (string | null)[], deveRemoverLimites: boolean): Promise<{ medias_etapa: MediasEtapaItem[]; medias_etapa_totais: MediasEtapaTotais }> {
   const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
   const mediaGeralCalc = getMediaGeralSQLLocal()
 
@@ -1491,7 +1777,7 @@ async function fetchMediasEtapa(whereClause: string, params: any[], deveRemoverL
   const rows = await safeQuery(pool, query, params, 'fetchMediasEtapa')
 
   const medias_etapa = rows.length > 0
-    ? rows.map((r: any) => ({
+    ? rows.map((r) => ({
         escola: r.escola,
         escola_id: r.escola_id,
         media_ai: parseDbNumber(r.media_ai) || null,
@@ -1503,7 +1789,7 @@ async function fetchMediasEtapa(whereClause: string, params: any[], deveRemoverL
       }))
     : []
 
-  const totaisGerais = rows.reduce((acc: any, r: any) => ({
+  const totaisGerais = rows.reduce<MediasEtapaTotais>((acc, r) => ({
     total_ai: acc.total_ai + parseDbInt(r.total_ai),
     total_af: acc.total_af + parseDbInt(r.total_af),
     total_alunos: acc.total_alunos + parseDbInt(r.total_alunos)
@@ -1516,7 +1802,7 @@ async function fetchMediasEtapa(whereClause: string, params: any[], deveRemoverL
 // GRÁFICO: NÍVEIS POR TURMA
 // ============================================================================
 
-export async function fetchNiveisTurma(whereClause: string, params: any[], deveRemoverLimites: boolean): Promise<any[]> {
+export async function fetchNiveisTurma(whereClause: string, params: (string | null)[], deveRemoverLimites: boolean): Promise<NiveisTurmaItem[]> {
   const numeroSerieSQL = `COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g'))`
   const mediaGeralCalc = getMediaGeralSQLLocal()
 
@@ -1546,8 +1832,8 @@ export async function fetchNiveisTurma(whereClause: string, params: any[], deveR
   const rows = await safeQuery(pool, query, params, 'fetchNiveisTurma')
 
   return rows.length > 0
-    ? rows.map((r: any) => {
-        const niveis = {
+    ? rows.map((r) => {
+        const niveis: NiveisCounts = {
           N1: parseDbInt(r.n1),
           N2: parseDbInt(r.n2),
           N3: parseDbInt(r.n3),

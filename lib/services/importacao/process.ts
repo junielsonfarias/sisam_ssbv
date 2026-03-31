@@ -26,6 +26,11 @@ import {
   DadosExistentes,
   DadosQuestoes,
   DadosProcessados,
+  TurmaParaInserir,
+  AlunoParaInserir,
+  ConsolidadoParaInserir,
+  ResultadoParaInserir,
+  ProducaoParaInserir,
 } from './types'
 
 const log = createLogger('Importacao')
@@ -38,7 +43,7 @@ const log = createLogger('Importacao')
  * Fase 5: Processa cada linha do arquivo, monta arrays para batch insert
  */
 export async function processarLinhas(
-  dados: any[],
+  dados: Record<string, unknown>[],
   config: ImportacaoConfig,
   dadosExistentes: DadosExistentes,
   dadosQuestoes: DadosQuestoes,
@@ -67,20 +72,20 @@ export async function processarLinhas(
   const intervaloAtualizacao = Math.max(50, Math.floor(totalLinhas / 10))
 
   // Arrays para batch inserts
-  const turmasParaInserir: any[] = []
-  const alunosParaInserir: any[] = []
-  const consolidadosParaInserir: any[] = []
-  const resultadosParaInserir: any[] = []
-  const producaoParaInserir: any[] = []
+  const turmasParaInserir: TurmaParaInserir[] = []
+  const alunosParaInserir: AlunoParaInserir[] = []
+  const consolidadosParaInserir: ConsolidadoParaInserir[] = []
+  const resultadosParaInserir: ResultadoParaInserir[] = []
+  const producaoParaInserir: ProducaoParaInserir[] = []
 
   // Funcoes auxiliares locais
-  const extrairNumero = (valor: any): number => {
+  const extrairNumero = (valor: unknown): number => {
     if (!valor) return 0
     const num = parseInt(valor.toString().replace(/[^\d]/g, ''))
     return isNaN(num) ? 0 : num
   }
 
-  const extrairDecimal = (valor: any): number | null => {
+  const extrairDecimal = (valor: unknown): number | null => {
     if (!valor || valor === '' || valor === null || valor === undefined) return null
     const str = valor.toString().replace(',', '.').trim()
     const num = parseFloat(str)
@@ -89,7 +94,7 @@ export async function processarLinhas(
 
   for (let i = 0; i < dados.length; i++) {
     try {
-      const linha = dados[i] as Record<string, unknown>
+      const linha = dados[i]
 
       const escolaNome = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
       const alunoNome = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
@@ -452,7 +457,7 @@ export async function processarLinhas(
             `Questao ${num}`,
           ]
 
-          let valorQuestao: any = undefined
+          let valorQuestao: unknown = undefined
           let colunaQuestao = `Q${num}`
 
           for (const variacao of variacoesColuna) {

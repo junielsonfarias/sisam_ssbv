@@ -24,7 +24,7 @@ const BADGE_COLORS: Record<string, string> = {
   'Portaria': 'bg-blue-100 text-blue-700',
   'Resolução': 'bg-purple-100 text-purple-700',
   'Decreto': 'bg-red-100 text-red-700',
-  'Calendário Escolar': 'bg-emerald-100 text-emerald-700',
+  'Calendário Escolar': 'bg-blue-100 text-blue-700',
   'Ata': 'bg-amber-100 text-amber-700',
   'Parecer': 'bg-teal-100 text-teal-700',
   'Ofício': 'bg-orange-100 text-orange-700',
@@ -86,7 +86,7 @@ export default function PublicacoesPublicPage() {
       <div className="pt-32 pb-16 bg-gradient-to-b from-slate-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">Transparência</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-blue-600 mb-4">Transparência</p>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
               Publicações Oficiais
             </h1>
@@ -108,7 +108,7 @@ export default function PublicacoesPublicPage() {
             <select
               value={filtroTipo}
               onChange={(e) => { setFiltroTipo(e.target.value); setPagina(1) }}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               <option value="">Todos os tipos</option>
               {TIPOS_DOCUMENTO.map(t => <option key={t} value={t}>{t}</option>)}
@@ -116,7 +116,7 @@ export default function PublicacoesPublicPage() {
             <select
               value={filtroOrgao}
               onChange={(e) => { setFiltroOrgao(e.target.value); setPagina(1) }}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               <option value="">Todos os órgãos</option>
               {ORGAOS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -124,7 +124,7 @@ export default function PublicacoesPublicPage() {
             <select
               value={filtroAno}
               onChange={(e) => { setFiltroAno(e.target.value); setPagina(1) }}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               <option value="">Todos os anos</option>
               {anos.map(a => <option key={a} value={a}>{a}</option>)}
@@ -135,8 +135,8 @@ export default function PublicacoesPublicPage() {
         {/* Resultado */}
         {carregando ? (
           <div className="text-center py-20">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <FileText className="w-6 h-6 text-emerald-600" />
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <FileText className="w-6 h-6 text-blue-600" />
             </div>
             <p className="text-slate-400 font-medium">Carregando publicações...</p>
           </div>
@@ -165,7 +165,7 @@ export default function PublicacoesPublicPage() {
                       <span className="text-xs font-mono text-slate-400">{pub.numero}</span>
                     )}
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors duration-300 line-clamp-2">
+                  <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors duration-300 line-clamp-2">
                     {pub.titulo}
                   </h3>
                   {pub.descricao && (
@@ -186,7 +186,7 @@ export default function PublicacoesPublicPage() {
                       href={pub.url_arquivo}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-semibold hover:bg-emerald-100 transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 text-sm font-semibold hover:bg-blue-100 transition-colors"
                     >
                       <Download className="w-4 h-4" />
                       Baixar documento

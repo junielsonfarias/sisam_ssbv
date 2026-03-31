@@ -333,8 +333,8 @@ export async function baixarEmbeddings(
 
   const data = await res.json()
   const embeddings: EmbeddingLocal[] = (data.alunos || [])
-    .filter((a: any) => a.embedding_base64)
-    .map((a: any) => ({
+    .filter((a: Record<string, unknown>) => a.embedding_base64)
+    .map((a: Record<string, unknown>) => ({
       aluno_id: a.aluno_id,
       nome: a.nome || a.aluno_nome,
       codigo: a.codigo,

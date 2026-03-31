@@ -5,7 +5,9 @@ import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches } from '@/lib/cache'
 import { validarArquivoUpload } from '@/lib/api-helpers'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
+export const maxDuration = 300 // 5 minutos (limite Vercel)
+
 export const POST = withAuth(['administrador', 'tecnico'], async (request: NextRequest, usuario) => {
   try {
     const formData = await request.formData()

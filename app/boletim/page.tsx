@@ -570,22 +570,87 @@ export default function BoletimPage() {
               )}
             </div>
 
-            {/* Avaliacoes Educatec */}
+            {/* Avaliacoes SISAM */}
             {dados.avaliacoes_sisam.length > 0 && (() => {
               const serieNum = parseInt((dados.aluno.serie || '').replace(/\D/g, '')) || 0
               const isIniciais = [1, 2, 3, 4, 5].includes(serieNum)
+
+              const nivelBadge = (nivel: string | null) => {
+                if (!nivel) return null
+                const cls = nivel.includes('AVANC') ? 'bg-blue-100 text-blue-800' :
+                  nivel.includes('ADEQU') ? 'bg-blue-50 text-blue-700' :
+                  nivel.includes('BAS') ? 'bg-amber-100 text-amber-700' :
+                  'bg-red-100 text-red-700'
+                return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{nivel}</span>
+              }
+
+              const presencaBadge = (p: string) => (
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  p === 'P' ? 'bg-blue-100 text-blue-900' : 'bg-red-100 text-red-700'
+                }`}>{p === 'P' ? 'Presente' : 'Faltou'}</span>
+              )
+
               return (
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-indigo-600" />
-                    <h3 className="font-bold text-slate-800">Avaliacoes Municipais (SISAM)</h3>
+                    <Award className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                    <h3 className="font-bold text-sm sm:text-base text-slate-800">Avaliacoes Municipais (SISAM)</h3>
                   </div>
-                  <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full">
+                  <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-[10px] sm:text-xs font-semibold rounded-full">
                     {dados.aluno.serie ? formatSerie(dados.aluno.serie) : ''} — {isIniciais ? 'Anos Iniciais' : 'Anos Finais'}
                   </span>
                 </div>
-                <div className="overflow-x-auto">
+
+                {/* MOBILE: Cards por avaliação */}
+                <div className="sm:hidden divide-y divide-gray-100">
+                  {dados.avaliacoes_sisam.map((av, i) => (
+                    <div key={i} className="px-4 py-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm text-slate-800">{av.avaliacao}</span>
+                        <div className="flex items-center gap-2">
+                          {presencaBadge(av.presenca)}
+                          {nivelBadge(av.nivel)}
+                        </div>
+                      </div>
+                      <div className={`grid ${isIniciais ? 'grid-cols-4' : 'grid-cols-5'} gap-1.5`}>
+                        <div className={`text-center py-1.5 rounded-lg ${notaBg(av.nota_lp)}`}>
+                          <div className="text-[9px] text-slate-400 font-medium">LP</div>
+                          <div className={`text-sm font-bold ${notaColor(av.nota_lp)}`}>{av.nota_lp?.toFixed(1) ?? '-'}</div>
+                        </div>
+                        <div className={`text-center py-1.5 rounded-lg ${notaBg(av.nota_mat)}`}>
+                          <div className="text-[9px] text-slate-400 font-medium">MAT</div>
+                          <div className={`text-sm font-bold ${notaColor(av.nota_mat)}`}>{av.nota_mat?.toFixed(1) ?? '-'}</div>
+                        </div>
+                        {!isIniciais && (
+                          <div className={`text-center py-1.5 rounded-lg ${notaBg(av.nota_ch)}`}>
+                            <div className="text-[9px] text-slate-400 font-medium">CH</div>
+                            <div className={`text-sm font-bold ${notaColor(av.nota_ch)}`}>{av.nota_ch?.toFixed(1) ?? '-'}</div>
+                          </div>
+                        )}
+                        {!isIniciais && (
+                          <div className={`text-center py-1.5 rounded-lg ${notaBg(av.nota_cn)}`}>
+                            <div className="text-[9px] text-slate-400 font-medium">CN</div>
+                            <div className={`text-sm font-bold ${notaColor(av.nota_cn)}`}>{av.nota_cn?.toFixed(1) ?? '-'}</div>
+                          </div>
+                        )}
+                        {isIniciais && (
+                          <div className={`text-center py-1.5 rounded-lg ${notaBg(av.nota_producao)}`}>
+                            <div className="text-[9px] text-slate-400 font-medium">PROD</div>
+                            <div className={`text-sm font-bold ${notaColor(av.nota_producao)}`}>{av.nota_producao?.toFixed(1) ?? '-'}</div>
+                          </div>
+                        )}
+                        <div className={`text-center py-1.5 rounded-lg bg-slate-50 ${notaBg(av.media)}`}>
+                          <div className="text-[9px] text-slate-400 font-medium">Media</div>
+                          <div className={`text-sm font-bold ${notaColor(av.media)}`}>{av.media?.toFixed(1) ?? '-'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* DESKTOP: Tabela tradicional */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-50 text-slate-500">
@@ -604,27 +669,14 @@ export default function BoletimPage() {
                       {dados.avaliacoes_sisam.map((av, i) => (
                         <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
                           <td className="px-4 py-3 font-medium text-slate-700">{av.avaliacao}</td>
-                          <td className="text-center px-3 py-3">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              av.presenca === 'P' ? 'bg-emerald-100 text-blue-900' : 'bg-red-100 text-red-700'
-                            }`}>{av.presenca === 'P' ? 'Presente' : 'Faltou'}</span>
-                          </td>
+                          <td className="text-center px-3 py-3">{presencaBadge(av.presenca)}</td>
                           <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_lp)}`}>{av.nota_lp?.toFixed(1) ?? '-'}</td>
                           <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_mat)}`}>{av.nota_mat?.toFixed(1) ?? '-'}</td>
                           {!isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_ch)}`}>{av.nota_ch?.toFixed(1) ?? '-'}</td>}
                           {!isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_cn)}`}>{av.nota_cn?.toFixed(1) ?? '-'}</td>}
                           {isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_producao)}`}>{av.nota_producao?.toFixed(1) ?? '-'}</td>}
                           <td className={`text-center px-3 py-3 bg-slate-50 font-bold ${notaColor(av.media)}`}>{av.media?.toFixed(1) ?? '-'}</td>
-                          <td className="text-center px-3 py-3">
-                            {av.nivel ? (
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                av.nivel.includes('AVANC') ? 'bg-emerald-100 text-blue-900' :
-                                av.nivel.includes('ADEQU') ? 'bg-blue-100 text-blue-700' :
-                                av.nivel.includes('BAS') ? 'bg-amber-100 text-amber-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>{av.nivel}</span>
-                            ) : '-'}
-                          </td>
+                          <td className="text-center px-3 py-3">{nivelBadge(av.nivel) || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -689,7 +741,7 @@ export default function BoletimPage() {
             {/* Legenda */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 print:shadow-none">
               <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500">
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300" /> Nota &gt;= 7</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-300" /> Nota &gt;= 7</span>
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-300" /> Nota 5 - 6.9</span>
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-100 border border-red-300" /> Nota &lt; 5</span>
                 <span className="flex items-center gap-1.5">Rec = Nota de Recuperacao</span>

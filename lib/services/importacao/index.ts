@@ -83,7 +83,7 @@ const log = createLogger('Importacao')
  */
 export async function processarImportacao(
   importacaoId: string,
-  dados: any[],
+  dados: Record<string, unknown>[],
   anoLetivo: string,
   usuarioId: string,
   avaliacaoId: string

@@ -167,7 +167,7 @@ export function isStorageAvailable(): boolean {
 
 // Salvar dados no localStorage com compressão básica
 // isEssential: se true, tentará novamente após limpar dados não essenciais
-function saveToStorage(key: string, data: any, isEssential: boolean = false): boolean {
+function saveToStorage(key: string, data: unknown, isEssential: boolean = false): boolean {
   if (!isStorageAvailable()) return false
   try {
     const jsonData = JSON.stringify(data)

@@ -114,7 +114,7 @@ export default function OuvidoriaPage() {
     }
   }
 
-  const inputCls = 'w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none'
+  const inputCls = 'w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none'
 
   return (
     <div className="min-h-screen bg-white">
@@ -124,7 +124,7 @@ export default function OuvidoriaPage() {
       <div className="pt-32 pb-16 bg-gradient-to-b from-slate-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">Cidadania</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-blue-600 mb-4">Cidadania</p>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
               Ouvidoria Digital
             </h1>
@@ -141,7 +141,7 @@ export default function OuvidoriaPage() {
           <button
             onClick={() => { setAba('enviar'); setProtocoloGerado('') }}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-              aba === 'enviar' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              aba === 'enviar' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <Send className="w-4 h-4" />
@@ -150,7 +150,7 @@ export default function OuvidoriaPage() {
           <button
             onClick={() => setAba('consultar')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-              aba === 'consultar' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              aba === 'consultar' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <Search className="w-4 h-4" />
@@ -162,11 +162,11 @@ export default function OuvidoriaPage() {
         {aba === 'enviar' && (
           <>
             {protocoloGerado ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center">
-                <CheckCircle className="w-12 h-12 text-emerald-600 mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-emerald-800 mb-2">Manifestação Registrada!</h2>
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8 text-center">
+                <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                <h2 className="text-xl font-bold text-blue-800 mb-2">Manifestação Registrada!</h2>
                 <p className="text-slate-600 mb-4">Guarde seu número de protocolo para acompanhamento:</p>
-                <p className="text-3xl font-mono font-extrabold text-emerald-700 bg-white rounded-xl py-4 px-6 inline-block border border-emerald-200">
+                <p className="text-3xl font-mono font-extrabold text-blue-700 bg-white rounded-xl py-4 px-6 inline-block border border-blue-200">
                   {protocoloGerado}
                 </p>
                 <p className="text-sm text-slate-500 mt-4">Use este protocolo na aba &quot;Consultar Protocolo&quot; para acompanhar o andamento.</p>
@@ -223,7 +223,7 @@ export default function OuvidoriaPage() {
                 <button
                   type="submit"
                   disabled={enviando}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-lg shadow-emerald-600/25"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-600/25"
                 >
                   {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   {enviando ? 'Enviando...' : 'Enviar Manifestação'}
@@ -247,7 +247,7 @@ export default function OuvidoriaPage() {
               <button
                 type="submit"
                 disabled={consultando}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
                 {consultando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 Consultar
@@ -278,8 +278,8 @@ export default function OuvidoriaPage() {
                   Tipo: {TIPOS.find(t => t.value === resultado.tipo)?.label || resultado.tipo} | Criado em: {new Date(resultado.criado_em).toLocaleDateString('pt-BR')}
                 </p>
                 {resultado.resposta && (
-                  <div className="bg-emerald-50 rounded-xl p-4 mt-4">
-                    <p className="text-sm font-semibold text-emerald-700 mb-2">Resposta:</p>
+                  <div className="bg-blue-50 rounded-xl p-4 mt-4">
+                    <p className="text-sm font-semibold text-blue-700 mb-2">Resposta:</p>
                     <p className="text-sm text-slate-700 whitespace-pre-wrap">{resultado.resposta}</p>
                     {resultado.respondido_em && (
                       <p className="text-xs text-slate-400 mt-2">Respondido em: {new Date(resultado.respondido_em).toLocaleDateString('pt-BR')}</p>

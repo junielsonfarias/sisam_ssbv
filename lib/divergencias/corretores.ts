@@ -22,8 +22,8 @@ export async function registrarHistorico(
   entidade: string,
   entidadeId: string | null,
   entidadeNome: string | null,
-  dadosAntes: any,
-  dadosDepois: any,
+  dadosAntes: Record<string, unknown> | null,
+  dadosDepois: Record<string, unknown> | null,
   acaoRealizada: string,
   correcaoAutomatica: boolean,
   usuarioId: string,
@@ -281,9 +281,9 @@ export async function corrigirNivelAprendizagemErrado(
       if (media === 0 || isNaN(media)) continue
 
       // Encontrar nível correto
-      const nivelCorreto = niveis.find((n: any) =>
-        media >= parseFloat(n.nota_minima) &&
-        media <= parseFloat(n.nota_maxima) &&
+      const nivelCorreto = niveis.find((n: Record<string, string | number | null>) =>
+        media >= parseFloat(String(n.nota_minima)) &&
+        media <= parseFloat(String(n.nota_maxima)) &&
         (n.serie_aplicavel === null || n.serie_aplicavel === resultado.numero_serie)
       )
 

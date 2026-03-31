@@ -38,5 +38,5 @@ export async function getTurmasProfessor(professorId: string): Promise<string[]>
     `SELECT DISTINCT turma_id FROM professor_turmas WHERE professor_id = $1 AND ativo = true`,
     [professorId]
   )
-  return result.rows.map((r: any) => r.turma_id)
+  return result.rows.map((r: { turma_id: string }) => r.turma_id)
 }

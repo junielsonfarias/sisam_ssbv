@@ -22,9 +22,9 @@ export async function buscarFrequenciaDiaria(turmaId: string, data: string) {
 
   const alunos = result.rows
   const total = alunos.length
-  const presentes = alunos.filter((r: any) => r.status === 'presente').length
-  const ausentes = alunos.filter((r: any) => r.status === 'ausente' || r.status === 'justificado').length
-  const semRegistro = alunos.filter((r: any) => !r.status).length
+  const presentes = alunos.filter((r: Record<string, unknown>) => r.status === 'presente').length
+  const ausentes = alunos.filter((r: Record<string, unknown>) => r.status === 'ausente' || r.status === 'justificado').length
+  const semRegistro = alunos.filter((r: Record<string, unknown>) => !r.status).length
 
   return {
     alunos,

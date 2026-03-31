@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "setup-db": "node scripts/setup-database.js",
     "seed": "node scripts/seed.js",
     "seed-supabase": "node scripts/seed-supabase.js",
@@ -123,6 +125,7 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/exceljs": "^0.5.3",
     "@vitest/coverage-v8": "^4.1.0",
     "dotenv": "^17.2.3",

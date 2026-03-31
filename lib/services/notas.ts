@@ -5,7 +5,7 @@ import { withTransaction } from '@/lib/database/with-transaction'
 // Cache em memória para dados que não mudam durante lançamento de notas
 // (turma, config) — evita queries repetitivas de 70 professores simultâneos
 // ============================================================================
-const turmaCache = new Map<string, { data: any; expiresAt: number }>()
+const turmaCache = new Map<string, { data: { escola_id: string; ano_letivo: string; serie?: string; [key: string]: unknown } | null; expiresAt: number }>()
 const configCache = new Map<string, { data: ConfigNotas; expiresAt: number }>()
 const CACHE_TTL = 60_000 // 60 segundos
 

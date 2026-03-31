@@ -6,7 +6,7 @@ export interface UseBuscaDadosOptions<T> {
   /** URL base para a requisição */
   endpoint: string
   /** Transformar dados antes de retornar */
-  transformar?: (dados: any) => T
+  transformar?: (dados: unknown) => T
   /** Callback ao iniciar busca */
   onInicio?: () => void
   /** Callback ao completar busca com sucesso */

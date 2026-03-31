@@ -27,7 +27,7 @@ interface Escola {
 
 function InfraIcon({ ativo, label, icon: Icon }: { ativo: boolean | null; label: string; icon: any }) {
   return (
-    <div className={`flex items-center gap-1 text-xs ${ativo ? 'text-emerald-600' : 'text-slate-300'}`} title={label}>
+    <div className={`flex items-center gap-1 text-xs ${ativo ? 'text-blue-600' : 'text-slate-300'}`} title={label}>
       <Icon className="w-3.5 h-3.5" />
       <span className="hidden sm:inline">{label}</span>
     </div>
@@ -77,7 +77,7 @@ export default function TransparenciaPage() {
       <div className="pt-32 pb-16 bg-gradient-to-b from-slate-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">Dados Abertos</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-blue-600 mb-4">Dados Abertos</p>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
               Transparência Escolar
             </h1>
@@ -94,7 +94,7 @@ export default function TransparenciaPage() {
           <select
             value={anoLetivo}
             onChange={(e) => setAnoLetivo(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           >
             {anos.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
@@ -105,7 +105,7 @@ export default function TransparenciaPage() {
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar escola por nome..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
           <button
@@ -119,10 +119,10 @@ export default function TransparenciaPage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-emerald-50 rounded-2xl p-5 text-center">
-            <School className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
-            <p className="text-2xl font-extrabold text-emerald-700">{escolasFiltradas.length}</p>
-            <p className="text-xs text-emerald-600 font-medium">Escolas Ativas</p>
+          <div className="bg-blue-50 rounded-2xl p-5 text-center">
+            <School className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+            <p className="text-2xl font-extrabold text-blue-700">{escolasFiltradas.length}</p>
+            <p className="text-xs text-blue-600 font-medium">Escolas Ativas</p>
           </div>
           <div className="bg-blue-50 rounded-2xl p-5 text-center">
             <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
@@ -139,8 +139,8 @@ export default function TransparenciaPage() {
         {/* Grid de escolas */}
         {carregando ? (
           <div className="text-center py-20">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <School className="w-6 h-6 text-emerald-600" />
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <School className="w-6 h-6 text-blue-600" />
             </div>
             <p className="text-slate-400 font-medium">Carregando dados...</p>
           </div>
@@ -159,7 +159,7 @@ export default function TransparenciaPage() {
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">{escola.nome}</h3>
                     {escola.polo_nome && (
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 mt-1">
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 mt-1">
                         {escola.polo_nome}
                       </span>
                     )}

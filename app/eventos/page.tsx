@@ -19,7 +19,7 @@ const TIPO_BADGE: Record<string, { label: string; cls: string }> = {
   reuniao: { label: 'Reunião', cls: 'bg-blue-100 text-blue-700' },
   formatura: { label: 'Formatura', cls: 'bg-purple-100 text-purple-700' },
   jogos: { label: 'Jogos', cls: 'bg-amber-100 text-amber-700' },
-  capacitacao: { label: 'Capacitação', cls: 'bg-emerald-100 text-emerald-700' },
+  capacitacao: { label: 'Capacitação', cls: 'bg-blue-100 text-blue-700' },
   geral: { label: 'Geral', cls: 'bg-slate-100 text-slate-700' },
 }
 
@@ -100,7 +100,7 @@ export default function EventosPage() {
       <div className="pt-32 pb-16 bg-gradient-to-b from-slate-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4">Agenda</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-blue-600 mb-4">Agenda</p>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
               Agenda de Eventos
             </h1>
@@ -148,10 +148,10 @@ export default function EventosPage() {
               return (
                 <div
                   key={dia}
-                  className={`min-h-[80px] border-b border-r border-slate-100 p-1.5 ${isHoje ? 'bg-emerald-50' : ''}`}
+                  className={`min-h-[80px] border-b border-r border-slate-100 p-1.5 ${isHoje ? 'bg-blue-50' : ''}`}
                 >
                   <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                    isHoje ? 'bg-emerald-600 text-white' : 'text-slate-600'
+                    isHoje ? 'bg-blue-600 text-white' : 'text-slate-600'
                   }`}>
                     {dia}
                   </span>
@@ -186,9 +186,9 @@ export default function EventosPage() {
               return (
                 <div key={ev.id} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg hover:shadow-slate-900/5 transition-all">
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-emerald-50 flex flex-col items-center justify-center">
-                      <span className="text-xs font-bold text-emerald-600 uppercase">{MESES[dataObj.getMonth()].substring(0, 3)}</span>
-                      <span className="text-lg font-extrabold text-emerald-700">{dataObj.getDate()}</span>
+                    <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-50 flex flex-col items-center justify-center">
+                      <span className="text-xs font-bold text-blue-600 uppercase">{MESES[dataObj.getMonth()].substring(0, 3)}</span>
+                      <span className="text-lg font-extrabold text-blue-700">{dataObj.getDate()}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">

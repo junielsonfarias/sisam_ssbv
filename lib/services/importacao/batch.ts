@@ -6,7 +6,14 @@
 
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
-import { ImportacaoResultado } from './types'
+import {
+  ImportacaoResultado,
+  TurmaParaInserir,
+  AlunoParaInserir,
+  ConsolidadoParaInserir,
+  ResultadoParaInserir,
+  ProducaoParaInserir,
+} from './types'
 
 const log = createLogger('Importacao')
 
@@ -18,10 +25,10 @@ const log = createLogger('Importacao')
  * Fase 6: Cria turmas em batch e atualiza referencias temporarias
  */
 export async function criarTurmas(
-  turmasParaInserir: any[],
-  alunosParaInserir: any[],
-  consolidadosParaInserir: any[],
-  resultadosParaInserir: any[]
+  turmasParaInserir: TurmaParaInserir[],
+  alunosParaInserir: AlunoParaInserir[],
+  consolidadosParaInserir: ConsolidadoParaInserir[],
+  resultadosParaInserir: ResultadoParaInserir[]
 ): Promise<void> {
   log.info('[FASE 6] Criando turmas em batch...')
   if (turmasParaInserir.length > 0) {
@@ -31,7 +38,7 @@ export async function criarTurmas(
     for (let i = 0; i < turmasParaInserir.length; i += BATCH_SIZE) {
       const batch = turmasParaInserir.slice(i, i + BATCH_SIZE)
       try {
-        const values: any[] = []
+        const values: (string | null)[] = []
         const placeholders: string[] = []
         batch.forEach((turma, idx) => {
           const offset = idx * 5
@@ -104,10 +111,10 @@ export async function criarTurmas(
  * Fase 7: Cria alunos em batch e atualiza referencias temporarias
  */
 export async function criarAlunos(
-  alunosParaInserir: any[],
-  consolidadosParaInserir: any[],
-  resultadosParaInserir: any[],
-  producaoParaInserir: any[],
+  alunosParaInserir: AlunoParaInserir[],
+  consolidadosParaInserir: ConsolidadoParaInserir[],
+  resultadosParaInserir: ResultadoParaInserir[],
+  producaoParaInserir: ProducaoParaInserir[],
   resultado: ImportacaoResultado,
   erros: string[]
 ): Promise<void> {
@@ -123,7 +130,7 @@ export async function criarAlunos(
 
       try {
         // Step 1: Batch lookup existing alunos using a VALUES CTE
-        const lookupValues: any[] = []
+        const lookupValues: (string | null)[] = []
         const lookupPlaceholders: string[] = []
         batch.forEach((aluno, idx) => {
           const nomeNormalizado = aluno.nome.toUpperCase().trim()
@@ -152,8 +159,8 @@ export async function criarAlunos(
         }
 
         // Step 2: Separate into updates and inserts
-        const toUpdate: { aluno: any; existingId: string }[] = []
-        const toInsert: any[] = []
+        const toUpdate: { aluno: AlunoParaInserir; existingId: string }[] = []
+        const toInsert: AlunoParaInserir[] = []
 
         for (const aluno of batch) {
           const nomeNormalizado = aluno.nome.toUpperCase().trim()
@@ -168,7 +175,7 @@ export async function criarAlunos(
 
         // Step 3: Batch UPDATE existing alunos
         if (toUpdate.length > 0) {
-          const updateValues: any[] = []
+          const updateValues: (string | null)[] = []
           const updatePlaceholders: string[] = []
           toUpdate.forEach(({ aluno, existingId }, idx) => {
             const offset = idx * 3
@@ -191,7 +198,7 @@ export async function criarAlunos(
 
         // Step 4: Batch INSERT new alunos
         if (toInsert.length > 0) {
-          const insertValues: any[] = []
+          const insertValues: (string | null)[] = []
           const insertPlaceholders: string[] = []
           toInsert.forEach((aluno, idx) => {
             const offset = idx * 6
@@ -357,7 +364,7 @@ export async function criarAlunos(
  * Fase 8: Insere resultados consolidados em batch
  */
 export async function inserirConsolidados(
-  consolidadosParaInserir: any[],
+  consolidadosParaInserir: ConsolidadoParaInserir[],
   erros: string[]
 ): Promise<void> {
   log.info('[FASE 8] Criando resultados consolidados em batch...')
@@ -481,9 +488,9 @@ export async function inserirConsolidados(
  * Fase 8.5: Insere resultados de producao textual em batch
  */
 export async function inserirProducao(
-  producaoParaInserir: any[],
-  alunosParaInserir: any[],
-  consolidadosParaInserir: any[]
+  producaoParaInserir: ProducaoParaInserir[],
+  alunosParaInserir: AlunoParaInserir[],
+  consolidadosParaInserir: ConsolidadoParaInserir[]
 ): Promise<void> {
   log.info('[FASE 8.5] Criando resultados de producao textual em batch...')
   if (producaoParaInserir.length > 0) {
@@ -557,7 +564,7 @@ export async function inserirProducao(
  * Fase 9: Insere resultados de provas em batch (com fallback individual)
  */
 export async function inserirResultadosProvas(
-  resultadosParaInserir: any[],
+  resultadosParaInserir: ResultadoParaInserir[],
   resultado: ImportacaoResultado,
   erros: string[]
 ): Promise<void> {

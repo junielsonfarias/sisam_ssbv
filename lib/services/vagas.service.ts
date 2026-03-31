@@ -118,10 +118,10 @@ export async function buscarFilaEspera(
 
   const resumo: FilaEsperaResumo = {
     total: result.rows.length,
-    aguardando: result.rows.filter((r: any) => r.status === 'aguardando').length,
-    convocados: result.rows.filter((r: any) => r.status === 'convocado').length,
-    matriculados: result.rows.filter((r: any) => r.status === 'matriculado').length,
-    desistentes: result.rows.filter((r: any) => r.status === 'desistente').length
+    aguardando: result.rows.filter((r: FilaEsperaItem) => r.status === 'aguardando').length,
+    convocados: result.rows.filter((r: FilaEsperaItem) => r.status === 'convocado').length,
+    matriculados: result.rows.filter((r: FilaEsperaItem) => r.status === 'matriculado').length,
+    desistentes: result.rows.filter((r: FilaEsperaItem) => r.status === 'desistente').length
   }
 
   return { itens: result.rows, resumo }
