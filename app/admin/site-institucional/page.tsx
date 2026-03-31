@@ -3,12 +3,13 @@
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import {
-  Globe, Save, Plus, Trash2, ExternalLink, Eye, RefreshCw
+  Globe, Save, Plus, Trash2, ExternalLink, Eye, RefreshCw, Construction
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 const TABS = [
+  { key: 'manutencao', label: 'Manutencao' },
   { key: 'hero', label: 'Hero' },
   { key: 'sobre', label: 'Sobre' },
   { key: 'social', label: 'Redes Sociais' },
@@ -28,7 +29,7 @@ const cardClass = 'bg-white dark:bg-slate-800 rounded-xl shadow-sm border border
 
 export default function SiteInstitucionalPage() {
   const toast = useToast()
-  const [activeTab, setActiveTab] = useState<TabKey>('hero')
+  const [activeTab, setActiveTab] = useState<TabKey>('manutencao')
   const [sections, setSections] = useState<Record<string, any>>({})
   const [formData, setFormData] = useState<any>({})
   const [loading, setLoading] = useState(true)
@@ -56,7 +57,7 @@ export default function SiteInstitucionalPage() {
         })
       )
       setSections(results)
-      setFormData(results['hero'] || getDefaultData('hero'))
+      setFormData(results['manutencao'] || getDefaultData('manutencao'))
     } catch {
       toast.error('Erro ao carregar configuracoes do site')
     } finally {
@@ -66,6 +67,11 @@ export default function SiteInstitucionalPage() {
 
   const getDefaultData = (tab: TabKey): any => {
     const defaults: Record<TabKey, any> = {
+      manutencao: {
+        ativo: false,
+        titulo: 'Site em Manutencao',
+        mensagem: 'Estamos trabalhando para melhorar sua experiencia. O site estara de volta em breve!',
+      },
       hero: {
         titulo: '',
         subtitulo: '',
@@ -191,6 +197,55 @@ export default function SiteInstitucionalPage() {
       return updated
     })
   }
+
+  const renderManutencaoTab = () => (
+    <div className="space-y-6">
+      {/* Toggle principal */}
+      <div className={`p-4 rounded-xl border-2 transition-colors ${formData.ativo ? 'border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-600' : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50'}`}>
+        <label className="flex items-center gap-4 cursor-pointer">
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={formData.ativo ?? false}
+              onChange={e => updateField('ativo', e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-14 h-7 bg-gray-300 dark:bg-slate-600 peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-500"></div>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <Construction className={`w-5 h-5 ${formData.ativo ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`} />
+              <span className={`text-base font-semibold ${formData.ativo ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                Modo Manutencao {formData.ativo ? 'ATIVADO' : 'Desativado'}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {formData.ativo
+                ? 'O site esta exibindo a tela de manutencao para todos os visitantes.'
+                : 'O site esta funcionando normalmente para os visitantes.'}
+            </p>
+          </div>
+        </label>
+      </div>
+
+      {formData.ativo && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg p-4">
+          <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+            Atencao: O painel administrativo e as APIs internas continuam funcionando normalmente. Apenas a pagina principal do site sera substituida pela tela de manutencao.
+          </p>
+        </div>
+      )}
+
+      <div>
+        <label className={labelClass}>Titulo da Pagina de Manutencao</label>
+        <input type="text" className={inputClass} value={formData.titulo || ''} onChange={e => updateField('titulo', e.target.value)} placeholder="Ex: Site em Manutencao" />
+      </div>
+      <div>
+        <label className={labelClass}>Mensagem para os Visitantes</label>
+        <textarea className={inputClass} rows={4} value={formData.mensagem || ''} onChange={e => updateField('mensagem', e.target.value)} placeholder="Mensagem que sera exibida na tela de manutencao" />
+      </div>
+    </div>
+  )
 
   const renderHeroTab = () => (
     <div className="space-y-4">
@@ -523,6 +578,7 @@ export default function SiteInstitucionalPage() {
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'manutencao': return renderManutencaoTab()
       case 'hero': return renderHeroTab()
       case 'sobre': return renderSobreTab()
       case 'social': return renderSocialTab()

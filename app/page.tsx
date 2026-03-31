@@ -12,6 +12,7 @@ import SitePublicacoes from '@/components/site/site-publicacoes'
 import SiteSchools from '@/components/site/site-schools'
 import SiteContact from '@/components/site/site-contact'
 import SiteFooter from '@/components/site/site-footer'
+import SiteManutencao from '@/components/site/site-manutencao'
 
 interface SiteData {
   config: Record<string, any>
@@ -71,6 +72,12 @@ export default function HomePage() {
   }
 
   const { config, stats, escolas, publicacoes } = data
+
+  // Verificar modo manutencao
+  const manutencao = config.manutencao || {}
+  if (manutencao.ativo) {
+    return <SiteManutencao titulo={manutencao.titulo} mensagem={manutencao.mensagem} />
+  }
 
   return (
     <div className="min-h-screen bg-white">
