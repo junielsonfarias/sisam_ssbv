@@ -271,6 +271,13 @@ Card: bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dar
 | `/novo-deploy-vercel` | Config Vercel: maxDuration, env vars, headers, webpack |
 | `/novo-formatacao-ptbr` | Helpers pt-BR: datas, numeros, CPF, notas com cores, CSV |
 
+### Hooks e UX avancados
+| Comando | Descricao |
+|---------|-----------|
+| `/novo-filtros-persistentes` | Hook de filtros com cascade clearing e queryString |
+| `/novo-pwa-install` | Prompt de instalacao PWA + indicador online/offline |
+| `/novo-grafico-recharts` | Graficos Recharts (barras, pizza, linha) com dark mode |
+
 ### Utilitarios
 | Comando | Descricao |
 |---------|-----------|
