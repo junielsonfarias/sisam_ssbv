@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { z } from 'zod'
+import { encryptCPF } from '@/lib/crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +65,11 @@ export async function POST(request: NextRequest) {
     }
 
     const d = parsed.data
+
+    // Criptografar CPFs antes de salvar no banco
+    const cpfAlunoCifrado = d.aluno_cpf ? encryptCPF(d.aluno_cpf) : null
+    const cpfResponsavelCifrado = d.responsavel_cpf ? encryptCPF(d.responsavel_cpf) : null
+
     let protocolo = gerarProtocolo()
 
     // Garantir unicidade do protocolo
@@ -81,8 +87,8 @@ export async function POST(request: NextRequest) {
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING id, protocolo, criado_em`,
       [
-        protocolo, d.aluno_nome, d.aluno_data_nascimento, d.aluno_cpf || null, d.aluno_genero || null, d.aluno_pcd,
-        d.responsavel_nome, d.responsavel_cpf || null, d.responsavel_telefone, d.responsavel_email || null, d.parentesco || null,
+        protocolo, d.aluno_nome, d.aluno_data_nascimento, cpfAlunoCifrado, d.aluno_genero || null, d.aluno_pcd,
+        d.responsavel_nome, cpfResponsavelCifrado, d.responsavel_telefone, d.responsavel_email || null, d.parentesco || null,
         d.endereco || null, d.bairro || null, d.escola_pretendida_id || null, d.serie_pretendida, d.ano_letivo,
       ]
     )

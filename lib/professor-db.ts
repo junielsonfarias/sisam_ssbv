@@ -1,10 +1,24 @@
 /**
  * IndexedDB para o Portal do Professor (PWA Offline)
- * Armazena turmas, alunos, disciplinas, períodos e filas de lançamentos pendentes
+ * Armazena turmas, alunos, disciplinas, períodos e filas de lançamentos pendentes.
+ * Funções offline avançadas (notas avulsas e diário) em professor-db-offline.ts.
  */
 
+// Re-exportar funções e tipos do módulo offline
+export type { NotaPendente, DiarioRegistro } from './professor-db-offline'
+export {
+  saveNotasPendentes,
+  getNotasPendentesAvulsas,
+  clearNotasPendentesAvulsas,
+  syncNotasPendentes,
+  saveDiarioPendente,
+  getDiarioPendente,
+  clearDiarioPendente,
+  syncDiarioPendente,
+} from './professor-db-offline'
+
 const DB_NAME = 'educatec-professor'
-const DB_VERSION = 1
+const DB_VERSION = 2 // v2: adiciona NOTAS_PENDENTES_QUEUE e DIARIO_QUEUE
 
 const STORES = {
   TURMAS: 'turmas',
@@ -14,6 +28,8 @@ const STORES = {
   CONFIG_NOTAS: 'config_notas',
   FREQUENCIA_QUEUE: 'frequencia_queue',
   NOTAS_QUEUE: 'notas_queue',
+  NOTAS_PENDENTES_QUEUE: 'notas_pendentes_queue',
+  DIARIO_QUEUE: 'diario_queue',
   SYNC_META: 'sync_meta',
 }
 
@@ -50,6 +66,14 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORES.NOTAS_QUEUE)) {
         db.createObjectStore(STORES.NOTAS_QUEUE, { keyPath: 'id', autoIncrement: true })
+      }
+      if (!db.objectStoreNames.contains(STORES.NOTAS_PENDENTES_QUEUE)) {
+        const store = db.createObjectStore(STORES.NOTAS_PENDENTES_QUEUE, { keyPath: 'id', autoIncrement: true })
+        store.createIndex('aluno_id', 'aluno_id', { unique: false })
+      }
+      if (!db.objectStoreNames.contains(STORES.DIARIO_QUEUE)) {
+        const store = db.createObjectStore(STORES.DIARIO_QUEUE, { keyPath: 'id', autoIncrement: true })
+        store.createIndex('turma_id', 'turma_id', { unique: false })
       }
       if (!db.objectStoreNames.contains(STORES.SYNC_META)) {
         db.createObjectStore(STORES.SYNC_META, { keyPath: 'key' })
@@ -314,23 +338,54 @@ export async function limparPendentesAntigos(): Promise<number> {
     }
   }
 
+  // Limpar notas pendentes avulsas antigas
+  const tx3 = db.transaction(STORES.NOTAS_PENDENTES_QUEUE, 'readwrite')
+  const store3 = tx3.objectStore(STORES.NOTAS_PENDENTES_QUEUE)
+  const notasAvulsas = await new Promise<any[]>((resolve, reject) => {
+    const req = store3.getAll()
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+  for (const n of notasAvulsas) {
+    if (n.timestamp && n.timestamp < limite) {
+      store3.delete(n.id)
+      removidos++
+    }
+  }
+
+  // Limpar diários pendentes antigos
+  const tx4 = db.transaction(STORES.DIARIO_QUEUE, 'readwrite')
+  const store4 = tx4.objectStore(STORES.DIARIO_QUEUE)
+  const diarios = await new Promise<any[]>((resolve, reject) => {
+    const req = store4.getAll()
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+  for (const d of diarios) {
+    if (d.timestamp && d.timestamp < limite) {
+      store4.delete(d.id)
+      removidos++
+    }
+  }
+
   return removidos
 }
 
 // ===== Contadores =====
-export async function contarPendentes(): Promise<{ frequencias: number; notas: number }> {
+export async function contarPendentes(): Promise<{ frequencias: number; notas: number; notas_avulsas: number; diarios: number }> {
   const db = await openDB()
-  const freqCount = await new Promise<number>((resolve, reject) => {
-    const tx = db.transaction(STORES.FREQUENCIA_QUEUE, 'readonly')
-    const request = tx.objectStore(STORES.FREQUENCIA_QUEUE).count()
+  const contar = (store: string) => new Promise<number>((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly')
+    const request = tx.objectStore(store).count()
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
   })
-  const notasCount = await new Promise<number>((resolve, reject) => {
-    const tx = db.transaction(STORES.NOTAS_QUEUE, 'readonly')
-    const request = tx.objectStore(STORES.NOTAS_QUEUE).count()
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error)
-  })
-  return { frequencias: freqCount, notas: notasCount }
+  const [frequencias, notas, notas_avulsas, diarios] = await Promise.all([
+    contar(STORES.FREQUENCIA_QUEUE),
+    contar(STORES.NOTAS_QUEUE),
+    contar(STORES.NOTAS_PENDENTES_QUEUE),
+    contar(STORES.DIARIO_QUEUE),
+  ])
+  return { frequencias, notas, notas_avulsas, diarios }
 }
+

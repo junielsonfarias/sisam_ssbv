@@ -2,6 +2,56 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 
+// ============================================================================
+// REFRESH TOKEN INTERCEPTOR
+// ============================================================================
+
+/** Flag para evitar múltiplos refreshes simultâneos */
+let refreshEmAndamento: Promise<boolean> | null = null
+
+/**
+ * Tenta renovar o token JWT via POST /api/auth/refresh.
+ * Retorna true se a renovação foi bem-sucedida.
+ */
+async function tentarRefreshToken(): Promise<boolean> {
+  // Se já existe um refresh em andamento, aguardar o resultado
+  if (refreshEmAndamento) return refreshEmAndamento
+
+  refreshEmAndamento = (async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', { method: 'POST' })
+      return res.ok
+    } catch {
+      return false
+    } finally {
+      refreshEmAndamento = null
+    }
+  })()
+
+  return refreshEmAndamento
+}
+
+/**
+ * Fetch com retry automático em caso de 401.
+ * Se receber 401 e houver cookie de token, tenta refresh e repete a requisição.
+ */
+async function fetchComRefresh(
+  url: string,
+  options?: RequestInit
+): Promise<Response> {
+  const res = await fetch(url, options)
+
+  // Se não é 401, retornar normalmente
+  if (res.status !== 401) return res
+
+  // Tentar renovar o token
+  const renovado = await tentarRefreshToken()
+  if (!renovado) return res // Refresh falhou, manter 401
+
+  // Repetir a requisição original com o novo token (cookie atualizado)
+  return fetch(url, options)
+}
+
 interface UseApiOptions<T> {
   /** URL da API para fetch */
   url: string
@@ -77,7 +127,7 @@ export function useApi<T>({
     setErro(null)
 
     try {
-      const res = await fetch(url, { signal: controller.signal })
+      const res = await fetchComRefresh(url, { signal: controller.signal })
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -104,7 +154,7 @@ export function useApi<T>({
   ): Promise<{ ok: boolean; dados?: unknown; mensagem?: string }> => {
     setSalvando(true)
     try {
-      const res = await fetch(url, {
+      const res = await fetchComRefresh(url, {
         method,
         headers: body ? { 'Content-Type': 'application/json' } : undefined,
         body: body ? JSON.stringify(body) : undefined,
@@ -164,7 +214,7 @@ export function useMutacao(url: string) {
   ): Promise<{ ok: boolean; dados?: unknown; mensagem?: string }> => {
     setSalvando(true)
     try {
-      const res = await fetch(url, {
+      const res = await fetchComRefresh(url, {
         method,
         headers: body ? { 'Content-Type': 'application/json' } : undefined,
         body: body ? JSON.stringify(body) : undefined,

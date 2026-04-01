@@ -3,6 +3,7 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
+import { decryptCPFSeguro } from '@/lib/crypto'
 
 const log = createLogger('AdminPreMatriculas')
 
@@ -91,9 +92,16 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     [...params, limit, offset]
   )
 
+  // Descriptografar CPF nos resultados (suporta dados antigos em texto plano)
+  const dadosComCpf = dataRes.rows.map((row: any) => ({
+    ...row,
+    cpf_responsavel: row.cpf_responsavel ? decryptCPFSeguro(row.cpf_responsavel) : null,
+    cpf_aluno: row.cpf_aluno ? decryptCPFSeguro(row.cpf_aluno) : null,
+  }))
+
   return NextResponse.json({
     kpis: kpisResult.rows[0],
-    dados: dataRes.rows,
+    dados: dadosComCpf,
     paginacao: { page, limit, total, totalPages: Math.ceil(total / limit) },
   })
 })

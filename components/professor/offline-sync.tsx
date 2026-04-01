@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Download, Upload, Wifi, WifiOff, CheckCircle, Loader2 } from 'lucide-react'
 import * as professorDB from '@/lib/professor-db'
 
-type EtapaSync = '' | 'baixando_servidor' | 'salvando_turmas' | 'salvando_alunos' | 'salvando_periodos' | 'limpando' | 'concluido' | 'enviando_frequencias' | 'enviando_notas' | 'limpando_filas'
+type EtapaSync = '' | 'baixando_servidor' | 'salvando_turmas' | 'salvando_alunos' | 'salvando_periodos' | 'limpando' | 'concluido' | 'enviando_frequencias' | 'enviando_notas' | 'enviando_notas_avulsas' | 'enviando_diarios' | 'limpando_filas'
 
 const ETAPA_LABELS: Record<EtapaSync, string> = {
   '': '',
@@ -16,12 +16,14 @@ const ETAPA_LABELS: Record<EtapaSync, string> = {
   concluido: 'Concluído!',
   enviando_frequencias: 'Enviando frequências...',
   enviando_notas: 'Enviando notas...',
+  enviando_notas_avulsas: 'Enviando notas avulsas...',
+  enviando_diarios: 'Enviando diários de classe...',
   limpando_filas: 'Limpando filas locais...',
 }
 
 export default function OfflineSyncProfessor() {
   const [online, setOnline] = useState(true)
-  const [pendentes, setPendentes] = useState({ frequencias: 0, notas: 0 })
+  const [pendentes, setPendentes] = useState({ frequencias: 0, notas: 0, notas_avulsas: 0, diarios: 0 })
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [baixando, setBaixando] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -44,7 +46,8 @@ export default function OfflineSyncProfessor() {
 
   // Auto-sync quando voltar online
   useEffect(() => {
-    if (online && (pendentes.frequencias > 0 || pendentes.notas > 0)) {
+    const totalPend = pendentes.frequencias + pendentes.notas + pendentes.notas_avulsas + pendentes.diarios
+    if (online && totalPend > 0) {
       enviarPendentes()
     }
   }, [online])
@@ -142,31 +145,53 @@ export default function OfflineSyncProfessor() {
       setProgresso(20)
       const notas = await professorDB.obterNotasPendentes()
 
-      if (frequencias.length === 0 && notas.length === 0) {
+      const notasAvulsas = await professorDB.getNotasPendentesAvulsas()
+      const diarios = await professorDB.getDiarioPendente()
+
+      if (frequencias.length === 0 && notas.length === 0 && notasAvulsas.length === 0 && diarios.length === 0) {
         setMensagem('Nenhum dado pendente')
         setEnviando(false)
         setEtapa('')
         return
       }
 
-      setProgresso(40)
-      const res = await fetch('/api/professor/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ frequencias, notas }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.mensagem)
-      setProgresso(80)
+      // Enviar frequências e notas via sync principal
+      if (frequencias.length > 0 || notas.length > 0) {
+        setProgresso(30)
+        const res = await fetch('/api/professor/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ frequencias, notas }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.mensagem)
+      }
+      setProgresso(50)
+
+      // Enviar notas avulsas offline
+      if (notasAvulsas.length > 0) {
+        setEtapa('enviando_notas_avulsas')
+        setProgresso(60)
+        await professorDB.syncNotasPendentes()
+      }
+
+      // Enviar diários de classe offline
+      if (diarios.length > 0) {
+        setEtapa('enviando_diarios')
+        setProgresso(75)
+        await professorDB.syncDiarioPendente()
+      }
 
       setEtapa('limpando_filas')
+      setProgresso(90)
       await professorDB.limparFrequenciasPendentes()
       await professorDB.limparNotasPendentes()
       await atualizarContagem()
       setProgresso(100)
 
       setEtapa('concluido')
-      setMensagem(data.mensagem)
+      const totalEnviados = frequencias.length + notas.length + notasAvulsas.length + diarios.length
+      setMensagem(`${totalEnviados} registro(s) sincronizado(s)`)
       setTimeout(() => { setEtapa(''); setProgresso(0) }, 3000)
     } catch (err: any) {
       setMensagem(err.message || 'Erro ao enviar')
@@ -177,7 +202,7 @@ export default function OfflineSyncProfessor() {
     }
   }
 
-  const totalPendentes = pendentes.frequencias + pendentes.notas
+  const totalPendentes = pendentes.frequencias + pendentes.notas + pendentes.notas_avulsas + pendentes.diarios
   const emOperacao = baixando || enviando
 
   return (
@@ -200,9 +225,14 @@ export default function OfflineSyncProfessor() {
               {pendentes.frequencias} freq
             </span>
           )}
-          {pendentes.notas > 0 && (
+          {(pendentes.notas > 0 || pendentes.notas_avulsas > 0) && (
             <span className="px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">
-              {pendentes.notas} notas
+              {pendentes.notas + pendentes.notas_avulsas} notas
+            </span>
+          )}
+          {pendentes.diarios > 0 && (
+            <span className="px-1.5 py-0.5 text-[10px] bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full">
+              {pendentes.diarios} diário
             </span>
           )}
         </div>
