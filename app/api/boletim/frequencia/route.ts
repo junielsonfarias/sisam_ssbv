@@ -61,12 +61,12 @@ export async function GET(request: NextRequest) {
 
       // Buscar frequência bimestral
       const freqBimestral = await pool.query(
-        `SELECT fb.bimestre, fb.dias_letivos, fb.presencas, fb.faltas, fb.percentual,
-                pl.nome AS periodo_nome
+        `SELECT fb.dias_letivos, fb.presencas, fb.faltas, fb.percentual_frequencia AS percentual,
+                pl.numero AS bimestre, pl.nome AS periodo_nome
          FROM frequencia_bimestral fb
-         LEFT JOIN periodos_letivos pl ON pl.numero = fb.bimestre AND pl.ano_letivo = $2
+         LEFT JOIN periodos_letivos pl ON pl.id = fb.periodo_id
          WHERE fb.aluno_id = $1 AND fb.ano_letivo = $2
-         ORDER BY fb.bimestre`,
+         ORDER BY pl.numero`,
         [aluno.id, anoLetivo]
       )
 
@@ -81,7 +81,8 @@ export async function GET(request: NextRequest) {
 
       // Buscar últimas frequências diárias (para timeline)
       const freqDiaria = await pool.query(
-        `SELECT data, presente, justificativa
+        `SELECT data, hora_entrada, hora_saida, metodo,
+                CASE WHEN hora_entrada IS NOT NULL THEN true ELSE false END AS presente
          FROM frequencia_diaria
          WHERE aluno_id = $1 AND EXTRACT(YEAR FROM data) = $2
          ORDER BY data DESC
