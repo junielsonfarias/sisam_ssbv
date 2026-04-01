@@ -16,6 +16,7 @@ import { OfflineSyncManager } from '../offline-sync-manager'
 import { SyncStatusBadge } from '../sync-status-badge'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from '../theme-toggle'
+import { NotificacoesBadge } from '../professor/notificacoes-badge'
 import type { Personalizacao } from './types'
 
 interface HeaderProps {
@@ -169,6 +170,9 @@ export function Header({
                 <WifiOff className="w-4 h-4" />
               </span>
             )}
+
+            {/* Notificacoes do professor */}
+            {tipoUsuarioReal === 'professor' && <NotificacoesBadge />}
 
             {/* Separador */}
             <div className="hidden sm:block w-px h-6 bg-gray-200 dark:bg-slate-600 mx-1" />
