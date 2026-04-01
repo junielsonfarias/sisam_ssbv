@@ -22,11 +22,48 @@ export const DISCIPLINAS_ANOS_FINAIS = [
   'LP', 'MAT', 'CH', 'CN', 'Português', 'Matematica'
 ]
 
-// Séries de anos iniciais (2º, 3º, 5º)
+// Séries de anos iniciais (avaliação padronizada SISAM: 2º, 3º, 5º)
 export const SERIES_ANOS_INICIAIS = ['2', '3', '5']
 
-// Séries de anos finais (6º, 7º, 8º, 9º)
+// Séries de anos finais (avaliação padronizada SISAM: 6º, 7º, 8º, 9º)
 export const SERIES_ANOS_FINAIS = ['6', '7', '8', '9']
+
+// Todas as séries por etapa (Gestão Escolar — inclui 1º, 4º, 6º, 7º)
+export const SERIES_TODAS_INICIAIS = ['1', '2', '3', '4', '5']
+export const SERIES_TODAS_FINAIS = ['6', '7', '8', '9']
+
+// Campos de Experiência — Educação Infantil (BNCC)
+export const CAMPOS_EXPERIENCIA = [
+  { value: 'ETS', label: 'O eu, o outro e o nós' },
+  { value: 'CMP', label: 'Corpo, gestos e movimentos' },
+  { value: 'TSF', label: 'Traços, sons, cores e formas' },
+  { value: 'EFO', label: 'Escuta, fala, pensamento e imaginação' },
+  { value: 'ENQ', label: 'Espaços, tempos, quantidades, relações e transformações' },
+]
+
+// Disciplinas do Gestor Escolar por etapa (conforme BNCC)
+export const DISCIPLINAS_GESTOR_ANOS_INICIAIS = [
+  { value: 'LP', label: 'Língua Portuguesa' },
+  { value: 'MAT', label: 'Matemática' },
+  { value: 'CIE', label: 'Ciências' },
+  { value: 'HIS', label: 'História' },
+  { value: 'GEO', label: 'Geografia' },
+  { value: 'ART', label: 'Artes' },
+  { value: 'EDF', label: 'Educação Física' },
+  { value: 'REL', label: 'Ensino Religioso' },
+]
+
+export const DISCIPLINAS_GESTOR_ANOS_FINAIS = [
+  { value: 'LP', label: 'Língua Portuguesa' },
+  { value: 'MAT', label: 'Matemática' },
+  { value: 'CIE', label: 'Ciências' },
+  { value: 'HIS', label: 'História' },
+  { value: 'GEO', label: 'Geografia' },
+  { value: 'ART', label: 'Artes' },
+  { value: 'EDF', label: 'Educação Física' },
+  { value: 'ING', label: 'Língua Inglesa' },
+  { value: 'REL', label: 'Ensino Religioso' },
+]
 
 // Opções de disciplinas para UI (selects, dropdowns, etc.)
 export interface DisciplinaOption {
