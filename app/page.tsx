@@ -81,7 +81,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <SiteHeader data={config.header || {}} />
+      <SiteHeader data={config.header || {}} menuData={config.menu} />
       <SiteHero data={config.hero || {}} />
       <SiteAbout data={config.about || {}} />
       <SiteSocial data={config.social || {}} />
@@ -91,7 +91,7 @@ export default function HomePage() {
       <SitePublicacoes publicacoes={publicacoes} />
       <SiteSchools data={config.schools || {}} escolas={escolas} />
       <SiteContact data={config.contact || {}} />
-      <SiteFooter data={{ ...(config.footer || {}), ...(config.social || {}) }} />
+      <SiteFooter data={{ ...(config.footer || {}), ...(config.social || {}) }} menuData={config.menu} />
     </div>
   )
 }

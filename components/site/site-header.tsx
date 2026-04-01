@@ -5,16 +5,29 @@ import { Menu, X, ArrowRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
-interface SiteHeaderProps {
-  data: any
+interface MenuItem {
+  label: string
+  href: string
+  ordem?: number
+  visivel?: boolean
+  abrir_nova_aba?: boolean
+  children?: MenuItem[]
 }
 
-// Menu desktop com submenus organizados
-const desktopNav = [
+interface SiteHeaderProps {
+  data: any
+  menuData?: {
+    logo_semed_url?: string
+    logo_prefeitura_url?: string
+    items?: MenuItem[]
+  }
+}
+
+// Menu padrão caso não haja configuração no banco
+const defaultMenuItems: MenuItem[] = [
   { label: 'Sobre', href: '#sobre' },
   {
-    label: 'Serviços',
-    href: '#servicos',
+    label: 'Serviços', href: '#servicos',
     children: [
       { label: 'Boletim Online', href: '/boletim' },
       { label: 'Pré-Matrícula', href: '/matricula' },
@@ -24,8 +37,7 @@ const desktopNav = [
   { label: 'Escolas', href: '#escolas' },
   { label: 'Notícias', href: '#noticias' },
   {
-    label: 'Institucional',
-    href: '#',
+    label: 'Institucional', href: '#',
     children: [
       { label: 'Publicações', href: '/publicacoes' },
       { label: 'Transparência', href: '/transparencia' },
@@ -35,27 +47,37 @@ const desktopNav = [
   { label: 'Contato', href: '#contato' },
 ]
 
-// Menu mobile — lista plana completa
-const mobileNav = [
-  { label: 'Sobre', href: '#sobre' },
-  { label: 'Serviços', href: '#servicos' },
-  { label: 'Escolas', href: '#escolas' },
-  { label: 'Notícias', href: '#noticias' },
-  { label: 'Boletim Online', href: '/boletim' },
-  { label: 'Pré-Matrícula', href: '/matricula' },
-  { label: 'Publicações', href: '/publicacoes' },
-  { label: 'Transparência', href: '/transparencia' },
-  { label: 'Ouvidoria', href: '/ouvidoria' },
-  { label: 'Eventos', href: '/eventos' },
-  { label: 'Contato', href: '#contato' },
-]
-
-export default function SiteHeader({ data }: SiteHeaderProps) {
+export default function SiteHeader({ data, menuData }: SiteHeaderProps) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  // Configuração do menu dinâmico
+  const logoSemedUrl = menuData?.logo_semed_url || '/'
+  const logoPrefeituraUrl = menuData?.logo_prefeitura_url || 'https://saosebastiaodaboavista.pa.gov.br'
+
+  // Itens do menu: do banco (filtrados por visível) ou fallback
+  const rawItems = menuData?.items?.length ? menuData.items : defaultMenuItems
+  const desktopNav = rawItems
+    .filter(item => item.visivel !== false)
+    .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+    .map(item => ({
+      ...item,
+      children: item.children
+        ?.filter(c => c.visivel !== false)
+        .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)) || [],
+    }))
+
+  // Menu mobile: lista plana com itens + filhos
+  const mobileNav = desktopNav.reduce<MenuItem[]>((acc, item) => {
+    acc.push(item)
+    if (item.children?.length) {
+      item.children.forEach(child => acc.push(child))
+    }
+    return acc
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -103,6 +125,8 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
     dropdownTimeout.current = setTimeout(() => setOpenDropdown(null), 200)
   }
 
+  const isExternal = (href: string) => href.startsWith('http')
+
   return (
     <>
     <header
@@ -113,7 +137,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
       }`}
       role="banner"
     >
-      {/* ====== BARRA INSTITUCIONAL AZUL — todos os tamanhos ====== */}
+      {/* ====== BARRA INSTITUCIONAL AZUL ====== */}
       <div className={`bg-blue-900 text-white text-center transition-all duration-500 ${scrolled ? 'py-1 text-[11px] sm:text-xs' : 'py-1.5 text-xs sm:text-sm'} font-semibold tracking-wide`}>
         Secretaria Municipal de Educação — São Sebastião da Boa Vista/PA
       </div>
@@ -123,32 +147,46 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
         <div className={`flex items-center justify-between transition-all duration-500 ${
           scrolled ? 'h-14 sm:h-16' : 'h-20 sm:h-24'
         }`}>
-          {/* Logos centralizadas no mobile, à esquerda no desktop */}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault()
-              window.scrollTo({ top: 0, behavior: 'smooth' })
-            }}
-            className="flex-1 md:flex-none flex items-center justify-center md:justify-start gap-4 sm:gap-5 group"
-            aria-label="Voltar ao topo"
-          >
-            <Image
-              src="/logo-semed.png"
-              alt="SEMED"
-              width={80}
-              height={80}
-              className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
-            />
+          {/* Logos — cada uma com seu link próprio */}
+          <div className="flex-1 md:flex-none flex items-center justify-center md:justify-start gap-4 sm:gap-5 group">
+            <a
+              href={logoSemedUrl}
+              onClick={(e) => {
+                if (logoSemedUrl === '/' || logoSemedUrl.startsWith('#')) {
+                  e.preventDefault()
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }
+              }}
+              target={isExternal(logoSemedUrl) ? '_blank' : undefined}
+              rel={isExternal(logoSemedUrl) ? 'noopener noreferrer' : undefined}
+              aria-label="SEMED — Ir para página inicial"
+              className="flex-shrink-0"
+            >
+              <Image
+                src="/logo-semed.png"
+                alt="SEMED"
+                width={80}
+                height={80}
+                className={`w-auto object-contain transition-all duration-500 hover:opacity-80 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
+              />
+            </a>
             <div className={`w-px bg-slate-300 dark:bg-slate-600 flex-shrink-0 transition-all duration-500 ${scrolled ? 'h-7 sm:h-9' : 'h-12 sm:h-16'}`} />
-            <Image
-              src="/logo-prefeitura.png"
-              alt="Prefeitura de São Sebastião da Boa Vista"
-              width={80}
-              height={80}
-              className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
-            />
-          </a>
+            <a
+              href={logoPrefeituraUrl}
+              target={isExternal(logoPrefeituraUrl) ? '_blank' : '_self'}
+              rel={isExternal(logoPrefeituraUrl) ? 'noopener noreferrer' : undefined}
+              aria-label="Prefeitura de São Sebastião da Boa Vista"
+              className="flex-shrink-0"
+            >
+              <Image
+                src="/logo-prefeitura.png"
+                alt="Prefeitura de São Sebastião da Boa Vista"
+                width={80}
+                height={80}
+                className={`w-auto object-contain transition-all duration-500 hover:opacity-80 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
+              />
+            </a>
+          </div>
 
           {/* ====== MENU DESKTOP COM DROPDOWNS ====== */}
           <nav className="hidden md:flex items-center gap-1 lg:gap-1.5" aria-label="Navegação principal">
@@ -167,12 +205,14 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                   <a
                     href={item.href}
                     onClick={(e) => {
-                      if (hasChildren && item.href === '#') {
+                      if (hasChildren && (item.href === '#' || !item.href)) {
                         e.preventDefault()
                       } else {
                         handleNavClick(e, item.href)
                       }
                     }}
+                    target={item.abrir_nova_aba ? '_blank' : undefined}
+                    rel={item.abrir_nova_aba ? 'noopener noreferrer' : undefined}
                     className={`relative inline-flex items-center gap-1 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                       isActive
                         ? 'text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30'
@@ -197,6 +237,8 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                             handleNavClick(e, child.href)
                             setOpenDropdown(null)
                           }}
+                          target={child.abrir_nova_aba ? '_blank' : undefined}
+                          rel={child.abrir_nova_aba ? 'noopener noreferrer' : undefined}
                           className="block px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
                         >
                           {child.label}
@@ -229,7 +271,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
       </div>
     </header>
 
-    {/* ====== MOBILE MENU — fora do header ====== */}
+    {/* ====== MOBILE MENU ====== */}
     <div
       className={`md:hidden fixed inset-0 z-[9999] transition-all duration-300 ${
         menuOpen ? 'visible' : 'invisible'
@@ -258,9 +300,13 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
             </button>
           </div>
           <div className="flex items-center justify-center gap-5">
-            <Image src="/logo-semed.png" alt="SEMED" width={64} height={64} className="h-16 w-auto object-contain" />
+            <a href={logoSemedUrl} target={isExternal(logoSemedUrl) ? '_blank' : undefined} rel={isExternal(logoSemedUrl) ? 'noopener noreferrer' : undefined}>
+              <Image src="/logo-semed.png" alt="SEMED" width={64} height={64} className="h-16 w-auto object-contain" />
+            </a>
             <div className="w-px h-12 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
-            <Image src="/logo-prefeitura.png" alt="Prefeitura" width={64} height={64} className="h-16 w-auto object-contain" />
+            <a href={logoPrefeituraUrl} target={isExternal(logoPrefeituraUrl) ? '_blank' : undefined} rel={isExternal(logoPrefeituraUrl) ? 'noopener noreferrer' : undefined}>
+              <Image src="/logo-prefeitura.png" alt="Prefeitura" width={64} height={64} className="h-16 w-auto object-contain" />
+            </a>
           </div>
           <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700 text-center">
             <p className="text-sm text-blue-900 dark:text-blue-300 font-bold">Secretaria Municipal de Educação</p>
@@ -276,6 +322,8 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                 key={i}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
+                target={item.abrir_nova_aba ? '_blank' : undefined}
+                rel={item.abrir_nova_aba ? 'noopener noreferrer' : undefined}
                 className="flex items-center px-4 py-2.5 text-[15px] font-medium text-slate-700 dark:text-slate-200 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 active:bg-blue-100 dark:active:bg-blue-900/50 transition-all duration-150"
               >
                 {item.label}

@@ -19,9 +19,11 @@ import { TabNoticias } from './components/TabNoticias'
 import { TabEscolas } from './components/TabEscolas'
 import { TabContato } from './components/TabContato'
 import { TabRodape } from './components/TabRodape'
+import { TabMenu } from './components/TabMenu'
 
 const TABS = [
   { key: 'manutencao', label: 'Manutencao' },
+  { key: 'menu', label: 'Menu' },
   { key: 'hero', label: 'Hero' },
   { key: 'sobre', label: 'Sobre' },
   { key: 'social', label: 'Redes Sociais' },
@@ -37,6 +39,7 @@ type TabKey = typeof TABS[number]['key']
 
 const TAB_COMPONENTS: Record<TabKey, React.ComponentType<TabProps>> = {
   manutencao: TabManutencao,
+  menu: TabMenu,
   hero: TabHero,
   sobre: TabSobre,
   social: TabSocial,
@@ -92,6 +95,26 @@ export default function SiteInstitucionalPage() {
         ativo: false,
         titulo: 'Site em Manutencao',
         mensagem: 'Estamos trabalhando para melhorar sua experiencia. O site estara de volta em breve!',
+      },
+      menu: {
+        logo_semed_url: '/',
+        logo_prefeitura_url: 'https://saosebastiaodaboavista.pa.gov.br',
+        items: [
+          { label: 'Sobre', href: '#sobre', ordem: 0, visivel: true, abrir_nova_aba: false, children: [] },
+          { label: 'Serviços', href: '#servicos', ordem: 1, visivel: true, abrir_nova_aba: false, children: [
+            { label: 'Boletim Online', href: '/boletim', ordem: 0, visivel: true, abrir_nova_aba: false },
+            { label: 'Pré-Matrícula', href: '/matricula', ordem: 1, visivel: true, abrir_nova_aba: false },
+            { label: 'Ouvidoria', href: '/ouvidoria', ordem: 2, visivel: true, abrir_nova_aba: false },
+          ]},
+          { label: 'Escolas', href: '#escolas', ordem: 2, visivel: true, abrir_nova_aba: false, children: [] },
+          { label: 'Notícias', href: '#noticias', ordem: 3, visivel: true, abrir_nova_aba: false, children: [] },
+          { label: 'Institucional', href: '#', ordem: 4, visivel: true, abrir_nova_aba: false, children: [
+            { label: 'Publicações', href: '/publicacoes', ordem: 0, visivel: true, abrir_nova_aba: false },
+            { label: 'Transparência', href: '/transparencia', ordem: 1, visivel: true, abrir_nova_aba: false },
+            { label: 'Eventos', href: '/eventos', ordem: 2, visivel: true, abrir_nova_aba: false },
+          ]},
+          { label: 'Contato', href: '#contato', ordem: 5, visivel: true, abrir_nova_aba: false, children: [] },
+        ],
       },
       hero: {
         titulo: '', subtitulo: '', descricao: '',

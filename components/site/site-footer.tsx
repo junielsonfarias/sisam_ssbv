@@ -6,9 +6,13 @@ import Image from 'next/image'
 
 interface SiteFooterProps {
   data: any
+  menuData?: {
+    logo_semed_url?: string
+    logo_prefeitura_url?: string
+  }
 }
 
-export default function SiteFooter({ data }: SiteFooterProps) {
+export default function SiteFooter({ data, menuData }: SiteFooterProps) {
   const logoText = data?.logoText || 'SEMED'
   const description = data?.description || 'Secretaria Municipal de Educação de São Sebastião da Boa Vista - PA. Comprometida com a educação pública de qualidade para todas as crianças e jovens do município.'
   const year = new Date().getFullYear()
@@ -48,9 +52,23 @@ export default function SiteFooter({ data }: SiteFooterProps) {
           {/* Column 1: Logo + redes sociais */}
           <div>
             <div className="flex items-center justify-center sm:justify-start gap-5 mb-4 sm:mb-5">
-              <Image src="/logo-semed.png" alt="SEMED" width={80} height={80} className="h-16 sm:h-20 w-auto object-contain" />
+              <a
+                href={menuData?.logo_semed_url || '/'}
+                target={menuData?.logo_semed_url?.startsWith('http') ? '_blank' : undefined}
+                rel={menuData?.logo_semed_url?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                aria-label="SEMED"
+              >
+                <Image src="/logo-semed.png" alt="SEMED" width={80} height={80} className="h-16 sm:h-20 w-auto object-contain hover:opacity-80 transition-opacity" />
+              </a>
               <div className="w-px h-12 sm:h-16 bg-slate-600 flex-shrink-0" />
-              <Image src="/logo-prefeitura.png" alt="Prefeitura de São Sebastião da Boa Vista" width={80} height={80} className="h-16 sm:h-20 w-auto object-contain" />
+              <a
+                href={menuData?.logo_prefeitura_url || 'https://saosebastiaodaboavista.pa.gov.br'}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Prefeitura de São Sebastião da Boa Vista"
+              >
+                <Image src="/logo-prefeitura.png" alt="Prefeitura de São Sebastião da Boa Vista" width={80} height={80} className="h-16 sm:h-20 w-auto object-contain hover:opacity-80 transition-opacity" />
+              </a>
             </div>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed mb-4 sm:mb-6 max-w-xs line-clamp-2 sm:line-clamp-none">
               {description}
