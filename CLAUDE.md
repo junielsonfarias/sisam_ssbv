@@ -193,6 +193,14 @@ Card: bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dar
 - Constantes com `as const`
 - Tipos de erro: `(error as DatabaseError).code`
 
+### Limite de Linhas por Arquivo
+- Maximo **400 linhas** por arquivo (services, routes, pages, componentes)
+- Se ultrapassar, **decompor** em submodulos dentro de pasta com barrel `index.ts`
+- Excecoes justificadas: `database/connection.ts` (config de pool), arquivos de tipos puros
+- Pages grandes devem extrair componentes para `components/` e hooks para `hooks/`
+- Services grandes devem extrair queries, types e formatters para subpastas
+- Usar fachada (re-exports) para manter compatibilidade de imports
+
 ### Service Layer (`lib/services/`)
 - Um arquivo por recurso: `[recurso].service.ts`
 - Interfaces para DB rows e retornos tipados
