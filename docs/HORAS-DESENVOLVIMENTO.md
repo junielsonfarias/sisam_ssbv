@@ -9,14 +9,14 @@
 
 | Metrica | Valor |
 |---------|-------|
-| **Total de horas** | **283h** |
+| **Total de horas** | **287h** |
 | **Dias trabalhados** | 37 |
-| **Media por dia** | 7.6h |
+| **Media por dia** | 7.8h |
 | **Periodo** | 31/12/2025 — 01/04/2026 |
-| **Total de commits** | 604 |
-| **Linhas de codigo** | 141.100 |
-| **Arquivos TS/TSX** | 690 |
-| **Endpoints API** | 194 |
+| **Total de commits** | 608 |
+| **Linhas de codigo** | 145.200 |
+| **Arquivos TS/TSX** | 705 |
+| **Endpoints API** | 198 |
 | **Testes** | 563 |
 
 ---
@@ -29,7 +29,7 @@
 | Jan/2026 | 140h | 18 | 318 | Core do sistema, importacoes, dashboards, analise |
 | Fev/2026 | 41h | 6 | 33 | Ajustes, Supabase, deploy Vercel |
 | Mar/2026 | 84h | 12 | 239 | Gestor escolar, professor, site, seguranca, CI, 45 skills, code review 4 sprints |
-| Abr/2026 | 4h | 1 | 7 | 8 sprints melhorias: monitoramento, notificacoes, PDFs, offline, seguranca |
+| Abr/2026 | 8h | 1 | 11 | 8 sprints melhorias, site institucional (SEO, FAQ, mapa, busca, acessibilidade, menu dinamico) |
 
 ---
 
@@ -111,9 +111,9 @@
 
 | Data | Horario | Horas | Commits | Descricao |
 |------|---------|-------|---------|-----------|
-| 01/04/2026 | 17:00–21:00 | 4.0h | 7 | 8 sprints: monitoramento, backup Drive, notificacoes professor, dashboard rico, auditoria+36 testes, PDFs React-PDF, preview importacao, portal pais, offline notas/diario, refresh token, criptografia CPF |
+| 01/04/2026 | 17:00–01:00 | 8.0h | 11 | 8 sprints melhorias (monitoramento, backup, notificacoes, dashboard, auditoria+36 testes, PDFs, preview, portal pais, offline, seguranca) + site institucional (SEO, FAQ, mapa, busca Ctrl+K, depoimentos, animacoes scroll, acessibilidade, formulario contato, menu dinamico, logos clicaveis) + fix frequencia boletim |
 
-**Subtotal Abr/2026: 4h | 1 dia | 7 commits**
+**Subtotal Abr/2026: 8h | 1 dia | 11 commits**
 
 ---
 
@@ -131,7 +131,7 @@
 | Completo (30/03/2026) | 249h | 532 | 24 melhorias, Redis, redesign site, publicacoes |
 | CI Verde (31/03/2026) | 268h | 575 | Docs API, E2E, TypeScript, CI 100% verde |
 | Code Review (31/03/2026) | 279h | 597 | 45 skills, mobile WCAG, audit sec+perf, 4 sprints refactor |
-| Melhorias 8 Sprints (01/04/2026) | 283h | 604 | Monitoramento, backup, notificacoes, PDFs, preview, offline, seguranca |
+| Melhorias Completas (01/04/2026) | 287h | 608 | 8 sprints + site institucional (SEO, FAQ, mapa, busca, acessibilidade, menu dinamico) |
 
 ---
 
