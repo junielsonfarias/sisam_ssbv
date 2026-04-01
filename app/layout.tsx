@@ -4,11 +4,19 @@ import { PWAInstallPrompt, ConnectionStatus } from '@/components/pwa-install-pro
 import { ThemeProvider } from '@/lib/theme-provider'
 import { ToastProvider } from '@/components/toast'
 import ErrorBoundary from '@/components/error-boundary'
+import { OrganizationJsonLd } from '@/components/site/json-ld'
+import AccessibilityBar from '@/components/site/accessibility-bar'
+
+const siteUrl = 'https://educacaossbv.com.br'
+const siteTitle = 'Educatec - SEMED Sao Sebastiao da Boa Vista'
+const siteDescription =
+  'Sistema de Gestao Escolar da Secretaria Municipal de Educacao de Sao Sebastiao da Boa Vista, Para. Acesse boletins, matriculas, publicacoes e servicos educacionais.'
 
 export const metadata: Metadata = {
-  title: 'Educatec - SEMED SSBV',
-  description: 'Sistema de Gestao Escolar - Secretaria Municipal de Educacao de Sao Sebastiao da Boa Vista',
+  title: siteTitle,
+  description: siteDescription,
   manifest: '/manifest.json',
+  metadataBase: new URL(siteUrl),
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -26,6 +34,30 @@ export const metadata: Metadata = {
       { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
       { url: '/icons/icon-180x180.png', sizes: '180x180', type: 'image/png' },
     ],
+  },
+  // Open Graph — compartilhamento em redes sociais
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    url: siteUrl,
+    title: siteTitle,
+    description: siteDescription,
+    siteName: 'Educatec - SEMED SSBV',
+    images: [
+      {
+        url: '/logo-semed.png',
+        width: 512,
+        height: 512,
+        alt: 'Logo SEMED - Secretaria Municipal de Educacao',
+      },
+    ],
+  },
+  // Twitter Cards
+  twitter: {
+    card: 'summary',
+    title: siteTitle,
+    description: siteDescription,
+    images: ['/logo-semed.png'],
   },
 }
 
@@ -78,6 +110,8 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body className="bg-theme-primary text-theme-primary">
+        {/* JSON-LD — dados estruturados para SEO */}
+        <OrganizationJsonLd />
         {/* Skip to content — acessibilidade por teclado */}
         <a href="#main-content"
            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100]
@@ -90,6 +124,7 @@ export default function RootLayout({
             <ErrorBoundary>
               <ConnectionStatus />
               {children}
+              <AccessibilityBar />
               {/* PWA install prompt desabilitado temporariamente */}
               {/* <PWAInstallPrompt /> */}
             </ErrorBoundary>

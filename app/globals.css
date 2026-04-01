@@ -428,6 +428,27 @@ body {
   fill: var(--text-primary);
 }
 
+/* ========================================
+   ACESSIBILIDADE — Alto contraste
+   ======================================== */
+html.alto-contraste {
+  filter: contrast(1.4);
+}
+html.alto-contraste img,
+html.alto-contraste video {
+  filter: contrast(0.7);
+}
+
+/* Movimento reduzido via classe (complementa @media prefers-reduced-motion) */
+html.movimento-reduzido *,
+html.movimento-reduzido *::before,
+html.movimento-reduzido *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* Animações para PWA */
 @keyframes slide-up {
   from {

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Menu, X, ArrowRight, ChevronDown } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Menu, X, ArrowRight, ChevronDown, Search } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import SiteSearch from '@/components/site/site-search'
 
 interface MenuItem {
   label: string
@@ -21,6 +22,8 @@ interface SiteHeaderProps {
     logo_prefeitura_url?: string
     items?: MenuItem[]
   }
+  escolas?: Array<{ nome?: string; name?: string; endereco?: string; address?: string }>
+  faqPerguntas?: Array<{ pergunta: string; resposta: string }>
 }
 
 // Menu padrão caso não haja configuração no banco
@@ -47,12 +50,26 @@ const defaultMenuItems: MenuItem[] = [
   { label: 'Contato', href: '#contato' },
 ]
 
-export default function SiteHeader({ data, menuData }: SiteHeaderProps) {
+export default function SiteHeader({ data, menuData, escolas = [], faqPerguntas = [] }: SiteHeaderProps) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [buscaAberta, setBuscaAberta] = useState(false)
   const [activeSection, setActiveSection] = useState('')
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  // Atalho Ctrl+K / Cmd+K para abrir busca
+  const handleAtalhosBusca = useCallback((e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault()
+      setBuscaAberta(prev => !prev)
+    }
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleAtalhosBusca)
+    return () => window.removeEventListener('keydown', handleAtalhosBusca)
+  }, [handleAtalhosBusca])
 
   // Configuração do menu dinâmico
   const logoSemedUrl = menuData?.logo_semed_url || '/'
@@ -249,24 +266,41 @@ export default function SiteHeader({ data, menuData }: SiteHeaderProps) {
                 </div>
               )
             })}
+            <button
+              onClick={() => setBuscaAberta(true)}
+              className="ml-2 p-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              aria-label="Buscar no site (Ctrl+K)"
+              title="Buscar (Ctrl+K)"
+            >
+              <Search className="w-5 h-5" />
+            </button>
             <Link
               href="/login"
-              className="ml-3 inline-flex items-center gap-2 px-5 lg:px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-800 text-white hover:bg-blue-900 shadow-lg shadow-blue-800/20 hover:shadow-blue-800/30 transition-all duration-300"
+              className="ml-1 inline-flex items-center gap-2 px-5 lg:px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-800 text-white hover:bg-blue-900 shadow-lg shadow-blue-800/20 hover:shadow-blue-800/30 transition-all duration-300"
             >
               Entrar
               <ArrowRight className="w-4 h-4" />
             </Link>
           </nav>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
-            aria-expanded={menuOpen}
-          >
-            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile: Busca + Menu */}
+          <div className="md:hidden flex items-center gap-1">
+            <button
+              onClick={() => setBuscaAberta(true)}
+              className="p-2.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Buscar no site"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -343,6 +377,15 @@ export default function SiteHeader({ data, menuData }: SiteHeaderProps) {
         </nav>
       </div>
     </div>
+
+    {/* Modal de busca */}
+    <SiteSearch
+      aberto={buscaAberta}
+      onFechar={() => setBuscaAberta(false)}
+      escolas={escolas}
+      menuItems={desktopNav}
+      faqPerguntas={faqPerguntas}
+    />
     </>
   )
 }

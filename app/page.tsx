@@ -6,13 +6,17 @@ import SiteHero from '@/components/site/site-hero'
 import SiteAbout from '@/components/site/site-about'
 import SiteSocial from '@/components/site/site-social'
 import SiteStats from '@/components/site/site-stats'
+import SiteTestimonials from '@/components/site/site-testimonials'
 import SiteServices from '@/components/site/site-services'
 import SiteNews from '@/components/site/site-news'
 import SitePublicacoes from '@/components/site/site-publicacoes'
+import SiteSchoolsMap from '@/components/site/site-schools-map'
 import SiteSchools from '@/components/site/site-schools'
+import SiteFaq from '@/components/site/site-faq'
 import SiteContact from '@/components/site/site-contact'
 import SiteFooter from '@/components/site/site-footer'
 import SiteManutencao from '@/components/site/site-manutencao'
+import { ScrollAnimate } from '@/components/site/scroll-animate'
 
 interface SiteData {
   config: Record<string, any>
@@ -81,16 +85,39 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <SiteHeader data={config.header || {}} menuData={config.menu} />
+      <SiteHeader data={config.header || {}} menuData={config.menu} escolas={escolas} faqPerguntas={config.faq?.perguntas} />
       <SiteHero data={config.hero || {}} />
-      <SiteAbout data={config.about || {}} />
+      <ScrollAnimate animation="fade-up">
+        <SiteAbout data={config.about || {}} />
+      </ScrollAnimate>
       <SiteSocial data={config.social || {}} />
-      <SiteStats data={config.stats || {}} stats={stats} />
-      <SiteServices data={config.services || {}} />
-      <SiteNews data={config.news || {}} />
-      <SitePublicacoes publicacoes={publicacoes} />
-      <SiteSchools data={config.schools || {}} escolas={escolas} />
-      <SiteContact data={config.contact || {}} />
+      <ScrollAnimate animation="fade">
+        <SiteStats data={config.stats || {}} stats={stats} />
+      </ScrollAnimate>
+      <ScrollAnimate animation="fade-up">
+        <SiteTestimonials data={config.testimonials || {}} />
+      </ScrollAnimate>
+      <ScrollAnimate animation="fade-up">
+        <SiteServices data={config.services || {}} />
+      </ScrollAnimate>
+      <ScrollAnimate animation="fade-up">
+        <SiteNews data={config.news || {}} />
+      </ScrollAnimate>
+      <ScrollAnimate animation="fade-up" delay={100}>
+        <SitePublicacoes publicacoes={publicacoes} />
+      </ScrollAnimate>
+      <ScrollAnimate animation="fade-up">
+        <SiteSchoolsMap escolas={escolas} />
+      </ScrollAnimate>
+      <ScrollAnimate animation="fade-up">
+        <SiteSchools data={config.schools || {}} escolas={escolas} />
+      </ScrollAnimate>
+      <ScrollAnimate animation="fade-up">
+        <SiteFaq data={config.faq || {}} />
+      </ScrollAnimate>
+      <ScrollAnimate animation="fade-up">
+        <SiteContact data={config.contact || {}} />
+      </ScrollAnimate>
       <SiteFooter data={{ ...(config.footer || {}), ...(config.social || {}) }} menuData={config.menu} />
     </div>
   )
