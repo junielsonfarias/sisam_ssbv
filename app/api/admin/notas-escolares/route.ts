@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { cacheDelPattern } from '@/lib/cache/redis'
 import { calcularNotaFinal, lancarNotas } from '@/lib/services/notas'
 import { z } from 'zod'
 import {
@@ -217,6 +218,11 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     })
 
     const todosErros = [...errosPreprocessamento, ...resultado.erros]
+    // Invalidar caches após lançar notas
+    try { await cacheDelPattern('dashboard:*') } catch { /* não crítico */ }
+    try { await cacheDelPattern('graficos:*') } catch { /* não crítico */ }
+    try { await cacheDelPattern('dashboard-gestor:*') } catch { /* não crítico */ }
+
     return NextResponse.json({
       mensagem: `${resultado.processados} nota(s) salva(s) com sucesso${todosErros.length > 0 ? `, ${todosErros.length} erro(s)` : ''}`,
       processados: resultado.processados,

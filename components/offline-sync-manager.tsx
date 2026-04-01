@@ -229,16 +229,7 @@ export function SyncStatusCard({ userId }: { userId: string | null }) {
       resultados: getResultados().length
     })
 
-    const handleOnline = () => setOnline(true)
-    const handleOffline = () => setOnline(false)
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
+    // Listeners de online/offline já registrados no primeiro useEffect (linhas 55-56)
   }, [])
 
   const handleSync = async () => {

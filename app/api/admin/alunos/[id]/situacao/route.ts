@@ -102,7 +102,8 @@ export async function POST(
         return NextResponse.json({ mensagem: 'Dados inválidos', erros }, { status: 400 })
       }
       body = parsed.data
-    } catch {
+    } catch (error: unknown) {
+      log.error('Erro ao processar body JSON', error)
       return NextResponse.json({ mensagem: 'Erro ao processar dados' }, { status: 400 })
     }
 

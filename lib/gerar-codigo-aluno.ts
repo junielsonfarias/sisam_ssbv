@@ -1,4 +1,8 @@
 import pool from '@/database/connection'
+import crypto from 'crypto'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('GerarCodigoAluno')
 
 /**
  * Gera um código simples e único para o aluno
@@ -36,9 +40,9 @@ export async function gerarCodigoAluno(): Promise<string> {
     return novoCodigo
   } catch (error) {
     await client.query('ROLLBACK')
-    console.error('Erro ao gerar código do aluno:', error)
-    // Fallback: usar timestamp para garantir unicidade
-    return `ALU${Date.now().toString().slice(-8)}`
+    log.error('Erro ao gerar código do aluno', error)
+    // Fallback: usar crypto.randomUUID para garantir unicidade (sem risco de colisão)
+    return `ALU${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`
   } finally {
     client.release()
   }

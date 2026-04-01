@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
+import { cacheDelPattern } from '@/lib/cache/redis'
 import { verificarVinculoProfessor } from '@/lib/professor-auth'
 import { buscarNotas, buscarTurma, buscarConfigNotas, lancarNotas } from '@/lib/services/notas'
 import { z } from 'zod'
@@ -104,6 +105,11 @@ export const POST = withAuth('professor', async (request, usuario) => {
     config,
     registradoPor: usuario.id,
   })
+
+  // Invalidar caches de dashboard e gráficos após lançar notas
+  try { await cacheDelPattern('dashboard:*') } catch { /* não crítico */ }
+  try { await cacheDelPattern('graficos:*') } catch { /* não crítico */ }
+  try { await cacheDelPattern('dashboard-gestor:*') } catch { /* não crítico */ }
 
   return NextResponse.json({
     mensagem: `${resultado.processados} nota(s) salva(s) com sucesso`,
