@@ -316,110 +316,39 @@ export async function safeQuery<T = Record<string, any>>(
 // SÉRIE HELPERS
 // ============================================================================
 
-/**
- * Extrai o número da série (ex: "5º Ano" → "5", "9" → "9")
- */
-export function extrairNumeroSerie(serie: string): string {
-  return serie.replace(/[^0-9]/g, '')
-}
-
-/**
- * Verifica se a série pertence a anos iniciais (2, 3, 5)
- */
-export function isAnosIniciais(serie: string): boolean {
-  const num = extrairNumeroSerie(serie)
-  return ['2', '3', '5'].includes(num)
-}
+// Re-exports de lib/config-series.ts (versão canônica que aceita null/undefined)
+import { extrairNumeroSerie as _extrairNumeroSerie, isAnosIniciais as _isAnosIniciais } from './config-series'
+export const extrairNumeroSerie = _extrairNumeroSerie
+export const isAnosIniciais = _isAnosIniciais
 
 /**
  * Verifica se a série pertence a anos finais (6, 7, 8, 9)
  */
 export function isAnosFinais(serie: string): boolean {
-  const num = extrairNumeroSerie(serie)
-  return ['6', '7', '8', '9'].includes(num)
+  const num = _extrairNumeroSerie(serie)
+  return ['6', '7', '8', '9'].includes(num || '')
 }
 
 /**
  * Retorna o divisor de média correto para a série
- * Anos iniciais (2,3,5): 3 disciplinas (LP, MAT, PROD)
- * Anos finais (6-9): 4 disciplinas (LP, CH, MAT, CN)
  */
 export function getDivisorSerie(serie: string): number {
-  return isAnosIniciais(serie) ? 3 : 4
+  return _isAnosIniciais(serie) ? 3 : 4
 }
 
-/**
- * Gera SQL CASE para cálculo de média geral baseado na série.
- * Usado quando todas as notas vêm do mesmo alias (ex: rc).
- */
-export function getMediaGeralSQL(alias: string = 'rc'): string {
-  return `CASE
-    WHEN COALESCE(${alias}.serie_numero, REGEXP_REPLACE(${alias}.serie::text, '[^0-9]', '', 'g')) IN ('2','3','5')
-    THEN (COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_producao AS DECIMAL), 0)) / 3.0
-    ELSE (COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_cn AS DECIMAL), 0)) / 4.0
-  END`
-}
-
-/**
- * Gera SQL CASE para média geral com aliases diferentes para anos iniciais vs finais.
- * Usado quando anos iniciais (2,3,5) leem de rc_table e finais leem de rc.
- * @param serieAlias - alias que tem a coluna serie (ex: 'rc')
- * @param aiAlias    - alias para notas de anos iniciais (ex: 'rc_table')
- * @param afAlias    - alias para notas de anos finais (ex: 'rc')
- */
-export function getMediaGeralMixedSQL(serieAlias: string = 'rc', aiAlias: string = 'rc_table', afAlias: string = 'rc'): string {
-  return `CASE
-    WHEN COALESCE(${serieAlias}.serie_numero, REGEXP_REPLACE(${serieAlias}.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
-      (COALESCE(CAST(${aiAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_producao AS DECIMAL), 0)) / 3.0
-    ELSE
-      (COALESCE(CAST(${afAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_cn AS DECIMAL), 0)) / 4.0
-  END`
-}
-
-/**
- * Variante ROUND(..., 2) do cálculo de média mista (rc_table/rc).
- */
-export function getMediaGeralMixedRoundedSQL(serieAlias: string = 'rc', aiAlias: string = 'rc_table', afAlias: string = 'rc'): string {
-  return `CASE
-    WHEN COALESCE(${serieAlias}.serie_numero, REGEXP_REPLACE(${serieAlias}.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
-      ROUND((COALESCE(CAST(${aiAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${aiAlias}.nota_producao AS DECIMAL), 0)) / 3.0, 2)
-    ELSE
-      ROUND((COALESCE(CAST(${afAlias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${afAlias}.nota_cn AS DECIMAL), 0)) / 4.0, 2)
-  END`
-}
-
-/**
- * Gera SQL ROUND(AVG(CASE WHEN presença='P' THEN media ELSE NULL END), 2)
- * Usado em queries agregadas para calcular media_geral com filtro de presença.
- */
-export function getMediaGeralAvgSQL(alias: string = 'rc'): string {
-  return `ROUND(AVG(CASE
-    WHEN (${alias}.presenca = 'P' OR ${alias}.presenca = 'p') THEN
-      ${getMediaGeralSQL(alias)}
-    ELSE NULL
-  END), 2)`
-}
-
-/**
- * Gera SQL para média de anos iniciais (séries 2,3,5): LP + MAT + PROD / 3
- */
-export function getMediaAnosIniciaisSQL(alias: string = 'rc'): string {
-  return `(COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_producao AS DECIMAL), 0)) / 3.0`
-}
-
-/**
- * Gera SQL para média de anos finais (séries 6-9): LP + CH + MAT + CN / 4
- */
-export function getMediaAnosFinaisSQL(alias: string = 'rc'): string {
-  return `(COALESCE(CAST(${alias}.nota_lp AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_ch AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_mat AS DECIMAL), 0) + COALESCE(CAST(${alias}.nota_cn AS DECIMAL), 0)) / 4.0`
-}
-
-/**
- * SQL para filtrar presença válida
- */
-export function getPresencaSQL(alias: string = 'rc'): string {
-  return `(${alias}.presenca = 'P' OR ${alias}.presenca = 'p')`
-}
+// Re-exports de lib/sql/media-geral.ts (módulo centralizado de SQL de média)
+export {
+  getMediaGeralSQL,
+  getMediaGeralMixedSQL,
+  getMediaGeralMixedRoundedSQL,
+  getMediaGeralAvgSQL,
+  getMediaAnosIniciaisSQL,
+  getMediaAnosFinaisSQL,
+  getPresencaSQL,
+  getPresencaCompletaSQL,
+  getSerieNumeroSQL,
+  isAnosIniciaisSQL,
+} from './sql/media-geral'
 
 // ============================================================================
 // VALIDAÇÃO DE UPLOAD

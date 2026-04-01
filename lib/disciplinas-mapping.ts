@@ -54,29 +54,16 @@ export function getDisciplinasOptions(serie: string | null | undefined): Discipl
   return isAnosIniciais(serie) ? DISCIPLINAS_OPTIONS_ANOS_INICIAIS : DISCIPLINAS_OPTIONS_ANOS_FINAIS
 }
 
-/**
- * Extrai o número da série de uma string
- * Ex: "2º Ano" -> "2", "5º ano A" -> "5"
- */
-export function extrairNumeroSerie(serie: string | null | undefined): string | null {
-  if (!serie) return null
-  const match = serie.match(/(\d+)/)
-  return match ? match[1] : null
-}
-
-/**
- * Verifica se é anos iniciais baseado na série
- */
-export function isAnosIniciais(serie: string | null | undefined): boolean {
-  const numero = extrairNumeroSerie(serie)
-  return SERIES_ANOS_INICIAIS.includes(numero || '')
-}
+// Re-exports de lib/config-series.ts (versão canônica)
+import { extrairNumeroSerie as _extrairNumeroSerie, isAnosIniciais as _isAnosIniciais } from './config-series'
+export const extrairNumeroSerie = _extrairNumeroSerie
+export const isAnosIniciais = _isAnosIniciais
 
 /**
  * Verifica se é anos finais baseado na série
  */
 export function isAnosFinais(serie: string | null | undefined): boolean {
-  const numero = extrairNumeroSerie(serie)
+  const numero = _extrairNumeroSerie(serie)
   return SERIES_ANOS_FINAIS.includes(numero || '')
 }
 
