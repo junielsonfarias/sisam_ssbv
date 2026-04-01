@@ -1,8 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import type { PreviewData } from '../components/PreviewImportacao'
 
 interface AvaliacaoOpcao { id: string; nome: string; tipo: string }
+
+/** Etapa atual do fluxo de importacao */
+export type EtapaImportacao = 'upload' | 'preview' | 'importando'
 
 export interface ProgressoImportacao {
   porcentagem: number
@@ -40,6 +44,29 @@ function carregarImportacaoAtiva(): string | null {
   return null
 }
 
+/** Converte resposta da API de progresso para o tipo local */
+function parseProgresso(data: Record<string, any>): ProgressoImportacao {
+  return {
+    porcentagem: data.porcentagem || 0,
+    linhas_processadas: data.linhas_processadas || 0,
+    total_linhas: data.total_linhas || 0,
+    status: data.status || 'processando',
+    linhas_com_erro: data.linhas_com_erro || 0,
+    polos_criados: data.polos_criados || 0,
+    polos_existentes: data.polos_existentes || 0,
+    escolas_criadas: data.escolas_criadas || 0,
+    escolas_existentes: data.escolas_existentes || 0,
+    turmas_criadas: data.turmas_criadas || 0,
+    turmas_existentes: data.turmas_existentes || 0,
+    alunos_criados: data.alunos_criados || 0,
+    alunos_existentes: data.alunos_existentes || 0,
+    questoes_criadas: data.questoes_criadas || 0,
+    questoes_existentes: data.questoes_existentes || 0,
+    resultados_novos: data.resultados_novos || 0,
+    resultados_duplicados: data.resultados_duplicados || 0,
+  }
+}
+
 export function useImportacao() {
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [anoLetivo, setAnoLetivo] = useState<string>(new Date().getFullYear().toString())
@@ -51,6 +78,11 @@ export function useImportacao() {
   const [progresso, setProgresso] = useState<ProgressoImportacao | null>(null)
   const intervaloProgressoRef = useRef<NodeJS.Timeout | null>(null)
   const importacaoIdRef = useRef<string | null>(null)
+
+  // Estados do preview
+  const [etapa, setEtapa] = useState<EtapaImportacao>('upload')
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null)
+  const [carregandoPreview, setCarregandoPreview] = useState(false)
 
   // Buscar avaliações quando o ano letivo mudar
   useEffect(() => {
@@ -85,25 +117,7 @@ export function useImportacao() {
       const response = await fetch(`/api/admin/importar-completo/progresso?id=${id}`)
       if (response.ok) {
         const data = await response.json()
-        setProgresso({
-          porcentagem: data.porcentagem || 0,
-          linhas_processadas: data.linhas_processadas || 0,
-          total_linhas: data.total_linhas || 0,
-          status: data.status || 'processando',
-          linhas_com_erro: data.linhas_com_erro || 0,
-          polos_criados: data.polos_criados || 0,
-          polos_existentes: data.polos_existentes || 0,
-          escolas_criadas: data.escolas_criadas || 0,
-          escolas_existentes: data.escolas_existentes || 0,
-          turmas_criadas: data.turmas_criadas || 0,
-          turmas_existentes: data.turmas_existentes || 0,
-          alunos_criados: data.alunos_criados || 0,
-          alunos_existentes: data.alunos_existentes || 0,
-          questoes_criadas: data.questoes_criadas || 0,
-          questoes_existentes: data.questoes_existentes || 0,
-          resultados_novos: data.resultados_novos || 0,
-          resultados_duplicados: data.resultados_duplicados || 0,
-        })
+        setProgresso(parseProgresso(data))
 
         if (data.status === 'concluido') {
           if (intervaloProgressoRef.current) {
@@ -207,26 +221,9 @@ export function useImportacao() {
             const data = await response.json()
             if (data.status === 'processando' || data.status === 'pausado') {
               importacaoIdRef.current = importacaoIdSalva
+              setEtapa('importando')
               setCarregando(true)
-              setProgresso({
-                porcentagem: data.porcentagem || 0,
-                linhas_processadas: data.linhas_processadas || 0,
-                total_linhas: data.total_linhas || 0,
-                status: data.status || 'processando',
-                linhas_com_erro: data.linhas_com_erro || 0,
-                polos_criados: data.polos_criados || 0,
-                polos_existentes: data.polos_existentes || 0,
-                escolas_criadas: data.escolas_criadas || 0,
-                escolas_existentes: data.escolas_existentes || 0,
-                turmas_criadas: data.turmas_criadas || 0,
-                turmas_existentes: data.turmas_existentes || 0,
-                alunos_criados: data.alunos_criados || 0,
-                alunos_existentes: data.alunos_existentes || 0,
-                questoes_criadas: data.questoes_criadas || 0,
-                questoes_existentes: data.questoes_existentes || 0,
-                resultados_novos: data.resultados_novos || 0,
-                resultados_duplicados: data.resultados_duplicados || 0,
-              })
+              setProgresso(parseProgresso(data))
               intervaloProgressoRef.current = setInterval(() => {
                 if (importacaoIdRef.current) {
                   buscarProgresso(importacaoIdRef.current)
@@ -235,6 +232,7 @@ export function useImportacao() {
             } else {
               removerImportacaoAtiva()
               if (data.status === 'concluido') {
+                setEtapa('importando')
                 buscarResultadoFinal(importacaoIdSalva)
               }
             }
@@ -256,12 +254,55 @@ export function useImportacao() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /** Envia arquivo para pre-visualizacao antes de importar */
+  const handlePreview = useCallback(async () => {
+    if (!arquivo) {
+      setErro('Por favor, selecione um arquivo')
+      return
+    }
+
+    setCarregandoPreview(true)
+    setErro('')
+    setPreviewData(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('arquivo', arquivo)
+
+      const response = await fetch('/api/admin/importar-completo/preview', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok) {
+        const data: PreviewData = await response.json()
+        setPreviewData(data)
+        setEtapa('preview')
+      } else {
+        const errorData = await response.json()
+        setErro(errorData.mensagem || 'Erro ao gerar pre-visualizacao')
+      }
+    } catch {
+      setErro('Erro ao conectar com o servidor')
+    } finally {
+      setCarregandoPreview(false)
+    }
+  }, [arquivo])
+
+  /** Volta da etapa preview para upload */
+  const handleCancelarPreview = useCallback(() => {
+    setEtapa('upload')
+    setPreviewData(null)
+    setErro('')
+  }, [])
+
   const handleUpload = useCallback(async () => {
     if (!arquivo) {
       setErro('Por favor, selecione um arquivo')
       return
     }
 
+    setEtapa('importando')
     setCarregando(true)
     setErro('')
     setResultado(null)
@@ -339,5 +380,11 @@ export function useImportacao() {
     handlePausar,
     handleRetomar,
     handleCancelar,
+    // Preview
+    etapa,
+    previewData,
+    carregandoPreview,
+    handlePreview,
+    handleCancelarPreview,
   }
 }

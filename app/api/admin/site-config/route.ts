@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 const log = createLogger('AdminSiteConfig')
 
@@ -73,6 +74,16 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     // Invalidar cache do site-config publico
     await cacheDelPattern('site-config:*')
+
+    // Registrar auditoria
+    registrarAuditoria({
+      usuarioId: usuario.id,
+      usuarioEmail: usuario.email,
+      acao: 'atualizar',
+      entidade: 'site_config',
+      entidadeId: result.rows[0].id,
+      detalhes: { secao, campos_alterados: Object.keys(conteudo) },
+    })
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {

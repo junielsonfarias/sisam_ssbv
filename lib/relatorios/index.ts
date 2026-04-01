@@ -101,3 +101,19 @@ export {
   RelatorioEscolaPDF,
   RelatorioPoloPDF
 } from './gerador-pdf';
+
+// Relatório da Turma (Professor)
+export { RelatorioTurmaPDF } from './relatorio-turma';
+export type {
+  DadosRelatorioTurma,
+  AlunoTurmaRelatorio
+} from './relatorio-turma';
+
+// Boletim Individual (PDF)
+export { BoletimPDF } from './boletim-pdf';
+export type {
+  DadosBoletimPDF,
+  DisciplinaBoletim,
+  NotaBimestre,
+  FrequenciaBimestre
+} from './boletim-pdf';

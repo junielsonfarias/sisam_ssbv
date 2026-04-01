@@ -31,6 +31,9 @@ const ACAO_CORES: Record<string, string> = {
   transferir: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
   alterar_situacao: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
   alterar_nota: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  atualizar: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+  importar: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+  cancelar: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
   login: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
   logout: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
 }
@@ -42,12 +45,15 @@ const ACAO_LABELS: Record<string, string> = {
   transferir: 'Transferir',
   alterar_situacao: 'Alterar Situação',
   alterar_nota: 'Alterar Nota',
+  atualizar: 'Atualizar',
+  importar: 'Importar',
+  cancelar: 'Cancelar',
   login: 'Login',
   logout: 'Logout',
 }
 
-const ACOES = ['criar', 'editar', 'excluir', 'transferir', 'alterar_situacao', 'alterar_nota', 'login', 'logout']
-const ENTIDADES = ['aluno', 'turma', 'nota', 'frequencia', 'publicacao', 'usuario']
+const ACOES = ['criar', 'editar', 'excluir', 'transferir', 'alterar_situacao', 'alterar_nota', 'atualizar', 'importar', 'cancelar', 'login', 'logout']
+const ENTIDADES = ['aluno', 'turma', 'nota', 'frequencia', 'publicacao', 'usuario', 'site_config', 'importacao', 'resultados']
 
 function formatDetalhes(detalhes: Record<string, any> | null): string {
   if (!detalhes) return '-'
@@ -86,7 +92,7 @@ export default function AuditoriaPage() {
   const buscar = async (pag: number = 1) => {
     setCarregando(true)
     try {
-      const params = new URLSearchParams({ page: pag.toString(), limit: '50' })
+      const params = new URLSearchParams({ pagina: pag.toString(), limite: '50' })
       if (filtroUsuario) params.set('usuario_id', filtroUsuario)
       if (filtroAcao) params.set('acao', filtroAcao)
       if (filtroEntidade) params.set('entidade', filtroEntidade)
@@ -220,8 +226,39 @@ export default function AuditoriaPage() {
               </p>
             )}
 
-            {/* Tabela */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden">
+            {/* Mobile Cards */}
+            <div className="sm:hidden space-y-3">
+              {logs.length === 0 ? (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-8 text-center text-gray-500 dark:text-gray-400">
+                  <Shield className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                  <p>Nenhum registro encontrado</p>
+                </div>
+              ) : logs.map((log) => (
+                <div key={log.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${ACAO_CORES[log.acao] || 'bg-gray-100 text-gray-700'}`}>
+                      {ACAO_LABELS[log.acao] || log.acao}
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      {new Date(log.criado_em).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {log.usuario_nome || log.usuario_email || '-'}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="capitalize font-medium">{log.entidade}</span>
+                    {log.ip && <span className="font-mono">IP: {log.ip}</span>}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={formatDetalhes(log.detalhes)}>
+                    {formatDetalhes(log.detalhes)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Tabela Desktop */}
+            <div className="hidden sm:block bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">
                   <thead className="bg-gray-50 dark:bg-slate-700">

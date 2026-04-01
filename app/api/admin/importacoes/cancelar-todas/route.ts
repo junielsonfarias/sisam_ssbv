@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 const log = createLogger('ImportacoesCancelarTodas')
 
@@ -26,6 +27,18 @@ export async function POST(request: NextRequest) {
       WHERE status IN ('processando', 'pausado')
       RETURNING id, nome_arquivo, status
     `)
+
+    // Registrar auditoria do cancelamento
+    registrarAuditoria({
+      usuarioId: usuario.id,
+      usuarioEmail: usuario.email,
+      acao: 'cancelar',
+      entidade: 'importacao',
+      detalhes: {
+        total_canceladas: result.rows.length,
+        ids: result.rows.map((r: any) => r.id),
+      },
+    })
 
     return NextResponse.json({
       mensagem: `${result.rows.length} importação(ões) cancelada(s) com sucesso`,

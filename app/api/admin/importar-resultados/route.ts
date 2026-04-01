@@ -6,6 +6,7 @@ import { limparTodosOsCaches } from '@/lib/cache'
 import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import { validarArquivoUpload } from '@/lib/api-helpers'
 import { createLogger } from '@/lib/logger'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 const log = createLogger('ImportarResultados')
 import {
@@ -834,6 +835,22 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     } catch (cacheError) {
       log.error('Erro ao invalidar cache (não crítico)', cacheError)
     }
+
+    // Registrar auditoria da importação
+    registrarAuditoria({
+      usuarioId: usuario.id,
+      usuarioEmail: usuario.email,
+      acao: 'importar',
+      entidade: 'resultados',
+      detalhes: {
+        arquivo: arquivo.name,
+        ano_letivo: anoLetivo,
+        total_linhas: dados.length,
+        linhas_processadas: linhasProcessadas,
+        linhas_com_erro: linhasComErro,
+        total_questoes: totalQuestoesImportadas,
+      },
+    })
 
     return NextResponse.json({
       mensagem: 'Resultados importados com sucesso',
