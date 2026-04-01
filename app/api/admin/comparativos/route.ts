@@ -326,172 +326,108 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo'], async (request
       dadosPorSerieAgregado[serieKey].push(row)
     })
 
-    // ===== QUERY PARA BUSCAR MELHORES ALUNOS =====
-    // Para cada escola/série, buscar os melhores alunos
+    // ===== QUERY ÚNICA PARA BUSCAR MELHORES ALUNOS =====
+    // Busca todos os alunos presentes de uma vez (elimina N+1)
     const melhoresAlunos: Record<string, Record<string, any>> = {}
 
-    for (const row of resultAgregado.rows) {
-      const escolaId = row.escola_id
-      const serieKey = row.serie || 'Sem série'
-      const key = `${escolaId}_${serieKey}`
+    if (resultAgregado.rows.length > 0) {
+      let queryMelhores = `
+        SELECT
+          rc.escola_id,
+          rc.serie,
+          rc.aluno_id,
+          a.nome as aluno_nome,
+          t.id as turma_id,
+          t.codigo as turma_codigo,
+          CASE
+            WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
+              ROUND(
+                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)) /
+                NULLIF(
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+            ELSE
+              ROUND(
+                (COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) + COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) + COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) + COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)) /
+                NULLIF(
+                  CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
+                  CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END, 0), 1)
+          END as media_geral,
+          CAST(rc.nota_lp AS DECIMAL) as nota_lp,
+          CAST(rc.nota_ch AS DECIMAL) as nota_ch,
+          CAST(rc.nota_mat AS DECIMAL) as nota_mat,
+          CAST(rc.nota_cn AS DECIMAL) as nota_cn,
+          CAST(rc.nota_producao AS DECIMAL) as nota_producao
+        FROM resultados_consolidados_unificada rc
+        INNER JOIN alunos a ON rc.aluno_id = a.id
+        LEFT JOIN turmas t ON rc.turma_id = t.id
+        WHERE (rc.presenca = 'P' OR rc.presenca = 'p')
+      `
+      const paramsMelhores: any[] = []
+      let paramIndexMelhores = 1
 
-      if (!melhoresAlunos[key]) {
-        // Construir query para buscar melhores alunos desta escola/série
-        let queryMelhores = `
-          SELECT
-            rc.aluno_id,
-            a.nome as aluno_nome,
-            t.id as turma_id,
-            t.codigo as turma_codigo,
-            -- Media calculada dinamicamente baseada na serie
-            CASE
-              WHEN COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g')) IN ('2', '3', '5') THEN
-                ROUND(
-                  (
-                    COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                    COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                    COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-                  ) /
-                  NULLIF(
-                    CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                    0
-                  ),
-                  1
-                )
-              ELSE
-                ROUND(
-                  (
-                    COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                    COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                    COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                    COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-                  ) /
-                  NULLIF(
-                    CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                    CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                    0
-                  ),
-                  1
-                )
-            END as media_geral,
-            CAST(rc.nota_lp AS DECIMAL) as nota_lp,
-            CAST(rc.nota_ch AS DECIMAL) as nota_ch,
-            CAST(rc.nota_mat AS DECIMAL) as nota_mat,
-            CAST(rc.nota_cn AS DECIMAL) as nota_cn,
-            CAST(rc.nota_producao AS DECIMAL) as nota_producao
-          FROM resultados_consolidados_unificada rc
-          INNER JOIN alunos a ON rc.aluno_id = a.id
-          LEFT JOIN turmas t ON rc.turma_id = t.id
-          WHERE rc.escola_id = $1 AND rc.serie = $2
-        `
+      // Filtrar pelas escolas do resultado agregado
+      const escolasDoResultado = [...new Set(resultAgregado.rows.map((r: any) => r.escola_id))]
+      const escolasPlaceholders = escolasDoResultado.map(() => `$${paramIndexMelhores++}`).join(', ')
+      queryMelhores += ` AND rc.escola_id IN (${escolasPlaceholders})`
+      paramsMelhores.push(...escolasDoResultado)
 
-        const paramsMelhores: any[] = [escolaId, serieKey]
-        let paramIndexMelhores = 3
+      // Restrições de acesso
+      if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+        queryMelhores += ` AND rc.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndexMelhores})`
+        paramsMelhores.push(usuario.polo_id)
+        paramIndexMelhores++
+      } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+        queryMelhores += ` AND rc.escola_id = $${paramIndexMelhores}`
+        paramsMelhores.push(usuario.escola_id)
+        paramIndexMelhores++
+      }
 
-        // Aplicar restrições de acesso
-        if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
-          queryMelhores += ` AND rc.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIndexMelhores})`
-          paramsMelhores.push(usuario.polo_id)
-          paramIndexMelhores++
-        } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
-          queryMelhores += ` AND rc.escola_id = $${paramIndexMelhores}`
-          paramsMelhores.push(usuario.escola_id)
-          paramIndexMelhores++
-        }
+      if (anoLetivo && anoLetivo.trim() !== '') {
+        queryMelhores += ` AND rc.ano_letivo = $${paramIndexMelhores}`
+        paramsMelhores.push(anoLetivo.trim())
+        paramIndexMelhores++
+      }
 
-        // Aplicar filtros de ano letivo
-        if (anoLetivo && anoLetivo.trim() !== '') {
-          queryMelhores += ` AND rc.ano_letivo = $${paramIndexMelhores}`
-          paramsMelhores.push(anoLetivo.trim())
-          paramIndexMelhores++
-        }
+      if (avaliacaoId) {
+        queryMelhores += ` AND rc.avaliacao_id = $${paramIndexMelhores}`
+        paramsMelhores.push(avaliacaoId)
+        paramIndexMelhores++
+      }
 
-        if (avaliacaoId) {
-          queryMelhores += ` AND rc.avaliacao_id = $${paramIndexMelhores}`
-          paramsMelhores.push(avaliacaoId)
-          paramIndexMelhores++
-        }
+      const resultMelhores = await pool.query(queryMelhores, paramsMelhores)
 
-        // Apenas alunos presentes
-        queryMelhores += ` AND (rc.presenca = 'P' OR rc.presenca = 'p')`
+      // Agrupar por escola_id + serie e calcular melhores em memória
+      const alunosPorChave: Record<string, any[]> = {}
+      for (const aluno of resultMelhores.rows) {
+        const key = `${aluno.escola_id}_${aluno.serie || 'Sem série'}`
+        if (!alunosPorChave[key]) alunosPorChave[key] = []
+        alunosPorChave[key].push(aluno)
+      }
 
-        const resultMelhores = await pool.query(queryMelhores, paramsMelhores)
+      const melhorPor = (alunos: any[], campo: string) =>
+        alunos.reduce((prev, curr) => (parseFloat(curr[campo]) || 0) > (parseFloat(prev[campo]) || 0) ? curr : prev)
 
-        if (resultMelhores.rows.length > 0) {
-          const alunos = resultMelhores.rows
+      for (const [key, alunos] of Object.entries(alunosPorChave)) {
+        const alunosPorTurma: Record<string, any[]> = {}
+        alunos.forEach((a: any) => {
+          const tk = a.turma_id || 'sem-turma'
+          if (!alunosPorTurma[tk]) alunosPorTurma[tk] = []
+          alunosPorTurma[tk].push(a)
+        })
+        const melhoresPorTurma = Object.values(alunosPorTurma).map(ta => melhorPor(ta, 'media_geral'))
 
-          // Melhor aluno geral (maior média geral)
-          const melhorGeral = alunos.reduce((prev, curr) => {
-            const prevMedia = parseFloat(prev.media_geral) || 0
-            const currMedia = parseFloat(curr.media_geral) || 0
-            return currMedia > prevMedia ? curr : prev
-          })
-
-          // Melhor aluno por componente
-          const melhorLP = alunos.reduce((prev, curr) => {
-            const prevNota = parseFloat(prev.nota_lp) || 0
-            const currNota = parseFloat(curr.nota_lp) || 0
-            return currNota > prevNota ? curr : prev
-          })
-
-          const melhorCH = alunos.reduce((prev, curr) => {
-            const prevNota = parseFloat(prev.nota_ch) || 0
-            const currNota = parseFloat(curr.nota_ch) || 0
-            return currNota > prevNota ? curr : prev
-          })
-
-          const melhorMAT = alunos.reduce((prev, curr) => {
-            const prevNota = parseFloat(prev.nota_mat) || 0
-            const currNota = parseFloat(curr.nota_mat) || 0
-            return currNota > prevNota ? curr : prev
-          })
-
-          const melhorCN = alunos.reduce((prev, curr) => {
-            const prevNota = parseFloat(prev.nota_cn) || 0
-            const currNota = parseFloat(curr.nota_cn) || 0
-            return currNota > prevNota ? curr : prev
-          })
-
-          // Melhor aluno em Produção de Texto (anos iniciais)
-          const melhorPROD = alunos.reduce((prev, curr) => {
-            const prevNota = parseFloat(prev.nota_producao) || 0
-            const currNota = parseFloat(curr.nota_producao) || 0
-            return currNota > prevNota ? curr : prev
-          })
-
-          // Melhor aluno por turma
-          const alunosPorTurma: Record<string, any[]> = {}
-          alunos.forEach((aluno: any) => {
-            const turmaKey = aluno.turma_id || 'sem-turma'
-            if (!alunosPorTurma[turmaKey]) {
-              alunosPorTurma[turmaKey] = []
-            }
-            alunosPorTurma[turmaKey].push(aluno)
-          })
-
-          const melhoresPorTurma: any[] = []
-          Object.entries(alunosPorTurma).forEach(([turmaId, alunosTurma]) => {
-            const melhor = alunosTurma.reduce((prev, curr) => {
-              const prevMedia = parseFloat(prev.media_geral) || 0
-              const currMedia = parseFloat(curr.media_geral) || 0
-              return currMedia > prevMedia ? curr : prev
-            })
-            melhoresPorTurma.push(melhor)
-          })
-
-          melhoresAlunos[key] = {
-            melhorGeral,
-            melhorLP,
-            melhorCH,
-            melhorMAT,
-            melhorCN,
-            melhorPROD,
-            melhoresPorTurma,
-          }
+        melhoresAlunos[key] = {
+          melhorGeral: melhorPor(alunos, 'media_geral'),
+          melhorLP: melhorPor(alunos, 'nota_lp'),
+          melhorCH: melhorPor(alunos, 'nota_ch'),
+          melhorMAT: melhorPor(alunos, 'nota_mat'),
+          melhorCN: melhorPor(alunos, 'nota_cn'),
+          melhorPROD: melhorPor(alunos, 'nota_producao'),
+          melhoresPorTurma,
         }
       }
     }
