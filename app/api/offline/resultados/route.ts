@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { DatabaseError } from '@/lib/validation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('OfflineResultados')
 
 export const dynamic = 'force-dynamic'
 
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest) {
       const countResult = await pool.query(countQuery, params)
       totalRecords = parseInt(countResult.rows[0]?.total || '0', 10)
     } catch (countError: any) {
-      console.error('Erro na contagem:', countError?.message)
+      log.error('Erro na contagem', countError)
       // Continuar mesmo com erro na contagem
     }
 
@@ -131,7 +134,7 @@ export async function GET(request: NextRequest) {
       sincronizado_em: new Date().toISOString()
     })
   } catch (error: unknown) {
-    console.error('[OfflineResultados] Erro:', error)
+    log.error('Erro ao buscar resultados offline', error)
 
     return NextResponse.json(
       { mensagem: 'Erro ao buscar resultados' },

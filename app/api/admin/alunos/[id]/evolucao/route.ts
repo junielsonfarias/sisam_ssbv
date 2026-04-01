@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AlunoEvolucao')
 
 export const dynamic = 'force-dynamic'
 
@@ -179,7 +182,7 @@ export async function GET(
     })
 
   } catch (error: unknown) {
-    console.error('Erro ao buscar evolução do aluno:', error)
+    log.error('Erro ao buscar evolução do aluno', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

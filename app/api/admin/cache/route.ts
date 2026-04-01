@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import {
   limparTodosOsCaches,
   limparCachesExpirados,
@@ -10,6 +10,9 @@ import {
   invalidateFiltrosCache
 } from '@/lib/cache'
 import { getPoolStats } from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminCache')
 
 export const dynamic = 'force-dynamic'
 
@@ -23,17 +26,8 @@ export const dynamic = 'force-dynamic'
  * - acao=limpar_memoria: Limpa apenas cache em memória
  * - acao=stats: Retorna estatísticas detalhadas
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const acao = request.nextUrl.searchParams.get('acao')
 
     // Limpar caches expirados (memória + arquivo)
@@ -119,13 +113,13 @@ export async function GET(request: NextRequest) {
       recomendacoes: gerarRecomendacoes(infoMemoria, poolStats)
     })
   } catch (error: unknown) {
-    console.error('Erro ao gerenciar cache:', error)
+    log.error('Erro ao gerenciar cache', error)
     return NextResponse.json(
       { mensagem: 'Erro ao gerenciar cache' },
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * Gera recomendações de otimização baseadas nas estatísticas

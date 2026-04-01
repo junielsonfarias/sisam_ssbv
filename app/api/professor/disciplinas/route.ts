@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { verificarVinculoProfessor } from '@/lib/professor-auth'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ProfessorDisciplinas')
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/professor/disciplinas?turma_id=X
  * Lista disciplinas disponíveis para o professor nesta turma
- * Polivalente: todas da série. Disciplina: apenas a vinculada.
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth('professor', async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || usuario.tipo_usuario !== 'professor') {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const turmaId = searchParams.get('turma_id')
 
@@ -66,7 +63,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ disciplinas: result.rows })
     }
   } catch (error: unknown) {
-    console.error('Erro ao listar disciplinas:', error)
+    log.error('Erro ao listar disciplinas', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

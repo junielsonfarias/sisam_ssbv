@@ -5,7 +5,9 @@ import { useSeries } from '@/lib/use-series'
 import { Campo, Secao } from './shared'
 import { SITUACAO_CORES, PARECER_CORES } from './types'
 
-export function AbaEscolar({ aluno, dados }: any) {
+import type { AbaSomenteLeituraProps } from './types'
+
+export function AbaEscolar({ aluno, dados }: AbaSomenteLeituraProps) {
   const { formatSerie } = useSeries()
   return (
     <div className="space-y-6">

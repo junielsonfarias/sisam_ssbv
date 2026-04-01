@@ -4,18 +4,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth';
+import { withAuth } from '@/lib/auth/with-auth';
 import pool from '@/database/connection';
 import { DatabaseError } from '@/lib/validation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DebugRelatorio')
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  const usuario = await getUsuarioFromRequest(request);
-  if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 });
-  }
-
+export const GET = withAuth(['administrador'], async (request, usuario) => {
   const { searchParams } = new URL(request.url);
   const escolaId = searchParams.get('escola_id') || 'e0690bbd-dc70-4ded-b1b3-9b310f3c4c5f';
 
@@ -129,9 +127,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(resultado, { status: 200 });
   } catch (error: unknown) {
-    console.error('Erro no debug:', error);
+    log.error('Erro no debug', error);
     return NextResponse.json({
       mensagem: 'Erro interno do servidor'
     }, { status: 500 });
   }
-}
+})

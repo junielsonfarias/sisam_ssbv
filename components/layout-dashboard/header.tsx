@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   LogOut,
   Menu,
@@ -29,7 +30,7 @@ interface HeaderProps {
   setModuloAtivo: (v: offlineStorage.ModuloAtivo) => void
   tipoUsuarioReal: string
   basePath: string
-  usuario: any
+  usuario: { id?: string; usuario_id?: string; nome?: string; foto_url?: string; email?: string; gestor_escolar_habilitado?: boolean } | null
   badgeConfig: { label: string; bgColor: string; textColor: string }
   contextoUsuario: string | null
   handleLogout: () => void
@@ -80,10 +81,13 @@ export function Header({
 
             {/* Logo do Sistema */}
             <div className="flex-shrink-0">
-              <img
+              <Image
                 src="/logo.png"
                 alt="Logo do Sistema"
+                width={48}
+                height={48}
                 className="h-9 sm:h-10 lg:h-12 w-auto object-contain rounded"
+                priority
               />
             </div>
 
@@ -181,9 +185,11 @@ export function Header({
               title="Meu Perfil"
             >
               {usuario?.foto_url ? (
-                <img
+                <Image
                   src={usuario.foto_url}
                   alt="Foto do perfil"
+                  width={32}
+                  height={32}
                   className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-300 dark:group-hover:ring-indigo-500 transition-all"
                 />
               ) : (

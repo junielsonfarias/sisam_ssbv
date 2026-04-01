@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition,
   addAccessControl, buildConditionsString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('EstatisticasSerie')
 
 export const dynamic = 'force-dynamic'
 
@@ -12,17 +15,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/estatisticas-serie
  * Retorna estatísticas agregadas por série, incluindo produção textual e nível de aprendizagem
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const searchParams = request.nextUrl.searchParams
     const { escola_id, polo_id, ano_letivo, serie, avaliacao_id } = parseSearchParams(
       searchParams, ['escola_id', 'polo_id', 'ano_letivo', 'serie', 'avaliacao_id']
@@ -102,10 +96,10 @@ export async function GET(request: NextRequest) {
       total_series: estatisticas.length
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar estatísticas por série:', error)
+    log.error('Erro ao buscar estatísticas por série', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})

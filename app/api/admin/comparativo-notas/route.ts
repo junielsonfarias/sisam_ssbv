@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ComparativoNotas')
 
 export const dynamic = 'force-dynamic'
 
@@ -13,13 +16,8 @@ export const dynamic = 'force-dynamic'
  * Retorna dados comparativos entre notas SISAM (resultados_consolidados)
  * e notas escolares (notas_escolares) para uma turma/escola/ano.
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const searchParams = request.nextUrl.searchParams
     const { escola_id, turma_id, serie } = parseSearchParams(searchParams, ['escola_id', 'turma_id', 'serie'])
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
@@ -102,9 +100,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 4. Mapeamento SISAM ↔ Escolar
-    // SISAM usa: LP (Língua Portuguesa), MAT (Matemática), CH (Ciências Humanas), CN (Ciências da Natureza)
-    // Escolar usa: LP (Língua Portuguesa), MAT (Matemática), CIE (Ciências), HIS (História), GEO (Geografia)
+    // 4. Mapeamento SISAM <-> Escolar
     const mapeamento = [
       { sisam: 'LP', escolar: 'LP', label: 'Língua Portuguesa' },
       { sisam: 'MAT', escolar: 'MAT', label: 'Matemática' },
@@ -226,7 +222,7 @@ export async function GET(request: NextRequest) {
       disciplinas_mapeamento: mapeamento,
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar comparativo:', error)
+    log.error('Erro ao buscar comparativo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

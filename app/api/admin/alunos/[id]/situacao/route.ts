@@ -5,6 +5,9 @@ import { z } from 'zod'
 import pool from '@/database/connection'
 import { alterarSituacao } from '@/lib/services/alunos.service'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AlunoSituacao')
 
 export const dynamic = 'force-dynamic'
 
@@ -72,7 +75,7 @@ export async function GET(
       historico: historicoResult.rows,
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar situação do aluno:', error)
+    log.error('Erro ao buscar situação do aluno', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
@@ -151,7 +154,7 @@ export async function POST(
       escola_destino_id, escola_destino_nome, escola_origem_id, escola_origem_nome,
     }, usuario.id)
 
-    console.log(`[AUDIT] Situação alterada | aluno:${alunoId} | ${resultado.situacao_anterior} → ${resultado.situacao_nova} | por ${usuario.email} (${usuario.tipo_usuario})${tipo_transferencia ? ` | transferência:${tipo_transferencia}` : ''}`)
+    log.info(`Situação alterada | aluno:${alunoId} | ${resultado.situacao_anterior} → ${resultado.situacao_nova} | por ${usuario.email} (${usuario.tipo_usuario})${tipo_transferencia ? ` | transferência:${tipo_transferencia}` : ''}`)
 
     // Registrar auditoria
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null
@@ -185,7 +188,7 @@ export async function POST(
         return NextResponse.json({ mensagem: 'O aluno já possui esta situação' }, { status: 400 })
       }
     }
-    console.error('Erro ao alterar situação do aluno:', error)
+    log.error('Erro ao alterar situação do aluno', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

@@ -3,6 +3,9 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('EditorNoticias')
 
 export const dynamic = 'force-dynamic'
 
@@ -74,7 +77,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'editor'], async (reque
     [JSON.stringify(conteudo), usuario.id]
   )
 
-  console.log(`[AUDIT] Notícias atualizadas por ${usuario.email} (${usuario.tipo_usuario}): ${noticias.length} item(s)`)
+  log.info('Notícias atualizadas', { email: usuario.email, tipo: usuario.tipo_usuario, total: noticias.length })
 
   return NextResponse.json({
     mensagem: `${noticias.length} notícia(s) salva(s) com sucesso`,

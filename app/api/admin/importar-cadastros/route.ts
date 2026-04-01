@@ -166,30 +166,35 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       }
     }
 
-    // Criar Turmas
-    const turmasMap = new Map<string, string>() // codigo turma -> id
+    // Pré-carregar turmas existentes (elimina N+1)
+    const turmasExistentes = await pool.query(
+      'SELECT id, codigo, escola_id FROM turmas WHERE ano_letivo = $1',
+      [anoLetivo]
+    )
+    const turmasMap = new Map<string, string>() // "escola_id:codigo" -> id
+    for (const t of turmasExistentes.rows) {
+      turmasMap.set(`${t.escola_id}:${t.codigo}`, t.id)
+    }
+
+    // Criar Turmas (com pré-cache)
     for (const [codigoTurma, { escola, serie }] of turmasUnicas) {
       try {
-        const escolaId = escolasMap.get(escola)
+        const nomeEscolaNorm = escola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+        const escolaId = escolasMap.get(nomeEscolaNorm) || escolasMap.get(escola)
         if (!escolaId) {
           resultado.turmas.erros.push(`Turma "${codigoTurma}": Escola "${escola}" não encontrada`)
           continue
         }
 
-        const existe = await pool.query(
-          'SELECT id FROM turmas WHERE escola_id = $1 AND codigo = $2 AND ano_letivo = $3',
-          [escolaId, codigoTurma, anoLetivo]
-        )
-
-        if (existe.rows.length > 0) {
-          turmasMap.set(codigoTurma, existe.rows[0].id)
+        const chave = `${escolaId}:${codigoTurma}`
+        if (turmasMap.has(chave)) {
           resultado.turmas.existentes++
         } else {
           const turmaResult = await pool.query(
             'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) RETURNING id',
             [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo]
           )
-          turmasMap.set(codigoTurma, turmaResult.rows[0].id)
+          turmasMap.set(chave, turmaResult.rows[0].id)
           resultado.turmas.criados++
         }
       } catch (error: unknown) {
@@ -197,41 +202,42 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       }
     }
 
-    // Criar Alunos
+    // Pré-carregar alunos existentes (elimina N+1)
+    const alunosExistentes = await pool.query(
+      'SELECT id, UPPER(TRIM(nome)) as nome_upper, escola_id, turma_id FROM alunos WHERE ano_letivo = $1 AND ativo = true',
+      [anoLetivo]
+    )
+    const alunosExistentesMap = new Map<string, string>()
+    for (const a of alunosExistentes.rows) {
+      alunosExistentesMap.set(`${a.nome_upper}:${a.escola_id}:${a.turma_id || 'null'}`, a.id)
+    }
+
+    // Criar Alunos (com pré-cache)
+    const { gerarCodigoAluno } = await import('@/lib/gerar-codigo-aluno')
     for (const [nomeAluno, { escola, turma, serie }] of alunosUnicos) {
       try {
-        const escolaId = escolasMap.get(escola)
+        const nomeEscolaNorm = escola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+        const escolaId = escolasMap.get(nomeEscolaNorm) || escolasMap.get(escola)
         if (!escolaId) {
           resultado.alunos.erros.push(`Aluno "${nomeAluno}": Escola "${escola}" não encontrada`)
           continue
         }
 
-        const turmaId = turma ? turmasMap.get(turma) : null
+        const turmaChave = turma ? `${escolaId}:${turma}` : null
+        const turmaId = turmaChave ? turmasMap.get(turmaChave) : null
+        const alunoChave = `${nomeAluno.toUpperCase().trim()}:${escolaId}:${turmaId || 'null'}`
 
-        const existe = await pool.query(
-          `SELECT id FROM alunos 
-           WHERE UPPER(TRIM(nome)) = UPPER(TRIM($1)) 
-           AND escola_id = $2 
-           AND (turma_id = $3 OR (turma_id IS NULL AND $3::uuid IS NULL))
-           AND (ano_letivo = $4 OR (ano_letivo IS NULL AND $4 IS NULL))
-           AND ativo = true
-           LIMIT 1`,
-          [nomeAluno, escolaId, turmaId, anoLetivo]
-        )
-
-        if (existe.rows.length > 0) {
+        if (alunosExistentesMap.has(alunoChave)) {
           // Aluno já existe - atualizar turma e série se necessário
-          const alunoIdExistente = existe.rows[0].id
+          const alunoIdExistente = alunosExistentesMap.get(alunoChave)!
           await pool.query(
-            `UPDATE alunos 
+            `UPDATE alunos
              SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
              WHERE id = $3`,
             [turmaId, serie || null, alunoIdExistente]
           )
           resultado.alunos.existentes++
         } else {
-          // Gerar código único para o aluno
-          const { gerarCodigoAluno } = await import('@/lib/gerar-codigo-aluno')
           const codigoAluno = await gerarCodigoAluno()
           await pool.query(
             'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6)',
@@ -244,7 +250,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       }
     }
 
-    // Criar Questões (Q1 a Q60)
+    // Criar Questões (Q1 a Q60) — pré-cache + batch INSERT
     const questoesCriadas = { criadas: 0, existentes: 0 }
     const areas = [
       { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
@@ -253,28 +259,36 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza' },
     ]
 
+    // Pré-carregar questões existentes (1 query em vez de 60)
+    const questoesExistentes = await pool.query('SELECT codigo FROM questoes')
+    const questoesSet = new Set(questoesExistentes.rows.map((q: any) => q.codigo))
+
+    const questoesParaInserir: [string, string, string, string][] = []
     for (const { inicio, fim, area, disciplina } of areas) {
       for (let num = inicio; num <= fim; num++) {
         const codigo = `Q${num}`
-        try {
-          const existe = await pool.query(
-            'SELECT id FROM questoes WHERE codigo = $1',
-            [codigo]
-          )
-
-          if (existe.rows.length > 0) {
-            questoesCriadas.existentes++
-          } else {
-            await pool.query(
-              `INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento)
-               VALUES ($1, $2, $3, $4)`,
-              [codigo, `Questão ${num}`, disciplina, area]
-            )
-            questoesCriadas.criadas++
-          }
-        } catch (error: unknown) {
-          log.error(`Erro ao criar questão ${codigo}`, error)
+        if (questoesSet.has(codigo)) {
+          questoesCriadas.existentes++
+        } else {
+          questoesParaInserir.push([codigo, `Questão ${num}`, disciplina, area])
         }
+      }
+    }
+
+    // Batch INSERT de todas as questões novas (1 query em vez de N)
+    if (questoesParaInserir.length > 0) {
+      try {
+        const values = questoesParaInserir.map((_, i) =>
+          `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`
+        ).join(', ')
+        const params = questoesParaInserir.flat()
+        await pool.query(
+          `INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento) VALUES ${values} ON CONFLICT (codigo) DO NOTHING`,
+          params
+        )
+        questoesCriadas.criadas = questoesParaInserir.length
+      } catch (error: unknown) {
+        log.error('Erro ao criar questões em batch', error)
       }
     }
 

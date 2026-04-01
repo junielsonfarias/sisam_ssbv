@@ -1,4 +1,7 @@
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AlunoQuestoesService')
 
 // ============================================================================
 // Service de Questões do Aluno — análise de desempenho por área
@@ -160,7 +163,7 @@ async function buscarDisciplinaConfig(serie: string | null): Promise<DisciplinaC
 
   // PRIORIDADE: Usar configuração hardcoded para garantir valores corretos
   if (configuracoesHardcoded[numeroSerie]) {
-    console.log(`[Service] Usando configuração HARDCODED para série ${numeroSerie}:`, configuracoesHardcoded[numeroSerie].length, 'disciplinas')
+    log.debug('Usando configuração hardcoded', { serie: numeroSerie, disciplinas: configuracoesHardcoded[numeroSerie].length })
     return configuracoesHardcoded[numeroSerie]
   }
 
@@ -173,7 +176,7 @@ async function buscarDisciplinaConfig(serie: string | null): Promise<DisciplinaC
      ORDER BY csd.ordem`,
     [numeroSerie]
   )
-  console.log(`[Service] Configuração do BANCO para série ${numeroSerie}:`, configResult.rows.length, 'disciplinas')
+  log.debug('Configuração do banco', { serie: numeroSerie, disciplinas: configResult.rows.length })
   return configResult.rows
 }
 
@@ -375,9 +378,7 @@ export async function buscarAlunoQuestoes(
 
   const questoesResult = await pool.query(query, params)
 
-  console.log(`[Service] Questões encontradas para aluno ${alunoId} (${aluno.nome}):`, questoesResult.rows.length)
-  console.log(`[Service] Query: ${query.substring(0, 200)}...`)
-  console.log(`[Service] Params:`, params)
+  log.debug('Questões encontradas', { alunoId, nome: aluno.nome, total: questoesResult.rows.length })
 
   // Se não encontrou questões, diagnóstico detalhado
   if (questoesResult.rows.length === 0) {
@@ -391,8 +392,7 @@ export async function buscarAlunoQuestoes(
       WHERE ($1::varchar IS NULL OR ano_letivo = $1)
     `, [anoLetivo ?? null])
 
-    console.log('[Service] Diagnóstico geral:', diagnostico.rows[0])
-    console.log(`[Service] Buscando por: aluno_id=${alunoId}, codigo=${aluno.codigo}, nome=${aluno.nome}`)
+    log.debug('Diagnóstico geral', { ...diagnostico.rows[0], alunoId, codigo: aluno.codigo, nome: aluno.nome })
 
     if (aluno.codigo) {
       const porCodigo = await pool.query(`
@@ -400,7 +400,7 @@ export async function buscarAlunoQuestoes(
         FROM resultados_provas
         WHERE aluno_codigo = $1 AND ($2::varchar IS NULL OR ano_letivo = $2)
       `, [aluno.codigo, anoLetivo ?? null])
-      console.log(`[Service] Questões encontradas por código (${aluno.codigo}):`, porCodigo.rows[0].total)
+      log.debug('Questões por código', { codigo: aluno.codigo, total: porCodigo.rows[0].total })
     }
 
     if (aluno.nome) {
@@ -409,7 +409,7 @@ export async function buscarAlunoQuestoes(
         FROM resultados_provas
         WHERE UPPER(TRIM(aluno_nome)) = UPPER($1) AND ($2::varchar IS NULL OR ano_letivo = $2)
       `, [aluno.nome.trim(), anoLetivo ?? null])
-      console.log(`[Service] Questões encontradas por nome (${aluno.nome}):`, porNome.rows[0].total)
+      log.debug('Questões por nome', { nome: aluno.nome, total: porNome.rows[0].total })
     }
   }
 
@@ -487,19 +487,7 @@ export async function buscarAlunoQuestoes(
       notaCN = dados.notaCN
       itensProducao = dados.itensProducao
 
-      console.log(`[Service] Dados consolidados para aluno ${alunoId}:`)
-      console.log(`  - media=${mediaGeral}, producao=${notaProducao}`)
-      console.log(`  - itens_producao raw:`, {
-        item_producao_1: consolidadoResult.rows[0].item_producao_1,
-        item_producao_2: consolidadoResult.rows[0].item_producao_2,
-        item_producao_3: consolidadoResult.rows[0].item_producao_3,
-        item_producao_4: consolidadoResult.rows[0].item_producao_4,
-        item_producao_5: consolidadoResult.rows[0].item_producao_5,
-        item_producao_6: consolidadoResult.rows[0].item_producao_6,
-        item_producao_7: consolidadoResult.rows[0].item_producao_7,
-        item_producao_8: consolidadoResult.rows[0].item_producao_8,
-      })
-      console.log(`  - itens_producao processado:`, itensProducao)
+      log.debug('Dados consolidados', { alunoId, media: mediaGeral, producao: notaProducao, itensProducao: itensProducao.length })
     } else {
       // Fallback: tenta buscar da view unificada
       const consolidadoView = await pool.query(
@@ -522,17 +510,17 @@ export async function buscarAlunoQuestoes(
         notaCN = dados.notaCN
         itensProducao = dados.itensProducao
 
-        console.log(`[Service] Dados da view unificada para aluno ${alunoId}: media=${mediaGeral}, producao=${notaProducao}`)
+        log.debug('Dados da view unificada', { alunoId, media: mediaGeral, producao: notaProducao })
       }
     }
 
     // Se ainda não encontrou média, calcula a partir dos acertos
     if (mediaGeral === null && totalQuestoes > 0) {
       mediaGeral = Math.round(((totalAcertos / totalQuestoes) * 10) * 100) / 100
-      console.log(`[Service] Média calculada para aluno ${alunoId}: ${mediaGeral} (${totalAcertos}/${totalQuestoes})`)
+      log.debug('Média calculada', { alunoId, media: mediaGeral, acertos: totalAcertos, total: totalQuestoes })
     }
   } catch (e) {
-    console.error('Erro ao buscar dados consolidados:', e)
+    log.error('Erro ao buscar dados consolidados', { error: e })
     // Se der erro na view, calcula a média simples com mesma precisão
     if (totalQuestoes > 0) {
       mediaGeral = Math.round(((totalAcertos / totalQuestoes) * 10) * 100) / 100

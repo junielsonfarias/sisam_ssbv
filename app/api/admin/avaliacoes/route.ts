@@ -7,6 +7,9 @@ import { z } from 'zod'
 import { getErrorMessage, DatabaseError } from '@/lib/validation'
 import { createWhereBuilder, addRawCondition, addCondition, buildConditionsString } from '@/lib/api-helpers'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminAvaliacoes')
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +44,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json([])
     }
-    console.error('Erro ao listar avaliações:', getErrorMessage(error))
+    log.error('Erro ao listar avaliações', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -74,7 +77,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         { status: 400 }
       )
     }
-    console.error('Erro ao criar avaliação:', getErrorMessage(error))
+    log.error('Erro ao criar avaliação', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -121,7 +124,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     await cacheDelPattern('avaliacoes:*')
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    console.error('Erro ao atualizar avaliação:', getErrorMessage(error))
+    log.error('Erro ao atualizar avaliação', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -164,7 +167,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     await cacheDelPattern('avaliacoes:*')
     return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
-    console.error('Erro ao desativar avaliação:', getErrorMessage(error))
+    log.error('Erro ao desativar avaliação', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

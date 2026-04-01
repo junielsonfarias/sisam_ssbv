@@ -2,7 +2,9 @@ import { FileText } from 'lucide-react'
 import { useSeries } from '@/lib/use-series'
 import { Secao } from './shared'
 
-export function AbaSisam({ dados }: any) {
+import type { DadosAluno } from './types'
+
+export function AbaSisam({ dados }: { dados: DadosAluno }) {
   const { formatSerie } = useSeries()
   const sisam = dados.sisam || []
 

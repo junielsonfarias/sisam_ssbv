@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Ouvidoria')
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows[0])
   } catch (error) {
-    console.error('Erro ao consultar ouvidoria:', error)
+    log.error('Erro ao consultar ouvidoria', error)
     return NextResponse.json({ mensagem: 'Erro ao consultar protocolo' }, { status: 500 })
   }
 }
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ protocolo, mensagem: 'Manifestação registrada com sucesso' }, { status: 201 })
   } catch (error) {
-    console.error('Erro ao criar manifestação:', error)
+    log.error('Erro ao criar manifestação', error)
     return NextResponse.json({ mensagem: 'Erro ao registrar manifestação' }, { status: 500 })
   }
 }

@@ -1,9 +1,25 @@
 import React from 'react'
+import type { LucideIcon } from 'lucide-react'
+import type { AlunoForm } from './types'
 
-export function Campo({ label, valor, editando, campo, form, updateForm, tipo = 'text', opcoes, placeholder, icon: Icon }: any) {
-  const displayVal = editando ? (form[campo] ?? '') : (valor ?? '-')
+interface CampoProps {
+  label: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  valor?: any
+  editando: boolean
+  campo?: string
+  form?: AlunoForm
+  updateForm?: (campo: string, valor: string | number | boolean | null) => void
+  tipo?: string
+  opcoes?: Array<{ value: string; label: string }>
+  placeholder?: string
+  icon?: LucideIcon
+}
 
-  if (editando) {
+export function Campo({ label, valor, editando, campo, form, updateForm, tipo = 'text', opcoes, placeholder, icon: Icon }: CampoProps) {
+  const displayVal = editando && form && campo ? (form[campo] ?? '') : (valor ?? '-')
+
+  if (editando && form && campo && updateForm) {
     if (opcoes) {
       return (
         <div>
@@ -11,7 +27,7 @@ export function Campo({ label, valor, editando, campo, form, updateForm, tipo = 
           <select value={form[campo] ?? ''} onChange={e => updateForm(campo, e.target.value || null)}
             className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
             <option value="">-</option>
-            {opcoes.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {opcoes?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
       )
@@ -54,7 +70,7 @@ export function Campo({ label, valor, editando, campo, form, updateForm, tipo = 
   )
 }
 
-export function Secao({ titulo, icon: Icon, children, cor = 'indigo' }: { titulo: string; icon: any; children: React.ReactNode; cor?: string }) {
+export function Secao({ titulo, icon: Icon, children, cor = 'indigo' }: { titulo: string; icon: LucideIcon; children: React.ReactNode; cor?: string }) {
   const cores: Record<string, string> = {
     indigo: 'from-indigo-500 to-indigo-600',
     emerald: 'from-emerald-500 to-emerald-600',

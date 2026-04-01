@@ -5,6 +5,9 @@ import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('PublicadorPublicacoes')
 
 export const dynamic = 'force-dynamic'
 
@@ -101,7 +104,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'publicador'], async (
     ]
   )
 
-  console.log(`[AUDIT] Publicação criada por ${usuario.email}: "${data.titulo}"`)
+  log.info(`Publicação criada por ${usuario.email}: "${data.titulo}"`)
 
   registrarAuditoria({
     usuarioId: usuario.id,
@@ -150,7 +153,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'publicador'], async (r
     return NextResponse.json({ mensagem: 'Publicação não encontrada' }, { status: 404 })
   }
 
-  console.log(`[AUDIT] Publicação atualizada por ${usuario.email}: "${data.titulo}" (${data.id})`)
+  log.info(`Publicação atualizada por ${usuario.email}: "${data.titulo}" (${data.id})`)
 
   registrarAuditoria({
     usuarioId: usuario.id,
@@ -188,7 +191,7 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'publicador'], async
     return NextResponse.json({ mensagem: 'Publicação não encontrada' }, { status: 404 })
   }
 
-  console.log(`[AUDIT] Publicação excluída por ${usuario.email}: "${deleteResult.rows[0].titulo}" (${id})`)
+  log.info(`Publicação excluída por ${usuario.email}: "${deleteResult.rows[0].titulo}" (${id})`)
 
   registrarAuditoria({
     usuarioId: usuario.id,

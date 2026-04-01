@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import { buscarPainelTurma } from '@/lib/services/painelTurma.service'
 
 export const dynamic = 'force-dynamic'
@@ -9,13 +9,8 @@ export const dynamic = 'force-dynamic'
  * Retorna dados do painel da turma: alunos, status de entrada, horário do dia, frequência por aula
  * Params: turma_id, data (YYYY-MM-DD, default: hoje)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const turmaId = searchParams.get('turma_id')
     const data = searchParams.get('data') || new Date().toISOString().split('T')[0]
@@ -35,4 +30,4 @@ export async function GET(request: NextRequest) {
     console.error('Erro no painel da turma:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

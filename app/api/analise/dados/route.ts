@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, podeAcessarEscola, podeAcessarPolo } from '@/lib/auth'
 import pool from '@/database/connection'
 import { FiltrosAnalise } from '@/lib/types'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AnaliseDados')
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
@@ -172,7 +175,7 @@ export async function GET(request: NextRequest) {
       resultados: resultadosFiltrados.slice(0, 100), // Limitar a 100 resultados para performance
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar dados de análise:', error)
+    log.error('Erro ao buscar dados de análise', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

@@ -2,7 +2,9 @@ import { History } from 'lucide-react'
 import { Secao } from './shared'
 import { SITUACAO_CORES } from './types'
 
-export function AbaHistorico({ dados }: any) {
+import type { DadosAluno } from './types'
+
+export function AbaHistorico({ dados }: { dados: DadosAluno }) {
   const historico = dados.historico_situacao || []
 
   if (historico.length === 0) return (

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -7,21 +7,15 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/professor/dashboard
  * KPIs do professor: turmas, alunos, frequência hoje/semana
- * Otimizado: 2 queries (KPIs consolidados + turmas com detalhes)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth('professor', async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || usuario.tipo_usuario !== 'professor') {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const hoje = new Date().toISOString().split('T')[0]
     const inicioSemana = new Date()
     inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1)
     const inicioSemanaStr = inicioSemana.toISOString().split('T')[0]
 
-    // Query 1: KPIs consolidados com CTEs (turmas, alunos, freq hoje, freq semana)
+    // Query 1: KPIs consolidados com CTEs
     const kpisResult = await pool.query(
       `WITH minhas_turmas AS (
          SELECT DISTINCT pt.turma_id
@@ -65,7 +59,7 @@ export async function GET(request: NextRequest) {
       [usuario.id, hoje, inicioSemanaStr]
     )
 
-    // Query 2: Turmas com detalhes (alunos count + registros hoje via subquery lateral)
+    // Query 2: Turmas com detalhes
     const turmasResult = await pool.query(
       `SELECT t.id, t.nome as turma_nome, t.serie, t.turno,
               e.nome as escola_nome,
@@ -116,4 +110,4 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao buscar dashboard professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

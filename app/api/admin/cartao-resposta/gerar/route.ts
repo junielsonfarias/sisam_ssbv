@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 // PDFKit precisa ser importado dinamicamente
 const PDFDocument = require('pdfkit')
 
-export const dynamic = 'force-dynamic';
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
+export const dynamic = 'force-dynamic'
 
+export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
+  try {
     const { searchParams } = new URL(request.url)
     const anoLetivo = searchParams.get('ano_letivo')
     const serie = searchParams.get('serie')
@@ -177,5 +173,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 

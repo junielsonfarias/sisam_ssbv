@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { withRedisCache } from '@/lib/cache/redis'
+import { CACHE_TTL } from '@/lib/constants'
 
 const log = createLogger('DashboardGestor')
 
@@ -287,41 +289,45 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       }
     }
 
-    // Executar todas as queries em paralelo (cada uma tolerante a falha)
-    const [
-      alunosResult,
-      turmasResult,
-      notasResult,
-      mediaDiscResult,
-      freqResult,
-      transfResult,
-      conselhoResult,
-      distResult,
-      pcdResult,
-      situacaoResult,
-      turmasDetResult,
-    ] = await Promise.all([
-      safeQuery(alunosQuery, alunosParams),
-      safeQuery(turmasQuery, turmasParams),
-      safeQuery(notasQuery, notasParams),
-      safeQuery(mediaDiscQuery, mediaDiscParams),
-      safeQuery(freqQuery, freqParams),
-      safeQuery(transfQuery, transfParams),
-      safeQuery(conselhoQuery, conselhoParams),
-      safeQuery(distQuery, distParams),
-      safeQuery(pcdQuery, pcdParams),
-      safeQuery(situacaoQuery, situacaoParams),
-      safeQuery(turmasDetQuery, turmasDetParams),
-    ])
+    // Cache key baseada nos parâmetros (escola + ano)
+    const cacheKey = `dashboard-gestor:${escolaId || 'all'}:${anoLetivo}`
 
-    const alunosData = alunosResult.rows[0] || {}
-    const turmasData = turmasResult.rows[0] || {}
-    const notasData = notasResult.rows[0] || {}
-    const freqData = freqResult.rows[0] || {}
-    const transfData = transfResult.rows[0] || {}
-    const conselhoData = conselhoResult.rows[0] || {}
+    const dados = await withRedisCache(cacheKey, CACHE_TTL.DASHBOARD, async () => {
+      // Executar todas as queries em paralelo (cada uma tolerante a falha)
+      const [
+        alunosResult,
+        turmasResult,
+        notasResult,
+        mediaDiscResult,
+        freqResult,
+        transfResult,
+        conselhoResult,
+        distResult,
+        pcdResult,
+        situacaoResult,
+        turmasDetResult,
+      ] = await Promise.all([
+        safeQuery(alunosQuery, alunosParams),
+        safeQuery(turmasQuery, turmasParams),
+        safeQuery(notasQuery, notasParams),
+        safeQuery(mediaDiscQuery, mediaDiscParams),
+        safeQuery(freqQuery, freqParams),
+        safeQuery(transfQuery, transfParams),
+        safeQuery(conselhoQuery, conselhoParams),
+        safeQuery(distQuery, distParams),
+        safeQuery(pcdQuery, pcdParams),
+        safeQuery(situacaoQuery, situacaoParams),
+        safeQuery(turmasDetQuery, turmasDetParams),
+      ])
 
-    return NextResponse.json({
+      const alunosData = alunosResult.rows[0] || {}
+      const turmasData = turmasResult.rows[0] || {}
+      const notasData = notasResult.rows[0] || {}
+      const freqData = freqResult.rows[0] || {}
+      const transfData = transfResult.rows[0] || {}
+      const conselhoData = conselhoResult.rows[0] || {}
+
+      return {
       alunos: {
         total: parseInt(alunosData.total) || 0,
         cursando: parseInt(alunosData.cursando) || 0,
@@ -406,5 +412,8 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
         escola_nome: r.escola_nome,
         total_alunos: parseInt(r.total_alunos) || 0,
       })),
+    }
     })
+
+    return NextResponse.json(dados)
 })

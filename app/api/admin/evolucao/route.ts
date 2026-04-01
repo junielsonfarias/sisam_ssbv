@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { getErrorMessage } from '@/lib/validation'
 import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition,
   addAccessControl, buildConditionsString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminEvolucao')
 
 export const dynamic = 'force-dynamic'
 
@@ -17,13 +20,8 @@ export const dynamic = 'force-dynamic'
  *
  * Params: ano_letivo (obrigatório), polo_id, escola_id, serie (opcionais)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const searchParams = request.nextUrl.searchParams
     const anoLetivo = searchParams.get('ano_letivo')
 
@@ -134,7 +132,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar evolução:', getErrorMessage(error))
+    log.error('Erro ao buscar evolução', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

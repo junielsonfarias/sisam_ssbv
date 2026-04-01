@@ -2,8 +2,9 @@ import {
   User, CalendarCheck, MapPin, Shield, Heart, Home, Phone, Users
 } from 'lucide-react'
 import { Campo, Secao } from './shared'
+import type { AbaEditavelProps } from './types'
 
-export function AbaDadosPessoais({ aluno, form, editando, updateForm }: any) {
+export function AbaDadosPessoais({ aluno, form, editando, updateForm }: AbaEditavelProps) {
   const generoOpcoes = [
     { value: 'masculino', label: 'Masculino' }, { value: 'feminino', label: 'Feminino' },
     { value: 'outro', label: 'Outro' }, { value: 'nao_informado', label: 'Não informado' },

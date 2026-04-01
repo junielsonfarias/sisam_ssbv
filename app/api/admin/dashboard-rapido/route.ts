@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import {
   memoryCache,
@@ -8,6 +8,9 @@ import {
   getCacheKeyFiltros,
   getCacheKeyMetricas
 } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DashboardRapido')
 
 export const dynamic = 'force-dynamic'
 
@@ -22,19 +25,10 @@ export const dynamic = 'force-dynamic'
  * 3. Query única com CTE para métricas principais
  * 4. Cache separado para filtros (raramente mudam)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   const startTime = Date.now()
 
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const poloId = searchParams.get('polo_id')
     const escolaId = searchParams.get('escola_id')
@@ -334,7 +328,7 @@ export async function GET(request: NextRequest) {
     }
 
     const tempoResposta = Date.now() - startTime
-    console.log(`[Dashboard Rápido] Resposta em ${tempoResposta}ms`)
+    log.info(`Resposta em ${tempoResposta}ms`)
 
     return NextResponse.json({
       ...dadosResposta,
@@ -347,13 +341,13 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Erro no dashboard rápido:', error)
+    log.error('Erro no dashboard rápido', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * Busca dados de filtros (executado separadamente com cache longo)

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest } from '@/lib/auth'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AuthLogout')
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
     if (usuario) {
-      console.log(`[AUDIT] Logout | usuario:${usuario.email} (${usuario.tipo_usuario})`)
+      log.info(`Logout | usuario:${usuario.email} (${usuario.tipo_usuario})`)
     }
   } catch {
     // Continuar mesmo sem auth — o objetivo é limpar o cookie

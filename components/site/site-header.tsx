@@ -108,8 +108,8 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-white/95 backdrop-blur-xl shadow-lg shadow-slate-900/5'
-          : 'bg-white'
+          ? 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-lg shadow-slate-900/5'
+          : 'bg-white dark:bg-slate-900'
       }`}
       role="banner"
     >
@@ -140,7 +140,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
               height={80}
               className={`w-auto object-contain transition-all duration-500 ${scrolled ? 'h-10 sm:h-12' : 'h-16 sm:h-20'}`}
             />
-            <div className={`w-px bg-slate-300 flex-shrink-0 transition-all duration-500 ${scrolled ? 'h-7 sm:h-9' : 'h-12 sm:h-16'}`} />
+            <div className={`w-px bg-slate-300 dark:bg-slate-600 flex-shrink-0 transition-all duration-500 ${scrolled ? 'h-7 sm:h-9' : 'h-12 sm:h-16'}`} />
             <Image
               src="/logo-prefeitura.png"
               alt="Prefeitura de São Sebastião da Boa Vista"
@@ -175,8 +175,8 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                     }}
                     className={`relative inline-flex items-center gap-1 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                       isActive
-                        ? 'text-blue-800 bg-blue-50'
-                        : 'text-slate-600 hover:text-blue-800 hover:bg-blue-50/70'
+                        ? 'text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50/70 dark:hover:bg-blue-900/20'
                     }`}
                     aria-current={isActive ? 'true' : undefined}
                   >
@@ -186,7 +186,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
 
                   {/* Dropdown submenu */}
                   {hasChildren && (
-                    <div className={`absolute top-full left-0 mt-1 w-48 bg-white rounded-xl shadow-xl shadow-slate-900/10 border border-slate-100 overflow-hidden transition-all duration-200 ${
+                    <div className={`absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl shadow-slate-900/10 border border-slate-100 dark:border-slate-700 overflow-hidden transition-all duration-200 ${
                       isDropdownOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
                     }`}>
                       {item.children!.map((child, j) => (
@@ -197,7 +197,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
                             handleNavClick(e, child.href)
                             setOpenDropdown(null)
                           }}
-                          className="block px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                          className="block px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
                         >
                           {child.label}
                         </a>
@@ -219,7 +219,7 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors"
+            className="md:hidden p-2.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
             aria-expanded={menuOpen}
           >
@@ -242,16 +242,16 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
         onClick={() => setMenuOpen(false)}
       />
       <div
-        className={`absolute top-0 right-0 h-full w-full sm:max-w-sm bg-white shadow-2xl transition-transform duration-300 overflow-y-auto ${
+        className={`absolute top-0 right-0 h-full w-full sm:max-w-sm bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 overflow-y-auto ${
           menuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Topo */}
-        <div className="bg-white px-5 pt-2 pb-3 border-b border-slate-200">
+        <div className="bg-white dark:bg-slate-900 px-5 pt-2 pb-3 border-b border-slate-200 dark:border-slate-700">
           <div className="flex justify-end mb-2">
             <button
               onClick={() => setMenuOpen(false)}
-              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="Fechar menu"
             >
               <X className="w-6 h-6" />
@@ -259,24 +259,24 @@ export default function SiteHeader({ data }: SiteHeaderProps) {
           </div>
           <div className="flex items-center justify-center gap-5">
             <Image src="/logo-semed.png" alt="SEMED" width={64} height={64} className="h-16 w-auto object-contain" />
-            <div className="w-px h-12 bg-slate-200 flex-shrink-0" />
+            <div className="w-px h-12 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
             <Image src="/logo-prefeitura.png" alt="Prefeitura" width={64} height={64} className="h-16 w-auto object-contain" />
           </div>
-          <div className="mt-3 pt-2.5 border-t border-slate-100 text-center">
-            <p className="text-sm text-blue-900 font-bold">Secretaria Municipal de Educação</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">São Sebastião da Boa Vista — Pará</p>
+          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700 text-center">
+            <p className="text-sm text-blue-900 dark:text-blue-300 font-bold">Secretaria Municipal de Educação</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">São Sebastião da Boa Vista — Pará</p>
           </div>
         </div>
 
         {/* Links */}
         <nav className="px-3 py-2" aria-label="Menu mobile">
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {mobileNav.map((item, i) => (
               <a
                 key={i}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
-                className="flex items-center px-4 py-2.5 text-[15px] font-medium text-slate-700 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 transition-all duration-150"
+                className="flex items-center px-4 py-2.5 text-[15px] font-medium text-slate-700 dark:text-slate-200 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 active:bg-blue-100 dark:active:bg-blue-900/50 transition-all duration-150"
               >
                 {item.label}
               </a>

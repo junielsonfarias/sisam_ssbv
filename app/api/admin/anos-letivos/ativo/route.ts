@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AnoLetivoAtivo')
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +19,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
 
     return NextResponse.json({ ano_ativo: result.rows[0] })
   } catch (error: unknown) {
-    console.error('Erro ao buscar ano letivo ativo:', error)
+    log.error('Erro ao buscar ano letivo ativo', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
 })

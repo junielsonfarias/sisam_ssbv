@@ -3,7 +3,9 @@
 import React, { useState } from 'react'
 import { BookOpen, CalendarCheck, CheckCircle, XCircle } from 'lucide-react'
 
-export function AbaNotas({ dados }: any) {
+import type { DadosAluno } from './types'
+
+export function AbaNotas({ dados }: { dados: DadosAluno }) {
   const [anoAberto, setAnoAberto] = useState<string | null>(null)
   const anos = Object.keys(dados.notas || {}).sort().reverse()
 

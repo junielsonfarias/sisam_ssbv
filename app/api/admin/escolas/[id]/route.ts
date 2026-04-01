@@ -7,6 +7,9 @@ import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { buscarEscolaDetalhada } from '@/lib/services/escolas.service'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminEscolaDetalhe')
 
 const escolaPutSchema = z.object({}).passthrough()
 
@@ -54,7 +57,7 @@ export async function GET(
 
     return NextResponse.json(escola)
   } catch (error: unknown) {
-    console.error('Erro ao buscar escola:', error)
+    log.error('Erro ao buscar escola', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
@@ -165,7 +168,7 @@ export async function PUT(
         { status: 400 }
       )
     }
-    console.error('Erro ao atualizar escola:', error)
+    log.error('Erro ao atualizar escola', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

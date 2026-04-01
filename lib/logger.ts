@@ -38,6 +38,8 @@ export interface LogContext {
   requestId?: string
   /** Dados adicionais */
   data?: Record<string, unknown>
+  /** Propriedades extras de contexto */
+  [key: string]: unknown
 }
 
 /**

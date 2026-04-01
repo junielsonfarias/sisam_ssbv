@@ -191,7 +191,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         ]
       }
 
-      console.log(`[Importação] Usando config: ${configFinal.disciplinas.map((d: any) => `${d.sigla}:Q${d.questao_inicio}-Q${d.questao_fim}`).join(', ')}`)
+      log.info(`Usando config: ${configFinal.disciplinas.map((d: any) => `${d.sigla}:Q${d.questao_inicio}-Q${d.questao_fim}`).join(', ')}`)
 
       // Usar a configuração de disciplinas da série (já ordenada por ordem)
       return configFinal.disciplinas.map((d: any) => ({
@@ -413,7 +413,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         if (!serieOriginal || normalizarSerie(serieOriginal) === '') {
           const serieInferida = inferirSerieDaTurma(turmaCodigo)
           if (serieInferida) {
-            console.log(`[Importação] Série inferida da turma "${turmaCodigo}": ${serieInferida}`)
+            log.info(`Série inferida da turma "${turmaCodigo}": ${serieInferida}`)
             serieOriginal = serieInferida
           }
         }
@@ -422,7 +422,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         if (!serieOriginal || normalizarSerie(serieOriginal) === '') {
           const serieDetectada = detectarSeriePorQuestoes(linha)
           if (serieDetectada) {
-            console.log(`[Importação] Série detectada por questões (aluno "${alunoNome}"): ${serieDetectada}`)
+            log.info(`Série detectada por questões (aluno "${alunoNome}"): ${serieDetectada}`)
             serieOriginal = serieDetectada
           }
         }
@@ -542,9 +542,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
             alunoId = novoAlunoResult.rows[0].id
             // Adicionar ao cache para evitar criar novamente
             if (alunoId) cacheAlunos.set(alunoCacheKey, alunoId)
-            console.log(`[Importação] Aluno criado/atualizado: "${alunoNome}" (ID: ${alunoId})`)
+            log.info(`Aluno criado/atualizado: "${alunoNome}" (ID: ${alunoId})`)
           } catch (createError: any) {
-            console.error(`[Importação] Erro ao criar aluno "${alunoNome}":`, createError.message)
+            log.error(`Erro ao criar aluno "${alunoNome}": ${createError.message}`, createError)
             // Tentar buscar o aluno existente como fallback
             try {
               const existenteResult = await pool.query(
@@ -557,7 +557,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
               if (existenteResult.rows.length > 0) {
                 alunoId = existenteResult.rows[0].id
                 if (alunoId) cacheAlunos.set(alunoCacheKey, alunoId)
-                console.log(`[Importação] Aluno existente encontrado: "${alunoNome}" (ID: ${alunoId})`)
+                log.info(`Aluno existente encontrado: "${alunoNome}" (ID: ${alunoId})`)
               }
             } catch (fallbackError) {
               // Ignorar erro do fallback
@@ -798,7 +798,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         linhasProcessadas++
       } catch (error: unknown) {
         linhasComErro++
-        console.error(`[Importação] Erro na linha ${i + 2}:`, error)
+        log.error(`Erro na linha ${i + 2}`, error)
         erros.push(`Linha ${i + 2}: Erro ao processar registro`)
         if (erros.length >= 100) {
           erros.push(`... e mais ${dados.length - i - 1} erros`)
@@ -830,9 +830,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     // Invalidar cache do dashboard após importação bem-sucedida
     try {
       limparTodosOsCaches()
-      console.log('[Importação] Cache do dashboard invalidado após importação')
+      log.info('Cache do dashboard invalidado após importação')
     } catch (cacheError) {
-      console.error('[Importação] Erro ao invalidar cache (não crítico):', cacheError)
+      log.error('Erro ao invalidar cache (não crítico)', cacheError)
     }
 
     return NextResponse.json({
@@ -846,7 +846,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       cache_invalidado: true,
     })
   } catch (error: unknown) {
-    console.error('Erro ao importar resultados:', error)
+    log.error('Erro ao importar resultados', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

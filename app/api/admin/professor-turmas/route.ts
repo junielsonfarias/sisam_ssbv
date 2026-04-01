@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { validateRequest, professorTurmaPostSchema, professorTurmaPatchSchema, professorTurmaDeleteSchema } from '@/lib/schemas'
 import { buscarVinculos, criarVinculo, trocarProfessor, desativarVinculo } from '@/lib/services/professores.service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminProfessorTurmas')
 
 export const dynamic = 'force-dynamic'
 
@@ -13,13 +16,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/professor-turmas
  * Lista vínculos professor-turma
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const searchParams = request.nextUrl.searchParams
     const { escola_id, professor_id, ano_letivo } = parseSearchParams(searchParams, ['escola_id', 'professor_id', 'ano_letivo'])
 
@@ -33,23 +31,18 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ vinculos })
   } catch (error: unknown) {
-    console.error('Erro ao listar vínculos:', error)
+    log.error('Erro ao listar vínculos', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * POST /api/admin/professor-turmas
  * Cria vínculo professor-turma
  * Body: { professor_id, turma_id, disciplina_id?, tipo_vinculo, ano_letivo }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, professorTurmaPostSchema)
     if (!validacao.success) return validacao.response
     const { professor_id, turma_id, disciplina_id, tipo_vinculo, ano_letivo } = validacao.data
@@ -85,23 +78,18 @@ export async function POST(request: NextRequest) {
     if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Vínculo já existe para esta turma/disciplina' }, { status: 409 })
     }
-    console.error('Erro ao criar vínculo:', error)
+    log.error('Erro ao criar vínculo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * PATCH /api/admin/professor-turmas
  * Troca atômica de professor em uma turma/disciplina (preserva dados do anterior)
  * Body: { vinculo_id, novo_professor_id }
  */
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, professorTurmaPatchSchema)
     if (!validacao.success) return validacao.response
     const { vinculo_id, novo_professor_id } = validacao.data
@@ -134,23 +122,18 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ mensagem: 'O novo professor é o mesmo do vínculo atual' }, { status: 400 })
       }
     }
-    console.error('Erro ao trocar professor:', error)
+    log.error('Erro ao trocar professor', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * DELETE /api/admin/professor-turmas
  * Desativa vínculo (soft delete)
  * Body: { vinculo_id }
  */
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, professorTurmaDeleteSchema)
     if (!validacao.success) return validacao.response
     const { vinculo_id } = validacao.data
@@ -163,7 +146,7 @@ export async function DELETE(request: NextRequest) {
 
     return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
-    console.error('Erro ao remover vínculo:', error)
+    log.error('Erro ao remover vínculo', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

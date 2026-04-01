@@ -1,7 +1,9 @@
 import { CalendarCheck } from 'lucide-react'
 import { Secao } from './shared'
 
-export function AbaFrequencia({ dados }: any) {
+import type { DadosAluno } from './types'
+
+export function AbaFrequencia({ dados }: { dados: DadosAluno }) {
   // Frequência pode vir como array flat ou já agrupado por ano
   const freqData = dados.frequencia || {}
   const freqPorAno: Record<string, any[]> = Array.isArray(freqData)

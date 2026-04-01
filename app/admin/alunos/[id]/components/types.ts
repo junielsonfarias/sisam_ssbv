@@ -1,8 +1,76 @@
 import {
   CheckCircle, XCircle, AlertTriangle, ArrowLeftRight, RotateCcw
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 export type Aba = 'pessoal' | 'escolar' | 'notas' | 'frequencia' | 'historico' | 'sisam' | 'evolucao' | 'facial'
+
+/** Dados do aluno retornados pela API /api/admin/alunos/[id] */
+export interface AlunoDetalhe {
+  id: string
+  codigo: string
+  nome: string
+  email?: string | null
+  cpf?: string | null
+  data_nascimento?: string | null
+  genero?: string | null
+  raca_cor?: string | null
+  pcd?: boolean
+  tipo_deficiencia?: string | null
+  endereco?: string | null
+  bairro?: string | null
+  municipio?: string | null
+  uf?: string | null
+  cep?: string | null
+  telefone?: string | null
+  responsavel?: string | null
+  telefone_responsavel?: string | null
+  parentesco_responsavel?: string | null
+  escola_id?: string | null
+  escola_nome?: string | null
+  polo_nome?: string | null
+  turma_id?: string | null
+  turma_codigo?: string | null
+  turma_nome?: string | null
+  turma_serie?: string | null
+  serie?: string | null
+  situacao?: string | null
+  ano_letivo?: string | null
+  ativo?: boolean
+  foto_url?: string | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
+}
+
+/** Formulário editável do aluno */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AlunoForm = Record<string, any>
+
+/** Dados complementares carregados para o perfil do aluno (estrutura dinâmica da API) */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DadosAluno = Record<string, any>
+
+/** Props comuns para abas que recebem aluno + form + editando */
+export interface AbaEditavelProps {
+  aluno: AlunoDetalhe
+  form: AlunoForm
+  editando: boolean
+  updateForm: (campo: string, valor: string | number | boolean | null) => void
+}
+
+/** Props para abas somente leitura */
+export interface AbaSomenteLeituraProps {
+  aluno: AlunoDetalhe
+  dados: DadosAluno
+}
+
+/** Configuração de cor de situação */
+export interface SituacaoCor {
+  bg: string
+  text: string
+  label: string
+  icon: LucideIcon
+}
 
 export const SITUACAO_CORES: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   cursando: { bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300', label: 'Cursando', icon: CheckCircle },

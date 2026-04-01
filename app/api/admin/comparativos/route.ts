@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminComparativos')
 
 export const dynamic = 'force-dynamic';
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     // Limpar caches expirados
     try {
       limparCachesExpirados()
@@ -54,7 +48,7 @@ export async function GET(request: NextRequest) {
       if (!forcarAtualizacao && verificarCache(cacheOptions)) {
         const dadosCache = carregarCache<any>(cacheOptions)
         if (dadosCache) {
-          console.log('Retornando comparativos do cache')
+          log.info('Retornando comparativos do cache')
           return NextResponse.json({
             ...dadosCache,
             _cache: {
@@ -66,7 +60,7 @@ export async function GET(request: NextRequest) {
       }
     } catch {
       // Ignorar erros de cache em ambientes serverless
-      console.log('[Comparativos] Cache não disponível, buscando do banco')
+      log.info('Cache não disponível, buscando do banco')
     }
 
     if (escolasIds.length === 0 && !poloId) {
@@ -515,7 +509,7 @@ export async function GET(request: NextRequest) {
     try {
       salvarCache(cacheOptions, dadosResposta, 'comparativos')
     } catch (cacheError) {
-      console.error('Erro ao salvar cache (não crítico):', cacheError)
+      log.error('Erro ao salvar cache (não crítico)', cacheError)
     }
 
     return NextResponse.json({
@@ -526,11 +520,10 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar comparativos:', error)
+    log.error('Erro ao buscar comparativos', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
-
+})

@@ -6,6 +6,9 @@ import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminSiteConfig')
 
 const siteConfigPutSchema = z.object({
   secao: z.string().min(1, 'Campo "seção" é obrigatório').max(100),
@@ -38,7 +41,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
     if ((error as DatabaseError)?.code === PG_ERRORS.UNDEFINED_TABLE) {
       return NextResponse.json([])
     }
-    console.error('Erro ao listar configuracoes do site:', (error as Error)?.message || error)
+    log.error('Erro ao listar configuracoes do site', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -73,7 +76,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
-    console.error('Erro ao atualizar configuracao do site:', (error as Error)?.message || error)
+    log.error('Erro ao atualizar configuracao do site', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

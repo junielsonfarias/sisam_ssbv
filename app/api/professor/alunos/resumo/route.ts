@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { verificarVinculoProfessor } from '@/lib/professor-auth'
 
@@ -9,13 +9,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/professor/alunos/resumo?turma_id=X
  * Lista alunos com resumo de frequência e notas
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth('professor', async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || usuario.tipo_usuario !== 'professor') {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const turmaId = searchParams.get('turma_id')
 
@@ -67,4 +62,4 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao buscar resumo alunos:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

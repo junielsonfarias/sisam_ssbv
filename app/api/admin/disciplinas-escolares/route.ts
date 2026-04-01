@@ -7,6 +7,9 @@ import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
 import { parseBoolParam, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminDisciplinasEscolares')
 
 export const dynamic = 'force-dynamic'
 
@@ -56,7 +59,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Código de disciplina já cadastrado' }, { status: 400 })
     }
-    console.error('Erro ao criar disciplina:', error)
+    log.error('Erro ao criar disciplina', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -86,7 +89,7 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
     if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
       return NextResponse.json({ mensagem: 'Código de disciplina já cadastrado' }, { status: 400 })
     }
-    console.error('Erro ao atualizar disciplina:', error)
+    log.error('Erro ao atualizar disciplina', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -110,7 +113,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
     await cacheDelPattern('disciplinas:*')
     return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
-    console.error('Erro ao excluir disciplina:', error)
+    log.error('Erro ao excluir disciplina', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

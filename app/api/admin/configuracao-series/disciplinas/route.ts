@@ -5,6 +5,9 @@ import { limparCacheConfigSeries } from '@/lib/config-series'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest, uuidSchema } from '@/lib/schemas'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ConfigDisciplinas')
 
 const disciplinaItemSchema = z.object({
   disciplina: z.string().min(1).max(255),
@@ -113,7 +116,7 @@ export async function POST(request: NextRequest) {
     if (!validationResult.success) return validationResult.response
     const { serie_id, disciplinas } = validationResult.data
 
-    console.log('[API Disciplinas] Recebido:', { serie_id, disciplinas: JSON.stringify(disciplinas) })
+    log.debug('Disciplinas recebidas', { serie_id, total: disciplinas.length })
 
     // Validar campos obrigatórios de cada disciplina
     for (let i = 0; i < disciplinas.length; i++) {
@@ -164,16 +167,7 @@ export async function POST(request: NextRequest) {
         const qtdQuestoes = disc.questao_fim - disc.questao_inicio + 1
         const valorQuestao = disc.valor_questao || parseFloat((10 / qtdQuestoes).toFixed(2))
 
-        console.log(`[API] Inserindo disciplina ${i + 1}:`, {
-          serie_id,
-          disciplina: disc.disciplina,
-          sigla: disc.sigla,
-          ordem: disc.ordem || (i + 1),
-          questao_inicio: disc.questao_inicio,
-          questao_fim: disc.questao_fim,
-          qtdQuestoes,
-          valorQuestao
-        })
+        log.debug('Inserindo disciplina', { index: i + 1, sigla: disc.sigla, questao_inicio: disc.questao_inicio, questao_fim: disc.questao_fim })
 
         try {
           await client.query(`

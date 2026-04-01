@@ -190,7 +190,7 @@ export default function AlunoDetalhePage() {
                       Cancelar
                     </button>
                     <button onClick={salvar} disabled={salvando}
-                      className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition">
+                      className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition">
                       <Save className="w-4 h-4" /> {salvando ? 'Salvando...' : 'Salvar'}
                     </button>
                   </>

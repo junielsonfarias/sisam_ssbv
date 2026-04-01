@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('PoloEscolas')
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
@@ -21,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
-    console.error('Erro ao buscar escolas:', error)
+    log.error('Erro ao buscar escolas', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

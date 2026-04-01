@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 
 // Resumo de situacoes dos alunos de um ano letivo
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const ano = request.nextUrl.searchParams.get('ano')
     if (!ano) {
       return NextResponse.json({ mensagem: 'Parâmetro ano é obrigatório' }, { status: 400 })
@@ -45,4 +40,4 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao buscar resumo do ano letivo:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
-}
+})

@@ -5,6 +5,9 @@ import {
   parseSearchParams, parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
   createWhereBuilder, addCondition, buildWhereString, buildConditionsString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminImportacoes')
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +64,7 @@ export async function GET(request: NextRequest) {
       paginacao: buildPaginacaoResponse(paginacao, total),
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar histórico de importações:', error)
+    log.error('Erro ao buscar histórico de importações', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }

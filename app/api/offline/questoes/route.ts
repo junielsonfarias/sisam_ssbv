@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { createWhereBuilder, addRawCondition, addAccessControl, buildConditionsString } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('OfflineQuestoes')
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +38,7 @@ export async function GET(request: NextRequest) {
       where.params
     )
 
-    console.log(`[API Offline Questoes] Total de questoes sincronizadas: ${result.rows.length}`)
+    log.info('Questões sincronizadas', { total: result.rows.length })
 
     return NextResponse.json({
       dados: result.rows,

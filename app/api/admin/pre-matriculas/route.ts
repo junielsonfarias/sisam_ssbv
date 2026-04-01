@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminPreMatriculas')
 
 export const dynamic = 'force-dynamic'
 
@@ -128,7 +131,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     return NextResponse.json({ mensagem: 'Status atualizado com sucesso.', dados: result.rows[0] })
   } catch (error: any) {
-    console.error('[ADMIN PRE-MATRICULAS PUT]', error.message)
+    log.error('Erro ao atualizar pré-matrícula', error)
     return NextResponse.json({ mensagem: 'Erro ao atualizar.' }, { status: 500 })
   }
 })

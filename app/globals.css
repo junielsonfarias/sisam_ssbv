@@ -811,3 +811,21 @@ body {
   }
 }
 
+/* ========================================
+   WCAG 2.2 — Minimum target size 44px em mobile
+   ======================================== */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  select,
+  textarea {
+    min-height: 44px;
+  }
+}
+

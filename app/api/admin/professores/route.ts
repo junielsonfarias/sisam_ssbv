@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { validateRequest, professorPostSchema, professorPutSchema, professorPatchSchema, professorDeleteSchema } from '@/lib/schemas'
 import { buscarProfessores, criarProfessor, atualizarProfessor, toggleAtivoProfessor, deletarProfessor } from '@/lib/services/professores.service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminProfessores')
 
 export const dynamic = 'force-dynamic'
 
@@ -10,13 +13,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/professores
  * Lista todos os professores com suas vinculações
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const searchParams = request.nextUrl.searchParams
     const { escola_id, ativo } = parseSearchParams(searchParams, ['escola_id', 'ativo'])
 
@@ -30,20 +28,14 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao listar professores:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * POST /api/admin/professores
  * Cria um novo professor
- * Body: { nome, email, senha }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, professorPostSchema)
     if (!validacao.success) return validacao.response
     const { nome, email, senha } = validacao.data
@@ -54,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: resultado.erro }, { status: resultado.status })
     }
 
-    console.log(`[AUDIT] Professor criado | ${email} | por ${usuario.email} (${usuario.tipo_usuario})`)
+    log.info('Professor criado', { email, por: usuario.email, tipo: usuario.tipo_usuario })
     return NextResponse.json({
       mensagem: 'Professor criado com sucesso',
       professor: resultado.professor,
@@ -63,20 +55,14 @@ export async function POST(request: NextRequest) {
     console.error('Erro ao criar professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * PUT /api/admin/professores
- * Editar dados do professor (nome, email, cpf, telefone)
- * Body: { professor_id, nome?, email?, cpf?, telefone? }
+ * Editar dados do professor
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, professorPutSchema)
     if (!validacao.success) return validacao.response
     const { professor_id, nome, email, cpf, telefone } = validacao.data
@@ -95,20 +81,14 @@ export async function PUT(request: NextRequest) {
     console.error('Erro ao atualizar professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * PATCH /api/admin/professores
  * Ativar ou desativar professor
- * Body: { professor_id, ativo }
  */
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, professorPatchSchema)
     if (!validacao.success) return validacao.response
     const { professor_id, ativo } = validacao.data
@@ -127,20 +107,14 @@ export async function PATCH(request: NextRequest) {
     console.error('Erro ao atualizar professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})
 
 /**
  * DELETE /api/admin/professores
- * Rejeitar cadastro pendente (excluir professor inativo sem vínculos)
- * Body: { professor_id }
+ * Rejeitar cadastro pendente
  */
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const validacao = await validateRequest(request, professorDeleteSchema)
     if (!validacao.success) return validacao.response
     const { professor_id } = validacao.data
@@ -156,4 +130,4 @@ export async function DELETE(request: NextRequest) {
     console.error('Erro ao excluir professor:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

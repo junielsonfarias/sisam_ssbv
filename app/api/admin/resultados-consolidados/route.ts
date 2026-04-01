@@ -3,6 +3,9 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { verificarCache, carregarCache, salvarCache, limparCachesExpirados } from '@/lib/cache'
 import { parsePaginacao, buildPaginacaoResponse } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('ResultadosConsolidados')
 
 export const dynamic = 'force-dynamic';
 
@@ -58,13 +61,13 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     if (!forcarAtualizacao && verificarCache(cacheOptions)) {
       const dadosCache = carregarCache<any>(cacheOptions)
       if (dadosCache) {
-        console.log('Retornando resultados consolidados do cache')
+        log.info('Retornando resultados consolidados do cache')
         return NextResponse.json(dadosCache)
       }
     }
   } catch {
     // Ignorar erros de cache em ambientes serverless
-    console.log('[Resultados Consolidados] Cache não disponível, buscando do banco')
+    log.info('Cache não disponível, buscando do banco')
   }
 
   // Otimizar query: usar JOIN ao invés de subconsultas
@@ -508,23 +511,12 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     estatisticasParamIndex += 2
   }
 
-  // Adicionar logs para debug
-  console.log('Query principal:', query.substring(0, 200))
-  console.log('Query count:', countQuery.substring(0, 200))
-  console.log('Query estatísticas:', estatisticasQuery.substring(0, 200))
-  console.log('Filtro presenca:', presenca)
-  console.log('Params:', params.length)
-
   // Executar queries em paralelo
   const [countResult, dataResult, estatisticasResult] = await Promise.all([
     pool.query(countQuery, countParams),
     pool.query(query, params),
     pool.query(estatisticasQuery, estatisticasParams)
   ])
-
-  console.log('Count result:', countResult.rows[0])
-  console.log('Data result rows:', dataResult.rows.length)
-  console.log('Estatísticas result:', estatisticasResult.rows[0])
 
   const total = parseInt(countResult.rows[0]?.total || '0')
 
@@ -555,7 +547,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   try {
     salvarCache(cacheOptions, resultado, 'resultados-consolidados')
   } catch (cacheError) {
-    console.error('Erro ao salvar cache (não crítico):', cacheError)
+    log.error('Erro ao salvar cache (não crítico)', cacheError)
   }
 
   return NextResponse.json(resultado)

@@ -1,24 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { DatabaseError } from '@/lib/validation'
 import {
   parseSearchParams, createWhereBuilder, addRawCondition, addCondition,
   addAccessControl, buildConditionsString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AlunoHistorico')
 
 export const dynamic = 'force-dynamic';
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 403 }
-      )
-    }
-
     const searchParams = request.nextUrl.searchParams
     const { aluno_id, aluno_nome, aluno_codigo } = parseSearchParams(searchParams, ['aluno_id', 'aluno_nome', 'aluno_codigo'])
 
@@ -89,11 +83,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(historico)
   } catch (error: unknown) {
-    console.error('Erro ao buscar histórico do aluno:', error)
+    log.error('Erro ao buscar histórico do aluno', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
-
+})

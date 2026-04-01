@@ -10,6 +10,11 @@ import { buscarDadosRelatorioEscola } from '@/lib/relatorios/consultas-relatorio
 import { RelatorioEscolaPDF } from '@/lib/relatorios/gerador-pdf';
 import { gerarGraficosEscola } from '@/lib/relatorios/gerador-graficos';
 import React from 'react';
+import { createLogger } from '@/lib/logger'
+
+export const dynamic = 'force-dynamic'
+
+const log = createLogger('RelatorioEscola')
 
 // Configuração de timeout para Vercel (plano gratuito: máximo 10s)
 export const maxDuration = 10;
@@ -85,7 +90,7 @@ export async function GET(
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao gerar relatório de escola:', error);
+    log.error('Erro ao gerar relatório de escola', error);
 
     return NextResponse.json(
       { mensagem: 'Erro ao gerar relatório' },

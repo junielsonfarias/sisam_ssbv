@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import pool, { testConnection, getPoolStats, forceHealthCheck } from '@/database/connection'
 import { getRequestMetrics } from '@/middleware'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Health')
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +40,7 @@ export async function GET() {
     health.status = 'error'
 
     // Log detalhes no servidor (não expor ao cliente)
-    console.error('[Health] Database error:', healthCheckResult.error)
+    log.error('Database error', healthCheckResult.error)
   }
 
   // Métricas de dispositivos faciais (se tabela existir)
@@ -84,7 +87,7 @@ export async function GET() {
       ;(health.redis as any).test_value = val
       ;(health.redis as any).dbsize = size
     } catch (err: any) {
-      console.error('[Health] Redis error:', err)
+      log.error('Redis error', err)
       ;(health.redis as any).connected = false
       ;(health.redis as any).error = 'Falha na conexão com Redis'
     }

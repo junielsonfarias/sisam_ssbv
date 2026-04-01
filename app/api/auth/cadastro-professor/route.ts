@@ -3,6 +3,9 @@ import { hashPassword } from '@/lib/auth'
 import pool from '@/database/connection'
 import { checkRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
 import { validateRequest, cadastroProfessorSchema } from '@/lib/schemas'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('CadastroProfessor')
 
 export const dynamic = 'force-dynamic'
 
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
       [nome.trim(), emailNorm, senhaHash, cpfLimpo, telefone?.trim() || null]
     )
 
-    console.log(`Novo cadastro de professor pendente: ${emailNorm}`)
+    log.info('Novo cadastro de professor pendente', { email: emailNorm })
 
     return NextResponse.json({
       mensagem: 'Cadastro realizado com sucesso! Aguarde a ativação pelo administrador da sua escola.',

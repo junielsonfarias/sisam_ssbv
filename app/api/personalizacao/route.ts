@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import fs from 'fs'
 import path from 'path'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Personalizacao')
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +39,7 @@ function readLocalConfig() {
       return JSON.parse(content)
     }
   } catch (error: unknown) {
-    console.error('Erro ao ler arquivo de configuracao local:', error)
+    log.error('Erro ao ler arquivo de configuracao local', error)
   }
   return null
 }
@@ -82,13 +85,13 @@ export async function GET(request: NextRequest) {
         })
       }
     } catch (dbError: any) {
-      console.error('Erro ao consultar personalizacao no banco:', dbError)
+      log.error('Erro ao consultar personalizacao no banco', dbError)
     }
 
     // Retornar valores padrao
     return NextResponse.json(DEFAULTS)
   } catch (error: unknown) {
-    console.error('Erro ao buscar personalizacao:', error)
+    log.error('Erro ao buscar personalizacao', error)
     return NextResponse.json(DEFAULTS)
   }
 }

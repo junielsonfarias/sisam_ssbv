@@ -581,12 +581,41 @@ export async function corrigirNotaForaRange(
   usuarioId: string,
   usuarioNome: string
 ): Promise<ResultadoCorrecao> {
-  const CAMPOS_PERMITIDOS = [
-    'nota_lp', 'nota_mat', 'nota_ch', 'nota_cn', 'nota_producao',
-    'media_aluno', 'acertos_lp', 'acertos_mat', 'acertos_ch', 'acertos_cn',
-    'nota_lp_final', 'nota_mat_final', 'nota_ch_final', 'nota_cn_final',
-    'media_final'
-  ]
+  // Map de queries pré-compiladas para evitar SQL injection via template literal
+  const QUERIES_SELECT: Record<string, string> = {
+    'nota_lp': 'SELECT nota_lp as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'nota_mat': 'SELECT nota_mat as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'nota_ch': 'SELECT nota_ch as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'nota_cn': 'SELECT nota_cn as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'nota_producao': 'SELECT nota_producao as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'media_aluno': 'SELECT media_aluno as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'acertos_lp': 'SELECT acertos_lp as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'acertos_mat': 'SELECT acertos_mat as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'acertos_ch': 'SELECT acertos_ch as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'acertos_cn': 'SELECT acertos_cn as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'nota_lp_final': 'SELECT nota_lp_final as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'nota_mat_final': 'SELECT nota_mat_final as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'nota_ch_final': 'SELECT nota_ch_final as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'nota_cn_final': 'SELECT nota_cn_final as valor_antigo FROM resultados_consolidados WHERE id = $1',
+    'media_final': 'SELECT media_final as valor_antigo FROM resultados_consolidados WHERE id = $1',
+  }
+  const QUERIES_UPDATE: Record<string, string> = {
+    'nota_lp': 'UPDATE resultados_consolidados SET nota_lp = $1 WHERE id = $2',
+    'nota_mat': 'UPDATE resultados_consolidados SET nota_mat = $1 WHERE id = $2',
+    'nota_ch': 'UPDATE resultados_consolidados SET nota_ch = $1 WHERE id = $2',
+    'nota_cn': 'UPDATE resultados_consolidados SET nota_cn = $1 WHERE id = $2',
+    'nota_producao': 'UPDATE resultados_consolidados SET nota_producao = $1 WHERE id = $2',
+    'media_aluno': 'UPDATE resultados_consolidados SET media_aluno = $1 WHERE id = $2',
+    'acertos_lp': 'UPDATE resultados_consolidados SET acertos_lp = $1 WHERE id = $2',
+    'acertos_mat': 'UPDATE resultados_consolidados SET acertos_mat = $1 WHERE id = $2',
+    'acertos_ch': 'UPDATE resultados_consolidados SET acertos_ch = $1 WHERE id = $2',
+    'acertos_cn': 'UPDATE resultados_consolidados SET acertos_cn = $1 WHERE id = $2',
+    'nota_lp_final': 'UPDATE resultados_consolidados SET nota_lp_final = $1 WHERE id = $2',
+    'nota_mat_final': 'UPDATE resultados_consolidados SET nota_mat_final = $1 WHERE id = $2',
+    'nota_ch_final': 'UPDATE resultados_consolidados SET nota_ch_final = $1 WHERE id = $2',
+    'nota_cn_final': 'UPDATE resultados_consolidados SET nota_cn_final = $1 WHERE id = $2',
+    'media_final': 'UPDATE resultados_consolidados SET media_final = $1 WHERE id = $2',
+  }
 
   const { ids, dadosCorrecao } = params
   const campo = dadosCorrecao?.campo as string
@@ -596,7 +625,7 @@ export async function corrigirNotaForaRange(
     return { sucesso: false, mensagem: 'Dados incompletos para correção', corrigidos: 0, erros: 1 }
   }
 
-  if (!CAMPOS_PERMITIDOS.includes(campo)) {
+  if (!QUERIES_SELECT[campo] || !QUERIES_UPDATE[campo]) {
     return { sucesso: false, mensagem: `Campo '${campo}' não permitido para correção`, corrigidos: 0, erros: 1 }
   }
 
@@ -611,10 +640,10 @@ export async function corrigirNotaForaRange(
     const resultadoId = id.split('_')[0]
 
     try {
-      const { rows } = await pool.query(`SELECT ${campo} as valor_antigo FROM resultados_consolidados WHERE id = $1`, [resultadoId])
+      const { rows } = await pool.query(QUERIES_SELECT[campo], [resultadoId])
       const valorAntigo = rows[0]?.valor_antigo
 
-      await pool.query(`UPDATE resultados_consolidados SET ${campo} = $1 WHERE id = $2`, [novoValor, resultadoId])
+      await pool.query(QUERIES_UPDATE[campo], [novoValor, resultadoId])
       corrigidos++
 
       await registrarHistorico(

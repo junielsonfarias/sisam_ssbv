@@ -9,21 +9,15 @@
  */
 
 import { NextRequest } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import { getEstatisticas, getEstatisticasPadrao } from '@/lib/services/estatisticas.service'
-import { forbidden, ok, okComFallback } from '@/lib/api-utils'
+import { ok, okComFallback } from '@/lib/api-utils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth('tecnico', async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['tecnico'])) {
-      return forbidden()
-    }
-
     // Extrair filtros da query string
     const { searchParams } = new URL(request.url)
     const serie = searchParams.get('serie') || undefined
@@ -38,4 +32,4 @@ export async function GET(request: NextRequest) {
     console.error('[API Tecnico Estatisticas] Erro:', error)
     return okComFallback(getEstatisticasPadrao(), error)
   }
-}
+})

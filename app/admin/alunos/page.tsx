@@ -635,7 +635,7 @@ export default function AlunosPage() {
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => router.push(`/admin/alunos/${aluno.id}`)}
-                                  className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+                                  className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                                   title="Ver Perfil"
                                 >
                                   <UserCircle className="w-4 h-4" />

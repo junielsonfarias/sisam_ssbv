@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -8,13 +8,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/professor/periodos?ano_letivo=2026
  * Lista períodos letivos ativos
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth('professor', async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || usuario.tipo_usuario !== 'professor') {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
@@ -31,4 +26,4 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao listar períodos:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+})

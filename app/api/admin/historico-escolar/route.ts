@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import { buscarHistoricoEscolar } from '@/lib/services/historicoEscolar.service'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
-
     const { searchParams } = new URL(request.url)
     const alunoId = searchParams.get('aluno_id')
 
@@ -35,4 +30,4 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao buscar histórico escolar:', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })
   }
-}
+})

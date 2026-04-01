@@ -3,6 +3,9 @@ import { getUsuarioFromRequest } from '@/lib/auth'
 import pool, { testConnection } from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AuthVerificar')
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Verificar conexão com banco antes de processar
     const dbTest = await testConnection();
     if (!dbTest.success) {
-      console.error('Erro de conexão com banco de dados:', dbTest.error);
+      log.error('Erro de conexão com banco de dados', dbTest.error);
       return NextResponse.json(
         { mensagem: 'Erro ao conectar com o banco de dados' },
         { status: 503 } // Service Unavailable
@@ -72,7 +75,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error: unknown) {
-    console.error('Erro ao verificar autenticação:', error)
+    log.error('Erro ao verificar autenticação', error)
 
     // Verificar se é erro de banco de dados
     if ((error as DatabaseError)?.code === PG_ERRORS.CONNECTION_REFUSED || (error as DatabaseError)?.code === PG_ERRORS.HOST_NOT_FOUND || (error as DatabaseError)?.code === PG_ERRORS.CONNECTION_TIMEOUT) {

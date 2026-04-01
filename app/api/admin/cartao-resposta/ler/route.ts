@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import sharp from 'sharp'
 import Jimp from 'jimp'
@@ -11,14 +11,10 @@ interface CoordenadasQuestao {
   alternativas: Array<{ letra: string; y: number }>
 }
 
-export const dynamic = 'force-dynamic';
-export async function POST(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico'])) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
-    }
+export const dynamic = 'force-dynamic'
 
+export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
+  try {
     const formData = await request.formData()
     const imagem = formData.get('imagem') as File
     const anoLetivo = formData.get('ano_letivo') as string
@@ -247,5 +243,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 

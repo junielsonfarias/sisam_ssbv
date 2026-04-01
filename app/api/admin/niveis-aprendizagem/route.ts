@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('NiveisAprendizagem')
 
 export const dynamic = 'force-dynamic'
 
@@ -8,17 +11,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/niveis-aprendizagem
  * Retorna os níveis de aprendizagem
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario) {
-      return NextResponse.json(
-        { mensagem: 'Não autorizado' },
-        { status: 401 }
-      )
-    }
-
     const result = await pool.query(`
       SELECT id, codigo, nome, descricao, cor, nota_minima, nota_maxima, ordem, serie_aplicavel, ativo
       FROM niveis_aprendizagem
@@ -31,10 +25,10 @@ export async function GET(request: NextRequest) {
       total: result.rows.length
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar níveis de aprendizagem:', error)
+    log.error('Erro ao buscar níveis de aprendizagem', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
-}
+})

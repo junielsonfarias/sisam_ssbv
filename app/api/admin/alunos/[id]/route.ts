@@ -3,6 +3,9 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { alunoSchema, validateRequest, validateId } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminAlunoDetalhe')
 
 export const dynamic = 'force-dynamic'
 
@@ -56,7 +59,7 @@ export async function GET(
       try {
         return await pool.query(sql, params)
       } catch (err: unknown) {
-        console.error(`[Aluno ${alunoId}] Query falhou:`, (err as Error)?.message)
+        log.error(`Query falhou para aluno ${alunoId}`, err)
         return { rows: [] }
       }
     }
@@ -175,7 +178,7 @@ export async function GET(
       historico_turmas: turmasHistResult.rows,
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar detalhes do aluno:', error)
+    log.error('Erro ao buscar detalhes do aluno', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
@@ -259,7 +262,7 @@ export async function PUT(
 
     return NextResponse.json({ mensagem: 'Aluno atualizado com sucesso' })
   } catch (error: unknown) {
-    console.error('Erro ao atualizar aluno:', error)
+    log.error('Erro ao atualizar aluno', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
