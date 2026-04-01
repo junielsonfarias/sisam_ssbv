@@ -79,15 +79,15 @@ export async function processarLinhas(
   const producaoParaInserir: ProducaoParaInserir[] = []
 
   // Funcoes auxiliares locais
-  const extrairNumero = (valor: unknown): number => {
+  const extrairNumero = (valor: string | number | null | undefined): number => {
     if (!valor) return 0
-    const num = parseInt(valor.toString().replace(/[^\d]/g, ''))
+    const num = parseInt(String(valor).replace(/[^\d]/g, ''))
     return isNaN(num) ? 0 : num
   }
 
-  const extrairDecimal = (valor: unknown): number | null => {
-    if (!valor || valor === '' || valor === null || valor === undefined) return null
-    const str = valor.toString().replace(',', '.').trim()
+  const extrairDecimal = (valor: string | number | null | undefined): number | null => {
+    if (!valor || valor === '') return null
+    const str = String(valor).replace(',', '.').trim()
     const num = parseFloat(str)
     return isNaN(num) ? null : num
   }
@@ -96,9 +96,9 @@ export async function processarLinhas(
     try {
       const linha = dados[i]
 
-      const escolaNome = (linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').toString().trim()
-      const alunoNome = (linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').toString().trim()
-      const turmaCodigo = (linha['TURMA'] || linha['Turma'] || linha['turma'] || '').toString().trim()
+      const escolaNome = String(linha['ESCOLA'] || linha['Escola'] || linha['escola'] || '').trim()
+      const alunoNome = String(linha['ALUNO'] || linha['Aluno'] || linha['aluno'] || '').trim()
+      const turmaCodigo = String(linha['TURMA'] || linha['Turma'] || linha['turma'] || '').trim()
       const serieRaw = lerSerieDoExcel(linha, turmaCodigo)
       const serie = normalizarSerie(serieRaw) || null
 
@@ -123,7 +123,7 @@ export async function processarLinhas(
       const temColunaPresenca = colunaPresenca !== undefined && colunaPresenca !== null && colunaPresenca !== ''
 
       if (temColunaFalta) {
-        const valorFalta = colunaFalta.toString().trim().toUpperCase()
+        const valorFalta = String(colunaFalta).trim().toUpperCase()
         if (valorFalta === 'F' || valorFalta === 'X' || valorFalta === 'FALTOU' || valorFalta === 'AUSENTE' || valorFalta === 'SIM' || valorFalta === '1' || valorFalta === 'S') {
           presenca = 'F'
         } else if (valorFalta === 'P' || valorFalta === 'PRESENTE' || valorFalta === 'NAO' || valorFalta === 'NÃO' || valorFalta === '0' || valorFalta === 'N') {
@@ -132,7 +132,7 @@ export async function processarLinhas(
           presenca = 'F'
         }
       } else if (temColunaPresenca) {
-        const valorPresenca = colunaPresenca.toString().trim().toUpperCase()
+        const valorPresenca = String(colunaPresenca).trim().toUpperCase()
         if (valorPresenca === 'P' || valorPresenca === 'PRESENTE' || valorPresenca === 'SIM' || valorPresenca === '1' || valorPresenca === 'S') {
           presenca = 'P'
         } else if (valorPresenca === 'F' || valorPresenca === 'FALTOU' || valorPresenca === 'AUSENTE' || valorPresenca === 'NAO' || valorPresenca === 'NÃO' || valorPresenca === '0' || valorPresenca === 'N') {
@@ -185,7 +185,7 @@ export async function processarLinhas(
 
       // Verificar se aluno ja existe
       const nomeNormalizado = alunoNome.toUpperCase().trim()
-      const turmaKeyAluno = turmaId && !turmaId.toString().startsWith('TEMP_') ? turmaId.toString() : 'NULL'
+      const turmaKeyAluno = turmaId && !turmaId.startsWith('TEMP_') ? turmaId : 'NULL'
       const alunoKey = `${nomeNormalizado}_${escolaId}_${turmaKeyAluno}_${anoLetivo}`
 
       let alunoId = alunosMap.get(alunoKey)
@@ -209,16 +209,19 @@ export async function processarLinhas(
       }
 
       // Extrair notas e acertos
-      const totalAcertosLP = extrairNumero(linha['Total Acertos LP'] || linha['Total AcertosLP'])
-      const totalAcertosCH = extrairNumero(linha['Total Acertos CH'] || linha['Total AcertosCH'])
-      const totalAcertosMAT = extrairNumero(linha['Total Acertos MAT'] || linha['Total AcertosMAT'])
-      const totalAcertosCN = extrairNumero(linha['Total Acertos  CN'] || linha['Total Acertos CN'] || linha['Total AcertosCN'])
+      type CelulaExcel = string | number | null | undefined
+      const cel = (v: unknown): CelulaExcel => v as CelulaExcel
 
-      const notaLP = extrairDecimal(linha['NOTA-LP'] || linha['NOTA_LP'] || linha['Nota-LP'] || linha['NOTA LP'])
-      const notaCH = extrairDecimal(linha['NOTA-CH'] || linha['NOTA_CH'] || linha['Nota-CH'] || linha['NOTA CH'])
-      const notaMAT = extrairDecimal(linha['NOTA-MAT'] || linha['NOTA_MAT'] || linha['Nota-MAT'] || linha['NOTA MAT'])
-      const notaCN = extrairDecimal(linha['NOTA-CN'] || linha['NOTA_CN'] || linha['Nota-CN'] || linha['NOTA CN'])
-      const mediaAluno = extrairDecimal(linha['MED_ALUNO'] || linha['MED ALUNO'] || linha['Media'] || linha['Média'])
+      const totalAcertosLP = extrairNumero(cel(linha['Total Acertos LP'] || linha['Total AcertosLP']))
+      const totalAcertosCH = extrairNumero(cel(linha['Total Acertos CH'] || linha['Total AcertosCH']))
+      const totalAcertosMAT = extrairNumero(cel(linha['Total Acertos MAT'] || linha['Total AcertosMAT']))
+      const totalAcertosCN = extrairNumero(cel(linha['Total Acertos  CN'] || linha['Total Acertos CN'] || linha['Total AcertosCN']))
+
+      const notaLP = extrairDecimal(cel(linha['NOTA-LP'] || linha['NOTA_LP'] || linha['Nota-LP'] || linha['NOTA LP']))
+      const notaCH = extrairDecimal(cel(linha['NOTA-CH'] || linha['NOTA_CH'] || linha['Nota-CH'] || linha['NOTA CH']))
+      const notaMAT = extrairDecimal(cel(linha['NOTA-MAT'] || linha['NOTA_MAT'] || linha['Nota-MAT'] || linha['NOTA MAT']))
+      const notaCN = extrairDecimal(cel(linha['NOTA-CN'] || linha['NOTA_CN'] || linha['Nota-CN'] || linha['NOTA CN']))
+      const mediaAluno = extrairDecimal(cel(linha['MED_ALUNO'] || linha['MED ALUNO'] || linha['Media'] || linha['Média']))
 
       // Obter configuracao da serie do aluno
       const numeroSerie = extrairNumeroSerie(serie)
@@ -254,10 +257,10 @@ export async function processarLinhas(
         notaProducao = calcularMediaProducao(itensProducaoNotas)
 
         if (notaProducao === null) {
-          notaProducao = extrairDecimal(
+          notaProducao = extrairDecimal(cel(
             linha['PRODUÇÃO'] || linha['Produção'] || linha['PRODUCAO'] ||
             linha['Nota Produção'] || linha['NOTA PRODUÇÃO'] || linha['nota_producao']
-          )
+          ))
         }
 
         if (i < 3) {
@@ -289,7 +292,7 @@ export async function processarLinhas(
 
       const mediaFinal = (presencaFinal === '-' || (presenca === null && !temNotas && !temAcertos))
         ? null
-        : (mediaAluno !== null && mediaAluno !== undefined ? parseFloat(mediaAluno.toString()) : null)
+        : (mediaAluno !== null && mediaAluno !== undefined ? mediaAluno : null)
 
       if (presencaFinal !== '-' && (mediaFinal === 0 || mediaFinal === null || mediaFinal === undefined) && presencaFinal !== 'F') {
         presencaFinal = 'F'

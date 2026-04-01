@@ -10,8 +10,16 @@ export const dynamic = 'force-dynamic'
 // RATE LIMITING (LGPD — 30 req/15min por IP)
 // ============================================================================
 const boletimLimiter = new Map<string, { count: number; resetAt: number }>()
-const BOLETIM_MAX = 10
+const BOLETIM_MAX = 5
 const BOLETIM_WINDOW = 15 * 60 * 1000
+
+/** Delay progressivo baseado em tentativas recentes (ms) */
+function getProgressiveDelay(ip: string): number {
+  const entry = boletimLimiter.get(ip)
+  if (!entry || entry.count <= 1) return 0
+  // 500ms por tentativa após a primeira (máx 3s)
+  return Math.min(entry.count * 500, 3000)
+}
 
 function checkBoletimRate(ip: string): boolean {
   const now = Date.now()
@@ -97,16 +105,26 @@ export async function GET(request: NextRequest) {
         { status: 429 }
       )
     }
+
+    // Delay progressivo anti-enumeração
+    const delay = getProgressiveDelay(ip)
+    if (delay > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+
     const { searchParams } = new URL(request.url)
     const codigo = searchParams.get('codigo')?.trim()
     const cpfRaw = searchParams.get('cpf')?.trim()
     const dataNascimento = searchParams.get('data_nascimento')?.trim()
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
+    // Mensagem genérica para qualquer falha de validação (anti-enumeração)
+    const MENSAGEM_NAO_ENCONTRADO = 'Dados não encontrados'
+
     if (!codigo && (!cpfRaw || !dataNascimento)) {
       return NextResponse.json(
-        { mensagem: 'Informe o codigo do aluno ou CPF + data de nascimento.' },
-        { status: 400 }
+        { mensagem: MENSAGEM_NAO_ENCONTRADO },
+        { status: 404 }
       )
     }
 
@@ -114,23 +132,23 @@ export async function GET(request: NextRequest) {
 
     if (cpf && cpf.length !== 11) {
       return NextResponse.json(
-        { mensagem: 'CPF deve conter 11 dígitos.' },
-        { status: 400 }
+        { mensagem: MENSAGEM_NAO_ENCONTRADO },
+        { status: 404 }
       )
     }
 
     if (dataNascimento) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
         return NextResponse.json(
-          { mensagem: 'Data de nascimento deve estar no formato AAAA-MM-DD.' },
-          { status: 400 }
+          { mensagem: MENSAGEM_NAO_ENCONTRADO },
+          { status: 404 }
         )
       }
       const ano = parseInt(dataNascimento.substring(0, 4))
       if (ano < 1950 || ano > new Date().getFullYear()) {
         return NextResponse.json(
-          { mensagem: 'Ano de nascimento inválido.' },
-          { status: 400 }
+          { mensagem: MENSAGEM_NAO_ENCONTRADO },
+          { status: 404 }
         )
       }
     }
@@ -181,7 +199,7 @@ export async function GET(request: NextRequest) {
 
     if (alunoResult.rows.length === 0) {
       return NextResponse.json(
-        { mensagem: 'Aluno não encontrado. Verifique os dados informados.' },
+        { mensagem: MENSAGEM_NAO_ENCONTRADO },
         { status: 404 }
       )
     }

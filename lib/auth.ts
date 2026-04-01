@@ -116,7 +116,7 @@ export async function comparePassword(senha: string, hash: string): Promise<bool
  * Gera um token JWT assinado
  *
  * @param payload - Dados do usuário a serem incluídos no token
- * @returns Token JWT assinado com expiração de 7 dias
+ * @returns Token JWT assinado com expiração de 24 horas
  * @throws Error se JWT_SECRET não estiver configurado
  * @throws Error se payload estiver incompleto
  *
@@ -141,7 +141,7 @@ export function generateToken(payload: TokenPayload): string {
       throw new Error('Payload do token incompleto. userId, email e tipoUsuario são obrigatórios.')
     }
 
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
   } catch (error: unknown) {
     log.error('Erro ao gerar token JWT', error)
     throw error

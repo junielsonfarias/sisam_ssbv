@@ -6,6 +6,7 @@ import { SESSAO, PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
+import crypto from 'crypto'
 
 const log = createLogger('AuthLogin')
 
@@ -188,11 +189,12 @@ export async function POST(request: NextRequest) {
     log.info(`Login bem-sucedido | usuario:${tokenPayload.email} (${tokenPayload.tipoUsuario}) | IP:${maskedIP}`)
 
     // Registrar log de acesso (em background para nao impactar performance)
+    // Email hasheado e sem nome para anonimização (LGPD)
     const userAgent = request.headers.get('user-agent') || 'Desconhecido'
+    const emailHash = crypto.createHash('sha256').update(usuario.email).digest('hex').slice(0, 16)
     registrarLogAcesso({
       usuarioId: usuario.id,
-      usuarioNome: usuario.nome,
-      email: usuario.email,
+      email: emailHash,
       tipoUsuario: usuario.tipo_usuario,
       ipAddress: maskedIP,
       userAgent: userAgent
@@ -273,7 +275,7 @@ export async function POST(request: NextRequest) {
 // Funcao para registrar log de acesso no banco de dados
 interface LogAcessoParams {
   usuarioId: string
-  usuarioNome: string
+  /** Email hasheado (SHA-256, 16 chars) para anonimização LGPD */
   email: string
   tipoUsuario: string
   ipAddress: string
@@ -283,11 +285,10 @@ interface LogAcessoParams {
 async function registrarLogAcesso(params: LogAcessoParams): Promise<void> {
   try {
     await pool.query(
-      `INSERT INTO logs_acesso (usuario_id, usuario_nome, email, tipo_usuario, ip_address, user_agent)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO logs_acesso (usuario_id, email, tipo_usuario, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5)`,
       [
         params.usuarioId,
-        params.usuarioNome,
         params.email,
         params.tipoUsuario,
         params.ipAddress,

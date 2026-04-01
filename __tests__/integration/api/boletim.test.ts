@@ -19,31 +19,31 @@ describe('GET /api/boletim', () => {
     vi.clearAllMocks()
   })
 
-  it('retorna 400 sem parametros de busca', async () => {
+  it('retorna 404 genérico sem parametros de busca (anti-enumeração)', async () => {
     const request = createRequest('http://localhost:3000/api/boletim?ano_letivo=2026')
     const response = await GET(request)
-    expect(response.status).toBe(400)
+    expect(response.status).toBe(404)
 
     const body = await response.json()
-    expect(body.mensagem).toContain('codigo')
+    expect(body.mensagem).toBe('Dados não encontrados')
   })
 
-  it('retorna 400 com CPF invalido (menos de 11 digitos)', async () => {
+  it('retorna 404 genérico com CPF invalido (anti-enumeração)', async () => {
     const request = createRequest('http://localhost:3000/api/boletim?cpf=123&data_nascimento=2015-01-01&ano_letivo=2026')
     const response = await GET(request)
-    expect(response.status).toBe(400)
+    expect(response.status).toBe(404)
 
     const body = await response.json()
-    expect(body.mensagem).toContain('CPF')
+    expect(body.mensagem).toBe('Dados não encontrados')
   })
 
-  it('retorna 400 com data de nascimento invalida', async () => {
+  it('retorna 404 genérico com data de nascimento invalida (anti-enumeração)', async () => {
     const request = createRequest('http://localhost:3000/api/boletim?cpf=12345678901&data_nascimento=01-01-2015&ano_letivo=2026')
     const response = await GET(request)
-    expect(response.status).toBe(400)
+    expect(response.status).toBe(404)
 
     const body = await response.json()
-    expect(body.mensagem).toContain('Data')
+    expect(body.mensagem).toBe('Dados não encontrados')
   })
 
   it('retorna 404 quando aluno nao encontrado por codigo', async () => {
