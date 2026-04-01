@@ -1,7 +1,7 @@
 # SISAM — Registro de Horas de Desenvolvimento
 
 > Atualizado automaticamente a cada sessao de trabalho.
-> Ultima atualizacao: 2026-03-31
+> Ultima atualizacao: 2026-04-01
 
 ---
 
@@ -9,15 +9,15 @@
 
 | Metrica | Valor |
 |---------|-------|
-| **Total de horas** | **279h** |
-| **Dias trabalhados** | 36 |
-| **Media por dia** | 7.8h |
-| **Periodo** | 31/12/2025 — 31/03/2026 |
-| **Total de commits** | 597 |
-| **Linhas de codigo** | 134.950 |
-| **Arquivos TS/TSX** | 656 |
-| **Endpoints API** | 186 |
-| **Testes** | 527 |
+| **Total de horas** | **283h** |
+| **Dias trabalhados** | 37 |
+| **Media por dia** | 7.6h |
+| **Periodo** | 31/12/2025 — 01/04/2026 |
+| **Total de commits** | 604 |
+| **Linhas de codigo** | 141.100 |
+| **Arquivos TS/TSX** | 690 |
+| **Endpoints API** | 194 |
+| **Testes** | 563 |
 
 ---
 
@@ -29,6 +29,7 @@
 | Jan/2026 | 140h | 18 | 318 | Core do sistema, importacoes, dashboards, analise |
 | Fev/2026 | 41h | 6 | 33 | Ajustes, Supabase, deploy Vercel |
 | Mar/2026 | 84h | 12 | 239 | Gestor escolar, professor, site, seguranca, CI, 45 skills, code review 4 sprints |
+| Abr/2026 | 4h | 1 | 7 | 8 sprints melhorias: monitoramento, notificacoes, PDFs, offline, seguranca |
 
 ---
 
@@ -106,6 +107,16 @@
 
 ---
 
+### Abril 2026
+
+| Data | Horario | Horas | Commits | Descricao |
+|------|---------|-------|---------|-----------|
+| 01/04/2026 | 17:00–21:00 | 4.0h | 7 | 8 sprints: monitoramento, backup Drive, notificacoes professor, dashboard rico, auditoria+36 testes, PDFs React-PDF, preview importacao, portal pais, offline notas/diario, refresh token, criptografia CPF |
+
+**Subtotal Abr/2026: 4h | 1 dia | 7 commits**
+
+---
+
 ## Evolucao Acumulada
 
 | Marco | Horas Acumuladas | Commits | Entregas Principais |
@@ -120,6 +131,7 @@
 | Completo (30/03/2026) | 249h | 532 | 24 melhorias, Redis, redesign site, publicacoes |
 | CI Verde (31/03/2026) | 268h | 575 | Docs API, E2E, TypeScript, CI 100% verde |
 | Code Review (31/03/2026) | 279h | 597 | 45 skills, mobile WCAG, audit sec+perf, 4 sprints refactor |
+| Melhorias 8 Sprints (01/04/2026) | 283h | 604 | Monitoramento, backup, notificacoes, PDFs, preview, offline, seguranca |
 
 ---
 
