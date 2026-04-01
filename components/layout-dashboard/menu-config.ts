@@ -43,6 +43,8 @@ import {
   MessageSquare,
   MessageCircle,
   Calendar,
+  HardDrive,
+  HeartPulse,
 } from 'lucide-react'
 import type { MenuItem } from './types'
 import type { ModuloAtivo } from '@/lib/offline-storage'
@@ -214,6 +216,8 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
       { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' },
       { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
       { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
+      { icon: HardDrive, label: 'Backup', href: '/admin/backup' },
+      { icon: HeartPulse, label: 'Monitoramento', href: '/admin/monitoramento' },
       { icon: Activity, label: 'Logs de Acesso', href: '/admin/logs-acesso' },
       { icon: Shield, label: 'Auditoria', href: '/admin/auditoria' }
     )
