@@ -1,10 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, XCircle, QrCode, User, Loader2 } from 'lucide-react'
 
-export default function PresencaQrPage() {
+export default function PresencaQrWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-emerald-600 flex items-center justify-center"><Loader2 className="w-8 h-8 text-white animate-spin" /></div>}>
+      <PresencaQrPage />
+    </Suspense>
+  )
+}
+
+function PresencaQrPage() {
   const searchParams = useSearchParams()
   const token = searchParams.get('t')
 
