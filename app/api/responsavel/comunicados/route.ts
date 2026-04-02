@@ -40,12 +40,12 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
       return NextResponse.json({ comunicados: [] })
     }
 
-    // Buscar comunicados das turmas
+    // Buscar comunicados das turmas (tabela correta: comunicados_turma, coluna: mensagem)
     const result = await pool.query(
-      `SELECT c.id, c.titulo, c.conteudo, c.tipo, c.criado_em,
+      `SELECT c.id, c.titulo, c.mensagem AS conteudo, c.tipo, c.criado_em,
               u.nome AS professor_nome,
               t.codigo AS turma_codigo, t.nome AS turma_nome
-       FROM comunicados c
+       FROM comunicados_turma c
        INNER JOIN usuarios u ON c.professor_id = u.id
        LEFT JOIN turmas t ON c.turma_id = t.id
        WHERE c.turma_id = ANY($1) AND c.ativo = true

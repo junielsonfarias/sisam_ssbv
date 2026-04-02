@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, BookOpen, CalendarCheck, Bell, LogOut, GraduationCap, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Users, BookOpen, CalendarCheck, Bell, LogOut, GraduationCap, TrendingUp, AlertTriangle, MessageCircle } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Filho {
@@ -75,10 +75,16 @@ export default function DashboardResponsavel() {
                 </h1>
               </div>
             </div>
-            <button onClick={sair}
-              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors">
-              <LogOut className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => router.push('/responsavel/mensagens')}
+                className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors relative">
+                <MessageCircle className="w-5 h-5" />
+              </button>
+              <button onClick={sair}
+                className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors">
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
