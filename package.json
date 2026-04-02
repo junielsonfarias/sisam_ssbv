@@ -121,6 +121,8 @@
     "clsx": "^2.1.0",
     "date-fns": "^3.3.0",
     "exceljs": "^4.4.0",
+    "firebase": "^12.11.0",
+    "firebase-admin": "^13.7.0",
     "html-to-image": "^1.11.13",
     "iconv-lite": "^0.6.3",
     "jimp": "^0.22.12",
