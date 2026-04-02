@@ -524,6 +524,10 @@ export default function UsuariosPage() {
                           <option value="polo">Polo</option>
                           <option value="tecnico">Técnico</option>
                           <option value="administrador">Administrador</option>
+                          <option value="professor">Professor</option>
+                          <option value="editor">Editor de Notícias</option>
+                          <option value="publicador">Publicador</option>
+                          <option value="responsavel">Responsável</option>
                         </select>
                       </div>
 

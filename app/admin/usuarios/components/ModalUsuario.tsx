@@ -118,6 +118,10 @@ export default function ModalUsuario({
                   <option value="polo">Polo</option>
                   <option value="tecnico">Tecnico</option>
                   <option value="administrador">Administrador</option>
+                  <option value="professor">Professor</option>
+                  <option value="editor">Editor de Noticias</option>
+                  <option value="publicador">Publicador</option>
+                  <option value="responsavel">Responsavel</option>
                 </select>
               </div>
 
