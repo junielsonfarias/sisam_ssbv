@@ -1,7 +1,7 @@
 # SISAM — Registro de Horas de Desenvolvimento
 
 > Atualizado automaticamente a cada sessao de trabalho.
-> Ultima atualizacao: 2026-04-01
+> Ultima atualizacao: 2026-04-02
 
 ---
 
@@ -9,14 +9,14 @@
 
 | Metrica | Valor |
 |---------|-------|
-| **Total de horas** | **287h** |
-| **Dias trabalhados** | 37 |
+| **Total de horas** | **296h** |
+| **Dias trabalhados** | 38 |
 | **Media por dia** | 7.8h |
-| **Periodo** | 31/12/2025 — 01/04/2026 |
-| **Total de commits** | 608 |
-| **Linhas de codigo** | 145.200 |
-| **Arquivos TS/TSX** | 705 |
-| **Endpoints API** | 198 |
+| **Periodo** | 31/12/2025 — 02/04/2026 |
+| **Total de commits** | 615 |
+| **Linhas de codigo** | 36.522 |
+| **Arquivos TS/TSX** | 782 |
+| **Endpoints API** | 204 |
 | **Testes** | 563 |
 
 ---
@@ -29,7 +29,7 @@
 | Jan/2026 | 140h | 18 | 318 | Core do sistema, importacoes, dashboards, analise |
 | Fev/2026 | 41h | 6 | 33 | Ajustes, Supabase, deploy Vercel |
 | Mar/2026 | 84h | 12 | 239 | Gestor escolar, professor, site, seguranca, CI, 45 skills, code review 4 sprints |
-| Abr/2026 | 8h | 1 | 11 | 8 sprints melhorias, site institucional (SEO, FAQ, mapa, busca, acessibilidade, menu dinamico) |
+| Abr/2026 | 17h | 2 | 16 | 8 sprints melhorias, site institucional, 9 bugs facial, UX mobile, manuais PDF, Capacitor Android, Portal Responsavel |
 
 ---
 
@@ -112,8 +112,9 @@
 | Data | Horario | Horas | Commits | Descricao |
 |------|---------|-------|---------|-----------|
 | 01/04/2026 | 17:00–01:00 | 8.0h | 11 | 8 sprints melhorias (monitoramento, backup, notificacoes, dashboard, auditoria+36 testes, PDFs, preview, portal pais, offline, seguranca) + site institucional (SEO, FAQ, mapa, busca Ctrl+K, depoimentos, animacoes scroll, acessibilidade, formulario contato, menu dinamico, logos clicaveis) + fix frequencia boletim |
+| 02/04/2026 | 10:05–17:42 | 8.6h | 5 | 9 bugs reconhecimento facial + UX mobile fullscreen + 8 manuais PDF (56 pgs) + Capacitor Android (plugins, icones, hardening) + Portal do Responsavel (auth, APIs, 4 paginas, migracao) |
 
-**Subtotal Abr/2026: 8h | 1 dia | 11 commits**
+**Subtotal Abr/2026: 17h | 2 dias | 16 commits**
 
 ---
 
@@ -132,6 +133,7 @@
 | CI Verde (31/03/2026) | 268h | 575 | Docs API, E2E, TypeScript, CI 100% verde |
 | Code Review (31/03/2026) | 279h | 597 | 45 skills, mobile WCAG, audit sec+perf, 4 sprints refactor |
 | Melhorias Completas (01/04/2026) | 287h | 608 | 8 sprints + site institucional (SEO, FAQ, mapa, busca, acessibilidade, menu dinamico) |
+| App Nativo + Portal Pais (02/04/2026) | 296h | 615 | 9 bugs facial, UX mobile, manuais PDF, Capacitor Android, Portal Responsavel |
 
 ---
 
