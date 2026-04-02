@@ -156,9 +156,11 @@ docs/Untitled
 # Binários e arquivos pesados
 *.xlsx
 *.pdf
+*.apk
 docs/*.png
 image.png
 INSTRUCOES_GITHUB.txt
+public/downloads/*.apk
 
 # Database — scripts de diagnóstico e correção pontual
 database/migrations/diagnostico-*.sql

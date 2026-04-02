@@ -76,7 +76,8 @@ export default function AppDownloadPage() {
           ) : (
             // Download direto (APK)
             <>
-              <a href={versao?.download.android.url || '/downloads/sisam.apk'} download="SISAM.apk"
+              <a href={versao?.download.android.url || '#'}
+                target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-lg font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all">
                 <Download className="w-6 h-6" />
                 Baixar App Android

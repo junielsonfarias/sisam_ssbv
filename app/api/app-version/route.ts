@@ -26,8 +26,10 @@ export async function GET() {
     ],
     download: {
       android: {
-        url: '/downloads/sisam.apk',
-        tamanho_mb: 20,
+        // GitHub Releases: subir APK em github.com/junielsonfarias/sisam_ssbv/releases
+        // Enquanto não tiver release, usa link direto (colocar APK no servidor)
+        url: process.env.NEXT_PUBLIC_APK_URL || 'https://github.com/junielsonfarias/sisam_ssbv/releases/latest/download/sisam.apk',
+        tamanho_mb: 5,
         min_android: '7.0',
       },
       // iOS será adicionado quando disponível
