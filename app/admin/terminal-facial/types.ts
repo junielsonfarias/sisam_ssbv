@@ -4,7 +4,7 @@ export interface AlunoEmbedding {
   codigo: string | null
   turma_id: string | null
   serie: string | null
-  descriptor: Float32Array
+  descriptors: Float32Array[]
 }
 
 export interface RegistroPresenca {

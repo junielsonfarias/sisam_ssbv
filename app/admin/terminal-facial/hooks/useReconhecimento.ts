@@ -27,6 +27,7 @@ export function useReconhecimento({
 }: UseReconhecimentoParams) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const cooldownMapRef = useRef<Map<string, number>>(new Map())
+  const detectandoRef = useRef(false)
 
   const iniciarReconhecimento = useCallback(() => {
     if (!faceapiRef.current || !videoRef.current || alunos.length === 0) return
@@ -34,15 +35,19 @@ export function useReconhecimento({
     const faceapi = faceapiRef.current
     const video = videoRef.current
 
-    // Criar LabeledFaceDescriptors para matching
+    // Criar LabeledFaceDescriptors para matching (suporta múltiplos descriptors por aluno)
     const labeledDescriptors = alunos.map(aluno =>
       new faceapi.LabeledFaceDescriptors(
         aluno.aluno_id,
-        [aluno.descriptor]
+        aluno.descriptors.map(d => new Float32Array(d))
       )
     )
 
-    const matcher = new faceapi.FaceMatcher(labeledDescriptors, 1 - config.confianca_minima)
+    // face-api.js euclidean distance: <0.4 = muito similar, 0.4-0.6 = provável, >0.6 = incerto
+    // Antes: 1 - confianca_minima (0.15 para 0.85) era restritivo demais
+    const confianca = config.confianca_minima
+    const maxDistance = confianca >= 0.9 ? 0.5 : confianca >= 0.85 ? 0.6 : 0.7
+    const matcher = new faceapi.FaceMatcher(labeledDescriptors, maxDistance)
 
     setReconhecendo(true)
 
@@ -50,10 +55,12 @@ export function useReconhecimento({
     intervalRef.current = setInterval(async () => {
       if (!video || video.paused || video.ended) return
       if (document.hidden) return // Não processar com tab em background
+      if (detectandoRef.current) return // Evitar execução paralela
+      detectandoRef.current = true
 
       try {
         const detections = await faceapi
-          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
+          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.65 }))
           .withFaceLandmarks(true)
           .withFaceDescriptors()
 
@@ -187,6 +194,8 @@ export function useReconhecimento({
         }
       } catch (err) {
         // Erro silencioso no loop de detecção
+      } finally {
+        detectandoRef.current = false
       }
     }, 500) // Detectar a cada 500ms
   }, [alunos, config.confianca_minima, config.cooldown_segundos, somAtivo,

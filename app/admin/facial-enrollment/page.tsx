@@ -171,29 +171,29 @@ export default function FacialEnrollmentPage() {
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola']}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
         {/* Header */}
-        <div className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-8">
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 sm:px-6 py-6 sm:py-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center gap-3">
-              <UserCheck className="w-8 h-8" />
+              <UserCheck className="w-7 h-7 sm:w-8 sm:h-8" />
               <div>
-                <h1 className="text-2xl font-bold">Cadastro Facial</h1>
-                <p className="text-teal-100 text-sm mt-1">
-                  Gerenciamento de consentimentos e embeddings faciais dos alunos
+                <h1 className="text-xl sm:text-2xl font-bold">Cadastro Facial</h1>
+                <p className="text-indigo-200 text-xs sm:text-sm mt-1">
+                  Consentimentos e embeddings faciais dos alunos
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
           {/* LGPD Notice */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-            <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-blue-800">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4 flex items-start gap-3">
+            <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
               <p className="font-semibold mb-1">Aviso de Privacidade (LGPD)</p>
-              <p>
+              <p className="leading-relaxed">
                 Os dados faciais armazenados neste sistema consistem exclusivamente em vetores
                 matematicos (embeddings), e nao em fotografias ou imagens dos alunos. Esses vetores
                 nao permitem a reconstrucao da imagem original. Para alunos menores de idade, o
@@ -204,8 +204,8 @@ export default function FacialEnrollmentPage() {
           </div>
 
           {/* Filtros */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Filtros</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-3 sm:mb-4">Filtros</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Escola</label>
@@ -324,6 +324,8 @@ export default function FacialEnrollmentPage() {
             poseAtual={faceCapture.poseAtual}
             posesCapturadas={faceCapture.posesCapturadas}
             cameraMode={faceCapture.cameraMode}
+            iluminacao={faceCapture.iluminacao}
+            autoCapturaProg={faceCapture.autoCapturaProg}
             videoRef={faceCapture.videoRef}
             canvasRef={faceCapture.canvasRef}
             poseBufferRef={faceCapture.poseBufferRef}
@@ -332,6 +334,7 @@ export default function FacialEnrollmentPage() {
             posesConcluidasCount={faceCapture.posesConcluidasCount}
             onAlternarCamera={faceCapture.alternarCamera}
             onCapturarPose={faceCapture.capturarPose}
+            onRecapturarPose={faceCapture.recapturarPose}
             onSalvarEmbedding={faceCapture.salvarEmbedding}
             onCancelar={() => { faceCapture.pararCamera(); faceCapture.setCapturaAlunoId(null) }}
           />

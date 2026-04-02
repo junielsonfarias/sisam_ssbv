@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { buscarEmbeddings } from '@/lib/services/facial.service'
+import { withRedisCache } from '@/lib/cache/redis'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/admin/facial/embeddings
  * Busca todos os embeddings de uma escola (para terminal web)
+ * Cache: 5 minutos (invalidado ao cadastrar/remover embedding)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +30,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
-    const result = await buscarEmbeddings(escola_id, anoLetivo, turma_id)
+    const cacheKey = `facial:embeddings:${escola_id}:${anoLetivo}${turma_id ? `:${turma_id}` : ''}`
+    const result = await withRedisCache(cacheKey, 300, () =>
+      buscarEmbeddings(escola_id, anoLetivo, turma_id)
+    )
 
     return NextResponse.json(result)
   } catch (error: unknown) {

@@ -110,14 +110,20 @@ function TerminalFacialContent() {
         try {
           if (!aluno.embedding_base64) continue
           const bytes = Uint8Array.from(atob(aluno.embedding_base64), c => c.charCodeAt(0))
-          const descriptor = new Float32Array(bytes.buffer)
+          const allFloats = new Float32Array(bytes.buffer)
+          // Suporta 1 descriptor (128 floats/512 bytes) ou 3 concatenados (384 floats/1536 bytes)
+          const descriptors: Float32Array[] = []
+          for (let i = 0; i < allFloats.length; i += 128) {
+            descriptors.push(new Float32Array(allFloats.buffer, i * 4, 128))
+          }
+          if (descriptors.length === 0) continue
           alunosCarregados.push({
             aluno_id: aluno.aluno_id,
             nome: aluno.nome,
             codigo: aluno.codigo,
             turma_id: aluno.turma_id,
             serie: aluno.serie,
-            descriptor,
+            descriptors,
           })
         } catch {
           // Ignora aluno com embedding invalido

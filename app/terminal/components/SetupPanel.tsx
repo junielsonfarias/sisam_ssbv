@@ -162,9 +162,14 @@ export function SetupPanel({
       try {
         const cleanBase64 = emb.embedding_base64.replace(/\s/g, '')
         const bytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0))
-        if (bytes.length !== 512) continue
-        const descriptor = new Float32Array(bytes.buffer)
-        alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
+        const allFloats = new Float32Array(bytes.buffer)
+        // Suporta 1 descriptor (128 floats) ou 3 concatenados (384 floats)
+        if (allFloats.length !== 128 && allFloats.length !== 384) continue
+        const descriptors: Float32Array[] = []
+        for (let i = 0; i < allFloats.length; i += 128) {
+          descriptors.push(new Float32Array(allFloats.buffer, i * 4, 128))
+        }
+        alunosCarregados.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptors })
       } catch {
         // Expected: skip individual invalid embeddings without breaking the loop
       }

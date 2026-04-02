@@ -340,10 +340,13 @@ export async function diagnosticarAluno(
     let embeddingTamanho = 0
     let descriptorPreview: number[] = []
 
+    // Tamanhos válidos: 512 bytes (1 pose, 128 floats) ou 1536 bytes (3 poses, 384 floats)
+    const TAMANHOS_VALIDOS = [512, 1536]
+
     if (embedResult.rows.length > 0) {
       const row = embedResult.rows[0]
       embeddingTamanho = parseInt(row.tamanho_bytes) || 0
-      embeddingValido = embeddingTamanho === 512 // 128 floats x 4 bytes
+      embeddingValido = TAMANHOS_VALIDOS.includes(embeddingTamanho)
 
       // Decodificar e verificar primeiros 5 valores
       if (row.embedding_base64) {
@@ -407,8 +410,8 @@ export async function diagnosticarAluno(
           ...(consentResult.rows[0] && !consentResult.rows[0].consentido ? ['Consentimento não aprovado'] : []),
           ...(consentResult.rows[0]?.data_revogacao ? ['Consentimento revogado'] : []),
           ...(embedResult.rows.length === 0 ? ['Sem embedding facial'] : []),
-          ...(embeddingTamanho > 0 && embeddingTamanho !== 512 ? [`Embedding tamanho errado: ${embeddingTamanho} bytes (esperado 512)`] : []),
-          ...(!embeddingValido && embeddingTamanho === 512 ? ['Embedding contém valores inválidos (NaN/zero/infinito)'] : []),
+          ...(embeddingTamanho > 0 && !TAMANHOS_VALIDOS.includes(embeddingTamanho) ? [`Embedding tamanho errado: ${embeddingTamanho} bytes (esperado 512 ou 1536)`] : []),
+          ...(!embeddingValido && TAMANHOS_VALIDOS.includes(embeddingTamanho) ? ['Embedding contém valores inválidos (NaN/zero/infinito)'] : []),
         ],
       },
     })

@@ -24,11 +24,20 @@ export interface PoseCapture {
   foto: string
 }
 
-export const POSES: { key: PoseType; label: string; instrucao: string; seta: string }[] = [
-  { key: 'frontal', label: 'Frontal', instrucao: 'Olhe diretamente para a camera', seta: '\u2B06' },
-  { key: 'esquerda', label: 'Esquerda', instrucao: 'Vire levemente para a esquerda', seta: '\u2B05' },
-  { key: 'direita', label: 'Direita', instrucao: 'Vire levemente para a direita', seta: '\u27A1' },
+export const POSES: { key: PoseType; label: string; instrucao: string; seta: string; dica: string }[] = [
+  { key: 'frontal', label: 'Frontal', instrucao: 'Olhe diretamente para a camera', seta: '\u2B06', dica: 'Mantenha o rosto centralizado e olhe para a camera' },
+  { key: 'esquerda', label: 'Esquerda', instrucao: 'Vire levemente para a esquerda', seta: '\u2B05', dica: 'Gire o rosto suavemente, mantenha os olhos visiveis' },
+  { key: 'direita', label: 'Direita', instrucao: 'Vire levemente para a direita', seta: '\u27A1', dica: 'Gire o rosto suavemente, mantenha os olhos visiveis' },
 ]
 
-export const TAMANHO_MINIMO_ROSTO = 15
-export const AMOSTRAS_POR_POSE = 3
+/** Tamanho minimo do rosto na tela (% da largura do video) */
+export const TAMANHO_MINIMO_ROSTO = 20
+
+/** Amostras necessarias por pose antes de capturar */
+export const AMOSTRAS_POR_POSE = 5
+
+/** Qualidade minima de deteccao para aceitar amostra */
+export const QUALIDADE_MINIMA = 0.7
+
+/** Tempo (ms) que as condicoes devem estar boas para auto-captura */
+export const AUTO_CAPTURA_DELAY_MS = 1500

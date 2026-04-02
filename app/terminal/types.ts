@@ -4,7 +4,7 @@ export interface AlunoEmMemoria {
   codigo: string | null
   serie: string | null
   turma_codigo: string | null
-  descriptor: Float32Array
+  descriptors: Float32Array[]
 }
 
 export interface RegistroLocal {

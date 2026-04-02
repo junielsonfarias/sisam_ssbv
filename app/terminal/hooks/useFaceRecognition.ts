@@ -49,9 +49,9 @@ export function useFaceRecognition({
 
     const faceapi = faceapiRef.current
 
-    // Clonar descriptors para evitar corrupção de referência
+    // Clonar descriptors para evitar corrupção de referência (suporta múltiplos por aluno)
     const labeledDescriptors = alunos.map(a =>
-      new faceapi.LabeledFaceDescriptors(a.aluno_id, [new Float32Array(a.descriptor)])
+      new faceapi.LabeledFaceDescriptors(a.aluno_id, a.descriptors.map(d => new Float32Array(d)))
     )
     // Thresholds ajustados para webcam com iluminação variável
     // face-api.js euclidean distance: <0.4 = muito similar, 0.4-0.6 = provável, >0.6 = incerto
@@ -82,7 +82,7 @@ export function useFaceRecognition({
         if (!canvas) return
 
         const detections = await faceapi
-          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
+          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.65 }))
           .withFaceLandmarks(true)
           .withFaceDescriptors()
 

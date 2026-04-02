@@ -47,6 +47,20 @@ export async function POST(request: NextRequest) {
 
     const aluno = alunoResult.rows[0]
 
+    // Verificar consentimento facial ativo (LGPD)
+    const consentimentoResult = await pool.query(
+      `SELECT id FROM consentimentos_faciais
+       WHERE aluno_id = $1 AND consentido = true AND data_revogacao IS NULL`,
+      [aluno_id]
+    )
+
+    if (consentimentoResult.rows.length === 0) {
+      return NextResponse.json(
+        { mensagem: 'Aluno sem consentimento facial ativo' },
+        { status: 403 }
+      )
+    }
+
     // Extrair data e hora no fuso local (não UTC)
     const { data, hora } = extrairDataHoraLocal(timestamp)
 

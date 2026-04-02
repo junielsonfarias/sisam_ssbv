@@ -50,6 +50,7 @@ class FacialRecognizer:
     def carregar_alunos(self, alunos_data: list):
         """
         Carrega embeddings dos alunos a partir dos dados da API/cache.
+        Suporta embeddings simples (128 floats) ou múltiplos concatenados (N*128 floats).
 
         Args:
             alunos_data: Lista de dicts com 'aluno_id', 'nome', 'embedding_base64'
@@ -67,18 +68,27 @@ class FacialRecognizer:
                     continue
 
                 embedding_bytes = base64.b64decode(embedding_b64)
-                embedding = np.frombuffer(embedding_bytes, dtype=np.float32).copy()
+                all_floats = np.frombuffer(embedding_bytes, dtype=np.float32).copy()
 
-                # Normalizar para comparação cosseno mais eficiente
-                norma = np.linalg.norm(embedding)
-                if norma > 0:
-                    embedding = embedding / norma
+                # Suporta 1 embedding (128 floats) ou múltiplos concatenados (N*128)
+                num_embeddings = len(all_floats) // 128
+                if num_embeddings == 0 or len(all_floats) % 128 != 0:
+                    erros += 1
+                    continue
+
+                embeddings = []
+                for i in range(num_embeddings):
+                    emb = all_floats[i * 128:(i + 1) * 128]
+                    norma = np.linalg.norm(emb)
+                    if norma > 0:
+                        emb = emb / norma
+                    embeddings.append(emb)
 
                 self.alunos[aluno_id] = {
                     'nome': aluno.get('nome', 'Desconhecido'),
                     'codigo': aluno.get('codigo'),
                     'turma_id': aluno.get('turma_id'),
-                    'embedding': embedding,
+                    'embeddings': embeddings,
                 }
             except Exception as e:
                 logger.warning('Erro ao carregar aluno %s: %s', aluno.get('aluno_id'), e)
@@ -133,18 +143,19 @@ class FacialRecognizer:
             embedding = embedding / norma
 
         # Comparar com todos os alunos — similaridade cosseno
+        # Suporta múltiplos embeddings por aluno (melhor match entre todos)
         melhor_id = None
         melhor_score = -1.0
         melhor_nome = None
 
         for aluno_id, dados in self.alunos.items():
-            # Com vetores normalizados, dot product = similaridade cosseno
-            score = float(np.dot(embedding, dados['embedding']))
-
-            if score > melhor_score:
-                melhor_score = score
-                melhor_id = aluno_id
-                melhor_nome = dados['nome']
+            for emb in dados['embeddings']:
+                # Com vetores normalizados, dot product = similaridade cosseno
+                score = float(np.dot(embedding, emb))
+                if score > melhor_score:
+                    melhor_score = score
+                    melhor_id = aluno_id
+                    melhor_nome = dados['nome']
 
         # Converter para confiança (0-1, clamp)
         confianca = max(0.0, min(1.0, melhor_score))

@@ -115,13 +115,13 @@ export interface EmbeddingLocal {
   atualizado_em: string
 }
 
-export async function salvarEmbeddings(embeddings: EmbeddingLocal[]): Promise<number> {
+export async function salvarEmbeddings(embeddings: EmbeddingLocal[], fullSync = false): Promise<number> {
   const db = await openDB()
   const tx = db.transaction(STORES.EMBEDDINGS, 'readwrite')
   const store = tx.objectStore(STORES.EMBEDDINGS)
 
-  // Limpar embeddings antigos e inserir novos
-  store.clear()
+  // Limpar apenas em sync completa — em incremental, faz upsert individual
+  if (fullSync) store.clear()
   for (const emb of embeddings) {
     store.put(emb)
   }
@@ -265,29 +265,50 @@ export async function sincronizarPresencas(apiUrl: string, _token: string): Prom
   let enviados = 0
   let erros = 0
   const idsEnviados: number[] = []
+  const baseUrl = apiUrl || (typeof window !== 'undefined' ? window.location.origin : '')
 
-  // Enviar cada presença individualmente via endpoint JWT
-  for (const p of pendentes) {
+  // Tentar envio em lote primeiro (mais eficiente)
+  const BATCH_SIZE = 50
+  for (let i = 0; i < pendentes.length; i += BATCH_SIZE) {
+    const chunk = pendentes.slice(i, i + BATCH_SIZE)
+    const registros = chunk.map(p => ({
+      aluno_id: p.aluno_id,
+      timestamp: p.timestamp,
+      confianca: p.confianca,
+    }))
+
     try {
-      const res = await fetch(`${apiUrl}/api/admin/facial/presenca-terminal`, {
+      const res = await fetch(`${baseUrl}/api/admin/facial/presenca-terminal/lote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          aluno_id: p.aluno_id,
-          timestamp: p.timestamp,
-          confianca: p.confianca,
-        }),
+        body: JSON.stringify({ registros }),
       })
 
       if (res.ok) {
-        enviados++
-        if (p.id) idsEnviados.push(p.id)
+        const data = await res.json()
+        enviados += (data.inseridos || 0) + (data.atualizados || 0)
+        erros += data.erros || 0
+        for (const p of chunk) { if (p.id) idsEnviados.push(p.id) }
+      } else if (res.status === 404) {
+        // Endpoint lote não existe — fallback para envio individual
+        for (const p of chunk) {
+          try {
+            const r = await fetch(`${baseUrl}/api/admin/facial/presenca-terminal`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ aluno_id: p.aluno_id, timestamp: p.timestamp, confianca: p.confianca }),
+            })
+            if (r.ok) { enviados++; if (p.id) idsEnviados.push(p.id) }
+            else erros++
+          } catch { erros++ }
+        }
       } else {
-        erros++
+        erros += chunk.length
       }
     } catch {
-      erros++
+      erros += chunk.length
     }
   }
 
@@ -312,6 +333,18 @@ export async function sincronizarPresencas(apiUrl: string, _token: string): Prom
   }
 
   return { enviados, erros }
+}
+
+export async function removerEmbeddings(alunoIds: string[]): Promise<number> {
+  if (alunoIds.length === 0) return 0
+  const db = await openDB()
+  const tx = db.transaction(STORES.EMBEDDINGS, 'readwrite')
+  const store = tx.objectStore(STORES.EMBEDDINGS)
+  for (const id of alunoIds) store.delete(id)
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve(alunoIds.length)
+    tx.onerror = () => reject(tx.error)
+  })
 }
 
 export async function baixarEmbeddings(
@@ -346,5 +379,15 @@ export async function baixarEmbeddings(
       atualizado_em: new Date().toISOString(),
     }))
 
-  return await salvarEmbeddings(embeddings)
+  // Primeira carga = sync completa; re-syncs = incremental
+  const existentes = await contarEmbeddings()
+  const fullSync = existentes === 0
+  const count = await salvarEmbeddings(embeddings, fullSync)
+
+  // Remover alunos que foram desativados/removidos (se a API retornar)
+  if (data.removidos?.length > 0) {
+    await removerEmbeddings(data.removidos)
+  }
+
+  return count
 }

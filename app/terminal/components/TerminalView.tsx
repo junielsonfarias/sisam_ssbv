@@ -194,8 +194,13 @@ export function TerminalView({
                     for (const emb of embsLocais) {
                       try {
                         const bytes = Uint8Array.from(atob(emb.embedding_base64.replace(/\s/g, '')), c => c.charCodeAt(0))
-                        const descriptor = new Float32Array(bytes.buffer)
-                        novosAlunos.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptor })
+                        const allFloats = new Float32Array(bytes.buffer)
+                        if (allFloats.length !== 128 && allFloats.length !== 384) continue
+                        const descriptors: Float32Array[] = []
+                        for (let i = 0; i < allFloats.length; i += 128) {
+                          descriptors.push(new Float32Array(allFloats.buffer, i * 4, 128))
+                        }
+                        novosAlunos.push({ aluno_id: emb.aluno_id, nome: emb.nome, codigo: emb.codigo, serie: emb.serie, turma_codigo: emb.turma_codigo, descriptors })
                       } catch {
                         // Expected: skip individual invalid embeddings
                       }

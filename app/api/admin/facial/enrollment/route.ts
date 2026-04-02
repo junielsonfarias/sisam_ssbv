@@ -5,6 +5,7 @@ import { enrollmentFacialSchema } from '@/lib/schemas'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { cacheDelPattern } from '@/lib/cache/redis'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,6 +114,12 @@ export async function POST(request: NextRequest) {
       [aluno_id, embeddingBuffer, qualidade || null, usuario.id]
     )
 
+    // Invalidar cache de embeddings da escola do aluno
+    const escolaResult = await pool.query('SELECT escola_id FROM alunos WHERE id = $1', [aluno_id])
+    if (escolaResult.rows[0]?.escola_id) {
+      await cacheDelPattern(`facial:embeddings:${escolaResult.rows[0].escola_id}:*`)
+    }
+
     return NextResponse.json({
       mensagem: 'Embedding facial cadastrado com sucesso',
       id: result.rows[0].id,
@@ -152,8 +159,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: 'aluno_id é obrigatório' }, { status: 400 })
     }
 
+    // Buscar escola antes de deletar para invalidar cache
+    const escolaResult = await pool.query('SELECT escola_id FROM alunos WHERE id = $1', [alunoId])
+
     // Deletar embedding
     await pool.query('DELETE FROM embeddings_faciais WHERE aluno_id = $1', [alunoId])
+
+    // Invalidar cache
+    if (escolaResult.rows[0]?.escola_id) {
+      await cacheDelPattern(`facial:embeddings:${escolaResult.rows[0].escola_id}:*`)
+    }
 
     return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {

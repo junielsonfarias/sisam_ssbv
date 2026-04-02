@@ -159,13 +159,26 @@ const nextConfig = {
     // Lint warnings não devem bloquear o build de produção
     ignoreDuringBuilds: true,
   },
-  // Headers de cache para assets estáticos
+  // Headers de cache e permissões
   async headers() {
     return [
       {
         source: '/models/face-api/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=7776000, immutable' }, // 90 dias
+        ],
+      },
+      // Permitir camera nas rotas admin (SPA compartilha headers entre navegações client-side)
+      {
+        source: '/admin/:path*',
+        headers: [
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
+        ],
+      },
+      {
+        source: '/terminal/:path*',
+        headers: [
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
         ],
       },
     ]
