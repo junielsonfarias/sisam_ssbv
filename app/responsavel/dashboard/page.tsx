@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, BookOpen, CalendarCheck, Bell, LogOut, GraduationCap, TrendingUp, AlertTriangle, MessageCircle } from 'lucide-react'
+import { Users, BookOpen, CalendarCheck, Bell, LogOut, GraduationCap, TrendingUp, AlertTriangle, MessageCircle, Calendar, ClipboardList } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Filho {
@@ -75,13 +75,17 @@ export default function DashboardResponsavel() {
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => router.push('/responsavel/calendario')}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors" title="Calendario">
+                <Calendar className="w-5 h-5" />
+              </button>
               <button onClick={() => router.push('/responsavel/mensagens')}
-                className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors relative">
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors" title="Mensagens">
                 <MessageCircle className="w-5 h-5" />
               </button>
               <button onClick={sair}
-                className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors">
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors" title="Sair">
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
