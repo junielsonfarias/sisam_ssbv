@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import LayoutDashboard from '@/components/layout-dashboard'
 import LoadingContent from '@/components/loading-content'
 import BottomNavigation from '@/components/bottom-navigation'
+import { AppUpdateChecker } from '@/components/app-update-checker'
 import { LayoutDashboard as DashboardIcon, Users, BookOpen, GraduationCap, User } from 'lucide-react'
 
 const MENU_MOBILE = [
@@ -25,6 +26,7 @@ export default function AdminLayout({
         {children}
       </Suspense>
       <BottomNavigation items={MENU_MOBILE} />
+      <AppUpdateChecker />
     </LayoutDashboard>
   )
 }

@@ -4,6 +4,7 @@ import { Suspense, useEffect } from 'react'
 import LayoutDashboard from '@/components/layout-dashboard'
 import LoadingContent from '@/components/loading-content'
 import BottomNavigation from '@/components/bottom-navigation'
+import { AppUpdateChecker } from '@/components/app-update-checker'
 import { LayoutDashboard as DashboardIcon, Users, CalendarCheck, BookOpen, User } from 'lucide-react'
 
 const MENU_MOBILE_PROFESSOR = [
@@ -42,6 +43,7 @@ export default function ProfessorLayout({
         {children}
       </Suspense>
       <BottomNavigation items={MENU_MOBILE_PROFESSOR} />
+      <AppUpdateChecker />
     </LayoutDashboard>
   )
 }
