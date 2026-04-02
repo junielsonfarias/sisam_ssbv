@@ -239,7 +239,9 @@ export const TIPOS_USUARIO = {
   ADMINISTRADOR: 'administrador',
   TECNICO: 'tecnico',
   POLO: 'polo',
-  ESCOLA: 'escola'
+  ESCOLA: 'escola',
+  PROFESSOR: 'professor',
+  RESPONSAVEL: 'responsavel',
 } as const
 
 /**

@@ -111,6 +111,7 @@ export default function UsuariosPage() {
       professor: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200',
       editor: 'bg-pink-100 dark:bg-pink-900/50 text-pink-800 dark:text-pink-200',
       publicador: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200',
+      responsavel: 'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200',
     }
     return colors[tipoNormalizado as TipoUsuario] || 'bg-gray-100 text-gray-800'
   }
@@ -125,6 +126,7 @@ export default function UsuariosPage() {
       professor: 'Professor',
       editor: 'Editor de Notícias',
       publicador: 'Publicador',
+      responsavel: 'Responsável',
     }
     return labels[tipoNormalizado as TipoUsuario] || tipo
   }

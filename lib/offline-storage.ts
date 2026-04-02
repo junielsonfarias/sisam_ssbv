@@ -21,7 +21,7 @@ const STORAGE_KEYS = {
 }
 
 // ========== MÓDULO ATIVO ==========
-export type ModuloAtivo = 'educatec' | 'gestor' | 'professor'
+export type ModuloAtivo = 'educatec' | 'gestor' | 'professor' | 'responsavel'
 
 export function saveModuloAtivo(modulo: ModuloAtivo): void {
   localStorage.setItem(STORAGE_KEYS.MODULO_ATIVO, modulo)

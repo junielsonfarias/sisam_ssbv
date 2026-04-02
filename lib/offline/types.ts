@@ -2,7 +2,7 @@
  * Tipos e interfaces para armazenamento offline
  */
 
-export type ModuloAtivo = 'educatec' | 'gestor' | 'professor'
+export type ModuloAtivo = 'educatec' | 'gestor' | 'professor' | 'responsavel'
 
 export interface OfflineUser {
   id: string

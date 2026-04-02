@@ -163,9 +163,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar tipo_usuario
-    const tiposValidos = ['administrador', 'tecnico', 'polo', 'escola', 'professor', 'editor']
+    const tiposValidos = ['administrador', 'tecnico', 'polo', 'escola', 'professor', 'editor', 'publicador', 'responsavel']
     const tipoUsuario = String(usuario.tipo_usuario || '').toLowerCase()
-    
+
     if (!tipoUsuario || !tiposValidos.includes(tipoUsuario)) {
       log.error(`Tipo de usuário inválido: ${usuario.tipo_usuario} (normalizado: ${tipoUsuario})`)
       return NextResponse.json(
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     const tokenPayload = {
       userId: String(usuario.id),
       email: String(usuario.email),
-      tipoUsuario: tipoUsuario as 'administrador' | 'tecnico' | 'polo' | 'escola' | 'professor' | 'editor',
+      tipoUsuario: tipoUsuario as 'administrador' | 'tecnico' | 'polo' | 'escola' | 'professor' | 'editor' | 'publicador' | 'responsavel',
       poloId: usuario.polo_id ? String(usuario.polo_id) : null,
       escolaId: usuario.escola_id ? String(usuario.escola_id) : null,
     }
