@@ -5,10 +5,11 @@ const config: CapacitorConfig = {
   appName: 'SISAM',
   webDir: 'out',
   server: {
-    // Produção: carrega do servidor remoto (PWA cacheia para offline)
-    url: 'https://educacaossbv.com.br',
-    // Dev: descomentar a linha abaixo e comentar a de cima
-    // url: 'http://localhost:3000',
+    // Abre direto no login — professor vai para /professor, operador para /terminal
+    // Nunca carrega o site institucional
+    url: 'https://educacaossbv.com.br/login',
+    // Dev: descomentar abaixo e comentar acima
+    // url: 'http://localhost:3000/login',
     // cleartext: true,
   },
   plugins: {
@@ -27,12 +28,9 @@ const config: CapacitorConfig = {
       resize: 'body',
       style: 'DARK',
     },
-    App: {
-      // Deep links para abrir telas específicas
-    },
   },
   android: {
-    allowMixedContent: true,
+    allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
   },

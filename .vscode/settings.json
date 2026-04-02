@@ -1,4 +1,7 @@
 {
     "git.ignoreLimitWarning": true,
-    "npm.packageManager": "npm"
+    "npm.packageManager": "npm",
+    "files.exclude": {
+        "android": true
+    }
 }
