@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { Suspense, useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import ProtectedRoute from '@/components/protected-route'
 import { ArrowLeft, MessageCircle, Send, User, Plus, Search } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Thread {
-  id: string; aluno_nome: string; aluno_codigo: string; serie: string
+  id: string; aluno_id: string; responsavel_id: string
+  aluno_nome: string; aluno_codigo: string; serie: string
   responsavel_nome: string; tipo_vinculo: string
   ultima_mensagem: string; ultima_mensagem_em: string; ultimo_remetente: string
   nao_lido_professor: number
@@ -30,7 +31,11 @@ function formatarHora(iso: string) {
   } catch { return '' }
 }
 
-export default function MensagensProfessor() {
+export default function MensagensProfessorWrapper() {
+  return <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center"><LoadingSpinner centered /></div>}><MensagensProfessor /></Suspense>
+}
+
+function MensagensProfessor() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const threadId = searchParams.get('thread_id')
@@ -91,37 +96,8 @@ export default function MensagensProfessor() {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          thread_id: threadId,
-          aluno_id: threadAtual.aluno_nome, // Para compatibilidade, enviamos via thread existente
-          responsavel_id: threadAtual.responsavel_nome,
-          conteudo: texto.trim(),
-        }),
-      })
-      if (res.ok) {
-        setTexto('')
-        carregarMensagens()
-      }
-    } catch { /* offline */ } finally { setEnviando(false) }
-  }
-
-  // Envio direto usando aluno_id e responsavel_id do thread
-  const enviarNoThread = async () => {
-    if (!texto.trim() || !threadId || enviando) return
-    setEnviando(true)
-    try {
-      // Buscar dados do thread para obter aluno_id e responsavel_id
-      const tRes = await fetch('/api/professor/mensagens', { credentials: 'include' })
-      if (!tRes.ok) { setEnviando(false); return }
-      const tData = await tRes.json()
-      const thread = (tData.threads || []).find((t: any) => t.id === threadId)
-      if (!thread) { setEnviando(false); return }
-
-      const res = await fetch('/api/professor/mensagens', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          aluno_id: thread.aluno_id,
-          responsavel_id: thread.responsavel_id,
+          aluno_id: threadAtual.aluno_id,
+          responsavel_id: threadAtual.responsavel_id,
           conteudo: texto.trim(),
         }),
       })
@@ -190,13 +166,13 @@ export default function MensagensProfessor() {
               <textarea
                 value={texto}
                 onChange={e => setTexto(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarNoThread() } }}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem() } }}
                 placeholder="Digite sua mensagem..."
                 rows={1}
                 className="flex-1 resize-none border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white rounded-2xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-gray-400"
                 style={{ maxHeight: '120px' }}
               />
-              <button onClick={enviarNoThread} disabled={!texto.trim() || enviando}
+              <button onClick={enviarMensagem} disabled={!texto.trim() || enviando}
                 className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-emerald-600 text-white disabled:bg-gray-300 dark:disabled:bg-slate-600 transition-colors">
                 {enviando ? <LoadingSpinner /> : <Send className="w-4 h-4" />}
               </button>

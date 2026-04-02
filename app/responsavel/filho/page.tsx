@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, BookOpen, CalendarCheck, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -13,7 +13,11 @@ interface Disciplina { id: string; nome: string; codigo: string; abreviacao: str
 interface Periodo { id: string; nome: string; numero: number }
 interface Frequencia { bimestre: number; aulas_dadas: number; faltas: number; percentual_frequencia: number; periodo_nome: string }
 
-export default function FilhoPage() {
+export default function FilhoPageWrapper() {
+  return <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center"><LoadingSpinner centered /></div>}><FilhoPage /></Suspense>
+}
+
+function FilhoPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const alunoId = searchParams.get('id')

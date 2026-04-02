@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { Suspense, useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, MessageCircle, Send, User, Clock } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -28,7 +28,11 @@ function formatarHora(iso: string) {
   } catch { return '' }
 }
 
-export default function MensagensResponsavel() {
+export default function MensagensResponsavelWrapper() {
+  return <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center"><LoadingSpinner centered /></div>}><MensagensResponsavel /></Suspense>
+}
+
+function MensagensResponsavel() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const threadId = searchParams.get('thread_id')

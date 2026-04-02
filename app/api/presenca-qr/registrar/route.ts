@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
-import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import { z } from 'zod'
+import { checkRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +19,14 @@ const registrarSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 10 tentativas por minuto por IP
+    const clientIP = getClientIP(request)
+    const rateLimitKey = createRateLimitKey(clientIP, 'qr-presenca')
+    const rateResult = checkRateLimit(rateLimitKey, 10, 60 * 1000)
+    if (!rateResult.allowed) {
+      return NextResponse.json({ mensagem: 'Muitas tentativas. Aguarde um momento.' }, { status: 429 })
+    }
+
     const body = await request.json()
     const parsed = registrarSchema.safeParse(body)
     if (!parsed.success) {
