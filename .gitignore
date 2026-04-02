@@ -175,6 +175,18 @@ database/corrigir-*.sql
 database/migration-unificar-*.sql
 database/popular-*.sql
 
+# Capacitor — builds e artefatos gerados
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+android/app/src/main/assets/public/
+ios/App/Pods/
+ios/App/build/
+
+# Manuais PDF gerados (regenerar com: node docs/manuais/gerar-pdfs.js)
+docs/manuais/pdf/
+
 # Claude Code (arquivos temporarios e configurações locais)
 tmpclaude-*
 .claude/settings.local.json
