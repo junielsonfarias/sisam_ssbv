@@ -451,7 +451,7 @@ export default function RelatoriosPdfPage() {
 
             <div className="p-6 print:p-4 space-y-4">
               {dadosRelatorio.turma && (
-                <div className="grid grid-cols-3 gap-3 text-sm border-b pb-3 dark:border-slate-700">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm border-b pb-3 dark:border-slate-700">
                   <div><span className="text-gray-500">Turma:</span> <p className="font-medium">{dadosRelatorio.turma.codigo}</p></div>
                   <div><span className="text-gray-500">Série:</span> <p className="font-medium">{formatSerie(dadosRelatorio.turma.serie)}</p></div>
                   <div><span className="text-gray-500">Data:</span> <p className="font-medium">{dadosRelatorio.data_conselho ? new Date(dadosRelatorio.data_conselho).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}</p></div>
@@ -504,7 +504,7 @@ export default function RelatoriosPdfPage() {
 
             <div className="p-6 print:p-4 text-center text-xs text-gray-500 border-t dark:border-slate-700">
               <p>Ata gerada em {new Date().toLocaleDateString('pt-BR')}</p>
-              <div className="grid grid-cols-3 gap-8 pt-8 print:pt-16">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-8 print:pt-16">
                 <div className="text-center"><div className="border-t border-gray-400 w-full mb-1"></div><span>Presidente do Conselho</span></div>
                 <div className="text-center"><div className="border-t border-gray-400 w-full mb-1"></div><span>Secretário(a)</span></div>
                 <div className="text-center"><div className="border-t border-gray-400 w-full mb-1"></div><span>Diretor(a)</span></div>

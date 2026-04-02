@@ -271,7 +271,7 @@ export default function AbaVisaoGeral({ dados, pesquisaRealizada, filtroSerie, f
                   </ResponsiveContainer>
                 </div>
                 {/* Cards de resumo por faixa */}
-                <div className="grid grid-cols-5 gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
                   {dados.faixasNota.map((item: any, index: number) => {
                     const pct = totalAlunos > 0 ? ((item.quantidade / totalAlunos) * 100).toFixed(1) : '0'
                     const info = faixaLabels[item.faixa] || { label: item.faixa, desc: '' }

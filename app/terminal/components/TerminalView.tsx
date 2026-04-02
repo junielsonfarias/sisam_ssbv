@@ -117,7 +117,7 @@ export function TerminalView({
 
         {/* Mensagem de erro */}
         {mensagem && !mostrarConfirmacao && (
-          <div className={`absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl text-xl font-bold shadow-2xl ${
+          <div className={`absolute bottom-8 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl text-base sm:text-xl font-bold shadow-2xl text-center ${
             mensagemTipo === 'erro' ? 'bg-red-600' : 'bg-blue-600'
           }`}>
             {mensagemTipo === 'erro' && <AlertCircle className="w-6 h-6 inline mr-2 -mt-1" />}

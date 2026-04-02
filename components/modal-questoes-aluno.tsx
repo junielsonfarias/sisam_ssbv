@@ -290,7 +290,7 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                 )}
 
                 {/* Estatísticas Gerais - Compacto */}
-                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                   <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded p-2 border border-indigo-200 dark:border-indigo-800">
                     <p className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 font-medium">Total</p>
                     <p className="text-lg sm:text-xl font-bold text-indigo-900 dark:text-indigo-100">{dados.estatisticas.total}</p>
@@ -350,7 +350,7 @@ function ModalQuestoesAluno({ alunoId, anoLetivo, mediaAluno, notasDisciplinas, 
                         <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                         <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Níveis por Disciplina</h4>
                       </div>
-                      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                         {/* Nível LP */}
                         <div className="text-center bg-white dark:bg-slate-800 rounded p-1.5 sm:p-2 border border-indigo-100 dark:border-indigo-700">
                           <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">LP</p>

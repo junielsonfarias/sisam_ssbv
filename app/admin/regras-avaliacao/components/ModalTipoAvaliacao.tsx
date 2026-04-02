@@ -96,7 +96,7 @@ export function ModalTipoAvaliacao({
           </div>
 
           {(formTipo.tipo_resultado === 'numerico' || formTipo.tipo_resultado === 'misto') && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Nota Minima</label>
                 <input

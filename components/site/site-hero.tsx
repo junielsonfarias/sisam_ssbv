@@ -92,7 +92,7 @@ export default function SiteHero({ data }: SiteHeroProps) {
             </div>
 
             {/* Stats bar */}
-            <div className="grid grid-cols-3 gap-4 sm:flex sm:flex-wrap sm:gap-14 border-t border-slate-200/80 pt-6 sm:pt-8">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-14 border-t border-slate-200/80 pt-6 sm:pt-8">
               {[
                 { value: '30+', label: 'Escolas' },
                 { value: '5.000+', label: 'Alunos' },

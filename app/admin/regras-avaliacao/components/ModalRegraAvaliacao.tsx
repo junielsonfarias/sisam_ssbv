@@ -102,7 +102,7 @@ export function ModalRegraAvaliacao({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Media Aprovacao</label>
               <input

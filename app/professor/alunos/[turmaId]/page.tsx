@@ -115,7 +115,7 @@ function ListaAlunos() {
       {resumo && resumo.media_turma !== null && (
         <div className="space-y-4">
           {/* Cards resumo */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-blue-500" />

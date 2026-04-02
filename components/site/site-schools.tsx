@@ -86,7 +86,7 @@ export default function SiteSchools({ data, escolas }: SiteSchoolsProps) {
           <div className="flex justify-center mt-10">
             <button
               onClick={() => setShowAll(false)}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-full border-2 border-slate-200 text-slate-500 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all duration-300"
+              className="inline-flex items-center gap-2 px-5 sm:px-8 py-3 sm:py-4 rounded-full border-2 border-slate-200 text-slate-500 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all duration-300"
             >
               Mostrar menos
             </button>

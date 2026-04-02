@@ -118,7 +118,7 @@ export default function TransparenciaPage() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="bg-blue-50 rounded-2xl p-5 text-center">
             <School className="w-6 h-6 text-blue-600 mx-auto mb-2" />
             <p className="text-2xl font-extrabold text-blue-700">{escolasFiltradas.length}</p>

@@ -279,7 +279,7 @@ function ModalTurmas({ data }: { data: DashboardData }) {
 function ModalMedia({ data }: { data: DashboardData }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3 text-center">
           <p className="text-2xl font-bold">{data.notas.media_geral.toFixed(1)}</p>
           <p className="text-xs text-gray-500">Media Geral</p>
@@ -374,7 +374,7 @@ function ModalTransferencias({ data }: { data: DashboardData }) {
           <p className="text-sm text-gray-500">Entradas</p>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3 text-center">
           <p className="text-xl font-bold">{data.transferencias.dentro_municipio}</p>
           <p className="text-xs text-gray-500">Dentro municipio</p>

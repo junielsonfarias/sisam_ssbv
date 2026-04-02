@@ -131,7 +131,7 @@ export default function GraficoNiveis({
             </BarChart>
           </ResponsiveContainer>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
               <p className="text-xs text-green-600 dark:text-green-400 font-medium">Anos Iniciais (2º, 3º, 5º)</p>
               <p className="text-lg font-bold text-green-700 dark:text-green-300">

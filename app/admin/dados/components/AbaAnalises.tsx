@@ -141,7 +141,7 @@ export default function AbaAnalises({
                     <p className="text-xs text-gray-500 dark:text-gray-400">Nota Maxima</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
                     <p className="text-xl font-bold text-red-600 dark:text-red-400">{estatisticasProducao.faixas.baixa}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Abaixo de 4</p>

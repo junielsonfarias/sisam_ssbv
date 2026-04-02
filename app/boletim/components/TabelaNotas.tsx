@@ -85,7 +85,7 @@ export default function TabelaNotas({
                       Média: {media !== null ? media.toFixed(1) : '-'}
                     </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {periodos.map(p => {
                       const celula = notasDisc[p.numero]
                       const temNota = celula?.nota_final !== null && celula?.nota_final !== undefined
@@ -193,7 +193,7 @@ export default function TabelaNotas({
                     {nivelBadge(av.nivel)}
                   </div>
                 </div>
-                <div className={`grid ${isIniciais ? 'grid-cols-4' : 'grid-cols-5'} gap-1.5`}>
+                <div className={`grid ${isIniciais ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'} gap-1.5`}>
                   <div className={`text-center py-1.5 rounded-lg ${notaBg(av.nota_lp)}`}>
                     <div className="text-[9px] text-slate-400 font-medium">LP</div>
                     <div className={`text-sm font-bold ${notaColor(av.nota_lp)}`}>{av.nota_lp?.toFixed(1) ?? '-'}</div>

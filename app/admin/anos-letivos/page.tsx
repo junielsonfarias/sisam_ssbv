@@ -291,7 +291,7 @@ export default function AnosLetivosPage() {
                     )}
 
                     {/* Métricas */}
-                    <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
                       <div className="bg-gray-50 dark:bg-slate-700/40 rounded-lg px-3 py-2 text-center">
                         <Users className="w-4 h-4 text-blue-500 mx-auto mb-0.5" />
                         <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{ano.total_alunos}</p>
@@ -382,7 +382,7 @@ export default function AnosLetivosPage() {
                       Resumo dos alunos matriculados no ano letivo <strong>{modalFinalizar.ano}</strong>:
                     </p>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="bg-gray-50 dark:bg-slate-700/40 rounded-lg p-3 text-center">
                         <p className="text-xl font-bold text-gray-800 dark:text-gray-200">{resumoFinalizar.total}</p>
                         <p className="text-[11px] text-gray-500">Total</p>
@@ -532,7 +532,7 @@ export default function AnosLetivosPage() {
                           </span>
                           <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{bim.nome}</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-[10px] text-gray-500 mb-0.5">Início</label>
                             <input type="date" value={bim.data_inicio || ''} onChange={e => updateBimestre(idx, 'data_inicio', e.target.value)}

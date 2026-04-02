@@ -153,7 +153,7 @@ export function AbaSisam({ dados }: { dados: DadosAluno }) {
 
             {/* Resumo geral */}
             <div className="mt-5 pt-4 border-t border-gray-200 dark:border-slate-700">
-              <div className={`grid gap-4 ${isAnosFinais ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+              <div className={`grid gap-4 ${isAnosFinais ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
                 {/* Média Geral */}
                 <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-900/10 rounded-xl px-4 py-3 text-center">
                   <p className="text-[10px] text-indigo-500 dark:text-indigo-400 uppercase font-semibold">Média Geral</p>
