@@ -71,8 +71,9 @@ export default function PainelDados({
   const [carregando, setCarregando] = useState(true)
 
   // Filtro global de ano letivo e avaliação
+  // Padrão: 2025 (último ano com dados completos de notas e resultados)
   const anoAtual = new Date().getFullYear()
-  const [anoLetivo, setAnoLetivo] = useState<string>(anoAtual.toString())
+  const [anoLetivo, setAnoLetivo] = useState<string>('2025')
   const [anosDisponiveis, setAnosDisponiveis] = useState<string[]>([])
   const [avaliacoes, setAvaliacoes] = useState<{ id: string; nome: string; tipo: string }[]>([])
   const [avaliacaoId, setAvaliacaoId] = useState<string>('')
