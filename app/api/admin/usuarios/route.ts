@@ -27,7 +27,7 @@ export const dynamic = 'force-dynamic';
 // GET - Listar usuários
 export const GET = withAuth(['administrador'], async (request, usuario) => {
   const result = await pool.query(
-    `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, criado_em
+    `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, acesso_sisam, acesso_gestor, criado_em
      FROM usuarios
      ORDER BY nome`
   )
@@ -43,15 +43,15 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
       return validacao.response
     }
 
-    const { nome, email, senha, tipo_usuario, polo_id, escola_id } = validacao.data
+    const { nome, email, senha, tipo_usuario, polo_id, escola_id, acesso_sisam, acesso_gestor } = validacao.data
 
     const senhaHash = await hashPassword(senha)
 
     const result = await pool.query(
-      `INSERT INTO usuarios (nome, email, senha, tipo_usuario, polo_id, escola_id)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, nome, email, tipo_usuario, ativo, criado_em`,
-      [nome, email, senhaHash, tipo_usuario, polo_id || null, escola_id || null]
+      `INSERT INTO usuarios (nome, email, senha, tipo_usuario, polo_id, escola_id, acesso_sisam, acesso_gestor)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, nome, email, tipo_usuario, ativo, acesso_sisam, acesso_gestor, criado_em`,
+      [nome, email, senhaHash, tipo_usuario, polo_id || null, escola_id || null, acesso_sisam !== false, acesso_gestor === true]
     )
 
     log.info(`Usuário criado | ${email} (${tipo_usuario}) | por ${usuario.email}`)
@@ -80,7 +80,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
       return validacao.response
     }
 
-    const { id, nome, email, senha, tipo_usuario, polo_id, escola_id, ativo } = validacao.data
+    const { id, nome, email, senha, tipo_usuario, polo_id, escola_id, ativo, acesso_sisam, acesso_gestor } = validacao.data
 
     // Verificar se o usuário existe
     const usuarioExistente = await pool.query(
@@ -100,17 +100,17 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
       const senhaHash = await hashPassword(senha)
       await pool.query(
         `UPDATE usuarios
-         SET nome = $1, email = $2, senha = $3, tipo_usuario = $4, polo_id = $5, escola_id = $6, ativo = $7, atualizado_em = NOW()
-         WHERE id = $8`,
-        [nome, email, senhaHash, tipo_usuario, polo_id || null, escola_id || null, ativo !== false, id]
+         SET nome = $1, email = $2, senha = $3, tipo_usuario = $4, polo_id = $5, escola_id = $6, ativo = $7, acesso_sisam = $8, acesso_gestor = $9, atualizado_em = NOW()
+         WHERE id = $10`,
+        [nome, email, senhaHash, tipo_usuario, polo_id || null, escola_id || null, ativo !== false, acesso_sisam !== false, acesso_gestor === true, id]
       )
     } else {
       // Atualizar sem mudar a senha
       await pool.query(
         `UPDATE usuarios
-         SET nome = $1, email = $2, tipo_usuario = $3, polo_id = $4, escola_id = $5, ativo = $6, atualizado_em = NOW()
-         WHERE id = $7`,
-        [nome, email, tipo_usuario, polo_id || null, escola_id || null, ativo !== false, id]
+         SET nome = $1, email = $2, tipo_usuario = $3, polo_id = $4, escola_id = $5, ativo = $6, acesso_sisam = $7, acesso_gestor = $8, atualizado_em = NOW()
+         WHERE id = $9`,
+        [nome, email, tipo_usuario, polo_id || null, escola_id || null, ativo !== false, acesso_sisam !== false, acesso_gestor === true, id]
       )
     }
 
@@ -119,7 +119,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
 
     // Retornar usuário atualizado
     const result = await pool.query(
-      `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, criado_em
+      `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, acesso_sisam, acesso_gestor, criado_em
        FROM usuarios WHERE id = $1`,
       [id]
     )

@@ -20,20 +20,35 @@ export default function ModulosPage() {
     }
     setUsuario(user)
 
-    // Polo não tem Gestor Escolar — redirecionar direto
-    if (user.tipo_usuario === 'polo') {
+    // Determinar acesso do usuario aos modulos
+    const temSisam = user.acesso_sisam !== false
+    const temGestor = user.acesso_gestor === true
+
+    // Se tem acesso a apenas 1 modulo, redirecionar direto
+    if (temSisam && !temGestor) {
       offlineStorage.saveModuloAtivo('educatec')
-      router.push('/polo/dashboard')
+      const rota = user.tipo_usuario === 'polo' ? '/polo/dashboard'
+        : user.tipo_usuario === 'escola' ? '/escola/dashboard'
+        : user.tipo_usuario === 'tecnico' ? '/tecnico/dashboard'
+        : '/admin/dashboard'
+      router.push(rota)
       return
     }
 
-    // Escola sem Gestor Escolar habilitado — redirecionar direto para Educatec
-    if (user.tipo_usuario === 'escola' && !user.gestor_escolar_habilitado) {
-      offlineStorage.saveModuloAtivo('educatec')
-      router.push('/escola/dashboard')
+    if (!temSisam && temGestor) {
+      offlineStorage.saveModuloAtivo('gestor')
+      router.push('/admin/dashboard-gestor')
       return
     }
 
+    // Se nao tem acesso a nenhum (fallback)
+    if (!temSisam && !temGestor) {
+      offlineStorage.saveModuloAtivo('educatec')
+      router.push('/admin/dashboard')
+      return
+    }
+
+    // Tem acesso a ambos — mostrar selecao
     setCarregando(false)
   }, [router])
 

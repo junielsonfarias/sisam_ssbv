@@ -44,6 +44,10 @@ export interface Usuario {
   foto_url?: string | null;
   /** Se o usuário está ativo no sistema */
   ativo: boolean;
+  /** Acesso ao módulo SISAM (avaliações diagnósticas) */
+  acesso_sisam?: boolean;
+  /** Acesso ao módulo Gestor Escolar (gestão acadêmica) */
+  acesso_gestor?: boolean;
   /** Data de criação do registro */
   criado_em: Date;
   /** Data da última atualização */

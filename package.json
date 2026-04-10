@@ -20,6 +20,11 @@
     "cap:ios": "npx cap open ios",
     "cap:build:android": "npm run build && npx cap copy android",
     "cap:build:ios": "npm run build && npx cap copy ios",
+    "db:local": "npx supabase start",
+    "db:local:stop": "npx supabase stop",
+    "db:local:reset": "npx supabase db reset",
+    "db:local:studio": "echo 'Supabase Studio: http://127.0.0.1:54323'",
+    "db:local:status": "npx supabase status",
     "setup-db": "node scripts/setup-database.js",
     "seed": "node scripts/seed.js",
     "seed-supabase": "node scripts/seed-supabase.js",
@@ -149,6 +154,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.0",
+    "supabase": "^2.89.1",
     "vitest": "^4.1.0"
   }
 }

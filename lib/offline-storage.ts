@@ -49,6 +49,8 @@ export interface OfflineUser {
   polo_nome?: string
   escola_nome?: string
   gestor_escolar_habilitado?: boolean
+  acesso_sisam?: boolean
+  acesso_gestor?: boolean
 }
 
 export interface OfflinePolo {

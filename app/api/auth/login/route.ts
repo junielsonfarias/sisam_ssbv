@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       }
       
       result = await pool.query(
-        'SELECT id, nome, email, senha, tipo_usuario, polo_id, escola_id, ativo FROM usuarios WHERE email = $1 AND ativo = true',
+        'SELECT id, nome, email, senha, tipo_usuario, polo_id, escola_id, ativo, acesso_sisam, acesso_gestor FROM usuarios WHERE email = $1 AND ativo = true',
         [email.toLowerCase()]
       )
     } catch (dbError: any) {
@@ -239,6 +239,8 @@ export async function POST(request: NextRequest) {
         polo_id: usuario.polo_id,
         escola_id: usuario.escola_id,
         gestor_escolar_habilitado: gestorEscolarHabilitado,
+        acesso_sisam: usuario.acesso_sisam !== false,
+        acesso_gestor: usuario.acesso_gestor === true,
       },
     }
     

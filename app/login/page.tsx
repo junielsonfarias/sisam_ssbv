@@ -150,7 +150,9 @@ export default function LoginPage() {
         escola_id: data.usuario.escola_id,
         polo_nome: data.usuario.polo_nome,
         escola_nome: data.usuario.escola_nome,
-        gestor_escolar_habilitado: data.usuario.gestor_escolar_habilitado
+        gestor_escolar_habilitado: data.usuario.gestor_escolar_habilitado,
+        acesso_sisam: data.usuario.acesso_sisam,
+        acesso_gestor: data.usuario.acesso_gestor,
       })
 
       // Limpar cache antigo e sincronizar novos dados

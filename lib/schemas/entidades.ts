@@ -87,6 +87,8 @@ export const usuarioSchema = z.object({
   polo_id: uuidSchema.optional().nullable(),
   escola_id: uuidSchema.optional().nullable(),
   ativo: z.boolean().default(true),
+  acesso_sisam: z.boolean().default(true),
+  acesso_gestor: z.boolean().default(false),
 })
 
 /** Schema para criar/atualizar escola */

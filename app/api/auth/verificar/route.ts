@@ -71,6 +71,8 @@ export async function GET(request: NextRequest) {
         polo_id: usuario.polo_id,
         escola_id: usuario.escola_id,
         gestor_escolar_habilitado: gestorEscolarHabilitado,
+        acesso_sisam: usuario.acesso_sisam !== false,
+        acesso_gestor: usuario.acesso_gestor === true,
         ...(usuario.tipo_usuario === 'professor' && { professor_escolas: professorEscolas }),
       },
     })

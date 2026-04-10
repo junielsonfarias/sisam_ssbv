@@ -15,6 +15,8 @@ interface Usuario {
   polo_id: string | null
   escola_id: string | null
   ativo: boolean
+  acesso_sisam: boolean
+  acesso_gestor: boolean
 }
 
 interface Polo {
@@ -48,6 +50,8 @@ export default function UsuariosPage() {
     polo_id: '',
     escola_id: '',
     ativo: true,
+    acesso_sisam: true,
+    acesso_gestor: false,
   })
   const [salvando, setSalvando] = useState(false)
   const [excluindo, setExcluindo] = useState(false)
@@ -244,6 +248,8 @@ export default function UsuariosPage() {
       polo_id: '',
       escola_id: '',
       ativo: true,
+      acesso_sisam: true,
+      acesso_gestor: false,
     })
   }
 
@@ -258,6 +264,8 @@ export default function UsuariosPage() {
         polo_id: usuario.polo_id || '',
         escola_id: usuario.escola_id || '',
         ativo: usuario.ativo,
+        acesso_sisam: usuario.acesso_sisam !== false,
+        acesso_gestor: usuario.acesso_gestor === true,
       })
     } else {
       resetForm()
@@ -583,6 +591,45 @@ export default function UsuariosPage() {
                           </div>
                         </>
                       )}
+
+                      {/* Acesso aos Modulos */}
+                      <div className="p-3 bg-gray-50 dark:bg-slate-700 rounded-lg space-y-3">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Acesso aos Modulos</span>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm text-gray-700 dark:text-gray-300">SISAM</span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Avaliacoes diagnosticas</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, acesso_sisam: !formData.acesso_sisam })}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                              formData.acesso_sisam ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              formData.acesso_sisam ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm text-gray-700 dark:text-gray-300">Gestor Escolar</span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Gestao academica completa</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, acesso_gestor: !formData.acesso_gestor })}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                              formData.acesso_gestor ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              formData.acesso_gestor ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
 
                       {usuarioEditando && (
                         <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
