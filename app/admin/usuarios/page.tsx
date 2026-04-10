@@ -42,7 +42,7 @@ export default function UsuariosPage() {
   const [mostrarModalExcluir, setMostrarModalExcluir] = useState(false)
   const [usuarioParaExcluir, setUsuarioParaExcluir] = useState<Usuario | null>(null)
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null)
-  const [formData, setFormData] = useState({
+  const formDataInicial = {
     nome: '',
     email: '',
     senha: '',
@@ -52,7 +52,8 @@ export default function UsuariosPage() {
     ativo: true,
     acesso_sisam: true,
     acesso_gestor: false,
-  })
+  }
+  const [formData, setFormData] = useState(formDataInicial)
   const [salvando, setSalvando] = useState(false)
   const [excluindo, setExcluindo] = useState(false)
 
@@ -158,6 +159,8 @@ export default function UsuariosPage() {
         // Converter strings vazias para null (backend espera UUID válido ou null)
         polo_id: formData.polo_id || null,
         escola_id: formData.escola_id || null,
+        // Senha vazia = manter a atual (null para o schema aceitar)
+        senha: formData.senha?.trim() || null,
       }
 
       const response = await fetch('/api/admin/usuarios', {
@@ -240,17 +243,7 @@ export default function UsuariosPage() {
 
   const resetForm = () => {
     setUsuarioEditando(null)
-    setFormData({
-      nome: '',
-      email: '',
-      senha: '',
-      tipo_usuario: 'escola',
-      polo_id: '',
-      escola_id: '',
-      ativo: true,
-      acesso_sisam: true,
-      acesso_gestor: false,
-    })
+    setFormData(formDataInicial)
   }
 
   const handleAbrirModal = (usuario?: Usuario) => {
@@ -525,7 +518,11 @@ export default function UsuariosPage() {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Usuário *</label>
                         <select
                           value={formData.tipo_usuario}
-                          onChange={(e) => setFormData({ ...formData, tipo_usuario: e.target.value as TipoUsuario, polo_id: '', escola_id: '' })}
+                          onChange={(e) => {
+                            const tipo = e.target.value as TipoUsuario
+                            const gestorDefault = tipo === 'administrador' || tipo === 'tecnico'
+                            setFormData({ ...formData, tipo_usuario: tipo, polo_id: '', escola_id: '', acesso_gestor: gestorDefault })
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-slate-700"
                         >
                           <option value="escola">Escola</option>
