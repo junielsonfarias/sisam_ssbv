@@ -28,6 +28,26 @@ export const dynamic = 'force-dynamic'
  */
 export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
+    const { searchParams } = new URL(request.url)
+    const secao = searchParams.get('secao')
+
+    // Secao especifica
+    if (secao) {
+      const result = await pool.query(
+        `SELECT sc.id, sc.secao, sc.conteudo, sc.atualizado_por, sc.atualizado_em, sc.criado_em,
+                u.nome AS atualizado_por_nome
+         FROM site_config sc
+         LEFT JOIN usuarios u ON u.id = sc.atualizado_por
+         WHERE sc.secao = $1`,
+        [secao]
+      )
+      if (result.rows.length === 0) {
+        return NextResponse.json({ secao, conteudo: {} })
+      }
+      return NextResponse.json(result.rows[0])
+    }
+
+    // Todas as secoes
     const result = await pool.query(
       `SELECT sc.id, sc.secao, sc.conteudo, sc.atualizado_por, sc.atualizado_em, sc.criado_em,
               u.nome AS atualizado_por_nome
