@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const data = searchParams.get('data') || new Date().toISOString().split('T')[0]
     let escolaId = searchParams.get('escola_id')
     const turmaId = searchParams.get('turma_id')
+    const poloIdUsuario = usuario.tipo_usuario === 'polo' ? usuario.polo_id : null
 
     // Controle de acesso
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
@@ -40,6 +41,10 @@ export async function GET(request: NextRequest) {
     if (escolaId) {
       presencaQuery += ` AND escola_id = $${paramIdx}`
       presencaParams.push(escolaId)
+      paramIdx++
+    } else if (poloIdUsuario) {
+      presencaQuery += ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${paramIdx})`
+      presencaParams.push(poloIdUsuario)
       paramIdx++
     }
 
@@ -62,6 +67,10 @@ export async function GET(request: NextRequest) {
     if (escolaId) {
       alunosQuery += ` AND escola_id = $${alunoIdx}`
       alunosParams.push(escolaId)
+      alunoIdx++
+    } else if (poloIdUsuario) {
+      alunosQuery += ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${alunoIdx})`
+      alunosParams.push(poloIdUsuario)
       alunoIdx++
     }
 

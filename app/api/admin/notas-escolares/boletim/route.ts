@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
     // Buscar dados do aluno
     const alunoResult = await pool.query(
       `SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao,
-              e.nome as escola_nome, e.id as escola_id, t.codigo as turma_codigo, t.nome as turma_nome
+              e.nome as escola_nome, e.id as escola_id, e.polo_id,
+              t.codigo as turma_codigo, t.nome as turma_nome
        FROM alunos a
        INNER JOIN escolas e ON a.escola_id = e.id
        LEFT JOIN turmas t ON a.turma_id = t.id
@@ -48,6 +49,9 @@ export async function GET(request: NextRequest) {
 
     // Restrição de acesso
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id !== aluno.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id && aluno.polo_id !== usuario.polo_id) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 

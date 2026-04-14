@@ -30,7 +30,7 @@ export async function GET(
 ) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
@@ -38,6 +38,16 @@ export async function GET(
 
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id !== escolaId) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+    }
+
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+      const escolaCheck = await pool.query(
+        'SELECT polo_id FROM escolas WHERE id = $1',
+        [escolaId]
+      )
+      if (escolaCheck.rows.length === 0 || escolaCheck.rows[0].polo_id !== usuario.polo_id) {
+        return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+      }
     }
 
     // Buscar todas as séries com suas regras padrão e eventual override da escola

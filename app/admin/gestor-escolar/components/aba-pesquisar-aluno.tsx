@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Search, UserPlus, GraduationCap, User, School, MapPin, AlertCircle, CheckCircle, X, Eye } from 'lucide-react'
+import { Search, UserPlus, GraduationCap, User, School, MapPin, AlertCircle, CheckCircle, X, Eye, Filter } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useDebounce } from '@/lib/hooks/useDebounce'
@@ -54,6 +54,18 @@ export function AbaPesquisarAluno({
   const [buscando, setBuscando] = useState(false)
   const [buscaRealizada, setBuscaRealizada] = useState(false)
 
+  // Filtros de busca
+  const anoAtual = new Date().getFullYear().toString()
+  const [filtros, setFiltros] = useState({
+    escola_id: tipoUsuario === 'escola' ? escolaIdUsuario : '',
+    serie: '',
+    turma_id: '',
+    ano_letivo: anoAtual,
+  })
+  const [escolasFiltro, setEscolasFiltro] = useState<EscolaSimples[]>([])
+  const [turmasFiltro, setTurmasFiltro] = useState<TurmaDisponivel[]>([])
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
+
   // Estados de matrícula
   const [alunoSelecionado, setAlunoSelecionado] = useState<AlunoResultado | null>(null)
   const [mostrarMatricula, setMostrarMatricula] = useState(false)
@@ -79,9 +91,19 @@ export function AbaPesquisarAluno({
   })
   const [criandoAluno, setCriandoAluno] = useState(false)
 
-  // Buscar alunos com debounce
+  // Buscar alunos com debounce (considera busca textual + filtros)
   useEffect(() => {
-    if (!buscaDebounced || buscaDebounced.trim().length < 2) {
+    const temBusca = buscaDebounced && buscaDebounced.trim().length >= 2
+    const temFiltro = !!(filtros.escola_id || filtros.turma_id || filtros.serie || filtros.ano_letivo)
+
+    if (!temBusca && !temFiltro) {
+      setResultados([])
+      setBuscaRealizada(false)
+      return
+    }
+
+    // Ano letivo sozinho não é suficiente (sempre preenchido) — exige outro critério
+    if (!temBusca && !filtros.escola_id && !filtros.turma_id && !filtros.serie) {
       setResultados([])
       setBuscaRealizada(false)
       return
@@ -90,7 +112,14 @@ export function AbaPesquisarAluno({
     const buscarAlunos = async () => {
       setBuscando(true)
       try {
-        const res = await fetch(`/api/admin/matriculas/alunos/buscar?busca=${encodeURIComponent(buscaDebounced.trim())}`)
+        const params = new URLSearchParams()
+        if (temBusca) params.set('busca', buscaDebounced.trim())
+        if (filtros.escola_id) params.set('escola_id', filtros.escola_id)
+        if (filtros.turma_id) params.set('turma_id', filtros.turma_id)
+        if (filtros.serie) params.set('serie', filtros.serie)
+        if (filtros.ano_letivo) params.set('ano_letivo', filtros.ano_letivo)
+
+        const res = await fetch(`/api/admin/matriculas/alunos/buscar?${params.toString()}`)
         if (res.ok) {
           const data = await res.json()
           setResultados(Array.isArray(data) ? data : [])
@@ -106,7 +135,44 @@ export function AbaPesquisarAluno({
     }
 
     buscarAlunos()
-  }, [buscaDebounced])
+  }, [buscaDebounced, filtros.escola_id, filtros.turma_id, filtros.serie, filtros.ano_letivo])
+
+  // Carregar escolas para o filtro (exceto usuário escola, que já tem a dele fixa)
+  useEffect(() => {
+    if (tipoUsuario === 'escola') return
+    fetch('/api/admin/escolas')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setEscolasFiltro(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [tipoUsuario])
+
+  // Carregar turmas do filtro quando escola/ano muda
+  useEffect(() => {
+    if (!filtros.escola_id) {
+      setTurmasFiltro([])
+      return
+    }
+    fetch(`/api/admin/matriculas/turmas?escola_id=${filtros.escola_id}&ano_letivo=${filtros.ano_letivo}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setTurmasFiltro(Array.isArray(data) ? data : []))
+      .catch(() => setTurmasFiltro([]))
+  }, [filtros.escola_id, filtros.ano_letivo])
+
+  const limparFiltros = () => {
+    setFiltros({
+      escola_id: tipoUsuario === 'escola' ? escolaIdUsuario : '',
+      serie: '',
+      turma_id: '',
+      ano_letivo: anoAtual,
+    })
+  }
+
+  const qtdFiltrosAtivos = [
+    filtros.escola_id && tipoUsuario !== 'escola',
+    filtros.serie,
+    filtros.turma_id,
+    filtros.ano_letivo && filtros.ano_letivo !== anoAtual,
+  ].filter(Boolean).length
 
   // Carregar escolas ao abrir matrícula
   useEffect(() => {
@@ -288,6 +354,106 @@ export function AbaPesquisarAluno({
           {busca.length > 0 && busca.length < 2 && (
             <p className="text-xs text-gray-400 mt-1">Digite pelo menos 2 caracteres para buscar</p>
           )}
+
+          {/* Toggle de filtros */}
+          <div className="mt-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setMostrarFiltros(v => !v)}
+              className="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium"
+            >
+              <Filter className="w-4 h-4" />
+              {mostrarFiltros ? 'Ocultar filtros' : 'Filtros'}
+              {qtdFiltrosAtivos > 0 && (
+                <span className="inline-flex items-center justify-center bg-indigo-600 text-white text-xs font-bold rounded-full w-5 h-5">
+                  {qtdFiltrosAtivos}
+                </span>
+              )}
+            </button>
+            {qtdFiltrosAtivos > 0 && (
+              <button
+                type="button"
+                onClick={limparFiltros}
+                className="text-xs text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 inline-flex items-center gap-1"
+              >
+                <X className="w-3 h-3" /> Limpar filtros
+              </button>
+            )}
+          </div>
+
+          {/* Painel de filtros */}
+          {mostrarFiltros && (
+            <div className="mt-3 p-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {tipoUsuario !== 'escola' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Escola</label>
+                  <select
+                    value={filtros.escola_id}
+                    onChange={e => setFiltros(prev => ({ ...prev, escola_id: e.target.value, turma_id: '' }))}
+                    className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Todas as escolas</option>
+                    {escolasFiltro.map(e => (
+                      <option key={e.id} value={e.id}>{e.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Série</label>
+                <select
+                  value={filtros.serie}
+                  onChange={e => setFiltros(prev => ({ ...prev, serie: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                >
+                  <option value="">Todas</option>
+                  <option value="1">1º Ano</option>
+                  <option value="2">2º Ano</option>
+                  <option value="3">3º Ano</option>
+                  <option value="4">4º Ano</option>
+                  <option value="5">5º Ano</option>
+                  <option value="6">6º Ano</option>
+                  <option value="7">7º Ano</option>
+                  <option value="8">8º Ano</option>
+                  <option value="9">9º Ano</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Turma</label>
+                <select
+                  value={filtros.turma_id}
+                  onChange={e => setFiltros(prev => ({ ...prev, turma_id: e.target.value }))}
+                  disabled={!filtros.escola_id}
+                  className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Todas</option>
+                  {turmasFiltro.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.codigo}{t.nome ? ` - ${t.nome}` : ''}{t.serie ? ` | ${t.serie}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {!filtros.escola_id && (
+                  <p className="text-xs text-gray-400 mt-1">Selecione uma escola primeiro</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Ano Letivo</label>
+                <input
+                  type="number"
+                  min="2000"
+                  max="2100"
+                  value={filtros.ano_letivo}
+                  onChange={e => setFiltros(prev => ({ ...prev, ano_letivo: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                  placeholder={anoAtual}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -332,7 +498,7 @@ export function AbaPesquisarAluno({
       )}
 
       {/* Nenhum resultado — oculta quando aluno selecionado */}
-      {!alunoSelecionado && buscaRealizada && resultados.length === 0 && busca.length >= 2 && !buscando && (
+      {!alunoSelecionado && buscaRealizada && resultados.length === 0 && !buscando && (busca.length >= 2 || qtdFiltrosAtivos > 0 || !!filtros.escola_id || !!filtros.serie || !!filtros.turma_id) && (
         <div className="text-center py-8">
           <User className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
           <p className="text-gray-500 dark:text-gray-400">Nenhum aluno encontrado para &quot;{busca}&quot;</p>

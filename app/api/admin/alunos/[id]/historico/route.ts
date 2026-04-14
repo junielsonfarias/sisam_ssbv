@@ -14,7 +14,7 @@ export async function GET(
 ) {
   try {
     const usuario = await getUsuarioFromRequest(request)
-    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'escola'])) {
+    if (!usuario || !verificarPermissao(usuario, ['administrador', 'tecnico', 'polo', 'escola'])) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
@@ -25,7 +25,7 @@ export async function GET(
       `SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao,
               a.data_nascimento, a.cpf, a.rg, a.naturalidade, a.nacionalidade,
               a.nome_mae, a.nome_pai, a.responsavel, a.sexo,
-              e.nome as escola_nome, e.id as escola_id
+              e.nome as escola_nome, e.id as escola_id, e.polo_id
        FROM alunos a
        LEFT JOIN escolas e ON a.escola_id = e.id
        WHERE a.id = $1`,
@@ -37,6 +37,14 @@ export async function GET(
     }
 
     const aluno = alunoResult.rows[0]
+
+    // Controle de acesso: polo só vê alunos do seu polo, escola só da sua escola
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id && aluno.polo_id !== usuario.polo_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && aluno.escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
 
     // Buscar histórico de situação (anos anteriores) + notas + resultados SISAM
     const [historicoResult, notasResult, consolidadoResult] = await Promise.all([
