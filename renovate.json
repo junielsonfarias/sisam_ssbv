@@ -1,0 +1,77 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    ":dependencyDashboard",
+    ":timezone(America/Sao_Paulo)"
+  ],
+  "schedule": ["after 9pm on monday", "before 5am on tuesday"],
+  "labels": ["dependencies", "renovate"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+  "ignoreDeps": [],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "schedule": []
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch"],
+      "matchPackagePatterns": ["*"],
+      "groupName": "all patches",
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "matchUpdateTypes": ["minor"],
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "dev minor updates",
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["major-update", "review-required"],
+      "addLabels": ["dependencies"]
+    },
+    {
+      "matchPackageNames": ["next", "react", "react-dom"],
+      "groupName": "Next.js + React",
+      "automerge": false,
+      "labels": ["framework-update", "review-required"]
+    },
+    {
+      "matchPackageNames": ["@supabase/*", "pg", "@upstash/redis"],
+      "groupName": "Database & Cache",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["@sentry/*", "@vercel/analytics", "@vercel/speed-insights"],
+      "groupName": "Observability",
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "matchPackageNames": ["resend", "otplib", "qrcode", "jsonwebtoken", "bcryptjs"],
+      "groupName": "Security & Auth",
+      "automerge": false,
+      "labels": ["security-sensitive"]
+    }
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on the first day of the month"],
+    "automerge": true,
+    "platformAutomerge": true
+  },
+  "postUpdateOptions": ["npmDedupe"],
+  "node": {
+    "enabled": true
+  },
+  "configMigration": true,
+  "rebaseWhen": "conflicted"
+}

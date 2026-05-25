@@ -1,0 +1,48 @@
+# Dependabot — alternativa ao Renovate (use UM ou OUTRO, não ambos)
+# Para ativar este: deletar renovate.json
+# Para manter Renovate (recomendado): deletar este arquivo
+
+version: 2
+updates:
+  # NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      production-patches:
+        dependency-type: "production"
+        update-types: ["patch"]
+      dev-minor-and-patches:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+    ignore:
+      # Atualizações major manuais
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "ci"
+      - "dependabot"
+    commit-message:
+      prefix: "chore(ci)"

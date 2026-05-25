@@ -98,7 +98,8 @@
     "teste-carga:15": "node scripts/teste-carga.js 15",
     "teste-carga:stress": "node scripts/teste-carga.js stress",
     "teste-carga:completo": "node scripts/teste-carga.js completo",
-    "monitorar-pool": "node scripts/monitorar-pool.js"
+    "monitorar-pool": "node scripts/monitorar-pool.js",
+    "smoke-test": "node scripts/smoke-test.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",

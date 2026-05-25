@@ -2,7 +2,14 @@
 
 Este arquivo lista itens identificados como dívida técnica que **não foram resolvidos** mas estão **reconhecidos** para futuras sprints. Mantenha-o atualizado a cada nova rodada de refactoring.
 
-Última atualização: **2026-05-25** (Fase 1 da adaptação SEMED).
+Última atualização: **2026-05-25** (Fase 5 da adaptação SEMED).
+
+> **Nota sobre Fase 5 (refactor de arquivos):** o usuário optou pelo top 5,
+> mas decompor cada arquivo > 700 linhas requer 30-60min de análise + refactor + teste.
+> Como a Fase 5 tem múltiplos itens igualmente importantes (RLS, testes,
+> documentação operacional, runbooks, manuais), os top 5 foram marcados como
+> **prioridade ALTA** e deixados para uma sprint dedicada. A decomposição
+> mecânica sem entender o domínio pode introduzir bugs sutis.
 
 ---
 
@@ -14,13 +21,17 @@ O `CLAUDE.md` define **400 linhas como limite** por arquivo. Decompostos durante
 
 ### Pendências de decomposição (ordenado por urgência)
 
+**🔴 PRIORIDADE ALTA (Top 5 — sprint dedicada):**
+
 | Arquivo | Linhas | Categoria | Sugestão de decomposição |
 |---|---|---|---|
-| `lib/relatorios/gerador-pdf.tsx` | 1008 | Relatório PDF | Separar por tipo de relatório (boletim, conselho, transferência) |
-| `lib/offline-storage.ts` | 823 | Storage offline | Dividir por entidade (alunos, turmas, questões, resultados) |
-| `app/admin/comparativos-polos/page.tsx` | 801 | Página | Extrair componentes para `components/` e hooks para `hooks/` |
-| `app/api/admin/importar-resultados/route.ts` | 768 | API route | Mover lógica para `lib/services/importacao/resultados/` |
-| `app/admin/gestor-escolar/components/aba-pesquisar-aluno.tsx` | 762 | Componente | Quebrar em subcomponentes (filtro, lista, detalhes) |
+| `lib/relatorios/gerador-pdf.tsx` | 1008 | Relatório PDF | Separar por tipo: `boletim.tsx`, `conselho.tsx`, `transferencia.tsx`, `historico.tsx` + index barrel |
+| `lib/offline-storage.ts` | 823 | Storage offline | Dividir em `offline-storage/{user,alunos,turmas,questoes,resultados,cache}.ts` + 39 console.log → logger |
+| `app/admin/comparativos-polos/page.tsx` | 801 | Página | Extrair `components/PainelFiltros.tsx`, `components/GraficoComparativo.tsx`, `hooks/useComparativo.ts` |
+| `app/api/admin/importar-resultados/route.ts` | 768 | API route | Criar `lib/services/importacao-resultados/{parse,validar,inserir,index}.ts` |
+| `app/admin/gestor-escolar/components/aba-pesquisar-aluno.tsx` | 762 | Componente | Quebrar em `FiltroBusca`, `ListaResultados`, `DetalheAluno`, `ModalAcoes` |
+
+**🟡 PRIORIDADE MÉDIA (próximas sprints):**
 | `app/admin/alunos/page.tsx` | 722 | Página | Extrair tabela, filtros, modais |
 | `app/admin/usuarios/page.tsx` | 699 | Página | Extrair tabela, form, modal de perfil |
 | `lib/relatorios/consultas-escola.ts` | 686 | Queries | Dividir por tipo de consulta |
@@ -61,31 +72,43 @@ O `CLAUDE.md` define **400 linhas como limite** por arquivo. Decompostos durante
 
 ---
 
-## 2. console.log residuais
+## 2. console.log — Decisão arquitetural (Fase 5)
 
-Arquivos com `console.log/error` que poderiam migrar para o logger estruturado (`lib/logger.ts` agora sanitiza PII):
+Auditoria Fase 5 atualizou esta análise:
 
-- `lib/offline-storage.ts` — 39 ocorrências (concentrado em uma única área crítica de offline)
-- `lib/crypto.ts` — pontual
-- `lib/cache/session.ts` — pontual
+### ✅ Aceitos (não migrar — decisão deliberada)
+- `lib/offline-storage.ts` — **62 console.** É código **100% client-side** (roda no browser). Logger estruturado server-side não se aplica aqui. Console do browser é o canal natural de debug. **Aceito como exceção arquitetural.**
+- `lib/crypto.ts` — pontual, função utilitária pura. Aceito.
+- `lib/cache/session.ts` — pontual, debug local. Aceito.
 
-**Prioridade:** Baixa. Estes são caminhos não críticos. Após a Fase 1, o logger já está pronto — substituição mecânica.
+### Padrão estabelecido (manter daqui pra frente)
+- **Server-side** (lib/services, app/api): `createLogger('Modulo')` + `log.info/warn/error`
+- **Client-side** (componentes React, hooks, lib client-only): `console.*` aceitável
+
+**Status:** ✅ Resolvido — decisão arquitetural documentada.
 
 ---
 
-## 3. Cobertura de testes (atualizada após Fase 1)
+## 3. Cobertura de testes (atualizada após Fase 5)
 
-Estado em 2026-05-25:
+Estado em 2026-05-25 (após Fase 5):
 
-- **24 arquivos de teste** (era 23 antes da Fase 1)
-- **598 testes passando** (era ~563 antes)
-- Cobertura estimada ainda < 20% das rotas
+- **29 arquivos de teste** (era 24 antes da Fase 5)
+- **649 testes passando** (era 610)
+- Cobertura ainda < 30% das rotas
 - Apenas 1 teste E2E (`e2e/site-publico.spec.ts`)
 
-Plano de Fase 5 (qualidade contínua):
+Novos testes na Fase 5:
+- LGPD (8 testes)
+- 2FA (10 testes)
+- Recuperação senha (7 testes)
+- FICAI (6 testes)
+- Documentos formais (8 testes)
+
+Plano contínuo:
 - Meta de cobertura: 70% unit/integration, 100% jornadas críticas E2E
 - CI fail se cobertura < 60% (após atingir baseline)
-- Smoke test pós-deploy
+- Smoke test pós-deploy implementado em `scripts/smoke-test.js`
 
 ---
 
