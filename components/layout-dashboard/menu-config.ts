@@ -308,6 +308,7 @@ function gruposSemed(tipo: string): MenuItem[] {
       icon: AlertTriangle, label: 'Acompanhamento Estudantil', children: [
         { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/ficai' },
         { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/aee' },
+        { icon: ClipboardList, label: 'Censo Escolar (INEP)', href: '/admin/censo-escolar' },
       ]
     },
     {
