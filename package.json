@@ -29,6 +29,7 @@
     "seed": "node scripts/seed/seed.js",
     "seed-supabase": "node scripts/seed/seed-supabase.js",
     "aplicar-schema-supabase": "node scripts/seed/aplicar-schema-supabase.js",
+    "seed-bncc": "node scripts/seed/seed-bncc.js",
     "testar-conexao-supabase": "node scripts/testar-conexao-supabase.js",
     "configurar-env": "node scripts/configurar-env-supabase.js",
     "configurar-env-producao": "node scripts/configurar-env-producao.js",
