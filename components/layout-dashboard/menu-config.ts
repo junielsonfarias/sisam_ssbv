@@ -58,6 +58,7 @@ import {
   BookMarked,
   Heart,
   Baby,
+  CalendarDays,
 } from 'lucide-react'
 import type { MenuItem } from './types'
 import type { ModuloAtivo } from '@/lib/offline-storage'
@@ -223,6 +224,7 @@ function gruposGestor(tipo: string): MenuItem[] {
           { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
           { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
           { icon: Calendar, label: 'Calendário Escolar', href: '/admin/calendario-escolar' },
+          { icon: CalendarDays, label: 'Calendário · Eventos', href: '/admin/calendario-eventos' },
         ]
       },
     )
