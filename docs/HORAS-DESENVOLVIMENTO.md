@@ -1,7 +1,7 @@
 # SISAM — Registro de Horas de Desenvolvimento
 
 > Atualizado automaticamente a cada sessao de trabalho.
-> Ultima atualizacao: 2026-04-02
+> Ultima atualizacao: 2026-05-25
 
 ---
 
@@ -9,15 +9,20 @@
 
 | Metrica | Valor |
 |---------|-------|
-| **Total de horas** | **296h** |
-| **Dias trabalhados** | 38 |
-| **Media por dia** | 7.8h |
-| **Periodo** | 31/12/2025 — 02/04/2026 |
-| **Total de commits** | 615 |
-| **Linhas de codigo** | 36.522 |
-| **Arquivos TS/TSX** | 782 |
-| **Endpoints API** | 204 |
-| **Testes** | 563 |
+| **Total de horas** | **307.5h** |
+| **Dias trabalhados** | 39 |
+| **Media por dia** | 7.9h |
+| **Periodo** | 31/12/2025 — 25/05/2026 |
+| **Total de commits** | 650 |
+| **Linhas de codigo** | 153.901 |
+| **Arquivos TS/TSX** | 936 |
+| **Endpoints API** | 270 |
+| **Testes** | 649 |
+
+> Nota: ha sessoes entre 02/04 e 25/05 (Supabase local, controle de modulos
+> por usuario) registradas em memoria mas nao individualizadas aqui. As
+> metricas absolutas (commits/linhas/endpoints/testes) refletem o estado
+> real atual do repositorio.
 
 ---
 
@@ -30,6 +35,7 @@
 | Fev/2026 | 41h | 6 | 33 | Ajustes, Supabase, deploy Vercel |
 | Mar/2026 | 84h | 12 | 239 | Gestor escolar, professor, site, seguranca, CI, 45 skills, code review 4 sprints |
 | Abr/2026 | 17h | 2 | 16 | 8 sprints melhorias, site institucional, 9 bugs facial, UX mobile, manuais PDF, Capacitor Android, Portal Responsavel |
+| Mai/2026 | 11.5h | 1 | 18 | MEGA dia (Pt.1+Pt.2): 5 fases SEMED (113 tabelas, 28 migrations) + 12 ondas (13 UIs SEMED, auditoria 100%, 5 modulos com Ctrl+K) + 6 UIs prioritarias (Censo, Documentos, Avaliacoes Descritivas, Ed Infantil, Calendario Eventos, Analytics Preditiva) |
 
 ---
 
@@ -118,6 +124,16 @@
 
 ---
 
+### Maio 2026
+
+| Data | Horario | Horas | Commits | Descricao |
+|------|---------|-------|---------|-----------|
+| 25/05/2026 | 10:06–20:35 | 11.5h | 18 | **MEGA dia consolidado (Pt.1 + Pt.2)**. Manha (10:06–13:12): 5 fases SEMED — Fase 1 hardening/LGPD/2FA/Sentry; Fase 2 gestao pedagogica; Fase 3 programas federais + RH; Fase 4 escala + analytics preditiva + observabilidade; Fase 5 qualidade sustentada (RLS, testes, docs). Total: 113 tabelas, 28 migrations, validadas no Supabase. Noite (19:09–20:35): 12 ondas (13 UIs admin SEMED + auditoria 100% das 50 acoes + reorganizacao em 5 modulos com Ctrl+K + AbortControllers + ConfirmModal acessivel) + 6 UIs prioritarias (Censo Escolar INEP, Documentos Emitidos, Avaliacoes Descritivas, Ed Infantil portfolio + relatorios, Calendario Eventos CRUD, Analytics Preditiva). |
+
+**Subtotal Mai/2026: 11.5h | 1 dia | 18 commits**
+
+---
+
 ## Evolucao Acumulada
 
 | Marco | Horas Acumuladas | Commits | Entregas Principais |
@@ -134,6 +150,7 @@
 | Code Review (31/03/2026) | 279h | 597 | 45 skills, mobile WCAG, audit sec+perf, 4 sprints refactor |
 | Melhorias Completas (01/04/2026) | 287h | 608 | 8 sprints + site institucional (SEO, FAQ, mapa, busca, acessibilidade, menu dinamico) |
 | App Nativo + Portal Pais (02/04/2026) | 296h | 615 | 9 bugs facial, UX mobile, manuais PDF, Capacitor Android, Portal Responsavel |
+| SEMED Completo (25/05/2026) | 307.5h | 650 | 5 fases SEMED + 12 ondas + 6 UIs prioritarias = 113 tabelas, 5 modulos (sisam/gestor/semed/transparencia/admin), auditoria 100% (50 acoes), Censo INEP, Documentos, Avaliacoes Descritivas, Ed Infantil, Calendario Eventos, Analytics Preditiva |
 
 ---
 
