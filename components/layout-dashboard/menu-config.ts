@@ -309,6 +309,7 @@ function gruposSemed(tipo: string): MenuItem[] {
         { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/ficai' },
         { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/aee' },
         { icon: ClipboardList, label: 'Censo Escolar (INEP)', href: '/admin/censo-escolar' },
+        { icon: FileCheck, label: 'Documentos Emitidos', href: '/admin/documentos' },
       ]
     },
     {
