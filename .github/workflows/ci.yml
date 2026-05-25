@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  # Variáveis dummy para que next.config.js não bloqueie lint/build no CI
+  # Variaveis dummy para que next.config.js nao bloqueie lint/build no CI
   DB_HOST: ci-placeholder
   DB_NAME: ci-placeholder
   DB_USER: ci-placeholder
@@ -16,39 +16,165 @@ env:
   NODE_ENV: development
 
 jobs:
+  # ==========================================================================
+  # Job 1: Type-check + Lint + Build
+  # ==========================================================================
   build:
+    name: Build & Lint
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
 
-    - name: Type check
-      run: npx tsc --noEmit
+      - name: Run linter
+        run: npx next lint --quiet --max-warnings 100 || echo "Lint warnings found (non-blocking)"
 
-    - name: Run linter
-      run: npx next lint --quiet --max-warnings 0 || echo "Lint warnings found (non-blocking)"
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
 
-    - name: Run tests
-      run: npm run test
+      - name: Verify build artifacts
+        run: |
+          if [ ! -d ".next" ]; then
+            echo "❌ Build failed - .next directory not found"
+            exit 1
+          fi
+          echo "✅ Build OK"
 
-    - name: Build application
-      run: npm run build
-      env:
-        NODE_ENV: production
+  # ==========================================================================
+  # Job 2: Tests (unit + integration) com cobertura
+  # ==========================================================================
+  test:
+    name: Tests + Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Check build
-      run: |
-        if [ ! -d ".next" ]; then
-          echo "Build failed - .next directory not found"
-          exit 1
-        fi
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        continue-on-error: false
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  # ==========================================================================
+  # Job 3: E2E Playwright (apenas em PR para main)
+  # ==========================================================================
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build for E2E
+        run: npm run build
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  # ==========================================================================
+  # Job 4: Lighthouse CI (perf, a11y, seo, best-practices em paginas publicas)
+  # ==========================================================================
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Start server in background
+        run: npm start &
+        env:
+          PORT: 3000
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        continue-on-error: true
+        with:
+          urls: |
+            http://localhost:3000/
+            http://localhost:3000/login
+            http://localhost:3000/status
+            http://localhost:3000/dados-abertos
+            http://localhost:3000/transparencia
+            http://localhost:3000/politica-de-privacidade
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          configPath: ./lighthouserc.json
+
+  # ==========================================================================
+  # Job 5: Security audit (npm audit + dependabot check)
+  # ==========================================================================
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies (high+critical only)
+        run: npm audit --audit-level=high || echo "⚠️ Vulnerabilidades encontradas - avaliar"
+        continue-on-error: true

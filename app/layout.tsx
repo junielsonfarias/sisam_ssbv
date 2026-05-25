@@ -7,6 +7,8 @@ import ErrorBoundary from '@/components/error-boundary'
 import { OrganizationJsonLd } from '@/components/site/json-ld'
 import AccessibilityBar from '@/components/site/accessibility-bar'
 import { BannerCookies } from '@/components/ui/banner-cookies'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const siteUrl = 'https://educacaossbv.com.br'
 const siteTitle = 'Educatec - SEMED Sao Sebastiao da Boa Vista'
@@ -127,6 +129,9 @@ export default function RootLayout({
               {children}
               <AccessibilityBar />
               <BannerCookies />
+              {/* Vercel Analytics + Speed Insights (Core Web Vitals) */}
+              <Analytics />
+              <SpeedInsights />
               {/* PWA install prompt desabilitado temporariamente */}
               {/* <PWAInstallPrompt /> */}
             </ErrorBoundary>
