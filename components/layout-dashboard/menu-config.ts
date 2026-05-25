@@ -204,6 +204,7 @@ function gruposGestor(tipo: string): MenuItem[] {
         icon: ClipboardList, label: 'Pedagógico', children: [
           { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
           { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
+          { icon: FileText, label: 'Avaliações Descritivas', href: '/admin/avaliacoes-descritivas' },
           { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
           { icon: AlertTriangle, label: 'Divergências', href: '/admin/divergencias' },
         ]
