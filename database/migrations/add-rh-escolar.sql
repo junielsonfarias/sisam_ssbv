@@ -70,9 +70,11 @@ CREATE TABLE IF NOT EXISTS servidor_lotacoes (
 
 CREATE INDEX IF NOT EXISTS idx_lotacoes_servidor ON servidor_lotacoes(servidor_id);
 CREATE INDEX IF NOT EXISTS idx_lotacoes_escola ON servidor_lotacoes(escola_id);
-CREATE INDEX IF NOT EXISTS idx_lotacoes_vigentes
-  ON servidor_lotacoes(servidor_id)
-  WHERE vigencia_fim IS NULL OR vigencia_fim >= CURRENT_DATE;
+-- Indice apenas para lotacoes em aberto. Comparacao com CURRENT_DATE nao funciona
+-- em indice parcial (precisa IMMUTABLE). Para filtrar vigentes em runtime,
+-- use: WHERE vigencia_fim IS NULL OR vigencia_fim >= CURRENT_DATE
+CREATE INDEX IF NOT EXISTS idx_lotacoes_em_aberto
+  ON servidor_lotacoes(servidor_id) WHERE vigencia_fim IS NULL;
 
 -- Formacao continuada (cursos, capacitacoes, certificados)
 CREATE TABLE IF NOT EXISTS servidor_formacoes (
