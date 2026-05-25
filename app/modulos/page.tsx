@@ -1,16 +1,141 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Database, BookOpen, LogOut, BarChart3, GraduationCap, Users, FileText, CalendarCheck } from 'lucide-react'
+import { Database, BookOpen, LogOut, Building2, Globe, Settings } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import Rodape from '@/components/rodape'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from '@/components/theme-toggle'
+
+type Modulo = {
+  id: offlineStorage.ModuloAtivo
+  titulo: string
+  subtitulo: string
+  Icon: LucideIcon
+  cor: string         // classe Tailwind base (ex: 'indigo')
+  destaques: string[]
+  rotaAdmin: string   // destino quando admin/tecnico
+  habilitadoPara: (u: offlineStorage.OfflineUser) => boolean
+}
+
+const MODULOS: Modulo[] = [
+  {
+    id: 'sisam',
+    titulo: 'SISAM',
+    subtitulo: 'Avaliações & Análises',
+    Icon: Database,
+    cor: 'indigo',
+    destaques: ['Provas, questões e cartão-resposta', 'Resultados e comparativos', 'Painel de dados e importações'],
+    rotaAdmin: '/admin/dashboard',
+    habilitadoPara: (u) => u.acesso_sisam !== false,
+  },
+  {
+    id: 'gestor',
+    titulo: 'Gestor Escolar',
+    subtitulo: 'Gestão Acadêmica',
+    Icon: BookOpen,
+    cor: 'emerald',
+    destaques: ['Matrículas, frequência, notas', 'Turmas, alunos, transferências', 'Conselho de classe e histórico'],
+    rotaAdmin: '/admin/dashboard-gestor',
+    habilitadoPara: (u) => u.acesso_gestor === true,
+  },
+  {
+    id: 'semed',
+    titulo: 'SEMED',
+    subtitulo: 'Programas & Recursos',
+    Icon: Building2,
+    cor: 'amber',
+    destaques: ['FICAI, AEE, PNAE, PNATE, PNLD', 'PDDE, Bolsa Família, RH escolar', 'Patrimônio, Biblioteca, Ordens de Serviço'],
+    rotaAdmin: '/admin/dashboard-semed',
+    habilitadoPara: (u) => u.acesso_semed === true,
+  },
+  {
+    id: 'transparencia',
+    titulo: 'Transparência',
+    subtitulo: 'Site & Comunicação',
+    Icon: Globe,
+    cor: 'sky',
+    destaques: ['Site institucional', 'Notícias e publicações', 'Ouvidoria e eventos'],
+    rotaAdmin: '/admin/site-institucional',
+    habilitadoPara: (u) => u.acesso_transparencia === true,
+  },
+  {
+    id: 'admin',
+    titulo: 'Administração',
+    subtitulo: 'Sistema & Segurança',
+    Icon: Settings,
+    cor: 'slate',
+    destaques: ['Usuários, backup, monitoramento', 'Segurança, 2FA, LGPD', 'Logs, auditoria, status page'],
+    rotaAdmin: '/admin/usuarios',
+    habilitadoPara: (u) => u.acesso_admin === true,
+  },
+]
+
+function classesCard(cor: string) {
+  // Tailwind precisa de classes literais — mapa por cor
+  const mapa: Record<string, { hover: string; ring: string; iconBg: string; iconShadow: string; iconText: string; bullet: string }> = {
+    indigo: {
+      hover: 'hover:border-indigo-500',
+      ring: 'from-indigo-100 dark:from-indigo-900/30',
+      iconBg: 'from-indigo-500 to-indigo-700',
+      iconShadow: 'shadow-indigo-200 dark:shadow-indigo-900/50',
+      iconText: 'text-indigo-600 dark:text-indigo-400',
+      bullet: 'text-indigo-500',
+    },
+    emerald: {
+      hover: 'hover:border-emerald-500',
+      ring: 'from-emerald-100 dark:from-emerald-900/30',
+      iconBg: 'from-emerald-500 to-emerald-700',
+      iconShadow: 'shadow-emerald-200 dark:shadow-emerald-900/50',
+      iconText: 'text-emerald-600 dark:text-emerald-400',
+      bullet: 'text-emerald-500',
+    },
+    amber: {
+      hover: 'hover:border-amber-500',
+      ring: 'from-amber-100 dark:from-amber-900/30',
+      iconBg: 'from-amber-500 to-amber-700',
+      iconShadow: 'shadow-amber-200 dark:shadow-amber-900/50',
+      iconText: 'text-amber-600 dark:text-amber-400',
+      bullet: 'text-amber-500',
+    },
+    sky: {
+      hover: 'hover:border-sky-500',
+      ring: 'from-sky-100 dark:from-sky-900/30',
+      iconBg: 'from-sky-500 to-sky-700',
+      iconShadow: 'shadow-sky-200 dark:shadow-sky-900/50',
+      iconText: 'text-sky-600 dark:text-sky-400',
+      bullet: 'text-sky-500',
+    },
+    slate: {
+      hover: 'hover:border-slate-500',
+      ring: 'from-slate-100 dark:from-slate-700/30',
+      iconBg: 'from-slate-500 to-slate-700',
+      iconShadow: 'shadow-slate-200 dark:shadow-slate-900/50',
+      iconText: 'text-slate-600 dark:text-slate-400',
+      bullet: 'text-slate-500',
+    },
+  }
+  return mapa[cor] || mapa.indigo
+}
+
+function rotaPorTipoUsuario(tipo: string | undefined, fallback: string): string {
+  if (tipo === 'tecnico') return '/tecnico/dashboard'
+  if (tipo === 'escola') return '/escola/dashboard'
+  if (tipo === 'polo') return '/polo/dashboard'
+  return fallback
+}
 
 export default function ModulosPage() {
   const router = useRouter()
   const [usuario, setUsuario] = useState<offlineStorage.OfflineUser | null>(null)
   const [carregando, setCarregando] = useState(true)
+
+  // Lista de módulos disponíveis para o usuário atual
+  const modulosDisponiveis = useMemo(() => {
+    if (!usuario) return []
+    return MODULOS.filter((m) => m.habilitadoPara(usuario))
+  }, [usuario])
 
   useEffect(() => {
     const user = offlineStorage.getUser()
@@ -20,54 +145,41 @@ export default function ModulosPage() {
     }
     setUsuario(user)
 
-    // Determinar acesso do usuario aos modulos
-    const temSisam = user.acesso_sisam !== false
-    const temGestor = user.acesso_gestor === true
+    const disponiveis = MODULOS.filter((m) => m.habilitadoPara(user))
 
-    // Se tem acesso a apenas 1 modulo, redirecionar direto
-    if (temSisam && !temGestor) {
-      offlineStorage.saveModuloAtivo('educatec')
-      const rota = user.tipo_usuario === 'polo' ? '/polo/dashboard'
-        : user.tipo_usuario === 'escola' ? '/escola/dashboard'
-        : user.tipo_usuario === 'tecnico' ? '/tecnico/dashboard'
-        : '/admin/dashboard'
+    // Sem nenhum módulo → fallback para SISAM (mantém compat com instalações antigas)
+    if (disponiveis.length === 0) {
+      offlineStorage.saveModuloAtivo('sisam')
+      router.push(rotaPorTipoUsuario(user.tipo_usuario, '/admin/dashboard'))
+      return
+    }
+
+    // Único módulo → entra direto
+    if (disponiveis.length === 1) {
+      const unico = disponiveis[0]
+      offlineStorage.saveModuloAtivo(unico.id)
+      // Para SISAM, prefere rota do tipo do usuário se existir
+      const rota = unico.id === 'sisam'
+        ? rotaPorTipoUsuario(user.tipo_usuario, unico.rotaAdmin)
+        : unico.rotaAdmin
       router.push(rota)
       return
     }
 
-    if (!temSisam && temGestor) {
-      offlineStorage.saveModuloAtivo('gestor')
-      router.push('/admin/dashboard-gestor')
-      return
-    }
-
-    // Se nao tem acesso a nenhum (fallback)
-    if (!temSisam && !temGestor) {
-      offlineStorage.saveModuloAtivo('educatec')
-      router.push('/admin/dashboard')
-      return
-    }
-
-    // Tem acesso a ambos — mostrar selecao
+    // 2+ módulos — mostrar seleção
     setCarregando(false)
   }, [router])
 
-  const selecionarModulo = (modulo: offlineStorage.ModuloAtivo) => {
-    offlineStorage.saveModuloAtivo(modulo)
-
+  function selecionarModulo(modulo: Modulo) {
+    offlineStorage.saveModuloAtivo(modulo.id)
     const tipo = usuario?.tipo_usuario
-    if (modulo === 'gestor') {
-      router.push('/admin/dashboard-gestor')
-    } else {
-      // Educatec — redirecionar ao dashboard do tipo
-      if (tipo === 'administrador') router.push('/admin/dashboard')
-      else if (tipo === 'tecnico') router.push('/tecnico/dashboard')
-      else if (tipo === 'escola') router.push('/escola/dashboard')
-      else router.push('/admin/dashboard')
-    }
+    const rota = modulo.id === 'sisam'
+      ? rotaPorTipoUsuario(tipo, modulo.rotaAdmin)
+      : modulo.rotaAdmin
+    router.push(rota)
   }
 
-  const handleLogout = async () => {
+  async function handleLogout() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
     } catch (err) {
@@ -82,7 +194,6 @@ export default function ModulosPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/20 dark:from-slate-900 dark:via-indigo-950/30 dark:to-purple-950/20 flex flex-col">
-      {/* Header simples */}
       <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="bg-indigo-600 rounded-xl p-2">
@@ -104,10 +215,8 @@ export default function ModulosPage() {
         </div>
       </header>
 
-      {/* Conteúdo centralizado */}
       <main className="flex-1 flex items-center justify-center px-4 pb-12">
-        <div className="max-w-3xl w-full">
-          {/* Saudação */}
+        <div className="max-w-5xl w-full">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               Olá, {usuario?.nome?.split(' ')[0]}!
@@ -117,81 +226,43 @@ export default function ModulosPage() {
             </p>
           </div>
 
-          {/* Cards de módulo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Card Educatec */}
-            <button
-              onClick={() => selecionarModulo('educatec')}
-              className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-indigo-500 transition-all duration-300 p-8 text-left overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-100 dark:from-indigo-900/30 to-transparent rounded-bl-full opacity-60 group-hover:opacity-100 transition" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {modulosDisponiveis.map((m) => {
+              const c = classesCard(m.cor)
+              const Icon = m.Icon
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => selecionarModulo(m)}
+                  className={`group relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent ${c.hover} transition-all duration-300 p-6 text-left overflow-hidden`}
+                >
+                  <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${c.ring} to-transparent rounded-bl-full opacity-60 group-hover:opacity-100 transition`} />
 
-              <div className="relative">
-                <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl p-3 w-fit mb-5 shadow-lg shadow-indigo-200 dark:shadow-indigo-900/50 group-hover:scale-110 transition-transform">
-                  <Database className="w-8 h-8 text-white" />
-                </div>
-
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">SISAM</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                  Sistema de Gestão Escolar — SEMED SSBV
-                </p>
-
-                <div className="space-y-2">
-                  {[
-                    { icon: BarChart3, text: 'Painel de Dados e Gráficos' },
-                    { icon: FileText, text: 'Resultados e Comparativos' },
-                    { icon: Database, text: 'Importações e Análises' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                      <item.icon className="w-3.5 h-3.5 text-indigo-500" />
-                      {item.text}
+                  <div className="relative">
+                    <div className={`bg-gradient-to-br ${c.iconBg} rounded-xl p-3 w-fit mb-4 shadow-lg ${c.iconShadow} group-hover:scale-110 transition-transform`}>
+                      <Icon className="w-7 h-7 text-white" />
                     </div>
-                  ))}
-                </div>
 
-                <div className="mt-6 text-sm font-semibold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
-                  Acessar SISAM →
-                </div>
-              </div>
-            </button>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{m.titulo}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{m.subtitulo}</p>
 
-            {/* Card Gestor Escolar */}
-            <button
-              onClick={() => selecionarModulo('gestor')}
-              className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-emerald-500 transition-all duration-300 p-8 text-left overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-100 dark:from-emerald-900/30 to-transparent rounded-bl-full opacity-60 group-hover:opacity-100 transition" />
+                    <ul className="space-y-1.5">
+                      {m.destaques.map((d, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
+                          <span className={`mt-1 w-1 h-1 rounded-full ${c.bullet.replace('text-', 'bg-')} flex-shrink-0`} />
+                          {d}
+                        </li>
+                      ))}
+                    </ul>
 
-              <div className="relative">
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl p-3 w-fit mb-5 shadow-lg shadow-emerald-200 dark:shadow-emerald-900/50 group-hover:scale-110 transition-transform">
-                  <BookOpen className="w-8 h-8 text-white" />
-                </div>
-
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Gestor Escolar</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                  Gestão Acadêmica Completa
-                </p>
-
-                <div className="space-y-2">
-                  {[
-                    { icon: GraduationCap, text: 'Notas, Frequência e Matrículas' },
-                    { icon: Users, text: 'Turmas, Alunos e Transferências' },
-                    { icon: CalendarCheck, text: 'Anos Letivos e Conselho' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                      <item.icon className="w-3.5 h-3.5 text-emerald-500" />
-                      {item.text}
+                    <div className={`mt-5 text-sm font-semibold ${c.iconText} group-hover:translate-x-1 transition-transform`}>
+                      Acessar →
                     </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 text-sm font-semibold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">
-                  Acessar Gestor →
-                </div>
-              </div>
-            </button>
+                  </div>
+                </button>
+              )
+            })}
           </div>
-
         </div>
       </main>
       <Rodape />

@@ -132,20 +132,48 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     case 'servidor': {
       const parsed = servidorSchema.safeParse(body)
       if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
-      const id = await cadastrarServidor(parsed.data)
-      return NextResponse.json({ id, mensagem: 'Servidor cadastrado' }, { status: 201 })
+      try {
+        const id = await cadastrarServidor(parsed.data)
+        return NextResponse.json({ id, mensagem: 'Servidor cadastrado' }, { status: 201 })
+      } catch (e) {
+        const err = e as { code?: string; constraint?: string; detail?: string }
+        if (err.code === '23505') {
+          // Identifica qual UNIQUE foi violado para mensagem específica
+          const constraint = err.constraint || ''
+          if (constraint.includes('cpf')) return NextResponse.json({ mensagem: 'Já existe servidor com este CPF' }, { status: 409 })
+          if (constraint.includes('matricula')) return NextResponse.json({ mensagem: 'Já existe servidor com esta matrícula funcional' }, { status: 409 })
+          if (constraint.includes('usuario')) return NextResponse.json({ mensagem: 'Este usuário já está vinculado a outro servidor' }, { status: 409 })
+          return NextResponse.json({ mensagem: 'Servidor duplicado (CPF, matrícula ou vínculo já existe)' }, { status: 409 })
+        }
+        if (err.code === '23503') return NextResponse.json({ mensagem: 'Usuário vinculado não encontrado' }, { status: 400 })
+        throw e
+      }
     }
     case 'lotacao': {
       const parsed = lotacaoSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
-      const id = await registrarLotacao(parsed.data)
-      return NextResponse.json({ id, mensagem: 'Lotação registrada' }, { status: 201 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+      try {
+        const id = await registrarLotacao(parsed.data)
+        return NextResponse.json({ id, mensagem: 'Lotação registrada' }, { status: 201 })
+      } catch (e) {
+        if ((e as { code?: string }).code === '23503') {
+          return NextResponse.json({ mensagem: 'Servidor ou escola não encontrados' }, { status: 400 })
+        }
+        throw e
+      }
     }
     case 'formacao': {
       const parsed = formacaoSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
-      const id = await registrarFormacao({ ...parsed.data, registrado_por: usuario.id })
-      return NextResponse.json({ id, mensagem: 'Formação registrada' }, { status: 201 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+      try {
+        const id = await registrarFormacao({ ...parsed.data, registrado_por: usuario.id })
+        return NextResponse.json({ id, mensagem: 'Formação registrada' }, { status: 201 })
+      } catch (e) {
+        if ((e as { code?: string }).code === '23503') {
+          return NextResponse.json({ mensagem: 'Servidor não encontrado' }, { status: 400 })
+        }
+        throw e
+      }
     }
     default:
       return NextResponse.json({ mensagem: 'ação inválida' }, { status: 400 })

@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 
     // Se o tipo é obrigatório e o usuário ainda não tem 2FA configurado,
     // bloqueamos o login e direcionamos para o setup obrigatório.
-    if (tipoExige2FA(tipoUsuario)) {
+    if (await tipoExige2FA(tipoUsuario)) {
       const preAuthToken = generatePreAuthToken(usuario.id, usuario.email)
       log.warn(`Login bloqueado: tipo exige 2FA mas usuário não configurou | usuario:${usuario.email}`)
       resetRateLimit(rateLimitKey)

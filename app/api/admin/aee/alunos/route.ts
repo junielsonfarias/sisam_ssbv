@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
   cadastrarOuAtualizarAlunoAee,
   listarAlunosAee,
@@ -52,7 +53,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
   return NextResponse.json({ alunos: lista })
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request) => {
+export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   const body = await request.json().catch(() => null)
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) {
@@ -63,5 +64,23 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
   }
 
   const id = await cadastrarOuAtualizarAlunoAee(parsed.data)
+
+  // Auditoria LGPD art. 11 — dados sensíveis de saúde/educação especial
+  // CID e laudo NÃO são gravados em detalhes (apenas se há laudo, sem conteúdo)
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    acao: 'AEE_CADASTRAR_ALUNO_PNE',
+    entidade: 'alunos_aee',
+    entidadeId: id,
+    detalhes: {
+      aluno_id: parsed.data.aluno_id,
+      tipos_deficiencia: parsed.data.tipos_deficiencia,
+      tem_laudo: !!parsed.data.laudo_medico,
+      necessita_cuidador: !!parsed.data.necessita_cuidador,
+      necessita_interprete: !!parsed.data.necessita_interprete,
+      qtd_recursos_especiais: (parsed.data.recursos_especiais || []).length,
+    },
+  })
+
   return NextResponse.json({ id, mensagem: 'Cadastro AEE salvo' }, { status: 201 })
 })

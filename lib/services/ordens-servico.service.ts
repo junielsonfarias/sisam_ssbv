@@ -16,6 +16,30 @@ export type StatusOS = 'aberta' | 'em_analise' | 'aprovada' | 'em_atendimento'
 
 export type Prioridade = 'baixa' | 'media' | 'alta' | 'urgente'
 
+/**
+ * Transições válidas de status para evitar inconsistências.
+ * Fluxo: aberta → em_analise → aprovada → em_atendimento → concluida.
+ * Ramos paralelos: aguardando_material / aguardando_terceiros podem ser
+ * alcançados a partir de em_atendimento. Cancelada de qualquer não-terminal.
+ * Reaberta apenas de concluida ou cancelada.
+ */
+const TRANSICOES_VALIDAS: Record<StatusOS, StatusOS[]> = {
+  aberta: ['em_analise', 'aprovada', 'cancelada'],
+  em_analise: ['aprovada', 'cancelada', 'aberta'],
+  aprovada: ['em_atendimento', 'cancelada'],
+  em_atendimento: ['aguardando_material', 'aguardando_terceiros', 'concluida', 'cancelada'],
+  aguardando_material: ['em_atendimento', 'cancelada'],
+  aguardando_terceiros: ['em_atendimento', 'cancelada'],
+  concluida: ['reaberta'],
+  cancelada: ['reaberta'],
+  reaberta: ['em_analise', 'em_atendimento', 'cancelada'],
+}
+
+export function transicaoValida(de: StatusOS, para: StatusOS): boolean {
+  if (de === para) return true  // mesmo status (só comentário)
+  return TRANSICOES_VALIDAS[de]?.includes(para) ?? false
+}
+
 export interface NovaOS {
   escola_id: string
   tipo: TipoOS
@@ -52,17 +76,22 @@ export async function atualizarStatus(params: {
   prevista_para?: string
   custo_estimado?: number
   custo_real?: number
-}): Promise<boolean> {
+}): Promise<{ statusAnterior: StatusOS; numero: string }> {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
 
     const atualR = await client.query(
-      `SELECT status FROM ordens_servico WHERE id = $1 FOR UPDATE`,
+      `SELECT status, numero FROM ordens_servico WHERE id = $1 FOR UPDATE`,
       [params.ordem_id]
     )
     if (!atualR.rows[0]) throw new Error('Ordem não encontrada')
-    const statusAnterior = atualR.rows[0].status
+    const statusAnterior = atualR.rows[0].status as StatusOS
+    const numero = atualR.rows[0].numero as string
+
+    if (!transicaoValida(statusAnterior, params.novo_status)) {
+      throw new Error(`Transição inválida: ${statusAnterior} → ${params.novo_status}`)
+    }
 
     const campos: string[] = [`status = $1`, `atualizado_em = NOW()`]
     const queryParams: unknown[] = [params.novo_status]
@@ -102,7 +131,7 @@ export async function atualizarStatus(params: {
     )
 
     await client.query('COMMIT')
-    return true
+    return { statusAnterior, numero }
   } catch (e) {
     await client.query('ROLLBACK')
     throw e

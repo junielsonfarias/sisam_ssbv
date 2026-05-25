@@ -89,6 +89,9 @@ export const usuarioSchema = z.object({
   ativo: z.boolean().default(true),
   acesso_sisam: z.boolean().default(true),
   acesso_gestor: z.boolean().default(false),
+  acesso_semed: z.boolean().default(false),
+  acesso_transparencia: z.boolean().default(false),
+  acesso_admin: z.boolean().default(false),
 })
 
 /** Schema para criar/atualizar escola */

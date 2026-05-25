@@ -14,14 +14,20 @@ import { generateSecret, generateURI, verifySync } from 'otplib'
 import QRCode from 'qrcode'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { is2FAGlobalmenteHabilitado } from '@/lib/services/configuracoes-sistema.service'
 
 const log = createLogger('2FA')
 
 // Tolerância: ±1 step (30s antes/depois do horário atual) — total de 90s de janela
 const TOTP_EPOCH_TOLERANCE: [number, number] = [30, 30]
 
-/** Tipos de usuário que SÃO OBRIGADOS a ativar 2FA */
-export const TIPOS_OBRIGATORIOS_2FA = new Set(['administrador', 'tecnico'])
+/**
+ * Tipos de usuario que SAO OBRIGADOS a ativar 2FA quando a flag global esta ON.
+ * Vazio = 2FA e opcional para todos (modo atual).
+ * Quando o admin liga `dois_fatores_habilitado`, quem ja ativou continua sendo
+ * exigido; ninguem e forcado a configurar.
+ */
+export const TIPOS_OBRIGATORIOS_2FA = new Set<string>()
 
 const NUM_BACKUP_CODES = 10
 
@@ -181,19 +187,26 @@ export async function status2FA(usuarioId: string): Promise<{
 }
 
 /**
- * Indica se o usuário PRECISA passar pelo 2FA (configurado E ativado)
+ * Indica se o usuario PRECISA passar pelo 2FA (configurado E ativado)
  * para fazer login.
+ *
+ * Respeita a flag global `dois_fatores_habilitado`: quando OFF, retorna false
+ * mesmo para usuarios que ativaram (modo dev/manutencao).
  */
 export async function precisaDe2FANoLogin(usuarioId: string): Promise<boolean> {
+  const habilitadoGlobal = await is2FAGlobalmenteHabilitado()
+  if (!habilitadoGlobal) return false
   const s = await status2FA(usuarioId)
   return s.ativado
 }
 
 /**
- * Indica se o tipo de usuário é obrigado a ativar 2FA.
+ * Indica se o tipo de usuario e obrigado a ativar 2FA.
+ * Respeita a flag global: se 2FA esta desabilitado globalmente, nenhum tipo e obrigado.
  */
-export function tipoExige2FA(tipo: string): boolean {
-  return TIPOS_OBRIGATORIOS_2FA.has(tipo.toLowerCase())
+export async function tipoExige2FA(tipo: string): Promise<boolean> {
+  if (!TIPOS_OBRIGATORIOS_2FA.has(tipo.toLowerCase())) return false
+  return await is2FAGlobalmenteHabilitado()
 }
 
 // ============================================================================

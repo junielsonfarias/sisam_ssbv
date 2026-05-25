@@ -33,7 +33,7 @@ vi.mock('@/lib/rate-limiter-async', () => ({
 // testes específicos podem sobrescrever via mockResolvedValueOnce.
 vi.mock('@/lib/services/dois-fatores.service', () => ({
   precisaDe2FANoLogin: vi.fn().mockResolvedValue(false),
-  tipoExige2FA: vi.fn().mockReturnValue(false),
+  tipoExige2FA: vi.fn().mockResolvedValue(false),
   TIPOS_OBRIGATORIOS_2FA: new Set(['administrador', 'tecnico']),
 }))
 

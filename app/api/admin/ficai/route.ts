@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { abrirCaso, listarCasos, obterEstatisticas } from '@/lib/services/ficai.service'
 
 export const dynamic = 'force-dynamic'
@@ -67,6 +68,20 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asy
       { status: 409 }
     )
   }
+
+  // ECA Art. 56 — abertura de caso de infrequência tem peso legal
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    acao: 'FICAI_ABRIR_CASO',
+    entidade: 'ficai_casos',
+    detalhes: {
+      aluno_id: parsed.data.aluno_id,
+      escola_id: parsed.data.escola_id,
+      ano_letivo: parsed.data.ano_letivo,
+      motivo: parsed.data.motivo,
+      origem,
+    },
+  })
 
   return NextResponse.json({ mensagem: 'Caso FICAI aberto' }, { status: 201 })
 })

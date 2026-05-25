@@ -18,7 +18,7 @@ vi.mock('@/lib/services/dois-fatores.service', () => ({
   verificarCodigo2FA: vi.fn(),
   desativar2FA: vi.fn(),
   status2FA: vi.fn(),
-  tipoExige2FA: vi.fn().mockReturnValue(false),
+  tipoExige2FA: vi.fn().mockResolvedValue(false),
   TIPOS_OBRIGATORIOS_2FA: new Set(['administrador', 'tecnico']),
 }))
 

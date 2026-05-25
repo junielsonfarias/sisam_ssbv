@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
   buscarBemPorTombo,
   cadastrarBem,
@@ -105,18 +106,76 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
   switch (acao) {
     case 'bem': {
       const parsed = bemSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
-      const id = await cadastrarBem(parsed.data)
-      return NextResponse.json({ id, mensagem: 'Bem cadastrado' }, { status: 201 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+      try {
+        const id = await cadastrarBem(parsed.data)
+
+        await registrarAuditoria({
+          usuarioId: usuario.id,
+          acao: 'PATRIMONIO_CADASTRAR_BEM',
+          entidade: 'patrimonio_bens',
+          entidadeId: id,
+          detalhes: {
+            tombo: parsed.data.tombo,
+            descricao: parsed.data.descricao,
+            categoria: parsed.data.categoria,
+            valor_aquisicao: parsed.data.valor_aquisicao,
+            escola_id: parsed.data.escola_id,
+            origem: parsed.data.origem,
+          },
+        })
+
+        return NextResponse.json({ id, mensagem: 'Bem cadastrado' }, { status: 201 })
+      } catch (e) {
+        if ((e as { code?: string }).code === '23505') {
+          return NextResponse.json({ mensagem: 'Já existe bem com este tombo' }, { status: 409 })
+        }
+        throw e
+      }
     }
     case 'movimentacao': {
       const parsed = movSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
       try {
         const id = await registrarMovimentacao({ ...parsed.data, registrado_por: usuario.id })
+
+        // Ação específica por tipo (baixa e transferência têm peso patrimonial maior)
+        const acaoPorTipo: Record<string, string> = {
+          transferencia: 'PATRIMONIO_TRANSFERIR',
+          manutencao_envio: 'PATRIMONIO_ENVIAR_MANUTENCAO',
+          manutencao_retorno: 'PATRIMONIO_RETORNAR_MANUTENCAO',
+          baixa: 'PATRIMONIO_BAIXAR',
+          reativacao: 'PATRIMONIO_REATIVAR',
+          mudanca_estado_conservacao: 'PATRIMONIO_MUDAR_ESTADO',
+        }
+        const acao = acaoPorTipo[parsed.data.tipo] || 'PATRIMONIO_MOVIMENTAR'
+
+        await registrarAuditoria({
+          usuarioId: usuario.id,
+          acao,
+          entidade: 'patrimonio_bens',
+          entidadeId: parsed.data.bem_id,
+          detalhes: {
+            tipo: parsed.data.tipo,
+            escola_origem_id: parsed.data.escola_origem_id,
+            escola_destino_id: parsed.data.escola_destino_id,
+            sala_origem: parsed.data.sala_origem,
+            sala_destino: parsed.data.sala_destino,
+            estado_anterior: parsed.data.estado_anterior,
+            estado_novo: parsed.data.estado_novo,
+            motivo: parsed.data.motivo,
+            movimentacao_id: id,
+          },
+        })
+
         return NextResponse.json({ id, mensagem: 'Movimentação registrada' }, { status: 201 })
       } catch (e) {
-        return NextResponse.json({ mensagem: (e as Error).message }, { status: 409 })
+        const msg = (e as Error).message || ''
+        // Erros conhecidos do service (validações de negócio)
+        if (msg.startsWith('Bem ') || msg.startsWith('Escola ')) {
+          return NextResponse.json({ mensagem: msg }, { status: 409 })
+        }
+        return NextResponse.json({ mensagem: 'Erro ao registrar movimentação' }, { status: 500 })
       }
     }
     default:

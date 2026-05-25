@@ -21,14 +21,27 @@ const STORAGE_KEYS = {
 }
 
 // ========== MÓDULO ATIVO ==========
-export type ModuloAtivo = 'educatec' | 'gestor' | 'professor' | 'responsavel'
+// 'educatec' = legado, mantido como alias de 'sisam' para compat com dados existentes
+export type ModuloAtivo =
+  | 'sisam'           // Avaliações SISAM (antigo 'educatec')
+  | 'gestor'          // Gestão Escolar
+  | 'semed'           // SEMED — programas federais + recursos
+  | 'transparencia'   // Site + notícias + ouvidoria
+  | 'admin'           // Administração do sistema
+  | 'educatec'        // legado — equivalente a 'sisam'
+  | 'professor'       // portal mobile (sem escolha)
+  | 'responsavel'     // portal pais (sem escolha)
 
 export function saveModuloAtivo(modulo: ModuloAtivo): void {
-  localStorage.setItem(STORAGE_KEYS.MODULO_ATIVO, modulo)
+  // Normaliza 'educatec' → 'sisam' no novo armazenamento (legado lê os dois)
+  const normalizado = modulo === 'educatec' ? 'sisam' : modulo
+  localStorage.setItem(STORAGE_KEYS.MODULO_ATIVO, normalizado)
 }
 
 export function getModuloAtivo(): ModuloAtivo {
-  return (localStorage.getItem(STORAGE_KEYS.MODULO_ATIVO) as ModuloAtivo) || 'educatec'
+  const raw = localStorage.getItem(STORAGE_KEYS.MODULO_ATIVO) as ModuloAtivo | null
+  if (!raw) return 'sisam'
+  return raw === 'educatec' ? 'sisam' : raw
 }
 
 export function hasModuloAtivo(): boolean {
@@ -51,6 +64,9 @@ export interface OfflineUser {
   gestor_escolar_habilitado?: boolean
   acesso_sisam?: boolean
   acesso_gestor?: boolean
+  acesso_semed?: boolean
+  acesso_transparencia?: boolean
+  acesso_admin?: boolean
 }
 
 export interface OfflinePolo {

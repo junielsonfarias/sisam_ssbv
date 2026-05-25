@@ -253,9 +253,50 @@ export async function listarAlunosComRestricoes(escolaId: string) {
 // NUTRICIONISTAS
 // ============================================================================
 
-export async function listarNutricionistas() {
+export async function listarNutricionistas(incluirInativas = false) {
+  const where = incluirInativas ? '' : 'WHERE ativa = TRUE'
   const r = await pool.query(
-    `SELECT * FROM pnae_nutricionistas WHERE ativa = TRUE ORDER BY responsavel_tecnico DESC, nome`
+    `SELECT * FROM pnae_nutricionistas ${where} ORDER BY responsavel_tecnico DESC, nome`
   )
   return r.rows
+}
+
+export async function cadastrarNutricionista(n: {
+  nome: string
+  crn: string
+  telefone?: string
+  email?: string
+  responsavel_tecnico?: boolean
+}): Promise<string> {
+  const r = await pool.query(
+    `INSERT INTO pnae_nutricionistas (nome, crn, telefone, email, responsavel_tecnico)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
+    [n.nome, n.crn, n.telefone || null, n.email || null, n.responsavel_tecnico ?? false]
+  )
+  return r.rows[0].id
+}
+
+export async function atualizarNutricionista(id: string, n: {
+  nome?: string
+  telefone?: string | null
+  email?: string | null
+  responsavel_tecnico?: boolean
+  ativa?: boolean
+}): Promise<boolean> {
+  const campos: string[] = []
+  const params: unknown[] = []
+  let i = 1
+  if (n.nome !== undefined) { params.push(n.nome); campos.push(`nome = $${i++}`) }
+  if (n.telefone !== undefined) { params.push(n.telefone); campos.push(`telefone = $${i++}`) }
+  if (n.email !== undefined) { params.push(n.email); campos.push(`email = $${i++}`) }
+  if (n.responsavel_tecnico !== undefined) { params.push(n.responsavel_tecnico); campos.push(`responsavel_tecnico = $${i++}`) }
+  if (n.ativa !== undefined) { params.push(n.ativa); campos.push(`ativa = $${i++}`) }
+  if (campos.length === 0) return false
+  params.push(id)
+  const r = await pool.query(
+    `UPDATE pnae_nutricionistas SET ${campos.join(', ')} WHERE id = $${i}`,
+    params
+  )
+  return (r.rowCount ?? 0) > 0
 }

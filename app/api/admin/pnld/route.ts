@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
   buscarTitulos,
   cadastrarTitulo,
@@ -101,34 +102,114 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
   switch (acao) {
     case 'titulo': {
       const parsed = tituloSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
       const id = await cadastrarTitulo(parsed.data)
+
+      await registrarAuditoria({
+        usuarioId: usuario.id,
+        acao: 'PNLD_CADASTRAR_TITULO',
+        entidade: 'pnld_titulos',
+        entidadeId: id,
+        detalhes: {
+          titulo: parsed.data.titulo,
+          codigo_pnld: parsed.data.codigo_pnld,
+          ano_pnld: parsed.data.ano_pnld,
+          tipo_obra: parsed.data.tipo_obra,
+          ano_escolar: parsed.data.ano_escolar,
+        },
+      })
+
       return NextResponse.json({ id, mensagem: 'Título cadastrado' }, { status: 201 })
     }
     case 'estoque': {
       const parsed = estoqueSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
-      await atualizarEstoque(parsed.data)
-      return NextResponse.json({ mensagem: 'Estoque atualizado' })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+      try {
+        await atualizarEstoque(parsed.data)
+
+        // TCE — alterações de inventário público têm peso patrimonial
+        await registrarAuditoria({
+          usuarioId: usuario.id,
+          acao: 'PNLD_ATUALIZAR_ESTOQUE',
+          entidade: 'pnld_estoque_escola',
+          entidadeId: parsed.data.titulo_id,
+          detalhes: {
+            escola_id: parsed.data.escola_id,
+            titulo_id: parsed.data.titulo_id,
+            ano_letivo: parsed.data.ano_letivo,
+            qtd_total: parsed.data.qtd_total,
+            qtd_danificada: parsed.data.qtd_danificada,
+            qtd_extraviada: parsed.data.qtd_extraviada,
+          },
+        })
+
+        return NextResponse.json({ mensagem: 'Estoque atualizado' })
+      } catch (e) {
+        const msg = (e as Error).message || ''
+        if (msg.startsWith('Quantidade total')) {
+          return NextResponse.json({ mensagem: msg }, { status: 409 })
+        }
+        return NextResponse.json({ mensagem: 'Erro ao atualizar estoque' }, { status: 500 })
+      }
     }
     case 'entrega': {
       const parsed = entregaSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
       try {
         const id = await registrarEntrega({ ...parsed.data, entregue_por: usuario.id })
+
+        // LGPD — vínculo bem público a menor (livro didático ao aluno)
+        await registrarAuditoria({
+          usuarioId: usuario.id,
+          acao: 'PNLD_ENTREGAR_LIVRO',
+          entidade: 'pnld_distribuicao_aluno',
+          entidadeId: id,
+          detalhes: {
+            aluno_id: parsed.data.aluno_id,
+            titulo_id: parsed.data.titulo_id,
+            ano_letivo: parsed.data.ano_letivo,
+            numero_tombamento: parsed.data.numero_tombamento,
+          },
+        })
+
         return NextResponse.json({ id, mensagem: 'Entrega registrada' }, { status: 201 })
       } catch (e) {
-        return NextResponse.json({ mensagem: (e as Error).message }, { status: 409 })
+        const msg = (e as Error).message || ''
+        if (msg.startsWith('Livro indisponível') || msg.startsWith('Aluno não encontrado')) {
+          return NextResponse.json({ mensagem: msg }, { status: 409 })
+        }
+        return NextResponse.json({ mensagem: 'Erro ao registrar entrega' }, { status: 500 })
       }
     }
     case 'devolucao': {
       const parsed = devolucaoSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
       try {
         await registrarDevolucao({ ...parsed.data, recebido_por: usuario.id })
+
+        // Ação específica para extravio/dano — peso patrimonial e responsabilização
+        const acao = parsed.data.status === 'extraviado' ? 'PNLD_EXTRAVIADO'
+          : parsed.data.status === 'danificado' ? 'PNLD_DANIFICADO'
+          : 'PNLD_DEVOLVER_LIVRO'
+
+        await registrarAuditoria({
+          usuarioId: usuario.id,
+          acao,
+          entidade: 'pnld_distribuicao_aluno',
+          entidadeId: parsed.data.distribuicao_id,
+          detalhes: {
+            status_final: parsed.data.status,
+            observacoes: parsed.data.observacoes,
+          },
+        })
+
         return NextResponse.json({ mensagem: 'Devolução registrada' })
       } catch (e) {
-        return NextResponse.json({ mensagem: (e as Error).message }, { status: 409 })
+        const msg = (e as Error).message || ''
+        if (msg.startsWith('Distribuição ')) {
+          return NextResponse.json({ mensagem: msg }, { status: 409 })
+        }
+        return NextResponse.json({ mensagem: 'Erro ao registrar devolução' }, { status: 500 })
       }
     }
     default:

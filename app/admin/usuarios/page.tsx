@@ -17,6 +17,9 @@ interface Usuario {
   ativo: boolean
   acesso_sisam: boolean
   acesso_gestor: boolean
+  acesso_semed?: boolean
+  acesso_transparencia?: boolean
+  acesso_admin?: boolean
 }
 
 interface Polo {
@@ -52,6 +55,9 @@ export default function UsuariosPage() {
     ativo: true,
     acesso_sisam: true,
     acesso_gestor: false,
+    acesso_semed: false,
+    acesso_transparencia: false,
+    acesso_admin: false,
   }
   const [formData, setFormData] = useState(formDataInicial)
   const [salvando, setSalvando] = useState(false)
@@ -259,6 +265,9 @@ export default function UsuariosPage() {
         ativo: usuario.ativo,
         acesso_sisam: usuario.acesso_sisam !== false,
         acesso_gestor: usuario.acesso_gestor === true,
+        acesso_semed: usuario.acesso_semed === true,
+        acesso_transparencia: usuario.acesso_transparencia === true,
+        acesso_admin: usuario.acesso_admin === true,
       })
     } else {
       resetForm()
@@ -623,6 +632,57 @@ export default function UsuariosPage() {
                           >
                             <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                               formData.acesso_gestor ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm text-gray-700 dark:text-gray-300">SEMED</span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Programas federais + recursos</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, acesso_semed: !formData.acesso_semed })}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                              formData.acesso_semed ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              formData.acesso_semed ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm text-gray-700 dark:text-gray-300">Transparência</span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Site, notícias, ouvidoria</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, acesso_transparencia: !formData.acesso_transparencia })}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 ${
+                              formData.acesso_transparencia ? 'bg-sky-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              formData.acesso_transparencia ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm text-gray-700 dark:text-gray-300">Administração</span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Backup, segurança, LGPD, logs</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, acesso_admin: !formData.acesso_admin })}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ${
+                              formData.acesso_admin ? 'bg-slate-600' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              formData.acesso_admin ? 'translate-x-5' : 'translate-x-0'
                             }`} />
                           </button>
                         </div>

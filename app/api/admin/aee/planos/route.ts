@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { buscarPlano, salvarPlano } from '@/lib/services/aee.service'
 
 export const dynamic = 'force-dynamic'
@@ -39,7 +40,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'professor'],
   return NextResponse.json({ plano })
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'escola', 'professor'], async (request) => {
+export const POST = withAuth(['administrador', 'tecnico', 'escola', 'professor'], async (request, usuario) => {
   const body = await request.json().catch(() => null)
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) {
@@ -49,5 +50,23 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola', 'professor']
     )
   }
   const id = await salvarPlano(parsed.data)
+
+  // Auditoria LGPD art. 11 — plano sensível
+  // Objetivos/estratégias/avaliação NÃO são gravados (podem revelar diagnóstico)
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    acao: 'AEE_SALVAR_PLANO',
+    entidade: 'aee_planos_individuais',
+    entidadeId: id,
+    detalhes: {
+      aluno_id: parsed.data.aluno_id,
+      ano_letivo: parsed.data.ano_letivo,
+      status: parsed.data.status ?? 'ativo',
+      qtd_areas_foco: (parsed.data.areas_foco || []).length,
+      periodicidade_horas_semanais: parsed.data.periodicidade_horas_semanais,
+      data_inicio: parsed.data.data_inicio,
+    },
+  })
+
   return NextResponse.json({ id, mensagem: 'Plano AEE salvo' }, { status: 201 })
 })

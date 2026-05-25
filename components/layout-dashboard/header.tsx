@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import {
   LogOut,
   Menu,
@@ -11,6 +12,9 @@ import {
   WifiOff,
   BookOpen,
   ArrowLeftRight,
+  Building2,
+  Globe,
+  Settings,
 } from 'lucide-react'
 import { OfflineSyncManager } from '../offline-sync-manager'
 import { SyncStatusBadge } from '../sync-status-badge'
@@ -54,8 +58,26 @@ export function Header({
   handleLogout,
   onModuloChange,
 }: HeaderProps) {
+  const router = useRouter()
+
+  // Metadados visuais do módulo ativo — usado no badge "Trocar módulo"
+  const MODULO_META: Record<offlineStorage.ModuloAtivo, { label: string; Icon: typeof Database; cores: string; faixa: string }> = {
+    sisam:         { label: 'SISAM', Icon: Database, cores: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200', faixa: 'bg-indigo-500' },
+    educatec:      { label: 'SISAM', Icon: Database, cores: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200', faixa: 'bg-indigo-500' },
+    gestor:        { label: 'Gestor', Icon: BookOpen, cores: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200', faixa: 'bg-emerald-500' },
+    semed:         { label: 'SEMED', Icon: Building2, cores: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200', faixa: 'bg-amber-500' },
+    transparencia: { label: 'Transparência', Icon: Globe, cores: 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 hover:bg-sky-200', faixa: 'bg-sky-500' },
+    admin:         { label: 'Admin', Icon: Settings, cores: 'bg-slate-200 dark:bg-slate-700/40 text-slate-700 dark:text-slate-200 hover:bg-slate-300', faixa: 'bg-slate-500' },
+    professor:     { label: 'Professor', Icon: BookOpen, cores: 'bg-emerald-100 text-emerald-700', faixa: 'bg-emerald-500' },
+    responsavel:   { label: 'Responsável', Icon: User, cores: 'bg-purple-100 text-purple-700', faixa: 'bg-purple-500' },
+  }
+  const meta = MODULO_META[moduloAtivo] || MODULO_META.sisam
+  const ModIcon = meta.Icon
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-white via-white to-gray-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 shadow-md dark:shadow-slate-700/50 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 transition-colors duration-300 print:hidden">
+      {/* Faixa indicadora do módulo ativo */}
+      <div className={`h-0.5 w-full ${meta.faixa} transition-colors duration-300`} aria-hidden="true" />
       <div className="px-2 sm:px-4 md:px-6 lg:px-8">
         {/* Linha superior: Logo, Nome do Sistema, Data */}
         <div className="flex justify-between items-center h-14 sm:h-16 lg:h-[72px]">
@@ -105,25 +127,26 @@ export function Header({
             {/* Separador visual */}
             <div className="hidden md:block w-px h-8 bg-gray-200 dark:bg-slate-600 mx-2" />
 
-            {/* Botão de troca de módulo - oculto para polo e escola sem gestor habilitado */}
-            {tipoUsuarioReal !== 'polo' && tipoUsuarioReal !== 'professor' && tipoUsuarioReal !== 'editor' && !(tipoUsuarioReal === 'escola' && !usuario?.gestor_escolar_habilitado) && (
+            {/* Botão de troca de módulo — leva à página /modulos com 5 tiles */}
+            {tipoUsuarioReal !== 'professor' && tipoUsuarioReal !== 'editor' && tipoUsuarioReal !== 'publicador' && tipoUsuarioReal !== 'responsavel' && (
               <button
-                onClick={() => {
-                  const novo = moduloAtivo === 'educatec' ? 'gestor' as offlineStorage.ModuloAtivo : 'educatec' as offlineStorage.ModuloAtivo
-                  onModuloChange(novo)
-                }}
-                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${
-                  moduloAtivo === 'educatec'
-                    ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
-                    : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
-                }`}
-                title={`Módulo ativo: ${moduloAtivo === 'educatec' ? 'SISAM' : 'Gestor Escolar'}. Clique para alternar.`}
+                onClick={() => router.push('/modulos')}
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${meta.cores}`}
+                title={`Módulo ativo: ${meta.label}. Clique para trocar (ou pressione Ctrl+K).`}
               >
-                {moduloAtivo === 'educatec' ? <Database className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-                <span>{moduloAtivo === 'educatec' ? 'SISAM' : 'Gestor'}</span>
+                <ModIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>{meta.label}</span>
                 <ArrowLeftRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-50" />
               </button>
             )}
+
+            {/* Dica do atalho Ctrl+K (visível apenas em desktop) */}
+            <kbd
+              className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50 text-[10px] font-mono text-gray-500 dark:text-gray-400"
+              title="Pressione Ctrl+K para abrir a paleta de comandos"
+            >
+              Ctrl K
+            </kbd>
 
             {/* Badge do tipo de usuário */}
             <div className="hidden md:flex items-center gap-2">

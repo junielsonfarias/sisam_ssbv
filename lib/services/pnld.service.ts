@@ -87,23 +87,62 @@ export async function atualizarEstoque(params: {
   qtd_extraviada?: number
 }) {
   const qtd_disp = params.qtd_disponivel ?? params.qtd_total
-  await pool.query(
-    `INSERT INTO pnld_estoque_escola
-       (escola_id, titulo_id, ano_letivo, qtd_total, qtd_disponivel,
-        qtd_danificada, qtd_extraviada)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)
-     ON CONFLICT (escola_id, titulo_id, ano_letivo) DO UPDATE
-       SET qtd_total = EXCLUDED.qtd_total,
-           qtd_disponivel = EXCLUDED.qtd_disponivel,
-           qtd_danificada = EXCLUDED.qtd_danificada,
-           qtd_extraviada = EXCLUDED.qtd_extraviada,
-           atualizado_em = NOW()`,
-    [
-      params.escola_id, params.titulo_id, params.ano_letivo,
-      params.qtd_total, qtd_disp,
-      params.qtd_danificada || 0, params.qtd_extraviada || 0,
-    ]
-  )
+
+  // Transação com FOR UPDATE garante que pré-validação e UPSERT veem o mesmo
+  // estado, mesmo se houver registrarEntrega concorrente alterando qtd_emprestada.
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    // Lê linha atual com lock (NULL se ainda não existe)
+    const existR = await client.query(
+      `SELECT qtd_emprestada FROM pnld_estoque_escola
+        WHERE escola_id = $1 AND titulo_id = $2 AND ano_letivo = $3
+        FOR UPDATE`,
+      [params.escola_id, params.titulo_id, params.ano_letivo]
+    )
+    const emprestadaAtual = existR.rows[0] ? parseInt(existR.rows[0].qtd_emprestada, 10) : 0
+    if (params.qtd_total < emprestadaAtual) {
+      throw new Error(
+        `Quantidade total (${params.qtd_total}) menor que livros já emprestados (${emprestadaAtual}). ` +
+        `Devolva livros antes de reduzir o estoque.`
+      )
+    }
+
+    // ON CONFLICT NÃO TOCA em qtd_emprestada — preserva contagem de livros em mãos
+    // de alunos. Recalcular qtd_disponivel = total - emprestada - danificada - extraviada
+    // garante consistência mesmo se admin ajustar contagens manualmente.
+    await client.query(
+      `INSERT INTO pnld_estoque_escola
+         (escola_id, titulo_id, ano_letivo, qtd_total, qtd_disponivel,
+          qtd_danificada, qtd_extraviada)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (escola_id, titulo_id, ano_letivo) DO UPDATE
+         SET qtd_total = EXCLUDED.qtd_total,
+             qtd_danificada = EXCLUDED.qtd_danificada,
+             qtd_extraviada = EXCLUDED.qtd_extraviada,
+             qtd_disponivel = GREATEST(
+               EXCLUDED.qtd_total
+                 - pnld_estoque_escola.qtd_emprestada
+                 - EXCLUDED.qtd_danificada
+                 - EXCLUDED.qtd_extraviada,
+               0
+             ),
+             atualizado_em = NOW()`,
+      [
+        params.escola_id, params.titulo_id, params.ano_letivo,
+        params.qtd_total, qtd_disp,
+        params.qtd_danificada || 0, params.qtd_extraviada || 0,
+      ]
+    )
+
+    await client.query('COMMIT')
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.release()
+  }
 }
 
 export async function listarEstoqueEscola(escolaId: string, anoLetivo: string) {

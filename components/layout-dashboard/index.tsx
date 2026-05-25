@@ -7,6 +7,7 @@ import * as offlineStorage from '@/lib/offline-storage'
 import AlertaDivergencias from '../alerta-divergencias'
 import { Header } from './header'
 import { Sidebar } from './sidebar'
+import { CommandPalette } from './command-palette'
 import { getMenuItems, getBadgeConfig } from './menu-config'
 import type { LayoutDashboardProps, MenuItem, Personalizacao } from './types'
 
@@ -22,8 +23,39 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const [personalizacao, setPersonalizacao] = useState<Personalizacao>({})
   const [dataAtual, setDataAtual] = useState('')
   const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({})
-  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>('educatec')
+  const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>('sisam')
   const [hidratado, setHidratado] = useState(false)
+  const [paletaAberta, setPaletaAberta] = useState(false)
+
+  // Chave de persistência dos grupos expandidos — por usuário + módulo
+  // (cada combinação tem seu próprio "estado de gavetas abertas")
+  const storageKeyGrupos = usuario?.id
+    ? `educatec_grupos_expandidos_${usuario.id}_${moduloAtivo}`
+    : null
+
+  // Atalho global Ctrl+K / Cmd+K para abrir paleta de comandos
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletaAberta((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
+
+  // Restaurar grupos expandidos do localStorage (chave por usuário+módulo)
+  useEffect(() => {
+    if (!storageKeyGrupos) return
+    try {
+      const raw = localStorage.getItem(storageKeyGrupos)
+      if (raw) setGruposExpandidos(JSON.parse(raw))
+      else setGruposExpandidos({}) // reset ao trocar de módulo se não há histórico
+    } catch {
+      setGruposExpandidos({})
+    }
+  }, [storageKeyGrupos])
 
   // Função para verificar se o item do menu está ativo
   // Usa correspondência exata ou subrota, com proteção contra falso-positivo
@@ -210,7 +242,14 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   }
 
   const toggleGrupo = (label: string) => {
-    setGruposExpandidos(prev => ({ ...prev, [label]: !prev[label] }))
+    setGruposExpandidos(prev => {
+      const novo = { ...prev, [label]: !prev[label] }
+      // Persiste imediatamente para sobreviver a navegações/refresh
+      if (storageKeyGrupos) {
+        try { localStorage.setItem(storageKeyGrupos, JSON.stringify(novo)) } catch { /* quota cheia */ }
+      }
+      return novo
+    })
   }
 
   // Obter contexto do usuário (polo ou escola)
@@ -230,7 +269,11 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const handleModuloChange = (novo: offlineStorage.ModuloAtivo) => {
     offlineStorage.saveModuloAtivo(novo)
     setModuloAtivo(novo)
+    // Rota de destino por módulo
     if (novo === 'gestor') router.push('/admin/dashboard-gestor')
+    else if (novo === 'semed') router.push('/admin/dashboard-semed')
+    else if (novo === 'transparencia') router.push('/admin/site-institucional')
+    else if (novo === 'admin') router.push('/admin/usuarios')
     else router.push(`/${basePath}/dashboard`)
   }
 
@@ -288,6 +331,16 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       <div className="print:hidden">
         <Rodape />
       </div>
+
+      {/* Paleta de comandos global (Ctrl+K) */}
+      <CommandPalette
+        aberto={paletaAberta}
+        onFechar={() => setPaletaAberta(false)}
+        menuItems={menuItems}
+        moduloAtivo={moduloAtivo}
+        usuario={usuario}
+        onTrocarModulo={handleModuloChange}
+      />
     </div>
   )
 }

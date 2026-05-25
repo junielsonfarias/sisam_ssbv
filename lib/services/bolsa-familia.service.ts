@@ -31,22 +31,13 @@ export const PERIODO_LABEL: Record<PeriodoBF, string> = {
   dez:     'Dezembro',
 }
 
-function calcularFaixaEtaria(dataNascimento: Date | null): string | null {
-  if (!dataNascimento) return null
-  const idade = Math.floor((Date.now() - dataNascimento.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-  if (idade >= 4 && idade <= 5) return '4_5_anos'
-  if (idade >= 6 && idade <= 17) return '6_17_anos'
-  return idade < 4 ? 'menor_4' : 'maior_17'
-}
-
-function minimoCondicionalidade(faixa: string | null): number {
-  if (faixa === '4_5_anos') return 60
-  if (faixa === '6_17_anos') return 75
-  return 0  // Fora da faixa - sem condicionalidade
-}
-
 /**
  * Gera mapa de frequência para todos beneficiários no período.
+ *
+ * Presença é determinada por `hora_entrada IS NOT NULL` em frequencia_diaria
+ * (a tabela só registra presenças efetivas via face/QR/manual).
+ * Dias letivos aproximados por dias úteis (seg-sex) no período — para precisão
+ * por escola, futuramente integrar com contar_dias_letivos() do calendario.
  */
 export async function gerarMapaPeriodo(params: {
   ano_letivo: string
@@ -57,63 +48,71 @@ export async function gerarMapaPeriodo(params: {
   const inicio = `${params.ano_letivo}-${datas.inicio}`
   const fim = `${params.ano_letivo}-${datas.fim}`
 
-  // Busca beneficiários
-  const benefR = await pool.query(
-    `SELECT id, data_nascimento
-       FROM alunos
-      WHERE beneficiario_bolsa_familia = TRUE
-        AND (ativo IS NOT FALSE)`
+  const r = await pool.query(
+    `WITH dias_uteis AS (
+       SELECT COUNT(*)::int AS qtd
+         FROM generate_series($1::date, $2::date, INTERVAL '1 day') d
+        WHERE EXTRACT(DOW FROM d) NOT IN (0, 6)
+     ),
+     aluno_freq AS (
+       SELECT a.id, a.data_nascimento, COUNT(f.id)::int AS presencas
+         FROM alunos a
+         LEFT JOIN frequencia_diaria f
+           ON f.aluno_id = a.id
+          AND f.data BETWEEN $1::date AND $2::date
+          AND f.hora_entrada IS NOT NULL
+        WHERE a.beneficiario_bolsa_familia = TRUE
+          AND COALESCE(a.ativo, TRUE) = TRUE
+        GROUP BY a.id, a.data_nascimento
+     ),
+     calc AS (
+       SELECT
+         af.id AS aluno_id,
+         du.qtd AS total_dias_letivos,
+         af.presencas,
+         GREATEST(du.qtd - af.presencas, 0)::int AS total_faltas,
+         CASE WHEN du.qtd > 0
+              THEN ROUND(af.presencas::numeric * 100.0 / du.qtd, 2)
+              ELSE 0::numeric END AS pct,
+         CASE
+           WHEN af.data_nascimento IS NULL THEN NULL
+           WHEN EXTRACT(YEAR FROM AGE(af.data_nascimento))::int BETWEEN 4 AND 5 THEN '4_5_anos'
+           WHEN EXTRACT(YEAR FROM AGE(af.data_nascimento))::int BETWEEN 6 AND 17 THEN '6_17_anos'
+           WHEN EXTRACT(YEAR FROM AGE(af.data_nascimento))::int < 4 THEN 'menor_4'
+           ELSE 'maior_17'
+         END AS faixa
+       FROM aluno_freq af CROSS JOIN dias_uteis du
+     )
+     INSERT INTO bolsa_familia_mapas
+       (aluno_id, ano_letivo, periodo, total_dias_letivos,
+        total_faltas, total_presencas, frequencia_percentual,
+        faixa_etaria, cumpre_condicionalidade, registrado_por)
+     SELECT
+       c.aluno_id, $3, $4,
+       c.total_dias_letivos, c.total_faltas, c.presencas, c.pct,
+       c.faixa,
+       CASE
+         WHEN c.total_dias_letivos = 0 THEN NULL
+         WHEN c.faixa = '4_5_anos' THEN (c.pct >= 60)
+         WHEN c.faixa = '6_17_anos' THEN (c.pct >= 75)
+         ELSE NULL
+       END,
+       $5
+     FROM calc c
+     ON CONFLICT (aluno_id, ano_letivo, periodo) DO UPDATE
+       SET total_dias_letivos = EXCLUDED.total_dias_letivos,
+           total_faltas = EXCLUDED.total_faltas,
+           total_presencas = EXCLUDED.total_presencas,
+           frequencia_percentual = EXCLUDED.frequencia_percentual,
+           faixa_etaria = EXCLUDED.faixa_etaria,
+           cumpre_condicionalidade = EXCLUDED.cumpre_condicionalidade,
+           atualizado_em = NOW()
+     RETURNING cumpre_condicionalidade`,
+    [inicio, fim, params.ano_letivo, params.periodo, params.registrado_por]
   )
 
-  let gerados = 0
-  let comAlerta = 0
-
-  for (const aluno of benefR.rows) {
-    // Calcula frequência do aluno no período
-    const freqR = await pool.query(
-      `SELECT
-         COUNT(*) AS total,
-         COUNT(CASE WHEN presenca IN ('P','p') THEN 1 END) AS presencas,
-         COUNT(CASE WHEN presenca IN ('F','f') THEN 1 END) AS faltas
-       FROM frequencia_diaria
-       WHERE aluno_id = $1
-         AND data BETWEEN $2::date AND $3::date`,
-      [aluno.id, inicio, fim]
-    ).catch(() => ({ rows: [{ total: 0, presencas: 0, faltas: 0 }] }))
-
-    const total = parseInt(freqR.rows[0].total, 10)
-    const presencas = parseInt(freqR.rows[0].presencas, 10)
-    const faltas = parseInt(freqR.rows[0].faltas, 10)
-    const pct = total > 0 ? Math.round((presencas / total) * 10000) / 100 : 0
-
-    const faixa = calcularFaixaEtaria(aluno.data_nascimento ? new Date(aluno.data_nascimento) : null)
-    const minimo = minimoCondicionalidade(faixa)
-    const cumpre = total > 0 ? pct >= minimo : null
-
-    await pool.query(
-      `INSERT INTO bolsa_familia_mapas
-        (aluno_id, ano_letivo, periodo, total_dias_letivos,
-         total_faltas, total_presencas, frequencia_percentual,
-         faixa_etaria, cumpre_condicionalidade, registrado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-       ON CONFLICT (aluno_id, ano_letivo, periodo) DO UPDATE
-         SET total_dias_letivos = EXCLUDED.total_dias_letivos,
-             total_faltas = EXCLUDED.total_faltas,
-             total_presencas = EXCLUDED.total_presencas,
-             frequencia_percentual = EXCLUDED.frequencia_percentual,
-             faixa_etaria = EXCLUDED.faixa_etaria,
-             cumpre_condicionalidade = EXCLUDED.cumpre_condicionalidade,
-             atualizado_em = NOW()`,
-      [
-        aluno.id, params.ano_letivo, params.periodo,
-        total, faltas, presencas, pct,
-        faixa, cumpre, params.registrado_por,
-      ]
-    )
-
-    gerados++
-    if (cumpre === false) comAlerta++
-  }
+  const gerados = r.rowCount ?? 0
+  const comAlerta = r.rows.filter((row) => row.cumpre_condicionalidade === false).length
 
   return { gerados, com_alerta: comAlerta }
 }
@@ -191,7 +190,8 @@ export async function exportarCsvSistemaPresenca(params: {
     ].join(','))
   }
 
-  return lines.join('\n')
+  // ﻿ = BOM UTF-8 para o Excel abrir com acentos corretos
+  return '﻿' + lines.join('\n')
 }
 
 export async function registrarJustificativa(params: {

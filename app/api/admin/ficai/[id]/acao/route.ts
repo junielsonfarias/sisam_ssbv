@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { registrarAcao } from '@/lib/services/ficai.service'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asy
   const body = await request.json().catch(() => null)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
+    return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
   }
 
   const acaoId = await registrarAcao({
@@ -36,6 +37,26 @@ export const POST = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asy
     descricao: parsed.data.descricao,
     anexo_url: parsed.data.anexo_url || undefined,
     realizado_por: usuario.id,
+  })
+
+  // ECA — encaminhamentos a Conselho Tutelar/MP têm peso legal
+  // Descrição NÃO é gravada (pode conter dados sensíveis do aluno/família)
+  const TIPOS_CRITICOS = ['encaminhamento_conselho_tutelar', 'encaminhamento_ministerio_publico', 'oficio_emitido']
+  const acaoAuditoria = TIPOS_CRITICOS.includes(parsed.data.tipo)
+    ? 'FICAI_ENCAMINHAR'
+    : 'FICAI_REGISTRAR_ACAO'
+
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    acao: acaoAuditoria,
+    entidade: 'ficai_acoes',
+    entidadeId: acaoId,
+    detalhes: {
+      caso_id: id,
+      tipo: parsed.data.tipo,
+      tamanho_descricao: parsed.data.descricao.length,
+      tem_anexo: !!parsed.data.anexo_url,
+    },
   })
 
   return NextResponse.json({ id: acaoId, mensagem: 'Ação registrada' }, { status: 201 })

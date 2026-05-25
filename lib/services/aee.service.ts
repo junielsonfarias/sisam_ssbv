@@ -150,6 +150,7 @@ export async function salvarPlano(plano: PlanoAee): Promise<string> {
        avaliacao_progresso = EXCLUDED.avaliacao_progresso,
        status = EXCLUDED.status,
        professor_aee_id = EXCLUDED.professor_aee_id,
+       data_inicio = EXCLUDED.data_inicio,
        data_revisao = EXCLUDED.data_revisao,
        data_fim = EXCLUDED.data_fim,
        atualizado_em = NOW()

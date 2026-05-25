@@ -18,6 +18,6 @@ export const GET = withAuth(async (_request, usuario) => {
   const s = await status2FA(usuario.id)
   return NextResponse.json({
     ...s,
-    obrigatorio: tipoExige2FA(usuario.tipo_usuario || ''),
+    obrigatorio: await tipoExige2FA(usuario.tipo_usuario || ''),
   })
 })

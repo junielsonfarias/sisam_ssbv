@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
   exportarCsvSistemaPresenca,
   gerarMapaPeriodo,
@@ -79,15 +80,42 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   switch (acao) {
     case 'gerar': {
       const parsed = gerarSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
       const r = await gerarMapaPeriodo({ ...parsed.data, registrado_por: usuario.id })
+
+      // MEC — geração em lote tem impacto regulatório (Sistema Presença)
+      await registrarAuditoria({
+        usuarioId: usuario.id,
+        acao: 'BOLSA_FAMILIA_GERAR_MAPAS',
+        entidade: 'bolsa_familia_mapas',
+        detalhes: {
+          ano_letivo: parsed.data.ano_letivo,
+          periodo: parsed.data.periodo,
+          gerados: r.gerados,
+          com_alerta: r.com_alerta,
+        },
+      })
+
       return NextResponse.json({ ...r, mensagem: `${r.gerados} mapas gerados (${r.com_alerta} com alerta de baixa frequência).` })
     }
     case 'justificar': {
       const parsed = justificarSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
+      if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
       const ok = await registrarJustificativa(parsed.data)
       if (!ok) return NextResponse.json({ mensagem: 'Mapa não encontrado' }, { status: 404 })
+
+      // LGPD art. 11 — justificativa pode conter dados sensíveis (saúde, social, familiar)
+      // Detalhes do motivo NÃO são gravados nos logs — só metadados administrativos
+      await registrarAuditoria({
+        usuarioId: usuario.id,
+        acao: 'BOLSA_FAMILIA_JUSTIFICAR',
+        entidade: 'bolsa_familia_mapas',
+        entidadeId: parsed.data.mapa_id,
+        detalhes: {
+          tamanho_motivo: parsed.data.motivo.length,
+        },
+      })
+
       return NextResponse.json({ mensagem: 'Justificativa registrada' })
     }
     default:

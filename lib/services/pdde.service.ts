@@ -76,35 +76,72 @@ export async function listarOrcamentosEscola(escolaId: string, anoLetivo?: strin
 // DESPESAS
 // ============================================================================
 
+/**
+ * Registra despesa com proteção contra race condition.
+ *
+ * Bloqueia o orçamento (FOR UPDATE) antes de validar saldo, garantindo que
+ * dois pedidos simultâneos não possam ambos passar pela validação e estourar
+ * o saldo. A despesa só é gravada se houver saldo dentro da mesma transação.
+ */
 export async function registrarDespesa(d: Despesa): Promise<string> {
-  // Verifica saldo disponível
-  const saldoR = await pool.query(
-    `SELECT saldo_atual FROM pdde_saldos WHERE orcamento_id = $1`,
-    [d.orcamento_id]
-  )
-  const saldo = parseFloat(saldoR.rows[0]?.saldo_atual || '0')
-  if (d.valor > saldo) {
-    throw new Error(`Saldo insuficiente. Disponível: R$ ${saldo.toFixed(2)}, despesa: R$ ${d.valor.toFixed(2)}`)
-  }
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
 
-  const r = await pool.query(
-    `INSERT INTO pdde_despesas
-      (orcamento_id, data_despesa, descricao, fornecedor, fornecedor_cnpj,
-       valor, categoria, numero_nota, data_nota, nota_url,
-       forma_pagamento, status, observacoes, criado_por)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-     RETURNING id`,
-    [
-      d.orcamento_id, d.data_despesa, d.descricao,
-      d.fornecedor || null,
-      d.fornecedor_cnpj ? d.fornecedor_cnpj.replace(/\D/g, '') : null,
-      d.valor, d.categoria || null,
-      d.numero_nota || null, d.data_nota || null, d.nota_url || null,
-      d.forma_pagamento || null, d.status || 'registrada',
-      d.observacoes || null, d.criado_por || null,
-    ]
-  )
-  return r.rows[0].id
+    // 1) Trava o orçamento — concorrentes esperam até este COMMIT/ROLLBACK
+    const orcR = await client.query(
+      `SELECT id, valor_recebido FROM pdde_orcamentos WHERE id = $1 FOR UPDATE`,
+      [d.orcamento_id]
+    )
+    if (!orcR.rows[0]) {
+      throw new Error('Orçamento não encontrado')
+    }
+
+    // 2) Recalcula executado considerando despesas não-canceladas
+    const exeR = await client.query(
+      `SELECT COALESCE(SUM(valor), 0)::numeric AS executado
+         FROM pdde_despesas
+        WHERE orcamento_id = $1 AND status != 'cancelada'`,
+      [d.orcamento_id]
+    )
+
+    const valorRecebido = parseFloat(orcR.rows[0].valor_recebido)
+    const executado = parseFloat(exeR.rows[0].executado)
+    const saldo = valorRecebido - executado
+
+    if (d.valor > saldo) {
+      throw new Error(
+        `Saldo insuficiente. Disponível: R$ ${saldo.toFixed(2)}, despesa: R$ ${d.valor.toFixed(2)}`
+      )
+    }
+
+    // 3) Insere despesa
+    const r = await client.query(
+      `INSERT INTO pdde_despesas
+        (orcamento_id, data_despesa, descricao, fornecedor, fornecedor_cnpj,
+         valor, categoria, numero_nota, data_nota, nota_url,
+         forma_pagamento, status, observacoes, criado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       RETURNING id`,
+      [
+        d.orcamento_id, d.data_despesa, d.descricao,
+        d.fornecedor || null,
+        d.fornecedor_cnpj ? d.fornecedor_cnpj.replace(/\D/g, '') : null,
+        d.valor, d.categoria || null,
+        d.numero_nota || null, d.data_nota || null, d.nota_url || null,
+        d.forma_pagamento || null, d.status || 'registrada',
+        d.observacoes || null, d.criado_por || null,
+      ]
+    )
+
+    await client.query('COMMIT')
+    return r.rows[0].id
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.release()
+  }
 }
 
 export async function listarDespesas(orcamentoId: string) {

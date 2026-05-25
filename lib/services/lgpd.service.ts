@@ -222,6 +222,67 @@ export async function cancelarExclusao(params: {
 }
 
 /**
+ * Lista solicitações LGPD de TODOS os titulares (uso administrativo).
+ * Suporta filtros por status, tipo e busca.
+ */
+export async function listarSolicitacoesAdmin(filtros: {
+  status?: string
+  tipo?: string
+  busca?: string
+  limite?: number
+  offset?: number
+} = {}) {
+  const conds: string[] = []
+  const params: unknown[] = []
+  let i = 1
+  if (filtros.status) { params.push(filtros.status); conds.push(`s.status = $${i++}`) }
+  if (filtros.tipo) { params.push(filtros.tipo); conds.push(`s.tipo = $${i++}`) }
+  if (filtros.busca && filtros.busca.length > 2) {
+    params.push(filtros.busca)
+    conds.push(`(u.nome ILIKE '%' || $${i} || '%' OR u.email ILIKE '%' || $${i} || '%')`)
+    i++
+  }
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
+  const limite = Math.min(filtros.limite ?? 100, 500)
+  const offset = filtros.offset ?? 0
+  params.push(limite, offset)
+
+  const r = await pool.query(
+    `SELECT s.*,
+            u.nome AS usuario_nome,
+            u.email AS usuario_email,
+            u.tipo_usuario
+       FROM lgpd_solicitacoes s
+       LEFT JOIN usuarios u ON u.id = s.usuario_id
+       ${where}
+      ORDER BY
+        CASE WHEN s.status = 'pendente' THEN 0 ELSE 1 END,
+        s.criada_em DESC
+      LIMIT $${i++} OFFSET $${i}`,
+    params
+  )
+  return r.rows
+}
+
+/**
+ * Estatísticas LGPD para o painel admin.
+ */
+export async function estatisticasLgpd() {
+  const r = await pool.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE status = 'pendente') AS pendentes,
+       COUNT(*) FILTER (WHERE status = 'pendente' AND prevista_para <= NOW() + INTERVAL '3 days') AS vencendo,
+       COUNT(*) FILTER (WHERE status = 'pendente' AND prevista_para < NOW()) AS atrasadas,
+       COUNT(*) FILTER (WHERE status = 'concluida' AND concluida_em >= date_trunc('month', NOW())) AS concluidas_mes,
+       COUNT(*) FILTER (WHERE tipo = 'exclusao') AS total_exclusao,
+       COUNT(*) FILTER (WHERE tipo = 'exportar') AS total_exportacao,
+       COUNT(*) FILTER (WHERE tipo = 'portabilidade') AS total_portabilidade
+       FROM lgpd_solicitacoes`
+  )
+  return r.rows[0] || {}
+}
+
+/**
  * Lista solicitações LGPD do titular (para mostrar na página dele).
  */
 export async function listarMinhasSolicitacoes(usuarioId: string) {

@@ -40,6 +40,49 @@ export const STATUS_LABEL: Record<StatusFicai, string> = {
   cancelado: 'Cancelado',
 }
 
+/**
+ * Transições válidas no fluxo FICAI (ECA Art. 56).
+ * Fluxo natural: aberto → contato_responsavel → aluno_retornou (resolvido)
+ *           OU: aberto → contato_responsavel → encaminhado_conselho_tutelar → encaminhado_ministerio_publico
+ * Conclusões podem ser alcançadas dos status em andamento (não direto de aberto).
+ */
+const TRANSICOES_FICAI: Record<StatusFicai, StatusFicai[]> = {
+  aberto: ['contato_responsavel', 'concluido_aluno_transferido', 'cancelado'],
+  contato_responsavel: [
+    'aluno_retornou',
+    'encaminhado_conselho_tutelar',
+    'concluido_resolvido',
+    'concluido_aluno_transferido',
+    'concluido_evasao_confirmada',
+    'cancelado',
+  ],
+  aluno_retornou: ['concluido_resolvido', 'contato_responsavel'],
+  encaminhado_conselho_tutelar: [
+    'encaminhado_ministerio_publico',
+    'aluno_retornou',
+    'concluido_resolvido',
+    'concluido_aluno_transferido',
+    'concluido_evasao_confirmada',
+    'cancelado',
+  ],
+  encaminhado_ministerio_publico: [
+    'aluno_retornou',
+    'concluido_resolvido',
+    'concluido_aluno_transferido',
+    'concluido_evasao_confirmada',
+    'cancelado',
+  ],
+  concluido_aluno_transferido: [],
+  concluido_resolvido: [],
+  concluido_evasao_confirmada: [],
+  cancelado: ['aberto'], // permite reabrir caso cancelado por engano
+}
+
+export function transicaoValidaFicai(de: StatusFicai, para: StatusFicai): boolean {
+  if (de === para) return true
+  return TRANSICOES_FICAI[de]?.includes(para) ?? false
+}
+
 const STATUS_ABERTOS: StatusFicai[] = [
   'aberto', 'contato_responsavel', 'aluno_retornou',
   'encaminhado_conselho_tutelar', 'encaminhado_ministerio_publico',
@@ -196,6 +239,17 @@ export async function atualizarStatus(params: {
   usuarioId: string
   observacao?: string
 }): Promise<boolean> {
+  // Valida transição contra a máquina de estados (impede pulos ilegais)
+  const atualR = await pool.query(
+    `SELECT status FROM ficai_casos WHERE id = $1`,
+    [params.casoId]
+  )
+  if (!atualR.rows[0]) return false
+  const statusAnterior = atualR.rows[0].status as StatusFicai
+  if (!transicaoValidaFicai(statusAnterior, params.novoStatus)) {
+    throw new Error(`Transição inválida: ${STATUS_LABEL[statusAnterior]} → ${STATUS_LABEL[params.novoStatus]}`)
+  }
+
   const campos: string[] = [`status = $1`, `atualizado_em = NOW()`]
   const queryParams: unknown[] = [params.novoStatus]
   let i = 2

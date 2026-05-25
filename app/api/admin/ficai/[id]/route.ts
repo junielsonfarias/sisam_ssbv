@@ -34,18 +34,26 @@ export const PATCH = withAuth(['administrador', 'tecnico', 'polo', 'escola'], as
   const body = await request.json().catch(() => null)
   const parsed = patchSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ mensagem: 'Dados inválidos' }, { status: 400 })
+    return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
   }
 
-  const ok = await atualizarStatus({
-    casoId: id,
-    novoStatus: parsed.data.status as any,
-    usuarioId: usuario.id,
-    observacao: parsed.data.observacao,
-  })
+  try {
+    const ok = await atualizarStatus({
+      casoId: id,
+      novoStatus: parsed.data.status as any,
+      usuarioId: usuario.id,
+      observacao: parsed.data.observacao,
+    })
 
-  if (!ok) {
-    return NextResponse.json({ mensagem: 'Não foi possível atualizar' }, { status: 404 })
+    if (!ok) {
+      return NextResponse.json({ mensagem: 'Caso não encontrado' }, { status: 404 })
+    }
+    return NextResponse.json({ mensagem: 'Status atualizado' })
+  } catch (e) {
+    const msg = (e as Error).message || ''
+    if (msg.startsWith('Transição inválida')) {
+      return NextResponse.json({ mensagem: msg }, { status: 409 })
+    }
+    return NextResponse.json({ mensagem: 'Erro ao atualizar status' }, { status: 500 })
   }
-  return NextResponse.json({ mensagem: 'Status atualizado' })
 })
