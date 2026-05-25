@@ -57,6 +57,7 @@ import {
   Wrench,
   BookMarked,
   Heart,
+  Baby,
 } from 'lucide-react'
 import type { MenuItem } from './types'
 import type { ModuloAtivo } from '@/lib/offline-storage'
@@ -309,6 +310,7 @@ function gruposSemed(tipo: string): MenuItem[] {
       icon: AlertTriangle, label: 'Acompanhamento Estudantil', children: [
         { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/ficai' },
         { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/aee' },
+        { icon: Baby, label: 'Educação Infantil', href: '/admin/ed-infantil' },
         { icon: ClipboardList, label: 'Censo Escolar (INEP)', href: '/admin/censo-escolar' },
         { icon: FileCheck, label: 'Documentos Emitidos', href: '/admin/documentos' },
       ]
