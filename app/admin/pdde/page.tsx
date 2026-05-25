@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   DollarSign,
   Plus,
@@ -17,6 +17,7 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 interface Escola {
   id: string
@@ -185,47 +186,62 @@ function PddeAdmin() {
 
   useEffect(() => { carregar() }, [carregar])
 
+  const expandirOrcamentoAbortRef = useRef<AbortController | null>(null)
+
   async function expandirOrcamento(o: Orcamento) {
     if (orcamentoExpandido === o.id) {
       setOrcamentoExpandido(null)
       setDespesas([])
       return
     }
+    expandirOrcamentoAbortRef.current?.abort()
+    const controller = new AbortController()
+    expandirOrcamentoAbortRef.current = controller
+
     setOrcamentoExpandido(o.id)
     setCarregandoDespesas(true)
     try {
-      const res = await fetch(`/api/admin/pdde?recurso=despesas&orcamento=${o.id}`)
+      const res = await fetch(`/api/admin/pdde?recurso=despesas&orcamento=${o.id}`, { signal: controller.signal })
       const data = await res.json()
       setDespesas(data.despesas || [])
-    } catch {
-      toast.error('Erro ao carregar despesas')
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast.error('Erro ao carregar despesas')
     } finally {
-      setCarregandoDespesas(false)
+      if (expandirOrcamentoAbortRef.current === controller) setCarregandoDespesas(false)
     }
   }
 
-  async function cancelarDespesa(despesaId: string, descricao: string, orcamentoId: string) {
-    const motivo = window.prompt(`Confirmar cancelamento da despesa "${descricao}"?\n\nInforme o motivo (mín. 5 caracteres):`)
-    if (!motivo || motivo.trim().length < 5) {
-      if (motivo !== null) toast.error('Motivo deve ter no mínimo 5 caracteres')
-      return
-    }
+  const [modalCancelarDespesa, setModalCancelarDespesa] = useState<{ despesaId: string; descricao: string; orcamentoId: string } | null>(null)
+  const [cancelandoDespesa, setCancelandoDespesa] = useState(false)
+
+  function abrirCancelarDespesa(despesaId: string, descricao: string, orcamentoId: string) {
+    setModalCancelarDespesa({ despesaId, descricao, orcamentoId })
+  }
+
+  async function confirmarCancelarDespesa(motivo?: string) {
+    if (!modalCancelarDespesa || !motivo) return
+    const { despesaId, orcamentoId } = modalCancelarDespesa
+    setCancelandoDespesa(true)
     try {
       const res = await fetch(`/api/admin/pdde?despesa=${despesaId}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motivo: motivo.trim() }),
+        body: JSON.stringify({ motivo }),
       })
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.mensagem || 'Erro')
       }
       toast.success('Despesa cancelada — saldo recalculado')
-      // Recarrega despesas do orçamento expandido + saldos gerais
       const r = await fetch(`/api/admin/pdde?recurso=despesas&orcamento=${orcamentoId}`)
       const data = await r.json()
       setDespesas(data.despesas || [])
       carregar()
-    } catch (e) { toast.error((e as Error).message) }
+      setModalCancelarDespesa(null)
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setCancelandoDespesa(false)
+    }
   }
 
   async function salvarOrcamento() {
@@ -482,7 +498,7 @@ function PddeAdmin() {
                                     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${STATUS_BADGE[d.status]}`}>{d.status}</span>
                                     {d.status !== 'cancelada' && (
                                       <button
-                                        onClick={() => cancelarDespesa(d.id, d.descricao, o.id)}
+                                        onClick={() => abrirCancelarDespesa(d.id, d.descricao, o.id)}
                                         className="text-xs text-red-600 hover:text-red-700 font-semibold"
                                       >
                                         Cancelar
@@ -643,6 +659,21 @@ function PddeAdmin() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        aberto={!!modalCancelarDespesa}
+        titulo="Cancelar despesa?"
+        mensagem={modalCancelarDespesa ? `A despesa "${modalCancelarDespesa.descricao}" será marcada como cancelada e sairá do executado. Esta ação é registrada na auditoria.` : ''}
+        variant="danger"
+        exigirJustificativa
+        placeholderJustificativa="Motivo do cancelamento (ex: lançada por engano, NF cancelada pelo fornecedor...)"
+        minCaracteresJustificativa={5}
+        textoConfirmar="Cancelar despesa"
+        textoCancelar="Voltar"
+        processando={cancelandoDespesa}
+        onConfirmar={(motivo) => confirmarCancelarDespesa(motivo)}
+        onFechar={() => setModalCancelarDespesa(null)}
+      />
     </div>
   )
 }

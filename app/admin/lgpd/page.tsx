@@ -19,6 +19,7 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 interface Solicitacao {
   id: string
@@ -108,13 +109,13 @@ function LgpdAdmin() {
     return () => clearTimeout(t)
   }, [carregar])
 
+  const [modalConfirmacao, setModalConfirmacao] = useState<{ id: string; acao: 'cancelar' | 'concluir' | 'executar_exclusao' } | null>(null)
+
+  function abrirConfirmacaoAcao(id: string, acao: 'cancelar' | 'concluir' | 'executar_exclusao') {
+    setModalConfirmacao({ id, acao })
+  }
+
   async function processarAcao(id: string, acao: 'cancelar' | 'concluir' | 'executar_exclusao') {
-    const confirmacoes: Record<typeof acao, string> = {
-      cancelar: 'Confirmar cancelamento desta solicitação LGPD?\n\nO titular não terá seu pedido atendido. A ação é registrada na auditoria.',
-      concluir: 'Confirmar conclusão desta solicitação?\n\nIndica que o pedido foi atendido (export entregue, dados corrigidos, etc).',
-      executar_exclusao: 'Confirmar marcar exclusão como executada?\n\nA exclusão real dos dados ocorre via cron. Esta ação é registrada na auditoria.',
-    }
-    if (!confirm(confirmacoes[acao])) return
     setProcessando(true)
     try {
       const res = await fetch(`/api/admin/lgpd?id=${id}`, {
@@ -130,6 +131,7 @@ function LgpdAdmin() {
       toast.success(data.mensagem)
       setObservacao('')
       setExpandido(null)
+      setModalConfirmacao(null)
       carregar()
     } catch (e) {
       toast.error((e as Error).message)
@@ -305,7 +307,7 @@ function LgpdAdmin() {
                       {s.status === 'pendente' && (
                         <>
                           <button
-                            onClick={() => processarAcao(s.id, 'concluir')}
+                            onClick={() => abrirConfirmacaoAcao(s.id, 'concluir')}
                             disabled={processando}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50"
                           >
@@ -314,7 +316,7 @@ function LgpdAdmin() {
                           </button>
                           {s.tipo === 'exclusao' && (
                             <button
-                              onClick={() => processarAcao(s.id, 'executar_exclusao')}
+                              onClick={() => abrirConfirmacaoAcao(s.id, 'executar_exclusao')}
                               disabled={processando}
                               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50"
                             >
@@ -323,7 +325,7 @@ function LgpdAdmin() {
                             </button>
                           )}
                           <button
-                            onClick={() => processarAcao(s.id, 'cancelar')}
+                            onClick={() => abrirConfirmacaoAcao(s.id, 'cancelar')}
                             disabled={processando}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-gray-300 disabled:opacity-50"
                           >
@@ -345,6 +347,42 @@ function LgpdAdmin() {
           })}
         </div>
       )}
+
+      {modalConfirmacao && (() => {
+        const CFG: Record<typeof modalConfirmacao.acao, { titulo: string; mensagem: string; variant: 'danger' | 'warning' | 'info'; textoConfirmar: string }> = {
+          cancelar: {
+            titulo: 'Cancelar solicitação LGPD?',
+            mensagem: 'O titular NÃO terá seu pedido atendido. Esta ação é registrada na auditoria e pode ter implicações legais (Lei 13.709/2018, art. 18).',
+            variant: 'danger',
+            textoConfirmar: 'Cancelar pedido',
+          },
+          concluir: {
+            titulo: 'Marcar como concluída?',
+            mensagem: 'Indica que o pedido foi atendido (export entregue, dados corrigidos, etc). Registra na auditoria.',
+            variant: 'info',
+            textoConfirmar: 'Marcar concluída',
+          },
+          executar_exclusao: {
+            titulo: 'Executar exclusão dos dados?',
+            mensagem: 'Marca a exclusão como executada. A exclusão real dos dados ocorre via cron job. Esta ação é registrada na auditoria e é IRREVERSÍVEL.',
+            variant: 'danger',
+            textoConfirmar: 'Executar exclusão',
+          },
+        }
+        const cfg = CFG[modalConfirmacao.acao]
+        return (
+          <ConfirmModal
+            aberto
+            titulo={cfg.titulo}
+            mensagem={cfg.mensagem}
+            variant={cfg.variant}
+            textoConfirmar={cfg.textoConfirmar}
+            processando={processando}
+            onConfirmar={() => processarAcao(modalConfirmacao.id, modalConfirmacao.acao)}
+            onFechar={() => setModalConfirmacao(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Briefcase,
   Plus,
@@ -204,18 +204,24 @@ function RhAdmin() {
     }
   }, [carregar])
 
+  const abrirDetalheAbortRef = useRef<AbortController | null>(null)
+
   async function abrirDetalhe(id: string) {
+    abrirDetalheAbortRef.current?.abort()
+    const controller = new AbortController()
+    abrirDetalheAbortRef.current = controller
+
     setModalDetalhe(true)
     setCarregandoDetalhe(true)
     setDetalhe(null)
     try {
-      const res = await fetch(`/api/admin/rh?recurso=servidor&id=${id}`)
+      const res = await fetch(`/api/admin/rh?recurso=servidor&id=${id}`, { signal: controller.signal })
       const data = await res.json()
       setDetalhe(data.servidor)
-    } catch {
-      toast.error('Erro ao carregar detalhe')
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast.error('Erro ao carregar detalhe')
     } finally {
-      setCarregandoDetalhe(false)
+      if (abrirDetalheAbortRef.current === controller) setCarregandoDetalhe(false)
     }
   }
 

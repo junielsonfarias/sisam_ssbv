@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Accessibility,
   Plus,
@@ -198,6 +198,11 @@ function AeeAdmin() {
   })
   const [salvandoAtend, setSalvandoAtend] = useState(false)
 
+  // AbortControllers para handlers de modal — cancelam requests anteriores
+  // quando o usuario clica em outro aluno antes do primeiro carregar
+  const abrirCadastroAbortRef = useRef<AbortController | null>(null)
+  const abrirPlanoAbortRef = useRef<AbortController | null>(null)
+
   const carregar = useCallback(async (signal?: AbortSignal) => {
     try {
       setCarregando(true)
@@ -252,9 +257,13 @@ function AeeAdmin() {
     setCadastro({ ...cadastroVazio, aluno_id: alunoId })
     setModalCadastro(true)
     if (!isNew) {
+      // Cancela request anterior se houver
+      abrirCadastroAbortRef.current?.abort()
+      const controller = new AbortController()
+      abrirCadastroAbortRef.current = controller
       setCarregandoCadastro(true)
       try {
-        const res = await fetch(`/api/admin/aee/alunos?aluno=${alunoId}`)
+        const res = await fetch(`/api/admin/aee/alunos?aluno=${alunoId}`, { signal: controller.signal })
         const data = await res.json()
         if (data.aluno_aee) {
           setCadastro({
@@ -272,10 +281,10 @@ function AeeAdmin() {
             frequencia_aee: data.aluno_aee.frequencia_aee || '',
           })
         }
-      } catch {
-        toast.error('Erro ao carregar cadastro AEE')
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') toast.error('Erro ao carregar cadastro AEE')
       } finally {
-        setCarregandoCadastro(false)
+        if (abrirCadastroAbortRef.current === controller) setCarregandoCadastro(false)
       }
     }
   }
@@ -315,6 +324,10 @@ function AeeAdmin() {
   }
 
   async function abrirPlano(aluno: AlunoAeeRow) {
+    abrirPlanoAbortRef.current?.abort()
+    const controller = new AbortController()
+    abrirPlanoAbortRef.current = controller
+
     setAlunoSelecionado(aluno)
     setModalPlano(true)
     setPlano(planoVazio(aluno.aluno_id, anoPlano))
@@ -322,7 +335,7 @@ function AeeAdmin() {
     setAtendimentos([])
     setCarregandoPlano(true)
     try {
-      const res = await fetch(`/api/admin/aee/planos?aluno=${aluno.aluno_id}&ano=${anoPlano}`)
+      const res = await fetch(`/api/admin/aee/planos?aluno=${aluno.aluno_id}&ano=${anoPlano}`, { signal: controller.signal })
       const data = await res.json()
       if (data.plano) {
         setPlanoIdAtual(data.plano.id)
@@ -343,10 +356,10 @@ function AeeAdmin() {
         // Carrega atendimentos do aluno no ano
         carregarAtendimentos(aluno.aluno_id, anoPlano)
       }
-    } catch {
-      toast.error('Erro ao carregar plano')
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast.error('Erro ao carregar plano')
     } finally {
-      setCarregandoPlano(false)
+      if (abrirPlanoAbortRef.current === controller) setCarregandoPlano(false)
     }
   }
 

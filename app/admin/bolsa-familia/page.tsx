@@ -15,6 +15,7 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 interface Escola { id: string; nome: string }
 
@@ -101,8 +102,10 @@ function BolsaFamiliaAdmin() {
 
   useEffect(() => { carregar() }, [carregar])
 
+  const [modalGerar, setModalGerar] = useState(false)
+
   async function gerarMapas() {
-    if (!confirm(`Gerar mapas para ${ano} — ${periodo}? Isso vai criar/atualizar mapas para TODOS os alunos beneficiários.`)) return
+    setModalGerar(false)
     setGerando(true)
     try {
       const res = await fetch('/api/admin/bolsa-familia?acao=gerar', {
@@ -176,7 +179,7 @@ function BolsaFamiliaAdmin() {
             <button onClick={baixarCsv} disabled={mapas.length === 0} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-bold disabled:opacity-50">
               <Download className="w-4 h-4" /> Baixar CSV
             </button>
-            <button onClick={gerarMapas} disabled={gerando} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-pink-700 text-sm font-bold hover:bg-pink-50 disabled:opacity-50">
+            <button onClick={() => setModalGerar(true)} disabled={gerando} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-pink-700 text-sm font-bold hover:bg-pink-50 disabled:opacity-50">
               {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               Gerar mapas
             </button>
@@ -239,7 +242,7 @@ function BolsaFamiliaAdmin() {
         <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
           <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhum mapa encontrado para este período</p>
-          <button onClick={gerarMapas} disabled={gerando} className="mt-4 text-pink-600 text-sm font-semibold hover:text-pink-700 disabled:opacity-50">
+          <button onClick={() => setModalGerar(true)} disabled={gerando} className="mt-4 text-pink-600 text-sm font-semibold hover:text-pink-700 disabled:opacity-50">
             Gerar mapas para este período
           </button>
         </div>
@@ -317,6 +320,17 @@ function BolsaFamiliaAdmin() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        aberto={modalGerar}
+        titulo={`Gerar mapas para ${ano} — ${periodo}?`}
+        mensagem={`Será criado ou atualizado um mapa de frequência para TODOS os alunos beneficiários do Bolsa Família neste período.\n\nMapas existentes terão dias_letivos/presenças/faltas recalculados. Justificativas já registradas serão preservadas.`}
+        variant="warning"
+        textoConfirmar="Gerar mapas"
+        processando={gerando}
+        onConfirmar={() => gerarMapas()}
+        onFechar={() => setModalGerar(false)}
+      />
     </div>
   )
 }

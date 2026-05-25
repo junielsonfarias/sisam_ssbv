@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Wrench,
   Plus,
@@ -127,6 +127,7 @@ function OsAdmin() {
   const [modalAvaliar, setModalAvaliar] = useState<string | null>(null)
   const [avaliacaoEstrelas, setAvaliacaoEstrelas] = useState(5)
   const [avaliacaoComentario, setAvaliacaoComentario] = useState('')
+  const abrirDetalheAbortRef = useRef<AbortController | null>(null)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -163,18 +164,22 @@ function OsAdmin() {
       setDetalhe(null)
       return
     }
+    abrirDetalheAbortRef.current?.abort()
+    const controller = new AbortController()
+    abrirDetalheAbortRef.current = controller
+
     setExpandido(o.id)
     setNovoStatus(o.status)
     setComentarioStatus('')
     setCarregandoDet(true)
     try {
-      const res = await fetch(`/api/admin/ordens-servico?recurso=detalhe&id=${o.id}`)
+      const res = await fetch(`/api/admin/ordens-servico?recurso=detalhe&id=${o.id}`, { signal: controller.signal })
       const data = await res.json()
       setDetalhe(data.ordem)
-    } catch {
-      toast.error('Erro ao carregar detalhes')
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast.error('Erro ao carregar detalhes')
     } finally {
-      setCarregandoDet(false)
+      if (abrirDetalheAbortRef.current === controller) setCarregandoDet(false)
     }
   }
 

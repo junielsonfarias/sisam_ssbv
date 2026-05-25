@@ -16,6 +16,7 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 interface Escola { id: string; nome: string }
 
@@ -306,20 +307,29 @@ function BibliotecaAdmin() {
     } catch (e) { toast.error((e as Error).message) } finally { setSalvando(false) }
   }
 
-  async function devolver(emprestimoId: string) {
-    if (!confirm('Confirmar devolução?')) return
+  const [modalDevolver, setModalDevolver] = useState<string | null>(null)
+  const [devolvendo, setDevolvendo] = useState(false)
+
+  async function confirmarDevolucao() {
+    if (!modalDevolver) return
+    setDevolvendo(true)
     try {
       const res = await fetch('/api/admin/biblioteca?acao=devolucao', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emprestimo_id: emprestimoId, status: 'devolvido' }),
+        body: JSON.stringify({ emprestimo_id: modalDevolver, status: 'devolvido' }),
       })
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.mensagem || 'Erro')
       }
       toast.success('Devolução registrada')
+      setModalDevolver(null)
       carregar()
-    } catch (e) { toast.error((e as Error).message) }
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setDevolvendo(false)
+    }
   }
 
   async function reservarItem(acervoId: string) {
@@ -503,7 +513,7 @@ function BibliotecaAdmin() {
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => renovar(e.id)} className="px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-200">Renovar</button>
-                      <button onClick={() => devolver(e.id)} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold hover:bg-green-700">Devolver</button>
+                      <button onClick={() => setModalDevolver(e.id)} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold hover:bg-green-700">Devolver</button>
                     </div>
                   </div>
                 </div>
@@ -732,6 +742,17 @@ function BibliotecaAdmin() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        aberto={!!modalDevolver}
+        titulo="Confirmar devolução?"
+        mensagem="O empréstimo será marcado como devolvido e o item voltará ao acervo disponível."
+        variant="info"
+        textoConfirmar="Devolver"
+        processando={devolvendo}
+        onConfirmar={() => confirmarDevolucao()}
+        onFechar={() => setModalDevolver(null)}
+      />
     </div>
   )
 }

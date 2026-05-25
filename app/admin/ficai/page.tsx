@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   AlertTriangle,
   Search,
@@ -123,6 +123,9 @@ const TIPO_ACAO_OPCOES = [
 
 function FicaiAdmin() {
   const toast = useToast()
+  // AbortController para handler "abrirDetalhes" — cliques rapidos em casos
+  // diferentes devem cancelar o anterior para evitar setDetalhes do caso errado
+  const abrirDetalhesAbortRef = useRef<AbortController | null>(null)
   const [casos, setCasos] = useState<Caso[]>([])
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({
     total: 0,
@@ -204,6 +207,11 @@ function FicaiAdmin() {
       setDetalhes(null)
       return
     }
+    // Cancela request anterior (se houver) — evita race
+    abrirDetalhesAbortRef.current?.abort()
+    const controller = new AbortController()
+    abrirDetalhesAbortRef.current = controller
+
     setExpandido(caso.id)
     setNovoStatus(caso.status)
     setObservacaoStatus('')
@@ -211,13 +219,15 @@ function FicaiAdmin() {
     setTipoAcao('contato_telefone')
     setCarregandoDetalhes(true)
     try {
-      const res = await fetch(`/api/admin/ficai/${caso.id}`)
+      const res = await fetch(`/api/admin/ficai/${caso.id}`, { signal: controller.signal })
       const data = await res.json()
       setDetalhes(data.caso)
-    } catch {
-      toast.error('Erro ao carregar detalhes')
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast.error('Erro ao carregar detalhes')
     } finally {
-      setCarregandoDetalhes(false)
+      if (abrirDetalhesAbortRef.current === controller) {
+        setCarregandoDetalhes(false)
+      }
     }
   }
 
