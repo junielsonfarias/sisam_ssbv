@@ -139,6 +139,20 @@ export default function LoginPage() {
         return
       }
 
+      // ===== 2FA: redirecionar para fluxo de verificação ou setup =====
+      if (data.requer2FA && data.preAuthToken) {
+        sessionStorage.setItem('preAuthToken', data.preAuthToken)
+        sessionStorage.setItem('preAuthEmail', email)
+        router.push('/login/2fa')
+        return
+      }
+      if (data.requerSetup2FA && data.preAuthToken) {
+        sessionStorage.setItem('preAuthToken', data.preAuthToken)
+        sessionStorage.setItem('preAuthEmail', email)
+        router.push('/login/2fa-setup')
+        return
+      }
+
       // IMPORTANTE: Salvar usuário para acesso offline no localStorage
       const userId = data.usuario.id?.toString() || data.usuario.usuario_id?.toString()
       offlineStorage.saveUser({
@@ -369,6 +383,16 @@ export default function LoginPage() {
                   </span>
                 ) : 'Entrar'}
               </button>
+
+              {/* Esqueci minha senha */}
+              <div className="text-center mt-3">
+                <Link
+                  href="/esqueci-senha"
+                  className="text-sm text-blue-700 dark:text-blue-400 hover:underline"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
             </form>
 
             {/* Link cadastro professor */}

@@ -17,6 +17,8 @@
  * @module lib/logger
  */
 
+import { sanitizePii, sanitizePiiString } from './utils/mask-pii'
+
 // ============================================================================
 // TIPOS E CONFIGURAÇÃO
 // ============================================================================
@@ -54,6 +56,8 @@ interface LoggerConfig {
   includeTimestamp: boolean
   /** Se deve colorir output (apenas desenvolvimento) */
   colorize: boolean
+  /** Se deve mascarar PII (CPF, email, telefone) em produção */
+  maskPii: boolean
 }
 
 /**
@@ -89,11 +93,16 @@ function getLoggerConfig(): LoggerConfig {
   const logLevel = (process.env.LOG_LEVEL || 'info').toLowerCase() as LogLevel
   const validLevel = LOG_LEVELS[logLevel] !== undefined ? logLevel : 'info'
 
+  // Mascarar PII por padrão em produção; desabilitável via LOG_MASK_PII=false (apenas dev)
+  const isProd = process.env.NODE_ENV === 'production'
+  const maskPii = process.env.LOG_MASK_PII !== 'false' && (isProd || process.env.LOG_MASK_PII === 'true')
+
   return {
     minLevel: validLevel,
     enabled: process.env.LOG_ENABLED !== 'false',
     includeTimestamp: true,
-    colorize: process.env.NODE_ENV === 'development'
+    colorize: !isProd,
+    maskPii,
   }
 }
 
@@ -154,8 +163,8 @@ function formatMessage(
     parts.push(`[${context.module}]`)
   }
 
-  // Mensagem principal
-  parts.push(message)
+  // Mensagem principal (sanitizada se maskPii ativo)
+  parts.push(sanitizeMessage(message))
 
   // Contexto adicional
   if (context?.userId) {
@@ -169,14 +178,24 @@ function formatMessage(
 }
 
 /**
- * Formata dados adicionais para exibição
+ * Formata dados adicionais para exibição (mascarando PII se configurado).
  */
 function formatData(data: Record<string, unknown>): string {
   try {
-    return JSON.stringify(data, null, 2)
+    const config = getConfig()
+    const payload = config.maskPii ? sanitizePii(data) : data
+    return JSON.stringify(payload, null, 2)
   } catch {
     return String(data)
   }
+}
+
+/**
+ * Sanitiza mensagens livres (string) quando maskPii está ativo.
+ */
+function sanitizeMessage(message: string): string {
+  const config = getConfig()
+  return config.maskPii ? sanitizePiiString(message) : message
 }
 
 // ============================================================================

@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod'
-import { uuidSchema, nomeSchema, emailSchema, cpfSchema, anoLetivoSchema } from './base'
+import { uuidSchema, nomeSchema, emailSchema, cpfSchema, anoLetivoSchema, senhaSchema } from './base'
 import { poloSchema } from './entidades'
 import { tipoPeriodoSchema } from './gestor'
 
@@ -49,7 +49,7 @@ export const filaEsperaPutSchema = z.object({
 export const professorPostSchema = z.object({
   nome: nomeSchema,
   email: emailSchema,
-  senha: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(128),
+  senha: senhaSchema,
 })
 
 export const professorPutSchema = z.object({
@@ -197,7 +197,7 @@ export const perfilUpdateSchema = z.object({
 
 export const perfilSenhaSchema = z.object({
   senhaAtual: z.string().min(1, 'Senha atual é obrigatória'),
-  novaSenha: z.string().min(8, 'Nova senha deve ter pelo menos 8 caracteres').max(128),
+  novaSenha: senhaSchema,
   confirmarSenha: z.string().min(1, 'Confirmação de senha é obrigatória'),
 }).refine(data => data.novaSenha === data.confirmarSenha, {
   message: 'A nova senha e a confirmação não coincidem',
@@ -343,7 +343,7 @@ export const professorSyncPostSchema = z.object({
 export const cadastroProfessorSchema = z.object({
   nome: nomeSchema,
   email: emailSchema,
-  senha: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(128),
+  senha: senhaSchema,
   cpf: z.string().optional().nullable(),
   telefone: z.string().max(20).optional().nullable(),
 })

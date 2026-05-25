@@ -201,11 +201,14 @@ describe('lancarFaltasSchema', () => {
 })
 
 describe('professorPostSchema', () => {
+  // Senha que cumpre TODOS os requisitos: 12+ chars, maiúscula, minúscula, número, símbolo, sem padrão
+  const SENHA_FORTE = 'Pq#9mLwT3Yr$kF'
+
   it('aceita dados validos', () => {
     const result = professorPostSchema.safeParse({
       nome: 'Joao Silva',
       email: 'joao@email.com',
-      senha: '12345678',
+      senha: SENHA_FORTE,
     })
     expect(result.success).toBe(true)
   })
@@ -214,7 +217,7 @@ describe('professorPostSchema', () => {
     const result = professorPostSchema.safeParse({
       nome: '',
       email: 'joao@email.com',
-      senha: '12345678',
+      senha: SENHA_FORTE,
     })
     expect(result.success).toBe(false)
   })
@@ -223,7 +226,7 @@ describe('professorPostSchema', () => {
     const result = professorPostSchema.safeParse({
       nome: 'J',
       email: 'joao@email.com',
-      senha: '12345678',
+      senha: SENHA_FORTE,
     })
     expect(result.success).toBe(false)
   })
@@ -232,16 +235,16 @@ describe('professorPostSchema', () => {
     const result = professorPostSchema.safeParse({
       nome: 'Joao',
       email: 'invalid',
-      senha: '12345678',
+      senha: SENHA_FORTE,
     })
     expect(result.success).toBe(false)
   })
 
-  it('rejeita senha curta (min 8)', () => {
+  it('rejeita senha fraca (não atende política)', () => {
     const result = professorPostSchema.safeParse({
       nome: 'Joao',
       email: 'j@e.com',
-      senha: '123',
+      senha: '12345678',
     })
     expect(result.success).toBe(false)
   })

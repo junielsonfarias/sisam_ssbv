@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { Usuario, TipoUsuario } from '@/lib/types'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('with-auth')
 
 /**
  * Wrapper de autenticação para rotas API.
@@ -62,7 +65,7 @@ export function withAuth(
 
       return await fn(request, usuario)
     } catch (error: unknown) {
-      console.error(`Erro na rota ${request.method} ${request.url}:`, (error as Error)?.message)
+      log.error(`Erro na rota ${request.method} ${request.url}`, error)
       return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
     }
   }

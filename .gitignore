@@ -185,15 +185,33 @@ database/popular-*.sql
 android/app/build/
 android/.gradle/
 android/build/
+android/.idea/
 android/local.properties
 android/app/src/main/assets/public/
 ios/App/Pods/
 ios/App/build/
+ios/App/App.xcworkspace/xcuserdata/
+ios/.idea/
 
 # Manuais PDF gerados (regenerar com: node docs/manuais/gerar-pdfs.js)
 docs/manuais/pdf/
 
 # Claude Code (arquivos temporarios e configurações locais)
 tmpclaude-*
+tmpclaude-*-cwd
 .claude/settings.local.json
+
+# Artefatos locais (raiz)
+estrutura-excel.json
+estrutura-dados.json
+analisar-excel.py
+/nul
+
+# Backups locais do banco
+/backups/
+*.dump
+
+# VSCode (configurações locais)
+.vscode/settings.json
+.vscode/launch.json
 

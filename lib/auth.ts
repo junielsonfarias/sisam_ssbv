@@ -173,6 +173,39 @@ export function verifyToken(token: string): TokenPayload | null {
 }
 
 // ============================================================================
+// TOKEN INTERMEDIÁRIO 2FA (pré-autenticação)
+// ============================================================================
+
+/**
+ * Payload do token intermediário usado durante o fluxo 2FA.
+ * Esse token NÃO autentica o usuário no sistema — serve apenas para o
+ * próximo passo (POST /api/auth/2fa/verify). Expira em 10 minutos.
+ */
+interface PreAuthPayload {
+  /** Marker para distinguir tokens intermediários do JWT principal */
+  scope: 'pre-2fa'
+  userId: string
+  email: string
+}
+
+export function generatePreAuthToken(userId: string, email: string): string {
+  if (!JWT_SECRET) throw new Error('JWT_SECRET não configurado')
+  const payload: PreAuthPayload = { scope: 'pre-2fa', userId, email }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '10m' })
+}
+
+export function verifyPreAuthToken(token: string): { userId: string; email: string } | null {
+  try {
+    if (!JWT_SECRET) return null
+    const decoded = jwt.verify(token, JWT_SECRET) as PreAuthPayload
+    if (decoded.scope !== 'pre-2fa') return null
+    return { userId: decoded.userId, email: decoded.email }
+  } catch {
+    return null
+  }
+}
+
+// ============================================================================
 // FUNÇÕES DE AUTENTICAÇÃO
 // ============================================================================
 

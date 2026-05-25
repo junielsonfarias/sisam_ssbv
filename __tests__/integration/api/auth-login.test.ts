@@ -22,6 +22,21 @@ vi.mock('@/lib/rate-limiter', () => ({
   createRateLimitKey: vi.fn().mockReturnValue('127.0.0.1:test@test.com'),
 }))
 
+// Mock async rate limiter (Redis)
+vi.mock('@/lib/rate-limiter-async', () => ({
+  checkRateLimitAsync: vi.fn().mockResolvedValue({ allowed: true, remaining: 4 }),
+  resetRateLimitAsync: vi.fn().mockResolvedValue(undefined),
+  createRateLimitKeyPorUsuario: vi.fn().mockReturnValue('usuario:test@test.com'),
+}))
+
+// Mock 2FA service — por padrão NÃO exige (testes assumem fluxo sem 2FA);
+// testes específicos podem sobrescrever via mockResolvedValueOnce.
+vi.mock('@/lib/services/dois-fatores.service', () => ({
+  precisaDe2FANoLogin: vi.fn().mockResolvedValue(false),
+  tipoExige2FA: vi.fn().mockReturnValue(false),
+  TIPOS_OBRIGATORIOS_2FA: new Set(['administrador', 'tecnico']),
+}))
+
 // Mock constants
 vi.mock('@/lib/constants', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/constants')>()

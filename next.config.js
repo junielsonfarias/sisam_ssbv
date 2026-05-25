@@ -230,4 +230,30 @@ const nextConfig = {
   },
 }
 
-module.exports = withPWA(nextConfig)
+// ============================================================================
+// Sentry — só envolve se a env SENTRY_DSN estiver configurada
+// ============================================================================
+let configFinal = withPWA(nextConfig)
+
+if (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  try {
+    const { withSentryConfig } = require('@sentry/nextjs')
+    configFinal = withSentryConfig(configFinal, {
+      // Org/Project só são usados para upload de source maps (requer SENTRY_AUTH_TOKEN)
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      silent: true, // não polui o output do build
+      widenClientFileUpload: true,
+      reactComponentAnnotation: { enabled: true },
+      // Tunnel route opcional (passa eventos pelo proxy do app para evitar bloqueio de adblocks)
+      tunnelRoute: '/monitoring-tunnel',
+      hideSourceMaps: true,
+      disableLogger: true,
+      automaticVercelMonitors: true,
+    })
+  } catch (e) {
+    console.warn('Sentry não configurado:', e.message)
+  }
+}
+
+module.exports = configFinal

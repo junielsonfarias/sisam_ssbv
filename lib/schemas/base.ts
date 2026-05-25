@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod'
+import { avaliarSenha } from '@/lib/utils/senha-forca'
 
 /** UUID v4 */
 export const uuidSchema = z.string().uuid('ID inválido: deve ser um UUID válido')
@@ -17,12 +18,26 @@ export const emailSchema = z
   .max(254, 'Email muito longo')
   .transform(val => val.toLowerCase().trim())
 
-/** Senha (mínimo 12 caracteres, letra e número) */
+/**
+ * Senha forte (Fase 1 SEMED):
+ *  - Mínimo 12 caracteres
+ *  - 1 maiúscula, 1 minúscula, 1 número, 1 símbolo
+ *  - Não pode ser uma das 200 senhas mais comuns
+ *  - Não pode ter sequência óbvia (123, abc, qwerty...)
+ *
+ * A lógica vive em `lib/utils/senha-forca.ts` para ser reutilizável
+ * tanto no schema (server) quanto na UI (cliente, força em tempo real).
+ */
 export const senhaSchema = z
   .string()
-  .min(12, 'Senha deve ter pelo menos 12 caracteres')
-  .regex(/[a-zA-Z]/, 'Senha deve conter pelo menos uma letra')
-  .regex(/[0-9]/, 'Senha deve conter pelo menos um número')
+  .superRefine((senha, ctx) => {
+    const avaliacao = avaliarSenha(senha)
+    if (!avaliacao.valida) {
+      for (const problema of avaliacao.problemas) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: problema })
+      }
+    }
+  })
 
 /** Nome (2-255 caracteres) */
 export const nomeSchema = z

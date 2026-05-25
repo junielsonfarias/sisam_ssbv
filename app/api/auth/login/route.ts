@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
-import { comparePassword, generateToken } from '@/lib/auth'
+import { comparePassword, generateToken, generatePreAuthToken } from '@/lib/auth'
+import { precisaDe2FANoLogin, tipoExige2FA } from '@/lib/services/dois-fatores.service'
 import { checkRateLimit, resetRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
+import { checkRateLimitAsync, resetRateLimitAsync, createRateLimitKeyPorUsuario } from '@/lib/rate-limiter-async'
 import { SESSAO, PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
@@ -46,19 +48,36 @@ export async function POST(request: NextRequest) {
 
     const { email, senha } = parsed.data
 
-    // Verificar rate limit ANTES de processar login
-    // Usar combinacao de IP + email para evitar ataques distribuidos
+    // Camada 1: rate limit por IP+email (em memória, rápido — protege contra abuso local)
     const rateLimitKey = createRateLimitKey(clientIP, email)
-    const rateLimitResult = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000) // 5 tentativas em 15 min
+    const rateLimitResult = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000)
 
     if (!rateLimitResult.allowed) {
-      log.warn(`Rate limit excedido para ${rateLimitKey}`)
+      log.warn(`Rate limit (IP+email) excedido para ${rateLimitKey}`)
       return NextResponse.json(
         {
           mensagem: rateLimitResult.message || 'Muitas tentativas de login. Tente novamente mais tarde.',
           erro: 'RATE_LIMIT_EXCEEDED',
           tentativas_restantes: 0,
           bloqueado_ate: rateLimitResult.blockedUntil
+        },
+        { status: 429 }
+      )
+    }
+
+    // Camada 2: rate limit POR USUÁRIO em Redis (protege contra brute-force
+    // distribuído via múltiplos IPs). 5 tentativas em 15min → 30min bloqueio.
+    const usuarioKey = createRateLimitKeyPorUsuario(email)
+    const usuarioRateResult = await checkRateLimitAsync(usuarioKey, 5, 15 * 60 * 1000, 30 * 60 * 1000)
+
+    if (!usuarioRateResult.allowed) {
+      log.warn(`Rate limit (por usuário) excedido para ${email}`)
+      // Mensagem genérica — não vaza se a conta existe ou não
+      return NextResponse.json(
+        {
+          mensagem: 'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente mais tarde ou recupere a senha.',
+          erro: 'ACCOUNT_LOCKED',
+          bloqueado_ate: usuarioRateResult.blockedUntil
         },
         { status: 429 }
       )
@@ -183,8 +202,47 @@ export async function POST(request: NextRequest) {
       escolaId: usuario.escola_id ? String(usuario.escola_id) : null,
     }
 
-    // Login bem sucedido - resetar rate limit para este usuario
+    // ===== 2FA: verificar se o usuário precisa do segundo fator =====
+    const usuarioTem2FA = await precisaDe2FANoLogin(usuario.id)
+
+    if (usuarioTem2FA) {
+      // Senha OK, mas exige código TOTP. Emite token intermediário (10min)
+      // que só é aceito em /api/auth/2fa/verify.
+      const preAuthToken = generatePreAuthToken(usuario.id, usuario.email)
+      log.info(`Login etapa 1 ok, aguardando 2FA | usuario:${usuario.email} | IP:${maskedIP}`)
+      // Resetar somente camada por IP+email — a camada por usuário só é resetada após 2FA bem-sucedido
+      resetRateLimit(rateLimitKey)
+      return NextResponse.json(
+        {
+          mensagem: 'Informe o código do app autenticador para concluir o login.',
+          requer2FA: true,
+          preAuthToken,
+          expiraEm: 600, // segundos
+        },
+        { status: 200 }
+      )
+    }
+
+    // Se o tipo é obrigatório e o usuário ainda não tem 2FA configurado,
+    // bloqueamos o login e direcionamos para o setup obrigatório.
+    if (tipoExige2FA(tipoUsuario)) {
+      const preAuthToken = generatePreAuthToken(usuario.id, usuario.email)
+      log.warn(`Login bloqueado: tipo exige 2FA mas usuário não configurou | usuario:${usuario.email}`)
+      resetRateLimit(rateLimitKey)
+      return NextResponse.json(
+        {
+          mensagem: 'Seu perfil exige autenticação em dois fatores (2FA). Configure agora para continuar.',
+          requerSetup2FA: true,
+          preAuthToken,
+          expiraEm: 600,
+        },
+        { status: 200 }
+      )
+    }
+
+    // Login bem sucedido — resetar AMBAS as camadas de rate limit
     resetRateLimit(rateLimitKey)
+    await resetRateLimitAsync(usuarioKey)
 
     log.info(`Login bem-sucedido | usuario:${tokenPayload.email} (${tokenPayload.tipoUsuario}) | IP:${maskedIP}`)
 

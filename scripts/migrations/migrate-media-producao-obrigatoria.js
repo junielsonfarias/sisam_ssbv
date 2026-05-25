@@ -1,10 +1,10 @@
 /**
- * SISAM - Migration: Corrigir VIEW para incluir nota_producao
+ * SISAM - Migration: Corrigir calculo de media - Producao OBRIGATORIA
  *
- * Este script aplica a migration que adiciona o campo nota_producao
- * às VIEWs resultados_consolidados_v2 e resultados_consolidados_unificada.
+ * Este script aplica a migration que corrige o calculo de media
+ * para anos iniciais, tornando a producao textual obrigatoria.
  *
- * Uso: node scripts/migrate-corrigir-view-nota-producao.js
+ * Uso: node scripts/migrations/migrate-media-producao-obrigatoria.js
  */
 
 require('dotenv').config({ path: '.env.local' });
@@ -96,7 +96,7 @@ function getCommandInfo(command) {
 
 async function executeMigration() {
   console.log('='.repeat(60));
-  console.log('SISAM - Migration: Corrigir VIEW nota_producao');
+  console.log('SISAM - Migration: Media Producao OBRIGATORIA');
   console.log('='.repeat(60));
   console.log('');
 
@@ -112,7 +112,7 @@ async function executeMigration() {
 
     // Ler arquivo SQL
     console.log('2. Lendo arquivo de migration...');
-    const migrationPath = path.join(__dirname, '..', 'database', 'migrations', 'corrigir-view-nota-producao.sql');
+    const migrationPath = path.join(__dirname, '..', 'database', 'migrations', 'corrigir-media-producao-obrigatoria.sql');
 
     if (!fs.existsSync(migrationPath)) {
       throw new Error(`Arquivo nao encontrado: ${migrationPath}`);
@@ -179,67 +179,48 @@ async function executeMigration() {
     }
     console.log('');
 
-    // Verificar se as VIEWs tem nota_producao
-    console.log('5. Verificando estrutura das VIEWs...');
+    // Verificar aluno exemplo
+    console.log('5. Verificando calculo de media para alunos do 2 ano...');
     console.log('');
 
-    // Verificar resultados_consolidados_v2
     try {
-      const v2Result = await client.query(`
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name = 'resultados_consolidados_v2'
-          AND column_name = 'nota_producao'
+      const verificacao = await client.query(`
+        SELECT
+          a.nome as aluno,
+          rc.serie,
+          rc.nota_lp,
+          rc.nota_mat,
+          rc.nota_producao,
+          v.media_aluno as media_view,
+          ROUND((COALESCE(rc.nota_lp, 0) + COALESCE(rc.nota_mat, 0) + COALESCE(rc.nota_producao, 0)) / 3.0, 2) as media_calculada
+        FROM resultados_consolidados rc
+        JOIN alunos a ON rc.aluno_id = a.id
+        JOIN resultados_consolidados_unificada v ON rc.aluno_id = v.aluno_id
+        WHERE REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
+          AND rc.presenca IN ('P', 'p')
+          AND rc.nota_producao IS NULL
+          AND rc.nota_lp IS NOT NULL
+          AND rc.nota_mat IS NOT NULL
+        LIMIT 5
       `);
 
-      if (v2Result.rows.length > 0) {
-        console.log('   [OK] resultados_consolidados_v2 tem nota_producao');
+      if (verificacao.rows.length > 0) {
+        console.log('   Alunos com PROD=NULL (media deve considerar PROD como 0):');
+        for (const row of verificacao.rows) {
+          console.log(`   - ${row.aluno} (${row.serie})`);
+          console.log(`     LP=${row.nota_lp}, MAT=${row.nota_mat}, PROD=NULL`);
+          console.log(`     Media VIEW: ${row.media_view} | Media esperada: ${row.media_calculada}`);
+        }
       } else {
-        console.log('   [AVISO] resultados_consolidados_v2 NAO tem nota_producao');
+        console.log('   Nenhum aluno encontrado com PROD=NULL nos anos iniciais');
       }
     } catch (e) {
-      console.log('   [ERRO] Erro ao verificar v2:', e.message);
-    }
-
-    // Verificar resultados_consolidados_unificada
-    try {
-      const unificadaResult = await client.query(`
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name = 'resultados_consolidados_unificada'
-          AND column_name = 'nota_producao'
-      `);
-
-      if (unificadaResult.rows.length > 0) {
-        console.log('   [OK] resultados_consolidados_unificada tem nota_producao');
-      } else {
-        console.log('   [AVISO] resultados_consolidados_unificada NAO tem nota_producao');
-      }
-    } catch (e) {
-      console.log('   [ERRO] Erro ao verificar unificada:', e.message);
-    }
-
-    // Verificar se a tabela resultados_consolidados tem nota_producao
-    try {
-      const rcResult = await client.query(`
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name = 'resultados_consolidados'
-          AND column_name = 'nota_producao'
-      `);
-
-      if (rcResult.rows.length > 0) {
-        console.log('   [OK] resultados_consolidados tem nota_producao');
-      } else {
-        console.log('   [AVISO] resultados_consolidados NAO tem nota_producao - execute a migration add-nota-producao-nivel-aprendizagem.sql primeiro');
-      }
-    } catch (e) {
-      console.log('   [ERRO] Erro ao verificar tabela:', e.message);
+      console.log('   [ERRO] Erro ao verificar:', e.message);
     }
 
     console.log('');
     console.log('='.repeat(60));
-    console.log('PRONTO! A media de PROD deve aparecer nos comparativos.');
+    console.log('PRONTO! A media agora considera producao como OBRIGATORIA.');
     console.log('='.repeat(60));
     console.log('');
 

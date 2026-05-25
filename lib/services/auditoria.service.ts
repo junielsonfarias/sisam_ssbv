@@ -1,8 +1,16 @@
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Auditoria')
 
 /**
  * Registra uma ação de auditoria no sistema.
+ *
  * Não lança exceção — auditoria nunca deve bloquear a operação principal.
+ *
+ * **Importante:** os dados gravados em `logs_auditoria` são COMPLETOS
+ * (sem mascaramento), pois são necessários para investigação legítima.
+ * Apenas o log de erro estruturado mascara PII em produção.
  */
 export async function registrarAuditoria(params: {
   usuarioId?: string | null
@@ -28,7 +36,8 @@ export async function registrarAuditoria(params: {
       ]
     )
   } catch (error) {
-    console.error('[Auditoria] Erro ao registrar:', error)
-    // Não lançar erro - auditoria não deve bloquear operações
+    log.error('Erro ao registrar auditoria', error, {
+      data: { acao: params.acao, entidade: params.entidade, entidadeId: params.entidadeId },
+    })
   }
 }
