@@ -28,6 +28,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 const log = createLogger('AdminDiarioLacunas')
 
@@ -52,7 +53,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   try {
     // 1) Turma + escola + ano_letivo (resolve UUID do ano via JOIN com anos_letivos)
     const turmaRes = await pool.query(
-      `SELECT t.id, t.codigo, t.ano_letivo,
+      `SELECT t.id, t.codigo, t.ano_letivo, t.sensivel,
               e.id  AS escola_id,
               al.id AS ano_letivo_id,
               al.data_inicio AS ano_data_inicio,
@@ -72,6 +73,25 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id && String(turma.escola_id) !== String(usuario.escola_id)) {
       return NextResponse.json({ mensagem: 'Sem permissão para visualizar esta turma' }, { status: 403 })
+    }
+
+    // Auditoria de leitura sensivel (mesmo padrao do /diario-completo).
+    if (turma.sensivel) {
+      registrarAuditoria({
+        usuarioId: usuario.id,
+        usuarioEmail: usuario.email,
+        acao: 'DIARIO_LER_SENSIVEL',
+        entidade: 'turma',
+        entidadeId: turmaId,
+        detalhes: {
+          escola_id: turma.escola_id,
+          ano_letivo: turma.ano_letivo,
+          tipo_usuario: usuario.tipo_usuario,
+          periodo_id: periodoId,
+          fonte: 'diario-lacunas',
+        },
+        ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      })
     }
 
     if (!turma.ano_letivo_id) {

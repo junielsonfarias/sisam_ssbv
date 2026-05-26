@@ -21,6 +21,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 const log = createLogger('AdminDiarioCompleto')
 
@@ -48,7 +49,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   try {
     // 1) Buscar turma + escola e validar permissão (escola só vê suas turmas)
     const turmaRes = await pool.query(
-      `SELECT t.id, t.codigo, t.nome, t.serie, t.turno, t.ano_letivo,
+      `SELECT t.id, t.codigo, t.nome, t.serie, t.turno, t.ano_letivo, t.sensivel,
               e.id as escola_id, e.nome as escola_nome
          FROM turmas t
          JOIN escolas e ON e.id = t.escola_id
@@ -64,6 +65,28 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id && String(turma.escola_id) !== String(usuario.escola_id)) {
       return NextResponse.json({ mensagem: 'Sem permissão para visualizar esta turma' }, { status: 403 })
+    }
+
+    // Auditoria de LEITURA sensível (excecao deliberada ao padrao Pt.2,
+    // que so audita mutacoes). Justificativa: LGPD art. 11 - dados sensiveis.
+    // Nao bloqueia em caso de falha (auditoria.service ja trata internamente).
+    if (turma.sensivel) {
+      registrarAuditoria({
+        usuarioId: usuario.id,
+        usuarioEmail: usuario.email,
+        acao: 'DIARIO_LER_SENSIVEL',
+        entidade: 'turma',
+        entidadeId: turmaId,
+        detalhes: {
+          escola_id: turma.escola_id,
+          ano_letivo: turma.ano_letivo,
+          tipo_usuario: usuario.tipo_usuario,
+          periodo_id: periodoId,
+          secoes: Array.from(tipos),
+          fonte: 'diario-completo',
+        },
+        ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      })
     }
 
     // 2) Período (se informado, busca dados; se não, retorna null e filtros aplicam ano_letivo da turma)
@@ -110,6 +133,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
         ano_letivo: turma.ano_letivo,
         escola_id: turma.escola_id,
         escola_nome: turma.escola_nome,
+        sensivel: turma.sensivel,
       },
       periodo,
       professores: profRes.rows,

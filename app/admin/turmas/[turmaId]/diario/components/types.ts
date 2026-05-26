@@ -20,6 +20,7 @@ export interface TurmaInfo {
   ano_letivo: string
   escola_id: string
   escola_nome: string
+  sensivel: boolean
 }
 
 export interface ProfessorInfo {

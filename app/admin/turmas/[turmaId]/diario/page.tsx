@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Users, ClipboardList, FileText, BookOpen,
-  Calendar, GraduationCap, Building2, AlertCircle, Filter, Printer,
+  Calendar, GraduationCap, Building2, AlertCircle, Filter, Printer, ShieldAlert,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -150,6 +150,15 @@ function DiarioTurmaContent() {
               <span><Calendar className="inline w-4 h-4 mr-1" /> {turma.ano_letivo}</span>
               <span className="capitalize">{turma.turno}</span>
             </div>
+            {turma.sensivel && (
+              <div
+                className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-md text-[11px] font-medium text-amber-800 dark:text-amber-300"
+                title="Este acesso foi registrado no log de auditoria (LGPD art. 11) por se tratar de turma com dados sensíveis."
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                Turma sensível · acesso auditado
+              </div>
+            )}
           </div>
           <button
             onClick={() => imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: filtroPorPeriodo })}
