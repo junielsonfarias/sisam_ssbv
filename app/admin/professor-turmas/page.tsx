@@ -94,33 +94,49 @@ function GerenciarVinculos() {
       return t ? (t.codigo || t.nome || id) : id
     }
 
-    // Dispara os POSTs em paralelo. Cada vínculo é independente — uma falha
-    // em uma turma não impede o sucesso das outras. A UNIQUE constraint do
-    // banco diferencia "já existia" (409) de "erro real" (500).
-    const resultados = await Promise.allSettled(
-      turma_ids.map(turma_id =>
-        fetch('/api/admin/professor-turmas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            professor_id,
-            turma_id,
-            tipo_vinculo,
-            ...(disciplina_id ? { disciplina_id } : {}),
-            ano_letivo: anoLetivo,
-          }),
-        }).then(async res => {
-          const data = await res.json().catch(() => ({}))
-          return { status: res.status, mensagem: data.mensagem as string | undefined, turma_id }
-        })
+    // Confirmacao explicita para lotes grandes (> 20 turmas) — protege contra
+    // selecao acidental de "selecionar todas" sem o usuario perceber o volume.
+    if (turma_ids.length > 20) {
+      const ok = confirm(
+        `Voce esta prestes a criar ${turma_ids.length} vinculos. Confirma?`
       )
-    )
+      if (!ok) return
+    }
+
+    // Chunking de 8 requests paralelos por vez. Sem isso, selecionar "todas
+    // filtradas" em 50+ turmas dispararia 50 POSTs simultaneos e estressaria
+    // o pool de conexoes do PostgreSQL.
+    const CHUNK_SIZE = 8
+    const todosResultados: PromiseSettledResult<{ status: number; mensagem?: string; turma_id: string }>[] = []
+
+    for (let i = 0; i < turma_ids.length; i += CHUNK_SIZE) {
+      const chunk = turma_ids.slice(i, i + CHUNK_SIZE)
+      const resultadosChunk = await Promise.allSettled(
+        chunk.map(turma_id =>
+          fetch('/api/admin/professor-turmas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              professor_id,
+              turma_id,
+              tipo_vinculo,
+              ...(disciplina_id ? { disciplina_id } : {}),
+              ano_letivo: anoLetivo,
+            }),
+          }).then(async res => {
+            const data = await res.json().catch(() => ({}))
+            return { status: res.status, mensagem: data.mensagem as string | undefined, turma_id }
+          })
+        )
+      )
+      todosResultados.push(...resultadosChunk)
+    }
 
     const criados: string[] = []
     const duplicados: string[] = []
     const falharam: { nome: string; motivo: string }[] = []
 
-    resultados.forEach((r, i) => {
+    todosResultados.forEach((r, i) => {
       const turmaId = turma_ids[i]
       const nome = turmaInfo(turmaId)
       if (r.status === 'rejected') {
