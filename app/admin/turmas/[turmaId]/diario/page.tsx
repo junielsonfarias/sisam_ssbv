@@ -83,7 +83,8 @@ function DiarioTurmaContent() {
         return
       }
       const payload = await res.json()
-      imprimirDiarioDetalhado(payload)
+      const ok = imprimirDiarioDetalhado(payload)
+      if (!ok) setErro('Não foi possível abrir a janela do PDF. Verifique se o navegador está bloqueando pop-ups.')
     } catch (err) {
       setErro((err as Error).message || 'Erro ao gerar diário detalhado')
     } finally {
@@ -224,7 +225,10 @@ function DiarioTurmaContent() {
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             <button
-              onClick={() => imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: filtroPorPeriodo })}
+              onClick={() => {
+                const ok = imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: filtroPorPeriodo })
+                if (!ok) setErro('Não foi possível abrir a janela do PDF. Verifique se o navegador está bloqueando pop-ups.')
+              }}
               className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-medium rounded-lg shadow-sm transition"
               title="Diário resumido — frequência, notas e conteúdo agregados por período"
             >

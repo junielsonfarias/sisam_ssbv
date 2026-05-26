@@ -1,5 +1,6 @@
 import type { DiarioDetalhadoPayload, DisciplinaDetalhada, MesDetalhado, StatusCelula } from './types'
 import { PRINT_DIARIO_CSS, PRINT_DIARIO_AUTOFIT_JS } from './printDiarioAssets'
+import { montarHeaderHtml } from './printDiarioHeader'
 
 const DIAS_SEMANA_PT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
 
@@ -45,55 +46,24 @@ const CSS_EXTRA_DETALHADO = `
   .legenda .swatch { display: inline-block; width: 12px; height: 10px; border-radius: 2px; }
 `
 
-export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
+export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload): boolean {
   const { turma, modelo_frequencia, disciplinas } = payload
 
   const printWindow = window.open('', '_blank', 'width=1100,height=780')
-  if (!printWindow) return
-
-  const baseUrl = window.location.origin
-  const logoPrefeitura = `${baseUrl}/logo-prefeitura.png`
-  const logoSemed = `${baseUrl}/logo-semed.png`
-  const logoEscola = turma.escola_logo_url
-    ? (turma.escola_logo_url.startsWith('http') ? turma.escola_logo_url : `${baseUrl}${turma.escola_logo_url}`)
-    : null
+  if (!printWindow) return false
 
   const tituloTurma = `${escapeHtml(turma.codigo)}${turma.nome ? ' (' + escapeHtml(turma.nome) + ')' : ''}`
 
   function headerHtml(subtitulo: string): string {
-    const escolaSlot = logoEscola
-      ? `<img class="logo-img" src="${escapeHtml(logoEscola)}" alt="Logo da escola" onerror="this.style.display='none'"/>`
-      : `<div class="escola-nome-tag">${escapeHtml(turma.escola_nome)}</div>`
-    return `
-      <header class="page-header">
-        <div class="page-header-logos">
-          <div class="logo-slot left">
-            <img class="logo-img" src="${logoPrefeitura}" alt="Prefeitura" onerror="this.style.display='none'"/>
-            <div class="logo-cap">Prefeitura Municipal</div>
-          </div>
-          <div class="logo-slot center">
-            <img class="logo-img" src="${logoSemed}" alt="SEMED" onerror="this.style.display='none'"/>
-            <div class="logo-cap">SEMED — São Sebastião da Boa Vista</div>
-          </div>
-          <div class="logo-slot right">
-            ${escolaSlot}
-            <div class="logo-cap">${escapeHtml(turma.escola_nome)}</div>
-          </div>
-        </div>
-        <div class="page-header-titulo">
-          <h1>Diário Detalhado — ${tituloTurma}</h1>
-          <div class="info">
-            <span><b>Série:</b> ${escapeHtml(turma.serie)}</span>
-            <span><b>Turno:</b> ${escapeHtml(turma.turno)}</span>
-            <span><b>Ano:</b> ${escapeHtml(turma.ano_letivo)}</span>
-            <span class="meta">Gerado em ${new Date().toLocaleDateString('pt-BR')}</span>
-          </div>
-        </div>
-        <div class="page-header-row3">
-          <span class="pill">${escapeHtml(subtitulo)}</span>
-          <span class="profs"><b>Modelo:</b> ${modelo_frequencia === 'hora_aula' ? 'por hora-aula (anos finais)' : 'diária (anos iniciais)'}</span>
-        </div>
-      </header>`
+    const modeloDesc = modelo_frequencia === 'hora_aula'
+      ? 'por hora-aula (anos finais)'
+      : 'diária (anos iniciais)'
+    return montarHeaderHtml({
+      turma,
+      tituloPrefix: 'Diário Detalhado',
+      subtitulo,
+      rodapeHtml: `<b>Modelo:</b> ${escapeHtml(modeloDesc)}`,
+    })
   }
 
   function paginaMes(disc: DisciplinaDetalhada, m: MesDetalhado): string {
@@ -183,4 +153,5 @@ ${CSS_EXTRA_DETALHADO}</style>
 </body>
 </html>`)
   printWindow.document.close()
+  return true
 }

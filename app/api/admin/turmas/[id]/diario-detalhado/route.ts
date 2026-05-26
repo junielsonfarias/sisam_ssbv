@@ -130,7 +130,15 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       dataFim = p.data_fim
       periodoInfo = { id: p.id, nome: p.nome, numero: p.numero }
     } else {
-      const ano = parseInt(turma.ano_letivo, 10)
+      // Mesma defesa do /diario-lacunas: valida formato YYYY antes de
+      // concatenar para evitar "NaN-01-01" em ano_letivo invalido.
+      const anoMatch = /^(\d{4})$/.exec(turma.ano_letivo || '')
+      const ano = anoMatch ? anoMatch[1] : null
+      if (!turma.ano_data_inicio && !ano) {
+        return NextResponse.json({
+          mensagem: `Ano letivo "${turma.ano_letivo}" inválido — esperado formato YYYY ou datas cadastradas em anos_letivos.`,
+        }, { status: 422 })
+      }
       dataInicio = turma.ano_data_inicio || `${ano}-01-01`
       dataFim = turma.ano_data_fim || `${ano}-12-31`
     }

@@ -65,7 +65,8 @@ const PREPOSICOES = new Set(['de', 'da', 'do', 'dos', 'das', 'e'])
 
 export function abreviarNome(nome: string, maxGuard: number = 60): string {
   if (!nome) return ''
-  const limpo = nome.trim()
+  // Normaliza espacos: trim externo + colapsa internos (multi-espaco -> 1)
+  const limpo = nome.trim().replace(/\s+/g, ' ')
   if (!limpo) return ''
 
   const partes = limpo.split(/\s+/)

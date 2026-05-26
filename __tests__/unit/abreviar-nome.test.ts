@@ -58,10 +58,16 @@ describe('abreviarNome', () => {
       expect(abreviarNome('   ')).toBe('')
     })
 
-    it('nome com espacos extras e normalizado', () => {
-      expect(abreviarNome('  JOAO   SILVA  ')).toBe('JOAO   SILVA')
-      // O trim externo remove bordas, mas espacos internos sao preservados
-      // (o split /\s+/ ainda funciona corretamente para contagem)
+    it('nome com espacos extras e normalizado (trim + colapsa internos)', () => {
+      expect(abreviarNome('  JOAO   SILVA  ')).toBe('JOAO SILVA')
+    })
+
+    it('cobertura de maxGuard: nome muito longo apos abreviar ainda trunca com ellipsis', () => {
+      // 6 nomes proprios, alguns muito longos, maxGuard pequeno (15 chars)
+      const longo = 'BENEDITOTERCEIRO ANTONIOABILIO PEDROHENRIQUE MARCOSAURELIO LUIZFILIPE SANTOSDOSREIS'
+      const r = abreviarNome(longo, 15)
+      expect(r.length).toBeLessThanOrEqual(15)
+      expect(r).toMatch(/…$/)
     })
 
     it('preserva acentuacao', () => {
