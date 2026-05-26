@@ -184,6 +184,7 @@ function EdInfantilAdmin() {
     setCarregandoP(true)
     try {
       const p = new URLSearchParams({ limite: '200' })
+      if (filtroAno) p.set('ano_letivo', filtroAno)
       if (filtroEscolaP) p.set('escola', filtroEscolaP)
       if (filtroTipo) p.set('tipo', filtroTipo)
       if (filtroCampo) p.set('campo', filtroCampo)
@@ -197,7 +198,7 @@ function EdInfantilAdmin() {
     } finally {
       setCarregandoP(false)
     }
-  }, [filtroEscolaP, filtroTipo, filtroCampo, buscaP, toast])
+  }, [filtroAno, filtroEscolaP, filtroTipo, filtroCampo, buscaP, toast])
 
   const carregarRelatorios = useCallback(async (signal?: AbortSignal) => {
     setCarregandoR(true)

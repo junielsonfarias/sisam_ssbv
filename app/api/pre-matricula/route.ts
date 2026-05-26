@@ -66,6 +66,27 @@ export async function POST(request: NextRequest) {
 
     const d = parsed.data
 
+    // Valida ano_letivo: precisa existir e estar em status que aceite novas inscrições
+    // (ativo = em execução; planejamento = pré-cadastro para próximo ano).
+    // Bloqueia anos arquivados/fechados.
+    const anoR = await pool.query(
+      `SELECT status FROM anos_letivos WHERE ano = $1`,
+      [d.ano_letivo]
+    )
+    if (anoR.rowCount === 0) {
+      return NextResponse.json(
+        { mensagem: `Ano letivo ${d.ano_letivo} não está cadastrado no sistema.` },
+        { status: 400 }
+      )
+    }
+    const statusAno = anoR.rows[0].status as string | null
+    if (statusAno && !['ativo', 'planejamento'].includes(statusAno)) {
+      return NextResponse.json(
+        { mensagem: `Ano letivo ${d.ano_letivo} não está aberto para novas pré-matrículas (status: ${statusAno}).` },
+        { status: 400 }
+      )
+    }
+
     // Criptografar CPFs antes de salvar no banco
     const cpfAlunoCifrado = d.aluno_cpf ? encryptCPF(d.aluno_cpf) : null
     const cpfResponsavelCifrado = d.responsavel_cpf ? encryptCPF(d.responsavel_cpf) : null

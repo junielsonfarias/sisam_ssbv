@@ -22,6 +22,13 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   const params: unknown[] = []
   let i = 1
 
+  // Ano letivo (derivado de data_registro — portfólio é registrado ao longo do ano civil)
+  const ano = searchParams.get('ano_letivo') || searchParams.get('ano')
+  if (ano) {
+    params.push(parseInt(ano, 10))
+    conds.push(`EXTRACT(YEAR FROM p.data_registro) = $${i++}`)
+  }
+
   const escola = searchParams.get('escola')
   if (escola) { params.push(escola); conds.push(`a.escola_id = $${i++}`) }
 
@@ -75,18 +82,34 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     params
   )
 
-  const statsR = await pool.query(
-    `SELECT
-       COUNT(*) AS total,
-       COUNT(DISTINCT aluno_id) AS alunos_distintos,
-       COUNT(DISTINCT professor_id) AS professores_distintos,
-       COUNT(*) FILTER (WHERE visivel_responsavel = TRUE) AS visiveis_pais,
-       COUNT(*) FILTER (WHERE tipo = 'foto') AS fotos,
-       COUNT(*) FILTER (WHERE tipo = 'video') AS videos,
-       COUNT(*) FILTER (WHERE tipo = 'atividade') AS atividades,
-       COUNT(*) FILTER (WHERE tipo = 'observacao') AS observacoes
-     FROM ed_infantil_portfolio`
-  )
+  // Stats refletem o filtro de ano se informado
+  const statsR = ano
+    ? await pool.query(
+        `SELECT
+           COUNT(*) AS total,
+           COUNT(DISTINCT aluno_id) AS alunos_distintos,
+           COUNT(DISTINCT professor_id) AS professores_distintos,
+           COUNT(*) FILTER (WHERE visivel_responsavel = TRUE) AS visiveis_pais,
+           COUNT(*) FILTER (WHERE tipo = 'foto') AS fotos,
+           COUNT(*) FILTER (WHERE tipo = 'video') AS videos,
+           COUNT(*) FILTER (WHERE tipo = 'atividade') AS atividades,
+           COUNT(*) FILTER (WHERE tipo = 'observacao') AS observacoes
+         FROM ed_infantil_portfolio
+         WHERE EXTRACT(YEAR FROM data_registro) = $1`,
+        [parseInt(ano, 10)]
+      )
+    : await pool.query(
+        `SELECT
+           COUNT(*) AS total,
+           COUNT(DISTINCT aluno_id) AS alunos_distintos,
+           COUNT(DISTINCT professor_id) AS professores_distintos,
+           COUNT(*) FILTER (WHERE visivel_responsavel = TRUE) AS visiveis_pais,
+           COUNT(*) FILTER (WHERE tipo = 'foto') AS fotos,
+           COUNT(*) FILTER (WHERE tipo = 'video') AS videos,
+           COUNT(*) FILTER (WHERE tipo = 'atividade') AS atividades,
+           COUNT(*) FILTER (WHERE tipo = 'observacao') AS observacoes
+         FROM ed_infantil_portfolio`
+      )
 
   return NextResponse.json({
     registros: r.rows,

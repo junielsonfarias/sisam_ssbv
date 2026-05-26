@@ -23,6 +23,12 @@ export async function GET(
 
     const alunoId = params.id
 
+    // Filtro opcional por ano_letivo (?ano_letivo=2026) — quando ausente,
+    // retorna histórico completo do aluno (modo evolução cross-anos).
+    const { searchParams } = new URL(request.url)
+    const anoFiltro = searchParams.get('ano_letivo')
+    const baseParams: unknown[] = anoFiltro ? [alunoId, anoFiltro] : [alunoId]
+
     // 1. Resultados SISAM por avaliação/ano (com nome da avaliação)
     const sisamResult = await pool.query(
       `SELECT rc.ano_letivo, rc.serie, rc.presenca,
@@ -41,9 +47,9 @@ export async function GET(
        FROM resultados_consolidados rc
        LEFT JOIN avaliacoes av ON rc.avaliacao_id = av.id
        LEFT JOIN configuracao_series cs ON cs.serie = COALESCE(rc.serie_numero, REGEXP_REPLACE(rc.serie, '[^0-9]', '', 'g'))
-       WHERE rc.aluno_id = $1
+       WHERE rc.aluno_id = $1${anoFiltro ? ' AND rc.ano_letivo = $2' : ''}
        ORDER BY rc.ano_letivo ASC, COALESCE(av.ordem, 1) ASC`,
-      [alunoId]
+      baseParams
     )
 
     // 2. Notas escolares — média final por disciplina e ano letivo
@@ -56,10 +62,10 @@ export async function GET(
               COUNT(ne.nota_final) FILTER (WHERE ne.nota_final IS NOT NULL) as periodos_com_nota
        FROM notas_escolares ne
        JOIN disciplinas_escolares d ON ne.disciplina_id = d.id
-       WHERE ne.aluno_id = $1
+       WHERE ne.aluno_id = $1${anoFiltro ? ' AND ne.ano_letivo = $2' : ''}
        GROUP BY ne.ano_letivo, d.id, d.nome, d.codigo, d.abreviacao
        ORDER BY ne.ano_letivo ASC, d.ordem ASC`,
-      [alunoId]
+      baseParams
     )
 
     // 3. Frequência por ano
@@ -70,11 +76,12 @@ export async function GET(
               SUM(fb.presencas) as total_presencas,
               SUM(fb.dias_letivos) as total_dias_letivos
        FROM frequencia_bimestral fb
-       WHERE fb.aluno_id = $1
+       WHERE fb.aluno_id = $1${anoFiltro ? ' AND fb.ano_letivo = $2' : ''}
        GROUP BY fb.ano_letivo
        ORDER BY fb.ano_letivo ASC`,
-      [alunoId]
+      baseParams
     )
+
 
     // Organizar SISAM por ano
     const sisamPorAno: Record<string, any[]> = {}
