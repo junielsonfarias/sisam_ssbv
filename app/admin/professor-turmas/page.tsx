@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Plus, Trash2, AlertTriangle, Search, RefreshCw, BookOpen } from 'lucide-react'
+import { ArrowLeftRight, Plus, Trash2, Search, RefreshCw, BookOpen } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { useAnoLetivo, AnoLetivoSelect } from '@/lib/contexts/ano-letivo-context'
+import { FormNovoVinculo, type Professor, type Turma, type Disciplina } from './components/FormNovoVinculo'
 
 interface Vinculo {
   id: string
@@ -24,30 +25,6 @@ interface Vinculo {
   disciplina_nome: string | null
 }
 
-interface Professor {
-  id: string
-  nome: string
-  email: string
-}
-
-interface Turma {
-  id: string
-  nome: string
-  serie: string
-  turno: string
-  escola_nome: string
-}
-
-interface Disciplina {
-  id: string
-  nome: string
-}
-
-function isAnosFinais(serie: string): boolean {
-  const num = serie.replace(/[^\d]/g, '')
-  return ['6', '7', '8', '9'].includes(num)
-}
-
 function GerenciarVinculos() {
   const { anoLetivo } = useAnoLetivo()
   const [vinculos, setVinculos] = useState<Vinculo[]>([])
@@ -61,17 +38,9 @@ function GerenciarVinculos() {
   const [erro, setErro] = useState('')
   const [busca, setBusca] = useState('')
 
-  // Form de criação
-  const [formProfessor, setFormProfessor] = useState('')
-  const [formTurma, setFormTurma] = useState('')
-  const [formDisciplina, setFormDisciplina] = useState('')
-
-  // Form de troca
+  // Form de troca de professor
   const [trocando, setTrocando] = useState<string | null>(null) // vinculo_id
   const [novoProfessor, setNovoProfessor] = useState('')
-
-  const turmaSelecionada = turmas.find(t => t.id === formTurma)
-  const tipoVinculoAuto = turmaSelecionada ? (isAnosFinais(turmaSelecionada.serie) ? 'disciplina' : 'polivalente') : ''
 
   const fetchVinculos = async () => {
     try {
@@ -97,9 +66,10 @@ function GerenciarVinculos() {
       const profData = await profRes.json()
       const turmasData = await turmasRes.json()
       const discData = await discRes.json()
+      // /api/admin/professores retorna { professores }; /turmas e /disciplinas retornam array direto
       setProfessores(profData.professores || [])
-      setTurmas(turmasData.turmas || [])
-      setDisciplinas(discData.disciplinas || [])
+      setTurmas(Array.isArray(turmasData) ? turmasData : turmasData.turmas || [])
+      setDisciplinas(Array.isArray(discData) ? discData : discData.disciplinas || [])
     } catch (err) {
       console.error('[ProfessorTurmas] Erro ao carregar dados:', (err as Error).message)
     } finally {
@@ -112,37 +82,24 @@ function GerenciarVinculos() {
     fetchDados()
   }, [anoLetivo])
 
-  const criarVinculo = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const criarVinculo = async (payload: {
+    professor_id: string
+    turma_id: string
+    tipo_vinculo: 'polivalente' | 'disciplina'
+    disciplina_id?: string
+  }) => {
     setMensagem('')
     setErro('')
-    try {
-      const body: any = {
-        professor_id: formProfessor,
-        turma_id: formTurma,
-        tipo_vinculo: tipoVinculoAuto,
-        ano_letivo: anoLetivo,
-      }
-      if (tipoVinculoAuto === 'disciplina') {
-        body.disciplina_id = formDisciplina
-      }
-
-      const res = await fetch('/api/admin/professor-turmas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.mensagem)
-      setMensagem('Vínculo criado com sucesso')
-      setFormProfessor('')
-      setFormTurma('')
-      setFormDisciplina('')
-      setCriando(false)
-      fetchVinculos()
-    } catch (err: any) {
-      setErro(err.message)
-    }
+    const res = await fetch('/api/admin/professor-turmas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, ano_letivo: anoLetivo }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.mensagem || 'Erro ao criar vínculo')
+    setMensagem('Vínculo criado com sucesso')
+    setCriando(false)
+    fetchVinculos()
   }
 
   const removerVinculo = async (vinculoId: string) => {
@@ -209,74 +166,15 @@ function GerenciarVinculos() {
 
       {/* Form */}
       {criando && (
-        <form onSubmit={criarVinculo} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-3">
-          <h2 className="font-semibold text-gray-900 dark:text-white">Novo Vínculo</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <select
-              value={formProfessor}
-              onChange={e => setFormProfessor(e.target.value)}
-              required
-              disabled={carregandoDados || professores.length === 0}
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <option value="">
-                {carregandoDados
-                  ? 'Carregando professores...'
-                  : professores.length === 0
-                    ? 'Nenhum professor cadastrado'
-                    : 'Selecione o professor'}
-              </option>
-              {professores.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
-            <select
-              value={formTurma}
-              onChange={e => setFormTurma(e.target.value)}
-              required
-              disabled={carregandoDados || turmas.length === 0}
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <option value="">
-                {carregandoDados
-                  ? 'Carregando turmas...'
-                  : turmas.length === 0
-                    ? `Nenhuma turma em ${anoLetivo}`
-                    : 'Selecione a turma'}
-              </option>
-              {turmas.map(t => <option key={t.id} value={t.id}>{t.nome} ({t.serie} - {t.turno})</option>)}
-            </select>
-            {tipoVinculoAuto === 'disciplina' && (
-              <select
-                value={formDisciplina}
-                onChange={e => setFormDisciplina(e.target.value)}
-                required
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
-              >
-                <option value="">Selecione a disciplina</option>
-                {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
-              </select>
-            )}
-            {/* Badge do tipo aparece só após selecionar a turma — antes era confuso ("Selecione turma" solto) */}
-            {tipoVinculoAuto && (
-              <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                  tipoVinculoAuto === 'polivalente'
-                    ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                }`}>
-                  {tipoVinculoAuto === 'polivalente' ? 'Vínculo polivalente' : 'Vínculo por disciplina'}
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm">
-              Criar Vínculo
-            </button>
-            <button type="button" onClick={() => setCriando(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700 text-sm">
-              Cancelar
-            </button>
-          </div>
-        </form>
+        <FormNovoVinculo
+          anoLetivo={anoLetivo}
+          professores={professores}
+          turmas={turmas}
+          disciplinas={disciplinas}
+          carregandoDados={carregandoDados}
+          onSubmit={criarVinculo}
+          onCancel={() => setCriando(false)}
+        />
       )}
 
       {/* Mensagens */}
