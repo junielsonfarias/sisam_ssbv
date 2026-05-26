@@ -139,6 +139,12 @@ export interface MesDetalhado {
   alunos: AlunoDetalhado[]
 }
 
+export interface DisciplinaDetalhada {
+  id: string | null    // null para anos iniciais (modelo_frequencia='diaria')
+  nome: string | null  // null para anos iniciais
+  meses: MesDetalhado[]
+}
+
 export interface DiarioDetalhadoPayload {
   turma: TurmaInfo
   escopo: {
@@ -147,5 +153,5 @@ export interface DiarioDetalhadoPayload {
     periodo: { id: string; nome: string; numero: number } | null
   }
   modelo_frequencia: 'diaria' | 'hora_aula'
-  meses: MesDetalhado[]
+  disciplinas: DisciplinaDetalhada[]
 }

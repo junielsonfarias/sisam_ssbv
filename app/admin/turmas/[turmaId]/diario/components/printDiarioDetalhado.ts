@@ -1,5 +1,6 @@
-import type { DiarioDetalhadoPayload, MesDetalhado, StatusCelula } from './types'
+import type { DiarioDetalhadoPayload, DisciplinaDetalhada, MesDetalhado, StatusCelula } from './types'
 import { PRINT_DIARIO_CSS, PRINT_DIARIO_AUTOFIT_JS } from './printDiarioAssets'
+import { abreviarNome } from './formatters'
 
 const DIAS_SEMANA_PT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
 
@@ -46,7 +47,7 @@ const CSS_EXTRA_DETALHADO = `
 `
 
 export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
-  const { turma, escopo, modelo_frequencia, meses } = payload
+  const { turma, modelo_frequencia, disciplinas } = payload
 
   const printWindow = window.open('', '_blank', 'width=1100,height=780')
   if (!printWindow) return
@@ -96,7 +97,7 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
       </header>`
   }
 
-  function paginaMes(m: MesDetalhado): string {
+  function paginaMes(disc: DisciplinaDetalhada, m: MesDetalhado): string {
     const dias = m.dias_letivos
     if (dias.length === 0 || m.alunos.length === 0) return ''
 
@@ -115,7 +116,7 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
       return `
         <tr>
           <td class="col-num">${i + 1}</td>
-          <td class="col-nome">${escapeHtml(a.nome)}</td>
+          <td class="col-nome" title="${escapeHtml(a.nome)}">${escapeHtml(abreviarNome(a.nome, 22))}</td>
           ${celulasHtml}
           <td class="col-total p">${a.totais.presencas}</td>
           <td class="col-total f">${a.totais.faltas}</td>
@@ -123,7 +124,8 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
         </tr>`
     }).join('')
 
-    const subtitulo = `${m.mes_nome} / ${m.ano} · ${m.alunos.length} aluno(s) · ${dias.length} dia(s) letivo(s)`
+    const prefixoDisc = disc.nome ? `${disc.nome} · ` : ''
+    const subtitulo = `${prefixoDisc}${m.mes_nome} / ${m.ano} · ${m.alunos.length} aluno(s) · ${dias.length} dia(s) letivo(s)`
 
     return `
       <section class="page"><div class="page-inner">
@@ -158,7 +160,12 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
       </div></section>`
   }
 
-  const paginas = meses.map(paginaMes).join('')
+  // Itera por disciplina, e dentro de cada disciplina por mes.
+  // Para anos iniciais ha 1 disciplina (id=null) com seus meses.
+  // Para anos finais ha N disciplinas, cada uma com seus dias proprios.
+  const paginas = disciplinas
+    .flatMap(disc => disc.meses.map(m => paginaMes(disc, m)))
+    .join('')
   const semDados = paginas.trim().length === 0
 
   printWindow.document.write(`<!DOCTYPE html>

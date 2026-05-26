@@ -181,82 +181,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     const usaHoraAula = isAnosFinais(turma.serie)
     const modeloFrequencia = usaHoraAula ? 'hora_aula' : 'diaria'
 
-    // celulas[aluno_id][YYYY-MM-DD] = 'P' | 'F' | 'FJ' | undefined
-    const celulas: Record<string, Record<string, StatusCelula>> = {}
-    alunos.forEach(a => { celulas[a.id] = {} })
-
-    if (usaHoraAula) {
-      // Agrega frequencia_hora_aula por (aluno, data)
-      const freqRes = await pool.query(
-        `
-        SELECT aluno_id, data, BOOL_OR(presente) AS houve_presenca
-          FROM frequencia_hora_aula
-         WHERE turma_id = $1
-           AND data BETWEEN $2 AND $3
-         GROUP BY aluno_id, data
-        `,
-        [turmaId, dataInicio, dataFim]
-      )
-      freqRes.rows.forEach((r: { aluno_id: string; data: Date | string; houve_presenca: boolean }) => {
-        const dataStr = typeof r.data === 'string' ? r.data.slice(0, 10) : new Date(r.data).toISOString().slice(0, 10)
-        if (celulas[r.aluno_id]) {
-          celulas[r.aluno_id][dataStr] = r.houve_presenca ? 'P' : 'F'
-        }
-      })
-    } else {
-      // Le frequencia_diaria diretamente
-      const freqRes = await pool.query(
-        `
-        SELECT aluno_id, data, status, justificativa
-          FROM frequencia_diaria
-         WHERE turma_id = $1
-           AND data BETWEEN $2 AND $3
-        `,
-        [turmaId, dataInicio, dataFim]
-      )
-      freqRes.rows.forEach((r: { aluno_id: string; data: Date | string; status: string; justificativa: string | null }) => {
-        const dataStr = typeof r.data === 'string' ? r.data.slice(0, 10) : new Date(r.data).toISOString().slice(0, 10)
-        if (!celulas[r.aluno_id]) return
-        if (r.status === 'presente') celulas[r.aluno_id][dataStr] = 'P'
-        else if (r.justificativa) celulas[r.aluno_id][dataStr] = 'FJ'
-        else celulas[r.aluno_id][dataStr] = 'F'
-      })
-    }
-
-    // 6) Agrupa dias por mes e monta payload final
-    const diasPorMes: Map<string, string[]> = new Map()
-    diasLetivos.forEach(d => {
-      const k = d.slice(0, 7) // YYYY-MM
-      if (!diasPorMes.has(k)) diasPorMes.set(k, [])
-      diasPorMes.get(k)!.push(d)
-    })
-
-    const meses = Array.from(diasPorMes.entries()).map(([anoMes, dias]) => {
-      const [ano, mes] = anoMes.split('-')
-      return {
-        ano: parseInt(ano, 10),
-        mes: parseInt(mes, 10),
-        mes_nome: MESES_PT[parseInt(mes, 10) - 1],
-        dias_letivos: dias,
-        alunos: alunos.map(a => {
-          const cel: Record<string, StatusCelula> = {}
-          let totalP = 0, totalF = 0, totalFJ = 0
-          dias.forEach(d => {
-            const v = celulas[a.id]?.[d] ?? null
-            cel[d] = v
-            if (v === 'P') totalP++
-            else if (v === 'F') totalF++
-            else if (v === 'FJ') totalFJ++
-          })
-          return {
-            id: a.id,
-            nome: a.nome,
-            celulas: cel,
-            totais: { presencas: totalP, faltas: totalF, justificadas: totalFJ },
-          }
-        }),
-      }
-    })
+    const disciplinas = usaHoraAula
+      ? await montarDisciplinasAnosFinais(turmaId, dataInicio, dataFim, alunos)
+      : [await montarDisciplinaAnosIniciais(turmaId, dataInicio, dataFim, alunos, diasLetivos)]
 
     return NextResponse.json({
       turma: {
@@ -267,10 +194,125 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       },
       escopo: { data_inicio: dataInicio, data_fim: dataFim, periodo: periodoInfo },
       modelo_frequencia: modeloFrequencia,
-      meses,
+      disciplinas,
     })
   } catch (error) {
     log.error('Erro ao gerar diário detalhado', error, { turmaId, periodoId })
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
+
+// ============================================================================
+// Helpers de montagem (extraidos para manter o handler enxuto)
+// ============================================================================
+type Aluno = { id: string; nome: string }
+
+function isoData(d: Date | string): string {
+  return typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10)
+}
+
+function agruparMeses(
+  dias: string[],
+  alunos: Aluno[],
+  celulas: Record<string, Record<string, StatusCelula>>,
+) {
+  const diasPorMes: Map<string, string[]> = new Map()
+  dias.forEach(d => {
+    const k = d.slice(0, 7)
+    if (!diasPorMes.has(k)) diasPorMes.set(k, [])
+    diasPorMes.get(k)!.push(d)
+  })
+
+  return Array.from(diasPorMes.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([anoMes, dd]) => {
+      const [ano, mes] = anoMes.split('-')
+      return {
+        ano: parseInt(ano, 10),
+        mes: parseInt(mes, 10),
+        mes_nome: MESES_PT[parseInt(mes, 10) - 1],
+        dias_letivos: dd,
+        alunos: alunos.map(a => {
+          const cel: Record<string, StatusCelula> = {}
+          let p = 0, f = 0, fj = 0
+          dd.forEach(d => {
+            const v = celulas[a.id]?.[d] ?? null
+            cel[d] = v
+            if (v === 'P') p++
+            else if (v === 'F') f++
+            else if (v === 'FJ') fj++
+          })
+          return { id: a.id, nome: a.nome, celulas: cel, totais: { presencas: p, faltas: f, justificadas: fj } }
+        }),
+      }
+    })
+}
+
+async function montarDisciplinaAnosIniciais(
+  turmaId: string, dt_ini: string, dt_fim: string, alunos: Aluno[], dias: string[],
+) {
+  const celulas: Record<string, Record<string, StatusCelula>> = {}
+  alunos.forEach(a => { celulas[a.id] = {} })
+
+  const freqRes = await pool.query(
+    `SELECT aluno_id, data, status, justificativa
+       FROM frequencia_diaria
+      WHERE turma_id = $1 AND data BETWEEN $2 AND $3`,
+    [turmaId, dt_ini, dt_fim]
+  )
+  freqRes.rows.forEach((r: { aluno_id: string; data: Date | string; status: string; justificativa: string | null }) => {
+    const d = isoData(r.data)
+    if (!celulas[r.aluno_id]) return
+    if (r.status === 'presente') celulas[r.aluno_id][d] = 'P'
+    else if (r.justificativa) celulas[r.aluno_id][d] = 'FJ'
+    else celulas[r.aluno_id][d] = 'F'
+  })
+
+  return { id: null, nome: null, meses: agruparMeses(dias, alunos, celulas) }
+}
+
+async function montarDisciplinasAnosFinais(
+  turmaId: string, dt_ini: string, dt_fim: string, alunos: Aluno[],
+) {
+  // Uma unica query traz tudo agrupado (disciplina x aluno x dia)
+  const res = await pool.query(
+    `SELECT fha.disciplina_id, d.nome AS disciplina_nome,
+            fha.aluno_id, fha.data,
+            BOOL_OR(fha.presente) AS houve_presenca
+       FROM frequencia_hora_aula fha
+       JOIN disciplinas_escolares d ON d.id = fha.disciplina_id
+      WHERE fha.turma_id = $1 AND fha.data BETWEEN $2 AND $3
+      GROUP BY fha.disciplina_id, d.nome, fha.aluno_id, fha.data
+      ORDER BY d.nome, fha.data, fha.aluno_id`,
+    [turmaId, dt_ini, dt_fim]
+  )
+
+  // Agrupa em memoria: disciplina -> { dias: Set, celulas: { aluno: { data: status } } }
+  type DiscAcc = { id: string; nome: string; dias: Set<string>; celulas: Record<string, Record<string, StatusCelula>> }
+  const porDisciplina = new Map<string, DiscAcc>()
+
+  res.rows.forEach((r: {
+    disciplina_id: string; disciplina_nome: string; aluno_id: string;
+    data: Date | string; houve_presenca: boolean
+  }) => {
+    if (!porDisciplina.has(r.disciplina_id)) {
+      const cel: Record<string, Record<string, StatusCelula>> = {}
+      alunos.forEach(a => { cel[a.id] = {} })
+      porDisciplina.set(r.disciplina_id, {
+        id: r.disciplina_id, nome: r.disciplina_nome, dias: new Set(), celulas: cel,
+      })
+    }
+    const acc = porDisciplina.get(r.disciplina_id)!
+    const d = isoData(r.data)
+    acc.dias.add(d)
+    if (acc.celulas[r.aluno_id]) {
+      acc.celulas[r.aluno_id][d] = r.houve_presenca ? 'P' : 'F'
+    }
+  })
+
+  return Array.from(porDisciplina.values()).map(d => ({
+    id: d.id,
+    nome: d.nome,
+    meses: agruparMeses(Array.from(d.dias).sort(), alunos, d.celulas),
+  }))
+}
