@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowLeftRight, Plus, Trash2, AlertTriangle, Search, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeftRight, Plus, Trash2, AlertTriangle, Search, RefreshCw, BookOpen } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import { useAnoLetivo, AnoLetivoSelect } from '@/lib/contexts/ano-letivo-context'
 
 interface Vinculo {
   id: string
@@ -47,16 +49,17 @@ function isAnosFinais(serie: string): boolean {
 }
 
 function GerenciarVinculos() {
+  const { anoLetivo } = useAnoLetivo()
   const [vinculos, setVinculos] = useState<Vinculo[]>([])
   const [professores, setProfessores] = useState<Professor[]>([])
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [carregandoDados, setCarregandoDados] = useState(true)
   const [criando, setCriando] = useState(false)
   const [mensagem, setMensagem] = useState('')
   const [erro, setErro] = useState('')
   const [busca, setBusca] = useState('')
-  const [anoLetivo, setAnoLetivo] = useState('2026')
 
   // Form de criação
   const [formProfessor, setFormProfessor] = useState('')
@@ -84,6 +87,7 @@ function GerenciarVinculos() {
   }
 
   const fetchDados = async () => {
+    setCarregandoDados(true)
     try {
       const [profRes, turmasRes, discRes] = await Promise.all([
         fetch('/api/admin/professores'),
@@ -98,6 +102,8 @@ function GerenciarVinculos() {
       setDisciplinas(discData.disciplinas || [])
     } catch (err) {
       console.error('[ProfessorTurmas] Erro ao carregar dados:', (err as Error).message)
+    } finally {
+      setCarregandoDados(false)
     }
   }
 
@@ -190,14 +196,7 @@ function GerenciarVinculos() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Vincular Professores a Turmas</h1>
         <div className="flex gap-2">
-          <select
-            value={anoLetivo}
-            onChange={e => setAnoLetivo(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
-          >
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-          </select>
+          <AnoLetivoSelect />
           <button
             onClick={() => setCriando(!criando)}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm"
@@ -217,18 +216,32 @@ function GerenciarVinculos() {
               value={formProfessor}
               onChange={e => setFormProfessor(e.target.value)}
               required
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+              disabled={carregandoDados || professores.length === 0}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <option value="">Selecione o professor</option>
+              <option value="">
+                {carregandoDados
+                  ? 'Carregando professores...'
+                  : professores.length === 0
+                    ? 'Nenhum professor cadastrado'
+                    : 'Selecione o professor'}
+              </option>
               {professores.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
             <select
               value={formTurma}
               onChange={e => setFormTurma(e.target.value)}
               required
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+              disabled={carregandoDados || turmas.length === 0}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <option value="">Selecione a turma</option>
+              <option value="">
+                {carregandoDados
+                  ? 'Carregando turmas...'
+                  : turmas.length === 0
+                    ? `Nenhuma turma em ${anoLetivo}`
+                    : 'Selecione a turma'}
+              </option>
               {turmas.map(t => <option key={t.id} value={t.id}>{t.nome} ({t.serie} - {t.turno})</option>)}
             </select>
             {tipoVinculoAuto === 'disciplina' && (
@@ -242,17 +255,18 @@ function GerenciarVinculos() {
                 {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
               </select>
             )}
-            <div className="flex items-center gap-2">
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                tipoVinculoAuto === 'polivalente'
-                  ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
-                  : tipoVinculoAuto === 'disciplina'
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500'
-              }`}>
-                {tipoVinculoAuto || 'Selecione turma'}
-              </span>
-            </div>
+            {/* Badge do tipo aparece só após selecionar a turma — antes era confuso ("Selecione turma" solto) */}
+            {tipoVinculoAuto && (
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                  tipoVinculoAuto === 'polivalente'
+                    ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                }`}>
+                  {tipoVinculoAuto === 'polivalente' ? 'Vínculo polivalente' : 'Vínculo por disciplina'}
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm">
@@ -316,6 +330,13 @@ function GerenciarVinculos() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  <Link
+                    href={`/admin/turmas/${v.turma_id}/diario`}
+                    className="p-2 text-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg"
+                    title="Ver diário de classe (frequência, notas, conteúdo)"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                  </Link>
                   <button
                     onClick={() => { setTrocando(trocando === v.id ? null : v.id); setNovoProfessor('') }}
                     className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
