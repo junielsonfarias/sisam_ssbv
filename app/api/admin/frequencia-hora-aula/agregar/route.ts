@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
 
     const { data_inicio, data_fim } = periodoResult.rows[0]
 
-    // Agregar faltas em 1 INSERT...SELECT (sem loop N+1)
-    const result = await pool.query(
+    // 1) Agregar faltas POR DISCIPLINA em notas_escolares.faltas
+    const resultNotas = await pool.query(
       `INSERT INTO notas_escolares
         (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, faltas, registrado_por)
        SELECT
@@ -72,11 +72,68 @@ export async function POST(request: NextRequest) {
       [turma_id, periodo_id, data_inicio, escola_id, ano_letivo, usuario.id, data_fim]
     )
 
-    const atualizados = result.rowCount || 0
+    // 2) Agregar POR DIA em frequencia_bimestral (corrige bug ALTO #9 da
+    //    auditoria E2E — antes anos finais nunca alimentavam essa tabela,
+    //    deixando boletim/FICAI/portal cegos para 6º-9º).
+    //
+    //    Regra: aluno e considerado PRESENTE no dia se foi presente em pelo
+    //    menos 1 aula. Faltou em TODAS = falta. Total de dias letivos = dias
+    //    distintos com aulas registradas para a turma no periodo.
+    const resultBim = await pool.query(
+      `WITH dias_aluno AS (
+         SELECT aluno_id,
+                turma_id,
+                data,
+                BOOL_OR(presente) AS esteve_presente
+           FROM frequencia_hora_aula
+          WHERE turma_id = $1
+            AND data >= $3
+            AND data <= $7
+          GROUP BY aluno_id, turma_id, data
+       ),
+       totais AS (
+         SELECT aluno_id,
+                turma_id,
+                (SELECT COUNT(DISTINCT data) FROM frequencia_hora_aula
+                  WHERE turma_id = $1 AND data >= $3 AND data <= $7) AS dias_letivos,
+                COUNT(*) FILTER (WHERE esteve_presente)                 AS presencas,
+                COUNT(*) FILTER (WHERE NOT esteve_presente)             AS faltas
+           FROM dias_aluno
+          GROUP BY aluno_id, turma_id
+       )
+       INSERT INTO frequencia_bimestral
+         (aluno_id, turma_id, periodo_id, escola_id, ano_letivo,
+          dias_letivos, presencas, faltas, faltas_justificadas,
+          percentual_frequencia, metodo, registrado_por)
+       SELECT
+         t.aluno_id, t.turma_id, $2, $4, $5,
+         t.dias_letivos, t.presencas, t.faltas, 0,
+         CASE WHEN t.dias_letivos > 0
+              THEN ROUND((t.presencas::numeric / t.dias_letivos) * 100, 2)
+              ELSE 0 END,
+         'agregado_hora_aula', $6
+       FROM totais t
+       ON CONFLICT (aluno_id, turma_id, periodo_id) DO UPDATE SET
+         dias_letivos = EXCLUDED.dias_letivos,
+         presencas = EXCLUDED.presencas,
+         faltas = EXCLUDED.faltas,
+         percentual_frequencia = EXCLUDED.percentual_frequencia,
+         metodo = EXCLUDED.metodo,
+         registrado_por = EXCLUDED.registrado_por,
+         atualizado_em = CURRENT_TIMESTAMP
+       -- Preserva registros lançados manualmente em /admin/frequencia (corrige
+       -- bug ALTO #11 da auditoria — antes a agregacao sobrescrevia tudo).
+       WHERE frequencia_bimestral.metodo IS DISTINCT FROM 'manual'`,
+      [turma_id, periodo_id, data_inicio, escola_id, ano_letivo, usuario.id, data_fim]
+    )
+
+    const atualizadosNotas = resultNotas.rowCount || 0
+    const atualizadosBim = resultBim.rowCount || 0
 
     return NextResponse.json({
-      mensagem: `Faltas agregadas: ${atualizados} registro(s) atualizados`,
-      atualizados,
+      mensagem: `Agregados: ${atualizadosNotas} disciplina(s) em notas_escolares + ${atualizadosBim} aluno(s) em frequencia_bimestral`,
+      atualizados_notas: atualizadosNotas,
+      atualizados_bimestral: atualizadosBim,
       periodo: { data_inicio, data_fim },
     })
   } catch (error: unknown) {

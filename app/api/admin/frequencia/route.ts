@@ -130,10 +130,13 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
           ? Math.round((presencasVal / dias_letivos) * 1000) / 10
           : 0
 
+        // Marca como 'manual' para que /agregar dos endpoints diaria/hora_aula
+        // saiba que estes valores vieram de digitacao do admin e nao deve
+        // sobrescreve-los silenciosamente (corrige bug ALTO #11 da auditoria).
         await client.query(
           `INSERT INTO frequencia_bimestral
-            (aluno_id, periodo_id, turma_id, escola_id, ano_letivo, dias_letivos, presencas, faltas, faltas_justificadas, percentual_frequencia, observacao, registrado_por)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            (aluno_id, periodo_id, turma_id, escola_id, ano_letivo, dias_letivos, presencas, faltas, faltas_justificadas, percentual_frequencia, observacao, metodo, registrado_por)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'manual', $12)
            ON CONFLICT (aluno_id, periodo_id) DO UPDATE SET
             dias_letivos = EXCLUDED.dias_letivos,
             presencas = EXCLUDED.presencas,
@@ -141,6 +144,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
             faltas_justificadas = EXCLUDED.faltas_justificadas,
             percentual_frequencia = EXCLUDED.percentual_frequencia,
             observacao = EXCLUDED.observacao,
+            metodo = 'manual',
             registrado_por = EXCLUDED.registrado_por,
             atualizado_em = CURRENT_TIMESTAMP`,
           [aluno_id, periodo_id, turma_id, escola_id, ano_letivo, dias_letivos,

@@ -9,6 +9,7 @@ import {
   addAccessControl, buildConditionsString, parseSearchParams,
 } from '@/lib/api-helpers'
 import { criarAluno, atualizarAluno, deletarAluno } from '@/lib/services/alunos.service'
+import { verificarAnoLetivoAtivo } from '@/lib/services/matriculas.service'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 
@@ -152,11 +153,18 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       return validacao.response
     }
 
-    const { escola_id } = validacao.data
+    const { escola_id, ano_letivo } = validacao.data
 
     // Escola só pode criar aluno na própria escola
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+    }
+
+    // Bloqueia se ano letivo nao for 'ativo' (corrige bug ALTO #5 da auditoria
+    // E2E — antes POST aceitava qualquer ano_letivo independente do status)
+    if (ano_letivo) {
+      const erroAno = await verificarAnoLetivoAtivo(ano_letivo)
+      if (erroAno) return NextResponse.json({ mensagem: erroAno }, { status: 400 })
     }
 
     const aluno = await criarAluno(validacao.data)

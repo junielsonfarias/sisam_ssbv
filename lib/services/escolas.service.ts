@@ -127,19 +127,28 @@ export async function verificarVinculosEscola(
 // ---------------------------------------------------------------------------
 
 /**
- * Exclui escola (hard delete) se nao tiver vinculos.
- * Usa transacao atomica para evitar race condition entre verificacao e exclusao.
+ * Soft delete da escola (marca ativo=false) se nao tiver vinculos pedagogicos
+ * relevantes. Antes (até 2026-05-26): hard delete + check incompleto (so
+ * resultados_provas/consolidados e usuarios). Agora bloqueia tambem por:
+ * notas_escolares, frequencia_bimestral, documentos_emitidos.
+ *
+ * Bug ALTO #16 da auditoria E2E. Soft delete preserva trilha de auditoria
+ * + permite reativacao + nao quebra documentos_emitidos com QR code publico.
+ *
+ * Usa transacao atomica para evitar race entre verificacao e exclusao.
  */
 export async function excluirEscola(escolaId: string): Promise<ResultadoExclusao> {
   return withTransaction(async (client) => {
-    // Verificar vinculos dentro da transacao
     const vinculosResult = await client.query(`
       SELECT
-        (SELECT COUNT(*) FROM alunos WHERE escola_id = $1) as total_alunos,
-        (SELECT COUNT(*) FROM turmas WHERE escola_id = $1) as total_turmas,
-        (SELECT COUNT(*) FROM resultados_provas WHERE escola_id = $1) as total_resultados,
+        (SELECT COUNT(*) FROM alunos             WHERE escola_id = $1) as total_alunos,
+        (SELECT COUNT(*) FROM turmas             WHERE escola_id = $1) as total_turmas,
+        (SELECT COUNT(*) FROM resultados_provas  WHERE escola_id = $1) as total_resultados,
         (SELECT COUNT(*) FROM resultados_consolidados_unificada WHERE escola_id = $1) as total_consolidados,
-        (SELECT COUNT(*) FROM usuarios WHERE escola_id = $1) as total_usuarios
+        (SELECT COUNT(*) FROM usuarios           WHERE escola_id = $1) as total_usuarios,
+        (SELECT COUNT(*) FROM notas_escolares ne JOIN alunos a ON a.id = ne.aluno_id WHERE a.escola_id = $1) as total_notas,
+        (SELECT COUNT(*) FROM frequencia_bimestral fb JOIN alunos a ON a.id = fb.aluno_id WHERE a.escola_id = $1) as total_frequencia,
+        (SELECT COUNT(*) FROM documentos_emitidos WHERE escola_id = $1) as total_documentos
     `, [escolaId])
 
     const row = vinculosResult.rows[0]
@@ -149,24 +158,39 @@ export async function excluirEscola(escolaId: string): Promise<ResultadoExclusao
     const totalResultados = parseInt(row.total_resultados) || 0
     const totalConsolidados = parseInt(row.total_consolidados) || 0
     const totalUsuarios = parseInt(row.total_usuarios) || 0
+    const totalNotas = parseInt(row.total_notas) || 0
+    const totalFrequencia = parseInt(row.total_frequencia) || 0
+    const totalDocumentos = parseInt(row.total_documentos) || 0
 
     if (totalAlunos > 0 || totalTurmas > 0 || totalResultados > 0 ||
-        totalConsolidados > 0 || totalUsuarios > 0) {
+        totalConsolidados > 0 || totalUsuarios > 0 || totalNotas > 0 ||
+        totalFrequencia > 0 || totalDocumentos > 0) {
       return {
         sucesso: false,
-        mensagem: 'Nao e possivel excluir a escola pois possui vinculos',
+        mensagem: 'Não é possível excluir a escola pois possui vínculos pedagógicos. Considere desativá-la em vez de excluir.',
         vinculos: {
           totalAlunos,
           totalTurmas,
           totalResultados,
           totalConsolidados,
           totalUsuarios,
-        },
+          // Novos contadores expostos para que a UI possa mostrar o motivo
+          totalNotas,
+          totalFrequencia,
+          totalDocumentos,
+        } as ResultadoExclusao['vinculos'],
       }
     }
 
+    // Soft delete: marca como inativa em vez de DELETE fisico. Preserva
+    // historico e permite reativar. Documentos com QR code publico
+    // continuam validando (escola_id permanece).
     const delResult = await client.query(
-      'DELETE FROM escolas WHERE id = $1 RETURNING nome',
+      `UPDATE escolas
+          SET ativo = false,
+              atualizado_em = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING nome`,
       [escolaId]
     )
 
@@ -179,7 +203,7 @@ export async function excluirEscola(escolaId: string): Promise<ResultadoExclusao
 
     return {
       sucesso: true,
-      mensagem: `Escola "${delResult.rows[0].nome}" excluida com sucesso`,
+      mensagem: `Escola "${delResult.rows[0].nome}" desativada com sucesso`,
     }
   })
 }

@@ -218,6 +218,21 @@ export async function PUT(
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
+    // Bloqueio: tipo 'escola' NÃO pode mover aluno para outra escola via PUT.
+    // Transferencia entre escolas e exclusiva de admin/tecnico via
+    // alterarSituacao (que registra historico). Corrige bug ALTO #17 da
+    // auditoria E2E — antes escola podia "transferir" mudando escola_id.
+    if (
+      usuario.tipo_usuario === 'escola' &&
+      body.escola_id !== undefined &&
+      body.escola_id !== existeResult.rows[0].escola_id
+    ) {
+      return NextResponse.json(
+        { mensagem: 'Você não pode mover o aluno para outra escola. Use o fluxo de transferência.' },
+        { status: 403 }
+      )
+    }
+
     // Campos atualizáveis
     const campos = [
       'nome', 'codigo', 'escola_id', 'turma_id', 'serie', 'ano_letivo',

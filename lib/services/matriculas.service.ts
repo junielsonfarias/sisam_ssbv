@@ -215,17 +215,41 @@ export async function matricularAlunosBatch(params: {
     alunos: [],
   }
 
-  // Verificar capacidade da turma antes de iniciar
-  if (turmaId) {
-    const cap = await verificarCapacidadeTurma(turmaId)
-    if (cap.capacidade > 0 && cap.disponivel < alunos.length) {
-      throw new MatriculaError(
-        `Turma possui apenas ${cap.disponivel} vaga(s) disponível(is) de ${cap.capacidade}. Tentando matricular ${alunos.length} aluno(s).`
-      )
-    }
-  }
+  // Bloqueia se ano letivo nao for 'ativo' (corrige bug ALTO #5 da
+  // auditoria — antes apenas matricularAluno single chamava esta funcao).
+  const erroAno = await verificarAnoLetivoAtivo(anoLetivo)
+  if (erroAno) throw new MatriculaError(erroAno)
 
   await withTransaction(async (client: PoolClient) => {
+    // Capacity-check DENTRO da transacao com SELECT FOR UPDATE evita
+    // race: duas batches concorrentes nao podem mais matricular alem
+    // da capacidade (corrige bug ALTO #4 da auditoria).
+    if (turmaId) {
+      const turmaLock = await client.query(
+        `SELECT capacidade_maxima FROM turmas WHERE id = $1 FOR UPDATE`,
+        [turmaId]
+      )
+      if (turmaLock.rows.length === 0) {
+        throw new MatriculaError('Turma não encontrada')
+      }
+      const capacidade = turmaLock.rows[0].capacidade_maxima as number | null
+      if (capacidade && capacidade > 0) {
+        const ocupacao = await client.query(
+          `SELECT COUNT(*)::int AS total
+             FROM alunos
+            WHERE turma_id = $1 AND situacao = 'cursando' AND ativo = true`,
+          [turmaId]
+        )
+        const ocupados = ocupacao.rows[0].total as number
+        const disponivel = capacidade - ocupados
+        if (disponivel < alunos.length) {
+          throw new MatriculaError(
+            `Turma possui apenas ${disponivel} vaga(s) disponível(is) de ${capacidade}. Tentando matricular ${alunos.length} aluno(s).`
+          )
+        }
+      }
+    }
+
     for (const aluno of alunos) {
       try {
         if (isAlunoExistente(aluno)) {
