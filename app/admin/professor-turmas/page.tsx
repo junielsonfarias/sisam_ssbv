@@ -60,7 +60,9 @@ function GerenciarVinculos() {
     try {
       const [profRes, turmasRes, discRes] = await Promise.all([
         fetch('/api/admin/professores'),
-        fetch('/api/admin/turmas?ano_letivo=' + anoLetivo),
+        // mode=listagem retorna TODAS as turmas ativas; sem mode, /turmas exige
+        // INNER JOIN com resultados_consolidados_unificada (só turmas com avaliação SISAM lançada)
+        fetch(`/api/admin/turmas?mode=listagem&ano_letivo=${anoLetivo}`),
         fetch('/api/admin/disciplinas-escolares'),
       ])
       const profData = await profRes.json()
