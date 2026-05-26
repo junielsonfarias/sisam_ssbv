@@ -9,60 +9,17 @@ import {
 } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { useToast } from '@/components/toast'
 import type {
-  Tipo, Periodo, NotaLinha, DiarioPayload, LacunasPayload,
+  Tipo, Periodo, DiarioPayload, LacunasPayload,
 } from './components/types'
 import { imprimirDiario } from './components/printDiario'
 import CoberturaDiario from './components/CoberturaDiario'
+import SecaoFrequencia from './components/SecaoFrequencia'
+import SecaoNotas from './components/SecaoNotas'
+import SecaoConteudo from './components/SecaoConteudo'
+import { formatarData } from './components/formatters'
 
-// ============================================================================
-// Helpers
-// ============================================================================
-function formatarData(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function formatarNota(v: string | number | null | undefined): string {
-  if (v === null || v === undefined || v === '') return '—'
-  const n = typeof v === 'string' ? parseFloat(v) : v
-  if (isNaN(n)) return '—'
-  return n.toFixed(1).replace('.', ',')
-}
-
-function formatarPercentual(v: string | number | null | undefined): string {
-  if (v === null || v === undefined || v === '') return '—'
-  const n = typeof v === 'string' ? parseFloat(v) : v
-  if (isNaN(n)) return '—'
-  return `${n.toFixed(1).replace('.', ',')}%`
-}
-
-function corPercentual(v: string | number | null | undefined): string {
-  if (v === null || v === undefined || v === '') return 'text-gray-400'
-  const n = typeof v === 'string' ? parseFloat(v) : v
-  if (isNaN(n)) return 'text-gray-400'
-  if (n >= 75) return 'text-emerald-600 dark:text-emerald-400'
-  if (n >= 60) return 'text-amber-600 dark:text-amber-400'
-  return 'text-red-600 dark:text-red-400'
-}
-
-function corNota(v: string | number | null | undefined): string {
-  if (v === null || v === undefined || v === '') return 'text-gray-400'
-  const n = typeof v === 'string' ? parseFloat(v) : v
-  if (isNaN(n)) return 'text-gray-400'
-  if (n >= 7) return 'text-emerald-600 dark:text-emerald-400'
-  if (n >= 5) return 'text-amber-600 dark:text-amber-400'
-  return 'text-red-600 dark:text-red-400'
-}
-
-// ============================================================================
-// Página
-// ============================================================================
 function DiarioTurmaContent() {
-  const toast = useToast()
   const router = useRouter()
   const params = useParams()
   const turmaId = params.turmaId as string
@@ -127,28 +84,15 @@ function DiarioTurmaContent() {
     return () => { cancelado = true }
   }, [turmaId, periodoId])
 
-  // Agrupa notas por aluno → disciplina → períodos para uma visão pivotada útil
-  const notasAgrupadas = useMemo(() => {
-    if (!diario?.notas) return new Map<string, Map<string, NotaLinha[]>>()
-    const out = new Map<string, Map<string, NotaLinha[]>>()
+  // Conta alunos distintos com notas (usado pelo badge da seção Notas)
+  const totalAlunosComNotas = useMemo(() => {
+    if (!diario?.notas) return 0
+    const set = new Set<string>()
     for (const n of diario.notas) {
-      if (!n.nota_id) continue // ignora linhas vazias do LEFT JOIN sem nota
-      if (!out.has(n.aluno_id)) out.set(n.aluno_id, new Map())
-      const porDisciplina = out.get(n.aluno_id)!
-      const disc = n.disciplina_nome || '—'
-      if (!porDisciplina.has(disc)) porDisciplina.set(disc, [])
-      porDisciplina.get(disc)!.push(n)
+      if (n.nota_id) set.add(n.aluno_id)
     }
-    return out
+    return set.size
   }, [diario?.notas])
-
-  // Lista única de alunos para usar como linhas das tabelas
-  const alunos = useMemo(() => {
-    const set = new Map<string, string>()
-    diario?.frequencia?.forEach(f => set.set(f.aluno_id, f.aluno_nome))
-    diario?.notas?.forEach(n => set.set(n.aluno_id, n.aluno_nome))
-    return Array.from(set, ([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome))
-  }, [diario?.frequencia, diario?.notas])
 
   if (carregando && !diario) {
     return <LoadingSpinner centered />
@@ -177,6 +121,7 @@ function DiarioTurmaContent() {
   const mostrarFreq = tipo === 'todos' || tipo === 'frequencia'
   const mostrarNotas = tipo === 'todos' || tipo === 'notas'
   const mostrarConteudo = tipo === 'todos' || tipo === 'conteudo'
+  const filtroPorPeriodo = Boolean(periodoId)
 
   return (
     <div className="space-y-6">
@@ -189,30 +134,30 @@ function DiarioTurmaContent() {
       </Link>
 
       {/* Header da turma */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <Building2 className="w-3.5 h-3.5" />
+              <Building2 className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{turma.escola_nome}</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">
               Diário de Classe — {turma.codigo}
               {turma.nome ? ` (${turma.nome})` : ''}
             </h1>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-300 mt-2">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2">
               <span><GraduationCap className="inline w-4 h-4 mr-1" /> {turma.serie}</span>
               <span><Calendar className="inline w-4 h-4 mr-1" /> {turma.ano_letivo}</span>
               <span className="capitalize">{turma.turno}</span>
             </div>
           </div>
           <button
-            onClick={() => imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: Boolean(periodoId) })}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
+            onClick={() => imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: filtroPorPeriodo })}
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-medium rounded-lg shadow-sm transition shrink-0"
             title="Abre uma nova janela com o diário formatado para impressão / salvar em PDF"
           >
             <Printer className="w-4 h-4" />
-            Exportar PDF
+            <span className="hidden sm:inline">Exportar </span>PDF
           </button>
         </div>
 
@@ -249,58 +194,61 @@ function DiarioTurmaContent() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 flex flex-wrap items-end gap-4">
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 w-full sm:w-auto sm:mb-0">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">
           <Filter className="w-3.5 h-3.5" />
           Filtros
         </div>
-        <div>
-          <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Período</label>
-          <select
-            value={periodoId}
-            onChange={e => setPeriodoId(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white min-w-[180px]"
-          >
-            <option value="">Todos os períodos</option>
-            {periodos.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.numero}º {p.tipo}{p.ativo ? ' (ativo)' : ''} — {p.nome}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Visualizar</label>
-          <div className="flex flex-wrap gap-1 bg-gray-100 dark:bg-slate-900/50 p-1 rounded-lg">
-            {([
-              { v: 'todos', label: 'Tudo', Icon: ClipboardList },
-              { v: 'frequencia', label: 'Frequência', Icon: ClipboardList },
-              { v: 'notas', label: 'Notas', Icon: BookOpen },
-              { v: 'conteudo', label: 'Conteúdo', Icon: FileText },
-            ] as const).map(({ v, label, Icon }) => (
-              <button
-                key={v}
-                onClick={() => setTipo(v)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
-                  tipo === v
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
-            ))}
+        <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-4 items-end">
+          <div>
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Período</label>
+            <select
+              value={periodoId}
+              onChange={e => setPeriodoId(e.target.value)}
+              className="w-full sm:w-auto sm:min-w-[200px] px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white"
+            >
+              <option value="">Todos os períodos</option>
+              {periodos.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.numero}º {p.tipo}{p.ativo ? ' (ativo)' : ''} — {p.nome}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-        {periodo && (
-          <div className="ml-auto text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
-            <div>Período selecionado:</div>
-            <div className="font-semibold text-gray-700 dark:text-gray-200">
-              {formatarData(periodo.data_inicio)} – {formatarData(periodo.data_fim)}
+          <div>
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Visualizar</label>
+            <div className="flex flex-wrap gap-1 bg-gray-100 dark:bg-slate-900/50 p-1 rounded-lg">
+              {([
+                { v: 'todos', label: 'Tudo', shortLabel: 'Tudo', Icon: ClipboardList },
+                { v: 'frequencia', label: 'Frequência', shortLabel: 'Freq.', Icon: ClipboardList },
+                { v: 'notas', label: 'Notas', shortLabel: 'Notas', Icon: BookOpen },
+                { v: 'conteudo', label: 'Conteúdo', shortLabel: 'Cont.', Icon: FileText },
+              ] as const).map(({ v, label, shortLabel, Icon }) => (
+                <button
+                  key={v}
+                  onClick={() => setTipo(v)}
+                  className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                    tipo === v
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{label}</span>
+                  <span className="sm:hidden">{shortLabel ?? label}</span>
+                </button>
+              ))}
             </div>
           </div>
-        )}
+          {periodo && (
+            <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight sm:text-right">
+              <div>Período selecionado:</div>
+              <div className="font-semibold text-gray-700 dark:text-gray-200">
+                {formatarData(periodo.data_inicio)} – {formatarData(periodo.data_fim)}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Cobertura do diário (vs calendário escolar) */}
@@ -326,149 +274,25 @@ function DiarioTurmaContent() {
         </div>
       )}
 
-      {/* Seção: Frequência */}
       {mostrarFreq && frequencia && frequencia.length > 0 && (
-        <section className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Frequência {periodo ? `— ${periodo.nome}` : '(consolidado de todos os períodos)'}
-            </h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{frequencia.length} alunos</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-slate-900/50 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                <tr>
-                  <th className="px-4 py-2 font-semibold">Aluno</th>
-                  {!periodoId && <th className="px-4 py-2 font-semibold">Período</th>}
-                  <th className="px-4 py-2 font-semibold text-right">Dias Letivos</th>
-                  <th className="px-4 py-2 font-semibold text-right">Presenças</th>
-                  <th className="px-4 py-2 font-semibold text-right">Faltas</th>
-                  <th className="px-4 py-2 font-semibold text-right">Just.</th>
-                  <th className="px-4 py-2 font-semibold text-right">%</th>
-                  <th className="px-4 py-2 font-semibold">Lançado por</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                {frequencia.map((f, i) => (
-                  <tr key={`${f.aluno_id}-${f.freq_id || i}`} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                    <td className="px-4 py-2 text-gray-900 dark:text-white">{f.aluno_nome}</td>
-                    {!periodoId && (
-                      <td className="px-4 py-2 text-gray-600 dark:text-gray-300">
-                        {f.periodo_numero ? `${f.periodo_numero}º` : '—'}
-                      </td>
-                    )}
-                    <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-200">{f.dias_letivos ?? '—'}</td>
-                    <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-200">{f.presencas ?? '—'}</td>
-                    <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-200">{f.faltas ?? '—'}</td>
-                    <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-200">{f.faltas_justificadas ?? '—'}</td>
-                    <td className={`px-4 py-2 text-right font-semibold ${corPercentual(f.percentual_frequencia)}`}>
-                      {formatarPercentual(f.percentual_frequencia)}
-                    </td>
-                    <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">{f.registrado_por_nome || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <SecaoFrequencia
+          frequencia={frequencia}
+          periodo={periodo}
+          filtroPorPeriodo={filtroPorPeriodo}
+        />
       )}
 
-      {/* Seção: Notas */}
       {mostrarNotas && notas && notas.filter(n => n.nota_id).length > 0 && (
-        <section className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Notas {periodo ? `— ${periodo.nome}` : '(todos os períodos)'}
-            </h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{notasAgrupadas.size} alunos com notas</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-slate-900/50 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                <tr>
-                  <th className="px-4 py-2 font-semibold">Aluno</th>
-                  <th className="px-4 py-2 font-semibold">Disciplina</th>
-                  {!periodoId && <th className="px-4 py-2 font-semibold">Período</th>}
-                  <th className="px-4 py-2 font-semibold text-right">Nota</th>
-                  <th className="px-4 py-2 font-semibold text-right">Recuperação</th>
-                  <th className="px-4 py-2 font-semibold text-right">Final</th>
-                  <th className="px-4 py-2 font-semibold text-right">Faltas</th>
-                  <th className="px-4 py-2 font-semibold">Lançado por</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                {notas.filter(n => n.nota_id).map(n => (
-                  <tr key={n.nota_id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                    <td className="px-4 py-2 text-gray-900 dark:text-white">{n.aluno_nome}</td>
-                    <td className="px-4 py-2 text-gray-700 dark:text-gray-200">{n.disciplina_nome || '—'}</td>
-                    {!periodoId && (
-                      <td className="px-4 py-2 text-gray-600 dark:text-gray-300">
-                        {n.periodo_numero ? `${n.periodo_numero}º` : '—'}
-                      </td>
-                    )}
-                    <td className={`px-4 py-2 text-right font-semibold ${corNota(n.nota)}`}>{formatarNota(n.nota)}</td>
-                    <td className="px-4 py-2 text-right text-gray-600 dark:text-gray-300">{formatarNota(n.nota_recuperacao)}</td>
-                    <td className={`px-4 py-2 text-right font-bold ${corNota(n.nota_final)}`}>{formatarNota(n.nota_final)}</td>
-                    <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-200">{n.faltas ?? '—'}</td>
-                    <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">{n.registrado_por_nome || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <SecaoNotas
+          notas={notas}
+          periodo={periodo}
+          filtroPorPeriodo={filtroPorPeriodo}
+          totalAlunosComNotas={totalAlunosComNotas}
+        />
       )}
 
-      {/* Seção: Conteúdo do diário */}
       {mostrarConteudo && conteudo && conteudo.length > 0 && (
-        <section className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Conteúdo do diário {periodo ? `— ${periodo.nome}` : '(todos os períodos)'}
-            </h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{conteudo.length} aulas</span>
-          </div>
-          <ul className="divide-y divide-gray-100 dark:divide-slate-700">
-            {conteudo.map(c => (
-              <li key={c.id} className="p-5 hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded">
-                    <Calendar className="w-3 h-3" />
-                    {formatarData(c.data_aula)}
-                  </span>
-                  {c.disciplina_nome && (
-                    <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded">
-                      {c.disciplina_nome}
-                    </span>
-                  )}
-                  <span className="text-gray-500 dark:text-gray-400">por <strong className="font-medium">{c.professor_nome}</strong></span>
-                </div>
-                {c.conteudo && (
-                  <div className="mb-2">
-                    <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Conteúdo</div>
-                    <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{c.conteudo}</p>
-                  </div>
-                )}
-                {c.metodologia && (
-                  <div className="mb-2">
-                    <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Metodologia</div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{c.metodologia}</p>
-                  </div>
-                )}
-                {c.observacoes && (
-                  <div>
-                    <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Observações</div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{c.observacoes}</p>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <SecaoConteudo conteudo={conteudo} periodo={periodo} />
       )}
     </div>
   )
