@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ArrowLeftRight, Plus, Trash2, Search, RefreshCw, BookOpen } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { useAnoLetivo, AnoLetivoSelect } from '@/lib/contexts/ano-letivo-context'
-import { FormNovoVinculo, type Professor, type Turma, type Disciplina } from './components/FormNovoVinculo'
+import { FormNovoVinculo, type Professor, type Turma, type Disciplina, type VinculoSubmitPayload } from './components/FormNovoVinculo'
 
 interface Vinculo {
   id: string
@@ -84,23 +84,73 @@ function GerenciarVinculos() {
     fetchDados()
   }, [anoLetivo])
 
-  const criarVinculo = async (payload: {
-    professor_id: string
-    turma_id: string
-    tipo_vinculo: 'polivalente' | 'disciplina'
-    disciplina_id?: string
-  }) => {
+  const criarVinculo = async (payload: VinculoSubmitPayload) => {
     setMensagem('')
     setErro('')
-    const res = await fetch('/api/admin/professor-turmas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, ano_letivo: anoLetivo }),
+    const { professor_id, turma_ids, tipo_vinculo, disciplina_id } = payload
+
+    const turmaInfo = (id: string) => {
+      const t = turmas.find(x => x.id === id)
+      return t ? (t.codigo || t.nome || id) : id
+    }
+
+    // Dispara os POSTs em paralelo. Cada vínculo é independente — uma falha
+    // em uma turma não impede o sucesso das outras. A UNIQUE constraint do
+    // banco diferencia "já existia" (409) de "erro real" (500).
+    const resultados = await Promise.allSettled(
+      turma_ids.map(turma_id =>
+        fetch('/api/admin/professor-turmas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            professor_id,
+            turma_id,
+            tipo_vinculo,
+            ...(disciplina_id ? { disciplina_id } : {}),
+            ano_letivo: anoLetivo,
+          }),
+        }).then(async res => {
+          const data = await res.json().catch(() => ({}))
+          return { status: res.status, mensagem: data.mensagem as string | undefined, turma_id }
+        })
+      )
+    )
+
+    const criados: string[] = []
+    const duplicados: string[] = []
+    const falharam: { nome: string; motivo: string }[] = []
+
+    resultados.forEach((r, i) => {
+      const turmaId = turma_ids[i]
+      const nome = turmaInfo(turmaId)
+      if (r.status === 'rejected') {
+        falharam.push({ nome, motivo: 'erro de rede' })
+        return
+      }
+      const { status, mensagem } = r.value
+      if (status === 201) criados.push(nome)
+      else if (status === 409) duplicados.push(nome)
+      else falharam.push({ nome, motivo: mensagem || `HTTP ${status}` })
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.mensagem || 'Erro ao criar vínculo')
-    setMensagem('Vínculo criado com sucesso')
-    setCriando(false)
+
+    const partes: string[] = []
+    if (criados.length > 0) partes.push(`${criados.length} criado${criados.length > 1 ? 's' : ''}`)
+    if (duplicados.length > 0) partes.push(`${duplicados.length} já existia${duplicados.length > 1 ? 'm' : ''}`)
+    if (falharam.length > 0) partes.push(`${falharam.length} falhou${falharam.length > 1 ? '/falharam' : ''}`)
+
+    if (criados.length > 0 && falharam.length === 0) {
+      setMensagem(`${partes.join(' · ')}.`)
+      setCriando(false)
+    } else if (criados.length === 0 && falharam.length === 0) {
+      // Tudo era duplicado — fecha o form mas avisa
+      setMensagem(partes.join(' · ') + '. Nenhum vínculo novo foi criado.')
+      setCriando(false)
+    } else if (falharam.length > 0) {
+      // Pelo menos uma falha real: mantém form aberto e mostra detalhes
+      const detalhes = falharam.map(f => `${f.nome} (${f.motivo})`).join(', ')
+      setErro(`${partes.join(' · ')}. Falhas: ${detalhes}`)
+    }
+
     fetchVinculos()
   }
 
