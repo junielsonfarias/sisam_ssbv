@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Users, ClipboardList, FileText, BookOpen,
-  Calendar, GraduationCap, Building2, AlertCircle, Filter, Printer, ShieldAlert, FileSpreadsheet, Accessibility,
+  Calendar, GraduationCap, Building2, AlertCircle, Filter, Printer, ShieldAlert, FileSpreadsheet,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -223,15 +223,6 @@ function DiarioTurmaContent() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
-            <button
-              onClick={() => window.dispatchEvent(new Event('sisam:abrir-acessibilidade'))}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg border border-gray-300 dark:border-slate-600 shadow-sm transition"
-              title="Ajustar tamanho da fonte, contraste e movimento (acessibilidade)"
-              aria-label="Abrir painel de acessibilidade"
-            >
-              <Accessibility className="w-4 h-4" />
-              <span className="hidden sm:inline">Acessibilidade</span>
-            </button>
             <button
               onClick={() => imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: filtroPorPeriodo })}
               className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-medium rounded-lg shadow-sm transition"

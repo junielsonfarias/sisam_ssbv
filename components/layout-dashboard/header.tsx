@@ -15,6 +15,7 @@ import {
   Building2,
   Globe,
   Settings,
+  Accessibility,
 } from 'lucide-react'
 import { OfflineSyncManager } from '../offline-sync-manager'
 import { SyncStatusBadge } from '../sync-status-badge'
@@ -197,7 +198,15 @@ export function Header({
               </div>
             </Link>
 
-            {/* Ações secundárias: tema e logout — ícones discretos */}
+            {/* Ações secundárias: acessibilidade, tema e logout — ícones discretos */}
+            <button
+              onClick={() => window.dispatchEvent(new Event('sisam:abrir-acessibilidade'))}
+              className="flex flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200"
+              aria-label="Abrir painel de acessibilidade"
+              title="Acessibilidade — tamanho da fonte, contraste e movimento"
+            >
+              <Accessibility className="w-[18px] h-[18px]" />
+            </button>
             <ThemeToggleSimple className="hidden sm:flex flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700/60 transition-all duration-200" />
             <button
               onClick={handleLogout}
