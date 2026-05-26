@@ -75,14 +75,25 @@ export interface ComparativoEscola {
 // ============================================================================
 
 export async function obterKpisGerais(anoLetivo: string): Promise<KpisGerais> {
+  // Alunos/AEE/Bolsa Familia sao filtrados por ano_letivo — assim cada ano
+  // tem seu proprio "snapshot" e o dashboard reflete a matricula vigente.
+  // Escolas/professores/servidores sao cadastros atemporais (filtram por ativo).
   const r = await pool.query(
     `SELECT
-       (SELECT COUNT(*) FROM alunos WHERE ativo IS NOT FALSE) AS total_alunos,
-       (SELECT COUNT(*) FROM escolas WHERE ativa IS NOT FALSE) AS total_escolas,
-       (SELECT COUNT(*) FROM usuarios WHERE tipo_usuario = 'professor' AND ativo IS NOT FALSE) AS total_professores,
+       (SELECT COUNT(*) FROM alunos
+          WHERE ativo IS NOT FALSE AND ano_letivo = $1) AS total_alunos,
+       (SELECT COUNT(*) FROM escolas WHERE ativo IS NOT FALSE) AS total_escolas,
+       (SELECT COUNT(*) FROM usuarios
+          WHERE tipo_usuario = 'professor' AND ativo IS NOT FALSE) AS total_professores,
        (SELECT COUNT(*) FROM servidores WHERE ativo = TRUE) AS total_servidores,
-       (SELECT COUNT(DISTINCT aluno_id) FROM alunos_aee) AS alunos_pne,
-       (SELECT COUNT(*) FROM alunos WHERE beneficiario_bolsa_familia = TRUE) AS alunos_bf`
+       (SELECT COUNT(DISTINCT ae.aluno_id)
+          FROM alunos_aee ae
+          INNER JOIN alunos a ON a.id = ae.aluno_id
+         WHERE a.ano_letivo = $1 AND a.ativo IS NOT FALSE) AS alunos_pne,
+       (SELECT COUNT(*) FROM alunos
+         WHERE beneficiario_bolsa_familia = TRUE
+           AND ano_letivo = $1 AND ativo IS NOT FALSE) AS alunos_bf`,
+    [anoLetivo]
   ).catch(() => ({ rows: [{}] }))
 
   const row = r.rows[0]
@@ -169,7 +180,8 @@ export async function obterKpisDesempenho(anoLetivo: string): Promise<KpisDesemp
     const pctRepr = totalSituacoes > 0 ? Math.round((parseInt(reprovados?.total || '0', 10) / totalSituacoes) * 1000) / 10 : null
     const pctAband = totalSituacoes > 0 ? Math.round((parseInt(abandono?.total || '0', 10) / totalSituacoes) * 1000) / 10 : null
 
-    // Distorção idade-série (alunos com >=2 anos a mais que o esperado)
+    // Distorção idade-série (alunos com >=2 anos a mais que o esperado),
+    // filtrada pelo ano letivo selecionado
     const distorcaoR = await pool.query(
       `WITH expectativa AS (
          SELECT a.id,
@@ -179,13 +191,16 @@ export async function obterKpisDesempenho(anoLetivo: string): Promise<KpisDesemp
                   THEN REGEXP_REPLACE(a.serie, '[^0-9]', '', 'g')::int + 5
                   ELSE NULL END AS idade_esperada
            FROM alunos a
-          WHERE a.ativo IS NOT FALSE AND a.data_nascimento IS NOT NULL
+          WHERE a.ativo IS NOT FALSE
+            AND a.data_nascimento IS NOT NULL
+            AND a.ano_letivo = $1
        )
        SELECT
          COUNT(*) FILTER (WHERE idade >= idade_esperada + 2)::float /
          NULLIF(COUNT(*), 0) * 100 AS pct
          FROM expectativa
-        WHERE idade_esperada IS NOT NULL`
+        WHERE idade_esperada IS NOT NULL`,
+      [anoLetivo]
     ).catch(() => ({ rows: [{}] }))
 
     const distorcao = distorcaoR.rows[0]?.pct
@@ -220,16 +235,26 @@ export async function obterKpisDesempenho(anoLetivo: string): Promise<KpisDesemp
 // ============================================================================
 
 export async function obterKpisProgramas(anoLetivo: string): Promise<KpisProgramas> {
-  const mesAtual = new Date().getMonth() + 1
+  // PNAE: se o ano selecionado for o atual, mostra apenas o mes vigente
+  // (intencao original do KPI: "refeicoes_mes"). Para anos passados, agrega
+  // o ano inteiro — assim historico nao some.
   const anoAtual = new Date().getFullYear()
-
-  const pnae = await pool.query(
-    `SELECT COALESCE(SUM(qtd_alunos), 0) AS total
-       FROM pnae_atendimentos_diarios
-      WHERE EXTRACT(YEAR FROM data_atendimento) = $1
-        AND EXTRACT(MONTH FROM data_atendimento) = $2`,
-    [anoAtual, mesAtual]
-  ).catch(() => ({ rows: [{ total: 0 }] }))
+  const anoInt = parseInt(anoLetivo, 10)
+  const mesAtual = new Date().getMonth() + 1
+  const pnae = anoInt === anoAtual
+    ? await pool.query(
+        `SELECT COALESCE(SUM(qtd_alunos), 0) AS total
+           FROM pnae_atendimentos_diarios
+          WHERE EXTRACT(YEAR FROM data_atendimento) = $1
+            AND EXTRACT(MONTH FROM data_atendimento) = $2`,
+        [anoInt, mesAtual]
+      ).catch(() => ({ rows: [{ total: 0 }] }))
+    : await pool.query(
+        `SELECT COALESCE(SUM(qtd_alunos), 0) AS total
+           FROM pnae_atendimentos_diarios
+          WHERE EXTRACT(YEAR FROM data_atendimento) = $1`,
+        [anoInt]
+      ).catch(() => ({ rows: [{ total: 0 }] }))
 
   const pnate = await pool.query(
     `SELECT COUNT(DISTINCT aluno_id) AS total
@@ -274,12 +299,16 @@ export async function obterComparativoEscolas(anoLetivo: string): Promise<Compar
     `SELECT
        e.id AS escola_id, e.nome AS escola_nome,
        p.nome AS polo_nome,
-       (SELECT COUNT(*) FROM alunos a WHERE a.escola_id = e.id AND a.ativo IS NOT FALSE) AS total_alunos,
-       (SELECT COUNT(*) FROM alunos a INNER JOIN alunos_aee ae ON ae.aluno_id = a.id WHERE a.escola_id = e.id) AS alunos_pne,
+       (SELECT COUNT(*) FROM alunos a
+          WHERE a.escola_id = e.id AND a.ativo IS NOT FALSE
+            AND a.ano_letivo = $1) AS total_alunos,
+       (SELECT COUNT(DISTINCT ae.aluno_id) FROM alunos_aee ae
+          INNER JOIN alunos a ON a.id = ae.aluno_id
+          WHERE a.escola_id = e.id AND a.ano_letivo = $1 AND a.ativo IS NOT FALSE) AS alunos_pne,
        (SELECT COUNT(*) FROM ficai_casos f WHERE f.escola_id = e.id AND f.ano_letivo = $1 AND f.status NOT IN ('concluido_aluno_transferido', 'concluido_resolvido', 'concluido_evasao_confirmada', 'cancelado')) AS alertas_ficai
        FROM escolas e
        LEFT JOIN polos p ON p.id = e.polo_id
-      WHERE e.ativa IS NOT FALSE
+      WHERE e.ativo IS NOT FALSE
       ORDER BY e.nome`,
     [anoLetivo]
   ).catch(() => ({ rows: [] }))
