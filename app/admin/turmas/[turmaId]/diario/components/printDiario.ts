@@ -1,4 +1,11 @@
-import type { DiarioPayload, Tipo } from './types'
+import type {
+  DiarioPayload, Tipo, FrequenciaLinha, NotaLinha, ConteudoLinha,
+} from './types'
+
+const MESES_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+]
 
 function escapeHtml(text: string): string {
   const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }
@@ -44,6 +51,17 @@ function corNotaHex(v: string | number | null | undefined): string {
   return '#dc2626'
 }
 
+// Agrupa por chave preservando ordem de insercao (Map).
+function agrupar<T, K extends string | number>(itens: T[], chave: (t: T) => K): Map<K, T[]> {
+  const out = new Map<K, T[]>()
+  for (const it of itens) {
+    const k = chave(it)
+    if (!out.has(k)) out.set(k, [])
+    out.get(k)!.push(it)
+  }
+  return out
+}
+
 interface ImprimirDiarioOpts {
   tipo: Tipo
   filtroPeriodoSelecionado: boolean
@@ -53,204 +71,319 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
   const { turma, periodo, professores, frequencia, notas, conteudo } = diario
   const { tipo, filtroPeriodoSelecionado } = opts
 
-  const printWindow = window.open('', '_blank', 'width=1000,height=720')
+  const printWindow = window.open('', '_blank', 'width=1100,height=780')
   if (!printWindow) return
 
   const mostrarFreq = tipo === 'todos' || tipo === 'frequencia'
   const mostrarNotas = tipo === 'todos' || tipo === 'notas'
   const mostrarConteudo = tipo === 'todos' || tipo === 'conteudo'
 
-  const tituloPeriodo = periodo
-    ? `${periodo.nome}`
-    : 'Consolidado (todos os períodos)'
-
   const tituloTurma = `${escapeHtml(turma.codigo)}${turma.nome ? ' (' + escapeHtml(turma.nome) + ')' : ''}`
 
-  const professoresHtml = professores.length === 0
-    ? '<span style="color:#9ca3af; font-style:italic">Nenhum professor vinculado</span>'
+  const professoresStr = professores.length === 0
+    ? 'Nenhum professor vinculado'
     : professores.map(p => {
         const tag = p.tipo_vinculo === 'disciplina' && p.disciplina_nome
-          ? ' — ' + escapeHtml(p.disciplina_nome)
+          ? ' — ' + p.disciplina_nome
           : ' — polivalente'
-        return `<span class="prof-chip">${escapeHtml(p.professor_nome)}${tag}</span>`
-      }).join(' ')
+        return p.professor_nome + tag
+      }).join(' · ')
 
-  // ============ FREQUÊNCIA ============
-  const frequenciaHtml = (() => {
-    if (!mostrarFreq || !frequencia || frequencia.length === 0) return ''
-    const linhas = frequencia.map((f, i) => {
+  // ============================================================================
+  // HEADER COMPACTO — 2 linhas, vai aparecer no topo de TODA pagina (via thead
+  // ou repetindo). Por simplicidade, geramos UMA vez no inicio de cada pagina
+  // chamando a funcao headerHtml(subtitulo).
+  // ============================================================================
+  function headerHtml(subtitulo: string): string {
+    return `
+      <header class="page-header">
+        <div class="page-header-row1">
+          <div class="brand">SEMED — São Sebastião da Boa Vista</div>
+          <div class="meta">Página gerada em ${new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
+        <div class="page-header-row2">
+          <h1>Diário — ${tituloTurma}</h1>
+          <div class="info">
+            <span><b>Escola:</b> ${escapeHtml(turma.escola_nome)}</span>
+            <span><b>Série:</b> ${escapeHtml(turma.serie)}</span>
+            <span><b>Turno:</b> ${escapeHtml(turma.turno)}</span>
+            <span><b>Ano:</b> ${escapeHtml(turma.ano_letivo)}</span>
+          </div>
+        </div>
+        <div class="page-header-row3">
+          <span class="pill">${escapeHtml(subtitulo)}</span>
+          <span class="profs"><b>Prof.:</b> ${escapeHtml(professoresStr)}</span>
+        </div>
+      </header>`
+  }
+
+  // ============================================================================
+  // FREQUENCIA: tabela compacta, agrupada por periodo quando consolidado
+  // ============================================================================
+  function tabelaFrequencia(linhas: FrequenciaLinha[], incluirColPeriodo: boolean): string {
+    const rows = linhas.map((f, i) => {
       const cor = corPercentualHex(f.percentual_frequencia)
       return `
         <tr>
-          <td>${i + 1}</td>
-          <td>${escapeHtml(f.aluno_nome)}</td>
-          ${!filtroPeriodoSelecionado ? `<td style="text-align:center">${f.periodo_numero ? f.periodo_numero + 'º' : '—'}</td>` : ''}
-          <td style="text-align:right">${f.dias_letivos ?? '—'}</td>
-          <td style="text-align:right">${f.presencas ?? '—'}</td>
-          <td style="text-align:right">${f.faltas ?? '—'}</td>
-          <td style="text-align:right">${f.faltas_justificadas ?? '—'}</td>
-          <td style="text-align:right; color:${cor}; font-weight:600">${formatarPercentual(f.percentual_frequencia)}</td>
-          <td style="font-size:10px; color:#6b7280">${escapeHtml(f.registrado_por_nome || '—')}</td>
+          <td class="num">${i + 1}</td>
+          <td class="aluno">${escapeHtml(f.aluno_nome)}</td>
+          ${incluirColPeriodo ? `<td class="center">${f.periodo_numero ? f.periodo_numero + 'º' : '—'}</td>` : ''}
+          <td class="right">${f.dias_letivos ?? '—'}</td>
+          <td class="right">${f.presencas ?? '—'}</td>
+          <td class="right">${f.faltas ?? '—'}</td>
+          <td class="right">${f.faltas_justificadas ?? '—'}</td>
+          <td class="right" style="color:${cor}; font-weight:600">${formatarPercentual(f.percentual_frequencia)}</td>
+          <td class="lancado">${escapeHtml(f.registrado_por_nome || '—')}</td>
         </tr>`
     }).join('')
 
     return `
-      <section class="secao">
-        <h2>Frequência ${periodo ? '— ' + escapeHtml(periodo.nome) : '(consolidado)'} <span class="contador">${frequencia.length} alunos</span></h2>
-        <table>
-          <thead>
-            <tr>
-              <th style="width:30px">#</th>
-              <th>Aluno</th>
-              ${!filtroPeriodoSelecionado ? '<th style="width:60px; text-align:center">Per.</th>' : ''}
-              <th style="width:65px; text-align:right">Dias Let.</th>
-              <th style="width:65px; text-align:right">Pres.</th>
-              <th style="width:55px; text-align:right">Faltas</th>
-              <th style="width:55px; text-align:right">Just.</th>
-              <th style="width:60px; text-align:right">%</th>
-              <th style="width:130px">Lançado por</th>
-            </tr>
-          </thead>
-          <tbody>${linhas}</tbody>
-        </table>
-      </section>`
-  })()
+      <table class="tbl-freq">
+        <colgroup>
+          <col style="width:24px"/>
+          <col/>
+          ${incluirColPeriodo ? '<col style="width:32px"/>' : ''}
+          <col style="width:56px"/>
+          <col style="width:56px"/>
+          <col style="width:52px"/>
+          <col style="width:52px"/>
+          <col style="width:56px"/>
+          <col style="width:130px"/>
+        </colgroup>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Aluno</th>
+            ${incluirColPeriodo ? '<th class="center">Per.</th>' : ''}
+            <th class="right">Dias Let.</th>
+            <th class="right">Pres.</th>
+            <th class="right">Faltas</th>
+            <th class="right">Just.</th>
+            <th class="right">%</th>
+            <th>Lançado por</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`
+  }
 
-  // ============ NOTAS ============
-  const notasHtml = (() => {
-    if (!mostrarNotas || !notas) return ''
-    const validas = notas.filter(n => n.nota_id)
-    if (validas.length === 0) return ''
-    const linhas = validas.map((n, i) => {
+  function paginasFrequencia(): string {
+    if (!mostrarFreq || !frequencia || frequencia.length === 0) return ''
+
+    if (filtroPeriodoSelecionado) {
+      const subtitulo = `Frequência — ${periodo?.nome ?? 'período selecionado'} · ${frequencia.length} aluno(s)`
+      return `
+        <section class="page">
+          ${headerHtml(subtitulo)}
+          ${tabelaFrequencia(frequencia, false)}
+        </section>`
+    }
+
+    // Consolidado: agrupa por periodo_numero (ou "sem periodo")
+    const grupos = agrupar(frequencia, f => f.periodo_numero ?? -1)
+    const ordenados = Array.from(grupos.entries()).sort(([a], [b]) => Number(a) - Number(b))
+
+    return ordenados.map(([per, linhas]) => {
+      const nomePeriodo = per === -1
+        ? 'Sem período'
+        : (linhas[0]?.periodo_nome || `${per}º período`)
+      const subtitulo = `Frequência — ${nomePeriodo} · ${linhas.length} aluno(s)`
+      return `
+        <section class="page">
+          ${headerHtml(subtitulo)}
+          ${tabelaFrequencia(linhas, false)}
+        </section>`
+    }).join('')
+  }
+
+  // ============================================================================
+  // NOTAS: tabela compacta, agrupada por periodo
+  // ============================================================================
+  function tabelaNotas(linhas: NotaLinha[], incluirColPeriodo: boolean): string {
+    const rows = linhas.map((n, i) => {
       const corN = corNotaHex(n.nota)
       const corFinal = corNotaHex(n.nota_final)
       return `
         <tr>
-          <td>${i + 1}</td>
-          <td>${escapeHtml(n.aluno_nome)}</td>
+          <td class="num">${i + 1}</td>
+          <td class="aluno">${escapeHtml(n.aluno_nome)}</td>
           <td>${escapeHtml(n.disciplina_nome || '—')}</td>
-          ${!filtroPeriodoSelecionado ? `<td style="text-align:center">${n.periodo_numero ? n.periodo_numero + 'º' : '—'}</td>` : ''}
-          <td style="text-align:right; color:${corN}; font-weight:600">${formatarNota(n.nota)}</td>
-          <td style="text-align:right; color:#6b7280">${formatarNota(n.nota_recuperacao)}</td>
-          <td style="text-align:right; color:${corFinal}; font-weight:700">${formatarNota(n.nota_final)}</td>
-          <td style="text-align:right">${n.faltas ?? '—'}</td>
-          <td style="font-size:10px; color:#6b7280">${escapeHtml(n.registrado_por_nome || '—')}</td>
+          ${incluirColPeriodo ? `<td class="center">${n.periodo_numero ? n.periodo_numero + 'º' : '—'}</td>` : ''}
+          <td class="right" style="color:${corN}; font-weight:600">${formatarNota(n.nota)}</td>
+          <td class="right" style="color:#6b7280">${formatarNota(n.nota_recuperacao)}</td>
+          <td class="right" style="color:${corFinal}; font-weight:700">${formatarNota(n.nota_final)}</td>
+          <td class="right">${n.faltas ?? '—'}</td>
+          <td class="lancado">${escapeHtml(n.registrado_por_nome || '—')}</td>
         </tr>`
     }).join('')
 
     return `
-      <section class="secao">
-        <h2>Notas ${periodo ? '— ' + escapeHtml(periodo.nome) : '(todos os períodos)'} <span class="contador">${validas.length} lançamentos</span></h2>
-        <table>
-          <thead>
-            <tr>
-              <th style="width:30px">#</th>
-              <th>Aluno</th>
-              <th>Disciplina</th>
-              ${!filtroPeriodoSelecionado ? '<th style="width:55px; text-align:center">Per.</th>' : ''}
-              <th style="width:55px; text-align:right">Nota</th>
-              <th style="width:70px; text-align:right">Recup.</th>
-              <th style="width:55px; text-align:right">Final</th>
-              <th style="width:55px; text-align:right">Faltas</th>
-              <th style="width:130px">Lançado por</th>
-            </tr>
-          </thead>
-          <tbody>${linhas}</tbody>
-        </table>
-      </section>`
-  })()
+      <table class="tbl-notas">
+        <colgroup>
+          <col style="width:24px"/>
+          <col style="width:34%"/>
+          <col/>
+          ${incluirColPeriodo ? '<col style="width:32px"/>' : ''}
+          <col style="width:50px"/>
+          <col style="width:60px"/>
+          <col style="width:50px"/>
+          <col style="width:50px"/>
+          <col style="width:130px"/>
+        </colgroup>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Aluno</th>
+            <th>Disciplina</th>
+            ${incluirColPeriodo ? '<th class="center">Per.</th>' : ''}
+            <th class="right">Nota</th>
+            <th class="right">Recup.</th>
+            <th class="right">Final</th>
+            <th class="right">Faltas</th>
+            <th>Lançado por</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`
+  }
 
-  // ============ CONTEÚDO ============
-  const conteudoHtml = (() => {
-    if (!mostrarConteudo || !conteudo || conteudo.length === 0) return ''
-    const itens = conteudo.map(c => `
+  function paginasNotas(): string {
+    if (!mostrarNotas || !notas) return ''
+    const validas = notas.filter(n => n.nota_id)
+    if (validas.length === 0) return ''
+
+    if (filtroPeriodoSelecionado) {
+      const subtitulo = `Notas — ${periodo?.nome ?? 'período selecionado'} · ${validas.length} lançamento(s)`
+      return `
+        <section class="page">
+          ${headerHtml(subtitulo)}
+          ${tabelaNotas(validas, false)}
+        </section>`
+    }
+
+    const grupos = agrupar(validas, n => n.periodo_numero ?? -1)
+    const ordenados = Array.from(grupos.entries()).sort(([a], [b]) => Number(a) - Number(b))
+
+    return ordenados.map(([per, linhas]) => {
+      const nomePeriodo = per === -1
+        ? 'Sem período'
+        : (linhas[0]?.periodo_nome || `${per}º período`)
+      const subtitulo = `Notas — ${nomePeriodo} · ${linhas.length} lançamento(s)`
+      return `
+        <section class="page">
+          ${headerHtml(subtitulo)}
+          ${tabelaNotas(linhas, false)}
+        </section>`
+    }).join('')
+  }
+
+  // ============================================================================
+  // CONTEUDO: lista de aulas, agrupado por mes civil quando consolidado
+  // ============================================================================
+  function listaConteudo(linhas: ConteudoLinha[]): string {
+    return linhas.map(c => `
       <article class="aula">
-        <div class="aula-header">
+        <div class="aula-hdr">
           <span class="aula-data">${formatarData(c.data_aula)}</span>
           ${c.disciplina_nome ? `<span class="aula-disc">${escapeHtml(c.disciplina_nome)}</span>` : ''}
-          <span class="aula-prof">por <strong>${escapeHtml(c.professor_nome)}</strong></span>
+          <span class="aula-prof">por <b>${escapeHtml(c.professor_nome)}</b></span>
         </div>
-        ${c.conteudo ? `<div class="aula-bloco"><div class="aula-label">Conteúdo</div><div class="aula-texto">${escapeHtml(c.conteudo)}</div></div>` : ''}
-        ${c.metodologia ? `<div class="aula-bloco"><div class="aula-label">Metodologia</div><div class="aula-texto">${escapeHtml(c.metodologia)}</div></div>` : ''}
-        ${c.observacoes ? `<div class="aula-bloco"><div class="aula-label">Observações</div><div class="aula-texto">${escapeHtml(c.observacoes)}</div></div>` : ''}
+        ${c.conteudo ? `<div class="aula-bloco"><b>Conteúdo:</b> ${escapeHtml(c.conteudo)}</div>` : ''}
+        ${c.metodologia ? `<div class="aula-bloco"><b>Metodologia:</b> ${escapeHtml(c.metodologia)}</div>` : ''}
+        ${c.observacoes ? `<div class="aula-bloco"><b>Obs.:</b> ${escapeHtml(c.observacoes)}</div>` : ''}
       </article>`).join('')
+  }
 
-    return `
-      <section class="secao">
-        <h2>Conteúdo do diário ${periodo ? '— ' + escapeHtml(periodo.nome) : '(todos os períodos)'} <span class="contador">${conteudo.length} aulas</span></h2>
-        ${itens}
-      </section>`
-  })()
+  function paginasConteudo(): string {
+    if (!mostrarConteudo || !conteudo || conteudo.length === 0) return ''
 
-  const semDados = !frequenciaHtml && !notasHtml && !conteudoHtml
+    if (filtroPeriodoSelecionado) {
+      const subtitulo = `Conteúdo — ${periodo?.nome ?? 'período selecionado'} · ${conteudo.length} aula(s)`
+      return `
+        <section class="page">
+          ${headerHtml(subtitulo)}
+          ${listaConteudo(conteudo)}
+        </section>`
+    }
+
+    // Agrupa por mes civil (YYYY-MM) usando data_aula
+    const grupos = agrupar(conteudo, c => c.data_aula.slice(0, 7)) // "2026-02"
+    const ordenados = Array.from(grupos.entries()).sort(([a], [b]) => a.localeCompare(b))
+
+    return ordenados.map(([anoMes, aulas]) => {
+      const [ano, mes] = anoMes.split('-')
+      const nomeMes = MESES_PT[parseInt(mes, 10) - 1]
+      const subtitulo = `Conteúdo — ${nomeMes} / ${ano} · ${aulas.length} aula(s)`
+      return `
+        <section class="page">
+          ${headerHtml(subtitulo)}
+          ${listaConteudo(aulas)}
+        </section>`
+    }).join('')
+  }
+
+  // ============================================================================
+  // MONTAGEM FINAL
+  // ============================================================================
+  const paginas = paginasFrequencia() + paginasNotas() + paginasConteudo()
+  const semDados = paginas.trim().length === 0
 
   printWindow.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Diário de Classe — ${tituloTurma}</title>
+<title>Diário — ${tituloTurma}</title>
 <style>
+  @page { size: A4 landscape; margin: 8mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 16mm 12mm; color: #1f2937; font-size: 12px; }
-  .doc-header { border-bottom: 2px solid #4f46e5; padding-bottom: 12px; margin-bottom: 16px; }
-  .doc-header .org { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
-  .doc-header h1 { font-size: 18px; font-weight: 700; color: #111827; margin: 2px 0 4px 0; }
-  .doc-header .escola { font-size: 13px; color: #374151; }
-  .info-grid { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; font-size: 11px; color: #4b5563; }
-  .info-grid .label { color: #9ca3af; font-weight: 600; text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; }
-  .info-grid .valor { color: #111827; font-weight: 500; }
-  .profs { margin-top: 10px; }
-  .profs .label { display: block; color: #9ca3af; font-weight: 600; text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; margin-bottom: 4px; }
-  .prof-chip { display: inline-block; background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin: 0 4px 4px 0; }
-  .secao { margin-top: 18px; page-break-inside: auto; }
-  .secao h2 { font-size: 13px; font-weight: 700; color: #1f2937; padding: 6px 0; border-bottom: 1px solid #e5e7eb; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-  .secao h2 .contador { font-size: 10px; color: #6b7280; font-weight: 500; }
-  table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  th { background: #f9fafb; font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 2px solid #e5e7eb; color: #4b5563; text-transform: uppercase; font-size: 10px; }
-  td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1f2937; font-size: 10px; }
+
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+
+  /* Header compacto (3 linhas: brand+meta / titulo+info / pill+profs) */
+  .page-header { border-bottom: 2px solid #4f46e5; padding-bottom: 4px; margin-bottom: 8px; }
+  .page-header-row1 { display: flex; justify-content: space-between; font-size: 8px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+  .page-header-row2 { display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px; }
+  .page-header-row2 h1 { font-size: 14px; font-weight: 700; color: #111827; }
+  .page-header-row2 .info { display: flex; gap: 12px; font-size: 9px; color: #4b5563; }
+  .page-header-row2 .info b { color: #111827; font-weight: 600; }
+  .page-header-row3 { display: flex; gap: 10px; margin-top: 4px; align-items: center; font-size: 9px; color: #4b5563; }
+  .page-header-row3 .pill { background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .page-header-row3 .profs { color: #4b5563; }
+  .page-header-row3 .profs b { color: #111827; }
+
+  /* Tabelas: compactas, com cores zebradas e bordas finas */
+  table { width: 100%; border-collapse: collapse; font-size: 9.5px; table-layout: fixed; }
+  th { background: #f3f4f6; color: #4b5563; font-weight: 700; text-align: left; padding: 3px 6px; border-bottom: 1.5px solid #d1d5db; font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td { padding: 2.5px 6px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   tr:nth-child(even) td { background: #fafafa; }
+  th.center, td.center { text-align: center; }
+  th.right, td.right { text-align: right; }
+  td.num { color: #9ca3af; }
+  td.aluno { color: #111827; }
+  td.lancado { color: #9ca3af; font-size: 8.5px; }
+
+  /* Conteudo: artigos por aula */
+  .aula { border-left: 3px solid #4f46e5; background: #fafafa; padding: 6px 10px; margin-bottom: 6px; page-break-inside: avoid; border-radius: 3px; }
+  .aula-hdr { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; font-size: 9px; }
+  .aula-data { background: #4f46e5; color: white; padding: 1px 6px; border-radius: 3px; font-weight: 600; font-size: 8.5px; }
+  .aula-disc { background: #e5e7eb; color: #374151; padding: 1px 6px; border-radius: 3px; font-size: 8.5px; font-weight: 500; }
+  .aula-prof { color: #6b7280; font-size: 8.5px; }
+  .aula-bloco { font-size: 9px; color: #374151; line-height: 1.35; margin-top: 1px; }
+  .aula-bloco b { color: #4b5563; }
+
+  .sem-dados { background: #fef3c7; color: #92400e; padding: 16px; border-radius: 6px; text-align: center; font-size: 11px; font-weight: 500; }
+
+  /* Evitar quebra de linha no meio da row da tabela */
+  thead { display: table-header-group; }
   tr { page-break-inside: avoid; }
-  .aula { background: #fafafa; border-left: 3px solid #4f46e5; padding: 10px 12px; margin-bottom: 10px; page-break-inside: avoid; border-radius: 4px; }
-  .aula-header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 11px; }
-  .aula-data { background: #4f46e5; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 10px; }
-  .aula-disc { background: #e5e7eb; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; }
-  .aula-prof { color: #6b7280; font-size: 10px; }
-  .aula-bloco { margin-top: 6px; }
-  .aula-label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
-  .aula-texto { font-size: 11px; color: #374151; white-space: pre-wrap; line-height: 1.4; }
-  .sem-dados { background: #fef3c7; color: #92400e; padding: 16px; border-radius: 6px; text-align: center; font-size: 12px; font-weight: 500; }
-  .footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 9px; color: #9ca3af; }
-  @media print {
-    body { padding: 10mm 8mm; }
-    .secao { page-break-inside: auto; }
-  }
 </style>
 </head>
 <body>
-  <div class="doc-header">
-    <div class="org">SEMED — São Sebastião da Boa Vista</div>
-    <h1>Diário de Classe — ${tituloTurma}</h1>
-    <div class="escola">${escapeHtml(turma.escola_nome)}</div>
-    <div class="info-grid">
-      <div><span class="label">Série:</span> <span class="valor">${escapeHtml(turma.serie)}</span></div>
-      <div><span class="label">Turno:</span> <span class="valor" style="text-transform:capitalize">${escapeHtml(turma.turno)}</span></div>
-      <div><span class="label">Ano Letivo:</span> <span class="valor">${escapeHtml(turma.ano_letivo)}</span></div>
-      <div><span class="label">Período:</span> <span class="valor">${escapeHtml(tituloPeriodo)}</span></div>
-      ${periodo && periodo.data_inicio && periodo.data_fim
-        ? `<div><span class="label">Datas:</span> <span class="valor">${formatarData(periodo.data_inicio)} – ${formatarData(periodo.data_fim)}</span></div>`
-        : ''}
-    </div>
-    <div class="profs">
-      <span class="label">Professor(es) vinculado(s)</span>
-      ${professoresHtml}
-    </div>
-  </div>
-
   ${semDados
-    ? '<div class="sem-dados">Nenhum lançamento encontrado para os filtros selecionados.</div>'
-    : frequenciaHtml + notasHtml + conteudoHtml}
-
-  <div class="footer">Documento gerado em ${new Date().toLocaleString('pt-BR')} pelo SISAM</div>
+    ? '<section class="page"><div class="sem-dados">Nenhum lançamento encontrado para os filtros selecionados.</div></section>'
+    : paginas}
   <script>window.onload = function() { window.print(); }<\/script>
 </body>
 </html>`)
