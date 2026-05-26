@@ -1,7 +1,7 @@
 # SISAM — Registro de Horas de Desenvolvimento
 
 > Atualizado automaticamente a cada sessao de trabalho.
-> Ultima atualizacao: 2026-05-25 (Pt.4 — auditoria ano_letivo)
+> Ultima atualizacao: 2026-05-26 (Pt.5 — diario completo: PDF + lacunas + mobile + multi-vinculo + auditoria sensivel + revisao + detalhado por disciplina + abreviacao dinamica + acessibilidade)
 
 ---
 
@@ -9,15 +9,15 @@
 
 | Metrica | Valor |
 |---------|-------|
-| **Total de horas** | **309.5h** |
-| **Dias trabalhados** | 39 |
-| **Media por dia** | 7.9h |
-| **Periodo** | 31/12/2025 — 25/05/2026 |
-| **Total de commits** | 658 |
-| **Linhas de codigo** | 154.380 |
-| **Arquivos TS/TSX** | 940 |
-| **Endpoints API** | 272 |
-| **Testes** | 649 |
+| **Total de horas** | **313h** |
+| **Dias trabalhados** | 40 |
+| **Media por dia** | 7.8h |
+| **Periodo** | 31/12/2025 — 26/05/2026 |
+| **Total de commits** | 677 |
+| **Linhas de codigo** | 154.380+ |
+| **Arquivos TS/TSX** | 940+ |
+| **Endpoints API** | 274 |
+| **Testes** | 670 |
 
 > Nota: ha sessoes entre 02/04 e 25/05 (Supabase local, controle de modulos
 > por usuario) registradas em memoria mas nao individualizadas aqui. As
@@ -35,7 +35,7 @@
 | Fev/2026 | 41h | 6 | 33 | Ajustes, Supabase, deploy Vercel |
 | Mar/2026 | 84h | 12 | 239 | Gestor escolar, professor, site, seguranca, CI, 45 skills, code review 4 sprints |
 | Abr/2026 | 17h | 2 | 16 | 8 sprints melhorias, site institucional, 9 bugs facial, UX mobile, manuais PDF, Capacitor Android, Portal Responsavel |
-| Mai/2026 | 13.5h | 1 | 25 | MEGA dia (Pt.1+Pt.2+Pt.3+Pt.4): 5 fases SEMED (113 tabelas, 28 migrations) + 12 ondas (13 UIs SEMED, auditoria 100%, 5 modulos com Ctrl+K) + 6 UIs prioritarias (Censo, Documentos, Avaliacoes Descritivas, Ed Infantil, Calendario Eventos, Analytics Preditiva) + Pt.3 (fix payload acesso_*, login nao-bloqueante, header redesign) + Pt.4 (auditoria ano_letivo 3 ondas + bugfix dashboard SEMED/transparencia/carga-horaria) |
+| Mai/2026 | 17h | 2 | 44 | MEGA dia (Pt.1+Pt.2+Pt.3+Pt.4): 5 fases SEMED (113 tabelas, 28 migrations) + 12 ondas (13 UIs SEMED, auditoria 100%, 5 modulos com Ctrl+K) + 6 UIs prioritarias (Censo, Documentos, Avaliacoes Descritivas, Ed Infantil, Calendario Eventos, Analytics Preditiva) + Pt.3 (fix payload acesso_*, login nao-bloqueante, header redesign) + Pt.4 (auditoria ano_letivo 3 ondas + bugfix dashboard SEMED/transparencia/carga-horaria) + **Pt.5 diario completo**: 5 frentes (PDF + lacunas + cards mobile + multi-vinculo + auditoria sensivel LGPD) + revisao critica (rate limit + UI sensivel + 8 testes integracao) + PDF detalhado (matriz dias x alunos + 1 diario por disciplina anos finais) + UI/UX (logos no header PDF + auto-fit grow/shrink + abreviacao dinamica baseada em overflow real + botao Acessibilidade no header global) |
 
 ---
 
@@ -129,8 +129,9 @@
 | Data | Horario | Horas | Commits | Descricao |
 |------|---------|-------|---------|-----------|
 | 25/05/2026 | 10:06–22:26 | 13.5h | 25 | **MEGA dia consolidado (Pt.1 + Pt.2 + Pt.3 + Pt.4)**. Manha (10:06–13:12): 5 fases SEMED — Fase 1 hardening/LGPD/2FA/Sentry; Fase 2 gestao pedagogica; Fase 3 programas federais + RH; Fase 4 escala + analytics preditiva + observabilidade; Fase 5 qualidade sustentada (RLS, testes, docs). Total: 113 tabelas, 28 migrations, validadas no Supabase. Noite (19:09–20:35): 12 ondas (13 UIs admin SEMED + auditoria 100% das 50 acoes + reorganizacao em 5 modulos com Ctrl+K + AbortControllers + ConfirmModal acessivel) + 6 UIs prioritarias (Censo Escolar INEP, Documentos Emitidos, Avaliacoes Descritivas, Ed Infantil portfolio + relatorios, Calendario Eventos CRUD, Analytics Preditiva). Final (21:30–22:26): **Pt.3** (fix payload `acesso_*` em 11 arquivos = 3 modulos invisiveis, login nao-bloqueante, header redesign Opcao A) + **Pt.4** (auditoria ano_letivo cross-modulos via 3 agentes paralelos; Onda 1 critica Censo INEP + Avaliacoes Descritivas; Onda 2 AnoLetivoProvider global + 7 paginas; Onda 3 portfolio Ed Infantil + pre-matricula POST + alunos/[id]/evolucao; bugfix dashboard SEMED com coluna `ativa` inexistente e queries sem ano_letivo; bugfix transparencia.service + carga-horaria.service mesmo padrao). |
+| 26/05/2026 | 08:42–11:02 | 3.5h | 19 | **Pt.5 — Diario de classe completo**. Manha (08:42–09:30): 5 frentes da lista de Pt.4 fechadas — Frente 1 exportacao PDF do diario (`printDiario.ts` reusando padrao printAlunos); Frente 2 indicador de lacunas (`/diario-lacunas` com SQL replicando contar_dias_letivos para retornar DATAS por mes + `CoberturaDiario.tsx`); Frente 3 cards mobile + decomposicao do page.tsx (483→308 linhas, 6 sub-componentes); Frente 4 multi-select de turmas (Promise.allSettled batch); Frente 5 auditoria de leitura `DIARIO_LER_SENSIVEL` LGPD art.11 (migration `add-turma-sensivel`). Segunda fase (09:21–09:30): revisao critica — 3 melhorias (rate limit chunks de 8 + endpoint PATCH `/sensivel` com toggle UI + 8 testes integracao). Terceira fase (09:37–10:11): UX do PDF — paisagem + 1 pagina por periodo/mes + auto-fit 2 camadas (density classes + shrink-to-fit) + grow tambem (fitToFill) + 3 logos no header (`escolas.logo_url` migration). Quarta fase (10:11–11:02): PDF detalhado (matriz dias x alunos, 1 diario por disciplina anos finais via BOOL_OR(presente) em frequencia_hora_aula) + abreviacao dinamica baseada em overflow real (so abrevia quando nao cabe, prioridade nome completo) + UI web ganha coluna # + botao Acessibilidade movido para header global do dashboard + remocao da bolha flutuante de acessibilidade. 19 commits, 670 testes verdes (+13 unitarios abreviarNome + 8 integracao diario-lacunas), 2 migrations (turma sensivel + escola logo_url). |
 
-**Subtotal Mai/2026: 13.5h | 1 dia | 25 commits**
+**Subtotal Mai/2026: 17h | 2 dias | 44 commits**
 
 ---
 
@@ -152,6 +153,7 @@
 | App Nativo + Portal Pais (02/04/2026) | 296h | 615 | 9 bugs facial, UX mobile, manuais PDF, Capacitor Android, Portal Responsavel |
 | SEMED Completo (25/05/2026) | 307.5h | 650 | 5 fases SEMED + 12 ondas + 6 UIs prioritarias = 113 tabelas, 5 modulos (sisam/gestor/semed/transparencia/admin), auditoria 100% (50 acoes), Censo INEP, Documentos, Avaliacoes Descritivas, Ed Infantil, Calendario Eventos, Analytics Preditiva |
 | Ano Letivo Coerente (25/05/2026) | 309.5h | 658 | Auditoria sistemica cross-modulos (3 agentes paralelos) + AnoLetivoProvider global persistente (localStorage) + 7 paginas refatoradas + bugfix critico dashboard SEMED (`escolas.ativa` inexistente + queries sem ano_letivo) + bugfix transparencia + carga-horaria. Pt.3+Pt.4 = 8 commits |
+| Diario Completo (26/05/2026) | 313h | 677 | **Pt.5 — Diario de classe end-to-end**: 5 frentes documentadas + revisao critica + iteracao continua. PDF resumido (3 logos, paisagem, auto-fit grow/shrink, 1 pag/periodo) + PDF detalhado (matriz dias x alunos, 1 por disciplina anos finais) + indicador de lacunas vs calendario_eventos + auditoria leitura `DIARIO_LER_SENSIVEL` (LGPD art. 11) + multi-vinculo com chunks de 8 + cards mobile + abreviacao dinamica por overflow + botao Acessibilidade no header global + 2 migrations (turmas.sensivel, escolas.logo_url) + 8 testes integracao /diario-lacunas + 13 unitarios abreviarNome. 19 commits |
 
 ---
 
