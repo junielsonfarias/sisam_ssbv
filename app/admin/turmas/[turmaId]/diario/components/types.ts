@@ -87,3 +87,32 @@ export interface DiarioPayload {
   notas: NotaLinha[] | null
   conteudo: ConteudoLinha[] | null
 }
+
+// ============================================================================
+// Lacunas do diário (endpoint /diario-lacunas)
+// ============================================================================
+export interface LacunasMes {
+  ano: number
+  mes: number
+  mes_nome: string
+  dias_letivos: number
+  dias_com_lancamento: number
+  lacunas: number
+  lacunas_datas: string[]
+}
+
+export interface LacunasPayload {
+  escopo: {
+    data_inicio: string
+    data_fim: string
+    periodo: { id: string; nome: string; numero: number } | null
+    ano_letivo: string
+  }
+  resumo: {
+    dias_letivos_total: number
+    dias_com_lancamento: number
+    lacunas_total: number
+    percentual_cobertura: string
+  }
+  lacunas_por_mes: LacunasMes[]
+}

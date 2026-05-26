@@ -11,9 +11,10 @@ import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/components/toast'
 import type {
-  Tipo, Periodo, NotaLinha, DiarioPayload,
+  Tipo, Periodo, NotaLinha, DiarioPayload, LacunasPayload,
 } from './components/types'
 import { imprimirDiario } from './components/printDiario'
+import CoberturaDiario from './components/CoberturaDiario'
 
 // ============================================================================
 // Helpers
@@ -72,6 +73,8 @@ function DiarioTurmaContent() {
   const [periodoId, setPeriodoId] = useState<string>('')
   const [tipo, setTipo] = useState<Tipo>('todos')
   const [erro, setErro] = useState<string | null>(null)
+  const [lacunas, setLacunas] = useState<LacunasPayload | null>(null)
+  const [carregandoLacunas, setCarregandoLacunas] = useState(false)
 
   // 1) Carrega o diário (sem período no primeiro fetch — assim já recebe a turma com ano_letivo)
   const carregarDiario = useCallback(async () => {
@@ -109,6 +112,20 @@ function DiarioTurmaContent() {
   useEffect(() => {
     carregarDiario()
   }, [carregarDiario])
+
+  // 3) Carrega lacunas em paralelo (depende do periodoId, não do tipo)
+  useEffect(() => {
+    let cancelado = false
+    setCarregandoLacunas(true)
+    const url = new URL(`/api/admin/turmas/${turmaId}/diario-lacunas`, window.location.origin)
+    if (periodoId) url.searchParams.set('periodo_id', periodoId)
+    fetch(url.toString())
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (!cancelado) setLacunas(data) })
+      .catch(() => { if (!cancelado) setLacunas(null) })
+      .finally(() => { if (!cancelado) setCarregandoLacunas(false) })
+    return () => { cancelado = true }
+  }, [turmaId, periodoId])
 
   // Agrupa notas por aluno → disciplina → períodos para uma visão pivotada útil
   const notasAgrupadas = useMemo(() => {
@@ -285,6 +302,14 @@ function DiarioTurmaContent() {
           </div>
         )}
       </div>
+
+      {/* Cobertura do diário (vs calendário escolar) */}
+      {lacunas && <CoberturaDiario lacunas={lacunas} />}
+      {!lacunas && carregandoLacunas && (
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+          Calculando cobertura do diário…
+        </div>
+      )}
 
       {/* Aviso quando não há dados */}
       {!frequencia?.length && !notas?.length && !conteudo?.length && (
