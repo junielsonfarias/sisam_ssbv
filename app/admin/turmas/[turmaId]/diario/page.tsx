@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Users, ClipboardList, FileText, BookOpen,
-  Calendar, GraduationCap, Building2, AlertCircle, Filter, Printer, ShieldAlert,
+  Calendar, GraduationCap, Building2, AlertCircle, Filter, Printer, ShieldAlert, FileSpreadsheet,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -13,6 +13,7 @@ import type {
   Tipo, Periodo, DiarioPayload, LacunasPayload,
 } from './components/types'
 import { imprimirDiario } from './components/printDiario'
+import { imprimirDiarioDetalhado } from './components/printDiarioDetalhado'
 import CoberturaDiario from './components/CoberturaDiario'
 import SecaoFrequencia from './components/SecaoFrequencia'
 import SecaoNotas from './components/SecaoNotas'
@@ -34,9 +35,8 @@ function DiarioTurmaContent() {
   const [carregandoLacunas, setCarregandoLacunas] = useState(false)
   const [tipoUsuario, setTipoUsuario] = useState<string | null>(null)
   const [alterandoSensivel, setAlterandoSensivel] = useState(false)
+  const [gerandoDetalhado, setGerandoDetalhado] = useState(false)
 
-  // Le tipo_usuario do localStorage (padrao do projeto). Necessario para
-  // decidir se renderiza o toggle de marcar/desmarcar turma como sensivel.
   useEffect(() => {
     try {
       const u = localStorage.getItem('usuario')
@@ -48,7 +48,6 @@ function DiarioTurmaContent() {
     if (!diario) return
     const novoValor = !diario.turma.sensivel
     setAlterandoSensivel(true)
-    // Optimistic update — reverte em caso de erro
     setDiario({ ...diario, turma: { ...diario.turma, sensivel: novoValor } })
     try {
       const res = await fetch(`/api/admin/turmas/${turmaId}/sensivel`, {
@@ -57,7 +56,6 @@ function DiarioTurmaContent() {
         body: JSON.stringify({ sensivel: novoValor }),
       })
       if (!res.ok) {
-        // Reverte
         setDiario({ ...diario, turma: { ...diario.turma, sensivel: !novoValor } })
         const data = await res.json().catch(() => ({}))
         setErro(data.mensagem || `Erro ao alterar flag (HTTP ${res.status})`)
@@ -72,7 +70,27 @@ function DiarioTurmaContent() {
 
   const podeAlterarSensivel = tipoUsuario === 'administrador' || tipoUsuario === 'tecnico'
 
-  // 1) Carrega o diário (sem período no primeiro fetch — assim já recebe a turma com ano_letivo)
+  async function exportarDiarioDetalhado() {
+    setGerandoDetalhado(true)
+    setErro(null)
+    try {
+      const url = new URL(`/api/admin/turmas/${turmaId}/diario-detalhado`, window.location.origin)
+      if (periodoId) url.searchParams.set('periodo_id', periodoId)
+      const res = await fetch(url.toString())
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setErro(data.mensagem || `Erro ao carregar diário detalhado (HTTP ${res.status})`)
+        return
+      }
+      const payload = await res.json()
+      imprimirDiarioDetalhado(payload)
+    } catch (err) {
+      setErro((err as Error).message || 'Erro ao gerar diário detalhado')
+    } finally {
+      setGerandoDetalhado(false)
+    }
+  }
+
   const carregarDiario = useCallback(async () => {
     setCarregando(true)
     setErro(null)
@@ -94,7 +112,6 @@ function DiarioTurmaContent() {
     }
   }, [turmaId, periodoId, tipo])
 
-  // 2) Quando temos o ano_letivo da turma, carrega a lista de períodos disponíveis
   useEffect(() => {
     if (!diario?.turma?.ano_letivo) return
     fetch(`/api/admin/periodos-letivos?ano_letivo=${encodeURIComponent(diario.turma.ano_letivo)}`)
@@ -109,7 +126,6 @@ function DiarioTurmaContent() {
     carregarDiario()
   }, [carregarDiario])
 
-  // 3) Carrega lacunas em paralelo (depende do periodoId, não do tipo)
   useEffect(() => {
     let cancelado = false
     setCarregandoLacunas(true)
@@ -123,7 +139,6 @@ function DiarioTurmaContent() {
     return () => { cancelado = true }
   }, [turmaId, periodoId])
 
-  // Conta alunos distintos com notas (usado pelo badge da seção Notas)
   const totalAlunosComNotas = useMemo(() => {
     if (!diario?.notas) return 0
     const set = new Set<string>()
@@ -203,32 +218,35 @@ function DiarioTurmaContent() {
                 <button
                   onClick={alternarSensivel}
                   disabled={alterandoSensivel}
-                  className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded border transition ${
-                    turma.sensivel
-                      ? 'border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20'
-                      : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  title={
-                    turma.sensivel
-                      ? 'Desmarcar turma como sensível (acessos deixam de ser auditados)'
-                      : 'Marcar turma como sensível (toda leitura passa a ser registrada no log de auditoria — LGPD art. 11)'
-                  }
+                  className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded border transition disabled:opacity-50 disabled:cursor-not-allowed ${turma.sensivel ? 'border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20' : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50'}`}
+                  title={turma.sensivel ? 'Desmarcar turma como sensível' : 'Marcar como sensível (acessos passam a ser auditados — LGPD art. 11)'}
                 >
-                  {alterandoSensivel
-                    ? '...'
-                    : turma.sensivel ? 'Desmarcar sensível' : 'Marcar como sensível'}
+                  {alterandoSensivel ? '...' : turma.sensivel ? 'Desmarcar sensível' : 'Marcar como sensível'}
                 </button>
               )}
             </div>
           </div>
-          <button
-            onClick={() => imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: filtroPorPeriodo })}
-            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-medium rounded-lg shadow-sm transition shrink-0"
-            title="Abre uma nova janela com o diário formatado para impressão / salvar em PDF"
-          >
-            <Printer className="w-4 h-4" />
-            <span className="hidden sm:inline">Exportar </span>PDF
-          </button>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: filtroPorPeriodo })}
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-medium rounded-lg shadow-sm transition"
+              title="Diário resumido — frequência, notas e conteúdo agregados por período"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">Exportar </span>PDF
+            </button>
+            <button
+              onClick={exportarDiarioDetalhado}
+              disabled={gerandoDetalhado}
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg shadow-sm transition"
+              title="Diário detalhado — matriz alunos × dias do mês com presença/falta diária"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              {gerandoDetalhado
+                ? 'Gerando...'
+                : <><span className="hidden sm:inline">PDF </span>Detalhado</>}
+            </button>
+          </div>
         </div>
 
         {/* Professores vinculados */}

@@ -118,3 +118,34 @@ export interface LacunasPayload {
   }
   lacunas_por_mes: LacunasMes[]
 }
+
+// ============================================================================
+// Diário detalhado (endpoint /diario-detalhado)
+// ============================================================================
+export type StatusCelula = 'P' | 'F' | 'FJ' | null
+
+export interface AlunoDetalhado {
+  id: string
+  nome: string
+  celulas: Record<string, StatusCelula>  // chave: YYYY-MM-DD
+  totais: { presencas: number; faltas: number; justificadas: number }
+}
+
+export interface MesDetalhado {
+  ano: number
+  mes: number
+  mes_nome: string
+  dias_letivos: string[]  // YYYY-MM-DD
+  alunos: AlunoDetalhado[]
+}
+
+export interface DiarioDetalhadoPayload {
+  turma: TurmaInfo
+  escopo: {
+    data_inicio: string
+    data_fim: string
+    periodo: { id: string; nome: string; numero: number } | null
+  }
+  modelo_frequencia: 'diaria' | 'hora_aula'
+  meses: MesDetalhado[]
+}
