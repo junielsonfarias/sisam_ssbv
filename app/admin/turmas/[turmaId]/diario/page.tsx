@@ -32,6 +32,45 @@ function DiarioTurmaContent() {
   const [erro, setErro] = useState<string | null>(null)
   const [lacunas, setLacunas] = useState<LacunasPayload | null>(null)
   const [carregandoLacunas, setCarregandoLacunas] = useState(false)
+  const [tipoUsuario, setTipoUsuario] = useState<string | null>(null)
+  const [alterandoSensivel, setAlterandoSensivel] = useState(false)
+
+  // Le tipo_usuario do localStorage (padrao do projeto). Necessario para
+  // decidir se renderiza o toggle de marcar/desmarcar turma como sensivel.
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem('usuario')
+      if (u) setTipoUsuario(JSON.parse(u).tipo_usuario)
+    } catch { /* silencioso */ }
+  }, [])
+
+  async function alternarSensivel() {
+    if (!diario) return
+    const novoValor = !diario.turma.sensivel
+    setAlterandoSensivel(true)
+    // Optimistic update — reverte em caso de erro
+    setDiario({ ...diario, turma: { ...diario.turma, sensivel: novoValor } })
+    try {
+      const res = await fetch(`/api/admin/turmas/${turmaId}/sensivel`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sensivel: novoValor }),
+      })
+      if (!res.ok) {
+        // Reverte
+        setDiario({ ...diario, turma: { ...diario.turma, sensivel: !novoValor } })
+        const data = await res.json().catch(() => ({}))
+        setErro(data.mensagem || `Erro ao alterar flag (HTTP ${res.status})`)
+      }
+    } catch (err) {
+      setDiario({ ...diario, turma: { ...diario.turma, sensivel: !novoValor } })
+      setErro((err as Error).message || 'Erro ao alterar flag')
+    } finally {
+      setAlterandoSensivel(false)
+    }
+  }
+
+  const podeAlterarSensivel = tipoUsuario === 'administrador' || tipoUsuario === 'tecnico'
 
   // 1) Carrega o diário (sem período no primeiro fetch — assim já recebe a turma com ano_letivo)
   const carregarDiario = useCallback(async () => {
@@ -150,15 +189,37 @@ function DiarioTurmaContent() {
               <span><Calendar className="inline w-4 h-4 mr-1" /> {turma.ano_letivo}</span>
               <span className="capitalize">{turma.turno}</span>
             </div>
-            {turma.sensivel && (
-              <div
-                className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-md text-[11px] font-medium text-amber-800 dark:text-amber-300"
-                title="Este acesso foi registrado no log de auditoria (LGPD art. 11) por se tratar de turma com dados sensíveis."
-              >
-                <ShieldAlert className="w-3.5 h-3.5" />
-                Turma sensível · acesso auditado
-              </div>
-            )}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {turma.sensivel && (
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-md text-[11px] font-medium text-amber-800 dark:text-amber-300"
+                  title="Este acesso foi registrado no log de auditoria (LGPD art. 11) por se tratar de turma com dados sensíveis."
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  Turma sensível · acesso auditado
+                </div>
+              )}
+              {podeAlterarSensivel && (
+                <button
+                  onClick={alternarSensivel}
+                  disabled={alterandoSensivel}
+                  className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded border transition ${
+                    turma.sensivel
+                      ? 'border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                      : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title={
+                    turma.sensivel
+                      ? 'Desmarcar turma como sensível (acessos deixam de ser auditados)'
+                      : 'Marcar turma como sensível (toda leitura passa a ser registrada no log de auditoria — LGPD art. 11)'
+                  }
+                >
+                  {alterandoSensivel
+                    ? '...'
+                    : turma.sensivel ? 'Desmarcar sensível' : 'Marcar como sensível'}
+                </button>
+              )}
+            </div>
           </div>
           <button
             onClick={() => imprimirDiario(diario, { tipo, filtroPeriodoSelecionado: filtroPorPeriodo })}
