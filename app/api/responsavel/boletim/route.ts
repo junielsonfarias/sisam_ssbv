@@ -62,15 +62,16 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
          ORDER BY p.numero, d.nome`,
         [alunoId, anoLetivo]
       ),
-      // Frequencia bimestral
+      // Frequencia bimestral (corrigido: fb.bimestre e fb.aulas_dadas nao
+      // existem — bimestre vem de periodos_letivos.numero e dias e dias_letivos)
       pool.query(
-        `SELECT fb.bimestre, fb.aulas_dadas, fb.faltas, fb.percentual_frequencia,
-                fb.presencas, fb.faltas_justificadas,
+        `SELECT p.numero AS bimestre, fb.dias_letivos AS aulas_dadas, fb.faltas,
+                fb.percentual_frequencia, fb.presencas, fb.faltas_justificadas,
                 p.nome AS periodo_nome
          FROM frequencia_bimestral fb
          LEFT JOIN periodos_letivos p ON fb.periodo_id = p.id
          WHERE fb.aluno_id = $1 AND fb.ano_letivo = $2
-         ORDER BY fb.bimestre`,
+         ORDER BY p.numero`,
         [alunoId, anoLetivo]
       ),
       // Disciplinas da turma

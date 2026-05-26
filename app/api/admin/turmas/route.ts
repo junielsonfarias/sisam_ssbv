@@ -22,6 +22,16 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     if (!validation.success) return validation.response
     const { codigo, nome, escola_id, serie, ano_letivo, capacidade_maxima, multiserie, multietapa } = validation.data
 
+    // Isolamento por escola: usuario tipo 'escola' so pode criar turmas
+    // na propria escola_id (corrige bug crítico #7 da auditoria Pt.5 —
+    // antes aceitava qualquer escola_id no body).
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {
+      return NextResponse.json(
+        { mensagem: 'Você só pode criar turmas na sua própria escola' },
+        { status: 403 }
+      )
+    }
+
     const capMax = capacidade_maxima ?? 35
 
     const result = await pool.query(
@@ -59,6 +69,30 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     if (!id) {
       return NextResponse.json({ mensagem: 'ID da turma é obrigatório' }, { status: 400 })
+    }
+
+    // Isolamento por escola: usuario tipo 'escola' (corrige bug crítico #7
+    // da auditoria Pt.5). Duas verificacoes necessarias:
+    //   1) A turma alvo precisa pertencer à escola_id do usuario
+    //   2) Se o body envia escola_id, ele tem que coincidir (nao pode mover
+    //      a turma para outra escola)
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      const dono = await pool.query('SELECT escola_id FROM turmas WHERE id = $1', [id])
+      if (dono.rows.length === 0) {
+        return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+      }
+      if (String(dono.rows[0].escola_id) !== String(usuario.escola_id)) {
+        return NextResponse.json(
+          { mensagem: 'Você só pode editar turmas da sua própria escola' },
+          { status: 403 }
+        )
+      }
+      if (escola_id !== undefined && escola_id !== usuario.escola_id) {
+        return NextResponse.json(
+          { mensagem: 'Você não pode mover esta turma para outra escola' },
+          { status: 403 }
+        )
+      }
     }
 
     // Montar SET dinâmico — só atualiza campos enviados (permite limpar nome com null/vazio)

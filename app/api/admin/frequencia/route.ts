@@ -25,6 +25,22 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     return NextResponse.json({ mensagem: 'Informe turma_id e periodo_id' }, { status: 400 })
   }
 
+  // Isolamento por escola: usuario 'escola' so pode ler frequencia de turmas
+  // da propria escola (corrige bug crítico #8 da auditoria Pt.5 — antes
+  // qualquer turma_id era aceito, vazando dados de menores de outras escolas).
+  if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+    const turmaRes = await pool.query('SELECT escola_id FROM turmas WHERE id = $1', [turmaId])
+    if (turmaRes.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+    }
+    if (String(turmaRes.rows[0].escola_id) !== String(usuario.escola_id)) {
+      return NextResponse.json(
+        { mensagem: 'Sem permissão para visualizar esta turma' },
+        { status: 403 }
+      )
+    }
+  }
+
   // Buscar alunos da turma
   const alunosResult = await pool.query(
     `SELECT a.id, a.nome, a.codigo, a.situacao, a.pcd

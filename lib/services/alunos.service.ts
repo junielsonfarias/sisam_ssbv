@@ -97,15 +97,39 @@ export async function validarTurmaEscola(turmaId: string, escolaId: string): Pro
  * Deleta aluno com cascata em transação
  * Usado por: admin/alunos DELETE
  *
- * Remove em ordem: resultados_provas, resultados_producao, resultados_consolidados, alunos
- * Usa withTransaction para garantir consistência e retry automático em deadlock
+ * SOFT delete: marca aluno como ativo=false e situacao='inativo'.
+ *
+ * Antes (até 2026-05-26): fazia DELETE FROM alunos em cascata. Como 28+
+ * tabelas filhas (frequencia_diaria, notas_escolares, conselho, AEE, PNAE,
+ * PNLD, FICAI, Bolsa Familia, embeddings_faciais, documentos_emitidos, etc.)
+ * têm ON DELETE CASCADE, todo o historico pedagogico do menor sumia sem
+ * possibilidade de recuperacao. Bug crítico #5 da auditoria Pt.5.
+ *
+ * Caches SISAM (resultados_*) ainda são removidos — sao dados transitórios
+ * que podem ser regenerados. Dados pedagogicos persistentes ficam preservados.
+ *
+ * Para purge físico LGPD (art. 18 VI), criar endpoint dedicado com
+ * confirmacao multifator (TODO sprint LGPD).
+ *
+ * Usa withTransaction para garantir consistência e retry automático em deadlock.
  */
 export async function deletarAluno(alunoId: string): Promise<{ nome: string }> {
   return withTransaction(async (client) => {
+    // Remove apenas caches SISAM (regenerveis a partir das importacoes)
     await client.query('DELETE FROM resultados_provas WHERE aluno_id = $1', [alunoId])
     await client.query('DELETE FROM resultados_producao WHERE aluno_id = $1', [alunoId])
     await client.query('DELETE FROM resultados_consolidados WHERE aluno_id = $1', [alunoId])
-    const result = await client.query('DELETE FROM alunos WHERE id = $1 RETURNING id, nome', [alunoId])
+
+    // Soft delete do aluno: marca como inativo, preserva historico
+    const result = await client.query(
+      `UPDATE alunos
+          SET ativo = false,
+              situacao = 'inativo',
+              atualizado_em = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING id, nome`,
+      [alunoId]
+    )
 
     if (result.rows.length === 0) {
       throw new Error('Aluno não encontrado durante exclusão')
@@ -115,18 +139,52 @@ export async function deletarAluno(alunoId: string): Promise<{ nome: string }> {
   })
 }
 
+// Whitelist de campos persistíveis em `alunos`, alinhada ao schema Zod
+// `alunoSchema` em lib/schemas/entidades.ts. Inclui campos das migrations:
+// - add-matriculas-2026 (cpf/data_nascimento/pcd)
+// - add-dados-complementares-aluno (familiares/pessoais/saude)
+// - add-situacao-aluno (situacao)
+// - add-data-matricula
+// - add-aluno-unique-constraint
+const ALUNO_CAMPOS_PERSISTIVEIS = [
+  // Identificacao base
+  'codigo', 'nome', 'escola_id', 'turma_id', 'serie', 'ano_letivo',
+  'cpf', 'data_nascimento', 'data_matricula', 'pcd', 'situacao', 'ativo',
+  // Familiares
+  'nome_mae', 'nome_pai', 'responsavel', 'telefone_responsavel',
+  // Pessoais
+  'genero', 'raca_cor', 'naturalidade', 'nacionalidade',
+  // Documentos
+  'rg', 'certidao_nascimento', 'sus',
+  // Endereco
+  'endereco', 'bairro', 'cidade', 'cep',
+  // Programas sociais
+  'bolsa_familia', 'nis',
+  // Projetos
+  'projeto_contraturno', 'projeto_nome',
+  // Saude
+  'tipo_deficiencia', 'alergia', 'medicacao',
+  // Observacoes
+  'observacoes',
+] as const
+
+type CampoAluno = typeof ALUNO_CAMPOS_PERSISTIVEIS[number]
+type AlunoInput = Partial<Record<CampoAluno, unknown>> & { nome: string; escola_id: string }
+
 /**
- * Cria um novo aluno (com geração de código automático)
+ * Cria um novo aluno (com geração de código automático).
+ * Aceita qualquer subconjunto dos campos da whitelist — campos ausentes
+ * são omitidos do INSERT (banco aplica defaults: NULL ou DEFAULT da coluna).
+ *
+ * Antes (até 2026-05-26): aceitava só 9 campos e descartava silenciosamente
+ * os 20+ campos complementares enviados pelo Zod (bug crítico #4 da
+ * auditoria Pt.5).
+ *
  * Usado por: admin/alunos POST
  */
-export async function criarAluno(dados: {
-  codigo?: string | null; nome: string; escola_id: string; turma_id?: string | null;
-  serie?: string | null; ano_letivo?: string | null; cpf?: string | null;
-  data_nascimento?: string | null; pcd?: boolean
-}): Promise<any> {
-  const { codigo, nome, escola_id, turma_id, serie, ano_letivo, cpf, data_nascimento, pcd } = dados
+export async function criarAluno(dados: AlunoInput): Promise<any> {
+  const { nome, escola_id, turma_id } = dados as { nome: string; escola_id: string; turma_id?: string | null }
 
-  // Validar que turma pertence à escola informada
   if (turma_id) {
     const valida = await validarTurmaEscola(turma_id, escola_id)
     if (!valida) {
@@ -134,41 +192,40 @@ export async function criarAluno(dados: {
     }
   }
 
-  // Gerar código automático se não fornecido
-  const codigoFinal = codigo || await gerarCodigoAluno()
+  // Gera codigo automatico se nao fornecido (campo virtual)
+  const codigoFinal = (dados.codigo as string | undefined) || await gerarCodigoAluno()
+  const payload: Record<string, unknown> = { ...dados, codigo: codigoFinal }
+  // data_matricula default: hoje (resolve item #11 da auditoria)
+  if (payload.data_matricula === undefined) payload.data_matricula = new Date().toISOString().slice(0, 10)
+
+  const cols: string[] = []
+  const placeholders: string[] = []
+  const values: unknown[] = []
+  let i = 1
+  for (const campo of ALUNO_CAMPOS_PERSISTIVEIS) {
+    if (payload[campo] !== undefined) {
+      cols.push(campo)
+      placeholders.push(`$${i++}`)
+      values.push(payload[campo])
+    }
+  }
 
   const result = await pool.query(
-    `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, cpf, data_nascimento, pcd)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING *`,
-    [
-      codigoFinal,
-      nome,
-      escola_id,
-      turma_id || null,
-      serie || null,
-      ano_letivo || null,
-      cpf || null,
-      data_nascimento || null,
-      pcd || false,
-    ]
+    `INSERT INTO alunos (${cols.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
+    values
   )
-
   return result.rows[0]
 }
 
 /**
- * Atualiza dados de um aluno existente
+ * Atualiza dados de um aluno existente. Mesma whitelist do criarAluno.
+ * Apenas campos presentes em `dados` (não-undefined) são incluídos no SET.
+ *
  * Usado por: admin/alunos PUT
  */
-export async function atualizarAluno(id: string, dados: {
-  codigo?: string | null; nome: string; escola_id: string; turma_id?: string | null;
-  serie?: string | null; ano_letivo?: string | null; ativo?: boolean;
-  cpf?: string | null; data_nascimento?: string | null; pcd?: boolean
-}): Promise<any | null> {
-  const { codigo, nome, escola_id, turma_id, serie, ano_letivo, ativo, cpf, data_nascimento, pcd } = dados
+export async function atualizarAluno(id: string, dados: AlunoInput): Promise<any | null> {
+  const { escola_id, turma_id } = dados as { escola_id: string; turma_id?: string | null }
 
-  // Validar que turma pertence à escola informada
   if (turma_id) {
     const valida = await validarTurmaEscola(turma_id, escola_id)
     if (!valida) {
@@ -176,27 +233,25 @@ export async function atualizarAluno(id: string, dados: {
     }
   }
 
-  const result = await pool.query(
-    `UPDATE alunos
-     SET codigo = $1, nome = $2, escola_id = $3, turma_id = $4, serie = $5, ano_letivo = $6, ativo = $7,
-         cpf = $8, data_nascimento = $9, pcd = $10, atualizado_em = CURRENT_TIMESTAMP
-     WHERE id = $11
-     RETURNING *`,
-    [
-      codigo || null,
-      nome,
-      escola_id,
-      turma_id || null,
-      serie || null,
-      ano_letivo || null,
-      ativo !== undefined ? ativo : true,
-      cpf || null,
-      data_nascimento || null,
-      pcd !== undefined ? pcd : false,
-      id,
-    ]
-  )
+  const sets: string[] = []
+  const values: unknown[] = []
+  let i = 1
+  for (const campo of ALUNO_CAMPOS_PERSISTIVEIS) {
+    if ((dados as Record<string, unknown>)[campo] !== undefined) {
+      sets.push(`${campo} = $${i++}`)
+      values.push((dados as Record<string, unknown>)[campo])
+    }
+  }
+  if (sets.length === 0) {
+    throw new Error('Nenhum campo para atualizar')
+  }
+  sets.push(`atualizado_em = CURRENT_TIMESTAMP`)
+  values.push(id)
 
+  const result = await pool.query(
+    `UPDATE alunos SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`,
+    values
+  )
   return result.rows[0] || null
 }
 
