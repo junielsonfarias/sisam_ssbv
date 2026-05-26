@@ -30,6 +30,7 @@ export default function SecaoNotas({ notas, periodo, filtroPorPeriodo, totalAlun
         <table className="w-full text-sm">
           <thead className="bg-gray-50 dark:bg-slate-900/50 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
             <tr>
+              <th className="px-3 py-2 font-semibold text-right w-10">#</th>
               <th className="px-4 py-2 font-semibold">Aluno</th>
               <th className="px-4 py-2 font-semibold">Disciplina</th>
               {!filtroPorPeriodo && <th className="px-4 py-2 font-semibold">Período</th>}
@@ -41,8 +42,9 @@ export default function SecaoNotas({ notas, periodo, filtroPorPeriodo, totalAlun
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-            {validas.map(n => (
+            {validas.map((n, i) => (
               <tr key={n.nota_id!} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
+                <td className="px-3 py-2 text-right text-gray-400 dark:text-gray-500 tabular-nums">{i + 1}</td>
                 <td className="px-4 py-2 text-gray-900 dark:text-white">{n.aluno_nome}</td>
                 <td className="px-4 py-2 text-gray-700 dark:text-gray-200">{n.disciplina_nome || '—'}</td>
                 {!filtroPorPeriodo && (
@@ -63,12 +65,13 @@ export default function SecaoNotas({ notas, periodo, filtroPorPeriodo, totalAlun
 
       {/* Mobile: cards */}
       <ul className="sm:hidden divide-y divide-gray-100 dark:divide-slate-700">
-        {validas.map(n => (
+        {validas.map((n, i) => (
           <li key={`m-${n.nota_id!}`} className="p-4 active:bg-gray-50 dark:active:bg-slate-700/30">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">
-                  {n.aluno_nome}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums shrink-0">{i + 1}.</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{n.aluno_nome}</span>
                 </div>
                 <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex flex-wrap gap-x-2">
                   <span>{n.disciplina_nome || 'Sem disciplina'}</span>

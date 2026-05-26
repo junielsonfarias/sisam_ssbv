@@ -58,6 +58,14 @@ export default function AccessibilityBar() {
     }
   }, [])
 
+  // Permite que botoes inline em qualquer pagina abram o painel
+  // (basta disparar window.dispatchEvent(new Event('sisam:abrir-acessibilidade')))
+  useEffect(() => {
+    const handler = () => setAberto(true)
+    window.addEventListener('sisam:abrir-acessibilidade', handler)
+    return () => window.removeEventListener('sisam:abrir-acessibilidade', handler)
+  }, [])
+
   /** Alterar tamanho da fonte */
   const alterarFonte = useCallback((novoIndice: number) => {
     if (novoIndice < 0 || novoIndice >= FONT_SIZES.length) return

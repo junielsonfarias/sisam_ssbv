@@ -26,6 +26,7 @@ export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo 
         <table className="w-full text-sm">
           <thead className="bg-gray-50 dark:bg-slate-900/50 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
             <tr>
+              <th className="px-3 py-2 font-semibold text-right w-10">#</th>
               <th className="px-4 py-2 font-semibold">Aluno</th>
               {!filtroPorPeriodo && <th className="px-4 py-2 font-semibold">Período</th>}
               <th className="px-4 py-2 font-semibold text-right">Dias Letivos</th>
@@ -39,6 +40,7 @@ export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo 
           <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
             {frequencia.map((f, i) => (
               <tr key={`${f.aluno_id}-${f.freq_id || i}`} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
+                <td className="px-3 py-2 text-right text-gray-400 dark:text-gray-500 tabular-nums">{i + 1}</td>
                 <td className="px-4 py-2 text-gray-900 dark:text-white">{f.aluno_nome}</td>
                 {!filtroPorPeriodo && (
                   <td className="px-4 py-2 text-gray-600 dark:text-gray-300">
@@ -65,8 +67,9 @@ export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo 
           <li key={`m-${f.aluno_id}-${f.freq_id || i}`} className="p-4 active:bg-gray-50 dark:active:bg-slate-700/30">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">
-                  {f.aluno_nome}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums shrink-0">{i + 1}.</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{f.aluno_nome}</span>
                 </div>
                 {!filtroPorPeriodo && f.periodo_numero && (
                   <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
