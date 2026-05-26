@@ -1,6 +1,5 @@
 import type { DiarioDetalhadoPayload, DisciplinaDetalhada, MesDetalhado, StatusCelula } from './types'
 import { PRINT_DIARIO_CSS, PRINT_DIARIO_AUTOFIT_JS } from './printDiarioAssets'
-import { abreviarNome } from './formatters'
 
 const DIAS_SEMANA_PT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
 
@@ -116,7 +115,7 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
       return `
         <tr>
           <td class="col-num">${i + 1}</td>
-          <td class="col-nome" title="${escapeHtml(a.nome)}">${escapeHtml(abreviarNome(a.nome))}</td>
+          <td class="col-nome auto-fit-nome" data-nome-completo="${escapeHtml(a.nome)}" title="${escapeHtml(a.nome)}">${escapeHtml(a.nome)}</td>
           ${celulasHtml}
           <td class="col-total p">${a.totais.presencas}</td>
           <td class="col-total f">${a.totais.faltas}</td>
@@ -132,12 +131,12 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
         ${headerHtml(subtitulo)}
         <table class="tbl-detalhado">
           <colgroup>
-            <col style="width:28px"/>
-            <col style="width:220px"/>
+            <col style="width:24px"/>
+            <col style="width:250px"/>
             ${dias.map(() => '<col/>').join('')}
-            <col style="width:30px"/>
-            <col style="width:30px"/>
-            <col style="width:30px"/>
+            <col style="width:28px"/>
+            <col style="width:28px"/>
+            <col style="width:28px"/>
           </colgroup>
           <thead>
             <tr>

@@ -90,6 +90,50 @@ export const PRINT_DIARIO_CSS = `
 //   1) Density classes (data-density) baseadas em N de rows/aulas
 //   2) Shrink-to-fit via transform: scale se a .page-inner exceder a altura
 export const PRINT_DIARIO_AUTOFIT_JS = `
+  // Abrevia APENAS as celulas .auto-fit-nome cujo conteudo nao coube no
+  // espaco real disponivel (scrollWidth > clientWidth). Prioridade do
+  // usuario: nome COMPLETO sempre que possivel.
+  //
+  // Sequencia de tentativas para cada celula que estourou:
+  //   T1: "Primeiro N. M. Ultimo" (iniciais dos meios, preposicoes removidas)
+  //   T2: "P. N. M. Ultimo" (inicial do primeiro tambem)
+  //   T3: textOverflow:ellipsis nativo do CSS (visual)
+  //
+  // O nome completo permanece em data-nome-completo + title (tooltip),
+  // entao o usuario sempre pode ver o nome integral passando o mouse.
+  function abreviarNomesQueEstouram() {
+    var PREP = { 'de':1,'da':1,'do':1,'dos':1,'das':1,'e':1 };
+    var celulas = document.querySelectorAll('.auto-fit-nome');
+    celulas.forEach(function(td) {
+      var completo = td.getAttribute('data-nome-completo') || '';
+      if (!completo) return;
+      // Estado inicial: nome completo
+      td.textContent = completo;
+      if (td.scrollWidth <= td.clientWidth) return; // coube
+
+      var partes = completo.trim().split(/\\s+/);
+      if (partes.length < 3) {
+        // Nao da pra abreviar significativamente — confia no ellipsis CSS
+        return;
+      }
+      var primeiro = partes[0];
+      var ultimo = partes[partes.length - 1];
+      var meio = partes.slice(1, -1)
+        .filter(function(p) { return !PREP[p.toLowerCase()]; })
+        .map(function(p) { return p.charAt(0).toUpperCase() + '.'; })
+        .join(' ');
+
+      // T1: Primeiro M. M. Ultimo
+      td.textContent = meio ? (primeiro + ' ' + meio + ' ' + ultimo) : (primeiro + ' ' + ultimo);
+      if (td.scrollWidth <= td.clientWidth) return;
+
+      // T2: P. M. M. Ultimo
+      var inicial = primeiro.charAt(0) + '.';
+      td.textContent = meio ? (inicial + ' ' + meio + ' ' + ultimo) : (inicial + ' ' + ultimo);
+      // Se ainda nao couber, o ellipsis CSS faz o trabalho final.
+    });
+  }
+
   // Thresholds escolhidos para que ate ~30 alunos caibam com o tamanho
   // confortavel padrao (sem density class). Acima disso, density medium/high
   // entra para garantir que continue cabendo em 1 pagina.
@@ -153,6 +197,13 @@ export const PRINT_DIARIO_AUTOFIT_JS = `
     classificarDensidades();
     aguardarImagens().then(function() {
       requestAnimationFrame(function() {
+        // Ordem importa:
+        //  1) abreviar nomes que estouram (depois de density aplicada,
+        //     antes de fit-to-fill porque o transform: scale distorce
+        //     scrollWidth/clientWidth)
+        //  2) fit-to-fill (grow/shrink) da pagina inteira
+        //  3) imprimir
+        abreviarNomesQueEstouram();
         fitToFill();
         setTimeout(function() { window.print(); }, 50);
       });

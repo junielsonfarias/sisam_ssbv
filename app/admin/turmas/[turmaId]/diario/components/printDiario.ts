@@ -2,7 +2,6 @@ import type {
   DiarioPayload, Tipo, FrequenciaLinha, NotaLinha, ConteudoLinha,
 } from './types'
 import { PRINT_DIARIO_CSS, PRINT_DIARIO_AUTOFIT_JS } from './printDiarioAssets'
-import { abreviarNome } from './formatters'
 
 const MESES_PT = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -155,14 +154,14 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
       return `
         <tr>
           <td class="num">${i + 1}</td>
-          <td class="aluno" title="${escapeHtml(f.aluno_nome)}">${escapeHtml(abreviarNome(f.aluno_nome))}</td>
+          <td class="aluno auto-fit-nome" data-nome-completo="${escapeHtml(f.aluno_nome)}" title="${escapeHtml(f.aluno_nome)}">${escapeHtml(f.aluno_nome)}</td>
           ${incluirColPeriodo ? `<td class="center">${f.periodo_numero ? f.periodo_numero + 'º' : '—'}</td>` : ''}
           <td class="right">${f.dias_letivos ?? '—'}</td>
           <td class="right">${f.presencas ?? '—'}</td>
           <td class="right">${f.faltas ?? '—'}</td>
           <td class="right">${f.faltas_justificadas ?? '—'}</td>
           <td class="right" style="color:${cor}; font-weight:600">${formatarPercentual(f.percentual_frequencia)}</td>
-          <td class="lancado" title="${escapeHtml(f.registrado_por_nome || '')}">${escapeHtml(abreviarNome(f.registrado_por_nome || '—'))}</td>
+          <td class="lancado auto-fit-nome" data-nome-completo="${escapeHtml(f.registrado_por_nome || '')}" title="${escapeHtml(f.registrado_por_nome || '')}">${escapeHtml(f.registrado_por_nome || '—')}</td>
         </tr>`
     }).join('')
 
@@ -235,14 +234,14 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
       return `
         <tr>
           <td class="num">${i + 1}</td>
-          <td class="aluno" title="${escapeHtml(n.aluno_nome)}">${escapeHtml(abreviarNome(n.aluno_nome))}</td>
+          <td class="aluno auto-fit-nome" data-nome-completo="${escapeHtml(n.aluno_nome)}" title="${escapeHtml(n.aluno_nome)}">${escapeHtml(n.aluno_nome)}</td>
           <td>${escapeHtml(n.disciplina_nome || '—')}</td>
           ${incluirColPeriodo ? `<td class="center">${n.periodo_numero ? n.periodo_numero + 'º' : '—'}</td>` : ''}
           <td class="right" style="color:${corN}; font-weight:600">${formatarNota(n.nota)}</td>
           <td class="right" style="color:#6b7280">${formatarNota(n.nota_recuperacao)}</td>
           <td class="right" style="color:${corFinal}; font-weight:700">${formatarNota(n.nota_final)}</td>
           <td class="right">${n.faltas ?? '—'}</td>
-          <td class="lancado" title="${escapeHtml(n.registrado_por_nome || '')}">${escapeHtml(abreviarNome(n.registrado_por_nome || '—'))}</td>
+          <td class="lancado auto-fit-nome" data-nome-completo="${escapeHtml(n.registrado_por_nome || '')}" title="${escapeHtml(n.registrado_por_nome || '')}">${escapeHtml(n.registrado_por_nome || '—')}</td>
         </tr>`
     }).join('')
 
