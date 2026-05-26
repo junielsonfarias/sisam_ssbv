@@ -117,36 +117,13 @@ export default function AccessibilityBar() {
 
   return (
     <>
-      {/* Botao flutuante de acessibilidade */}
-      <button
-        onClick={() => setAberto(prev => !prev)}
-        className="fixed bottom-4 left-4 z-50 w-12 h-12 rounded-full bg-blue-800 hover:bg-blue-700
-                   text-white shadow-lg hover:shadow-xl transition-all duration-200
-                   flex items-center justify-center
-                   focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2
-                   dark:bg-blue-700 dark:hover:bg-blue-600 print:hidden"
-        aria-label={aberto ? 'Fechar painel de acessibilidade' : 'Abrir painel de acessibilidade'}
-        aria-expanded={aberto}
-        aria-controls="painel-acessibilidade"
-        title="Acessibilidade"
-      >
-        {/* Icone de acessibilidade universal (pessoa com bracos abertos) */}
-        <svg
-          className="w-6 h-6"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="4" r="2" />
-          <path d="M12 8v4" />
-          <path d="M6 10l6 2 6-2" />
-          <path d="M9 18l3-6 3 6" />
-        </svg>
-      </button>
+      {/*
+        Botao flutuante REMOVIDO em 2026-05-26 a pedido do usuario.
+        O painel agora abre exclusivamente via evento custom:
+          window.dispatchEvent(new Event('sisam:abrir-acessibilidade'))
+        Cada pagina/header e responsavel por incluir seu proprio botao
+        de acessibilidade que dispara esse evento.
+      */}
 
       {/* Painel de opcoes */}
       {aberto && (
