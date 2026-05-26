@@ -27,10 +27,14 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
+import { withRedisCache, cacheKey, CACHE_TTL } from '@/lib/cache'
 
 const log = createLogger('AdminDiarioLacunas')
+
+const uuidSchema = z.string().uuid()
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +52,11 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   }
 
   const { searchParams } = request.nextUrl
-  const periodoId = searchParams.get('periodo_id')?.trim() || null
+  const periodoIdRaw = searchParams.get('periodo_id')?.trim() || null
+  if (periodoIdRaw && !uuidSchema.safeParse(periodoIdRaw).success) {
+    return NextResponse.json({ mensagem: 'periodo_id inválido (esperado UUID)' }, { status: 400 })
+  }
+  const periodoId = periodoIdRaw
 
   try {
     // 1) Turma + escola + ano_letivo (resolve UUID do ano via JOIN com anos_letivos)
@@ -130,7 +138,11 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     }
 
     // 3) Query principal: dias letivos no escopo cruzado com lancamentos do diario
-    const resultRes = await pool.query(
+    // Cacheada por 60s (chave inclui turma+periodo). Auditoria de leitura
+    // fica FORA do cache — toda chamada e registrada mesmo em hit.
+    const redisKey = cacheKey('diario-lacunas', turmaId, periodoId ?? 'todos')
+    const lacunasData = await withRedisCache(redisKey, 60, async () => {
+      const resultRes = await pool.query(
       `
       WITH escopo AS (
         SELECT $1::date AS dt_ini, $2::date AS dt_fim,
@@ -178,44 +190,53 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       GROUP BY ano, mes
       ORDER BY ano, mes
       `,
-      [dataInicio, dataFim, turma.ano_letivo_id, turma.escola_id, turmaId]
-    )
+        [dataInicio, dataFim, turma.ano_letivo_id, turma.escola_id, turmaId]
+      )
 
-    type Row = {
-      ano: number
-      mes: number
-      dias_letivos: number
-      dias_com_lancamento: number
-      lacunas: number
-      lacunas_datas: string[] | null
-    }
-    const rows = resultRes.rows as Row[]
+      type Row = {
+        ano: number
+        mes: number
+        dias_letivos: number
+        dias_com_lancamento: number
+        lacunas: number
+        lacunas_datas: string[] | null
+      }
+      const rows = resultRes.rows as Row[]
 
-    // Agregados
-    let diasLetivosTotal = 0
-    let diasComLancamentoTotal = 0
-    const lacunasPorMes = rows.map(r => {
-      diasLetivosTotal += r.dias_letivos
-      diasComLancamentoTotal += r.dias_com_lancamento
-      const datas = (r.lacunas_datas || []).map(d => {
-        // PG retorna ISO timestamp p/ DATE; normaliza para 'YYYY-MM-DD'
-        return typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10)
+      let diasLetivosTotal = 0
+      let diasComLancamentoTotal = 0
+      const lacunasPorMes = rows.map(r => {
+        diasLetivosTotal += r.dias_letivos
+        diasComLancamentoTotal += r.dias_com_lancamento
+        const datas = (r.lacunas_datas || []).map(d => {
+          return typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10)
+        })
+        return {
+          ano: r.ano,
+          mes: r.mes,
+          mes_nome: MESES_PT[r.mes - 1],
+          dias_letivos: r.dias_letivos,
+          dias_com_lancamento: r.dias_com_lancamento,
+          lacunas: r.lacunas,
+          lacunas_datas: datas,
+        }
       })
+
+      const lacunasTotal = diasLetivosTotal - diasComLancamentoTotal
+      const percentualCobertura = diasLetivosTotal === 0
+        ? '0.0'
+        : ((diasComLancamentoTotal / diasLetivosTotal) * 100).toFixed(1)
+
       return {
-        ano: r.ano,
-        mes: r.mes,
-        mes_nome: MESES_PT[r.mes - 1],
-        dias_letivos: r.dias_letivos,
-        dias_com_lancamento: r.dias_com_lancamento,
-        lacunas: r.lacunas,
-        lacunas_datas: datas,
+        resumo: {
+          dias_letivos_total: diasLetivosTotal,
+          dias_com_lancamento: diasComLancamentoTotal,
+          lacunas_total: lacunasTotal,
+          percentual_cobertura: percentualCobertura,
+        },
+        lacunas_por_mes: lacunasPorMes,
       }
     })
-
-    const lacunasTotal = diasLetivosTotal - diasComLancamentoTotal
-    const percentualCobertura = diasLetivosTotal === 0
-      ? '0.0'
-      : ((diasComLancamentoTotal / diasLetivosTotal) * 100).toFixed(1)
 
     return NextResponse.json({
       escopo: {
@@ -224,13 +245,8 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
         periodo: periodoInfo,
         ano_letivo: turma.ano_letivo,
       },
-      resumo: {
-        dias_letivos_total: diasLetivosTotal,
-        dias_com_lancamento: diasComLancamentoTotal,
-        lacunas_total: lacunasTotal,
-        percentual_cobertura: percentualCobertura,
-      },
-      lacunas_por_mes: lacunasPorMes,
+      resumo: lacunasData.resumo,
+      lacunas_por_mes: lacunasData.lacunas_por_mes,
     })
   } catch (error) {
     log.error('Erro ao calcular lacunas do diário', error, { turmaId, periodoId })

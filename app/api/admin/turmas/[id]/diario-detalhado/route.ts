@@ -29,10 +29,13 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 const log = createLogger('AdminDiarioDetalhado')
+
+const uuidSchema = z.string().uuid()
 
 export const dynamic = 'force-dynamic'
 
@@ -57,7 +60,11 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   }
 
   const { searchParams } = request.nextUrl
-  const periodoId = searchParams.get('periodo_id')?.trim() || null
+  const periodoIdRaw = searchParams.get('periodo_id')?.trim() || null
+  if (periodoIdRaw && !uuidSchema.safeParse(periodoIdRaw).success) {
+    return NextResponse.json({ mensagem: 'periodo_id inválido (esperado UUID)' }, { status: 400 })
+  }
+  const periodoId = periodoIdRaw
 
   try {
     // 1) Turma + escola + ano letivo
@@ -128,71 +135,81 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       dataFim = turma.ano_data_fim || `${ano}-12-31`
     }
 
-    // 3) Lista de dias letivos no escopo (mesma logica de contar_dias_letivos)
-    const diasRes = await pool.query(
-      `
-      WITH escopo AS (
-        SELECT $1::date AS dt_ini, $2::date AS dt_fim,
-               $3::uuid AS ano_letivo_id, $4::uuid AS escola_id
+    // 3+4) Dias letivos e Alunos em paralelo (consultas independentes)
+    const [diasRes, alunosRes] = await Promise.all([
+      pool.query(
+        `
+        WITH escopo AS (
+          SELECT $1::date AS dt_ini, $2::date AS dt_fim,
+                 $3::uuid AS ano_letivo_id, $4::uuid AS escola_id
+        ),
+        dias AS (
+          SELECT d::date AS data
+            FROM escopo, generate_series((SELECT dt_ini FROM escopo),
+                                         (SELECT dt_fim FROM escopo),
+                                         '1 day'::interval) d
+        ),
+        eventos AS (
+          SELECT e.data,
+                 bool_or(e.conta_dia_letivo)     AS tem_letivo,
+                 bool_or(NOT e.conta_dia_letivo) AS tem_feriado
+            FROM calendario_eventos e, escopo
+           WHERE e.ano_letivo_id = escopo.ano_letivo_id
+             AND e.data BETWEEN escopo.dt_ini AND escopo.dt_fim
+             AND (e.escola_id = escopo.escola_id OR e.escola_id IS NULL)
+           GROUP BY e.data
+        )
+        SELECT d.data
+          FROM dias d
+          LEFT JOIN eventos e ON e.data = d.data
+         WHERE COALESCE(e.tem_letivo, FALSE)
+            OR (EXTRACT(DOW FROM d.data) BETWEEN 1 AND 5
+                AND NOT COALESCE(e.tem_feriado, FALSE))
+         ORDER BY d.data
+        `,
+        [dataInicio, dataFim, turma.ano_letivo_id, turma.escola_id]
       ),
-      dias AS (
-        SELECT d::date AS data
-          FROM escopo, generate_series((SELECT dt_ini FROM escopo),
-                                       (SELECT dt_fim FROM escopo),
-                                       '1 day'::interval) d
+      pool.query(
+        `SELECT id, nome FROM alunos WHERE turma_id = $1 AND ativo = TRUE ORDER BY nome`,
+        [turmaId]
       ),
-      eventos AS (
-        SELECT e.data,
-               bool_or(e.conta_dia_letivo)     AS tem_letivo,
-               bool_or(NOT e.conta_dia_letivo) AS tem_feriado
-          FROM calendario_eventos e, escopo
-         WHERE e.ano_letivo_id = escopo.ano_letivo_id
-           AND e.data BETWEEN escopo.dt_ini AND escopo.dt_fim
-           AND (e.escola_id = escopo.escola_id OR e.escola_id IS NULL)
-         GROUP BY e.data
-      )
-      SELECT d.data
-        FROM dias d
-        LEFT JOIN eventos e ON e.data = d.data
-       WHERE COALESCE(e.tem_letivo, FALSE)
-          OR (EXTRACT(DOW FROM d.data) BETWEEN 1 AND 5
-              AND NOT COALESCE(e.tem_feriado, FALSE))
-       ORDER BY d.data
-      `,
-      [dataInicio, dataFim, turma.ano_letivo_id, turma.escola_id]
-    )
+    ])
 
     const diasLetivos: string[] = diasRes.rows.map((r: { data: Date | string }) =>
       typeof r.data === 'string' ? r.data.slice(0, 10) : new Date(r.data).toISOString().slice(0, 10)
     )
-
-    if (diasLetivos.length === 0) {
-      return NextResponse.json({ mensagem: 'Nenhum dia letivo no escopo selecionado' }, { status: 200 })
-    }
-
-    // 4) Alunos da turma
-    const alunosRes = await pool.query(
-      `SELECT id, nome FROM alunos WHERE turma_id = $1 AND ativo = TRUE ORDER BY nome`,
-      [turmaId]
-    )
     const alunos: Array<{ id: string; nome: string }> = alunosRes.rows
-
-    // 5) Frequencia conforme modelo
     const usaHoraAula = isAnosFinais(turma.serie)
     const modeloFrequencia = usaHoraAula ? 'hora_aula' : 'diaria'
 
+    const turmaPayload = {
+      id: turma.id, codigo: turma.codigo, nome: turma.nome,
+      serie: turma.serie, turno: turma.turno, ano_letivo: turma.ano_letivo,
+      escola_id: turma.escola_id, escola_nome: turma.escola_nome,
+      escola_logo_url: turma.escola_logo_url, sensivel: turma.sensivel,
+    }
+    const escopoPayload = { data_inicio: dataInicio, data_fim: dataFim, periodo: periodoInfo }
+
+    // Caso vazio: retorna estrutura completa com disciplinas: [] para que o
+    // cliente nao quebre tentando .flatMap em undefined (bug encontrado na
+    // revisao critica Pt.5)
+    if (diasLetivos.length === 0) {
+      return NextResponse.json({
+        turma: turmaPayload,
+        escopo: escopoPayload,
+        modelo_frequencia: modeloFrequencia,
+        disciplinas: [],
+      })
+    }
+
+    // 5) Frequencia conforme modelo
     const disciplinas = usaHoraAula
       ? await montarDisciplinasAnosFinais(turmaId, dataInicio, dataFim, alunos)
       : [await montarDisciplinaAnosIniciais(turmaId, dataInicio, dataFim, alunos, diasLetivos)]
 
     return NextResponse.json({
-      turma: {
-        id: turma.id, codigo: turma.codigo, nome: turma.nome,
-        serie: turma.serie, turno: turma.turno, ano_letivo: turma.ano_letivo,
-        escola_id: turma.escola_id, escola_nome: turma.escola_nome,
-        escola_logo_url: turma.escola_logo_url, sensivel: turma.sensivel,
-      },
-      escopo: { data_inicio: dataInicio, data_fim: dataFim, periodo: periodoInfo },
+      turma: turmaPayload,
+      escopo: escopoPayload,
       modelo_frequencia: modeloFrequencia,
       disciplinas,
     })

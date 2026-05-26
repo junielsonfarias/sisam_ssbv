@@ -180,7 +180,7 @@ describe('GET /api/admin/turmas/[id]/diario-lacunas', () => {
       .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
 
     const { GET } = await import('@/app/api/admin/turmas/[id]/diario-lacunas/route')
-    const res = await GET(req('/api/admin/turmas/turma-1/diario-lacunas?periodo_id=p1'))
+    const res = await GET(req('/api/admin/turmas/turma-1/diario-lacunas?periodo_id=00000000-0000-0000-0000-000000000001'))
     expect(res.status).toBe(404)
     const body = await res.json()
     expect(body.mensagem).toMatch(/per[ií]odo n[aã]o encontrado/i)
@@ -195,9 +195,18 @@ describe('GET /api/admin/turmas/[id]/diario-lacunas', () => {
       } as any)
 
     const { GET } = await import('@/app/api/admin/turmas/[id]/diario-lacunas/route')
-    const res = await GET(req('/api/admin/turmas/turma-1/diario-lacunas?periodo_id=p1'))
+    const res = await GET(req('/api/admin/turmas/turma-1/diario-lacunas?periodo_id=00000000-0000-0000-0000-000000000001'))
     expect(res.status).toBe(422)
     const body = await res.json()
     expect(body.mensagem).toMatch(/datas configuradas/i)
+  })
+
+  it('quando periodo_id nao e um UUID valido, retorna 400 (sem ir ao banco)', async () => {
+    const { GET } = await import('@/app/api/admin/turmas/[id]/diario-lacunas/route')
+    const res = await GET(req('/api/admin/turmas/turma-1/diario-lacunas?periodo_id=abc'))
+    expect(res.status).toBe(400)
+    expect(mockQuery).not.toHaveBeenCalled()
+    const body = await res.json()
+    expect(body.mensagem).toMatch(/inv[aá]lido/i)
   })
 })

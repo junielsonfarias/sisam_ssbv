@@ -20,10 +20,13 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 const log = createLogger('AdminDiarioCompleto')
+
+const uuidSchema = z.string().uuid()
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +43,11 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   }
 
   const { searchParams } = request.nextUrl
-  const periodoId = searchParams.get('periodo_id')?.trim() || null
+  const periodoIdRaw = searchParams.get('periodo_id')?.trim() || null
+  if (periodoIdRaw && !uuidSchema.safeParse(periodoIdRaw).success) {
+    return NextResponse.json({ mensagem: 'periodo_id inválido (esperado UUID)' }, { status: 400 })
+  }
+  const periodoId = periodoIdRaw
   const tiposRaw = searchParams.get('tipos')?.trim()
   const tipos: Set<TipoSecao> = tiposRaw
     ? new Set(tiposRaw.split(',').map(s => s.trim()).filter((t): t is TipoSecao => TIPOS_VALIDOS.includes(t as TipoSecao)))

@@ -21,6 +21,8 @@ import pool from '@/database/connection'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
+import { validateRequest } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 const log = createLogger('AdminTurmaSensivel')
 
@@ -38,20 +40,8 @@ export const PATCH = withAuth(['administrador', 'tecnico'], async (request, usua
     return NextResponse.json({ mensagem: 'turmaId obrigatório' }, { status: 400 })
   }
 
-  let body: unknown
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ mensagem: 'Corpo da requisição inválido' }, { status: 400 })
-  }
-
-  const parsed = patchSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json(
-      { mensagem: 'Dados inválidos', detalhes: parsed.error.flatten() },
-      { status: 400 }
-    )
-  }
+  const validacao = await validateRequest(request, patchSchema)
+  if (!validacao.success) return validacao.response
 
   try {
     // Confirma que a turma existe e pega o estado anterior para auditoria
@@ -67,7 +57,7 @@ export const PATCH = withAuth(['administrador', 'tecnico'], async (request, usua
     const valorAnterior = antes.rows[0].sensivel as boolean
 
     // Se nao mudou nada, retorna 200 sem mexer no banco nem auditar
-    if (valorAnterior === parsed.data.sensivel) {
+    if (valorAnterior === validacao.data.sensivel) {
       return NextResponse.json({
         mensagem: 'Nenhuma alteração necessária',
         sensivel: valorAnterior,
@@ -76,13 +66,15 @@ export const PATCH = withAuth(['administrador', 'tecnico'], async (request, usua
 
     const result = await pool.query(
       `UPDATE turmas SET sensivel = $1 WHERE id = $2 RETURNING id, sensivel`,
-      [parsed.data.sensivel, turmaId]
+      [validacao.data.sensivel, turmaId]
     )
 
-    registrarAuditoria({
+    // Auditoria com await — em mutacoes, garantir que o log esta no banco
+    // antes de retornar (LGPD: nao podemos perder o registro se a request cair)
+    await registrarAuditoria({
       usuarioId: usuario.id,
       usuarioEmail: usuario.email,
-      acao: parsed.data.sensivel ? 'DIARIO_MARCAR_SENSIVEL' : 'DIARIO_DESMARCAR_SENSIVEL',
+      acao: validacao.data.sensivel ? 'DIARIO_MARCAR_SENSIVEL' : 'DIARIO_DESMARCAR_SENSIVEL',
       entidade: 'turma',
       entidadeId: turmaId,
       detalhes: {
@@ -90,13 +82,16 @@ export const PATCH = withAuth(['administrador', 'tecnico'], async (request, usua
         escola_id: antes.rows[0].escola_id,
         ano_letivo: antes.rows[0].ano_letivo,
         de: valorAnterior,
-        para: parsed.data.sensivel,
+        para: validacao.data.sensivel,
       },
       ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
     })
 
+    // Invalida caches de turmas que possam carregar o campo sensivel
+    try { await cacheDelPattern('turmas:*') } catch { /* nao bloqueia */ }
+
     return NextResponse.json({
-      mensagem: parsed.data.sensivel
+      mensagem: validacao.data.sensivel
         ? 'Turma marcada como sensível. Leituras do diário passam a ser auditadas.'
         : 'Turma desmarcada. Leituras do diário não serão mais auditadas.',
       sensivel: result.rows[0].sensivel,
