@@ -23,6 +23,10 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   const params: unknown[] = []
   let i = 1
 
+  // Ano letivo é derivado via periodos_letivos.ano_letivo
+  const ano = searchParams.get('ano_letivo') || searchParams.get('ano')
+  if (ano) { params.push(ano); conds.push(`p.ano_letivo = $${i++}`) }
+
   const escola = searchParams.get('escola')
   if (escola) { params.push(escola); conds.push(`a.escola_id = $${i++}`) }
 
@@ -73,16 +77,29 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     params
   )
 
-  // Estatísticas paralelas (sem filtros, panorâmico)
-  const statsR = await pool.query(
-    `SELECT
-       COUNT(*) AS total,
-       COUNT(*) FILTER (WHERE status = 'rascunho') AS rascunhos,
-       COUNT(*) FILTER (WHERE status = 'publicada') AS publicadas,
-       COUNT(DISTINCT aluno_id) AS alunos_distintos,
-       COUNT(DISTINCT professor_id) AS professores_distintos
-     FROM avaliacoes_descritivas`
-  )
+  // Estatísticas — se ano foi informado, filtra; senão panorâmico
+  const statsR = ano
+    ? await pool.query(
+        `SELECT
+           COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE av.status = 'rascunho') AS rascunhos,
+           COUNT(*) FILTER (WHERE av.status = 'publicada') AS publicadas,
+           COUNT(DISTINCT av.aluno_id) AS alunos_distintos,
+           COUNT(DISTINCT av.professor_id) AS professores_distintos
+         FROM avaliacoes_descritivas av
+         INNER JOIN periodos_letivos p ON p.id = av.periodo_id
+         WHERE p.ano_letivo = $1`,
+        [ano]
+      )
+    : await pool.query(
+        `SELECT
+           COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE status = 'rascunho') AS rascunhos,
+           COUNT(*) FILTER (WHERE status = 'publicada') AS publicadas,
+           COUNT(DISTINCT aluno_id) AS alunos_distintos,
+           COUNT(DISTINCT professor_id) AS professores_distintos
+         FROM avaliacoes_descritivas`
+      )
 
   return NextResponse.json({
     avaliacoes: r.rows,

@@ -38,11 +38,12 @@ export async function exportarAlunosCsv(params: {
   anoLetivo: string
   escolaId?: string
 }): Promise<string> {
-  const queryParams: unknown[] = []
-  let escolaWhere = ''
+  const conds: string[] = [`a.ano_letivo = $1`]
+  const queryParams: unknown[] = [params.anoLetivo]
+  let i = 2
   if (params.escolaId) {
     queryParams.push(params.escolaId)
-    escolaWhere = `WHERE a.escola_id = $1`
+    conds.push(`a.escola_id = $${i++}`)
   }
 
   const r = await pool.query(
@@ -63,14 +64,13 @@ export async function exportarAlunosCsv(params: {
         t.codigo AS turma_codigo,
         e.codigo_inep AS escola_inep,
         e.nome AS escola_nome,
-        -- AEE / PNE
         ae.tipos_deficiencia,
         ae.laudo_medico
       FROM alunos a
       LEFT JOIN turmas t ON t.id = a.turma_id
       LEFT JOIN escolas e ON e.id = a.escola_id
       LEFT JOIN alunos_aee ae ON ae.aluno_id = a.id
-      ${escolaWhere}
+      WHERE ${conds.join(' AND ')}
       ORDER BY e.nome, t.codigo, a.nome`,
     queryParams
   )
@@ -128,23 +128,25 @@ export async function exportarDocentesCsv(params: {
   anoLetivo: string
   escolaId?: string
 }): Promise<string> {
-  const queryParams: unknown[] = []
-  let escolaWhere = ''
-  if (params.escolaId) {
-    queryParams.push(params.escolaId)
-    escolaWhere = `AND u.escola_id = $1`
-  }
-
   // Verifica existência de tabelas relacionadas
   const profTurmas = await pool.query(
     `SELECT EXISTS(
        SELECT 1 FROM information_schema.tables WHERE table_name='professor_turmas'
      ) AS existe`
   )
+  const temProfTurmas = profTurmas.rows[0]?.existe === true
 
-  const sqlJoin = profTurmas.rows[0]?.existe ? `
-    LEFT JOIN professor_turmas pt ON pt.professor_id = u.id
-    LEFT JOIN turmas t ON t.id = pt.turma_id
+  // Quando há professor_turmas: $1=anoLetivo, $2=escolaId (Censo INEP exige vínculo no ano).
+  // Sem professor_turmas: degrada para lista de professores ativos por escola.
+  const queryParams: unknown[] = temProfTurmas ? [params.anoLetivo] : []
+  const escolaWhere = params.escolaId
+    ? `AND u.escola_id = $${queryParams.length + 1}`
+    : ''
+  if (params.escolaId) queryParams.push(params.escolaId)
+
+  const sqlJoin = temProfTurmas ? `
+    INNER JOIN professor_turmas pt ON pt.professor_id = u.id
+    INNER JOIN turmas t ON t.id = pt.turma_id AND t.ano_letivo = $1
     LEFT JOIN disciplinas_escolares d ON d.id = pt.disciplina_id
   ` : ''
 
@@ -156,13 +158,13 @@ export async function exportarDocentesCsv(params: {
         u.cpf,
         e.codigo_inep AS escola_inep,
         e.nome AS escola_nome
-        ${profTurmas.rows[0]?.existe ? ', array_agg(DISTINCT t.codigo) AS turmas, array_agg(DISTINCT d.nome) AS disciplinas' : ''}
+        ${temProfTurmas ? ', array_agg(DISTINCT t.codigo) AS turmas, array_agg(DISTINCT d.nome) AS disciplinas' : ''}
       FROM usuarios u
       LEFT JOIN escolas e ON e.id = u.escola_id
       ${sqlJoin}
       WHERE u.tipo_usuario = 'professor' AND u.ativo IS NOT FALSE
         ${escolaWhere}
-      ${profTurmas.rows[0]?.existe ? 'GROUP BY u.id, u.nome, u.email, u.cpf, e.codigo_inep, e.nome' : ''}
+      ${temProfTurmas ? 'GROUP BY u.id, u.nome, u.email, u.cpf, e.codigo_inep, e.nome' : ''}
       ORDER BY u.nome`,
     queryParams
   )
@@ -200,11 +202,12 @@ export async function exportarTurmasCsv(params: {
   anoLetivo: string
   escolaId?: string
 }): Promise<string> {
-  const queryParams: unknown[] = []
-  let escolaWhere = ''
+  const conds: string[] = [`t.ano_letivo = $1`]
+  const queryParams: unknown[] = [params.anoLetivo]
+  let i = 2
   if (params.escolaId) {
     queryParams.push(params.escolaId)
-    escolaWhere = `WHERE t.escola_id = $1`
+    conds.push(`t.escola_id = $${i++}`)
   }
 
   const r = await pool.query(
@@ -217,11 +220,11 @@ export async function exportarTurmasCsv(params: {
         t.grupo_etario_id,
         e.codigo_inep AS escola_inep,
         e.nome AS escola_nome,
-        COUNT(DISTINCT a.id) AS qtd_alunos
+        COUNT(DISTINCT a.id) FILTER (WHERE a.ano_letivo = t.ano_letivo) AS qtd_alunos
       FROM turmas t
       LEFT JOIN escolas e ON e.id = t.escola_id
       LEFT JOIN alunos a ON a.turma_id = t.id
-      ${escolaWhere}
+      WHERE ${conds.join(' AND ')}
       GROUP BY t.id, t.codigo, t.nome, t.serie, t.modalidade, t.grupo_etario_id, e.codigo_inep, e.nome
       ORDER BY e.nome, t.codigo`,
     queryParams
