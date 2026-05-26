@@ -21,7 +21,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const [menuDesktopOculto, setMenuDesktopOculto] = useState(true) // Menu oculto por padrão em desktop
   const [modoOffline, setModoOffline] = useState(false)
   const [personalizacao, setPersonalizacao] = useState<Personalizacao>({})
-  const [dataAtual, setDataAtual] = useState('')
   const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({})
   const [moduloAtivo, setModuloAtivo] = useState<offlineStorage.ModuloAtivo>('sisam')
   const [hidratado, setHidratado] = useState(false)
@@ -96,21 +95,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
       }
     }
     carregarPersonalizacao()
-
-    // Atualizar data atual
-    const atualizarData = () => {
-      const agora = new Date()
-      const opcoes: Intl.DateTimeFormatOptions = {
-        weekday: 'long',
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-      }
-      setDataAtual(agora.toLocaleDateString('pt-BR', opcoes))
-    }
-    atualizarData()
-    const intervalo = setInterval(atualizarData, 60000) // Atualiza a cada minuto
-    return () => clearInterval(intervalo)
   }, [])
 
   useEffect(() => {
@@ -136,7 +120,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
               escola_id: data.usuario.escola_id,
               polo_nome: data.usuario.polo_nome,
               escola_nome: data.usuario.escola_nome,
-              gestor_escolar_habilitado: data.usuario.gestor_escolar_habilitado
+              gestor_escolar_habilitado: data.usuario.gestor_escolar_habilitado,
+              acesso_sisam: data.usuario.acesso_sisam,
+              acesso_gestor: data.usuario.acesso_gestor,
+              acesso_semed: data.usuario.acesso_semed,
+              acesso_transparencia: data.usuario.acesso_transparencia,
+              acesso_admin: data.usuario.acesso_admin,
             })
           } else {
             // Sem sessão válida, tentar usuário offline
@@ -286,7 +275,6 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
         menuDesktopOculto={menuDesktopOculto}
         setMenuDesktopOculto={setMenuDesktopOculto}
         personalizacao={personalizacao}
-        dataAtual={dataAtual}
         modoOffline={modoOffline}
         moduloAtivo={moduloAtivo}
         setModuloAtivo={setModuloAtivo}

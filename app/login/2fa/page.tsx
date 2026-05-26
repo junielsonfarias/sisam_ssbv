@@ -59,6 +59,9 @@ export default function Login2FAPage() {
         escola_id: data.usuario.escola_id,
         acesso_sisam: data.usuario.acesso_sisam,
         acesso_gestor: data.usuario.acesso_gestor,
+        acesso_semed: data.usuario.acesso_semed,
+        acesso_transparencia: data.usuario.acesso_transparencia,
+        acesso_admin: data.usuario.acesso_admin,
       })
 
       // Direcionar conforme tipo

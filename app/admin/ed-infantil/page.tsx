@@ -22,6 +22,7 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useAnoLetivo } from '@/lib/contexts/ano-letivo-context'
 
 type TipoRegistro = 'foto' | 'video' | 'audio' | 'atividade' | 'observacao'
 type CampoExperiencia = 'EOEU' | 'CG' | 'TS' | 'EF' | 'ET'
@@ -159,12 +160,12 @@ function EdInfantilAdmin() {
   const [buscaP, setBuscaP] = useState('')
   const [registroVis, setRegistroVis] = useState<Registro | null>(null)
 
-  // Relatórios
+  // Relatórios — ano sai do contexto global
+  const { anoLetivo: filtroAno, setAnoLetivo: setFiltroAno, anosDisponiveis } = useAnoLetivo()
   const [relatorios, setRelatorios] = useState<Relatorio[]>([])
   const [statsRel, setStatsRel] = useState<StatsRelatorios | null>(null)
   const [carregandoR, setCarregandoR] = useState(false)
   const [filtroEscolaR, setFiltroEscolaR] = useState('')
-  const [filtroAno, setFiltroAno] = useState(String(new Date().getFullYear()))
   const [filtroPeriodo, setFiltroPeriodo] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
   const [buscaR, setBuscaR] = useState('')
@@ -460,15 +461,13 @@ function EdInfantilAdmin() {
                 <option value="">Todas escolas</option>
                 {escolas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
               </select>
-              <input
-                type="number"
-                value={filtroAno}
-                onChange={(e) => setFiltroAno(e.target.value)}
-                placeholder="Ano"
-                min="2020"
-                max="2099"
-                className={`${inputCls} w-24`}
-              />
+              <select value={filtroAno} onChange={(e) => setFiltroAno(e.target.value)} className={inputCls} title="Ano letivo">
+                {anosDisponiveis.map((a) => (
+                  <option key={a.ano} value={a.ano}>
+                    {a.ano}{a.ativo || a.status === 'ativo' ? ' (ativo)' : ''}
+                  </option>
+                ))}
+              </select>
               <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className={inputCls}>
                 <option value="">Todos períodos</option>
                 <option value="semestre_1">1º Semestre</option>

@@ -48,6 +48,12 @@ export interface Usuario {
   acesso_sisam?: boolean;
   /** Acesso ao módulo Gestor Escolar (gestão acadêmica) */
   acesso_gestor?: boolean;
+  /** Acesso ao módulo SEMED (programas federais e recursos) */
+  acesso_semed?: boolean;
+  /** Acesso ao módulo Transparência (site, notícias, ouvidoria) */
+  acesso_transparencia?: boolean;
+  /** Acesso ao módulo Administração (usuários, segurança, logs) */
+  acesso_admin?: boolean;
   /** Data de criação do registro */
   criado_em: Date;
   /** Data da última atualização */

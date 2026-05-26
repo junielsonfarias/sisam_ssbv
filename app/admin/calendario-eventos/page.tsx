@@ -22,6 +22,7 @@ import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
+import { useAnoLetivo } from '@/lib/contexts/ano-letivo-context'
 
 type TipoEvento =
   | 'letivo' | 'feriado_nacional' | 'feriado_estadual' | 'feriado_municipal'
@@ -110,16 +111,26 @@ const INITIAL_FORM: FormState = {
 
 function CalendarioAvancado() {
   const toast = useToast()
+  // Contexto global fornece a lista de anos (com id UUID) + ano selecionado
+  const { anoLetivo: anoGlobal, setAnoLetivo: setAnoGlobal, anosDisponiveis, anoLetivoRef } = useAnoLetivo()
+  // Lista local mantida para compatibilidade do tipo (mesma estrutura)
+  const anosLetivos: AnoLetivo[] = anosDisponiveis
+    .filter((a) => a.id)
+    .map((a) => ({ id: a.id, ano: a.ano }))
 
   const [eventos, setEventos] = useState<Evento[]>([])
   const [estatisticas, setEstatisticas] = useState<Estatisticas | null>(null)
-  const [anosLetivos, setAnosLetivos] = useState<AnoLetivo[]>([])
   const [escolas, setEscolas] = useState<Escola[]>([])
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
 
-  // Filtros
-  const [filtroAno, setFiltroAno] = useState('')
+  // filtroAno = ID UUID do ano (derivado do contexto)
+  const filtroAno = anoLetivoRef?.id || ''
+  const setFiltroAno = (id: string) => {
+    const found = anosLetivos.find((a) => a.id === id)
+    if (found) setAnoGlobal(found.ano)
+  }
+
   const [filtroTipo, setFiltroTipo] = useState('')
   const [filtroEscola, setFiltroEscola] = useState('')
   const [filtroMes, setFiltroMes] = useState('')
@@ -132,30 +143,22 @@ function CalendarioAvancado() {
   // Confirmação de exclusão
   const [excluindo, setExcluindo] = useState<Evento | null>(null)
 
-  // Carregar dados de referência
+  // Carregar escolas
   useEffect(() => {
     const controller = new AbortController()
-    Promise.all([
-      fetch('/api/admin/anos-letivos', { signal: controller.signal }).then((r) => r.json()),
-      fetch('/api/admin/escolas', { signal: controller.signal }).then((r) => r.json()),
-    ])
-      .then(([anos, escs]) => {
-        const anosArr: AnoLetivo[] = (Array.isArray(anos) ? anos : []).map((a: { id: string; ano: string | number }) => ({
-          id: a.id, ano: String(a.ano),
-        }))
-        setAnosLetivos(anosArr)
-        setEscolas(Array.isArray(escs) ? escs : [])
-        // pré-selecionar ano atual ou primeiro disponível
-        const anoAtual = String(new Date().getFullYear())
-        const found = anosArr.find((a) => a.ano === anoAtual) || anosArr[0]
-        if (found) {
-          setFiltroAno(found.id)
-          setForm((f) => ({ ...f, ano_letivo_id: found.id }))
-        }
-      })
-      .catch((e) => { if ((e as Error).name !== 'AbortError') console.error('[CalEvt] ref', e) })
+    fetch('/api/admin/escolas', { signal: controller.signal })
+      .then((r) => r.json())
+      .then((d) => setEscolas(Array.isArray(d) ? d : []))
+      .catch((e) => { if ((e as Error).name !== 'AbortError') console.error('[CalEvt] escolas', e) })
     return () => controller.abort()
   }, [])
+
+  // Sincronizar form.ano_letivo_id com a seleção global
+  useEffect(() => {
+    if (filtroAno) {
+      setForm((f) => ({ ...f, ano_letivo_id: filtroAno }))
+    }
+  }, [filtroAno])
 
   const carregar = useCallback(async (signal?: AbortSignal) => {
     setCarregando(true)

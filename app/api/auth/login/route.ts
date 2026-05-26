@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       }
       
       result = await pool.query(
-        'SELECT id, nome, email, senha, tipo_usuario, polo_id, escola_id, ativo, acesso_sisam, acesso_gestor FROM usuarios WHERE email = $1 AND ativo = true',
+        'SELECT id, nome, email, senha, tipo_usuario, polo_id, escola_id, ativo, acesso_sisam, acesso_gestor, acesso_semed, acesso_transparencia, acesso_admin FROM usuarios WHERE email = $1 AND ativo = true',
         [email.toLowerCase()]
       )
     } catch (dbError: any) {
@@ -299,6 +299,9 @@ export async function POST(request: NextRequest) {
         gestor_escolar_habilitado: gestorEscolarHabilitado,
         acesso_sisam: usuario.acesso_sisam !== false,
         acesso_gestor: usuario.acesso_gestor === true,
+        acesso_semed: usuario.acesso_semed === true,
+        acesso_transparencia: usuario.acesso_transparencia === true,
+        acesso_admin: usuario.acesso_admin === true,
       },
     }
     

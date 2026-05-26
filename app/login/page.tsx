@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogIn, Eye, EyeOff, WifiOff, Database, CheckCircle, GraduationCap, ArrowLeft } from 'lucide-react'
+import { LogIn, Eye, EyeOff, WifiOff, CheckCircle, GraduationCap, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import Rodape from '@/components/rodape'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
@@ -20,8 +20,6 @@ export default function LoginPage() {
   const [carregando, setCarregando] = useState(false)
   const [verificandoOffline, setVerificandoOffline] = useState(true)
   const [modoOffline, setModoOffline] = useState(false)
-  const [sincronizando, setSincronizando] = useState(false)
-  const [etapaSincronizacao, setEtapaSincronizacao] = useState('')
 
   // Usar valores fixos do codigo (sem chamar API)
   const personalizacao = getPersonalizacaoLogin()
@@ -167,28 +165,22 @@ export default function LoginPage() {
         gestor_escolar_habilitado: data.usuario.gestor_escolar_habilitado,
         acesso_sisam: data.usuario.acesso_sisam,
         acesso_gestor: data.usuario.acesso_gestor,
+        acesso_semed: data.usuario.acesso_semed,
+        acesso_transparencia: data.usuario.acesso_transparencia,
+        acesso_admin: data.usuario.acesso_admin,
       })
 
-      // Limpar cache antigo e sincronizar novos dados
+      // Limpar cache antigo (sincrono — leve)
+      clearCache()
+
+      // Disparar sincronização em background — NÃO bloqueia o redirecionamento.
+      // Páginas que precisam dos dados fazem fetch próprio se o cache ainda não chegou.
+      syncDashboardData(userId, data.usuario.tipo_usuario).catch(() => {
+        // Falha silenciosa: não atrapalha a navegação. Cache fica vazio e
+        // cada página busca seus dados sob demanda no primeiro acesso.
+      })
+
       setCarregando(false)
-      setSincronizando(true)
-      setEtapaSincronizacao('Preparando sincronização...')
-
-      try {
-        // Limpar cache antigo
-        clearCache()
-
-        // Sincronizar dados do dashboard
-        setEtapaSincronizacao('Carregando dados do sistema...')
-        await syncDashboardData(userId, data.usuario.tipo_usuario)
-
-        setEtapaSincronizacao('Sincronização concluída!')
-        await new Promise(resolve => setTimeout(resolve, 500)) // Mostrar mensagem por 500ms
-      } catch (syncError) {
-        // Não bloquear o login se a sincronização falhar
-      }
-
-      setSincronizando(false)
 
       // Polo vai direto (sem tela de módulos)
       if (data.usuario.tipo_usuario === 'polo') {
@@ -212,7 +204,6 @@ export default function LoginPage() {
     } catch (error) {
       setErro('Erro ao conectar com o servidor. Verifique sua conexão.')
       setCarregando(false)
-      setSincronizando(false)
     }
   }
 
@@ -223,46 +214,6 @@ export default function LoginPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-300">Verificando sessão...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Mostrar tela de sincronização
-  if (sincronizando) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
-        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-xl dark:shadow-slate-900/50 max-w-md w-full mx-4 border border-gray-200 dark:border-slate-700">
-          <div className="text-center">
-            {/* Ícone animado */}
-            <div className="relative mx-auto w-20 h-20 mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-slate-700"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 dark:border-t-indigo-400 animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Database className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-
-            {/* Título */}
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Sincronizando Dados
-            </h2>
-
-            {/* Etapa atual */}
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              {etapaSincronizacao}
-            </p>
-
-            {/* Barra de progresso animada */}
-            <div className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-pulse" style={{ width: '100%' }}></div>
-            </div>
-
-            {/* Mensagem */}
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-              Preparando o sistema para você...
-            </p>
-          </div>
         </div>
       </div>
     )

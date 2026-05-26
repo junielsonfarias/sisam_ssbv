@@ -14,6 +14,7 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useAnoLetivo } from '@/lib/contexts/ano-letivo-context'
 
 interface Escola {
   id: string
@@ -57,8 +58,8 @@ const TIPOS_EXPORT = [
 
 function CensoEscolarAdmin() {
   const toast = useToast()
+  const { anoLetivo: ano, setAnoLetivo: setAno, anosDisponiveis } = useAnoLetivo()
   const [escolas, setEscolas] = useState<Escola[]>([])
-  const [ano, setAno] = useState(String(new Date().getFullYear()))
   const [escolaId, setEscolaId] = useState('')
   const [baixando, setBaixando] = useState<string | null>(null)
   const [kpis, setKpis] = useState<KpiCenso | null>(null)
@@ -162,7 +163,11 @@ function CensoEscolarAdmin() {
           <div>
             <label className="text-xs font-medium text-gray-500 mb-1 block">Ano letivo</label>
             <select value={ano} onChange={(e) => setAno(e.target.value)} className={inputCls}>
-              {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
+              {anosDisponiveis.map((a) => (
+                <option key={a.ano} value={a.ano}>
+                  {a.ano}{a.ativo || a.status === 'ativo' ? ' (ativo)' : ''}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-[240px]">

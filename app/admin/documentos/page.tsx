@@ -22,6 +22,7 @@ import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
+import { useAnoLetivo } from '@/lib/contexts/ano-letivo-context'
 
 interface DocumentoEmitido {
   id: string
@@ -129,8 +130,9 @@ function DocumentosAdmin() {
   const [alunoSelecionado, setAlunoSelecionado] = useState<AlunoBusca | null>(null)
   const buscaAlunoAbortRef = useRef<AbortController | null>(null)
 
-  // Campos por tipo
-  const [anoLetivoEmitir, setAnoLetivoEmitir] = useState(String(new Date().getFullYear()))
+  // Ano letivo padrão vem do contexto global, mas pode ser alterado por emissão
+  const { anoLetivo: anoGlobal, anosDisponiveis } = useAnoLetivo()
+  const [anoLetivoEmitir, setAnoLetivoEmitir] = useState(anoGlobal)
   const [tipoDeclaracao, setTipoDeclaracao] = useState<'matricula' | 'frequencia' | 'conclusao'>('matricula')
   const [serieConcluida, setSerieConcluida] = useState('')
   const [tipoTransferencia, setTipoTransferencia] = useState<'guia_transferencia' | 'declaracao_transferencia'>('guia_transferencia')
@@ -202,7 +204,7 @@ function DocumentosAdmin() {
     setAlunoSelecionado(null)
     setBuscaAluno('')
     setAlunosResult([])
-    setAnoLetivoEmitir(String(new Date().getFullYear()))
+    setAnoLetivoEmitir(anoGlobal)
     setTipoDeclaracao('matricula')
     setSerieConcluida('')
     setTipoTransferencia('guia_transferencia')
@@ -620,7 +622,11 @@ function DocumentosAdmin() {
                         <div>
                           <label className="text-xs font-medium text-gray-500 mb-1 block">Ano letivo</label>
                           <select value={anoLetivoEmitir} onChange={(e) => setAnoLetivoEmitir(e.target.value)} className={`${inputCls} w-full`}>
-                            {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
+                            {anosDisponiveis.map((a) => (
+                              <option key={a.ano} value={a.ano}>
+                                {a.ano}{a.ativo || a.status === 'ativo' ? ' (ativo)' : ''}
+                              </option>
+                            ))}
                           </select>
                         </div>
                       </div>
@@ -652,7 +658,11 @@ function DocumentosAdmin() {
                         <div>
                           <label className="text-xs font-medium text-gray-500 mb-1 block">Ano letivo</label>
                           <select value={anoLetivoEmitir} onChange={(e) => setAnoLetivoEmitir(e.target.value)} className={`${inputCls} w-full`}>
-                            {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
+                            {anosDisponiveis.map((a) => (
+                              <option key={a.ano} value={a.ano}>
+                                {a.ano}{a.ativo || a.status === 'ativo' ? ' (ativo)' : ''}
+                              </option>
+                            ))}
                           </select>
                         </div>
                       </div>

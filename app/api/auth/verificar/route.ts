@@ -73,6 +73,9 @@ export async function GET(request: NextRequest) {
         gestor_escolar_habilitado: gestorEscolarHabilitado,
         acesso_sisam: usuario.acesso_sisam !== false,
         acesso_gestor: usuario.acesso_gestor === true,
+        acesso_semed: usuario.acesso_semed === true,
+        acesso_transparencia: usuario.acesso_transparencia === true,
+        acesso_admin: usuario.acesso_admin === true,
         ...(usuario.tipo_usuario === 'professor' && { professor_escolas: professorEscolas }),
       },
     })

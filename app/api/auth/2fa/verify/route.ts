@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Buscar dados completos do usuário para emitir JWT principal
     const result = await pool.query(
-      `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, acesso_sisam, acesso_gestor
+      `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo, acesso_sisam, acesso_gestor, acesso_semed, acesso_transparencia, acesso_admin
          FROM usuarios
         WHERE id = $1 AND ativo = true
         LIMIT 1`,
@@ -109,6 +109,9 @@ export async function POST(request: NextRequest) {
           escola_id: usuario.escola_id,
           acesso_sisam: usuario.acesso_sisam !== false,
           acesso_gestor: usuario.acesso_gestor === true,
+          acesso_semed: usuario.acesso_semed === true,
+          acesso_transparencia: usuario.acesso_transparencia === true,
+          acesso_admin: usuario.acesso_admin === true,
         },
         usouBackup: verif.usouBackup,
       },

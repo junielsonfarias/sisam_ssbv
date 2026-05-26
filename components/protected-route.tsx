@@ -112,7 +112,13 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
                 polo_id: data.usuario.polo_id,
                 escola_id: data.usuario.escola_id,
                 polo_nome: data.usuario.polo_nome,
-                escola_nome: data.usuario.escola_nome
+                escola_nome: data.usuario.escola_nome,
+                gestor_escolar_habilitado: data.usuario.gestor_escolar_habilitado,
+                acesso_sisam: data.usuario.acesso_sisam,
+                acesso_gestor: data.usuario.acesso_gestor,
+                acesso_semed: data.usuario.acesso_semed,
+                acesso_transparencia: data.usuario.acesso_transparencia,
+                acesso_admin: data.usuario.acesso_admin,
               })
               setAutorizado(true)
               authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey, userId: currentUserId }

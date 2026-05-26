@@ -16,6 +16,7 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useAnoLetivo } from '@/lib/contexts/ano-letivo-context'
 
 interface Avaliacao {
   id: string
@@ -81,7 +82,7 @@ function AvaliacoesDescritivasAdmin() {
   const [carregando, setCarregando] = useState(true)
 
   // Filtros
-  const [filtroAno, setFiltroAno] = useState(String(new Date().getFullYear()))
+  const { anoLetivo: filtroAno, setAnoLetivo: setFiltroAno, anosDisponiveis } = useAnoLetivo()
   const [filtroEscola, setFiltroEscola] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
   const [filtroConceito, setFiltroConceito] = useState('')
@@ -192,16 +193,13 @@ function AvaliacoesDescritivasAdmin() {
               className={`${inputCls} w-full pl-9`}
             />
           </div>
-          <input
-            type="number"
-            value={filtroAno}
-            onChange={(e) => setFiltroAno(e.target.value)}
-            min="2020"
-            max="2099"
-            placeholder="Ano"
-            className={`${inputCls} w-24`}
-            title="Ano letivo"
-          />
+          <select value={filtroAno} onChange={(e) => setFiltroAno(e.target.value)} className={inputCls} title="Ano letivo">
+            {anosDisponiveis.map((a) => (
+              <option key={a.ano} value={a.ano}>
+                {a.ano}{a.ativo || a.status === 'ativo' ? ' (ativo)' : ''}
+              </option>
+            ))}
+          </select>
           <select value={filtroEscola} onChange={(e) => setFiltroEscola(e.target.value)} className={inputCls}>
             <option value="">Todas escolas</option>
             {escolas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useAnoLetivo } from '@/lib/contexts/ano-letivo-context'
 
 interface KpisCompletos {
   gerais: any
@@ -18,9 +19,9 @@ interface KpisCompletos {
 }
 
 export default function DashboardSemedPage() {
+  const { anoLetivo: ano, setAnoLetivo: setAno, anosDisponiveis } = useAnoLetivo()
   const [kpis, setKpis] = useState<KpisCompletos | null>(null)
   const [carregando, setCarregando] = useState(true)
-  const [ano, setAno] = useState(String(new Date().getFullYear()))
 
   useEffect(() => { carregar() }, [ano])
 
@@ -66,7 +67,11 @@ export default function DashboardSemedPage() {
             onChange={(e) => setAno(e.target.value)}
             className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
           >
-            {[2024, 2025, 2026].map((a) => <option key={a} value={a}>{a}</option>)}
+            {anosDisponiveis.map((a) => (
+              <option key={a.ano} value={a.ano}>
+                {a.ano}{a.ativo || a.status === 'ativo' ? ' (ativo)' : ''}
+              </option>
+            ))}
           </select>
         </header>
 

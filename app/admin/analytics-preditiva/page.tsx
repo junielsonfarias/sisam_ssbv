@@ -19,6 +19,7 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useAnoLetivo } from '@/lib/contexts/ano-letivo-context'
 
 type NivelRisco = 'baixo' | 'medio' | 'alto'
 
@@ -83,9 +84,9 @@ function AnalyticsPreditiva() {
   const [carregandoStats, setCarregandoStats] = useState(false)
   const [calculou, setCalculou] = useState(false)
 
-  // Filtros
+  // Filtros — ano vem do contexto global
+  const { anoLetivo: filtroAno, setAnoLetivo: setFiltroAno, anosDisponiveis } = useAnoLetivo()
   const [filtroEscola, setFiltroEscola] = useState('')
-  const [filtroAno, setFiltroAno] = useState(String(new Date().getFullYear()))
   const [filtroNivel, setFiltroNivel] = useState<'' | NivelRisco>('medio')
   const [filtroLimite, setFiltroLimite] = useState('100')
   const [busca, setBusca] = useState('')
@@ -214,14 +215,13 @@ function AnalyticsPreditiva() {
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1 block">Ano</label>
-            <input
-              type="number"
-              value={filtroAno}
-              onChange={(e) => setFiltroAno(e.target.value)}
-              min="2020"
-              max="2099"
-              className={`${inputCls} w-24`}
-            />
+            <select value={filtroAno} onChange={(e) => setFiltroAno(e.target.value)} className={inputCls}>
+              {anosDisponiveis.map((a) => (
+                <option key={a.ano} value={a.ano}>
+                  {a.ano}{a.ativo || a.status === 'ativo' ? ' (ativo)' : ''}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1 block">Escola</label>
