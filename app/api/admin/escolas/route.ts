@@ -178,9 +178,10 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     if (!validacao.success) return validacao.response
     const body = validacao.data as Record<string, string | number | boolean | null | undefined>
 
-    // All allowed fields for INSERT (base + INEP)
+    // All allowed fields for INSERT (base + INEP + logo)
     const allowedFields = [
       'nome', 'codigo', 'polo_id', 'endereco', 'telefone', 'email', 'gestor_escolar_habilitado',
+      'logo_url',
       // INEP - Identificação
       'codigo_inep', 'situacao_funcionamento', 'dependencia_administrativa',
       'categoria_escola', 'localizacao', 'localizacao_diferenciada',

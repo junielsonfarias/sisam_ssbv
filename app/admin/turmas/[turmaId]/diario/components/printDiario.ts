@@ -110,7 +110,7 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
     // Se a escola nao tem logo cadastrada, ocupa o slot com o nome em texto
     // estilizado para nao deixar o cabecalho desbalanceado.
     const escolaSlot = logoEscola
-      ? `<img class="logo-img" src="${logoEscola}" alt="Logo da escola" onerror="this.style.display='none'"/>`
+      ? `<img class="logo-img" src="${escapeHtml(logoEscola)}" alt="Logo da escola" onerror="this.style.display='none'"/>`
       : `<div class="escola-nome-tag">${escapeHtml(turma.escola_nome)}</div>`
 
     return `

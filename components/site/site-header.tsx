@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Menu, X, ArrowRight, ChevronDown, Search } from 'lucide-react'
+import { Menu, X, ArrowRight, ChevronDown, Search, Accessibility } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import SiteSearch from '@/components/site/site-search'
@@ -26,7 +26,6 @@ interface SiteHeaderProps {
   faqPerguntas?: Array<{ pergunta: string; resposta: string }>
 }
 
-// Menu padrão caso não haja configuração no banco
 const defaultMenuItems: MenuItem[] = [
   { label: 'Sobre', href: '#sobre' },
   {
@@ -58,7 +57,6 @@ export default function SiteHeader({ data, menuData, escolas = [], faqPerguntas 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null)
 
-  // Atalho Ctrl+K / Cmd+K para abrir busca
   const handleAtalhosBusca = useCallback((e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault()
@@ -71,11 +69,9 @@ export default function SiteHeader({ data, menuData, escolas = [], faqPerguntas 
     return () => window.removeEventListener('keydown', handleAtalhosBusca)
   }, [handleAtalhosBusca])
 
-  // Configuração do menu dinâmico
   const logoSemedUrl = menuData?.logo_semed_url || '/'
   const logoPrefeituraUrl = menuData?.logo_prefeitura_url || 'https://saosebastiaodaboavista.pa.gov.br'
 
-  // Itens do menu: do banco (filtrados por visível) ou fallback
   const rawItems = menuData?.items?.length ? menuData.items : defaultMenuItems
   const desktopNav = rawItems
     .filter(item => item.visivel !== false)
@@ -87,7 +83,6 @@ export default function SiteHeader({ data, menuData, escolas = [], faqPerguntas 
         .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)) || [],
     }))
 
-  // Menu mobile: lista plana com itens + filhos
   const mobileNav = desktopNav.reduce<MenuItem[]>((acc, item) => {
     acc.push(item)
     if (item.children?.length) {
@@ -274,6 +269,9 @@ export default function SiteHeader({ data, menuData, escolas = [], faqPerguntas 
             >
               <Search className="w-5 h-5" />
             </button>
+            <button onClick={() => window.dispatchEvent(new Event('sisam:abrir-acessibilidade'))} className="p-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" aria-label="Abrir painel de acessibilidade" title="Acessibilidade — fonte, contraste e movimento">
+              <Accessibility className="w-5 h-5" />
+            </button>
             <Link
               href="/login"
               className="ml-1 inline-flex items-center gap-2 px-5 lg:px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-800 text-white hover:bg-blue-900 shadow-lg shadow-blue-800/20 hover:shadow-blue-800/30 transition-all duration-300"
@@ -283,7 +281,7 @@ export default function SiteHeader({ data, menuData, escolas = [], faqPerguntas 
             </Link>
           </nav>
 
-          {/* Mobile: Busca + Menu */}
+          {/* Mobile: Busca + Acessibilidade + Menu */}
           <div className="md:hidden flex items-center gap-1">
             <button
               onClick={() => setBuscaAberta(true)}
@@ -291,6 +289,9 @@ export default function SiteHeader({ data, menuData, escolas = [], faqPerguntas 
               aria-label="Buscar no site"
             >
               <Search className="w-5 h-5" />
+            </button>
+            <button onClick={() => window.dispatchEvent(new Event('sisam:abrir-acessibilidade'))} className="p-2.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Abrir painel de acessibilidade" title="Acessibilidade">
+              <Accessibility className="w-5 h-5" />
             </button>
             <button
               onClick={() => setMenuOpen(!menuOpen)}

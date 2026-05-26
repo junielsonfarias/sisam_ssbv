@@ -62,7 +62,7 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
 
   function headerHtml(subtitulo: string): string {
     const escolaSlot = logoEscola
-      ? `<img class="logo-img" src="${logoEscola}" alt="Logo da escola" onerror="this.style.display='none'"/>`
+      ? `<img class="logo-img" src="${escapeHtml(logoEscola)}" alt="Logo da escola" onerror="this.style.display='none'"/>`
       : `<div class="escola-nome-tag">${escapeHtml(turma.escola_nome)}</div>`
     return `
       <header class="page-header">
