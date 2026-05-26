@@ -1,6 +1,7 @@
 import type {
   DiarioPayload, Tipo, FrequenciaLinha, NotaLinha, ConteudoLinha,
 } from './types'
+import { PRINT_DIARIO_CSS, PRINT_DIARIO_AUTOFIT_JS } from './printDiarioAssets'
 
 const MESES_PT = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -173,10 +174,10 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
     if (filtroPeriodoSelecionado) {
       const subtitulo = `Frequência — ${periodo?.nome ?? 'período selecionado'} · ${frequencia.length} aluno(s)`
       return `
-        <section class="page">
+        <section class="page"><div class="page-inner">
           ${headerHtml(subtitulo)}
           ${tabelaFrequencia(frequencia, false)}
-        </section>`
+        </div></section>`
     }
 
     // Consolidado: agrupa por periodo_numero (ou "sem periodo")
@@ -189,10 +190,10 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
         : (linhas[0]?.periodo_nome || `${per}º período`)
       const subtitulo = `Frequência — ${nomePeriodo} · ${linhas.length} aluno(s)`
       return `
-        <section class="page">
+        <section class="page"><div class="page-inner">
           ${headerHtml(subtitulo)}
           ${tabelaFrequencia(linhas, false)}
-        </section>`
+        </div></section>`
     }).join('')
   }
 
@@ -255,10 +256,10 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
     if (filtroPeriodoSelecionado) {
       const subtitulo = `Notas — ${periodo?.nome ?? 'período selecionado'} · ${validas.length} lançamento(s)`
       return `
-        <section class="page">
+        <section class="page"><div class="page-inner">
           ${headerHtml(subtitulo)}
           ${tabelaNotas(validas, false)}
-        </section>`
+        </div></section>`
     }
 
     const grupos = agrupar(validas, n => n.periodo_numero ?? -1)
@@ -270,10 +271,10 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
         : (linhas[0]?.periodo_nome || `${per}º período`)
       const subtitulo = `Notas — ${nomePeriodo} · ${linhas.length} lançamento(s)`
       return `
-        <section class="page">
+        <section class="page"><div class="page-inner">
           ${headerHtml(subtitulo)}
           ${tabelaNotas(linhas, false)}
-        </section>`
+        </div></section>`
     }).join('')
   }
 
@@ -300,10 +301,10 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
     if (filtroPeriodoSelecionado) {
       const subtitulo = `Conteúdo — ${periodo?.nome ?? 'período selecionado'} · ${conteudo.length} aula(s)`
       return `
-        <section class="page">
+        <section class="page"><div class="page-inner">
           ${headerHtml(subtitulo)}
           ${listaConteudo(conteudo)}
-        </section>`
+        </div></section>`
     }
 
     // Agrupa por mes civil (YYYY-MM) usando data_aula
@@ -315,10 +316,10 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
       const nomeMes = MESES_PT[parseInt(mes, 10) - 1]
       const subtitulo = `Conteúdo — ${nomeMes} / ${ano} · ${aulas.length} aula(s)`
       return `
-        <section class="page">
+        <section class="page"><div class="page-inner">
           ${headerHtml(subtitulo)}
           ${listaConteudo(aulas)}
-        </section>`
+        </div></section>`
     }).join('')
   }
 
@@ -333,59 +334,15 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
 <head>
 <meta charset="UTF-8">
 <title>Diário — ${tituloTurma}</title>
-<style>
-  @page { size: A4 landscape; margin: 8mm; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1f2937; font-size: 10px; }
-
-  .page { page-break-after: always; }
-  .page:last-child { page-break-after: auto; }
-
-  /* Header compacto (3 linhas: brand+meta / titulo+info / pill+profs) */
-  .page-header { border-bottom: 2px solid #4f46e5; padding-bottom: 4px; margin-bottom: 8px; }
-  .page-header-row1 { display: flex; justify-content: space-between; font-size: 8px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
-  .page-header-row2 { display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px; }
-  .page-header-row2 h1 { font-size: 14px; font-weight: 700; color: #111827; }
-  .page-header-row2 .info { display: flex; gap: 12px; font-size: 9px; color: #4b5563; }
-  .page-header-row2 .info b { color: #111827; font-weight: 600; }
-  .page-header-row3 { display: flex; gap: 10px; margin-top: 4px; align-items: center; font-size: 9px; color: #4b5563; }
-  .page-header-row3 .pill { background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-  .page-header-row3 .profs { color: #4b5563; }
-  .page-header-row3 .profs b { color: #111827; }
-
-  /* Tabelas: compactas, com cores zebradas e bordas finas */
-  table { width: 100%; border-collapse: collapse; font-size: 9.5px; table-layout: fixed; }
-  th { background: #f3f4f6; color: #4b5563; font-weight: 700; text-align: left; padding: 3px 6px; border-bottom: 1.5px solid #d1d5db; font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.03em; }
-  td { padding: 2.5px 6px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  tr:nth-child(even) td { background: #fafafa; }
-  th.center, td.center { text-align: center; }
-  th.right, td.right { text-align: right; }
-  td.num { color: #9ca3af; }
-  td.aluno { color: #111827; }
-  td.lancado { color: #9ca3af; font-size: 8.5px; }
-
-  /* Conteudo: artigos por aula */
-  .aula { border-left: 3px solid #4f46e5; background: #fafafa; padding: 6px 10px; margin-bottom: 6px; page-break-inside: avoid; border-radius: 3px; }
-  .aula-hdr { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; font-size: 9px; }
-  .aula-data { background: #4f46e5; color: white; padding: 1px 6px; border-radius: 3px; font-weight: 600; font-size: 8.5px; }
-  .aula-disc { background: #e5e7eb; color: #374151; padding: 1px 6px; border-radius: 3px; font-size: 8.5px; font-weight: 500; }
-  .aula-prof { color: #6b7280; font-size: 8.5px; }
-  .aula-bloco { font-size: 9px; color: #374151; line-height: 1.35; margin-top: 1px; }
-  .aula-bloco b { color: #4b5563; }
-
-  .sem-dados { background: #fef3c7; color: #92400e; padding: 16px; border-radius: 6px; text-align: center; font-size: 11px; font-weight: 500; }
-
-  /* Evitar quebra de linha no meio da row da tabela */
-  thead { display: table-header-group; }
-  tr { page-break-inside: avoid; }
-</style>
+<style>${PRINT_DIARIO_CSS}</style>
 </head>
 <body>
   ${semDados
-    ? '<section class="page"><div class="sem-dados">Nenhum lançamento encontrado para os filtros selecionados.</div></section>'
+    ? '<section class="page"><div class="page-inner"><div class="sem-dados">Nenhum lançamento encontrado para os filtros selecionados.</div></div></section>'
     : paginas}
-  <script>window.onload = function() { window.print(); }<\/script>
+  <script>${PRINT_DIARIO_AUTOFIT_JS}<\/script>
 </body>
 </html>`)
+
   printWindow.document.close()
 }
