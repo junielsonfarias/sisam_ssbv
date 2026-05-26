@@ -116,7 +116,7 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
       return `
         <tr>
           <td class="col-num">${i + 1}</td>
-          <td class="col-nome" title="${escapeHtml(a.nome)}">${escapeHtml(abreviarNome(a.nome, 22))}</td>
+          <td class="col-nome" title="${escapeHtml(a.nome)}">${escapeHtml(abreviarNome(a.nome))}</td>
           ${celulasHtml}
           <td class="col-total p">${a.totais.presencas}</td>
           <td class="col-total f">${a.totais.faltas}</td>
@@ -133,11 +133,11 @@ export function imprimirDiarioDetalhado(payload: DiarioDetalhadoPayload) {
         <table class="tbl-detalhado">
           <colgroup>
             <col style="width:28px"/>
-            <col style="width:170px"/>
+            <col style="width:220px"/>
             ${dias.map(() => '<col/>').join('')}
-            <col style="width:32px"/>
-            <col style="width:32px"/>
-            <col style="width:32px"/>
+            <col style="width:30px"/>
+            <col style="width:30px"/>
+            <col style="width:30px"/>
           </colgroup>
           <thead>
             <tr>
