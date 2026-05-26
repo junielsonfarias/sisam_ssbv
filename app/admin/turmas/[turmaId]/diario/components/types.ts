@@ -20,6 +20,7 @@ export interface TurmaInfo {
   ano_letivo: string
   escola_id: string
   escola_nome: string
+  escola_logo_url: string | null
   sensivel: boolean
 }
 

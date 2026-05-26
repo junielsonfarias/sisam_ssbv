@@ -17,13 +17,26 @@ export const PRINT_DIARIO_CSS = `
   .page:last-child { page-break-after: auto; }
   .page-inner { transform-origin: top left; width: 100%; }
 
-  /* Header confortavel (3 linhas) */
+  /* Header com 3 logos (prefeitura | SEMED | escola) + titulo + subtitulo */
   .page-header { border-bottom: 2px solid #4f46e5; padding-bottom: 6px; margin-bottom: 10px; }
-  .page-header-row1 { display: flex; justify-content: space-between; font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
-  .page-header-row2 { display: flex; justify-content: space-between; align-items: baseline; margin-top: 3px; gap: 12px; }
-  .page-header-row2 h1 { font-size: 16px; font-weight: 700; color: #111827; white-space: nowrap; }
-  .page-header-row2 .info { display: flex; gap: 12px; font-size: 11px; color: #4b5563; flex-wrap: wrap; justify-content: flex-end; }
-  .page-header-row2 .info b { color: #111827; font-weight: 600; }
+
+  /* Linha 1: as 3 logos lado a lado */
+  .page-header-logos { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: end; gap: 12px; padding-bottom: 6px; }
+  .logo-slot { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+  .logo-slot.left { align-items: flex-start; text-align: left; }
+  .logo-slot.right { align-items: flex-end; text-align: right; }
+  .logo-img { max-height: 48px; max-width: 100%; object-fit: contain; }
+  .logo-cap { font-size: 8px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.2; max-width: 100%; }
+  .escola-nome-tag { font-size: 11px; font-weight: 700; color: #4338ca; padding: 12px 10px; background: #eef2ff; border-radius: 4px; max-width: 100%; line-height: 1.1; }
+
+  /* Linha 2: titulo + info da turma */
+  .page-header-titulo { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; gap: 12px; padding-top: 4px; border-top: 1px solid #e5e7eb; }
+  .page-header-titulo h1 { font-size: 16px; font-weight: 700; color: #111827; white-space: nowrap; }
+  .page-header-titulo .info { display: flex; gap: 12px; font-size: 11px; color: #4b5563; flex-wrap: wrap; justify-content: flex-end; }
+  .page-header-titulo .info b { color: #111827; font-weight: 600; }
+  .page-header-titulo .info .meta { color: #9ca3af; font-size: 9px; text-transform: uppercase; }
+
+  /* Linha 3: pill com subtitulo da pagina + professores */
   .page-header-row3 { display: flex; gap: 12px; margin-top: 5px; align-items: center; font-size: 11px; color: #4b5563; }
   .page-header-row3 .pill { background: #eef2ff; color: #4338ca; padding: 2px 10px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
   .page-header-row3 .profs { color: #4b5563; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -122,11 +135,27 @@ export const PRINT_DIARIO_AUTOFIT_JS = `
     });
   }
 
+  // Espera todas as imagens carregarem antes de medir/imprimir. Se uma
+  // imagem falhar (onerror), conta como "carregada" para nao bloquear.
+  function aguardarImagens() {
+    var imgs = Array.prototype.slice.call(document.images);
+    if (imgs.length === 0) return Promise.resolve();
+    return Promise.all(imgs.map(function(img) {
+      if (img.complete) return Promise.resolve();
+      return new Promise(function(resolve) {
+        img.addEventListener('load', resolve);
+        img.addEventListener('error', resolve);
+      });
+    }));
+  }
+
   window.onload = function() {
     classificarDensidades();
-    requestAnimationFrame(function() {
-      fitToFill();
-      setTimeout(function() { window.print(); }, 50);
+    aguardarImagens().then(function() {
+      requestAnimationFrame(function() {
+        fitToFill();
+        setTimeout(function() { window.print(); }, 50);
+      });
     });
   };
 `

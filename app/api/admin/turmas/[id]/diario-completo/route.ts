@@ -50,7 +50,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     // 1) Buscar turma + escola e validar permissão (escola só vê suas turmas)
     const turmaRes = await pool.query(
       `SELECT t.id, t.codigo, t.nome, t.serie, t.turno, t.ano_letivo, t.sensivel,
-              e.id as escola_id, e.nome as escola_nome
+              e.id as escola_id, e.nome as escola_nome, e.logo_url as escola_logo_url
          FROM turmas t
          JOIN escolas e ON e.id = t.escola_id
         WHERE t.id = $1`,
@@ -133,6 +133,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
         ano_letivo: turma.ano_letivo,
         escola_id: turma.escola_id,
         escola_nome: turma.escola_nome,
+        escola_logo_url: turma.escola_logo_url,
         sensivel: turma.sensivel,
       },
       periodo,

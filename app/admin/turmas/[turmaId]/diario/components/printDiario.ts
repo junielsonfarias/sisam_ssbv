@@ -81,6 +81,16 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
 
   const tituloTurma = `${escapeHtml(turma.codigo)}${turma.nome ? ' (' + escapeHtml(turma.nome) + ')' : ''}`
 
+  // URLs absolutas para as logos. O popup (window.open('', ...)) nao tem
+  // base URL propria, entao caminhos relativos como "/logo.png" nao
+  // resolveriam. Prefixamos com window.location.origin.
+  const baseUrl = window.location.origin
+  const logoPrefeitura = `${baseUrl}/logo-prefeitura.png`
+  const logoSemed = `${baseUrl}/logo-semed.png`
+  const logoEscola = turma.escola_logo_url
+    ? (turma.escola_logo_url.startsWith('http') ? turma.escola_logo_url : `${baseUrl}${turma.escola_logo_url}`)
+    : null
+
   const professoresStr = professores.length === 0
     ? 'Nenhum professor vinculado'
     : professores.map(p => {
@@ -96,19 +106,36 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
   // chamando a funcao headerHtml(subtitulo).
   // ============================================================================
   function headerHtml(subtitulo: string): string {
+    // 3 logos no topo: prefeitura (esq), SEMED (centro), escola (dir, se houver)
+    // Se a escola nao tem logo cadastrada, ocupa o slot com o nome em texto
+    // estilizado para nao deixar o cabecalho desbalanceado.
+    const escolaSlot = logoEscola
+      ? `<img class="logo-img" src="${logoEscola}" alt="Logo da escola" onerror="this.style.display='none'"/>`
+      : `<div class="escola-nome-tag">${escapeHtml(turma.escola_nome)}</div>`
+
     return `
       <header class="page-header">
-        <div class="page-header-row1">
-          <div class="brand">SEMED — São Sebastião da Boa Vista</div>
-          <div class="meta">Página gerada em ${new Date().toLocaleDateString('pt-BR')}</div>
+        <div class="page-header-logos">
+          <div class="logo-slot left">
+            <img class="logo-img" src="${logoPrefeitura}" alt="Prefeitura Municipal" onerror="this.style.display='none'"/>
+            <div class="logo-cap">Prefeitura Municipal</div>
+          </div>
+          <div class="logo-slot center">
+            <img class="logo-img" src="${logoSemed}" alt="SEMED" onerror="this.style.display='none'"/>
+            <div class="logo-cap">SEMED — São Sebastião da Boa Vista</div>
+          </div>
+          <div class="logo-slot right">
+            ${escolaSlot}
+            <div class="logo-cap">${escapeHtml(turma.escola_nome)}</div>
+          </div>
         </div>
-        <div class="page-header-row2">
-          <h1>Diário — ${tituloTurma}</h1>
+        <div class="page-header-titulo">
+          <h1>Diário de Classe — ${tituloTurma}</h1>
           <div class="info">
-            <span><b>Escola:</b> ${escapeHtml(turma.escola_nome)}</span>
             <span><b>Série:</b> ${escapeHtml(turma.serie)}</span>
             <span><b>Turno:</b> ${escapeHtml(turma.turno)}</span>
             <span><b>Ano:</b> ${escapeHtml(turma.ano_letivo)}</span>
+            <span class="meta">Gerado em ${new Date().toLocaleDateString('pt-BR')}</span>
           </div>
         </div>
         <div class="page-header-row3">
@@ -141,7 +168,7 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
     return `
       <table class="tbl-freq">
         <colgroup>
-          <col style="width:24px"/>
+          <col style="width:32px"/>
           <col/>
           ${incluirColPeriodo ? '<col style="width:32px"/>' : ''}
           <col style="width:56px"/>
@@ -221,7 +248,7 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts) 
     return `
       <table class="tbl-notas">
         <colgroup>
-          <col style="width:24px"/>
+          <col style="width:32px"/>
           <col style="width:34%"/>
           <col/>
           ${incluirColPeriodo ? '<col style="width:32px"/>' : ''}
