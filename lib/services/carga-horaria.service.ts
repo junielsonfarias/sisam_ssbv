@@ -112,7 +112,7 @@ export async function gerarRelatorioEscola(params: {
 
   // 4. Calcula carga horária média (das turmas da escola)
   const turmasR = await pool.query(
-    `SELECT t.id, t.codigo FROM turmas t WHERE t.escola_id = $1 AND t.ativa IS NOT FALSE`,
+    `SELECT t.id, t.codigo FROM turmas t WHERE t.escola_id = $1 AND t.ativo IS NOT FALSE`,
     [params.escolaId]
   )
 
@@ -167,7 +167,7 @@ export async function gerarRelatorioEscola(params: {
  */
 export async function listarAlertasMunicipio(anoLetivoId: string): Promise<RelatorioCargaHoraria[]> {
   const escR = await pool.query(
-    `SELECT id FROM escolas WHERE ativa IS NOT FALSE`
+    `SELECT id FROM escolas WHERE ativo IS NOT FALSE`
   )
 
   const resultados: RelatorioCargaHoraria[] = []

@@ -55,14 +55,24 @@ export interface IndicadoresEscola {
 }
 
 export async function resumoMunicipal(anoLetivo: string): Promise<ResumoMunicipal> {
+  // Alunos/AEE/BF filtrados pelo ano selecionado (snapshot anual).
+  // Escolas/professores/transporte sao operacionais/atemporais.
   const geral = await pool.query(
     `SELECT
-       (SELECT COUNT(*) FROM alunos WHERE ativo IS NOT FALSE) AS alunos,
-       (SELECT COUNT(*) FROM escolas WHERE ativa IS NOT FALSE) AS escolas,
-       (SELECT COUNT(*) FROM usuarios WHERE tipo_usuario='professor' AND ativo IS NOT FALSE) AS professores,
-       (SELECT COUNT(DISTINCT aluno_id) FROM alunos_aee) AS pne,
-       (SELECT COUNT(*) FROM alunos WHERE beneficiario_bolsa_familia=TRUE) AS bf,
-       (SELECT COUNT(DISTINCT aluno_id) FROM pnate_alunos_rotas WHERE ativo=TRUE) AS transporte`
+       (SELECT COUNT(*) FROM alunos
+          WHERE ativo IS NOT FALSE AND ano_letivo = $1) AS alunos,
+       (SELECT COUNT(*) FROM escolas WHERE ativo IS NOT FALSE) AS escolas,
+       (SELECT COUNT(*) FROM usuarios
+          WHERE tipo_usuario='professor' AND ativo IS NOT FALSE) AS professores,
+       (SELECT COUNT(DISTINCT ae.aluno_id)
+          FROM alunos_aee ae
+          INNER JOIN alunos a ON a.id = ae.aluno_id
+         WHERE a.ano_letivo = $1 AND a.ativo IS NOT FALSE) AS pne,
+       (SELECT COUNT(*) FROM alunos
+         WHERE beneficiario_bolsa_familia=TRUE
+           AND ano_letivo = $1 AND ativo IS NOT FALSE) AS bf,
+       (SELECT COUNT(DISTINCT aluno_id) FROM pnate_alunos_rotas WHERE ativo=TRUE) AS transporte`,
+    [anoLetivo]
   ).catch(() => ({ rows: [{}] }))
 
   const pnae = await pool.query(
@@ -98,12 +108,16 @@ export async function resumoMunicipal(anoLetivo: string): Promise<ResumoMunicipa
 export async function listarEscolasPublicas(anoLetivo: string): Promise<EscolaPublica[]> {
   const r = await pool.query(
     `SELECT e.id, e.nome, e.endereco, p.nome AS polo_nome,
-            (SELECT COUNT(*) FROM alunos a WHERE a.escola_id = e.id AND a.ativo IS NOT FALSE) AS total_alunos,
-            (SELECT ARRAY_AGG(DISTINCT modalidade) FROM turmas WHERE escola_id = e.id) AS modalidades
+            (SELECT COUNT(*) FROM alunos a
+              WHERE a.escola_id = e.id AND a.ativo IS NOT FALSE
+                AND a.ano_letivo = $1) AS total_alunos,
+            (SELECT ARRAY_AGG(DISTINCT modalidade) FROM turmas
+              WHERE escola_id = e.id AND ano_letivo = $1) AS modalidades
        FROM escolas e
        LEFT JOIN polos p ON p.id = e.polo_id
-      WHERE e.ativa IS NOT FALSE
-      ORDER BY e.nome`
+      WHERE e.ativo IS NOT FALSE
+      ORDER BY e.nome`,
+    [anoLetivo]
   ).catch(() => ({ rows: [] }))
 
   const escolas: EscolaPublica[] = []
