@@ -29,7 +29,6 @@ interface HeaderProps {
   menuDesktopOculto: boolean
   setMenuDesktopOculto: (v: boolean) => void
   personalizacao: Personalizacao
-  dataAtual: string
   modoOffline: boolean
   moduloAtivo: offlineStorage.ModuloAtivo
   setModuloAtivo: (v: offlineStorage.ModuloAtivo) => void
@@ -48,7 +47,6 @@ export function Header({
   menuDesktopOculto,
   setMenuDesktopOculto,
   personalizacao,
-  dataAtual,
   modoOffline,
   moduloAtivo,
   tipoUsuarioReal,
@@ -60,27 +58,27 @@ export function Header({
 }: HeaderProps) {
   const router = useRouter()
 
-  // Metadados visuais do módulo ativo — usado no badge "Trocar módulo"
-  const MODULO_META: Record<offlineStorage.ModuloAtivo, { label: string; Icon: typeof Database; cores: string; faixa: string }> = {
-    sisam:         { label: 'SISAM', Icon: Database, cores: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200', faixa: 'bg-indigo-500' },
-    educatec:      { label: 'SISAM', Icon: Database, cores: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200', faixa: 'bg-indigo-500' },
-    gestor:        { label: 'Gestor', Icon: BookOpen, cores: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200', faixa: 'bg-emerald-500' },
-    semed:         { label: 'SEMED', Icon: Building2, cores: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200', faixa: 'bg-amber-500' },
-    transparencia: { label: 'Transparência', Icon: Globe, cores: 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 hover:bg-sky-200', faixa: 'bg-sky-500' },
-    admin:         { label: 'Admin', Icon: Settings, cores: 'bg-slate-200 dark:bg-slate-700/40 text-slate-700 dark:text-slate-200 hover:bg-slate-300', faixa: 'bg-slate-500' },
-    professor:     { label: 'Professor', Icon: BookOpen, cores: 'bg-emerald-100 text-emerald-700', faixa: 'bg-emerald-500' },
-    responsavel:   { label: 'Responsável', Icon: User, cores: 'bg-purple-100 text-purple-700', faixa: 'bg-purple-500' },
+  // Metadados visuais do módulo ativo (estilo "ghost": dot colorido + borda inferior do header)
+  const MODULO_META: Record<offlineStorage.ModuloAtivo, { label: string; Icon: typeof Database; dot: string; borda: string }> = {
+    sisam:         { label: 'SISAM',         Icon: Database,  dot: 'bg-indigo-500',  borda: 'border-indigo-500' },
+    educatec:      { label: 'SISAM',         Icon: Database,  dot: 'bg-indigo-500',  borda: 'border-indigo-500' },
+    gestor:        { label: 'Gestor',        Icon: BookOpen,  dot: 'bg-emerald-500', borda: 'border-emerald-500' },
+    semed:         { label: 'SEMED',         Icon: Building2, dot: 'bg-amber-500',   borda: 'border-amber-500' },
+    transparencia: { label: 'Transparência', Icon: Globe,     dot: 'bg-sky-500',     borda: 'border-sky-500' },
+    admin:         { label: 'Admin',         Icon: Settings,  dot: 'bg-slate-500',   borda: 'border-slate-500' },
+    professor:     { label: 'Professor',     Icon: BookOpen,  dot: 'bg-emerald-500', borda: 'border-emerald-500' },
+    responsavel:   { label: 'Responsável',   Icon: User,      dot: 'bg-purple-500',  borda: 'border-purple-500' },
   }
   const meta = MODULO_META[moduloAtivo] || MODULO_META.sisam
   const ModIcon = meta.Icon
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-white via-white to-gray-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 shadow-md dark:shadow-slate-700/50 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 transition-colors duration-300 print:hidden">
-      {/* Faixa indicadora do módulo ativo */}
-      <div className={`h-0.5 w-full ${meta.faixa} transition-colors duration-300`} aria-hidden="true" />
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 shadow-sm dark:shadow-slate-900/50 border-b-[3px] ${meta.borda} flex-shrink-0 transition-colors duration-300 print:hidden`}
+    >
       <div className="px-2 sm:px-4 md:px-6 lg:px-8">
-        {/* Linha superior: Logo, Nome do Sistema, Data */}
-        <div className="flex justify-between items-center h-14 sm:h-16 lg:h-[72px]">
+        {/* Altura fixa em 64px para estabilidade entre breakpoints */}
+        <div className="flex justify-between items-center h-16">
           {/* Seção esquerda: Menu mobile/desktop + Logo + Nome */}
           <div className="flex items-center min-w-0 gap-2 sm:gap-3">
             {/* Botão menu mobile */}
@@ -114,59 +112,31 @@ export function Header({
               />
             </div>
 
-            {/* Nome do Sistema + SEMED + Município */}
+            {/* Nome do Sistema + Município (compactado) */}
             <div className="flex flex-col min-w-0">
               <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-gray-800 dark:text-white truncate leading-tight">
                 {personalizacao.nome_sistema || 'SISAM'}
               </h1>
-              <span className="text-[11px] sm:text-xs lg:text-sm text-gray-500 dark:text-gray-400 truncate leading-tight">
-                SEMED — São Sebastião da Boa Vista/PA
+              <span className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 truncate leading-tight">
+                SEMED · SSBV/PA
               </span>
             </div>
 
-            {/* Separador visual */}
-            <div className="hidden md:block w-px h-8 bg-gray-200 dark:bg-slate-600 mx-2" />
-
-            {/* Botão de troca de módulo — leva à página /modulos com 5 tiles */}
+            {/* Botão de troca de módulo: ghost com dot colorido + hint ⌘K embutido */}
             {tipoUsuarioReal !== 'professor' && tipoUsuarioReal !== 'editor' && tipoUsuarioReal !== 'publicador' && tipoUsuarioReal !== 'responsavel' && (
               <button
                 onClick={() => router.push('/modulos')}
-                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${meta.cores}`}
+                className="ml-2 sm:ml-3 group flex items-center gap-2 pl-2.5 sm:pl-3 pr-2 sm:pr-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 bg-transparent hover:bg-gray-100 dark:hover:bg-slate-700/60 border border-gray-200 dark:border-slate-700 transition-all duration-200"
                 title={`Módulo ativo: ${meta.label}. Clique para trocar (ou pressione Ctrl+K).`}
               >
-                <ModIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className={`w-2 h-2 rounded-full ${meta.dot} ring-2 ring-transparent group-hover:ring-current/10`} aria-hidden="true" />
                 <span>{meta.label}</span>
-                <ArrowLeftRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-50" />
+                <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-900/60 text-[9px] font-mono text-gray-500 dark:text-gray-400 opacity-80">
+                  ⌘K
+                </kbd>
+                <ArrowLeftRight className="lg:hidden w-3 h-3 opacity-40" />
               </button>
             )}
-
-            {/* Dica do atalho Ctrl+K (visível apenas em desktop) */}
-            <kbd
-              className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50 text-[10px] font-mono text-gray-500 dark:text-gray-400"
-              title="Pressione Ctrl+K para abrir a paleta de comandos"
-            >
-              Ctrl K
-            </kbd>
-
-            {/* Badge do tipo de usuário */}
-            <div className="hidden md:flex items-center gap-2">
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${badgeConfig.bgColor} ${badgeConfig.textColor}`}>
-                {badgeConfig.label}
-              </span>
-              {/* Contexto do usuário (polo/escola) */}
-              {contextoUsuario && (
-                <span className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[150px] md:max-w-[180px] lg:max-w-[200px]" title={contextoUsuario}>
-                  {contextoUsuario}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Seção central: Data (apenas desktop) */}
-          <div className="hidden xl:flex items-center justify-center">
-            <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-              {dataAtual}
-            </span>
           </div>
 
           {/* Seção direita: Status + Usuário + Ações */}
@@ -179,10 +149,11 @@ export function Header({
                   <span className="hidden sm:inline">Offline</span>
                 </span>
               )}
+              {/* Sincronização offline continua rodando em background — UI escondida para um header mais limpo */}
               <OfflineSyncManager
                 userId={usuario?.id?.toString() || usuario?.usuario_id?.toString() || null}
                 autoSync={true}
-                showStatus={true}
+                showStatus={false}
               />
               <SyncStatusBadge />
             </div>
@@ -197,57 +168,44 @@ export function Header({
             {/* Notificacoes do professor */}
             {tipoUsuarioReal === 'professor' && <NotificacoesBadge />}
 
-            {/* Separador */}
-            <div className="hidden sm:block w-px h-6 bg-gray-200 dark:bg-slate-600 mx-1" />
-
-            {/* Badge do tipo (mobile) */}
-            <span className={`md:hidden inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${badgeConfig.bgColor} ${badgeConfig.textColor}`}>
-              {badgeConfig.label.substring(0, 3)}
-            </span>
-
-            {/* Link do perfil do usuário */}
+            {/* Card unificado de identidade: avatar 40px + nome + tipo/contexto */}
             <Link
               href="/perfil"
-              className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-all duration-200 group"
-              title="Meu Perfil"
+              className="flex items-center gap-2.5 sm:gap-3 p-1 sm:pr-3 sm:pl-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/60 transition-all duration-200 group"
+              title={`${usuario?.nome || 'Usuário'} — ${badgeConfig.label}${contextoUsuario ? ` · ${contextoUsuario}` : ''}`}
             >
               {usuario?.foto_url ? (
                 <Image
                   src={usuario.foto_url}
                   alt="Foto do perfil"
-                  width={32}
-                  height={32}
-                  className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-300 dark:group-hover:ring-indigo-500 transition-all"
+                  width={40}
+                  height={40}
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-400 dark:group-hover:ring-indigo-500 transition-all"
                 />
               ) : (
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-300 dark:group-hover:ring-indigo-500 transition-all">
-                  <User className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/60 dark:to-indigo-800/60 flex items-center justify-center ring-2 ring-gray-200 dark:ring-slate-600 group-hover:ring-indigo-400 dark:group-hover:ring-indigo-500 transition-all">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-300" />
                 </div>
               )}
-              <div className="hidden sm:flex flex-col min-w-0">
-                <span className="text-sm font-medium truncate max-w-[80px] md:max-w-[120px] lg:max-w-[150px]">
+              <div className="hidden sm:flex flex-col min-w-0 leading-tight">
+                <span className="text-sm font-semibold text-gray-800 dark:text-white truncate max-w-[100px] md:max-w-[140px] lg:max-w-[180px]">
                   {usuario?.nome?.split(' ')[0] || 'Usuário'}
                 </span>
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                  Ver perfil
+                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate max-w-[100px] md:max-w-[140px] lg:max-w-[180px]">
+                  {badgeConfig.label}{contextoUsuario ? ` · ${contextoUsuario}` : ''}
                 </span>
               </div>
             </Link>
 
-            {/* Separador */}
-            <div className="hidden sm:block w-px h-6 bg-gray-200 dark:bg-slate-600 mx-1" />
-
-            {/* Toggle de Tema — oculto no mobile */}
-            <ThemeToggleSimple className="hidden sm:flex flex-shrink-0 p-1.5 sm:p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all duration-200" />
-
-            {/* Botão de Logout — SEMPRE visível */}
+            {/* Ações secundárias: tema e logout — ícones discretos */}
+            <ThemeToggleSimple className="hidden sm:flex flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700/60 transition-all duration-200" />
             <button
               onClick={handleLogout}
-              className="p-1.5 sm:p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-all duration-200 flex-shrink-0"
+              className="p-2 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 flex-shrink-0"
               aria-label="Sair"
               title="Sair do sistema"
             >
-              <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+              <LogOut className="w-[18px] h-[18px]" />
             </button>
           </div>
         </div>
