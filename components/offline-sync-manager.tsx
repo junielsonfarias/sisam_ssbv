@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Cloud, CloudOff, RefreshCw, Check, AlertCircle, Database } from 'lucide-react'
+import * as offlineStorage from '@/lib/offline-storage'
 import {
   isOnline,
   hasOfflineData,
@@ -13,6 +14,11 @@ import {
   getEscolas,
   getResultados
 } from '@/lib/offline-storage'
+
+// Tipos de usuario que tem acesso aos endpoints /api/offline/*.
+// professor/responsavel/editor/publicador tem seu proprio fluxo de sync
+// (ex: /api/professor/sync), nao devem usar este manager.
+const TIPOS_COM_SYNC_OFFLINE = ['administrador', 'admin', 'tecnico', 'polo', 'escola']
 
 interface OfflineSyncManagerProps {
   userId: string | null
@@ -27,8 +33,11 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
   const [hasData, setHasData] = useState(false)
   const [dataCount, setDataCount] = useState(0)
   const [initialSyncDone, setInitialSyncDone] = useState(false)
+  // Cache do tipo do usuario logado — define se sincronizamos via /api/offline/*.
+  const [tipoUsuario, setTipoUsuario] = useState<string | null>(null)
+  const podeSincronizar = !tipoUsuario || TIPOS_COM_SYNC_OFFLINE.includes(tipoUsuario)
 
-  // Verificar status online e dados offline
+  // Verificar status online, dados offline e tipo do usuario
   useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -36,11 +45,14 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
     const hasOffline = hasOfflineData()
     setHasData(hasOffline)
     setDataCount(getResultados().length)
+    const u = offlineStorage.getUser()
+    if (u?.tipo_usuario) setTipoUsuario(u.tipo_usuario)
 
     console.log('[OfflineSyncManager] Inicializado:', {
       online: navigator.onLine,
       hasData: hasOffline,
-      resultados: getResultados().length
+      resultados: getResultados().length,
+      tipoUsuario: u?.tipo_usuario || null,
     })
 
     const handleOnline = () => {
@@ -77,6 +89,11 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
   // Sincronização automática após login
   useEffect(() => {
     if (!userId || !autoSync || !online) return
+    if (!podeSincronizar) {
+      // Professor/responsavel/editor/publicador nao tem acesso a /api/offline/*.
+      // Seu fluxo de sincronizacao roda em outro componente (ex: OfflineSyncProfessor).
+      return
+    }
 
     // Verificar se já tem dados sincronizados
     const existingData = getResultados().length
@@ -112,10 +129,10 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
     // Pequeno delay para garantir que o componente está montado
     const timer = setTimeout(doInitialSync, 1000)
     return () => clearTimeout(timer)
-  }, [userId, autoSync, online])
+  }, [userId, autoSync, online, podeSincronizar])
 
   const handleManualSync = useCallback(async () => {
-    if (!online || syncing) return
+    if (!online || syncing || !podeSincronizar) return
 
     console.log('[OfflineSyncManager] Sincronização manual iniciada')
     setSyncing(true)
@@ -135,7 +152,7 @@ export function OfflineSyncManager({ userId, autoSync = true, showStatus = true 
 
     setSyncing(false)
     setTimeout(() => setSyncMessage(null), 5000)
-  }, [online, syncing])
+  }, [online, syncing, podeSincronizar])
 
   if (!showStatus) {
     return null

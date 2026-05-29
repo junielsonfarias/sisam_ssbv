@@ -97,7 +97,7 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
             // Timeout curto para não bloquear
             signal: AbortSignal.timeout(5000)
           })
-          const data = await response.json()
+          const data = await response.json().catch(() => ({}))
 
           if (response.ok && data.usuario) {
             const tipoUsuarioOriginal = data.usuario.tipo_usuario
@@ -127,12 +127,20 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
               console.log('[ProtectedRoute] Tipo de usuário não permitido:', tipoUsuarioOriginal)
               router.push('/login')
             }
+          } else if (response.status === 401 || response.status === 403) {
+            // Auth realmente expirada/invalida no servidor — nao adianta manter
+            // offline user "fantasma" pois nada vai funcionar. Limpa sessao
+            // local e redireciona para login (evita ProtectedRoute autorizando
+            // + APIs todas retornando 401 em cascata).
+            console.log('[ProtectedRoute] Auth expirada no servidor (status', response.status, '). Limpando sessao offline.')
+            offlineStorage.clearUser()
+            authCache = null
+            setAutorizado(false)
+            router.push('/login')
           } else {
-            // API não retornou usuário válido (401/403/500)
-            // Se já estava autorizado via offline user válido, manter autorização
-            // Caso contrário, redirecionar para login
+            // 5xx ou erro transitorio — manter autorizacao offline se ja autorizou
             if (!autorizado) {
-              console.log('[ProtectedRoute] API retornou erro e não há autorização offline válida')
+              console.log('[ProtectedRoute] API retornou erro', response.status, 'e nao ha autorizacao offline valida')
               router.push('/login')
             }
           }
