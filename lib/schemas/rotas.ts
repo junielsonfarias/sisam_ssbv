@@ -305,6 +305,7 @@ export const professorFrequenciaDiariaPostSchema = z.object({
   registros: z.array(z.object({
     aluno_id: uuidSchema,
     status: statusFrequenciaSchema,
+    justificativa: z.string().max(500).optional().nullable(),
   })).min(1),
 })
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Save, AlertTriangle, FileText } from 'lucide-react'
+import { Save, AlertTriangle } from 'lucide-react'
 
 interface Aluno {
   aluno_id: string
@@ -31,7 +31,7 @@ interface Props {
   onSalvar: () => void
 }
 
-export default function FrequenciaDiariaComponent({ turmaId, data, alunos: alunosIniciais, resumo: resumoInicial, onSalvar }: Props) {
+export default function FrequenciaDiariaComponent({ turmaId, data, alunos: alunosIniciais, onSalvar }: Props) {
   const [registros, setRegistros] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {}
     alunosIniciais.forEach(a => {
@@ -39,14 +39,24 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
     })
     return map
   })
+  // Justificativa por aluno_id — evita replicar texto entre alunos.
+  const [justificativas, setJustificativas] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {}
+    alunosIniciais.forEach(a => {
+      if (a.justificativa) map[a.aluno_id] = a.justificativa
+    })
+    return map
+  })
   const [salvando, setSalvando] = useState(false)
   const [mensagem, setMensagem] = useState('')
-  const [justificando, setJustificando] = useState<string | null>(null)
-  const [textoJustificativa, setTextoJustificativa] = useState('')
   const [confirmacaoPendentes, setConfirmacaoPendentes] = useState(false)
 
   const setStatus = (alunoId: string, status: 'presente' | 'ausente' | 'justificado') => {
     setRegistros(prev => ({ ...prev, [alunoId]: status }))
+  }
+
+  const setJustificativaAluno = (alunoId: string, texto: string) => {
+    setJustificativas(prev => ({ ...prev, [alunoId]: texto }))
   }
 
   const marcarTodos = (status: string) => {
@@ -55,6 +65,15 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
     setRegistros(novos)
   }
 
+  const construirPayload = (regs: Array<{ aluno_id: string; status: string }>) =>
+    regs.map(r => ({
+      aluno_id: r.aluno_id,
+      status: r.status,
+      ...(r.status === 'justificado'
+        ? { justificativa: justificativas[r.aluno_id]?.trim() || null }
+        : {}),
+    }))
+
   const enviarSalvar = async (regs: Array<{ aluno_id: string; status: string }>) => {
     setSalvando(true)
     setMensagem('')
@@ -62,7 +81,7 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
       const res = await fetch('/api/professor/frequencia-diaria', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ turma_id: turmaId, data, registros: regs }),
+        body: JSON.stringify({ turma_id: turmaId, data, registros: construirPayload(regs) }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.mensagem)
@@ -84,7 +103,6 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
 
     const pendentes = alunosIniciais.filter(a => !registros[a.aluno_id])
     if (pendentes.length > 0) {
-      // Aviso visivel antes de salvar — professor decide via modal.
       setConfirmacaoPendentes(true)
       return
     }
@@ -105,23 +123,6 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
     setConfirmacaoPendentes(false)
     const regs = Object.entries(registros).map(([aluno_id, status]) => ({ aluno_id, status }))
     await enviarSalvar(regs)
-  }
-
-  const justificar = async (frequenciaId: string) => {
-    if (!textoJustificativa.trim()) return
-    try {
-      const res = await fetch('/api/professor/frequencia-diaria/justificar', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ frequencia_id: frequenciaId, justificativa: textoJustificativa }),
-      })
-      if (!res.ok) throw new Error('Erro ao justificar')
-      setJustificando(null)
-      setTextoJustificativa('')
-      onSalvar()
-    } catch (err: any) {
-      setMensagem(err.message)
-    }
   }
 
   const lancarFaltas = async () => {
@@ -235,14 +236,7 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
                     type="button"
                     role="radio"
                     aria-checked={isJustificada}
-                    onClick={() => {
-                      setStatus(aluno.aluno_id, 'justificado')
-                      // Abre o textarea de justificativa quando ja existe registro persistido
-                      if (aluno.frequencia_id) {
-                        setJustificando(aluno.frequencia_id)
-                        setTextoJustificativa(aluno.justificativa || '')
-                      }
-                    }}
+                    onClick={() => setStatus(aluno.aluno_id, 'justificado')}
                     title="Falta Justificada"
                     className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
                       isJustificada
@@ -252,37 +246,31 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
                   >
                     FJ
                   </button>
-                  {aluno.frequencia_id && (isFalta || isJustificada) && (
-                    <button
-                      type="button"
-                      onClick={() => { setJustificando(aluno.frequencia_id); setTextoJustificativa(aluno.justificativa || '') }}
-                      className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg"
-                      title="Editar texto da justificativa"
-                    >
-                      <FileText className="h-4 w-4" />
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {/* Modal justificativa inline */}
-              {justificando === aluno.frequencia_id && (
+              {/* Textarea de justificativa: aparece SOMENTE quando FJ esta marcado para este aluno.
+                  Cada aluno tem seu proprio state em justificativas[aluno_id] — nao replica entre linhas. */}
+              {isJustificada && (
                 <div className="mt-1 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <label
+                    htmlFor={`justificativa-${aluno.aluno_id}`}
+                    className="block text-xs font-medium text-amber-800 dark:text-amber-200 mb-1"
+                  >
+                    Motivo da justificativa de {aluno.aluno_nome}
+                  </label>
                   <textarea
-                    value={textoJustificativa}
-                    onChange={e => setTextoJustificativa(e.target.value)}
-                    placeholder="Motivo da justificativa..."
+                    id={`justificativa-${aluno.aluno_id}`}
+                    value={justificativas[aluno.aluno_id] || ''}
+                    onChange={e => setJustificativaAluno(aluno.aluno_id, e.target.value)}
+                    placeholder="Ex: atestado medico, motivo familiar..."
                     rows={2}
+                    maxLength={500}
                     className="w-full p-2 text-sm rounded border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
-                  <div className="flex gap-2 mt-2">
-                    <button onClick={() => justificar(aluno.frequencia_id!)} className="px-3 py-1 text-xs bg-amber-500 text-white rounded hover:bg-amber-600">
-                      Salvar Justificativa
-                    </button>
-                    <button onClick={() => setJustificando(null)} className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700">
-                      Cancelar
-                    </button>
-                  </div>
+                  <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1">
+                    Salvo junto com a frequência ao clicar em &quot;Salvar Frequência&quot;.
+                  </p>
                 </div>
               )}
             </div>

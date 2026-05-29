@@ -51,13 +51,17 @@ function validarDataNaoFutura(data: string): void {
 }
 
 /**
- * Registra frequência diária em lote (presente/ausente) para uma turma.
+ * Registra frequência diária em lote (presente/ausente/justificado) para uma turma.
  * Usa batch multi-row INSERT (1 query em vez de N).
+ *
+ * Justificativa: persistida apenas quando status='justificado'. Para outros
+ * status, a coluna eh sempre limpa para nao deixar texto orfao de uma
+ * justificativa anterior.
  */
 export async function registrarFrequenciaDiaria(
   turmaId: string,
   data: string,
-  registros: Array<{ aluno_id: string; status: string }>,
+  registros: Array<{ aluno_id: string; status: string; justificativa?: string | null }>,
   registradoPor: string
 ): Promise<number> {
   validarDataNaoFutura(data)
@@ -72,21 +76,28 @@ export async function registrarFrequenciaDiaria(
 
   return withTransaction(async (client) => {
     // Batch multi-row INSERT (1 query para todos os alunos)
-    const COLS = 6
+    const COLS = 7
     const placeholders: string[] = []
     const values: (string | null)[] = []
 
     for (let i = 0; i < validos.length; i++) {
       const o = i * COLS
-      placeholders.push(`($${o+1},$${o+2},$${o+3},$${o+4},'manual',$${o+5},$${o+6})`)
-      values.push(validos[i].aluno_id, turmaId, escolaId, data, validos[i].status, registradoPor)
+      placeholders.push(`($${o+1},$${o+2},$${o+3},$${o+4},'manual',$${o+5},$${o+6},$${o+7})`)
+      const justificativa = validos[i].status === 'justificado'
+        ? (validos[i].justificativa?.trim() || null)
+        : null
+      values.push(
+        validos[i].aluno_id, turmaId, escolaId, data,
+        validos[i].status, registradoPor, justificativa
+      )
     }
 
     const result = await client.query(
-      `INSERT INTO frequencia_diaria (aluno_id, turma_id, escola_id, data, metodo, status, registrado_por)
+      `INSERT INTO frequencia_diaria (aluno_id, turma_id, escola_id, data, metodo, status, registrado_por, justificativa)
        VALUES ${placeholders.join(', ')}
        ON CONFLICT (aluno_id, data) DO UPDATE SET
          status = EXCLUDED.status,
+         justificativa = EXCLUDED.justificativa,
          metodo = 'manual',
          registrado_por = EXCLUDED.registrado_por,
          atualizado_em = CURRENT_TIMESTAMP`,
