@@ -50,7 +50,8 @@ function FrequenciaTurma() {
         const res = await fetch('/api/professor/turmas')
         if (!res.ok) throw new Error('Erro ao carregar turmas')
         const data = await res.json()
-        const turma = data.turmas.find((t: any) => t.turma_id === turmaId)
+        const lista = Array.isArray(data?.turmas) ? data.turmas : []
+        const turma = lista.find((t: any) => t.turma_id === turmaId)
         if (!turma) throw new Error('Turma não encontrada')
         setTurmaInfo(turma)
       } catch (err: any) {

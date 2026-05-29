@@ -138,16 +138,29 @@ export async function buscarAnoLetivoAtivo(): Promise<string> {
 export async function buscarAnosLetivosDoProfessor(
   professorId: string,
 ): Promise<Array<{ ano: string; status: string | null }>> {
-  const result = await pool.query(
-    `SELECT DISTINCT pt.ano_letivo as ano, al.status
-       FROM professor_turmas pt
-       LEFT JOIN anos_letivos al ON al.ano = pt.ano_letivo
-      WHERE pt.professor_id = $1
-        AND pt.ativo = true
-      ORDER BY pt.ano_letivo DESC`,
-    [professorId]
-  )
-  return result.rows
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT pt.ano_letivo as ano, al.status
+         FROM professor_turmas pt
+         LEFT JOIN anos_letivos al ON al.ano = pt.ano_letivo
+        WHERE pt.professor_id = $1
+          AND pt.ativo = true
+        ORDER BY pt.ano_letivo DESC`,
+      [professorId]
+    )
+    return result.rows
+  } catch {
+    // Fallback: tabela anos_letivos pode nao existir em instalacoes legacy.
+    const result = await pool.query(
+      `SELECT DISTINCT pt.ano_letivo as ano
+         FROM professor_turmas pt
+        WHERE pt.professor_id = $1
+          AND pt.ativo = true
+        ORDER BY pt.ano_letivo DESC`,
+      [professorId]
+    )
+    return result.rows.map(r => ({ ano: r.ano, status: null }))
+  }
 }
 
 /**

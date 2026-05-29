@@ -24,8 +24,8 @@ function SelecionarTurma() {
   useEffect(() => {
     fetch('/api/professor/turmas')
       .then(r => r.json())
-      .then(data => setTurmas(data.turmas))
-      .catch(() => {})
+      .then(data => setTurmas(Array.isArray(data?.turmas) ? data.turmas : []))
+      .catch(() => setTurmas([]))
       .finally(() => setCarregando(false))
   }, [])
 
