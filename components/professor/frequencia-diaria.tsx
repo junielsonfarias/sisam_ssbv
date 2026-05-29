@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, X, Save, AlertTriangle, FileText, Minus } from 'lucide-react'
+import { Save, AlertTriangle, FileText } from 'lucide-react'
 
 interface Aluno {
   aluno_id: string
@@ -45,12 +45,8 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
   const [textoJustificativa, setTextoJustificativa] = useState('')
   const [confirmacaoPendentes, setConfirmacaoPendentes] = useState(false)
 
-  const toggleStatus = (alunoId: string) => {
-    setRegistros(prev => {
-      const atual = prev[alunoId]
-      if (!atual || atual === 'ausente' || atual === 'justificado') return { ...prev, [alunoId]: 'presente' }
-      return { ...prev, [alunoId]: 'ausente' }
-    })
+  const setStatus = (alunoId: string, status: 'presente' | 'ausente' | 'justificado') => {
+    setRegistros(prev => ({ ...prev, [alunoId]: status }))
   }
 
   const marcarTodos = (status: string) => {
@@ -149,7 +145,8 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
 
   // Contagem atual
   const presentes = Object.values(registros).filter(s => s === 'presente').length
-  const ausentes = Object.values(registros).filter(s => s === 'ausente' || s === 'justificado').length
+  const faltas = Object.values(registros).filter(s => s === 'ausente').length
+  const justificadas = Object.values(registros).filter(s => s === 'justificado').length
   const semRegistro = alunosIniciais.length - Object.keys(registros).length
   const percentual = alunosIniciais.length > 0 ? Math.round((presentes / alunosIniciais.length) * 100) : 0
 
@@ -157,8 +154,9 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
     <div className="space-y-4">
       {/* Barra de resumo */}
       <div className="flex flex-wrap gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm">
-        <span className="text-green-600 dark:text-green-400 font-medium">{presentes} presentes</span>
-        <span className="text-red-600 dark:text-red-400 font-medium">{ausentes} ausentes</span>
+        <span className="text-green-600 dark:text-green-400 font-medium">{presentes} P</span>
+        <span className="text-red-600 dark:text-red-400 font-medium">{faltas} F</span>
+        <span className="text-amber-600 dark:text-amber-400 font-medium">{justificadas} FJ</span>
         {semRegistro > 0 && <span className="text-gray-400">{semRegistro} sem registro</span>}
         <span className={`font-bold ml-auto ${percentual >= 75 ? 'text-green-600' : 'text-red-600'}`}>
           {percentual}%
@@ -180,13 +178,15 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
         {alunosIniciais.map((aluno, i) => {
           const status = registros[aluno.aluno_id]
           const isPresente = status === 'presente'
-          const isAusente = status === 'ausente' || status === 'justificado'
+          const isFalta = status === 'ausente'
+          const isJustificada = status === 'justificado'
 
           return (
             <div key={aluno.aluno_id}>
-              <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+              <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-lg border transition-colors ${
                 isPresente ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
-                isAusente ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                isFalta ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                isJustificada ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' :
                 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
               }`}>
                 <div className="flex items-center gap-3 min-w-0">
@@ -198,28 +198,70 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {aluno.frequencia_id && isAusente && (
+                <div
+                  role="radiogroup"
+                  aria-label={`Status de ${aluno.aluno_nome}`}
+                  className="flex items-center gap-1 self-end sm:self-auto"
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={isPresente}
+                    onClick={() => setStatus(aluno.aluno_id, 'presente')}
+                    title="Presente"
+                    className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                      isPresente
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30'
+                    }`}
+                  >
+                    P
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={isFalta}
+                    onClick={() => setStatus(aluno.aluno_id, 'ausente')}
+                    title="Falta"
+                    className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                      isFalta
+                        ? 'bg-red-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30'
+                    }`}
+                  >
+                    F
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={isJustificada}
+                    onClick={() => {
+                      setStatus(aluno.aluno_id, 'justificado')
+                      // Abre o textarea de justificativa quando ja existe registro persistido
+                      if (aluno.frequencia_id) {
+                        setJustificando(aluno.frequencia_id)
+                        setTextoJustificativa(aluno.justificativa || '')
+                      }
+                    }}
+                    title="Falta Justificada"
+                    className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                      isJustificada
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                    }`}
+                  >
+                    FJ
+                  </button>
+                  {aluno.frequencia_id && (isFalta || isJustificada) && (
                     <button
+                      type="button"
                       onClick={() => { setJustificando(aluno.frequencia_id); setTextoJustificativa(aluno.justificativa || '') }}
-                      className="p-1.5 text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded"
-                      title="Justificar"
+                      className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg"
+                      title="Editar texto da justificativa"
                     >
                       <FileText className="h-4 w-4" />
                     </button>
                   )}
-                  <button
-                    onClick={() => toggleStatus(aluno.aluno_id)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      isPresente ? 'bg-green-500 text-white' :
-                      isAusente ? 'bg-red-500 text-white' :
-                      'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                    }`}
-                  >
-                    {isPresente ? <Check className="h-4 w-4" /> :
-                     isAusente ? <X className="h-4 w-4" /> :
-                     <Minus className="h-4 w-4" />}
-                  </button>
                 </div>
               </div>
 

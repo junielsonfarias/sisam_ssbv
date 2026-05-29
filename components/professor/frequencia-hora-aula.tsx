@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, X, Save, Minus, AlertCircle } from 'lucide-react'
+import { Save, AlertCircle } from 'lucide-react'
 
 interface Horario {
   numero_aula: number
@@ -50,10 +50,10 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
 
   const horarioAtivo = horarios.find(h => h.numero_aula === aulaAtiva)
 
-  const togglePresenca = (alunoId: string, numeroAula: number) => {
+  const marcarAluno = (alunoId: string, numeroAula: number, presente: boolean) => {
     setRegistros(prev => {
       const alunoRegs = { ...(prev[alunoId] || {}) }
-      alunoRegs[numeroAula] = !alunoRegs[numeroAula]
+      alunoRegs[numeroAula] = presente
       return { ...prev, [alunoId]: alunoRegs }
     })
     setAulasModificadas(prev => new Set(prev).add(numeroAula))
@@ -241,18 +241,40 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
                 <span className="text-xs text-gray-400 w-6 text-right">{i + 1}</span>
                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{aluno.nome}</p>
               </div>
-              <button
-                onClick={() => togglePresenca(aluno.id, aulaAtiva)}
-                className={`p-2 rounded-lg transition-colors ${
-                  isPresente ? 'bg-green-500 text-white' :
-                  isAusente ? 'bg-red-500 text-white' :
-                  'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                }`}
+              <div
+                role="radiogroup"
+                aria-label={`Status de ${aluno.nome} na ${aulaAtiva}a aula`}
+                className="flex items-center gap-1"
               >
-                {isPresente ? <Check className="h-4 w-4" /> :
-                 isAusente ? <X className="h-4 w-4" /> :
-                 <Minus className="h-4 w-4" />}
-              </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isPresente}
+                  onClick={() => marcarAluno(aluno.id, aulaAtiva, true)}
+                  title="Presente"
+                  className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    isPresente
+                      ? 'bg-green-600 text-white shadow-sm'
+                      : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30'
+                  }`}
+                >
+                  P
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isAusente}
+                  onClick={() => marcarAluno(aluno.id, aulaAtiva, false)}
+                  title="Falta"
+                  className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    isAusente
+                      ? 'bg-red-600 text-white shadow-sm'
+                      : 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30'
+                  }`}
+                >
+                  F
+                </button>
+              </div>
             </div>
           )
         })}
