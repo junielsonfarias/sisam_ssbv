@@ -27,11 +27,17 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico'], async (re
   const limiteParam = searchParams.get('limite')
   const offsetParam = searchParams.get('offset')
 
-  // 1) Resolver serie da turma (se fornecida) — define etapa AI vs AF.
+  // 1) Resolver serie da turma (se fornecida) — define etapa AI vs AF
+  // e tambem o ano (1..9) para filtrar habilidades da serie correta.
   let serieTurma: string | null = null
+  let anoSerie: number | null = null
   if (turmaId) {
     const r = await pool.query('SELECT serie FROM turmas WHERE id = $1', [turmaId])
     serieTurma = r.rows[0]?.serie ?? null
+    if (serieTurma) {
+      const num = parseInt(String(serieTurma).replace(/[^0-9]/g, ''), 10)
+      if (Number.isFinite(num) && num >= 1 && num <= 9) anoSerie = num
+    }
   }
 
   // 2) Resolver componente BNCC.
@@ -52,10 +58,13 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico'], async (re
     if (Number.isFinite(num)) etapa = num >= 1 && num <= 5 ? 'EF_AI' : 'EF_AF'
   }
 
+  // 4) Ano final: param explicito > ano inferido da serie da turma.
+  const anoFinal = anoParam ? parseInt(anoParam, 10) : anoSerie
+
   const habilidades = await listarHabilidades({
     componenteId: componenteId ?? null,
     etapa,
-    ano: anoParam ? parseInt(anoParam, 10) : null,
+    ano: anoFinal,
     busca,
     limite: limiteParam ? parseInt(limiteParam, 10) : undefined,
     offset: offsetParam ? parseInt(offsetParam, 10) : undefined,
@@ -68,6 +77,7 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico'], async (re
       componente_id: componenteId,
       etapa,
       serie_turma: serieTurma,
+      ano: anoFinal,
     },
   })
 })
