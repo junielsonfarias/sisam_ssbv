@@ -12,6 +12,7 @@ interface DashboardData {
   frequencia_hoje: {
     presentes: number
     ausentes: number
+    justificados: number
     total: number
     percentual: number
   }
@@ -118,12 +119,15 @@ function DashboardProfessor() {
       {dados.frequencia_hoje.total > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <h2 className="font-semibold text-gray-900 dark:text-white mb-3">Resumo de Hoje</h2>
-          <div className="flex gap-6 text-sm">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <span className="text-green-600 dark:text-green-400">
               {dados.frequencia_hoje.presentes} presentes
             </span>
             <span className="text-red-600 dark:text-red-400">
               {dados.frequencia_hoje.ausentes} ausentes
+            </span>
+            <span className="text-amber-600 dark:text-amber-400">
+              {dados.frequencia_hoje.justificados ?? 0} justificadas
             </span>
             <span className="text-gray-500 dark:text-gray-400">
               {dados.frequencia_hoje.total} registros

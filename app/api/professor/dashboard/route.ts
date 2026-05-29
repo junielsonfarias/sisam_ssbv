@@ -35,6 +35,7 @@ export const GET = withAuth('professor', async (request, usuario) => {
          SELECT
            COUNT(CASE WHEN fd.status = 'presente' THEN 1 END) as presentes_hoje,
            COUNT(CASE WHEN fd.status = 'ausente' THEN 1 END) as ausentes_hoje,
+           COUNT(CASE WHEN fd.status = 'justificado' THEN 1 END) as justificados_hoje,
            COUNT(*) as total_hoje
          FROM frequencia_diaria fd
          INNER JOIN minhas_turmas mt ON mt.turma_id = fd.turma_id
@@ -53,6 +54,7 @@ export const GET = withAuth('professor', async (request, usuario) => {
          (SELECT total_alunos FROM kpi_alunos) as total_alunos,
          (SELECT presentes_hoje FROM kpi_freq_hoje) as presentes_hoje,
          (SELECT ausentes_hoje FROM kpi_freq_hoje) as ausentes_hoje,
+         (SELECT justificados_hoje FROM kpi_freq_hoje) as justificados_hoje,
          (SELECT total_hoje FROM kpi_freq_hoje) as total_hoje,
          (SELECT presentes_semana FROM kpi_freq_semana) as presentes_semana,
          (SELECT total_semana FROM kpi_freq_semana) as total_semana`,
@@ -96,6 +98,7 @@ export const GET = withAuth('professor', async (request, usuario) => {
       frequencia_hoje: {
         presentes: presentesHoje,
         ausentes: parseInt(k.ausentes_hoje || '0'),
+        justificados: parseInt(k.justificados_hoje || '0'),
         total: totalHoje,
         percentual: totalHoje > 0 ? Math.round((presentesHoje / totalHoje) * 100) : 0,
       },

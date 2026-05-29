@@ -27,11 +27,12 @@ export async function GET(request: NextRequest) {
       escolaId = usuario.escola_id
     }
 
-    // Total de presentes no dia (exclui registros com status='ausente')
+    // Totais por status no dia (presente/ausente/justificado).
     let presencaQuery = `
       SELECT
         COUNT(*) FILTER (WHERE status = 'presente') AS total_presentes,
-        COUNT(*) FILTER (WHERE status = 'ausente') AS total_ausentes
+        COUNT(*) FILTER (WHERE status = 'ausente') AS total_ausentes,
+        COUNT(*) FILTER (WHERE status = 'justificado') AS total_justificados
       FROM frequencia_diaria
       WHERE data = $1
     `
@@ -94,6 +95,7 @@ export async function GET(request: NextRequest) {
     const totalAlunos = parseInt(alunosResult.rows[0]?.total_alunos || '0', 10)
     const totalPresentes = parseInt(presenca?.total_presentes || '0', 10)
     const totalAusentes = parseInt(presenca?.total_ausentes || '0', 10)
+    const totalJustificados = parseInt(presenca?.total_justificados || '0', 10)
     const taxaPresenca = totalAlunos > 0 ? Math.round((totalPresentes / totalAlunos) * 10000) / 100 : 0
 
     return NextResponse.json({
@@ -101,6 +103,7 @@ export async function GET(request: NextRequest) {
       total_alunos: totalAlunos,
       total_presentes: totalPresentes,
       total_ausentes: totalAusentes,
+      total_justificados: totalJustificados,
       taxa_presenca: taxaPresenca,
     })
   } catch (error: unknown) {

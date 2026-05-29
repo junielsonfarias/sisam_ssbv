@@ -268,10 +268,14 @@ export async function GET(request: NextRequest) {
          ORDER BY fb.bimestre`,
         [aluno.id, anoLetivo], 'frequencia'
       ),
-      // 7. Frequencia diaria
+      // 7. Frequencia diaria — usa coluna status (lancamento manual nao
+      // preenche hora_entrada, antes contava sempre 0). Justificado eh
+      // ausente justificado: nao conta como presente.
       safeQuery(
         `SELECT COUNT(*) as total_dias,
-                COUNT(*) FILTER (WHERE hora_entrada IS NOT NULL) as dias_presente,
+                COUNT(*) FILTER (WHERE status = 'presente') as dias_presente,
+                COUNT(*) FILTER (WHERE status = 'ausente') as dias_ausente,
+                COUNT(*) FILTER (WHERE status = 'justificado') as dias_justificado,
                 MIN(data) as primeira_data, MAX(data) as ultima_data
          FROM frequencia_diaria
          WHERE aluno_id = $1 AND EXTRACT(YEAR FROM data) = $2::int`,
@@ -373,6 +377,8 @@ export async function GET(request: NextRequest) {
       frequencia_diaria: {
         total_dias: parseInt(freqDiaria?.total_dias) || 0,
         dias_presente: parseInt(freqDiaria?.dias_presente) || 0,
+        dias_ausente: parseInt(freqDiaria?.dias_ausente) || 0,
+        dias_justificado: parseInt(freqDiaria?.dias_justificado) || 0,
         primeira_data: freqDiaria?.primeira_data,
         ultima_data: freqDiaria?.ultima_data,
       },

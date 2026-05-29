@@ -37,7 +37,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     addCondition(where, 'fd.metodo', metodo)
 
-    if (status && ['presente', 'ausente'].includes(status)) {
+    if (status && ['presente', 'ausente', 'justificado'].includes(status)) {
       addCondition(where, 'fd.status', status)
     }
 

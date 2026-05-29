@@ -79,10 +79,12 @@ export async function GET(request: NextRequest) {
       }
       const percentualGeral = totalDias > 0 ? Math.round((totalPresencas / totalDias) * 100) : null
 
-      // Buscar últimas frequências diárias (para timeline)
+      // Buscar últimas frequências diárias (para timeline). Usa coluna
+      // status — lancamentos manuais nao preenchem hora_entrada, antes
+      // todos vinham marcados como ausente. Inclui justificativa.
       const freqDiaria = await pool.query(
-        `SELECT data, hora_entrada, hora_saida, metodo,
-                CASE WHEN hora_entrada IS NOT NULL THEN true ELSE false END AS presente
+        `SELECT data, hora_entrada, hora_saida, metodo, status, justificativa,
+                (status = 'presente') AS presente
          FROM frequencia_diaria
          WHERE aluno_id = $1 AND EXTRACT(YEAR FROM data) = $2
          ORDER BY data DESC
