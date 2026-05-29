@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, AlertTriangle } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import FrequenciaDiariaComponent from '@/components/professor/frequencia-diaria'
 import FrequenciaHoraAulaComponent from '@/components/professor/frequencia-hora-aula'
+import HistoricoFrequencia from '@/components/professor/historico-frequencia'
 
 // Séries do 6º ao 9º ano usam frequência por hora-aula
 const SERIES_ANOS_FINAIS = ['6', '7', '8', '9', '6º', '7º', '8º', '9º', '6º Ano', '7º Ano', '8º Ano', '9º Ano']
@@ -40,6 +41,8 @@ function FrequenciaTurma() {
   const [dadosDiaria, setDadosDiaria] = useState<any>(null)
   // Estado para frequência hora-aula
   const [dadosHoraAula, setDadosHoraAula] = useState<any>(null)
+  // Versao do historico (incrementa apos cada save para invalidar o cache)
+  const [historicoVersao, setHistoricoVersao] = useState(0)
 
   const usaHoraAula = turmaInfo ? isAnosFinais(turmaInfo.serie) : false
 
@@ -138,15 +141,34 @@ function FrequenciaTurma() {
       )}
 
       {/* Seletor de data */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Calendar className="h-4 w-4 text-gray-500" />
         <input
           type="date"
           value={dataSelecionada}
           onChange={e => setDataSelecionada(e.target.value)}
+          aria-label="Data da frequência"
           className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
         />
+        <button
+          type="button"
+          onClick={() => setDataSelecionada(new Date().toISOString().split('T')[0])}
+          className="px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg"
+        >
+          Hoje
+        </button>
       </div>
+
+      {/* Historico de dias com frequencia (apenas diaria — hora-aula tem
+          fluxo proprio por aulas). */}
+      {turmaInfo && !usaHoraAula && (
+        <HistoricoFrequencia
+          turmaId={turmaId}
+          dataSelecionada={dataSelecionada}
+          onSelecionarData={setDataSelecionada}
+          refreshKey={historicoVersao}
+        />
+      )}
 
       {/* Conteúdo */}
       {carregando ? (
@@ -166,7 +188,7 @@ function FrequenciaTurma() {
           horarios={dadosHoraAula.horarios}
           alunos={dadosHoraAula.alunos}
           frequencias={dadosHoraAula.frequencias}
-          onSalvar={fetchFrequencia}
+          onSalvar={() => { fetchFrequencia(); setHistoricoVersao(v => v + 1) }}
         />
       ) : dadosDiaria ? (
         <FrequenciaDiariaComponent
@@ -174,7 +196,7 @@ function FrequenciaTurma() {
           data={dataSelecionada}
           alunos={dadosDiaria.alunos}
           resumo={dadosDiaria.resumo}
-          onSalvar={fetchFrequencia}
+          onSalvar={() => { fetchFrequencia(); setHistoricoVersao(v => v + 1) }}
         />
       ) : null}
     </div>

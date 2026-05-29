@@ -184,25 +184,25 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
 
           return (
             <div key={aluno.aluno_id}>
-              <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-lg border transition-colors ${
+              <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border transition-colors ${
                 isPresente ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
                 isFalta ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
                 isJustificada ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' :
                 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
               }`}>
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-xs text-gray-400 w-6 text-right">{i + 1}</span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{aluno.aluno_nome}</p>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <span className="text-xs text-gray-400 w-5 text-right flex-shrink-0">{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white break-words leading-snug">{aluno.aluno_nome}</p>
                     {aluno.metodo && aluno.metodo !== 'manual' && (
-                      <p className="text-xs text-gray-400">{aluno.metodo}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{aluno.metodo}</p>
                     )}
                   </div>
                 </div>
                 <div
                   role="radiogroup"
                   aria-label={`Status de ${aluno.aluno_nome}`}
-                  className="flex items-center gap-1 self-end sm:self-auto"
+                  className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:gap-1 w-full sm:w-auto"
                 >
                   <button
                     type="button"
@@ -210,7 +210,7 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
                     aria-checked={isPresente}
                     onClick={() => setStatus(aluno.aluno_id, 'presente')}
                     title="Presente"
-                    className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    className={`min-h-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
                       isPresente
                         ? 'bg-green-600 text-white shadow-sm'
                         : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30'
@@ -224,7 +224,7 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
                     aria-checked={isFalta}
                     onClick={() => setStatus(aluno.aluno_id, 'ausente')}
                     title="Falta"
-                    className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    className={`min-h-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
                       isFalta
                         ? 'bg-red-600 text-white shadow-sm'
                         : 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30'
@@ -238,7 +238,7 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
                     aria-checked={isJustificada}
                     onClick={() => setStatus(aluno.aluno_id, 'justificado')}
                     title="Falta Justificada"
-                    className={`min-w-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    className={`min-h-[44px] px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
                       isJustificada
                         ? 'bg-amber-500 text-white shadow-sm'
                         : 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/30'
