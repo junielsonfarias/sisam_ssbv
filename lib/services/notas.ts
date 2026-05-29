@@ -235,8 +235,7 @@ export async function lancarNotas(params: {
          conceito = EXCLUDED.conceito,
          parecer_descritivo = EXCLUDED.parecer_descritivo,
          tipo_avaliacao_id = EXCLUDED.tipo_avaliacao_id,
-         registrado_por = EXCLUDED.registrado_por,
-         turma_id = EXCLUDED.turma_id`,
+         registrado_por = EXCLUDED.registrado_por`,
       values
     )
 

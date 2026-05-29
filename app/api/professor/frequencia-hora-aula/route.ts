@@ -46,10 +46,16 @@ export const POST = withAuth('professor', async (request, usuario) => {
     return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
   }
 
-  // Verificar vínculo com disciplina (polivalente pode qualquer, disciplina só a vinculada)
+  // Verificar vínculo com disciplina (polivalente pode qualquer, disciplina só a vinculada).
+  // Cruza pt.ano_letivo = t.ano_letivo para invalidar vinculos orfaos.
   const vinculoResult = await pool.query(
-    `SELECT tipo_vinculo, disciplina_id FROM professor_turmas
-     WHERE professor_id = $1 AND turma_id = $2 AND ativo = true`,
+    `SELECT pt.tipo_vinculo, pt.disciplina_id
+       FROM professor_turmas pt
+       JOIN turmas t ON t.id = pt.turma_id
+      WHERE pt.professor_id = $1
+        AND pt.turma_id = $2
+        AND pt.ativo = true
+        AND pt.ano_letivo = t.ano_letivo`,
     [usuario.id, turma_id]
   )
   const vinculos = vinculoResult.rows

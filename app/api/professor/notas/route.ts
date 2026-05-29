@@ -68,11 +68,18 @@ export const POST = withAuth('professor', async (request, usuario) => {
 
   const { turma_id, disciplina_id, periodo_id, notas } = validacao.data
 
-  // Executar verificações e busca de turma em paralelo (3 queries → 1 round-trip)
+  // Executar verificações e busca de turma em paralelo (3 queries → 1 round-trip).
+  // Cruza pt.ano_letivo = t.ano_letivo para invalidar vinculos orfaos
+  // (ex: vinculo de 2025 com ativo=true apos turma de 2025 finalizada).
   const [vinculoResult, turma] = await Promise.all([
     pool.query(
-      `SELECT tipo_vinculo, disciplina_id FROM professor_turmas
-       WHERE professor_id = $1 AND turma_id = $2 AND ativo = true`,
+      `SELECT pt.tipo_vinculo, pt.disciplina_id
+         FROM professor_turmas pt
+         JOIN turmas t ON t.id = pt.turma_id
+        WHERE pt.professor_id = $1
+          AND pt.turma_id = $2
+          AND pt.ativo = true
+          AND pt.ano_letivo = t.ano_letivo`,
       [usuario.id, turma_id]
     ),
     buscarTurma(turma_id),
