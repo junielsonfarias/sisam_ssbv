@@ -15,9 +15,11 @@
  *   - Sabado/Domingo + evento conta_dia_letivo=TRUE (reposicao) = letivo
  *   - Replica a semantica de contar_dias_letivos(), mas retornando as datas.
  *
- * "Lacuna" = dia letivo sem nenhum registro em diario_classe(turma_id, data_aula).
+ * "Lacuna" = dia letivo sem nenhum registro em diario_classe(turma_id, data_aula)
+ * E sem nenhum registro em frequencia_diaria(turma_id, data) para a turma.
  * Definicao simples e util: alerta "a turma X ficou sem registro nesses dias".
- * Nao distingue por disciplina (basta 1 registro qualquer no dia).
+ * Nao distingue por disciplina (basta 1 registro qualquer no dia, seja de
+ * conteudo ou de frequencia).
  *
  * Permissao:
  * - administrador / tecnico: qualquer turma
@@ -148,7 +150,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     // 3) Query principal: dias letivos no escopo cruzado com lancamentos do diario
     // Cacheada por 60s (chave inclui turma+periodo). Auditoria de leitura
     // fica FORA do cache — toda chamada e registrada mesmo em hit.
-    const redisKey = cacheKey('diario-lacunas', turmaId, periodoId ?? 'todos')
+    // Versao da chave bumpada (v2) apos passar a considerar frequencia_diaria
+    // como lancamento — invalida cache antigo.
+    const redisKey = cacheKey('diario-lacunas', 'v2', turmaId, periodoId ?? 'todos')
     const lacunasData = await withRedisCache(redisKey, 60, async () => {
       const resultRes = await pool.query(
       `
@@ -181,10 +185,20 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
                 AND NOT COALESCE(e.tem_feriado, FALSE))
       ),
       lancamentos AS (
+        -- Considera tanto conteudo (diario_classe) quanto frequencia
+        -- (frequencia_diaria) como "registro no diario": basta o
+        -- professor ter lancado QUALQUER coisa para o dia nao virar
+        -- lacuna. Sem isso, escolas que so lancam frequencia (creche,
+        -- anos iniciais) apareciam com 100% lacuna.
         SELECT DISTINCT dc.data_aula AS data
           FROM diario_classe dc, escopo
          WHERE dc.turma_id  = escopo.turma_id
            AND dc.data_aula BETWEEN escopo.dt_ini AND escopo.dt_fim
+        UNION
+        SELECT DISTINCT fd.data AS data
+          FROM frequencia_diaria fd, escopo
+         WHERE fd.turma_id = escopo.turma_id
+           AND fd.data BETWEEN escopo.dt_ini AND escopo.dt_fim
       )
       SELECT
         EXTRACT(YEAR  FROM dl.data)::int AS ano,
