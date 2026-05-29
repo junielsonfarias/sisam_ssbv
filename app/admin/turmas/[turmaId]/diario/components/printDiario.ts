@@ -69,9 +69,25 @@ interface ImprimirDiarioOpts {
   filtroPeriodoSelecionado: boolean
 }
 
+/** Rotulo legivel para o periodo de uma linha de frequencia ou nota. */
+function rotuloPeriodoLinha(per: number, primeiroNomePeriodo: string | null | undefined, anoLetivo: string | null | undefined): string {
+  if (per === -1) {
+    return anoLetivo ? `Ano letivo ${anoLetivo}` : 'Sem período'
+  }
+  return primeiroNomePeriodo || `${per}º Bimestre`
+}
+
+/** Celula compacta de "Per." na tabela. */
+function celulaPeriodo(periodoNumero: number | null | undefined, anoLetivo: string | null | undefined): string {
+  if (periodoNumero) return `${periodoNumero}º Bim.`
+  if (anoLetivo) return `Ano ${anoLetivo}`
+  return '—'
+}
+
 export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts): boolean {
   const { turma, periodo, professores, frequencia, notas, conteudo } = diario
   const { tipo, filtroPeriodoSelecionado } = opts
+  const anoLetivo = turma?.ano_letivo ?? null
 
   const printWindow = window.open('', '_blank', 'width=1100,height=780')
   if (!printWindow) return false
@@ -110,7 +126,7 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts):
         <tr>
           <td class="num">${i + 1}</td>
           <td class="aluno auto-fit-nome" data-nome-completo="${escapeHtml(f.aluno_nome)}" title="${escapeHtml(f.aluno_nome)}">${escapeHtml(f.aluno_nome)}</td>
-          ${incluirColPeriodo ? `<td class="center">${f.periodo_numero ? f.periodo_numero + 'º' : '—'}</td>` : ''}
+          ${incluirColPeriodo ? `<td class="center">${escapeHtml(celulaPeriodo(f.periodo_numero, anoLetivo))}</td>` : ''}
           <td class="right">${f.dias_letivos ?? '—'}</td>
           <td class="right">${f.presencas ?? '—'}</td>
           <td class="right">${f.faltas ?? '—'}</td>
@@ -167,9 +183,7 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts):
     const ordenados = Array.from(grupos.entries()).sort(([a], [b]) => Number(a) - Number(b))
 
     return ordenados.map(([per, linhas]) => {
-      const nomePeriodo = per === -1
-        ? 'Sem período'
-        : (linhas[0]?.periodo_nome || `${per}º período`)
+      const nomePeriodo = rotuloPeriodoLinha(Number(per), linhas[0]?.periodo_nome, anoLetivo)
       const subtitulo = `Frequência — ${nomePeriodo} · ${linhas.length} aluno(s)`
       return `
         <section class="page"><div class="page-inner">
@@ -191,7 +205,7 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts):
           <td class="num">${i + 1}</td>
           <td class="aluno auto-fit-nome" data-nome-completo="${escapeHtml(n.aluno_nome)}" title="${escapeHtml(n.aluno_nome)}">${escapeHtml(n.aluno_nome)}</td>
           <td>${escapeHtml(n.disciplina_nome || '—')}</td>
-          ${incluirColPeriodo ? `<td class="center">${n.periodo_numero ? n.periodo_numero + 'º' : '—'}</td>` : ''}
+          ${incluirColPeriodo ? `<td class="center">${escapeHtml(celulaPeriodo(n.periodo_numero, anoLetivo))}</td>` : ''}
           <td class="right" style="color:${corN}; font-weight:600">${formatarNota(n.nota)}</td>
           <td class="right" style="color:#6b7280">${formatarNota(n.nota_recuperacao)}</td>
           <td class="right" style="color:${corFinal}; font-weight:700">${formatarNota(n.nota_final)}</td>
@@ -248,9 +262,7 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts):
     const ordenados = Array.from(grupos.entries()).sort(([a], [b]) => Number(a) - Number(b))
 
     return ordenados.map(([per, linhas]) => {
-      const nomePeriodo = per === -1
-        ? 'Sem período'
-        : (linhas[0]?.periodo_nome || `${per}º período`)
+      const nomePeriodo = rotuloPeriodoLinha(Number(per), linhas[0]?.periodo_nome, anoLetivo)
       const subtitulo = `Notas — ${nomePeriodo} · ${linhas.length} lançamento(s)`
       return `
         <section class="page"><div class="page-inner">

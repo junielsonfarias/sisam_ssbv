@@ -8,15 +8,33 @@ interface Props {
   frequencia: FrequenciaLinha[]
   periodo: Periodo | null
   filtroPorPeriodo: boolean
+  /** Ano letivo da turma (ex: "2026"), usado para o rotulo da coluna Periodo. */
+  anoLetivo?: string | null
 }
 
-export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo }: Props) {
+/**
+ * Formata o rotulo da coluna Periodo:
+ *  - periodo_numero presente -> "1º Bimestre", "2º Bimestre"...
+ *  - Sem periodo + ano letivo -> "Ano letivo 2026"
+ *  - Sem nada -> "—"
+ */
+function rotuloPeriodo(periodoNumero: number | null | undefined, anoLetivo: string | null | undefined): string {
+  if (periodoNumero) {
+    return `${periodoNumero}º Bimestre`
+  }
+  if (anoLetivo) {
+    return `Ano letivo ${anoLetivo}`
+  }
+  return '—'
+}
+
+export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo, anoLetivo }: Props) {
   return (
     <section className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
       <div className="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
         <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          Frequência {periodo ? `— ${periodo.nome}` : '(consolidado)'}
+          Frequência {periodo ? `— ${periodo.nome}` : anoLetivo ? `— Ano letivo ${anoLetivo} (consolidado)` : '(consolidado)'}
         </h2>
         <span className="text-xs text-gray-500 dark:text-gray-400">{frequencia.length} alunos</span>
       </div>
@@ -43,8 +61,8 @@ export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo 
                 <td className="px-3 py-2 text-right text-gray-400 dark:text-gray-500 tabular-nums">{i + 1}</td>
                 <td className="px-4 py-2 text-gray-900 dark:text-white">{f.aluno_nome}</td>
                 {!filtroPorPeriodo && (
-                  <td className="px-4 py-2 text-gray-600 dark:text-gray-300">
-                    {f.periodo_numero ? `${f.periodo_numero}º` : '—'}
+                  <td className="px-4 py-2 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    {rotuloPeriodo(f.periodo_numero, anoLetivo)}
                   </td>
                 )}
                 <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-200">{f.dias_letivos ?? '—'}</td>
@@ -71,9 +89,9 @@ export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo 
                   <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums shrink-0">{i + 1}.</span>
                   <span className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{f.aluno_nome}</span>
                 </div>
-                {!filtroPorPeriodo && f.periodo_numero && (
+                {!filtroPorPeriodo && (
                   <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                    {f.periodo_numero}º período
+                    {rotuloPeriodo(f.periodo_numero, anoLetivo)}
                   </div>
                 )}
               </div>

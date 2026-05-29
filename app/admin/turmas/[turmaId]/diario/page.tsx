@@ -367,6 +367,7 @@ function DiarioTurmaContent() {
           frequencia={frequencia}
           periodo={periodo}
           filtroPorPeriodo={filtroPorPeriodo}
+          anoLetivo={turma?.ano_letivo}
         />
       )}
 
