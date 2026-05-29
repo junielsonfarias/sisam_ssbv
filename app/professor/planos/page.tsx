@@ -387,9 +387,9 @@ function PlanejamentoAulas() {
 
       {/* Modal Plano */}
       {modalAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 sm:rounded-xl rounded-t-2xl shadow-xl w-full sm:max-w-2xl h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col">
+            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {formId ? 'Editar Plano' : 'Novo Plano de Aula'}
               </h3>
@@ -397,7 +397,7 @@ function PlanejamentoAulas() {
                 <X className="h-5 w-5 text-gray-500" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Período</label>
@@ -539,7 +539,7 @@ function PlanejamentoAulas() {
               </div>
               {erro && <p className="text-red-600 dark:text-red-400 text-sm">{erro}</p>}
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex-shrink-0 flex flex-wrap justify-end gap-2 p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-2xl sm:rounded-b-xl">
               <button onClick={() => setModalAberto(false)} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 Cancelar
               </button>

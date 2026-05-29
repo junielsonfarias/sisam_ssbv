@@ -281,7 +281,7 @@ export default function SeletorBncc({
             <div
               ref={listaRef}
               role="listbox"
-              style={{ maxHeight: 'min(60vh, 22rem)' }}
+              style={{ maxHeight: 'min(45vh, 22rem)' }}
               className="block w-full overflow-y-auto overflow-x-hidden scroll-mt-2 isolate overscroll-contain"
             >
               {carregando && (
