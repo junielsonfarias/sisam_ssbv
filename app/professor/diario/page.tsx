@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { BookOpen, Plus, Edit2, Trash2, Calendar, List, ChevronLeft, ChevronRight, X, Save, AlertTriangle } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import SeletorBncc from '@/components/professor/seletor-bncc'
 
 interface Turma {
   turma_id: string
@@ -30,6 +31,7 @@ interface RegistroDiario {
   turma_nome: string
   disciplina_nome: string | null
   criado_em: string
+  habilidades_bncc?: string[]
 }
 
 function DiarioDeClasse() {
@@ -56,6 +58,7 @@ function DiarioDeClasse() {
   const [formConteudo, setFormConteudo] = useState('')
   const [formMetodologia, setFormMetodologia] = useState('')
   const [formObservacoes, setFormObservacoes] = useState('')
+  const [formHabilidadesBncc, setFormHabilidadesBncc] = useState<string[]>([])
 
   useEffect(() => {
     fetch('/api/professor/turmas')
@@ -99,6 +102,7 @@ function DiarioDeClasse() {
       setFormConteudo(registro.conteudo)
       setFormMetodologia(registro.metodologia || '')
       setFormObservacoes(registro.observacoes || '')
+      setFormHabilidadesBncc(registro.habilidades_bncc || [])
     } else {
       setFormId('')
       setFormData(data || new Date().toISOString().substring(0, 10))
@@ -106,6 +110,7 @@ function DiarioDeClasse() {
       setFormConteudo('')
       setFormMetodologia('')
       setFormObservacoes('')
+      setFormHabilidadesBncc([])
     }
     setModalAberto(true)
     setMensagem('')
@@ -128,6 +133,7 @@ function DiarioDeClasse() {
         conteudo: formConteudo,
         metodologia: formMetodologia || null,
         observacoes: formObservacoes || null,
+        habilidades_bncc: formHabilidadesBncc,
       }
       const method = formId ? 'PUT' : 'POST'
       const res = await fetch('/api/professor/diario', {
@@ -366,8 +372,26 @@ function DiarioDeClasse() {
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                         {r.disciplina_nome || '-'}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs truncate">
-                        {r.conteudo}
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs">
+                        <div className="truncate">{r.conteudo}</div>
+                        {r.habilidades_bncc && r.habilidades_bncc.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {r.habilidades_bncc.slice(0, 4).map(codigo => (
+                              <code
+                                key={codigo}
+                                className="px-1 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-mono"
+                                title={`Habilidade BNCC ${codigo}`}
+                              >
+                                {codigo}
+                              </code>
+                            ))}
+                            {r.habilidades_bncc.length > 4 && (
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 self-center">
+                                +{r.habilidades_bncc.length - 4}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-1">
@@ -455,6 +479,16 @@ function DiarioDeClasse() {
                   placeholder="Observações (opcional)"
                 />
               </div>
+
+              {/* Seletor de habilidades BNCC — filtra por disciplina/serie da turma */}
+              <SeletorBncc
+                valor={formHabilidadesBncc}
+                onChange={setFormHabilidadesBncc}
+                disciplinaId={formDisciplinaId || null}
+                turmaId={turmaId}
+                label="Habilidades BNCC desta aula"
+              />
+
               {erro && <p className="text-red-600 dark:text-red-400 text-sm">{erro}</p>}
             </div>
             <div className="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">

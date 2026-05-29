@@ -6,6 +6,8 @@ import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
+const codigoBnccSchema = z.string().regex(/^E[FIM]\d+[A-Z]+\d+$/i, 'Codigo BNCC invalido')
+
 const diarioSchema = z.object({
   turma_id: z.string().uuid(),
   disciplina_id: z.string().uuid().nullable().optional(),
@@ -13,7 +15,36 @@ const diarioSchema = z.object({
   conteudo: z.string().min(1, 'Conteúdo é obrigatório').max(5000),
   metodologia: z.string().max(2000).nullable().optional(),
   observacoes: z.string().max(2000).nullable().optional(),
+  habilidades_bncc: z.array(codigoBnccSchema).max(30).optional(),
 })
+
+/**
+ * Substitui os vinculos BNCC do registro de diario por novos codigos.
+ * Quando codigos vier vazio, apenas remove os vinculos existentes.
+ */
+async function sincronizarBnccDiario(diarioId: string, codigos: string[]): Promise<void> {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    await client.query(
+      'DELETE FROM diario_classe_bncc_habilidades WHERE diario_id = $1',
+      [diarioId]
+    )
+    for (const codigo of codigos) {
+      await client.query(
+        `INSERT INTO diario_classe_bncc_habilidades (diario_id, habilidade_codigo)
+         VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [diarioId, codigo]
+      )
+    }
+    await client.query('COMMIT')
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.release()
+  }
+}
 
 const diarioUpdateSchema = diarioSchema.extend({
   id: z.string().uuid(),
@@ -56,10 +87,16 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico'], async (re
   }
 
   const result = await pool.query(`
-    SELECT d.*, t.nome AS turma_nome, de.nome AS disciplina_nome
+    SELECT d.*, t.nome AS turma_nome, de.nome AS disciplina_nome,
+           COALESCE(bncc.codigos, '{}') AS habilidades_bncc
     FROM diario_classe d
     JOIN turmas t ON t.id = d.turma_id
     LEFT JOIN disciplinas_escolares de ON de.id = d.disciplina_id
+    LEFT JOIN LATERAL (
+      SELECT array_agg(db.habilidade_codigo ORDER BY db.habilidade_codigo) AS codigos
+      FROM diario_classe_bncc_habilidades db
+      WHERE db.diario_id = d.id
+    ) bncc ON true
     WHERE d.turma_id = $1 ${whereExtra}
     ORDER BY d.data_aula DESC
   `, params)
@@ -80,7 +117,7 @@ export const POST = withAuth('professor', async (request, usuario) => {
     }, { status: 400 })
   }
 
-  const { turma_id, disciplina_id, data_aula, conteudo, metodologia, observacoes } = validacao.data
+  const { turma_id, disciplina_id, data_aula, conteudo, metodologia, observacoes, habilidades_bncc } = validacao.data
 
   const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
   if (!temVinculo) {
@@ -95,7 +132,12 @@ export const POST = withAuth('professor', async (request, usuario) => {
     RETURNING *
   `, [usuario.id, turma_id, disciplina_id || null, data_aula, conteudo, metodologia || null, observacoes || null])
 
-  return NextResponse.json({ registro: result.rows[0], mensagem: 'Registro salvo com sucesso' })
+  const registro = result.rows[0]
+  if (habilidades_bncc !== undefined) {
+    await sincronizarBnccDiario(registro.id, habilidades_bncc)
+  }
+
+  return NextResponse.json({ registro, mensagem: 'Registro salvo com sucesso' })
 })
 
 /**
@@ -111,7 +153,7 @@ export const PUT = withAuth('professor', async (request, usuario) => {
     }, { status: 400 })
   }
 
-  const { id, turma_id, disciplina_id, data_aula, conteudo, metodologia, observacoes } = validacao.data
+  const { id, turma_id, disciplina_id, data_aula, conteudo, metodologia, observacoes, habilidades_bncc } = validacao.data
 
   // Verificar se o registro pertence ao professor
   const check = await pool.query('SELECT id FROM diario_classe WHERE id = $1 AND professor_id = $2', [id, usuario.id])
@@ -125,6 +167,10 @@ export const PUT = withAuth('professor', async (request, usuario) => {
     WHERE id = $1 AND professor_id = $8
     RETURNING *
   `, [id, turma_id, disciplina_id || null, data_aula, conteudo, metodologia || null, observacoes || null, usuario.id])
+
+  if (habilidades_bncc !== undefined) {
+    await sincronizarBnccDiario(id, habilidades_bncc)
+  }
 
   return NextResponse.json({ registro: result.rows[0], mensagem: 'Registro atualizado com sucesso' })
 })

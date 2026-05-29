@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ClipboardList, Plus, Edit2, Trash2, Printer, X, Save, AlertTriangle, CheckCircle, FileText } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import SeletorBncc from '@/components/professor/seletor-bncc'
 
 interface Turma {
   turma_id: string
@@ -34,6 +35,7 @@ interface Plano {
   turma_nome: string
   disciplina_nome: string | null
   criado_em: string
+  habilidades_bncc?: string[]
 }
 
 const periodoBadge: Record<string, { label: string; cls: string }> = {
@@ -74,6 +76,7 @@ function PlanejamentoAulas() {
   const [formAvaliacao, setFormAvaliacao] = useState('')
   const [formObservacoes, setFormObservacoes] = useState('')
   const [formStatus, setFormStatus] = useState('rascunho')
+  const [formHabilidadesBncc, setFormHabilidadesBncc] = useState<string[]>([])
 
   useEffect(() => {
     fetch('/api/professor/turmas')
@@ -125,6 +128,7 @@ function PlanejamentoAulas() {
       setFormAvaliacao(plano.avaliacao || '')
       setFormObservacoes(plano.observacoes || '')
       setFormStatus(plano.status)
+      setFormHabilidadesBncc(plano.habilidades_bncc || [])
     } else {
       setFormId('')
       setFormDisciplinaId(disciplinas.length === 1 ? disciplinas[0].id : '')
@@ -138,6 +142,7 @@ function PlanejamentoAulas() {
       setFormAvaliacao('')
       setFormObservacoes('')
       setFormStatus('rascunho')
+      setFormHabilidadesBncc([])
     }
     setModalAberto(true)
     setMensagem('')
@@ -166,6 +171,7 @@ function PlanejamentoAulas() {
         avaliacao: formAvaliacao || null,
         observacoes: formObservacoes || null,
         status: formStatus,
+        habilidades_bncc: formHabilidadesBncc,
       }
       const method = formId ? 'PUT' : 'POST'
       const res = await fetch('/api/professor/planos', {
@@ -357,6 +363,23 @@ function PlanejamentoAulas() {
               </p>
               <h3 className="font-medium text-gray-900 dark:text-white text-sm mb-1">Objetivo</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{p.objetivo}</p>
+              {p.habilidades_bncc && p.habilidades_bncc.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {p.habilidades_bncc.slice(0, 5).map(codigo => (
+                    <code
+                      key={codigo}
+                      className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-mono"
+                    >
+                      {codigo}
+                    </code>
+                  ))}
+                  {p.habilidades_bncc.length > 5 && (
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 self-center">
+                      +{p.habilidades_bncc.length - 5}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -484,6 +507,15 @@ function PlanejamentoAulas() {
                   placeholder="Observações (opcional)"
                 />
               </div>
+              {/* Seletor de habilidades BNCC — filtra por disciplina/serie da turma */}
+              <SeletorBncc
+                valor={formHabilidadesBncc}
+                onChange={setFormHabilidadesBncc}
+                disciplinaId={formDisciplinaId || null}
+                turmaId={turmaId}
+                label="Habilidades BNCC vinculadas"
+              />
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                 <div className="flex gap-3">

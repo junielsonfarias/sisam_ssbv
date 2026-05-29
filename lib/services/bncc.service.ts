@@ -124,6 +124,45 @@ export async function listarEtapas() {
   return r.rows
 }
 
+/**
+ * Mapeia o codigo de uma disciplina_escolar (LP, MAT, CIE...) para o id do
+ * componente BNCC correspondente (LP_AI, LP_AF, MA_AI, MA_AF...) com base
+ * na serie da turma. Anos 1-5 -> _AI, anos 6-9 -> _AF, sem serie -> AF.
+ *
+ * Retorna null quando o codigo nao e mapeavel (ex: disciplina customizada).
+ */
+export function mapearDisciplinaParaComponenteBncc(
+  codigoDisciplina: string | null | undefined,
+  serie: string | number | null | undefined,
+): string | null {
+  if (!codigoDisciplina) return null
+  const codigo = codigoDisciplina.toUpperCase().trim()
+
+  const numeroSerie = typeof serie === 'number'
+    ? serie
+    : parseInt(String(serie || '').replace(/[^0-9]/g, ''), 10)
+  const isAI = Number.isFinite(numeroSerie) && numeroSerie >= 1 && numeroSerie <= 5
+  const sufixo = isAI ? '_AI' : '_AF'
+
+  // Mapeamento codigo disciplina_escolar -> prefixo componente BNCC
+  const prefixoMap: Record<string, string> = {
+    LP: 'LP',
+    PORT: 'LP',
+    MAT: 'MA',
+    CIE: 'CI',
+    HIS: 'HI',
+    GEO: 'GE',
+    ART: 'AR',
+    EDF: 'EF',
+    REL: 'ER',
+    ING: 'LI', // so existe LI_AF na BNCC
+  }
+  const prefixo = prefixoMap[codigo]
+  if (!prefixo) return null
+  if (prefixo === 'LI') return 'LI_AF' // Lingua Inglesa: oficial somente AF
+  return `${prefixo}${sufixo}`
+}
+
 /** Competências gerais (10). */
 export async function listarCompetenciasGerais() {
   const r = await pool.query(

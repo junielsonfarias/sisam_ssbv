@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { verificarVinculoProfessor } from '@/lib/professor-auth'
+import { vincularHabilidades } from '@/lib/services/bncc.service'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
+
+// Codigos BNCC: EF{ano}{comp}{num}, EI{faixa}{campo}{num} ou EM{ano}{comp}{num}
+const codigoBnccSchema = z.string().regex(/^E[FIM]\d+[A-Z]+\d+$/i, 'Codigo BNCC invalido')
 
 const planoSchema = z.object({
   turma_id: z.string().uuid(),
@@ -19,6 +23,7 @@ const planoSchema = z.object({
   avaliacao: z.string().max(5000).nullable().optional(),
   observacoes: z.string().max(5000).nullable().optional(),
   status: z.enum(['rascunho', 'finalizado']).default('rascunho'),
+  habilidades_bncc: z.array(codigoBnccSchema).max(30).optional(),
 })
 
 const planoUpdateSchema = planoSchema.extend({
@@ -62,10 +67,16 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico'], async (re
   }
 
   const result = await pool.query(`
-    SELECT p.*, t.nome AS turma_nome, de.nome AS disciplina_nome
+    SELECT p.*, t.nome AS turma_nome, de.nome AS disciplina_nome,
+           COALESCE(bncc.codigos, '{}') AS habilidades_bncc
     FROM planos_aula p
     JOIN turmas t ON t.id = p.turma_id
     LEFT JOIN disciplinas_escolares de ON de.id = p.disciplina_id
+    LEFT JOIN LATERAL (
+      SELECT array_agg(pb.habilidade_codigo ORDER BY pb.habilidade_codigo) AS codigos
+      FROM planos_aula_bncc_habilidades pb
+      WHERE pb.plano_id = p.id
+    ) bncc ON true
     WHERE p.turma_id = $1 ${whereExtra}
     ORDER BY p.data_inicio DESC
   `, params)
@@ -86,7 +97,7 @@ export const POST = withAuth('professor', async (request, usuario) => {
     }, { status: 400 })
   }
 
-  const { turma_id, disciplina_id, periodo, data_inicio, data_fim, objetivo, conteudo, metodologia, recursos, avaliacao, observacoes, status } = validacao.data
+  const { turma_id, disciplina_id, periodo, data_inicio, data_fim, objetivo, conteudo, metodologia, recursos, avaliacao, observacoes, status, habilidades_bncc } = validacao.data
 
   const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
   if (!temVinculo) {
@@ -99,7 +110,12 @@ export const POST = withAuth('professor', async (request, usuario) => {
     RETURNING *
   `, [usuario.id, turma_id, disciplina_id || null, periodo, data_inicio, data_fim || null, objetivo, conteudo, metodologia || null, recursos || null, avaliacao || null, observacoes || null, status])
 
-  return NextResponse.json({ plano: result.rows[0], mensagem: 'Plano salvo com sucesso' })
+  const plano = result.rows[0]
+  if (habilidades_bncc && habilidades_bncc.length > 0) {
+    await vincularHabilidades('planos_aula', plano.id, habilidades_bncc)
+  }
+
+  return NextResponse.json({ plano, mensagem: 'Plano salvo com sucesso' })
 })
 
 /**
@@ -115,7 +131,7 @@ export const PUT = withAuth('professor', async (request, usuario) => {
     }, { status: 400 })
   }
 
-  const { id, turma_id, disciplina_id, periodo, data_inicio, data_fim, objetivo, conteudo, metodologia, recursos, avaliacao, observacoes, status } = validacao.data
+  const { id, turma_id, disciplina_id, periodo, data_inicio, data_fim, objetivo, conteudo, metodologia, recursos, avaliacao, observacoes, status, habilidades_bncc } = validacao.data
 
   const check = await pool.query('SELECT id FROM planos_aula WHERE id = $1 AND professor_id = $2', [id, usuario.id])
   if (check.rows.length === 0) {
@@ -130,6 +146,12 @@ export const PUT = withAuth('professor', async (request, usuario) => {
     WHERE id = $1 AND professor_id = $14
     RETURNING *
   `, [id, turma_id, disciplina_id || null, periodo, data_inicio, data_fim || null, objetivo, conteudo, metodologia || null, recursos || null, avaliacao || null, observacoes || null, status, usuario.id])
+
+  // Atualiza vinculos BNCC quando o campo for explicitamente enviado (mesmo
+  // vazio — sinaliza limpar).
+  if (habilidades_bncc !== undefined) {
+    await vincularHabilidades('planos_aula', id, habilidades_bncc)
+  }
 
   return NextResponse.json({ plano: result.rows[0], mensagem: 'Plano atualizado com sucesso' })
 })
