@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { BookOpen, Plus, Edit2, Trash2, Calendar, List, ChevronLeft, ChevronRight, X, Save, AlertTriangle } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import SeletorBncc from '@/components/professor/seletor-bncc'
+import ContextoLancamento from '@/components/professor/contexto-lancamento'
 
 interface Turma {
   turma_id: string
@@ -259,7 +260,26 @@ function DiarioDeClasse() {
           <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-gray-500 dark:text-gray-400">Selecione uma turma para visualizar o diário</p>
         </div>
-      ) : visao === 'calendario' ? (
+      ) : (
+        <>
+        {(() => {
+          const t = turmas.find(x => x.turma_id === turmaId)
+          return t ? (
+            <ContextoLancamento
+              titulo="Diário de Classe"
+              escola={t.escola_nome}
+              turma={t.turma_nome}
+              serie={t.serie}
+              turno={t.turno}
+              disciplina={t.disciplina_nome}
+              cor="indigo"
+            />
+          ) : null
+        })()}
+        </>
+      )}
+
+      {!turmaId ? null : visao === 'calendario' ? (
         /* Visão Calendário */
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           {/* Navegação de mês */}

@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/protected-route'
 import FrequenciaDiariaComponent from '@/components/professor/frequencia-diaria'
 import FrequenciaHoraAulaComponent from '@/components/professor/frequencia-hora-aula'
 import HistoricoFrequencia from '@/components/professor/historico-frequencia'
+import ContextoLancamento from '@/components/professor/contexto-lancamento'
 
 // Séries do 6º ao 9º ano usam frequência por hora-aula
 const SERIES_ANOS_FINAIS = ['6', '7', '8', '9', '6º', '7º', '8º', '9º', '6º Ano', '7º Ano', '8º Ano', '9º Ano']
@@ -109,35 +110,35 @@ function FrequenciaTurma() {
     )
   }
 
+  const dataFormatada = (() => {
+    const [y, m, d] = dataSelecionada.split('-')
+    return d && m && y ? `${d}/${m}/${y}` : dataSelecionada
+  })()
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+        <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" aria-label="Voltar">
           <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
         </button>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            {turmaInfo?.turma_nome || 'Carregando...'}
-          </h1>
-          {turmaInfo && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {turmaInfo.serie} - {turmaInfo.turno} | {turmaInfo.escola_nome}
-              {turmaInfo.disciplina_nome && ` | ${turmaInfo.disciplina_nome}`}
-            </p>
-          )}
-        </div>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          {usaHoraAula ? 'Frequência por Hora-Aula' : 'Lançamento de Frequência'}
+        </h1>
       </div>
 
-      {/* Tipo de frequência */}
+      {/* Cartao de contexto: escola, turma, serie, turno, disciplina, data */}
       {turmaInfo && (
-        <div className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-block ${
-          usaHoraAula
-            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-        }`}>
-          {usaHoraAula ? 'Frequência por Hora-Aula' : 'Frequência Diária'}
-        </div>
+        <ContextoLancamento
+          titulo={usaHoraAula ? 'Frequência por Hora-Aula' : 'Frequência Diária'}
+          escola={turmaInfo.escola_nome}
+          turma={turmaInfo.turma_nome}
+          serie={turmaInfo.serie}
+          turno={turmaInfo.turno}
+          disciplina={turmaInfo.disciplina_nome}
+          data={dataFormatada}
+          cor={usaHoraAula ? 'blue' : 'emerald'}
+        />
       )}
 
       {/* Seletor de data */}

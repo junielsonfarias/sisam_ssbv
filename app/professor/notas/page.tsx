@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FileText, AlertTriangle, Save } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import ContextoLancamento from '@/components/professor/contexto-lancamento'
 
-interface Turma { turma_id: string; turma_nome: string; serie: string; turno: string; tipo_vinculo: string; disciplina_nome: string | null }
+interface Turma { turma_id: string; turma_nome: string; serie: string; turno: string; tipo_vinculo: string; disciplina_nome: string | null; escola_nome?: string | null }
 interface Disciplina { id: string; nome: string; abreviacao: string }
 interface Periodo { id: string; nome: string; numero: number }
 interface AlunoNota {
@@ -148,6 +149,10 @@ function LancarNotas() {
     )
   }
 
+  const turmaSelecionada = turmas.find(t => t.turma_id === turmaId) || null
+  const disciplinaSelecionada = disciplinas.find(d => d.id === disciplinaId) || null
+  const periodoSelecionado = periodos.find(p => p.id === periodoId) || null
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lançar Notas</h1>
@@ -170,6 +175,20 @@ function LancarNotas() {
           {periodos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </select>
       </div>
+
+      {/* Cartao de contexto: escola, turma, serie, disciplina, periodo */}
+      {turmaSelecionada && (
+        <ContextoLancamento
+          titulo="Lançamento de Notas"
+          escola={turmaSelecionada.escola_nome}
+          turma={turmaSelecionada.turma_nome}
+          serie={turmaSelecionada.serie}
+          turno={turmaSelecionada.turno}
+          disciplina={disciplinaSelecionada?.nome}
+          periodo={periodoSelecionado?.nome}
+          cor="blue"
+        />
+      )}
 
       {/* Resumo */}
       {alunos.length > 0 && (
