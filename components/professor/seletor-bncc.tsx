@@ -264,7 +264,8 @@ export default function SeletorBncc({
           <div
             ref={listaRef}
             role="listbox"
-            className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm divide-y divide-gray-100 dark:divide-gray-700 scroll-mt-2"
+            style={{ maxHeight: '14rem' }}
+            className="block w-full overflow-y-auto overflow-x-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm scroll-mt-2 isolate"
           >
             {carregando && (
               <div className="p-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
@@ -289,20 +290,20 @@ export default function SeletorBncc({
                       : 'Nenhuma habilidade encontrada para esse filtro.'}
               </div>
             )}
-            {!carregando && !erro && lista.map(h => (
+            {!carregando && !erro && lista.map((h, idx) => (
               <button
                 key={h.codigo}
                 type="button"
                 role="option"
                 aria-selected={false}
                 onClick={() => adicionar(h.codigo)}
-                className="block w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                className={`block w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30 ${idx > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
               >
                 <div className="flex items-start gap-2">
                   <code className="font-mono text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded flex-shrink-0">
                     {h.codigo}
                   </code>
-                  <span className="text-gray-700 dark:text-gray-300 leading-snug">
+                  <span className="text-gray-700 dark:text-gray-300 leading-snug break-words">
                     {h.descricao}
                   </span>
                 </div>
