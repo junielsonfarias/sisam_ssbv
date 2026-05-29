@@ -125,7 +125,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     // 4) Executar as 3 seções em paralelo conforme `tipos` solicitado
     const [frequenciaRes, notasRes, conteudoRes] = await Promise.all([
-      tipos.has('frequencia') ? buscarFrequencia(turmaId, periodoId) : Promise.resolve(null),
+      tipos.has('frequencia') ? buscarFrequencia(turmaId, periodoId, periodo, turma.ano_letivo) : Promise.resolve(null),
       tipos.has('notas') ? buscarNotas(turmaId, periodoId) : Promise.resolve(null),
       tipos.has('conteudo') ? buscarConteudo(turmaId, periodo) : Promise.resolve(null),
     ])
@@ -156,29 +156,72 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 })
 
 // ----------------------------------------------------------------------------
-// Frequência bimestral por aluno (período opcional)
+// Frequência por aluno (período opcional)
+//
+// Estrategia: usa LATERAL JOIN para agregar `frequencia_diaria` em tempo real
+// (lancamentos do professor migram instantaneamente para o diario do admin).
+// Quando ja existe registro em `frequencia_bimestral` para o mesmo periodo,
+// usa esses valores (cobre cenarios em que o lancamento foi feito direto
+// no agregado pelo gestor). O LEFT JOIN da agregacao diaria sempre roda;
+// COALESCE escolhe bimestral > diaria.
 // ----------------------------------------------------------------------------
-async function buscarFrequencia(turmaId: string, periodoId: string | null) {
-  const params: (string | null)[] = [turmaId]
-  let filtroPeriodo = ''
+async function buscarFrequencia(
+  turmaId: string,
+  periodoId: string | null,
+  periodo: { data_inicio: string; data_fim: string } | null,
+  anoLetivo: string,
+) {
+  // Faixa de datas: periodo (se informado) ou ano letivo da turma.
+  const dataInicio = periodo?.data_inicio ?? `${anoLetivo}-01-01`
+  const dataFim = periodo?.data_fim ?? `${anoLetivo}-12-31`
+
+  const params: (string | null)[] = [turmaId, dataInicio, dataFim]
+  let filtroBimestral = ''
   if (periodoId) {
     params.push(periodoId)
-    filtroPeriodo = 'AND fb.periodo_id = $2'
+    filtroBimestral = 'AND fb.periodo_id = $4'
   }
 
   const res = await pool.query(
     `SELECT a.id as aluno_id, a.nome as aluno_nome,
-            fb.id as freq_id, fb.periodo_id, fb.dias_letivos,
-            fb.presencas, fb.faltas, fb.faltas_justificadas,
-            fb.percentual_frequencia, fb.observacao, fb.metodo,
+            fb.id as freq_id, fb.periodo_id, fb.observacao, fb.metodo,
             fb.atualizado_em,
             u.nome as registrado_por_nome,
-            pl.nome as periodo_nome, pl.numero as periodo_numero
+            pl.nome as periodo_nome, pl.numero as periodo_numero,
+            -- Coalesce: prefere agregado bimestral quando existir,
+            -- senao usa contagem em tempo real da frequencia_diaria.
+            COALESCE(fb.dias_letivos, fda.dias_letivos, 0) AS dias_letivos,
+            COALESCE(fb.presencas, fda.presencas, 0) AS presencas,
+            COALESCE(fb.faltas, fda.faltas, 0) AS faltas,
+            COALESCE(fb.faltas_justificadas, fda.faltas_justificadas, 0) AS faltas_justificadas,
+            COALESCE(
+              fb.percentual_frequencia,
+              CASE WHEN COALESCE(fda.dias_letivos, 0) > 0
+                THEN ROUND((fda.presencas::numeric / fda.dias_letivos) * 100, 2)
+                ELSE NULL
+              END
+            ) AS percentual_frequencia,
+            -- Marca a origem do dado para a UI poder destacar
+            CASE WHEN fb.id IS NOT NULL THEN 'bimestral'
+                 WHEN COALESCE(fda.dias_letivos, 0) > 0 THEN 'diaria'
+                 ELSE 'vazio'
+            END AS origem
        FROM alunos a
        LEFT JOIN frequencia_bimestral fb
               ON fb.aluno_id = a.id
              AND fb.turma_id = $1
-             ${filtroPeriodo}
+             ${filtroBimestral}
+       LEFT JOIN LATERAL (
+         SELECT
+           COUNT(*) FILTER (WHERE fd.status IN ('presente','ausente','justificado'))::int AS dias_letivos,
+           COUNT(*) FILTER (WHERE fd.status = 'presente')::int AS presencas,
+           COUNT(*) FILTER (WHERE fd.status = 'ausente')::int AS faltas,
+           COUNT(*) FILTER (WHERE fd.status = 'justificado')::int AS faltas_justificadas
+         FROM frequencia_diaria fd
+         WHERE fd.aluno_id = a.id
+           AND fd.turma_id = $1
+           AND fd.data BETWEEN $2::date AND $3::date
+       ) fda ON true
        LEFT JOIN usuarios u ON u.id = fb.registrado_por
        LEFT JOIN periodos_letivos pl ON pl.id = fb.periodo_id
       WHERE a.turma_id = $1
