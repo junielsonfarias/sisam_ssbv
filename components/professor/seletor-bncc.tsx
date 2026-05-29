@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, X, BookMarked, AlertCircle, Loader2 } from 'lucide-react'
 
 interface Habilidade {
@@ -60,6 +60,21 @@ export default function SeletorBncc({
   const [filtros, setFiltros] = useState<{ componente_id: string | null; etapa: string | null; serie_turma: string | null; ano: number | null }>({
     componente_id: null, etapa: null, serie_turma: null, ano: null,
   })
+  // Refs para rolar o modal automaticamente ate a lista quando ela abre.
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const listaRef = useRef<HTMLDivElement | null>(null)
+
+  // Quando a lista abre, rola o ancestral scrollavel (modal) ate
+  // que a lista de habilidades fique visivel — evita o usuario ter
+  // que rolar manualmente para enxergar as opcoes.
+  useEffect(() => {
+    if (!aberto) return
+    const t = setTimeout(() => {
+      const alvo = listaRef.current || containerRef.current
+      alvo?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 50)
+    return () => clearTimeout(t)
+  }, [aberto])
 
   // Debounce da busca (300ms)
   useEffect(() => {
@@ -151,7 +166,7 @@ export default function SeletorBncc({
   const lista = habilidades.filter(h => !valor.includes(h.codigo))
 
   return (
-    <div className="space-y-2">
+    <div ref={containerRef} className="space-y-2">
       {label && (
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
@@ -247,8 +262,9 @@ export default function SeletorBncc({
 
         {aberto && (
           <div
+            ref={listaRef}
             role="listbox"
-            className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm divide-y divide-gray-100 dark:divide-gray-700"
+            className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm divide-y divide-gray-100 dark:divide-gray-700 scroll-mt-2"
           >
             {carregando && (
               <div className="p-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
