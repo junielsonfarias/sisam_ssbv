@@ -101,7 +101,7 @@ export async function buscarTurmasDoProfessor(
      INNER JOIN turmas t ON t.id = pt.turma_id
      INNER JOIN escolas e ON e.id = t.escola_id
      LEFT JOIN disciplinas_escolares de ON de.id = pt.disciplina_id
-     LEFT JOIN series_escolares se ON se.numero::text = t.serie OR se.nome = t.serie
+     LEFT JOIN series_escolares se ON se.codigo = t.serie OR se.nome = t.serie
      WHERE pt.professor_id = $1
        AND pt.ativo = true
        AND pt.ano_letivo = t.ano_letivo
