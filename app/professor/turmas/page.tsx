@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Users, CalendarCheck, AlertTriangle } from 'lucide-react'
+import { GraduationCap, Users, CalendarCheck, AlertTriangle, Calendar } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 
 interface Turma {
@@ -21,26 +21,46 @@ interface Turma {
   total_alunos: number
 }
 
+interface AnoDisponivel {
+  ano: string
+  status: string | null
+}
+
 function TurmasProfessor() {
   const router = useRouter()
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [anoSelecionado, setAnoSelecionado] = useState<string>('')
+  const [anoAtivo, setAnoAtivo] = useState<string>('')
+  const [anosDisponiveis, setAnosDisponiveis] = useState<AnoDisponivel[]>([])
 
-  useEffect(() => {
-    fetchTurmas()
-  }, [])
-
-  const fetchTurmas = async () => {
+  const fetchTurmas = useCallback(async (ano?: string) => {
     try {
-      const res = await fetch('/api/professor/turmas')
+      setCarregando(true)
+      const url = ano ? `/api/professor/turmas?ano_letivo=${ano}` : '/api/professor/turmas'
+      const res = await fetch(url)
       if (!res.ok) throw new Error('Erro ao carregar turmas')
       const data = await res.json()
-      setTurmas(data.turmas)
+      setTurmas(data.turmas || [])
+      setAnoSelecionado(data.ano_letivo || '')
+      setAnoAtivo(data.ano_letivo_ativo || '')
+      setAnosDisponiveis(data.anos_disponiveis || [])
+      setErro('')
     } catch (err: any) {
       setErro(err.message)
     } finally {
       setCarregando(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchTurmas()
+  }, [fetchTurmas])
+
+  const handleAnoChange = (novoAno: string) => {
+    if (novoAno && novoAno !== anoSelecionado) {
+      fetchTurmas(novoAno)
     }
   }
 
@@ -77,17 +97,58 @@ function TurmasProfessor() {
     return acc
   }, {})
 
+  const anoAtualEhAtivo = anoSelecionado === anoAtivo
+  const opcoesAno = (() => {
+    const itens = anosDisponiveis.map(a => a.ano)
+    if (anoAtivo && !itens.includes(anoAtivo)) itens.unshift(anoAtivo)
+    if (anoSelecionado && !itens.includes(anoSelecionado)) itens.unshift(anoSelecionado)
+    return Array.from(new Set(itens))
+  })()
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Minhas Turmas</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        {turmas.length} turma(s) vinculada(s)
-      </p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Minhas Turmas</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {turmas.length} turma(s) vinculada(s) em {anoSelecionado || '—'}
+          </p>
+        </div>
+        <div className="flex flex-col">
+          <label htmlFor="ano-letivo" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+            <Calendar className="h-3 w-3" /> Ano letivo
+          </label>
+          <select
+            id="ano-letivo"
+            value={anoSelecionado}
+            onChange={(e) => handleAnoChange(e.target.value)}
+            className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {opcoesAno.length === 0 && anoSelecionado && (
+              <option value={anoSelecionado}>{anoSelecionado}</option>
+            )}
+            {opcoesAno.map(ano => (
+              <option key={ano} value={ano}>
+                {ano}{ano === anoAtivo ? ' (ativo)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {!anoAtualEhAtivo && anoAtivo && (
+        <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          Visualizando ano letivo finalizado. Selecione {anoAtivo} para o ano ativo.
+        </div>
+      )}
 
       {turmas.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center border border-gray-200 dark:border-gray-700">
           <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-2 text-gray-500 dark:text-gray-400">Nenhuma turma vinculada</p>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
+            Nenhuma turma vinculada em {anoSelecionado || 'ano selecionado'}
+          </p>
         </div>
       ) : (
         Object.entries(turmasPorEscola).map(([escolaNome, turmasEscola]) => (

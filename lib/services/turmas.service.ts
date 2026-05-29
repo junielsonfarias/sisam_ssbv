@@ -74,10 +74,22 @@ export async function buscarAlunosDaTurma(turmaId: string): Promise<AlunoTurma[]
 }
 
 /**
- * Busca turmas vinculadas a um professor
- * Usado por: professor/turmas
+ * Busca turmas vinculadas a um professor.
+ *
+ * Cruza pt.ano_letivo = t.ano_letivo para invalidar vinculos orfaos
+ * (ex: vinculo de 2025 ainda marcado ativo apos virada de ano).
+ *
+ * @param anoLetivo Filtra pelo ano letivo (default: ano_letivo ativo em anos_letivos).
+ *                  Quando nao houver ano marcado como ativo, usa o ano corrente.
+ *
+ * Usado por: GET /api/professor/turmas
  */
-export async function buscarTurmasDoProfessor(professorId: string): Promise<TurmaProfessor[]> {
+export async function buscarTurmasDoProfessor(
+  professorId: string,
+  anoLetivo?: string,
+): Promise<TurmaProfessor[]> {
+  const ano = anoLetivo || (await buscarAnoLetivoAtivo())
+
   const result = await pool.query(
     `SELECT pt.id as vinculo_id, pt.tipo_vinculo, pt.ano_letivo,
             t.id as turma_id, t.nome as turma_nome, t.serie, t.turno, t.codigo as turma_codigo,
@@ -90,11 +102,51 @@ export async function buscarTurmasDoProfessor(professorId: string): Promise<Turm
      INNER JOIN escolas e ON e.id = t.escola_id
      LEFT JOIN disciplinas_escolares de ON de.id = pt.disciplina_id
      LEFT JOIN series_escolares se ON se.numero::text = t.serie OR se.nome = t.serie
-     WHERE pt.professor_id = $1 AND pt.ativo = true
+     WHERE pt.professor_id = $1
+       AND pt.ativo = true
+       AND pt.ano_letivo = t.ano_letivo
+       AND pt.ano_letivo = $2
      ORDER BY e.nome, t.turno, t.serie, t.nome, de.nome`,
-    [professorId]
+    [professorId, ano]
   )
 
+  return result.rows
+}
+
+/**
+ * Retorna o ano letivo marcado como ativo em anos_letivos.
+ * Fallback: ano corrente quando a tabela nao existir ou nao houver ano ativo.
+ */
+export async function buscarAnoLetivoAtivo(): Promise<string> {
+  try {
+    const result = await pool.query(
+      `SELECT ano FROM anos_letivos WHERE status = 'ativo' ORDER BY ano DESC LIMIT 1`
+    )
+    if (result.rows.length > 0) return result.rows[0].ano
+  } catch {
+    /* tabela pode nao existir em ambientes legacy */
+  }
+  return new Date().getFullYear().toString()
+}
+
+/**
+ * Lista os anos letivos em que o professor tem vinculo ativo,
+ * em ordem decrescente, com o status do ano (ativo/finalizado/planejamento).
+ *
+ * Usado por: GET /api/professor/turmas (seletor de ano na UI)
+ */
+export async function buscarAnosLetivosDoProfessor(
+  professorId: string,
+): Promise<Array<{ ano: string; status: string | null }>> {
+  const result = await pool.query(
+    `SELECT DISTINCT pt.ano_letivo as ano, al.status
+       FROM professor_turmas pt
+       LEFT JOIN anos_letivos al ON al.ano = pt.ano_letivo
+      WHERE pt.professor_id = $1
+        AND pt.ativo = true
+      ORDER BY pt.ano_letivo DESC`,
+    [professorId]
+  )
   return result.rows
 }
 
