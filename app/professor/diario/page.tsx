@@ -449,6 +449,18 @@ function DiarioDeClasse() {
                   </select>
                 </div>
               )}
+
+              {/* Seletor de habilidades BNCC — colocado antes do conteudo
+                  para o professor escolher as habilidades primeiro e
+                  redigir o conteudo alinhado a elas. */}
+              <SeletorBncc
+                valor={formHabilidadesBncc}
+                onChange={setFormHabilidadesBncc}
+                disciplinaId={formDisciplinaId || null}
+                turmaId={turmaId}
+                label="Habilidades BNCC desta aula"
+              />
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conteúdo *</label>
                 <textarea
@@ -479,15 +491,6 @@ function DiarioDeClasse() {
                   placeholder="Observações (opcional)"
                 />
               </div>
-
-              {/* Seletor de habilidades BNCC — filtra por disciplina/serie da turma */}
-              <SeletorBncc
-                valor={formHabilidadesBncc}
-                onChange={setFormHabilidadesBncc}
-                disciplinaId={formDisciplinaId || null}
-                turmaId={turmaId}
-                label="Habilidades BNCC desta aula"
-              />
 
               {erro && <p className="text-red-600 dark:text-red-400 text-sm">{erro}</p>}
             </div>

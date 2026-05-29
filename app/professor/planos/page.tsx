@@ -447,6 +447,17 @@ function PlanejamentoAulas() {
                   />
                 </div>
               </div>
+              {/* Seletor de habilidades BNCC — colocado antes dos campos
+                  de texto (objetivo/conteudo) para o professor escolher
+                  as habilidades primeiro. */}
+              <SeletorBncc
+                valor={formHabilidadesBncc}
+                onChange={setFormHabilidadesBncc}
+                disciplinaId={formDisciplinaId || null}
+                turmaId={turmaId}
+                label="Habilidades BNCC vinculadas"
+              />
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Objetivo *</label>
                 <textarea
@@ -507,15 +518,6 @@ function PlanejamentoAulas() {
                   placeholder="Observações (opcional)"
                 />
               </div>
-              {/* Seletor de habilidades BNCC — filtra por disciplina/serie da turma */}
-              <SeletorBncc
-                valor={formHabilidadesBncc}
-                onChange={setFormHabilidadesBncc}
-                disciplinaId={formDisciplinaId || null}
-                turmaId={turmaId}
-                label="Habilidades BNCC vinculadas"
-              />
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                 <div className="flex gap-3">
