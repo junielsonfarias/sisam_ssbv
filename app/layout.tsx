@@ -112,7 +112,12 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#1e40af" />
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
-      <body className="bg-theme-primary text-theme-primary">
+      {/* suppressHydrationWarning no <body>: extensoes de navegador
+          (Grammarly, LastPass, etc.) injetam atributos como
+          data-new-gr-c-s-check-loaded antes do React hidratar e o
+          server-render nao tem como prever. Sem isso, vira warning
+          no console em todo carregamento. */}
+      <body className="bg-theme-primary text-theme-primary" suppressHydrationWarning>
         {/* JSON-LD — dados estruturados para SEO */}
         <OrganizationJsonLd />
         {/* Skip to content — acessibilidade por teclado */}

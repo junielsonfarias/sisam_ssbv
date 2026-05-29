@@ -321,11 +321,16 @@ function addSecurityHeaders(response: NextResponse, requestId?: string, pathname
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   }
 
+  // Vercel Analytics + Speed Insights carregam scripts de va.vercel-scripts.com
+  // tanto em dev (`*.debug.js`) quanto em producao. Permitir explicitamente em
+  // script-src e script-src-elem, e o endpoint de telemetria em connect-src.
+  const vercelScripts = 'https://va.vercel-scripts.com'
+
   // CSP: face-api.js requer unsafe-eval e wasm-unsafe-eval nas rotas faciais
   if (isFacial) {
-    response.headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: mediastream: ${imgDomains}; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-ancestors 'none'`)
+    response.headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' ${vercelScripts}; script-src-elem 'self' 'unsafe-inline' ${vercelScripts}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: mediastream: ${imgDomains}; font-src 'self' data:; connect-src 'self' https: ${vercelScripts}; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-ancestors 'none'`)
   } else {
-    response.headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline'${devEval}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${imgDomains}; font-src 'self' data:; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://www.facebook.com; frame-ancestors 'none'`)
+    response.headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline'${devEval} ${vercelScripts}; script-src-elem 'self' 'unsafe-inline' ${vercelScripts}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${imgDomains}; font-src 'self' data:; connect-src 'self' https: ${vercelScripts}; media-src 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://www.facebook.com; frame-ancestors 'none'`)
   }
 
   if (requestId) {
