@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, X, Save, AlertTriangle, FileText } from 'lucide-react'
+import { Check, X, Save, AlertTriangle, FileText, Minus } from 'lucide-react'
 
 interface Aluno {
   aluno_id: string
@@ -43,6 +43,7 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
   const [mensagem, setMensagem] = useState('')
   const [justificando, setJustificando] = useState<string | null>(null)
   const [textoJustificativa, setTextoJustificativa] = useState('')
+  const [confirmacaoPendentes, setConfirmacaoPendentes] = useState(false)
 
   const toggleStatus = (alunoId: string) => {
     setRegistros(prev => {
@@ -58,13 +59,7 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
     setRegistros(novos)
   }
 
-  const salvar = async () => {
-    const regs = Object.entries(registros).map(([aluno_id, status]) => ({ aluno_id, status }))
-    if (regs.length === 0) {
-      setMensagem('Marque a frequência de pelo menos um aluno')
-      return
-    }
-
+  const enviarSalvar = async (regs: Array<{ aluno_id: string; status: string }>) => {
     setSalvando(true)
     setMensagem('')
     try {
@@ -82,6 +77,38 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
     } finally {
       setSalvando(false)
     }
+  }
+
+  const salvar = async () => {
+    const regs = Object.entries(registros).map(([aluno_id, status]) => ({ aluno_id, status }))
+    if (regs.length === 0) {
+      setMensagem('Marque a frequência de pelo menos um aluno')
+      return
+    }
+
+    const pendentes = alunosIniciais.filter(a => !registros[a.aluno_id])
+    if (pendentes.length > 0) {
+      // Aviso visivel antes de salvar — professor decide via modal.
+      setConfirmacaoPendentes(true)
+      return
+    }
+
+    await enviarSalvar(regs)
+  }
+
+  const salvarComPendentesAusentes = async () => {
+    setConfirmacaoPendentes(false)
+    const regs = alunosIniciais.map(a => ({
+      aluno_id: a.aluno_id,
+      status: registros[a.aluno_id] || 'ausente',
+    }))
+    await enviarSalvar(regs)
+  }
+
+  const salvarSomenteMarcados = async () => {
+    setConfirmacaoPendentes(false)
+    const regs = Object.entries(registros).map(([aluno_id, status]) => ({ aluno_id, status }))
+    await enviarSalvar(regs)
   }
 
   const justificar = async (frequenciaId: string) => {
@@ -191,7 +218,7 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
                   >
                     {isPresente ? <Check className="h-4 w-4" /> :
                      isAusente ? <X className="h-4 w-4" /> :
-                     <Check className="h-4 w-4" />}
+                     <Minus className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
@@ -240,6 +267,47 @@ export default function FrequenciaDiariaComponent({ turmaId, data, alunos: aluno
         <Save className="h-4 w-4" />
         {salvando ? 'Salvando...' : 'Salvar Frequência'}
       </button>
+
+      {/* Modal de confirmacao para alunos sem registro */}
+      {confirmacaoPendentes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-5 shadow-xl">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  {semRegistro} aluno(s) sem registro
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  O que fazer com os alunos que voce nao marcou ainda?
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              <button
+                onClick={salvarComPendentesAusentes}
+                disabled={salvando}
+                className="w-full py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                Marcar restantes como AUSENTES e salvar
+              </button>
+              <button
+                onClick={salvarSomenteMarcados}
+                disabled={salvando}
+                className="w-full py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+              >
+                Salvar somente os {Object.keys(registros).length} marcado(s)
+              </button>
+              <button
+                onClick={() => setConfirmacaoPendentes(false)}
+                className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              >
+                Cancelar e voltar para marcar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, X, Save } from 'lucide-react'
+import { Check, X, Save, Minus, AlertCircle } from 'lucide-react'
 
 interface Horario {
   numero_aula: number
@@ -45,6 +45,8 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
   })
   const [salvando, setSalvando] = useState(false)
   const [mensagem, setMensagem] = useState('')
+  // Aulas modificadas localmente desde o ultimo onSalvar (para salvar em lote).
+  const [aulasModificadas, setAulasModificadas] = useState<Set<number>>(new Set())
 
   const horarioAtivo = horarios.find(h => h.numero_aula === aulaAtiva)
 
@@ -54,6 +56,7 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
       alunoRegs[numeroAula] = !alunoRegs[numeroAula]
       return { ...prev, [alunoId]: alunoRegs }
     })
+    setAulasModificadas(prev => new Set(prev).add(numeroAula))
   }
 
   const marcarTodosAula = (numeroAula: number, presente: boolean) => {
@@ -65,44 +68,75 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
       })
       return novos
     })
+    setAulasModificadas(prev => new Set(prev).add(numeroAula))
   }
 
-  const salvarAula = async (numeroAula: number) => {
+  const enviarAula = async (numeroAula: number): Promise<{ ok: boolean; mensagem: string }> => {
     const horario = horarios.find(h => h.numero_aula === numeroAula)
-    if (!horario) return
+    if (!horario) return { ok: false, mensagem: `Aula ${numeroAula} sem horario` }
 
     const regs = alunos
       .filter(a => registros[a.id]?.[numeroAula] !== undefined)
       .map(a => ({ aluno_id: a.id, presente: registros[a.id][numeroAula] }))
 
-    if (regs.length === 0) {
-      setMensagem('Marque a frequência de pelo menos um aluno')
-      return
-    }
+    if (regs.length === 0) return { ok: false, mensagem: `Aula ${numeroAula} sem alunos marcados` }
 
+    const res = await fetch('/api/professor/frequencia-hora-aula', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        turma_id: turmaId,
+        data,
+        numero_aula: numeroAula,
+        disciplina_id: horario.disciplina_id,
+        registros: regs,
+      }),
+    })
+    const result = await res.json()
+    if (!res.ok) return { ok: false, mensagem: result.mensagem || `Erro na ${numeroAula}a aula` }
+    return { ok: true, mensagem: result.mensagem || `${numeroAula}a aula salva` }
+  }
+
+  const salvarAula = async (numeroAula: number) => {
     setSalvando(true)
     setMensagem('')
-    try {
-      const res = await fetch('/api/professor/frequencia-hora-aula', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          turma_id: turmaId,
-          data,
-          numero_aula: numeroAula,
-          disciplina_id: horario.disciplina_id,
-          registros: regs,
-        }),
+    const r = await enviarAula(numeroAula)
+    setMensagem(r.mensagem)
+    if (r.ok) {
+      setAulasModificadas(prev => {
+        const n = new Set(prev); n.delete(numeroAula); return n
       })
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.mensagem)
-      setMensagem(result.mensagem)
       onSalvar()
-    } catch (err: any) {
-      setMensagem(err.message || 'Erro ao salvar')
-    } finally {
-      setSalvando(false)
     }
+    setSalvando(false)
+  }
+
+  const salvarTodas = async () => {
+    const aulas = Array.from(aulasModificadas).sort((a, b) => a - b)
+    if (aulas.length === 0) {
+      setMensagem('Nenhuma alteracao pendente')
+      return
+    }
+    setSalvando(true)
+    setMensagem('')
+    const sucessos: number[] = []
+    const erros: string[] = []
+    for (const numero of aulas) {
+      const r = await enviarAula(numero)
+      if (r.ok) sucessos.push(numero)
+      else erros.push(r.mensagem)
+    }
+    setAulasModificadas(prev => {
+      const n = new Set(prev)
+      sucessos.forEach(s => n.delete(s))
+      return n
+    })
+    const partes = []
+    if (sucessos.length > 0) partes.push(`${sucessos.length} aula(s) salva(s)`)
+    if (erros.length > 0) partes.push(`${erros.length} falha(s): ${erros.join('; ')}`)
+    setMensagem(partes.join(' — '))
+    if (sucessos.length > 0) onSalvar()
+    setSalvando(false)
   }
 
   // Contagem para aula ativa
@@ -126,22 +160,32 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
     <div className="space-y-4">
       {/* Tabs de aulas */}
       <div className="flex gap-1 overflow-x-auto pb-1">
-        {horarios.map(h => (
-          <button
-            key={h.numero_aula}
-            onClick={() => setAulaAtiva(h.numero_aula)}
-            className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              aulaAtiva === h.numero_aula
-                ? 'bg-emerald-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            <div className="text-center">
-              <div>{h.numero_aula}a aula</div>
-              <div className="text-xs opacity-80">{h.abreviacao || h.disciplina_nome}</div>
-            </div>
-          </button>
-        ))}
+        {horarios.map(h => {
+          const pendente = aulasModificadas.has(h.numero_aula)
+          return (
+            <button
+              key={h.numero_aula}
+              onClick={() => setAulaAtiva(h.numero_aula)}
+              className={`relative flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                aulaAtiva === h.numero_aula
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              aria-label={`${h.numero_aula}ª aula${pendente ? ' (alteracoes pendentes)' : ''}`}
+            >
+              <div className="text-center">
+                <div>{h.numero_aula}a aula</div>
+                <div className="text-xs opacity-80">{h.abreviacao || h.disciplina_nome}</div>
+              </div>
+              {pendente && (
+                <span
+                  className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-gray-800"
+                  title="Alteracoes pendentes"
+                />
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* Info da aula ativa */}
@@ -207,7 +251,7 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
               >
                 {isPresente ? <Check className="h-4 w-4" /> :
                  isAusente ? <X className="h-4 w-4" /> :
-                 <Check className="h-4 w-4" />}
+                 <Minus className="h-4 w-4" />}
               </button>
             </div>
           )
@@ -224,15 +268,35 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
         </div>
       )}
 
-      {/* Botão salvar aula */}
-      <button
-        onClick={() => salvarAula(aulaAtiva)}
-        disabled={salvando}
-        className="w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        <Save className="h-4 w-4" />
-        {salvando ? 'Salvando...' : `Salvar ${horarioAtivo?.numero_aula}a Aula`}
-      </button>
+      {/* Aviso de alteracoes pendentes em outras aulas */}
+      {aulasModificadas.size > 1 && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-300">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <span>
+            {aulasModificadas.size} aula(s) com alteracoes pendentes: {Array.from(aulasModificadas).sort((a, b) => a - b).map(n => `${n}ª`).join(', ')}
+          </span>
+        </div>
+      )}
+
+      {/* Botoes salvar */}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          onClick={() => salvarAula(aulaAtiva)}
+          disabled={salvando}
+          className="w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <Save className="h-4 w-4" />
+          {salvando ? 'Salvando...' : `Salvar ${horarioAtivo?.numero_aula}a aula`}
+        </button>
+        <button
+          onClick={salvarTodas}
+          disabled={salvando || aulasModificadas.size === 0}
+          className="w-full py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <Save className="h-4 w-4" />
+          Salvar todas{aulasModificadas.size > 0 ? ` (${aulasModificadas.size})` : ''}
+        </button>
+      </div>
     </div>
   )
 }
