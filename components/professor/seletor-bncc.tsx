@@ -221,87 +221,78 @@ export default function SeletorBncc({
         </p>
       )}
 
-      {/* Busca + lista flutuante (position: absolute para nao empurrar
-          campos abaixo no formulario do modal). */}
-      <div className="relative">
+      {/* Busca + lista in-flow (cresce dentro do modal scrollable em vez
+          de flutuar absolute — em modais com overflow-y-auto, absolute
+          escapa do retangulo do modal). */}
+      <div className="space-y-1">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
           <input
             type="text"
             value={busca}
-            onChange={e => setBusca(e.target.value)}
+            onChange={e => { setBusca(e.target.value); if (!aberto) setAberto(true) }}
             onFocus={() => setAberto(true)}
             placeholder="Buscar habilidade (codigo ou texto)..."
             className="w-full pl-8 pr-9 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
           />
-          {aberto && (
-            <button
-              type="button"
-              onClick={() => setAberto(false)}
-              aria-label="Fechar lista de habilidades"
-              className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setAberto(v => !v)}
+            aria-label={aberto ? 'Ocultar lista de habilidades' : 'Mostrar lista de habilidades'}
+            className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded"
+          >
+            <X className={`h-4 w-4 transition-transform ${aberto ? '' : 'rotate-45'}`} />
+          </button>
         </div>
 
         {aberto && (
-          <>
-            {/* Overlay para fechar ao clicar fora */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setAberto(false)}
-              aria-hidden="true"
-            />
-            <div
-              role="listbox"
-              className="absolute left-0 right-0 top-full mt-1 z-50 max-h-72 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg"
-            >
-              {carregando && (
-                <div className="p-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Carregando habilidades...
+          <div
+            role="listbox"
+            className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm divide-y divide-gray-100 dark:divide-gray-700"
+          >
+            {carregando && (
+              <div className="p-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando habilidades...
+              </div>
+            )}
+            {!carregando && erro && (
+              <div className="p-3 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {erro}
+              </div>
+            )}
+            {!carregando && !erro && lista.length === 0 && (
+              <div className="p-3 text-sm text-gray-500 dark:text-gray-400 italic">
+                {!disciplinaId
+                  ? 'Selecione uma disciplina acima para listar as habilidades.'
+                  : valor.length > 0 && habilidades.length === valor.length
+                    ? 'Todas as habilidades disponiveis ja foram selecionadas.'
+                    : busca.trim().length >= 3
+                      ? 'Nenhuma habilidade encontrada para a busca.'
+                      : 'Nenhuma habilidade encontrada para esse filtro.'}
+              </div>
+            )}
+            {!carregando && !erro && lista.map(h => (
+              <button
+                key={h.codigo}
+                type="button"
+                role="option"
+                aria-selected={false}
+                onClick={() => adicionar(h.codigo)}
+                className="block w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+              >
+                <div className="flex items-start gap-2">
+                  <code className="font-mono text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded flex-shrink-0">
+                    {h.codigo}
+                  </code>
+                  <span className="text-gray-700 dark:text-gray-300 leading-snug">
+                    {h.descricao}
+                  </span>
                 </div>
-              )}
-              {!carregando && erro && (
-                <div className="p-3 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {erro}
-                </div>
-              )}
-              {!carregando && !erro && lista.length === 0 && (
-                <div className="p-3 text-sm text-gray-500 dark:text-gray-400 italic">
-                  {!disciplinaId
-                    ? 'Selecione uma disciplina acima para listar as habilidades.'
-                    : valor.length > 0 && habilidades.length === valor.length
-                      ? 'Todas as habilidades disponiveis ja foram selecionadas.'
-                      : busca.trim().length >= 3
-                        ? 'Nenhuma habilidade encontrada para a busca.'
-                        : 'Nenhuma habilidade encontrada para esse filtro.'}
-                </div>
-              )}
-              {!carregando && !erro && lista.map(h => (
-                <button
-                  key={h.codigo}
-                  type="button"
-                  role="option"
-                  aria-selected={false}
-                  onClick={() => adicionar(h.codigo)}
-                  className="block w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border-b border-gray-100 dark:border-gray-700 last:border-0"
-                >
-                  <div className="flex items-start gap-2">
-                    <code className="font-mono text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded flex-shrink-0">
-                      {h.codigo}
-                    </code>
-                    <span className="text-gray-700 dark:text-gray-300 leading-snug">
-                      {h.descricao}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </>
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>
