@@ -47,11 +47,11 @@ export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo,
               <th className="px-3 py-2 font-semibold text-right w-10">#</th>
               <th className="px-4 py-2 font-semibold">Aluno</th>
               {!filtroPorPeriodo && <th className="px-4 py-2 font-semibold">Período</th>}
-              <th className="px-4 py-2 font-semibold text-right tabular-nums w-24">Dias Letivos</th>
-              <th className="px-4 py-2 font-semibold text-right tabular-nums w-24">Presenças</th>
-              <th className="px-4 py-2 font-semibold text-right tabular-nums w-20">Faltas</th>
-              <th className="px-4 py-2 font-semibold text-right tabular-nums w-20">Just.</th>
-              <th className="px-4 py-2 font-semibold text-right tabular-nums w-20">%</th>
+              <th className="px-4 py-2 font-semibold text-center tabular-nums w-24">Dias Letivos</th>
+              <th className="px-4 py-2 font-semibold text-center tabular-nums w-24">Presenças</th>
+              <th className="px-4 py-2 font-semibold text-center tabular-nums w-20">Faltas</th>
+              <th className="px-4 py-2 font-semibold text-center tabular-nums w-20">Just.</th>
+              <th className="px-4 py-2 font-semibold text-center tabular-nums w-20">%</th>
               <th className="px-4 py-2 font-semibold">Lançado por</th>
             </tr>
           </thead>
@@ -65,11 +65,11 @@ export default function SecaoFrequencia({ frequencia, periodo, filtroPorPeriodo,
                     {rotuloPeriodo(f.periodo_numero, anoLetivo)}
                   </td>
                 )}
-                <td className="px-4 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{f.dias_letivos ?? '—'}</td>
-                <td className="px-4 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{f.presencas ?? '—'}</td>
-                <td className="px-4 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{f.faltas ?? '—'}</td>
-                <td className="px-4 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{f.faltas_justificadas ?? '—'}</td>
-                <td className={`px-4 py-2 text-right tabular-nums font-semibold ${corPercentual(f.percentual_frequencia)}`}>
+                <td className="px-4 py-2 text-center tabular-nums text-gray-700 dark:text-gray-200">{f.dias_letivos ?? '—'}</td>
+                <td className="px-4 py-2 text-center tabular-nums text-gray-700 dark:text-gray-200">{f.presencas ?? '—'}</td>
+                <td className="px-4 py-2 text-center tabular-nums text-gray-700 dark:text-gray-200">{f.faltas ?? '—'}</td>
+                <td className="px-4 py-2 text-center tabular-nums text-gray-700 dark:text-gray-200">{f.faltas_justificadas ?? '—'}</td>
+                <td className={`px-4 py-2 text-center tabular-nums font-semibold ${corPercentual(f.percentual_frequencia)}`}>
                   {formatarPercentual(f.percentual_frequencia)}
                 </td>
                 <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">{f.registrado_por_nome || '—'}</td>

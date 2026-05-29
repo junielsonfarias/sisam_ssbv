@@ -127,11 +127,11 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts):
           <td class="num">${i + 1}</td>
           <td class="aluno auto-fit-nome" data-nome-completo="${escapeHtml(f.aluno_nome)}" title="${escapeHtml(f.aluno_nome)}">${escapeHtml(f.aluno_nome)}</td>
           ${incluirColPeriodo ? `<td class="center">${escapeHtml(celulaPeriodo(f.periodo_numero, anoLetivo))}</td>` : ''}
-          <td class="right">${f.dias_letivos ?? '—'}</td>
-          <td class="right">${f.presencas ?? '—'}</td>
-          <td class="right">${f.faltas ?? '—'}</td>
-          <td class="right">${f.faltas_justificadas ?? '—'}</td>
-          <td class="right" style="color:${cor}; font-weight:600">${formatarPercentual(f.percentual_frequencia)}</td>
+          <td class="center">${f.dias_letivos ?? '—'}</td>
+          <td class="center">${f.presencas ?? '—'}</td>
+          <td class="center">${f.faltas ?? '—'}</td>
+          <td class="center">${f.faltas_justificadas ?? '—'}</td>
+          <td class="center" style="color:${cor}; font-weight:600">${formatarPercentual(f.percentual_frequencia)}</td>
           <td class="lancado auto-fit-nome" data-nome-completo="${escapeHtml(f.registrado_por_nome || '')}" title="${escapeHtml(f.registrado_por_nome || '')}">${escapeHtml(f.registrado_por_nome || '—')}</td>
         </tr>`
     }).join('')
@@ -154,11 +154,11 @@ export function imprimirDiario(diario: DiarioPayload, opts: ImprimirDiarioOpts):
             <th>#</th>
             <th>Aluno</th>
             ${incluirColPeriodo ? '<th class="center">Per.</th>' : ''}
-            <th class="right">Dias Let.</th>
-            <th class="right">Pres.</th>
-            <th class="right">Faltas</th>
-            <th class="right">Just.</th>
-            <th class="right">%</th>
+            <th class="center">Dias Let.</th>
+            <th class="center">Pres.</th>
+            <th class="center">Faltas</th>
+            <th class="center">Just.</th>
+            <th class="center">%</th>
             <th>Lançado por</th>
           </tr>
         </thead>
