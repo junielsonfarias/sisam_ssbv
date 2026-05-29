@@ -125,7 +125,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     // 4) Executar as 3 seções em paralelo conforme `tipos` solicitado
     const [frequenciaRes, notasRes, conteudoRes] = await Promise.all([
-      tipos.has('frequencia') ? buscarFrequencia(turmaId, periodoId, periodo, turma.ano_letivo) : Promise.resolve(null),
+      tipos.has('frequencia') ? buscarFrequencia(turmaId, periodoId, periodo, turma.ano_letivo, turma.escola_id) : Promise.resolve(null),
       tipos.has('notas') ? buscarNotas(turmaId, periodoId) : Promise.resolve(null),
       tipos.has('conteudo') ? buscarConteudo(turmaId, periodo) : Promise.resolve(null),
     ])
@@ -158,28 +158,59 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 // ----------------------------------------------------------------------------
 // Frequência por aluno (período opcional)
 //
-// Estrategia: usa LATERAL JOIN para agregar `frequencia_diaria` em tempo real
-// (lancamentos do professor migram instantaneamente para o diario do admin).
-// Quando ja existe registro em `frequencia_bimestral` para o mesmo periodo,
-// usa esses valores (cobre cenarios em que o lancamento foi feito direto
-// no agregado pelo gestor). O LEFT JOIN da agregacao diaria sempre roda;
-// COALESCE escolhe bimestral > diaria.
+// `dias_letivos` = total de dias letivos do periodo, calculado via funcao
+// SQL contar_dias_letivos(ano_letivo_id, escola_id, dt_ini, dt_fim) que
+// considera dias uteis + calendario_eventos (feriados, recessos, reposicoes).
+// E o MESMO valor para todos os alunos do escopo — entao a divisao para
+// percentual fica: presencas / dias_letivos.
+//
+// Quando ja existe `frequencia_bimestral` para o aluno+periodo, usa esses
+// valores (snapshot oficial). Senao, agrega `frequencia_diaria` em tempo
+// real (lancamentos do professor migram instantaneamente).
 // ----------------------------------------------------------------------------
 async function buscarFrequencia(
   turmaId: string,
   periodoId: string | null,
   periodo: { data_inicio: string; data_fim: string } | null,
   anoLetivo: string,
+  escolaId: string,
 ) {
   // Faixa de datas: periodo (se informado) ou ano letivo da turma.
   const dataInicio = periodo?.data_inicio ?? `${anoLetivo}-01-01`
   const dataFim = periodo?.data_fim ?? `${anoLetivo}-12-31`
 
-  const params: (string | null)[] = [turmaId, dataInicio, dataFim]
+  // 1) Resolve ano_letivo_id (UUID) — necessario para contar_dias_letivos.
+  const anoRes = await pool.query(
+    'SELECT id FROM anos_letivos WHERE ano = $1 LIMIT 1',
+    [anoLetivo]
+  )
+  const anoLetivoId: string | null = anoRes.rows[0]?.id ?? null
+
+  // 2) Total de dias letivos do escopo (igual para todos os alunos).
+  // Se nao houver ano cadastrado, usa fallback simples: dias uteis seg-sex.
+  let diasLetivosEscopo = 0
+  if (anoLetivoId) {
+    const dlRes = await pool.query(
+      'SELECT contar_dias_letivos($1::uuid, $2::uuid, $3::date, $4::date) AS total',
+      [anoLetivoId, escolaId, dataInicio, dataFim]
+    )
+    diasLetivosEscopo = parseInt(dlRes.rows[0]?.total ?? '0', 10)
+  } else {
+    const dlRes = await pool.query(
+      `SELECT COUNT(*)::int AS total
+         FROM generate_series($1::date, $2::date, '1 day') d
+        WHERE EXTRACT(DOW FROM d) BETWEEN 1 AND 5`,
+      [dataInicio, dataFim]
+    )
+    diasLetivosEscopo = parseInt(dlRes.rows[0]?.total ?? '0', 10)
+  }
+
+  // 3) Agregar frequencia por aluno + COALESCE com frequencia_bimestral.
+  const params: (string | null | number)[] = [turmaId, dataInicio, dataFim, diasLetivosEscopo]
   let filtroBimestral = ''
   if (periodoId) {
     params.push(periodoId)
-    filtroBimestral = 'AND fb.periodo_id = $4'
+    filtroBimestral = 'AND fb.periodo_id = $5'
   }
 
   const res = await pool.query(
@@ -188,22 +219,23 @@ async function buscarFrequencia(
             fb.atualizado_em,
             u.nome as registrado_por_nome,
             pl.nome as periodo_nome, pl.numero as periodo_numero,
-            -- Coalesce: prefere agregado bimestral quando existir,
-            -- senao usa contagem em tempo real da frequencia_diaria.
-            COALESCE(fb.dias_letivos, fda.dias_letivos, 0) AS dias_letivos,
+            -- dias_letivos: prefere snapshot da frequencia_bimestral,
+            -- senao usa total do escopo (mesmo para todos).
+            COALESCE(fb.dias_letivos, $4::int) AS dias_letivos,
             COALESCE(fb.presencas, fda.presencas, 0) AS presencas,
             COALESCE(fb.faltas, fda.faltas, 0) AS faltas,
             COALESCE(fb.faltas_justificadas, fda.faltas_justificadas, 0) AS faltas_justificadas,
+            -- Percentual: presencas / dias_letivos_total * 100.
             COALESCE(
               fb.percentual_frequencia,
-              CASE WHEN COALESCE(fda.dias_letivos, 0) > 0
-                THEN ROUND((fda.presencas::numeric / fda.dias_letivos) * 100, 2)
+              CASE WHEN $4::int > 0
+                THEN ROUND((COALESCE(fda.presencas, 0)::numeric / $4) * 100, 2)
                 ELSE NULL
               END
             ) AS percentual_frequencia,
             -- Marca a origem do dado para a UI poder destacar
             CASE WHEN fb.id IS NOT NULL THEN 'bimestral'
-                 WHEN COALESCE(fda.dias_letivos, 0) > 0 THEN 'diaria'
+                 WHEN COALESCE(fda.presencas, 0) + COALESCE(fda.faltas, 0) + COALESCE(fda.faltas_justificadas, 0) > 0 THEN 'diaria'
                  ELSE 'vazio'
             END AS origem
        FROM alunos a
@@ -213,7 +245,6 @@ async function buscarFrequencia(
              ${filtroBimestral}
        LEFT JOIN LATERAL (
          SELECT
-           COUNT(*) FILTER (WHERE fd.status IN ('presente','ausente','justificado'))::int AS dias_letivos,
            COUNT(*) FILTER (WHERE fd.status = 'presente')::int AS presencas,
            COUNT(*) FILTER (WHERE fd.status = 'ausente')::int AS faltas,
            COUNT(*) FILTER (WHERE fd.status = 'justificado')::int AS faltas_justificadas
