@@ -262,53 +262,71 @@ export default function SeletorBncc({
 
         {aberto && (
           <div
-            ref={listaRef}
-            role="listbox"
-            style={{ maxHeight: '14rem' }}
-            className="block w-full overflow-y-auto overflow-x-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm scroll-mt-2 isolate"
+            className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden"
           >
-            {carregando && (
-              <div className="p-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Carregando habilidades...
+            {/* Cabecalho fixo com contagem */}
+            {!carregando && !erro && lista.length > 0 && (
+              <div className="sticky top-0 z-10 px-3 py-1.5 bg-gray-50 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-700 text-[11px] text-gray-600 dark:text-gray-400 flex items-center justify-between">
+                <span>{lista.length} habilidade(s) disponivel(eis). Role para ver mais.</span>
+                <button
+                  type="button"
+                  onClick={() => setAberto(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 font-medium"
+                >
+                  Fechar
+                </button>
               </div>
             )}
-            {!carregando && erro && (
-              <div className="p-3 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                {erro}
-              </div>
-            )}
-            {!carregando && !erro && lista.length === 0 && (
-              <div className="p-3 text-sm text-gray-500 dark:text-gray-400 italic">
-                {!disciplinaId
-                  ? 'Selecione uma disciplina acima para listar as habilidades.'
-                  : valor.length > 0 && habilidades.length === valor.length
-                    ? 'Todas as habilidades disponiveis ja foram selecionadas.'
-                    : busca.trim().length >= 3
-                      ? 'Nenhuma habilidade encontrada para a busca.'
-                      : 'Nenhuma habilidade encontrada para esse filtro.'}
-              </div>
-            )}
-            {!carregando && !erro && lista.map((h, idx) => (
-              <button
-                key={h.codigo}
-                type="button"
-                role="option"
-                aria-selected={false}
-                onClick={() => adicionar(h.codigo)}
-                className={`block w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30 ${idx > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
-              >
-                <div className="flex items-start gap-2">
-                  <code className="font-mono text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded flex-shrink-0">
-                    {h.codigo}
-                  </code>
-                  <span className="text-gray-700 dark:text-gray-300 leading-snug break-words">
-                    {h.descricao}
-                  </span>
+
+            <div
+              ref={listaRef}
+              role="listbox"
+              style={{ maxHeight: 'min(60vh, 22rem)' }}
+              className="block w-full overflow-y-auto overflow-x-hidden scroll-mt-2 isolate overscroll-contain"
+            >
+              {carregando && (
+                <div className="p-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Carregando habilidades...
                 </div>
-              </button>
-            ))}
+              )}
+              {!carregando && erro && (
+                <div className="p-3 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  {erro}
+                </div>
+              )}
+              {!carregando && !erro && lista.length === 0 && (
+                <div className="p-3 text-sm text-gray-500 dark:text-gray-400 italic">
+                  {!disciplinaId
+                    ? 'Selecione uma disciplina acima para listar as habilidades.'
+                    : valor.length > 0 && habilidades.length === valor.length
+                      ? 'Todas as habilidades disponiveis ja foram selecionadas.'
+                      : busca.trim().length >= 3
+                        ? 'Nenhuma habilidade encontrada para a busca.'
+                        : 'Nenhuma habilidade encontrada para esse filtro.'}
+                </div>
+              )}
+              {!carregando && !erro && lista.map((h, idx) => (
+                <button
+                  key={h.codigo}
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  onClick={() => adicionar(h.codigo)}
+                  className={`block w-full text-left px-3 py-2.5 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30 active:bg-indigo-100 dark:active:bg-indigo-900/50 transition-colors ${idx > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
+                >
+                  <div className="flex items-start gap-2">
+                    <code className="font-mono text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded flex-shrink-0">
+                      {h.codigo}
+                    </code>
+                    <span className="text-gray-700 dark:text-gray-300 leading-snug break-words">
+                      {h.descricao}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
