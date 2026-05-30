@@ -30,6 +30,11 @@ const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julh
 const DIAS_SEMANA_CURTOS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
 const TIPOS_OPCOES: Array<{ valor: string; rotulo: string; letivo: boolean }> = [
+  // === LETIVOS (conta como dia letivo) ===
+  { valor: 'letivo', rotulo: 'Dia letivo', letivo: true },
+  { valor: 'reposicao', rotulo: 'Reposição (sábado letivo)', letivo: true },
+  { valor: 'evento_pedagogico', rotulo: 'Evento pedagógico (letivo)', letivo: true },
+  // === NÃO LETIVOS ===
   { valor: 'feriado_nacional', rotulo: 'Feriado nacional', letivo: false },
   { valor: 'feriado_estadual', rotulo: 'Feriado estadual', letivo: false },
   { valor: 'feriado_municipal', rotulo: 'Feriado municipal', letivo: false },
@@ -39,10 +44,14 @@ const TIPOS_OPCOES: Array<{ valor: string; rotulo: string; letivo: boolean }> = 
   { valor: 'planejamento', rotulo: 'Planejamento (não letivo)', letivo: false },
   { valor: 'conselho_classe', rotulo: 'Conselho de classe', letivo: false },
   { valor: 'reuniao_pais', rotulo: 'Reunião com pais', letivo: false },
-  { valor: 'reposicao', rotulo: 'Reposição (sábado letivo)', letivo: true },
-  { valor: 'letivo', rotulo: 'Dia letivo extra', letivo: true },
-  { valor: 'evento_pedagogico', rotulo: 'Evento pedagógico', letivo: true },
 ]
+
+/** Sugere tipo default conforme o dia da semana. */
+function tipoSugerido(dataIso: string): string {
+  const dow = new Date(dataIso + 'T12:00:00').getDay()
+  const fimDeSemana = dow === 0 || dow === 6
+  return fimDeSemana ? 'reposicao' : 'letivo'
+}
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -166,10 +175,11 @@ function CalendarioEscolar() {
       setFormDescricao(existente.descricao || '')
       setFormContaLetivo(existente.conta_dia_letivo)
     } else {
-      const tipoDefault = 'feriado_nacional'
+      // Default contextual: dia util sugere "letivo", fim de semana sugere "reposicao".
+      const tipoDefault = tipoSugerido(dataIso)
       const op = TIPOS_OPCOES.find(t => t.valor === tipoDefault)
       setFormTipo(tipoDefault)
-      setFormTitulo('')
+      setFormTitulo(op?.rotulo || '')
       setFormDescricao('')
       setFormContaLetivo(op?.letivo ?? false)
     }
@@ -431,16 +441,116 @@ function CalendarioEscolar() {
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+              {/* Atalhos rapidos — clique 1x ja escolhe o tipo e prepara titulo */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tipo</label>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                  Marcar rapidamente como
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleTipoChange('letivo')
+                      if (!formTitulo.trim()) setFormTitulo('Dia letivo')
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      formTipo === 'letivo'
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                        : 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'
+                    }`}
+                  >
+                    ✓ Dia Letivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleTipoChange('reposicao')
+                      if (!formTitulo.trim()) setFormTitulo('Reposição')
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      formTipo === 'reposicao'
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                        : 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'
+                    }`}
+                  >
+                    ↺ Reposição
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleTipoChange('feriado_nacional')
+                      if (!formTitulo.trim()) setFormTitulo('Feriado')
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      formTipo === 'feriado_nacional'
+                        ? 'bg-red-600 text-white border-red-700 shadow-sm'
+                        : 'bg-white dark:bg-slate-700 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30'
+                    }`}
+                  >
+                    ✕ Feriado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleTipoChange('recesso')
+                      if (!formTitulo.trim()) setFormTitulo('Recesso escolar')
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      formTipo === 'recesso'
+                        ? 'bg-red-600 text-white border-red-700 shadow-sm'
+                        : 'bg-white dark:bg-slate-700 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30'
+                    }`}
+                  >
+                    🏖 Recesso
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleTipoChange('planejamento')
+                      if (!formTitulo.trim()) setFormTitulo('Planejamento')
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      formTipo === 'planejamento'
+                        ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
+                        : 'bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                    }`}
+                  >
+                    ✎ Planejamento
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleTipoChange('paralisacao')
+                      if (!formTitulo.trim()) setFormTitulo('Paralisação')
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      formTipo === 'paralisacao'
+                        ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
+                        : 'bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                    }`}
+                  >
+                    ⏸ Paralisação
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tipo (todas as opções)</label>
                 <select
                   value={formTipo}
                   onChange={(e) => handleTipoChange(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
                 >
-                  {TIPOS_OPCOES.map(t => (
-                    <option key={t.valor} value={t.valor}>{t.rotulo}</option>
-                  ))}
+                  <optgroup label="Letivos">
+                    {TIPOS_OPCOES.filter(t => t.letivo).map(t => (
+                      <option key={t.valor} value={t.valor}>{t.rotulo}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Não letivos">
+                    {TIPOS_OPCOES.filter(t => !t.letivo).map(t => (
+                      <option key={t.valor} value={t.valor}>{t.rotulo}</option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
 
