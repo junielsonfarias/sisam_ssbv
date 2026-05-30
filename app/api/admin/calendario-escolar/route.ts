@@ -27,6 +27,26 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     [parseInt(anoLetivo)]
   )
 
+  // Marcacoes oficiais do calendario escolar (feriados, recessos,
+  // reposicoes, planejamento). Sao essas que afetam o calculo de
+  // dias letivos (funcao SQL contar_dias_letivos).
+  const marcacoesRes = await pool.query(
+    `SELECT ce.id, ce.tipo, ce.data::text AS data, ce.titulo, ce.descricao,
+            ce.conta_dia_letivo, ce.carga_horaria, ce.escola_id
+       FROM calendario_eventos ce
+       JOIN anos_letivos al ON al.id = ce.ano_letivo_id
+      WHERE al.ano = $1
+      ORDER BY ce.data ASC`,
+    [anoLetivo]
+  )
+
+  // ID do ano letivo (necessario para criar marcacoes via UI)
+  const anoLetivoIdRes = await pool.query(
+    'SELECT id FROM anos_letivos WHERE ano = $1 LIMIT 1',
+    [anoLetivo]
+  )
+  const anoLetivoId: string | null = anoLetivoIdRes.rows[0]?.id ?? null
+
   // Calcular resumo por bimestre
   const resumo = periodos.rows.map((p: any) => {
     if (p.data_inicio && p.data_fim) {
@@ -47,6 +67,8 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   return NextResponse.json({
     periodos: resumo,
     eventos: eventos.rows,
+    marcacoes: marcacoesRes.rows,
     ano_letivo: anoLetivo,
+    ano_letivo_id: anoLetivoId,
   })
 })
