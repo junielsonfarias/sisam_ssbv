@@ -62,17 +62,85 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
          ORDER BY p.numero, d.nome`,
         [alunoId, anoLetivo]
       ),
-      // Frequencia bimestral (corrigido: fb.bimestre e fb.aulas_dadas nao
-      // existem — bimestre vem de periodos_letivos.numero e dias e dias_letivos)
+      // Frequencia por periodo (consolidada).
+      //
+      // Padrao alinhado com /api/admin/turmas/[id]/diario-completo e
+      // /api/boletim — mesma estrategia do fix do dia 30/05 (commit
+      // d3dd97d):
+      // - dias_letivos via contar_dias_letivos() (respeita calendario)
+      // - presencas/faltas: COUNT FILTER em frequencia_diaria
+      // - COALESCE com frequencia_bimestral preserva snapshot oficial
+      // - CTE tipo_primario evita duplicacao bimestre+semestre derivado
+      //
+      // Bug anterior: dependia 100% de frequencia_bimestral (snapshot
+      // vazio em prod, 0 registros) — boletim do responsavel mostrava
+      // sempre vazio mesmo com lancamentos diarios feitos pelo professor.
       pool.query(
-        `SELECT p.numero AS bimestre, fb.dias_letivos AS aulas_dadas, fb.faltas,
-                fb.percentual_frequencia, fb.presencas, fb.faltas_justificadas,
-                p.nome AS periodo_nome
-         FROM frequencia_bimestral fb
-         LEFT JOIN periodos_letivos p ON fb.periodo_id = p.id
-         WHERE fb.aluno_id = $1 AND fb.ano_letivo = $2
-         ORDER BY p.numero`,
-        [alunoId, anoLetivo]
+        `WITH tipo_primario AS (
+           SELECT CASE
+             WHEN COUNT(*) FILTER (WHERE tipo = 'bimestre')  > 0 THEN 'bimestre'
+             WHEN COUNT(*) FILTER (WHERE tipo = 'trimestre') > 0 THEN 'trimestre'
+             WHEN COUNT(*) FILTER (WHERE tipo = 'semestre')  > 0 THEN 'semestre'
+             ELSE NULL
+           END AS tipo
+             FROM periodos_letivos
+            WHERE ano_letivo = $2
+         ),
+         escopos AS (
+           SELECT pl.id AS periodo_id, pl.nome, pl.numero, pl.tipo,
+                  pl.data_inicio, pl.data_fim,
+                  al.id AS ano_letivo_id
+             FROM periodos_letivos pl
+             LEFT JOIN anos_letivos al ON al.ano = pl.ano_letivo
+            WHERE pl.ano_letivo = $2
+              AND pl.tipo = (SELECT tipo FROM tipo_primario)
+              AND pl.data_inicio IS NOT NULL
+              AND pl.data_fim IS NOT NULL
+         ),
+         dias AS (
+           SELECT e.periodo_id,
+                  CASE
+                    WHEN e.ano_letivo_id IS NOT NULL AND $3::uuid IS NOT NULL
+                      THEN contar_dias_letivos(e.ano_letivo_id, $3::uuid, e.data_inicio, e.data_fim)
+                    ELSE (
+                      SELECT COUNT(*)::int
+                        FROM generate_series(e.data_inicio, e.data_fim, '1 day') d
+                       WHERE EXTRACT(DOW FROM d) BETWEEN 1 AND 5
+                    )
+                  END AS dias_letivos
+             FROM escopos e
+         )
+         SELECT e.numero AS bimestre,
+                d.dias_letivos AS aulas_dadas,
+                COALESCE(fb.presencas,
+                         COUNT(*) FILTER (WHERE fd.status = 'presente')::int) AS presencas,
+                COALESCE(fb.faltas,
+                         COUNT(*) FILTER (WHERE fd.status = 'ausente')::int) AS faltas,
+                COALESCE(fb.faltas_justificadas,
+                         COUNT(*) FILTER (WHERE fd.status = 'justificado')::int) AS faltas_justificadas,
+                COALESCE(fb.percentual_frequencia,
+                         CASE WHEN d.dias_letivos > 0
+                              THEN ROUND(
+                                (COUNT(*) FILTER (WHERE fd.status = 'presente')::numeric / d.dias_letivos) * 100,
+                                2
+                              )
+                              ELSE NULL
+                         END) AS percentual_frequencia,
+                e.nome AS periodo_nome
+           FROM escopos e
+           JOIN dias d ON d.periodo_id = e.periodo_id
+           LEFT JOIN frequencia_diaria fd
+                  ON fd.aluno_id = $1
+                 AND fd.turma_id = $4::uuid
+                 AND fd.data BETWEEN e.data_inicio AND e.data_fim
+           LEFT JOIN frequencia_bimestral fb
+                  ON fb.aluno_id = $1
+                 AND fb.periodo_id = e.periodo_id
+          GROUP BY e.numero, e.nome, d.dias_letivos,
+                   fb.presencas, fb.faltas, fb.faltas_justificadas,
+                   fb.percentual_frequencia
+          ORDER BY e.numero`,
+        [alunoId, anoLetivo, aluno.escola_id || null, aluno.turma_id || null]
       ),
       // Disciplinas da turma
       pool.query(

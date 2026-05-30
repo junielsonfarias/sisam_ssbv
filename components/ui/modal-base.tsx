@@ -149,7 +149,17 @@ interface ModalFooterProps {
   textoSalvar?: string
   /** Texto do botão de salvar quando está salvando */
   textoSalvando?: string
+  /** Cor do botão primário. Default 'indigo' (CTA padrão). Use 'red' para
+   *  ações destrutivas (excluir, bloquear) e 'amber' para ações reversíveis
+   *  arriscadas (regenerar chave). Classes Tailwind literais p/ purge. */
+  variantePrimaria?: 'indigo' | 'red' | 'amber'
 }
+
+const VARIANTES_PRIMARIAS = {
+  indigo: 'bg-indigo-600 hover:bg-indigo-700',
+  red:    'bg-red-600 hover:bg-red-700',
+  amber:  'bg-amber-600 hover:bg-amber-700',
+} as const
 
 /**
  * Footer padrão para modais com botões Cancelar e Salvar
@@ -162,6 +172,7 @@ export function ModalFooter({
   textoCancelar = 'Cancelar',
   textoSalvar = 'Salvar',
   textoSalvando = 'Salvando...',
+  variantePrimaria = 'indigo',
 }: ModalFooterProps) {
   return (
     <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
@@ -177,7 +188,7 @@ export function ModalFooter({
         onClick={onSalvar}
         disabled={salvando || desabilitado}
         aria-busy={salvando}
-        className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+        className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 ${VARIANTES_PRIMARIAS[variantePrimaria]} text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base`}
       >
         {salvando ? textoSalvando : textoSalvar}
       </button>
