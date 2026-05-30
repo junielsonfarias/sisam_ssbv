@@ -114,6 +114,35 @@ export async function buscarTurmasDoProfessor(
 }
 
 /**
+ * Verifica se o professor tem vinculo ATIVO na turma para o ano letivo dela.
+ * Usado por endpoints admin que aceitam tambem `tipo='professor'` (diario
+ * consolidado, lacunas, detalhado) para restringir o acesso apenas as suas
+ * proprias turmas — espelha o filtro de buscarTurmasDoProfessor.
+ *
+ * Regra: pt.ativo=true AND pt.ano_letivo=anoLetivoDaTurma. Nao confiamos
+ * em pt.ano_letivo isolado porque a turma pode ter sido finalizada em outro
+ * ano e o vinculo legado continuar marcado ativo (defesa em profundidade
+ * registrada na Pt.6).
+ */
+export async function professorEstaVinculadoNaTurma(
+  professorId: string,
+  turmaId: string,
+  anoLetivoDaTurma: string,
+): Promise<boolean> {
+  const result = await pool.query(
+    `SELECT 1
+       FROM professor_turmas
+      WHERE professor_id = $1
+        AND turma_id = $2
+        AND ano_letivo = $3
+        AND ativo = true
+      LIMIT 1`,
+    [professorId, turmaId, anoLetivoDaTurma]
+  )
+  return result.rows.length > 0
+}
+
+/**
  * Retorna o ano letivo marcado como ativo em anos_letivos.
  * Fallback: ano corrente quando a tabela nao existir ou nao houver ano ativo.
  */

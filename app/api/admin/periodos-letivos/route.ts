@@ -14,7 +14,7 @@ const log = createLogger('AdminPeriodosLetivos')
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola', 'professor'], async (request, usuario) => {
   const searchParams = request.nextUrl.searchParams
   const { ano_letivo, tipo } = parseSearchParams(searchParams, ['ano_letivo', 'tipo'])
 

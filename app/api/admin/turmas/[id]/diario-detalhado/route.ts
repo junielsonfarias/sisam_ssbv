@@ -32,6 +32,7 @@ import pool from '@/database/connection'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
+import { professorEstaVinculadoNaTurma } from '@/lib/services/turmas.service'
 
 const log = createLogger('AdminDiarioDetalhado')
 
@@ -51,7 +52,7 @@ function isAnosFinais(serie: string): boolean {
   return ['6', '7', '8', '9'].includes(num)
 }
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'escola', 'professor'], async (request, usuario) => {
   const segments = request.nextUrl.pathname.split('/')
   const turmaId = segments[segments.indexOf('turmas') + 1]
 
@@ -88,6 +89,13 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id && String(turma.escola_id) !== String(usuario.escola_id)) {
       return NextResponse.json({ mensagem: 'Sem permissão para visualizar esta turma' }, { status: 403 })
+    }
+
+    if (usuario.tipo_usuario === 'professor') {
+      const vinculado = await professorEstaVinculadoNaTurma(usuario.id, turmaId, turma.ano_letivo)
+      if (!vinculado) {
+        return NextResponse.json({ mensagem: 'Sem permissão para visualizar esta turma' }, { status: 403 })
+      }
     }
 
     if (turma.sensivel) {

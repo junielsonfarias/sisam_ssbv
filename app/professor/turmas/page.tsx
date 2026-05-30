@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Users, CalendarCheck, AlertTriangle, Calendar } from 'lucide-react'
+import { GraduationCap, Users, CalendarCheck, AlertTriangle, Calendar, ClipboardList } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 
 interface Turma {
@@ -184,7 +184,7 @@ function TurmasProfessor() {
                     </span>
                   ) : null}
 
-                  <div className="mt-3 flex items-center gap-4 text-xs">
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                     <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                       <CalendarCheck className="h-3 w-3" /> Frequência
                     </span>
@@ -193,6 +193,12 @@ function TurmasProfessor() {
                       className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                     >
                       <Users className="h-3 w-3" /> Ver Alunos
+                    </span>
+                    <span
+                      onClick={(e) => { e.stopPropagation(); router.push(`/professor/turmas/${turma.turma_id}/diario`) }}
+                      className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                    >
+                      <ClipboardList className="h-3 w-3" /> Ver Diário
                     </span>
                   </div>
                 </button>

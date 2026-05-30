@@ -23,6 +23,7 @@ import pool from '@/database/connection'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
+import { professorEstaVinculadoNaTurma } from '@/lib/services/turmas.service'
 
 const log = createLogger('AdminDiarioCompleto')
 
@@ -33,7 +34,7 @@ export const dynamic = 'force-dynamic'
 type TipoSecao = 'frequencia' | 'notas' | 'conteudo'
 const TIPOS_VALIDOS: TipoSecao[] = ['frequencia', 'notas', 'conteudo']
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'escola', 'professor'], async (request, usuario) => {
   // turmaId vem do segmento dinâmico [id]
   const segments = request.nextUrl.pathname.split('/')
   const turmaId = segments[segments.indexOf('turmas') + 1]
@@ -77,6 +78,14 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id && String(turma.escola_id) !== String(usuario.escola_id)) {
       return NextResponse.json({ mensagem: 'Sem permissão para visualizar esta turma' }, { status: 403 })
+    }
+
+    // Professor so ve diario de turmas onde tem vinculo ativo no ano dela.
+    if (usuario.tipo_usuario === 'professor') {
+      const vinculado = await professorEstaVinculadoNaTurma(usuario.id, turmaId, turma.ano_letivo)
+      if (!vinculado) {
+        return NextResponse.json({ mensagem: 'Sem permissão para visualizar esta turma' }, { status: 403 })
+      }
     }
 
     // Auditoria de LEITURA sensível (excecao deliberada ao padrao Pt.2,

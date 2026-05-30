@@ -33,6 +33,7 @@ import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { withRedisCache, cacheKey, CACHE_TTL } from '@/lib/cache'
+import { professorEstaVinculadoNaTurma } from '@/lib/services/turmas.service'
 
 const log = createLogger('AdminDiarioLacunas')
 
@@ -45,7 +46,7 @@ const MESES_PT = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ]
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'escola', 'professor'], async (request, usuario) => {
   const segments = request.nextUrl.pathname.split('/')
   const turmaId = segments[segments.indexOf('turmas') + 1]
 
@@ -83,6 +84,13 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id && String(turma.escola_id) !== String(usuario.escola_id)) {
       return NextResponse.json({ mensagem: 'Sem permissão para visualizar esta turma' }, { status: 403 })
+    }
+
+    if (usuario.tipo_usuario === 'professor') {
+      const vinculado = await professorEstaVinculadoNaTurma(usuario.id, turmaId, turma.ano_letivo)
+      if (!vinculado) {
+        return NextResponse.json({ mensagem: 'Sem permissão para visualizar esta turma' }, { status: 403 })
+      }
     }
 
     // Auditoria de leitura sensivel (mesmo padrao do /diario-completo).
