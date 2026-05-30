@@ -67,8 +67,10 @@ function CalendarioEscolar() {
   const [anoLetivoId, setAnoLetivoId] = useState<string | null>(null)
   const [periodos, setPeriodos] = useState<Periodo[]>([])
   const [marcacoes, setMarcacoes] = useState<Marcacao[]>([])
+  const [anosCadastrados, setAnosCadastrados] = useState<string[]>([])
   const [carregando, setCarregando] = useState(true)
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null)
+  const [criandoAno, setCriandoAno] = useState(false)
 
   // Modal de edicao
   const [dataEdicao, setDataEdicao] = useState<string | null>(null)
@@ -78,7 +80,15 @@ function CalendarioEscolar() {
   const [formContaLetivo, setFormContaLetivo] = useState(false)
   const [salvando, setSalvando] = useState(false)
 
-  const anos = Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - i + 1))
+  // Lista os anos cadastrados em anos_letivos + ano atual (caso falte cadastrar).
+  // Ao selecionar um ano sem cadastro, o aviso amber aparece com botao
+  // de criacao rapida.
+  const anoCorrente = String(new Date().getFullYear())
+  const anos = (() => {
+    const set = new Set<string>(anosCadastrados)
+    set.add(anoCorrente) // sempre permite escolher o corrente
+    return Array.from(set).sort((a, b) => b.localeCompare(a))
+  })()
 
   const fetchDados = useCallback(async () => {
     try {
@@ -99,6 +109,43 @@ function CalendarioEscolar() {
   }, [anoLetivo])
 
   useEffect(() => { fetchDados() }, [fetchDados])
+
+  // Carrega lista de anos letivos cadastrados (para o dropdown)
+  useEffect(() => {
+    fetch('/api/admin/anos-letivos')
+      .then(r => r.ok ? r.json() : { anos: [] })
+      .then(data => {
+        const anos = Array.isArray(data?.anos)
+          ? data.anos
+          : Array.isArray(data) ? data : []
+        const lista = anos
+          .map((a: { ano?: string }) => a?.ano)
+          .filter((x: unknown): x is string => typeof x === 'string')
+        setAnosCadastrados(lista)
+      })
+      .catch(() => setAnosCadastrados([]))
+  }, [])
+
+  async function criarAnoLetivo() {
+    if (criandoAno || !/^\d{4}$/.test(anoLetivo)) return
+    setCriandoAno(true)
+    try {
+      const res = await fetch('/api/admin/anos-letivos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ano: anoLetivo, status: 'planejamento' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.mensagem || 'Erro ao criar ano letivo')
+      setMensagem({ tipo: 'sucesso', texto: `Ano letivo ${anoLetivo} criado. Agora voce ja pode marcar feriados.` })
+      setAnosCadastrados(prev => prev.includes(anoLetivo) ? prev : [...prev, anoLetivo])
+      fetchDados()
+    } catch (err: any) {
+      setMensagem({ tipo: 'erro', texto: err.message || 'Erro ao criar ano letivo' })
+    } finally {
+      setCriandoAno(false)
+    }
+  }
 
   const marcacoesPorData = useMemo(() => {
     const m = new Map<string, Marcacao>()
@@ -269,9 +316,22 @@ function CalendarioEscolar() {
       )}
 
       {!anoLetivoId && !carregando && (
-        <div className="mb-4 p-3 rounded-lg text-sm bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-start gap-2">
-          <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>Ano letivo {anoLetivo} não cadastrado. Crie em <code>/admin/anos-letivos</code> para poder marcar feriados e recessos.</span>
+        <div className="mb-4 p-3 rounded-lg text-sm bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-start gap-2 flex-1">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <span>
+              Ano letivo <strong>{anoLetivo}</strong> ainda não cadastrado.
+              Crie agora para poder marcar feriados, recessos e reposições.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={criarAnoLetivo}
+            disabled={criandoAno}
+            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold disabled:opacity-60 whitespace-nowrap"
+          >
+            {criandoAno ? 'Criando…' : `Criar ano ${anoLetivo}`}
+          </button>
         </div>
       )}
 
