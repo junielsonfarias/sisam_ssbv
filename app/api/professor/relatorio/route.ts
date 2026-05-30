@@ -78,12 +78,15 @@ export const GET = withAuth('professor', async (request, usuario) => {
     const turma = turmaResult.rows[0]
     const professorNome = professorResult.rows[0]?.nome || 'Professor'
 
-    // Determinar período (se não informado, buscar o mais recente)
-    let periodoInfo: { id: string; nome: string; numero: number } | null = null
+    // Determinar período (se não informado, buscar o mais recente).
+    // Carrega data_inicio/data_fim para calcular a janela da frequencia
+    // — sem isso, o calculo de % frequencia caia no fallback anos_letivos
+    // (ou Jan-Dez) ao inves de respeitar o periodo escolhido.
+    let periodoInfo: { id: string; nome: string; numero: number; data_inicio: string | null; data_fim: string | null } | null = null
 
     if (periodo_id) {
       const periodoResult = await pool.query(
-        `SELECT id, nome, numero FROM periodos_letivos WHERE id = $1`,
+        `SELECT id, nome, numero, data_inicio, data_fim FROM periodos_letivos WHERE id = $1`,
         [periodo_id]
       )
       if (periodoResult.rows.length > 0) {
@@ -92,7 +95,7 @@ export const GET = withAuth('professor', async (request, usuario) => {
     } else {
       // Buscar período mais recente do ano letivo
       const periodoResult = await pool.query(
-        `SELECT id, nome, numero FROM periodos_letivos
+        `SELECT id, nome, numero, data_inicio, data_fim FROM periodos_letivos
          WHERE ano_letivo = $1 AND ativo = true
          ORDER BY numero DESC LIMIT 1`,
         [turma.ano_letivo]
@@ -142,14 +145,69 @@ export const GET = withAuth('professor', async (request, usuario) => {
              ORDER BY p.numero DESC`,
             [turma_id, turma.ano_letivo]
           ),
-      // Frequência bimestral
-      pool.query(
-        `SELECT fb.aluno_id, fb.bimestre, fb.aulas_dadas, fb.faltas, fb.percentual_frequencia
-         FROM frequencia_bimestral fb
-         WHERE fb.aluno_id IN (SELECT id FROM alunos WHERE turma_id = $1 AND ativo = true)
-           AND fb.ano_letivo = $2`,
-        [turma_id, turma.ano_letivo]
-      ),
+      // Frequência por aluno.
+      //
+      // Alinhado com /api/admin/turmas/[id]/diario-completo (paridade com o
+      // diario consolidado do admin/gestor):
+      // - dias_letivos = contar_dias_letivos(ano_letivo_id, escola_id, dt_ini, dt_fim)
+      //   considerando feriados/recessos do calendario.
+      // - presencas/faltas: COUNT FILTER por status em frequencia_diaria.
+      // - COALESCE com frequencia_bimestral preserva snapshot oficial quando
+      //   existir (preferindo o oficial).
+      // - Janela: periodo (se informado) > anos_letivos.data_inicio/fim >
+      //   fallback Jan-Dez. As datas chegam como $3/$4.
+      //
+      // Bug anterior: SELECT fb.bimestre, fb.aulas_dadas (colunas que NUNCA
+      // existiram em frequencia_bimestral — quebrava com 42703 em tempo de
+      // execucao, retornando 500 silencioso). + agregacao via media movel
+      // ((perc1+perc2)/2 em loop) que produzia peso exponencial decrescente.
+      (() => {
+        const dtIni = periodoInfo?.data_inicio ?? null
+        const dtFim = periodoInfo?.data_fim ?? null
+        return pool.query(
+          `WITH escopo AS (
+             SELECT t.escola_id, t.ano_letivo,
+                    al.id AS ano_letivo_id,
+                    COALESCE($3::date, al.data_inicio, (t.ano_letivo || '-01-01')::date) AS dt_ini,
+                    COALESCE($4::date, al.data_fim,    (t.ano_letivo || '-12-31')::date) AS dt_fim
+               FROM turmas t
+               LEFT JOIN anos_letivos al ON al.ano = t.ano_letivo
+              WHERE t.id = $1
+           ),
+           dias AS (
+             SELECT CASE
+                      WHEN e.ano_letivo_id IS NOT NULL
+                        THEN contar_dias_letivos(e.ano_letivo_id, e.escola_id, e.dt_ini, e.dt_fim)
+                      ELSE (
+                        SELECT COUNT(*)::int
+                          FROM generate_series(e.dt_ini, e.dt_fim, '1 day') d
+                         WHERE EXTRACT(DOW FROM d) BETWEEN 1 AND 5
+                      )
+                    END AS dias_letivos,
+                    e.dt_ini, e.dt_fim
+               FROM escopo e
+           )
+           SELECT a.id AS aluno_id,
+                  (SELECT dias_letivos FROM dias) AS dias_letivos,
+                  COALESCE(fb.presencas, COUNT(*) FILTER (WHERE fd.status = 'presente')::int) AS presencas,
+                  COALESCE(fb.faltas,    COUNT(*) FILTER (WHERE fd.status = 'ausente')::int) AS faltas,
+                  COALESCE(fb.faltas_justificadas,
+                           COUNT(*) FILTER (WHERE fd.status = 'justificado')::int) AS faltas_justificadas
+             FROM alunos a
+             LEFT JOIN frequencia_diaria fd
+                    ON fd.aluno_id = a.id
+                   AND fd.turma_id = $1
+                   AND fd.data BETWEEN (SELECT dt_ini FROM dias) AND (SELECT dt_fim FROM dias)
+             LEFT JOIN frequencia_bimestral fb
+                    ON fb.aluno_id = a.id
+                   AND fb.turma_id = $1
+                   AND ($2::uuid IS NULL OR fb.periodo_id = $2)
+            WHERE a.turma_id = $1
+              AND a.ativo = true
+            GROUP BY a.id, fb.presencas, fb.faltas, fb.faltas_justificadas`,
+          [turma_id, periodoInfo?.id ?? null, dtIni, dtFim]
+        )
+      })(),
     ])
 
     // Montar disciplinas
@@ -176,22 +234,17 @@ export const GET = withAuth('professor', async (request, usuario) => {
       }
     }
 
-    // Indexar frequência por aluno (soma total)
+    // Indexar frequência por aluno (1 row por aluno — agregado na SQL).
+    // Percentual = presencas / dias_letivos * 100 (mesmo do admin/diario).
     const freqMap = new Map<string, { totalFaltas: number; percentual: number | null }>()
     for (const row of frequenciaResult.rows) {
-      const atual = freqMap.get(row.aluno_id) || { totalFaltas: 0, percentual: null }
-      atual.totalFaltas += parseInt(row.faltas) || 0
-      // Média das frequências
-      const perc = row.percentual_frequencia !== null ? parseFloat(row.percentual_frequencia) : null
-      if (perc !== null) {
-        if (atual.percentual === null) {
-          atual.percentual = perc
-        } else {
-          // Média simples das frequências bimestrais
-          atual.percentual = (atual.percentual + perc) / 2
-        }
-      }
-      freqMap.set(row.aluno_id, atual)
+      const diasLetivos = parseInt(row.dias_letivos) || 0
+      const presencas = parseInt(row.presencas) || 0
+      const faltas = parseInt(row.faltas) || 0
+      const percentual = diasLetivos > 0
+        ? Math.round((presencas / diasLetivos) * 1000) / 10
+        : null
+      freqMap.set(row.aluno_id, { totalFaltas: faltas, percentual })
     }
 
     // Montar lista de alunos com notas e frequência
