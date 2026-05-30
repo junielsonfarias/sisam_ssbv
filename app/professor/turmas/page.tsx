@@ -1,39 +1,38 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { GraduationCap, Users, CalendarCheck, AlertTriangle, Calendar, ClipboardList } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import {
+  GraduationCap, Users, AlertTriangle, Calendar, BookOpen, Building2, X,
+} from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
-
-interface Turma {
-  vinculo_id: string
-  tipo_vinculo: string
-  turma_id: string
-  turma_nome: string
-  serie: string
-  turno: string
-  escola_id: string
-  escola_nome: string
-  disciplina_id: string | null
-  disciplina_nome: string | null
-  disciplina_abreviacao: string | null
-  etapa: string | null
-  total_alunos: number
-}
-
-interface AnoDisponivel {
-  ano: string
-  status: string | null
-}
+import { BarraFiltros } from './components/barra-filtros'
+import { CardTurma } from './components/card-turma'
+import {
+  type Turma, type AnoDisponivel, type PeriodoLetivo, type FiltrosState,
+  FILTROS_DEFAULT, STORAGE_KEY_FILTROS, normalizarTexto,
+} from './components/tipos'
 
 function TurmasProfessor() {
-  const router = useRouter()
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [anoSelecionado, setAnoSelecionado] = useState<string>('')
   const [anoAtivo, setAnoAtivo] = useState<string>('')
   const [anosDisponiveis, setAnosDisponiveis] = useState<AnoDisponivel[]>([])
+  const [periodoAtivo, setPeriodoAtivo] = useState<PeriodoLetivo | null>(null)
+  const [filtros, setFiltros] = useState<FiltrosState>(FILTROS_DEFAULT)
+
+  // Carrega filtros persistidos
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_FILTROS)
+      if (raw) setFiltros({ ...FILTROS_DEFAULT, ...JSON.parse(raw) })
+    } catch { /* ignora storage corrompido */ }
+  }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY_FILTROS, JSON.stringify(filtros)) } catch { /* quota cheia */ }
+  }, [filtros])
 
   const fetchTurmas = useCallback(async (ano?: string) => {
     try {
@@ -42,7 +41,7 @@ function TurmasProfessor() {
       const res = await fetch(url)
       if (!res.ok) throw new Error('Erro ao carregar turmas')
       const data = await res.json()
-      setTurmas(data.turmas || [])
+      setTurmas(Array.isArray(data?.turmas) ? data.turmas : [])
       setAnoSelecionado(data.ano_letivo || '')
       setAnoAtivo(data.ano_letivo_ativo || '')
       setAnosDisponiveis(data.anos_disponiveis || [])
@@ -54,14 +53,81 @@ function TurmasProfessor() {
     }
   }, [])
 
+  useEffect(() => { fetchTurmas() }, [fetchTurmas])
+
+  // Busca periodo letivo ativo do ano selecionado
   useEffect(() => {
-    fetchTurmas()
-  }, [fetchTurmas])
+    if (!anoSelecionado) return
+    let cancelado = false
+    fetch(`/api/admin/periodos-letivos?ano_letivo=${anoSelecionado}`)
+      .then(r => r.ok ? r.json() : [])
+      .then((lista: PeriodoLetivo[]) => {
+        if (cancelado || !Array.isArray(lista)) return
+        const ativo = lista.find(p => p.ativo) ?? null
+        setPeriodoAtivo(ativo)
+      })
+      .catch(() => { if (!cancelado) setPeriodoAtivo(null) })
+    return () => { cancelado = true }
+  }, [anoSelecionado])
 
   const handleAnoChange = (novoAno: string) => {
-    if (novoAno && novoAno !== anoSelecionado) {
-      fetchTurmas(novoAno)
-    }
+    if (novoAno && novoAno !== anoSelecionado) fetchTurmas(novoAno)
+  }
+
+  // Aplica filtros (client-side)
+  const turmasFiltradas = useMemo(() => {
+    const buscaNorm = normalizarTexto(filtros.busca.trim())
+    return turmas.filter(t => {
+      if (filtros.escolas.length > 0 && !filtros.escolas.includes(t.escola_id)) return false
+      if (filtros.turnos.length > 0 && !filtros.turnos.includes(t.turno)) return false
+      if (filtros.serie && t.serie !== filtros.serie) return false
+      if (filtros.tipoVinculo !== 'todos' && t.tipo_vinculo !== filtros.tipoVinculo) return false
+      if (buscaNorm) {
+        const hay = normalizarTexto([t.turma_nome, t.serie, t.disciplina_nome ?? '', t.escola_nome].join(' '))
+        if (!hay.includes(buscaNorm)) return false
+      }
+      return true
+    })
+  }, [turmas, filtros])
+
+  const totalAlunos = useMemo(
+    () => turmasFiltradas.reduce((acc, t) => acc + (t.total_alunos ?? 0), 0),
+    [turmasFiltradas]
+  )
+
+  const turmasPorEscola = useMemo(() => {
+    return turmasFiltradas.reduce((acc: Record<string, Turma[]>, t) => {
+      const key = t.escola_nome
+      if (!acc[key]) acc[key] = []
+      acc[key].push(t)
+      return acc
+    }, {})
+  }, [turmasFiltradas])
+
+  const temFiltrosAtivos =
+    filtros.busca !== '' ||
+    filtros.escolas.length > 0 ||
+    filtros.turnos.length > 0 ||
+    filtros.serie !== '' ||
+    filtros.tipoVinculo !== 'todos'
+
+  const anoAtualEhAtivo = anoSelecionado === anoAtivo
+  const opcoesAno = (() => {
+    const itens = anosDisponiveis.map(a => a.ano)
+    if (anoAtivo && !itens.includes(anoAtivo)) itens.unshift(anoAtivo)
+    if (anoSelecionado && !itens.includes(anoSelecionado)) itens.unshift(anoSelecionado)
+    return Array.from(new Set(itens))
+  })()
+
+  const formatarPeriodoBadge = (p: PeriodoLetivo): string => {
+    const tipo = p.tipo === 'semestral' ? 'Semestre' : p.tipo === 'trimestral' ? 'Trimestre' : 'Bimestre'
+    return `${p.numero}º ${tipo}`
+  }
+
+  const formatarData = (iso: string | null): string => {
+    if (!iso) return ''
+    const d = iso.slice(0, 10).split('-')
+    return `${d[2]}/${d[1]}`
   }
 
   if (carregando) {
@@ -70,10 +136,7 @@ function TurmasProfessor() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Minhas Turmas</h1>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-6 animate-pulse">
-              <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-3" />
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-            </div>
+            <div key={i} className="bg-white dark:bg-slate-800 rounded-xl p-6 animate-pulse h-40 border border-gray-200 dark:border-slate-700" />
           ))}
         </div>
       </div>
@@ -89,30 +152,36 @@ function TurmasProfessor() {
     )
   }
 
-  // Agrupar por escola
-  const turmasPorEscola = turmas.reduce((acc: Record<string, Turma[]>, t) => {
-    const key = t.escola_nome
-    if (!acc[key]) acc[key] = []
-    acc[key].push(t)
-    return acc
-  }, {})
-
-  const anoAtualEhAtivo = anoSelecionado === anoAtivo
-  const opcoesAno = (() => {
-    const itens = anosDisponiveis.map(a => a.ano)
-    if (anoAtivo && !itens.includes(anoAtivo)) itens.unshift(anoAtivo)
-    if (anoSelecionado && !itens.includes(anoSelecionado)) itens.unshift(anoSelecionado)
-    return Array.from(new Set(itens))
-  })()
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
+    <div className="space-y-5">
+      {/* Header + KPIs + ano letivo */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Minhas Turmas</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {turmas.length} turma(s) vinculada(s) em {anoSelecionado || '—'}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+            <span className="inline-flex items-center gap-1.5">
+              <BookOpen className="h-4 w-4" />
+              <strong className="text-gray-700 dark:text-gray-200">{turmasFiltradas.length}</strong>
+              {turmasFiltradas.length === 1 ? 'turma' : 'turmas'}
+              {temFiltrosAtivos && turmasFiltradas.length !== turmas.length && (
+                <span className="text-xs text-gray-400">de {turmas.length}</span>
+              )}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="h-4 w-4" />
+              <strong className="text-gray-700 dark:text-gray-200">{totalAlunos}</strong>
+              {totalAlunos === 1 ? 'aluno' : 'alunos'}
+            </span>
+            {periodoAtivo && (
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                <strong className="text-gray-700 dark:text-gray-200">{formatarPeriodoBadge(periodoAtivo)}</strong>
+                {periodoAtivo.data_fim && (
+                  <span className="text-xs text-gray-400">até {formatarData(periodoAtivo.data_fim)}</span>
+                )}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex flex-col">
           <label htmlFor="ano-letivo" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
@@ -143,69 +212,52 @@ function TurmasProfessor() {
         </div>
       )}
 
-      {turmas.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center border border-gray-200 dark:border-gray-700">
+      <BarraFiltros turmas={turmas} filtros={filtros} onChange={setFiltros} />
+
+      {/* Lista de turmas */}
+      {turmasFiltradas.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
           <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
-            Nenhuma turma vinculada em {anoSelecionado || 'ano selecionado'}
-          </p>
+          {temFiltrosAtivos ? (
+            <>
+              <p className="mt-3 text-gray-700 dark:text-gray-200 font-medium">
+                Nenhuma turma corresponde aos filtros
+              </p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Tente ajustar a busca ou remover os filtros aplicados.
+              </p>
+              <button
+                onClick={() => setFiltros(FILTROS_DEFAULT)}
+                className="mt-4 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition"
+              >
+                <X className="h-4 w-4" /> Limpar filtros
+              </button>
+            </>
+          ) : (
+            <p className="mt-3 text-gray-500 dark:text-gray-400">
+              Nenhuma turma vinculada em {anoSelecionado || 'ano selecionado'}
+            </p>
+          )}
         </div>
       ) : (
-        Object.entries(turmasPorEscola).map(([escolaNome, turmasEscola]) => (
-          <div key={escolaNome}>
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
-              {escolaNome}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {turmasEscola.map(turma => (
-                <button
-                  key={turma.vinculo_id}
-                  onClick={() => router.push(`/professor/frequencia/${turma.turma_id}`)}
-                  className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors text-left"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">{turma.turma_nome}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{turma.serie} - {turma.turno}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                      <Users className="h-4 w-4" />
-                      <span className="text-sm font-medium">{turma.total_alunos}</span>
-                    </div>
-                  </div>
-
-                  {turma.tipo_vinculo === 'polivalente' ? (
-                    <span className="inline-block px-2 py-0.5 text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-full">
-                      Polivalente — Todas as disciplinas
-                    </span>
-                  ) : turma.disciplina_nome ? (
-                    <span className="inline-block px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">
-                      {turma.disciplina_nome}
-                    </span>
-                  ) : null}
-
-                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                      <CalendarCheck className="h-3 w-3" /> Frequência
-                    </span>
-                    <span
-                      onClick={(e) => { e.stopPropagation(); router.push(`/professor/alunos/${turma.turma_id}`) }}
-                      className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                    >
-                      <Users className="h-3 w-3" /> Ver Alunos
-                    </span>
-                    <span
-                      onClick={(e) => { e.stopPropagation(); router.push(`/professor/turmas/${turma.turma_id}/diario`) }}
-                      className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                    >
-                      <ClipboardList className="h-3 w-3" /> Ver Diário
-                    </span>
-                  </div>
-                </button>
-              ))}
+        Object.entries(turmasPorEscola).map(([escolaNome, turmasEscola]) => {
+          const alunosEscola = turmasEscola.reduce((acc, t) => acc + (t.total_alunos ?? 0), 0)
+          return (
+            <div key={escolaNome}>
+              <div className="flex items-center gap-2 mb-3">
+                <Building2 className="h-4 w-4 text-gray-400" />
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{escolaNome}</h2>
+                <span className="text-xs text-gray-400">
+                  · {turmasEscola.length} {turmasEscola.length === 1 ? 'turma' : 'turmas'}
+                  {' · '}{alunosEscola} {alunosEscola === 1 ? 'aluno' : 'alunos'}
+                </span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {turmasEscola.map(turma => <CardTurma key={turma.vinculo_id} turma={turma} />)}
+              </div>
             </div>
-          </div>
-        ))
+          )
+        })
       )}
     </div>
   )
