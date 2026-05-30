@@ -290,7 +290,31 @@ function CalendarioEscolar() {
     return { cls, label, marc, iso }
   }
 
-  const totalDiasLetivos = useMemo(() => periodos.reduce((acc, p) => acc + (p.dias_letivos_estimados || 0), 0), [periodos])
+  // Bimestres e semestres podem coexistir no mesmo ano (sincronizacao
+  // automatica da Pt.6 deriva 2 semestres a partir dos 4 bimestres).
+  // Somar TODOS daria duplicacao (1ºSem = 1ºBim+2ºBim, etc.). Escolhemos
+  // 1 tipo primario (mais granular) para o grid principal + total, e
+  // mostramos os demais em "Visao alternativa" abaixo.
+  const TIPO_PRIORIDADE = ['bimestre', 'trimestre', 'semestre', 'anual'] as const
+  const { tipoPrimario, periodosPrimarios, periodosSecundarios } = useMemo(() => {
+    const tiposPresentes = new Set(periodos.map(p => p.tipo))
+    const primario = TIPO_PRIORIDADE.find(t => tiposPresentes.has(t)) ?? (periodos[0]?.tipo ?? null)
+    const primarios = periodos.filter(p => p.tipo === primario)
+    const secundarios = periodos.filter(p => p.tipo !== primario)
+    return { tipoPrimario: primario, periodosPrimarios: primarios, periodosSecundarios: secundarios }
+  }, [periodos])
+
+  const totalDiasLetivos = useMemo(
+    () => periodosPrimarios.reduce((acc, p) => acc + (p.dias_letivos_estimados || 0), 0),
+    [periodosPrimarios]
+  )
+
+  const rotuloTipo = (tipo: string): string => {
+    const map: Record<string, string> = {
+      bimestre: 'bimestres', trimestre: 'trimestres', semestre: 'semestres', anual: 'período anual',
+    }
+    return map[tipo] ?? tipo
+  }
   const anoNum = parseInt(anoLetivo)
 
   return (
@@ -364,16 +388,51 @@ function CalendarioEscolar() {
         </div>
       </div>
 
-      {periodos.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {periodos.map(p => (
-            <div key={p.id} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-3 text-center">
-              <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{p.nome || `${p.numero}º Bimestre`}</p>
-              <p className="text-lg font-extrabold text-emerald-600">{p.dias_letivos_estimados}</p>
-              <p className="text-xs text-gray-400">dias úteis</p>
+      {periodosPrimarios.length > 0 && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+              Por {tipoPrimario ? rotuloTipo(tipoPrimario) : 'período'}
+            </h2>
+            <span className="text-[11px] text-gray-400">
+              {periodosPrimarios.length} {periodosPrimarios.length === 1 ? 'período' : 'períodos'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {periodosPrimarios.map(p => (
+              <div key={p.id} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-3 text-center">
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{p.nome || `${p.numero}º Bimestre`}</p>
+                <p className="text-lg font-extrabold text-emerald-600">{p.dias_letivos_estimados}</p>
+                <p className="text-xs text-gray-400">dias úteis</p>
+              </div>
+            ))}
+          </div>
+
+          {periodosSecundarios.length > 0 && (
+            <div className="mb-6 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-300 dark:border-slate-600 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Visão alternativa ({rotuloTipo(periodosSecundarios[0].tipo)})
+                </h3>
+                <span
+                  className="text-[10px] text-gray-400"
+                  title="Cada período aqui é equivalente à soma dos bimestres correspondentes — não some com o total acima."
+                >
+                  derivado · não somar
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {periodosSecundarios.map(p => (
+                  <div key={p.id} className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-2 text-center">
+                    <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{p.nome || `${p.numero}º ${p.tipo}`}</p>
+                    <p className="text-base font-bold text-gray-700 dark:text-gray-200">{p.dias_letivos_estimados}</p>
+                    <p className="text-[10px] text-gray-400">dias úteis</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-3 mb-6 text-center">
