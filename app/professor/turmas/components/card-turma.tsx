@@ -3,14 +3,50 @@
 import { useRouter } from 'next/navigation'
 import {
   Users, CalendarCheck, ClipboardList, BookOpen, ArrowRight,
+  CheckCircle2, AlertCircle, XCircle, MinusCircle,
 } from 'lucide-react'
-import type { Turma } from './tipos'
+import type { Turma, StatusLancamento } from './tipos'
 import { corDoTurno } from './tipos'
+
+interface BadgeConfig {
+  label: string
+  className: string
+  Icon: typeof CheckCircle2
+  titulo: (dl: number, dla: number) => string
+}
+
+const BADGE_STATUS: Record<StatusLancamento, BadgeConfig> = {
+  em_dia: {
+    label: 'Em dia',
+    className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    Icon: CheckCircle2,
+    titulo: (dl, dla) => `Frequencia lancada em todos os ${dl} dia(s) letivo(s) da ultima semana (${dla}/${dl}).`,
+  },
+  pendente: {
+    label: 'Pendente',
+    className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    Icon: AlertCircle,
+    titulo: (dl, dla) => `Faltam ${dl - dla} dia(s) sem lancamento na ultima semana (${dla}/${dl}).`,
+  },
+  sem_lancamento: {
+    label: 'Sem lançamento',
+    className: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    Icon: XCircle,
+    titulo: (dl) => `Nenhum lancamento nos ultimos ${dl} dia(s) letivo(s).`,
+  },
+  sem_letivos: {
+    label: 'Sem letivos',
+    className: 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300',
+    Icon: MinusCircle,
+    titulo: () => 'Ultimos 7 dias sem dias letivos (feriados/recesso/fim de semana).',
+  },
+}
 
 export function CardTurma({ turma }: { turma: Turma }) {
   const router = useRouter()
   const cor = corDoTurno(turma.turno)
   const Icon = cor.icone
+  const statusCfg = turma.status_semanal ? BADGE_STATUS[turma.status_semanal.status] : null
 
   return (
     <div
@@ -34,16 +70,31 @@ export function CardTurma({ turma }: { turma: Turma }) {
           </div>
         </div>
 
-        {/* Badge tipo vinculo */}
-        {turma.tipo_vinculo === 'polivalente' ? (
-          <span className="inline-block px-2 py-0.5 text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full">
-            Polivalente
-          </span>
-        ) : turma.disciplina_nome ? (
-          <span className="inline-block px-2 py-0.5 text-[11px] font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full">
-            {turma.disciplina_nome}
-          </span>
-        ) : null}
+        {/* Badges: tipo vinculo + status semanal */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {turma.tipo_vinculo === 'polivalente' ? (
+            <span className="inline-block px-2 py-0.5 text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full">
+              Polivalente
+            </span>
+          ) : turma.disciplina_nome ? (
+            <span className="inline-block px-2 py-0.5 text-[11px] font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full">
+              {turma.disciplina_nome}
+            </span>
+          ) : null}
+
+          {statusCfg && turma.status_semanal && (() => {
+            const StatusIcon = statusCfg.Icon
+            return (
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-full ${statusCfg.className}`}
+                title={statusCfg.titulo(turma.status_semanal.dias_letivos, turma.status_semanal.dias_lancados)}
+              >
+                <StatusIcon className="h-3 w-3" />
+                {statusCfg.label}
+              </span>
+            )
+          })()}
+        </div>
       </div>
 
       {/* CTA primario */}

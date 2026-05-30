@@ -3,6 +3,14 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
+export type StatusLancamento = 'em_dia' | 'pendente' | 'sem_lancamento' | 'sem_letivos'
+
+export interface StatusSemanal {
+  dias_letivos: number
+  dias_lancados: number
+  status: StatusLancamento
+}
+
 export interface Turma {
   vinculo_id: string
   tipo_vinculo: string
@@ -17,6 +25,7 @@ export interface Turma {
   disciplina_abreviacao: string | null
   etapa: string | null
   total_alunos: number
+  status_semanal?: StatusSemanal | null
 }
 
 export interface AnoDisponivel {

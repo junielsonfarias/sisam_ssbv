@@ -50,6 +50,14 @@ export interface TurmaProfessor {
   total_alunos: number
 }
 
+export type StatusLancamento = 'em_dia' | 'pendente' | 'sem_lancamento' | 'sem_letivos'
+
+export interface StatusSemanalTurma {
+  dias_letivos: number      // dias letivos nos ultimos 7 dias corridos
+  dias_lancados: number     // dias DISTINTOS com >=1 registro em frequencia_diaria OU frequencia_hora_aula
+  status: StatusLancamento
+}
+
 /**
  * Busca alunos de uma turma (incluindo transferidos/inativos)
  * Usado por: admin/turmas/[id]/alunos, professor/alunos
@@ -111,6 +119,88 @@ export async function buscarTurmasDoProfessor(
   )
 
   return result.rows
+}
+
+/**
+ * Calcula o status de lancamento de frequencia nos ULTIMOS 7 DIAS CORRIDOS
+ * para um conjunto de turmas, em uma unica query (sem N+1).
+ *
+ * Status:
+ *   - em_dia:         dias_letivos > 0 E dias_lancados >= dias_letivos
+ *   - pendente:       dias_letivos > 0 E 0 < dias_lancados < dias_letivos
+ *   - sem_lancamento: dias_letivos > 0 E dias_lancados == 0
+ *   - sem_letivos:    dias_letivos == 0 (semana toda foi feriado/recesso/fim de semana)
+ *
+ * Considera lancamento em frequencia_diaria UNION frequencia_hora_aula —
+ * basta UM registro qualquer no dia para nao virar pendente (cobre tanto
+ * anos iniciais como anos finais sem ramificar). Usa contar_dias_letivos()
+ * (mesma funcao SQL do admin/diario) para contar dias letivos corretos
+ * — considera calendario_eventos da escola.
+ *
+ * Usado por: GET /api/professor/turmas (badge de status no card).
+ */
+export async function buscarStatusSemanalDasTurmas(
+  turmaIds: string[],
+): Promise<Map<string, StatusSemanalTurma>> {
+  const mapa = new Map<string, StatusSemanalTurma>()
+  if (turmaIds.length === 0) return mapa
+
+  const result = await pool.query(
+    `WITH escopo AS (
+       SELECT t.id AS turma_id, t.escola_id, t.ano_letivo,
+              al.id AS ano_letivo_id,
+              (CURRENT_DATE - INTERVAL '6 days')::date AS dt_ini,
+              CURRENT_DATE AS dt_fim
+         FROM turmas t
+         LEFT JOIN anos_letivos al ON al.ano = t.ano_letivo
+        WHERE t.id = ANY($1)
+     ),
+     dias_letivos_por_turma AS (
+       SELECT e.turma_id,
+              CASE WHEN e.ano_letivo_id IS NOT NULL
+                   THEN contar_dias_letivos(e.ano_letivo_id, e.escola_id, e.dt_ini, e.dt_fim)
+                   ELSE (
+                     SELECT COUNT(*)::int
+                       FROM generate_series(e.dt_ini, e.dt_fim, '1 day') d
+                      WHERE EXTRACT(DOW FROM d) BETWEEN 1 AND 5
+                   )
+              END AS dias_letivos
+         FROM escopo e
+     ),
+     lancamentos AS (
+       SELECT e.turma_id, fd.data
+         FROM escopo e
+         JOIN frequencia_diaria fd
+              ON fd.turma_id = e.turma_id
+             AND fd.data BETWEEN e.dt_ini AND e.dt_fim
+       UNION
+       SELECT e.turma_id, fha.data
+         FROM escopo e
+         JOIN frequencia_hora_aula fha
+              ON fha.turma_id = e.turma_id
+             AND fha.data BETWEEN e.dt_ini AND e.dt_fim
+     )
+     SELECT dl.turma_id, dl.dias_letivos,
+            COALESCE((SELECT COUNT(DISTINCT data)
+                        FROM lancamentos l
+                       WHERE l.turma_id = dl.turma_id), 0)::int AS dias_lancados
+       FROM dias_letivos_por_turma dl`,
+    [turmaIds]
+  )
+
+  for (const row of result.rows as Array<{ turma_id: string; dias_letivos: number; dias_lancados: number }>) {
+    const diasLetivos = row.dias_letivos
+    const diasLancados = row.dias_lancados
+    let status: StatusLancamento
+    if (diasLetivos === 0) status = 'sem_letivos'
+    else if (diasLancados === 0) status = 'sem_lancamento'
+    else if (diasLancados >= diasLetivos) status = 'em_dia'
+    else status = 'pendente'
+
+    mapa.set(row.turma_id, { dias_letivos: diasLetivos, dias_lancados: diasLancados, status })
+  }
+
+  return mapa
 }
 
 /**
