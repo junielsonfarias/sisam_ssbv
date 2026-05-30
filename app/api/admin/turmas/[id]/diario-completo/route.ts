@@ -54,12 +54,17 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     : new Set(TIPOS_VALIDOS)
 
   try {
-    // 1) Buscar turma + escola e validar permissão (escola só vê suas turmas)
+    // 1) Buscar turma + escola e validar permissão (escola só vê suas turmas).
+    // Tambem carrega data_inicio/data_fim do ano letivo cadastrado em
+    // anos_letivos — necessario para alinhar a janela de dias_letivos com
+    // o que a Cobertura do diario (/diario-lacunas) ja calcula.
     const turmaRes = await pool.query(
       `SELECT t.id, t.codigo, t.nome, t.serie, t.turno, t.ano_letivo, t.sensivel,
-              e.id as escola_id, e.nome as escola_nome, e.logo_url as escola_logo_url
+              e.id as escola_id, e.nome as escola_nome, e.logo_url as escola_logo_url,
+              al.data_inicio as ano_data_inicio, al.data_fim as ano_data_fim
          FROM turmas t
          JOIN escolas e ON e.id = t.escola_id
+         LEFT JOIN anos_letivos al ON al.ano = t.ano_letivo
         WHERE t.id = $1`,
       [turmaId]
     )
@@ -125,7 +130,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     // 4) Executar as 3 seções em paralelo conforme `tipos` solicitado
     const [frequenciaRes, notasRes, conteudoRes] = await Promise.all([
-      tipos.has('frequencia') ? buscarFrequencia(turmaId, periodoId, periodo, turma.ano_letivo, turma.escola_id) : Promise.resolve(null),
+      tipos.has('frequencia') ? buscarFrequencia(turmaId, periodoId, periodo, turma.ano_letivo, turma.escola_id, turma.ano_data_inicio, turma.ano_data_fim) : Promise.resolve(null),
       tipos.has('notas') ? buscarNotas(turmaId, periodoId) : Promise.resolve(null),
       tipos.has('conteudo') ? buscarConteudo(turmaId, periodo) : Promise.resolve(null),
     ])
@@ -174,10 +179,14 @@ async function buscarFrequencia(
   periodo: { data_inicio: string; data_fim: string } | null,
   anoLetivo: string,
   escolaId: string,
+  anoDataInicio: string | null,
+  anoDataFim: string | null,
 ) {
-  // Faixa de datas: periodo (se informado) ou ano letivo da turma.
-  const dataInicio = periodo?.data_inicio ?? `${anoLetivo}-01-01`
-  const dataFim = periodo?.data_fim ?? `${anoLetivo}-12-31`
+  // Faixa de datas: periodo (prioridade) > datas reais cadastradas em
+  // anos_letivos > fallback Jan 1 - Dez 31. Garante alinhamento com a
+  // mesma janela usada pelo endpoint de Cobertura do diario.
+  const dataInicio = periodo?.data_inicio ?? anoDataInicio ?? `${anoLetivo}-01-01`
+  const dataFim = periodo?.data_fim ?? anoDataFim ?? `${anoLetivo}-12-31`
 
   // 1) Resolve ano_letivo_id (UUID) — necessario para contar_dias_letivos.
   const anoRes = await pool.query(
