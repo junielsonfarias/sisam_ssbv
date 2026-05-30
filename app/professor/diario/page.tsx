@@ -179,9 +179,23 @@ function DiarioDeClasse() {
     setMesAtual(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
 
-  const getRegistroDia = (dia: number) => {
+  // Normaliza qualquer formato de data (Date, ISO com TZ, ISO sem TZ) para
+  // YYYY-MM-DD. Evita falso negativo quando backend muda o shape do campo
+  // (lesson pre-Pt.6: substring assumia ISO puro sem timezone).
+  const dataParaISO = (data: string | Date): string => {
+    if (data instanceof Date) {
+      const y = data.getFullYear()
+      const m = String(data.getMonth() + 1).padStart(2, '0')
+      const d = String(data.getDate()).padStart(2, '0')
+      return `${y}-${m}-${d}`
+    }
+    // String: pode vir 'YYYY-MM-DD', 'YYYY-MM-DDTHH:mm:ss', ou 'YYYY-MM-DDTHH:mm:ssZ'
+    return data.slice(0, 10)
+  }
+
+  const getRegistrosDia = (dia: number) => {
     const dataStr = `${mesAtual}-${String(dia).padStart(2, '0')}`
-    return registros.filter(r => r.data_aula.substring(0, 10) === dataStr)
+    return registros.filter(r => dataParaISO(r.data_aula) === dataStr)
   }
 
   const nomeMes = new Date(ano, mes - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
@@ -311,9 +325,14 @@ function DiarioDeClasse() {
                   <div key={`e-${i}`} className="h-20" />
                 ))}
                 {diasArray.map(dia => {
-                  const regs = getRegistroDia(dia)
+                  const regs = getRegistrosDia(dia)
                   const dataStr = `${mesAtual}-${String(dia).padStart(2, '0')}`
-                  const hoje = new Date().toISOString().substring(0, 10) === dataStr
+                  const hoje = dataParaISO(new Date()) === dataStr
+                  // Multiplos registros (professor polivalente com varias
+                  // disciplinas no mesmo dia): clica abre o primeiro, mas
+                  // o card mostra contador + chips de disciplina para
+                  // sinalizar que ha mais (antes mostrava so regs[0] e
+                  // os outros ficavam invisiveis).
                   return (
                     <button
                       key={dia}
@@ -321,14 +340,33 @@ function DiarioDeClasse() {
                       className={`h-20 p-1 rounded-lg border text-left transition-colors hover:border-emerald-400 ${
                         hoje ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700'
                       } ${regs.length > 0 ? 'bg-emerald-50 dark:bg-emerald-900/30' : ''}`}
+                      title={regs.length > 1 ? `${regs.length} registros — clique para abrir o primeiro` : undefined}
                     >
-                      <span className={`text-xs font-medium ${hoje ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                        {dia}
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-medium ${hoje ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                          {dia}
+                        </span>
+                        {regs.length > 1 && (
+                          <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded-full leading-none">
+                            {regs.length}
+                          </span>
+                        )}
+                      </div>
                       {regs.length > 0 && (
-                        <p className="text-[10px] text-gray-600 dark:text-gray-400 line-clamp-2 mt-0.5">
-                          {regs[0].conteudo.substring(0, 50)}
-                        </p>
+                        <>
+                          <p className="text-[10px] text-gray-600 dark:text-gray-400 line-clamp-1 mt-0.5">
+                            {regs[0].conteudo.substring(0, 50)}
+                          </p>
+                          {regs.length > 1 && (
+                            <div className="flex flex-wrap gap-0.5 mt-0.5">
+                              {regs.slice(0, 3).map(r => (
+                                <span key={r.id} className="text-[8px] px-1 py-0.5 bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200 rounded">
+                                  {r.disciplina_nome?.slice(0, 3) ?? '—'}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </>
                       )}
                     </button>
                   )

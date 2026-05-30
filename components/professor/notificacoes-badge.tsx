@@ -119,7 +119,7 @@ export function NotificacoesBadge() {
       {/* Botao do sino */}
       <button
         onClick={() => setAberto(!aberto)}
-        className="relative p-1.5 sm:p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200"
+        className="relative p-1.5 sm:p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200"
         aria-label={`Notificacoes${naoLidas > 0 ? ` (${naoLidas} nao lidas)` : ''}`}
         title="Notificacoes"
       >
@@ -143,7 +143,7 @@ export function NotificacoesBadge() {
               {naoLidas > 0 && (
                 <button
                   onClick={marcarTodasComoLidas}
-                  className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
+                  className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors"
                   title="Marcar todas como lidas"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
@@ -177,7 +177,7 @@ export function NotificacoesBadge() {
                     className={`flex gap-3 px-4 py-3 border-l-4 ${corBorda} border-b border-gray-100 dark:border-slate-700/50 cursor-pointer transition-colors
                       ${n.lida
                         ? 'bg-white dark:bg-slate-800 opacity-70'
-                        : 'bg-indigo-50/50 dark:bg-indigo-900/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
+                        : 'bg-emerald-50/50 dark:bg-emerald-900/10 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
                       }`}
                     onClick={() => !n.lida && marcarComoLida(n.id)}
                     role="button"
@@ -185,7 +185,7 @@ export function NotificacoesBadge() {
                     onKeyDown={(e) => e.key === 'Enter' && !n.lida && marcarComoLida(n.id)}
                   >
                     <div className="flex-shrink-0 mt-0.5">
-                      <Icone className={`w-4 h-4 ${n.lida ? 'text-gray-400 dark:text-gray-500' : 'text-indigo-600 dark:text-indigo-400'}`} />
+                      <Icone className={`w-4 h-4 ${n.lida ? 'text-gray-400 dark:text-gray-500' : 'text-emerald-600 dark:text-emerald-400'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm leading-tight ${n.lida ? 'text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-white font-medium'}`}>
@@ -207,7 +207,7 @@ export function NotificacoesBadge() {
                     </div>
                     {!n.lida && (
                       <div className="flex-shrink-0 mt-1">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       </div>
                     )}
                   </div>
