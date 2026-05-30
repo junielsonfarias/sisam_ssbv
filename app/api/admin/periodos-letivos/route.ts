@@ -8,6 +8,7 @@ import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams, createWhereBuilder, addCondition, buildWhereString } from '@/lib/api-helpers'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
+import { sincronizarSemestres } from '@/lib/services/periodos-letivos.service'
 
 const log = createLogger('AdminPeriodosLetivos')
 
@@ -50,6 +51,14 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       [nome, tipo, numero, ano_letivo, data_inicio || null, data_fim || null, ativo]
     )
 
+    // Auto-sincroniza os 2 semestres derivados quando o admin altera
+    // qualquer bimestre. Nao bloqueia em caso de erro (apenas loga).
+    if (tipo === 'bimestre') {
+      sincronizarSemestres(ano_letivo).catch(err =>
+        log.error('Auto-sync semestres falhou', err, { ano_letivo })
+      )
+    }
+
     await cacheDelPattern('periodos:*')
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: unknown) {
@@ -81,6 +90,12 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Período não encontrado' }, { status: 404 })
+    }
+
+    if (tipo === 'bimestre') {
+      sincronizarSemestres(ano_letivo).catch(err =>
+        log.error('Auto-sync semestres falhou', err, { ano_letivo })
+      )
     }
 
     await cacheDelPattern('periodos:*')
