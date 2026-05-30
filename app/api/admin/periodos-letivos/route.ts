@@ -18,7 +18,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola', 'prof
   const searchParams = request.nextUrl.searchParams
   const { ano_letivo, tipo } = parseSearchParams(searchParams, ['ano_letivo', 'tipo'])
 
-  const redisKey = cacheKey('periodos', ano_letivo || 'all', tipo || 'all')
+  // v2: bumpada apos remover criado_em/atualizado_em do SELECT (30/05) —
+  // garante invalidacao do cache antigo sem precisar de DEL pattern.
+  const redisKey = cacheKey('periodos', 'v2', ano_letivo || 'all', tipo || 'all')
   const data = await withRedisCache(redisKey, CACHE_TTL.REFERENCIA, async () => {
     const where = createWhereBuilder()
     addCondition(where, 'ano_letivo', ano_letivo)
@@ -27,7 +29,10 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola', 'prof
     const whereClause = buildWhereString(where)
 
     const result = await pool.query(
-      `SELECT id, nome, tipo, numero, ano_letivo, data_inicio, data_fim, ativo, dias_letivos, criado_em, atualizado_em FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
+      // criado_em/atualizado_em removidos do SELECT: nenhum consumidor os
+      // usa e o endpoint e lido por administrador/tecnico/polo/escola/professor.
+      // Manter principio do menor privilegio (verificado por grep em 30/05).
+      `SELECT id, nome, tipo, numero, ano_letivo, data_inicio, data_fim, ativo, dias_letivos FROM periodos_letivos ${whereClause} ORDER BY ano_letivo DESC, numero`,
       where.params
     )
 
