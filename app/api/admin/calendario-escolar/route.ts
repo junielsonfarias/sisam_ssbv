@@ -18,11 +18,13 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     [anoLetivo]
   )
 
-  // Buscar eventos do ano (todos, incluindo privados, para admin)
+  // Buscar eventos do ano (todos, incluindo privados, para admin).
+  // Tabela `eventos` nao tem coluna `ativo` — filtro removido para nao
+  // gerar erro 500 (validado via information_schema).
   const eventos = await pool.query(
     `SELECT id, titulo, descricao, tipo, data_inicio, data_fim, local, publico
      FROM eventos
-     WHERE EXTRACT(YEAR FROM data_inicio) = $1 AND ativo = true
+     WHERE EXTRACT(YEAR FROM data_inicio) = $1
      ORDER BY data_inicio`,
     [parseInt(anoLetivo)]
   )
