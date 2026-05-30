@@ -198,12 +198,12 @@ function DiarioDeClasse() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-xl p-6 text-white">
         <div className="flex items-center gap-3">
           <BookOpen className="h-8 w-8" />
           <div>
             <h1 className="text-2xl font-bold">Diário de Classe</h1>
-            <p className="text-teal-100">Registro diário de conteúdos e atividades</p>
+            <p className="text-emerald-100">Registro diário de conteúdos e atividades</p>
           </div>
         </div>
       </div>
@@ -241,13 +241,13 @@ function DiarioDeClasse() {
           <div className="flex gap-2">
             <button
               onClick={() => setVisao('calendario')}
-              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${visao === 'calendario' ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
+              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${visao === 'calendario' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
             >
               <Calendar className="h-4 w-4" /> Calendário
             </button>
             <button
               onClick={() => setVisao('lista')}
-              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${visao === 'lista' ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
+              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${visao === 'lista' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
             >
               <List className="h-4 w-4" /> Lista
             </button>
@@ -295,7 +295,7 @@ function DiarioDeClasse() {
 
           {carregandoRegistros ? (
             <div className="h-64 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
             </div>
           ) : (
             <>
@@ -318,11 +318,11 @@ function DiarioDeClasse() {
                     <button
                       key={dia}
                       onClick={() => regs.length > 0 ? abrirModal(dataStr, regs[0]) : abrirModal(dataStr)}
-                      className={`h-20 p-1 rounded-lg border text-left transition-colors hover:border-teal-400 ${
-                        hoje ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' : 'border-gray-200 dark:border-gray-700'
-                      } ${regs.length > 0 ? 'bg-teal-50 dark:bg-teal-900/30' : ''}`}
+                      className={`h-20 p-1 rounded-lg border text-left transition-colors hover:border-emerald-400 ${
+                        hoje ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700'
+                      } ${regs.length > 0 ? 'bg-emerald-50 dark:bg-emerald-900/30' : ''}`}
                     >
-                      <span className={`text-xs font-medium ${hoje ? 'text-teal-700 dark:text-teal-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                      <span className={`text-xs font-medium ${hoje ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300'}`}>
                         {dia}
                       </span>
                       {regs.length > 0 && (
@@ -340,7 +340,7 @@ function DiarioDeClasse() {
           <div className="mt-4 flex justify-end">
             <button
               onClick={() => abrirModal()}
-              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               <Plus className="h-4 w-4" /> Novo Registro
             </button>
@@ -361,14 +361,14 @@ function DiarioDeClasse() {
             </div>
             <button
               onClick={() => abrirModal()}
-              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               <Plus className="h-4 w-4" /> Novo
             </button>
           </div>
           {carregandoRegistros ? (
             <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
             </div>
           ) : registros.length === 0 ? (
             <div className="p-8 text-center text-gray-500 dark:text-gray-400">Nenhum registro neste mês</div>
@@ -532,7 +532,7 @@ function DiarioDeClasse() {
               <button
                 onClick={salvar}
                 disabled={salvando}
-                className="flex items-center gap-1 px-4 py-2 text-sm bg-teal-600 hover:bg-teal-700 text-white rounded-lg disabled:opacity-50"
+                className="flex items-center gap-1 px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50"
               >
                 <Save className="h-4 w-4" /> {salvando ? 'Salvando...' : 'Salvar'}
               </button>

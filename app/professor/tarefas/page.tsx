@@ -85,14 +85,14 @@ export default function TarefasProfessor() {
   return (
     <ProtectedRoute tiposPermitidos={['professor']}>
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-        <div className="bg-blue-600 text-white px-4 sm:px-6 py-5">
+        <div className="bg-emerald-600 text-white px-4 sm:px-6 py-5">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={() => router.push('/professor/dashboard')} className="p-1"><ArrowLeft className="w-5 h-5" /></button>
               <ClipboardList className="w-6 h-6" />
               <div>
                 <h1 className="text-lg font-bold">Tarefas</h1>
-                <p className="text-blue-200 text-xs">{tarefas.length} tarefa(s)</p>
+                <p className="text-emerald-100 text-xs">{tarefas.length} tarefa(s)</p>
               </div>
             </div>
             <button onClick={() => setModal(true)}
@@ -107,7 +107,7 @@ export default function TarefasProfessor() {
             <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
               <ClipboardList className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p className="text-gray-500">Nenhuma tarefa criada</p>
-              <button onClick={() => setModal(true)} className="mt-3 text-sm font-medium text-blue-600">+ Criar tarefa</button>
+              <button onClick={() => setModal(true)} className="mt-3 text-sm font-medium text-emerald-600">+ Criar tarefa</button>
             </div>
           ) : (
             tarefas.map(t => {
@@ -126,7 +126,7 @@ export default function TarefasProfessor() {
                       {t.disciplina && <p className="text-xs text-gray-400 mt-1">Disciplina: {t.disciplina}</p>}
                     </div>
                     <div className="shrink-0 text-right">
-                      <div className={`flex items-center gap-1 text-xs font-medium ${vencida ? 'text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                      <div className={`flex items-center gap-1 text-xs font-medium ${vencida ? 'text-gray-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         <Calendar className="w-3.5 h-3.5" />
                         {formatData(t.data_entrega)}
                       </div>
@@ -190,7 +190,7 @@ export default function TarefasProfessor() {
               </div>
               <div className="px-5 py-4 border-t border-gray-200 dark:border-slate-700 flex gap-2">
                 <button onClick={() => setModal(false)} className="flex-1 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-xl">Cancelar</button>
-                <button onClick={salvar} disabled={salvando} className="flex-1 min-h-[44px] text-sm font-bold text-white bg-blue-600 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+                <button onClick={salvar} disabled={salvando} className="flex-1 min-h-[44px] text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
                   {salvando ? <LoadingSpinner /> : <Plus className="w-4 h-4" />} Criar
                 </button>
               </div>

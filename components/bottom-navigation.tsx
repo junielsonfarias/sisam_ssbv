@@ -9,15 +9,32 @@ interface NavItem {
   href: string
   icon: LucideIcon
   badge?: number
+  /**
+   * Quando definido, o item dispara este callback em vez de navegar.
+   * Use para abrir drawers/sheets (ex: item "Mais" com atalhos extras).
+   * href continua obrigatorio para `pathname.startsWith` de active state —
+   * passe '#mais' ou caminho inexistente quando for so callback.
+   */
+  onClick?: () => void
 }
 
 interface BottomNavigationProps {
   items: NavItem[]
+  /** Cor do estado ativo. Default 'indigo' (admin). Portais com paleta
+   *  propria (ex: professor=emerald) sobrescrevem. Classes Tailwind sao
+   *  literais para o purge enxergar. */
+  activeColor?: 'indigo' | 'emerald'
 }
 
-export default function BottomNavigation({ items }: BottomNavigationProps) {
+const ACTIVE_COLORS = {
+  indigo:  { text: 'text-indigo-600 dark:text-indigo-400',   bar: 'bg-indigo-600 dark:bg-indigo-400' },
+  emerald: { text: 'text-emerald-600 dark:text-emerald-400', bar: 'bg-emerald-600 dark:bg-emerald-400' },
+} as const
+
+export default function BottomNavigation({ items, activeColor = 'indigo' }: BottomNavigationProps) {
   const pathname = usePathname()
   const visibleItems = items.slice(0, 5)
+  const cores = ACTIVE_COLORS[activeColor]
 
   return (
     <>
@@ -32,19 +49,16 @@ export default function BottomNavigation({ items }: BottomNavigationProps) {
       >
         <div className="flex items-stretch justify-around h-16">
           {visibleItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-0.5 px-1
-                           transition-all active:scale-95 active:bg-gray-100 dark:active:bg-slate-800
-                           ${isActive
-                             ? 'text-indigo-600 dark:text-indigo-400'
-                             : 'text-gray-400 dark:text-gray-500'
-                           }`}
-                aria-current={isActive ? 'page' : undefined}
-              >
+            // Items com onClick nao tem rota propria — nunca ficam ativos por path.
+            const isActive = !item.onClick && (pathname === item.href || pathname.startsWith(item.href + '/'))
+            const className = `flex flex-col items-center justify-center flex-1 min-w-0 gap-0.5 px-1
+                              transition-all active:scale-95 active:bg-gray-100 dark:active:bg-slate-800
+                              ${isActive
+                                ? cores.text
+                                : 'text-gray-400 dark:text-gray-500'
+                              }`
+            const content = (
+              <>
                 <div className="relative">
                   <item.icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
                   {item.badge != null && item.badge > 0 && (
@@ -59,8 +73,28 @@ export default function BottomNavigation({ items }: BottomNavigationProps) {
                   {item.label}
                 </span>
                 {isActive && (
-                  <div className="absolute top-0 w-10 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                  <div className={`absolute top-0 w-10 h-0.5 ${cores.bar} rounded-full`} />
                 )}
+              </>
+            )
+
+            return item.onClick ? (
+              <button
+                key={item.label}
+                onClick={item.onClick}
+                className={className}
+                type="button"
+              >
+                {content}
+              </button>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={className}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {content}
               </Link>
             )
           })}
