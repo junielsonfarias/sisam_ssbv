@@ -141,7 +141,14 @@ export function generateToken(payload: TokenPayload): string {
       throw new Error('Payload do token incompleto. userId, email e tipoUsuario são obrigatórios.')
     }
 
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+    // V8 (auditoria 31/05/2026): reduzido de 24h para 8h. Cobre um turno
+    // de trabalho típico (manhã ou tarde) com buffer. Diminui em 3x a
+    // janela de exposição caso o token seja roubado. Refresh endpoint
+    // (/api/auth/refresh) com grace period segue funcionando para
+    // permitir renovação suave.
+    // PENDÊNCIA: implementar refresh-token rotativo + access-token de
+    // 15min em sessão dedicada (V8 ideal).
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
   } catch (error: unknown) {
     log.error('Erro ao gerar token JWT', error)
     throw error

@@ -32,13 +32,38 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   const avaliacaoIdParam = formData.get('avaliacao_id') as string | null
   const avaliacaoId = await resolverAvaliacaoId(avaliacaoIdParam, anoLetivoParam)
 
+  // V7 (auditoria 31/05): parsing protegido — arquivo corrompido ou xlsx
+  // malformado pode lançar exceção dentro do reader. Sem try/catch, a
+  // exceção sobe e o handler retorna 500 sem mensagem amigável.
   const arrayBuffer = await arquivo.arrayBuffer()
-  const dados = await lerPlanilha(arrayBuffer)
+  let dados: unknown[]
+  try {
+    dados = await lerPlanilha(arrayBuffer)
+  } catch (err: unknown) {
+    log.error('Falha ao ler planilha', err)
+    return NextResponse.json(
+      { mensagem: 'Não foi possível ler a planilha. Verifique se o arquivo está íntegro e em formato xlsx/xls/csv.' },
+      { status: 400 }
+    )
+  }
 
   if (!dados || dados.length === 0) {
     return NextResponse.json(
       { mensagem: 'Arquivo vazio ou inválido' },
       { status: 400 }
+    )
+  }
+
+  // V7: limite operacional de linhas por importação. Acima disso, a SEMED
+  // deve fragmentar o arquivo. Protege contra OOM no processamento.
+  const MAX_LINHAS_IMPORTACAO = 50_000
+  if (dados.length > MAX_LINHAS_IMPORTACAO) {
+    return NextResponse.json(
+      {
+        mensagem: `Planilha excede o limite de ${MAX_LINHAS_IMPORTACAO.toLocaleString('pt-BR')} linhas. Divida o arquivo e tente novamente.`,
+        total_linhas: dados.length,
+      },
+      { status: 413 }
     )
   }
 

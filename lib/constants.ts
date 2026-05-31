@@ -82,10 +82,10 @@ export const CACHE_TTL = {
  * Configurações de sessão/autenticação
  */
 export const SESSAO = {
-  /** Tempo de expiração do cookie em segundos (24 horas) */
-  COOKIE_MAX_AGE: 60 * 60 * 24,
-  /** Tempo de expiração do token JWT em horas */
-  TOKEN_EXPIRACAO_HORAS: 24,
+  /** Tempo de expiração do cookie em segundos (8 horas — auditoria 31/05/2026 V8) */
+  COOKIE_MAX_AGE: 60 * 60 * 8,
+  /** Tempo de expiração do token JWT em horas (8h cobre um turno + buffer) */
+  TOKEN_EXPIRACAO_HORAS: 8,
   /** Nome do cookie de autenticação */
   COOKIE_NAME: 'educatec_auth'
 } as const

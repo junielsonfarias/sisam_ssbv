@@ -86,15 +86,15 @@ describe('validarArquivoUpload', () => {
   // TAMANHO
   // --------------------------------------------------------------------------
 
-  it('rejeita arquivo maior que 50MB', () => {
-    const file = fakeFile({ size: 51 * MB })
+  it('rejeita arquivo maior que 10MB (limite reduzido em 31/05/2026 — V7 auditoria)', () => {
+    const file = fakeFile({ size: 11 * MB })
     const erro = validarArquivoUpload(file)
     expect(erro).not.toBeNull()
     expect(erro).toContain('muito grande')
   })
 
-  it('aceita arquivo no limite exato de 50MB', () => {
-    const file = fakeFile({ size: 50 * MB })
+  it('aceita arquivo no limite exato de 10MB', () => {
+    const file = fakeFile({ size: 10 * MB })
     expect(validarArquivoUpload(file)).toBeNull()
   })
 
@@ -142,6 +142,6 @@ describe('validarArquivoUpload', () => {
     const file = fakeFile({ size: 60 * MB })
     const erro = validarArquivoUpload(file)
     expect(erro).toContain('MB')
-    expect(erro).toContain('50')
+    expect(erro).toContain('10')
   })
 })

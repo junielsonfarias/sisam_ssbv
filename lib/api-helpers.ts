@@ -361,7 +361,10 @@ const UPLOAD_MIMES_EXCEL = [
   'application/csv',
 ]
 
-const MAX_UPLOAD_SIZE = 50 * 1024 * 1024 // 50MB
+// V7 (auditoria 31/05): reduzido de 50MB para 10MB. Um xlsx de 10MB cabe
+// ~100k linhas com 10 colunas — 2x o limite operacional de 50k linhas que
+// validamos por importação. Defesa contra upload de lixo (DoS de memória).
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024 // 10MB
 
 /**
  * Valida arquivo de upload (MIME type e tamanho).
