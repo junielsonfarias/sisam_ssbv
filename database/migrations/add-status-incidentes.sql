@@ -3,6 +3,8 @@
 -- Registro manual de incidentes operacionais e manutencoes planejadas.
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS status_incidentes (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tipo            VARCHAR(20) NOT NULL CHECK (tipo IN (
@@ -45,3 +47,5 @@ CREATE INDEX IF NOT EXISTS idx_status_atual_inc ON status_atualizacoes(incidente
 
 COMMENT ON TABLE status_incidentes IS
   'Incidentes operacionais e manutencoes para a Status Page publica.';
+
+COMMIT;

@@ -4,6 +4,8 @@
 -- Objetivo: armazenar tokens temporários para fluxo "esqueci minha senha"
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS tokens_recuperacao_senha (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id       UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -37,3 +39,5 @@ COMMENT ON TABLE tokens_recuperacao_senha IS
 
 COMMENT ON COLUMN tokens_recuperacao_senha.token_hash IS
   'SHA-256 do token enviado por e-mail. Comparado com hash do token recebido para validar.';
+
+COMMIT;

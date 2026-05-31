@@ -4,6 +4,8 @@
 
 -- Remover duplicatas existentes antes de criar a constraint
 -- Mantém apenas o registro mais recente para cada combinação (nome, escola_id, turma_id, ano_letivo)
+BEGIN;
+
 DELETE FROM alunos a1
 USING alunos a2
 WHERE a1.id < a2.id
@@ -29,3 +31,4 @@ WHERE ativo = true;
 COMMENT ON INDEX idx_alunos_unique_nome_escola_turma_ano IS 
 'Índice único para prevenir alunos duplicados com mesmo nome, escola, turma e ano letivo';
 
+COMMIT;

@@ -13,6 +13,8 @@
 -- 1. TABELA: CONFIGURACAO_SERIES
 -- Define a estrutura de avaliação para cada série
 -- =====================================================
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS configuracao_series (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     serie VARCHAR(50) NOT NULL UNIQUE,
@@ -457,3 +459,5 @@ ORDER BY cs.serie;
 -- =====================================================
 -- FIM DA MIGRATION
 -- =====================================================
+
+COMMIT;

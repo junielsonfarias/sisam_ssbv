@@ -5,6 +5,8 @@
 -- ============================================================================
 
 -- Configuração de monitoramento (alertas por email/webhook)
+BEGIN;
+
 INSERT INTO site_config (secao, conteudo)
 VALUES (
   'monitoramento',
@@ -49,3 +51,5 @@ CREATE TABLE IF NOT EXISTS logs_backup (
 
 CREATE INDEX IF NOT EXISTS idx_logs_backup_iniciado_em ON logs_backup (iniciado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_logs_backup_status ON logs_backup (status);
+
+COMMIT;

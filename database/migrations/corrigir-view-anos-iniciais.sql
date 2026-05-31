@@ -15,6 +15,8 @@
 -- ============================================
 -- ETAPA 1: Recriar VIEW unificada com lógica por série
 -- ============================================
+BEGIN;
+
 CREATE OR REPLACE VIEW resultados_consolidados_unificada AS
 SELECT
   COALESCE(v2.aluno_id, rc.aluno_id) as aluno_id,
@@ -96,3 +98,5 @@ FULL OUTER JOIN resultados_consolidados rc
 -- ============================================
 COMMENT ON VIEW resultados_consolidados_unificada IS
   'VIEW unificada que prioriza dados da tabela resultados_consolidados para Anos Iniciais (2º, 3º, 5º) e dados da VIEW resultados_consolidados_v2 para Anos Finais (6º-9º)';
+
+COMMIT;

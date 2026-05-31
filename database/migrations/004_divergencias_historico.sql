@@ -3,6 +3,8 @@
 -- Descrição: Cria tabela para armazenar histórico de divergências corrigidas (retenção 30 dias)
 
 -- Tabela de Histórico de Divergências
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS divergencias_historico (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tipo VARCHAR(50) NOT NULL,
@@ -59,3 +61,5 @@ $$ LANGUAGE plpgsql;
 
 -- Comentário da função
 COMMENT ON FUNCTION limpar_historico_divergencias() IS 'Remove registros de divergências com mais de 30 dias. Retorna quantidade de registros removidos.';
+
+COMMIT;

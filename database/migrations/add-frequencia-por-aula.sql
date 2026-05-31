@@ -18,6 +18,8 @@
 -- Grade horária semanal de cada turma
 -- Define qual disciplina ocorre em cada aula de cada dia
 -- ============================================
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS horarios_aula (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     turma_id UUID NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
@@ -67,3 +69,5 @@ BEGIN
     RAISE NOTICE '=== MIGRACAO FREQUENCIA POR HORA-AULA CONCLUIDA ===';
     RAISE NOTICE 'Tabelas criadas: horarios_aula, frequencia_hora_aula';
 END $$;
+
+COMMIT;

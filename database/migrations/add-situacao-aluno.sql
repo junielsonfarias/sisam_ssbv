@@ -17,6 +17,8 @@
 -- ETAPA 1: Adicionar coluna situacao na tabela alunos
 -- ============================================
 
+BEGIN;
+
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS situacao VARCHAR(20) DEFAULT 'cursando'
   CHECK (situacao IN ('cursando', 'transferido', 'abandono', 'aprovado', 'reprovado', 'remanejado'));
 
@@ -63,3 +65,5 @@ BEGIN
     RAISE NOTICE 'Alunos sem situacao: % (deve ser 0)', total_sem_situacao;
     RAISE NOTICE 'Registros no historico: %', total_historico;
 END $$;
+
+COMMIT;

@@ -9,6 +9,8 @@
 -- ----------------------------------------------------------------------------
 -- COMPETENCIAS GERAIS (10 - aplicaveis a todas as etapas)
 -- ----------------------------------------------------------------------------
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS bncc_competencias_gerais (
   id          SMALLINT PRIMARY KEY,  -- 1 a 10
   titulo      VARCHAR(255) NOT NULL,
@@ -116,3 +118,5 @@ COMMENT ON TABLE bncc_habilidades IS
 
 COMMENT ON COLUMN bncc_habilidades.codigo IS
   'Codigo oficial da habilidade. Ex: EF01LP01 (1o ano LP, habilidade 1), EI02EO01 (creche, Eu/Outro/Nos, hab 1)';
+
+COMMIT;

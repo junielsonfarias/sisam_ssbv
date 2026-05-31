@@ -2,6 +2,8 @@
 -- Data: 2025-01-02
 -- Objetivo: Adicionar índices compostos e de texto para melhorar performance das consultas
 
+BEGIN;
+
 -- ============================================
 -- 1. ÍNDICES COMPOSTOS PARA ALUNOS
 -- ============================================
@@ -148,3 +150,5 @@ COMMENT ON INDEX idx_alunos_nome_trgm IS
 COMMENT ON INDEX idx_resultados_consolidados_escola_ano IS 
 'Índice composto para otimizar buscas de resultados consolidados por escola e ano';
 
+
+COMMIT;

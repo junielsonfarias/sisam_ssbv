@@ -22,6 +22,8 @@
 -- o mesmo schema.
 -- ============================================
 
+BEGIN;
+
 ALTER TABLE tarefas_turma
   ADD COLUMN IF NOT EXISTS disciplina_id UUID REFERENCES disciplinas_escolares(id) ON DELETE SET NULL;
 
@@ -33,3 +35,5 @@ DO $$
 BEGIN
     RAISE NOTICE '=== MIGRACAO disciplina_id EM tarefas_turma CONCLUIDA ===';
 END $$;
+
+COMMIT;

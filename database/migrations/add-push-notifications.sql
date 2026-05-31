@@ -17,6 +17,8 @@
 -- TABELA: dispositivos_push
 -- Tokens FCM dos dispositivos dos usuarios
 -- ============================================
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS dispositivos_push (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -89,3 +91,5 @@ BEGIN
     RAISE NOTICE 'Tabela criada: dispositivos_push';
     RAISE NOTICE 'Tipos de notificacao atualizados';
 END $$;
+
+COMMIT;

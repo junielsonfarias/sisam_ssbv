@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- HERO: Atualizar título, botões e descrição
+BEGIN;
+
 UPDATE site_config SET conteudo = jsonb_build_object(
   'titulo', 'Transformando vidas pela educação',
   'subtitulo', 'SEMED - São Sebastião da Boa Vista',
@@ -22,3 +24,5 @@ UPDATE site_config SET conteudo = jsonb_build_object(
   'valores', 'Compromisso com a aprendizagem, Transparência na gestão, Valorização dos profissionais da educação, Inclusão e equidade, Inovação pedagógica'
 ), atualizado_em = NOW()
 WHERE secao = 'about';
+
+COMMIT;

@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- Catalogo de titulos PNLD
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS pnld_titulos (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   isbn            VARCHAR(20),
@@ -78,3 +80,5 @@ CREATE INDEX IF NOT EXISTS idx_pnld_dist_ano ON pnld_distribuicao_aluno(ano_leti
 COMMENT ON TABLE pnld_titulos IS 'Catalogo de obras do PNLD por ano do programa.';
 COMMENT ON TABLE pnld_estoque_escola IS 'Estoque de cada titulo PNLD por escola e ano letivo.';
 COMMENT ON TABLE pnld_distribuicao_aluno IS 'Distribuicao individual: qual aluno recebeu qual livro especifico.';
+
+COMMIT;

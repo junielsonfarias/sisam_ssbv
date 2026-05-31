@@ -12,6 +12,8 @@
 -- - 1 nova tabela (qr_presenca)
 -- ============================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS qr_presenca (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     turma_id UUID NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
@@ -34,3 +36,5 @@ BEGIN
     RAISE NOTICE '=== MIGRACAO QR PRESENCA CONCLUIDA ===';
     RAISE NOTICE 'Tabela criada: qr_presenca';
 END $$;
+
+COMMIT;

@@ -18,6 +18,8 @@
 -- ETAPA 1: Tabela de Disciplinas Escolares
 -- ============================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS disciplinas_escolares (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome VARCHAR(255) NOT NULL,
@@ -159,3 +161,5 @@ BEGIN
     RAISE NOTICE 'Disciplinas cadastradas: %', total_disciplinas;
     RAISE NOTICE 'Periodos letivos cadastrados: %', total_periodos;
 END $$;
+
+COMMIT;

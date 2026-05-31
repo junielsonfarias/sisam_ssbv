@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- Salas de Recursos Multifuncionais
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS aee_salas_recursos (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   escola_id       UUID NOT NULL REFERENCES escolas(id) ON DELETE CASCADE,
@@ -103,3 +105,5 @@ COMMENT ON TABLE aee_planos_individuais IS
 
 COMMENT ON TABLE aee_atendimentos IS
   'Registros das sessoes individuais de AEE (frequencia + atividades).';
+
+COMMIT;

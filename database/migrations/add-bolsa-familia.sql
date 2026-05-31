@@ -5,6 +5,8 @@
 -- ============================================================================
 
 -- Marcador de beneficiario no aluno
+BEGIN;
+
 ALTER TABLE alunos
   ADD COLUMN IF NOT EXISTS beneficiario_bolsa_familia BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS nis VARCHAR(11),  -- Numero de Identificacao Social
@@ -60,3 +62,5 @@ COMMENT ON TABLE bolsa_familia_mapas IS
 
 COMMENT ON COLUMN alunos.beneficiario_bolsa_familia IS
   'Indica se o aluno pertence a familia beneficiaria do Bolsa Familia (BPC + Auxilio Brasil + PBF).';
+
+COMMIT;

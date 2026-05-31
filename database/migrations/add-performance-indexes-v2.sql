@@ -5,6 +5,8 @@
 
 -- 1. Expression index para número da série (evita full table scan com REGEXP_REPLACE)
 -- Usado em: comparativos, estatisticas-serie, turmas, escolas com filtro de série
+BEGIN;
+
 CREATE INDEX IF NOT EXISTS idx_alunos_serie_numero
   ON alunos (REGEXP_REPLACE(serie, '[^0-9]', '', 'g'))
   WHERE ativo = true AND serie IS NOT NULL;
@@ -51,3 +53,5 @@ CREATE INDEX IF NOT EXISTS idx_alunos_cpf_nascimento
 -- 6. Índice para notas escolares por aluno+disciplina+periodo (ON CONFLICT key)
 CREATE INDEX IF NOT EXISTS idx_notas_esc_aluno_disc_periodo
   ON notas_escolares (aluno_id, disciplina_id, periodo_id);
+
+COMMIT;

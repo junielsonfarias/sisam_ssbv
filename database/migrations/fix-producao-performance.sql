@@ -7,6 +7,8 @@
 -- ============================================
 
 -- Index para queries de estatísticas por dispositivo
+BEGIN;
+
 CREATE INDEX IF NOT EXISTS idx_freq_diaria_dispositivo ON frequencia_diaria(dispositivo_id);
 
 -- Index composto para painel-turma (turma + data)
@@ -20,3 +22,5 @@ DO $$
 BEGIN
     RAISE NOTICE '=== FIX PRODUCAO: 3 indexes adicionados ===';
 END $$;
+
+COMMIT;

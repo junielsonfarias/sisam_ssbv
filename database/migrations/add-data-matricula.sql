@@ -14,6 +14,8 @@
 -- ============================================
 
 -- ETAPA 1: Adicionar coluna
+BEGIN;
+
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS data_matricula DATE;
 
 -- ETAPA 2: Backfill — usar criado_em como data de matrícula para alunos existentes
@@ -31,3 +33,5 @@ BEGIN
     RAISE NOTICE '=== MIGRACAO DATA MATRICULA CONCLUIDA ===';
     RAISE NOTICE 'Alunos sem data_matricula: % (deve ser 0)', sem_data;
 END $$;
+
+COMMIT;

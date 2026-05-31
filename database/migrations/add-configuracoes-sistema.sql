@@ -7,6 +7,8 @@
 -- Padrao: chave string, valor JSONB (aceita boolean, number, string, object).
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS configuracoes_sistema (
   chave           VARCHAR(100) PRIMARY KEY,
   valor           JSONB NOT NULL,
@@ -29,3 +31,5 @@ VALUES (
   'Quando true, exige 2FA no login para usuarios que ativaram. Quando false, 2FA e pulado globalmente (modo dev/manutencao).'
 )
 ON CONFLICT (chave) DO NOTHING;
+
+COMMIT;

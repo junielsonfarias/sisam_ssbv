@@ -25,6 +25,8 @@
 -- ETAPA 1: Criar tabela avaliacoes
 -- ============================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS avaliacoes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome VARCHAR(255) NOT NULL,
@@ -284,3 +286,5 @@ BEGIN
     RAISE NOTICE 'Resultados producao vinculados: %', total_rp;
     RAISE NOTICE 'Resultados provas vinculados: %', total_provas;
 END $$;
+
+COMMIT;

@@ -3,6 +3,8 @@
 -- Para anos iniciais e Educacao Infantil, onde nao se usa nota numerica.
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS avaliacoes_descritivas (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   aluno_id        UUID NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
@@ -40,3 +42,5 @@ COMMENT ON TABLE avaliacoes_descritivas IS
 
 COMMENT ON COLUMN avaliacoes_descritivas.conceito IS
   'Conceitos padronizados: PS/S/ED/I para anos iniciais; consolidado/em_processo/nao_observado para Ed. Infantil.';
+
+COMMIT;

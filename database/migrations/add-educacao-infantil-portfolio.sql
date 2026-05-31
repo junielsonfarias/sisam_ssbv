@@ -5,6 +5,8 @@
 -- ============================================================================
 
 -- Grupos etarios da Ed. Infantil (G1 a G6)
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS ed_infantil_grupos_etarios (
   id           VARCHAR(10) PRIMARY KEY,
   nome         VARCHAR(50) NOT NULL,
@@ -87,3 +89,5 @@ CREATE INDEX IF NOT EXISTS idx_einfrel_ano ON ed_infantil_relatorios(ano_letivo,
 
 COMMENT ON TABLE ed_infantil_relatorios IS
   'Relatorio descritivo semestral por campo de experiencia da BNCC para Ed. Infantil.';
+
+COMMIT;

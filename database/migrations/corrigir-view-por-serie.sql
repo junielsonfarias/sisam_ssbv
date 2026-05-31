@@ -17,6 +17,8 @@
 -- ETAPA 1: Recriar VIEW resultados_consolidados_v2
 -- com logica correta por serie
 -- ============================================
+BEGIN;
+
 CREATE OR REPLACE VIEW resultados_consolidados_v2 AS
 WITH questoes_serie AS (
   SELECT
@@ -313,3 +315,5 @@ COMMENT ON VIEW resultados_consolidados_v2 IS
 
 COMMENT ON VIEW resultados_consolidados_unificada IS
   'VIEW unificada que usa resultados_consolidados_v2 quando disponivel, ou resultados_consolidados como fallback. Prioriza dados calculados dinamicamente. Inclui nota_producao da tabela resultados_consolidados.';
+
+COMMIT;

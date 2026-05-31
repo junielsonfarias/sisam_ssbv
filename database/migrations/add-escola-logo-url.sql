@@ -7,6 +7,8 @@
 -- (ex: /uploads/escolas/abc.png) ou absoluta.
 -- ============================================================================
 
+BEGIN;
+
 ALTER TABLE escolas
   ADD COLUMN IF NOT EXISTS logo_url TEXT NULL;
 
@@ -26,3 +28,5 @@ BEGIN
       CHECK (logo_url IS NULL OR length(logo_url) <= 500);
   END IF;
 END $$;
+
+COMMIT;

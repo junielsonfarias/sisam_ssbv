@@ -4,6 +4,8 @@
 -- Base para validacao automatica de 200 dias letivos / 800h (LDB Art. 24).
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS calendario_eventos (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ano_letivo_id   UUID NOT NULL REFERENCES anos_letivos(id) ON DELETE CASCADE,
@@ -95,3 +97,5 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 COMMENT ON FUNCTION contar_dias_letivos IS
   'Conta dias letivos efetivos no periodo, considerando feriados/recessos do calendario e reposicoes. Exclui fim de semana (exceto sabado letivo explicito).';
+
+COMMIT;

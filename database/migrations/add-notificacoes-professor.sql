@@ -3,6 +3,8 @@
 -- Descrição: Expande os tipos de notificação para incluir tipos voltados ao professor
 
 -- Remover constraint antiga e adicionar com novos tipos
+BEGIN;
+
 ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_check;
 ALTER TABLE notificacoes ADD CONSTRAINT notificacoes_tipo_check
   CHECK (tipo IN (
@@ -15,3 +17,5 @@ ALTER TABLE notificacoes ADD CONSTRAINT notificacoes_tipo_check
 CREATE INDEX IF NOT EXISTS idx_notificacoes_professor
   ON notificacoes (destinatario_tipo, destinatario_id, lida, criado_em DESC)
   WHERE destinatario_tipo = 'professor';
+
+COMMIT;

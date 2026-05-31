@@ -5,6 +5,8 @@
 -- ============================================================================
 
 -- 1. Coluna modalidade em series_escolares (se nao existir)
+BEGIN;
+
 ALTER TABLE series_escolares
   ADD COLUMN IF NOT EXISTS modalidade VARCHAR(30) NOT NULL DEFAULT 'regular'
     CHECK (modalidade IN ('regular', 'eja_fundamental', 'ed_infantil_creche', 'ed_infantil_pre'));
@@ -65,3 +67,5 @@ CREATE INDEX IF NOT EXISTS idx_eja_cert_numero ON eja_certificacoes(numero_certi
 
 COMMENT ON TABLE eja_certificacoes IS
   'Certificados emitidos por etapa de EJA concluida (Fundamental I, II).';
+
+COMMIT;

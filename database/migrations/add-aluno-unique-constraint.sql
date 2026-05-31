@@ -4,6 +4,8 @@
 
 -- Primeiro, identificar e remover possíveis duplicatas mantendo o registro mais recente
 -- (Criar tabela temporária com IDs a manter)
+BEGIN;
+
 WITH duplicatas AS (
   SELECT id, nome, escola_id, ano_letivo,
          ROW_NUMBER() OVER (PARTITION BY UPPER(TRIM(nome)), escola_id, ano_letivo ORDER BY criado_em DESC) as rn
@@ -23,3 +25,5 @@ ON alunos (UPPER(TRIM(nome)), escola_id, ano_letivo);
 
 -- Adicionar comentário
 COMMENT ON INDEX idx_alunos_nome_escola_ano_unique IS 'Garante unicidade de alunos por nome normalizado, escola e ano letivo';
+
+COMMIT;

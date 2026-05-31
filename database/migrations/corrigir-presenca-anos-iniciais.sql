@@ -8,6 +8,8 @@
 -- Atualizar resultados_consolidados
 -- Alunos de 2º, 3º e 5º ano que estão com presença = 'F' e média = 0 ou null
 -- devem ter presença alterada para '-' (sem dados de frequência)
+BEGIN;
+
 UPDATE resultados_consolidados
 SET presenca = '-'
 WHERE serie IN ('2º Ano', '2º', '2', '3º Ano', '3º', '3', '5º Ano', '5º', '5')
@@ -51,3 +53,4 @@ BEGIN
     v_count_consolidados, v_count_provas;
 END $$;
 
+COMMIT;

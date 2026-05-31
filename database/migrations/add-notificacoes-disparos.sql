@@ -3,6 +3,8 @@
 -- Rastreia notificacoes enviadas e preferencias por usuario.
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS notificacoes_disparos (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   destinatario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -63,3 +65,5 @@ COMMENT ON TABLE notificacoes_disparos IS
 
 COMMENT ON TABLE notificacoes_preferencias IS
   'Preferencias de notificacao por usuario: quais canais e eventos receber.';
+
+COMMIT;

@@ -8,6 +8,8 @@
 -- ============================================
 
 -- Adicionar capacidade máxima nas turmas
+BEGIN;
+
 ALTER TABLE turmas ADD COLUMN IF NOT EXISTS capacidade_maxima INTEGER DEFAULT 35;
 
 -- Tabela de fila de espera
@@ -107,3 +109,5 @@ BEGIN
   RAISE NOTICE 'Tabelas: fila_espera, notificacoes';
   RAISE NOTICE 'Coluna adicionada: turmas.capacidade_maxima';
 END $$;
+
+COMMIT;

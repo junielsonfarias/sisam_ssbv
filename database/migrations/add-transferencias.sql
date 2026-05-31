@@ -17,6 +17,8 @@
 -- ETAPA 1: Adicionar campos de transferência
 -- ============================================
 
+BEGIN;
+
 ALTER TABLE historico_situacao ADD COLUMN IF NOT EXISTS tipo_transferencia VARCHAR(20)
   CHECK (tipo_transferencia IN ('dentro_municipio', 'fora_municipio'));
 
@@ -55,3 +57,5 @@ BEGIN
     RAISE NOTICE '=== MIGRACAO TRANSFERENCIAS CONCLUIDA ===';
     RAISE NOTICE 'Novas colunas encontradas: % (esperado: 6)', col_count;
 END $$;
+
+COMMIT;

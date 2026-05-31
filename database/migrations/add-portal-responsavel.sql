@@ -19,6 +19,8 @@
 -- PASSO 1: Atualizar CHECK constraint do tipo_usuario
 -- Adicionar 'responsavel' como tipo valido
 -- ============================================
+BEGIN;
+
 DO $$
 BEGIN
     -- Remover constraint antiga (se existir)
@@ -83,3 +85,5 @@ BEGIN
     RAISE NOTICE 'Coluna adicionada: usuarios.cpf';
     RAISE NOTICE 'Tipo responsavel adicionado ao CHECK constraint';
 END $$;
+
+COMMIT;

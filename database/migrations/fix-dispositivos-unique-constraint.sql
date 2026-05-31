@@ -7,6 +7,8 @@
 -- ============================================
 
 -- Remover duplicatas se existirem (manter o mais recente)
+BEGIN;
+
 DELETE FROM dispositivos_faciais a
 USING dispositivos_faciais b
 WHERE a.escola_id = b.escola_id
@@ -25,3 +27,5 @@ DO $$
 BEGIN
     RAISE NOTICE '=== FIX: UNIQUE constraint (escola_id, nome) em dispositivos_faciais ===';
 END $$;
+
+COMMIT;

@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- Nutricionistas responsaveis (cadastro tecnico)
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS pnae_nutricionistas (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome            VARCHAR(255) NOT NULL,
@@ -102,3 +104,5 @@ CREATE INDEX IF NOT EXISTS idx_pnae_rest_aluno ON pnae_restricoes_alunos(aluno_i
 COMMENT ON TABLE pnae_cardapios IS 'Cardapios semanais por escola, faixa etaria e periodo (PNAE).';
 COMMENT ON TABLE pnae_atendimentos_diarios IS 'Registro diario de refeicoes servidas para prestacao de contas ao FNDE.';
 COMMENT ON TABLE pnae_restricoes_alunos IS 'Restricoes alimentares medicas/religiosas/dieteticas dos alunos.';
+
+COMMIT;

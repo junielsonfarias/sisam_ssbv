@@ -7,6 +7,8 @@
 -- dados pessoais tratados. Esta tabela rastreia o fluxo dessas solicitações.
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS lgpd_solicitacoes (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id      UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -43,3 +45,5 @@ COMMENT ON TABLE lgpd_solicitacoes IS
 
 COMMENT ON COLUMN lgpd_solicitacoes.prevista_para IS
   'Data prevista para execução. Para exclusão, default = NOW() + 15 dias (carência de reversão).';
+
+COMMIT;

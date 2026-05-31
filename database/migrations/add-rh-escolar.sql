@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- Servidores (concursados, contratados, terceirizados)
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS servidores (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   -- Matricula funcional municipal (unica)
@@ -103,3 +105,5 @@ CREATE INDEX IF NOT EXISTS idx_formacoes_categoria ON servidor_formacoes(categor
 COMMENT ON TABLE servidores IS 'Servidores publicos lotados na rede municipal de ensino.';
 COMMENT ON TABLE servidor_lotacoes IS 'Lotacao do servidor (escola/SEMED + funcao + carga horaria + vigencia).';
 COMMENT ON TABLE servidor_formacoes IS 'Formacao continuada do servidor (cursos, capacitacoes, certificados).';
+
+COMMIT;

@@ -5,6 +5,8 @@
 -- ============================================
 
 -- 1. Hashear emails existentes (SHA-256, primeiros 16 chars)
+BEGIN;
+
 UPDATE logs_acesso
 SET email = LEFT(encode(sha256(email::bytea), 'hex'), 16)
 WHERE email LIKE '%@%';
@@ -14,3 +16,5 @@ ALTER TABLE logs_acesso DROP COLUMN IF EXISTS usuario_nome;
 
 -- Atualizar comentario
 COMMENT ON COLUMN logs_acesso.email IS 'Hash SHA-256 do email (16 chars) para anonimizacao LGPD';
+
+COMMIT;

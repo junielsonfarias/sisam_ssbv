@@ -12,6 +12,8 @@
 -- - Nova tabela frequencia_bimestral
 -- ============================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS frequencia_bimestral (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     aluno_id UUID NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
@@ -48,3 +50,5 @@ DO $$
 BEGIN
     RAISE NOTICE '=== MIGRACAO FREQUENCIA BIMESTRAL CONCLUIDA ===';
 END $$;
+
+COMMIT;

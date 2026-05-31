@@ -3,6 +3,8 @@
 -- Escola abre solicitacao, SEMED recebe e atende.
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS ordens_servico (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   -- Numero sequencial visivel (ex: OS-2026-000123)
@@ -98,3 +100,5 @@ CREATE TRIGGER trg_gerar_numero_os
 
 COMMENT ON TABLE ordens_servico IS 'Demandas da escola para a SEMED (manutencao predial, TI, mobiliario).';
 COMMENT ON TABLE ordens_servico_comentarios IS 'Timeline de interacoes da OS.';
+
+COMMIT;

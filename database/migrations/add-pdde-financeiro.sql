@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- Tipos de verba PDDE (basicas e adicionais)
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS pdde_tipos_verba (
   id              VARCHAR(30) PRIMARY KEY,
   nome            VARCHAR(255) NOT NULL,
@@ -88,3 +90,5 @@ GROUP BY o.id, o.escola_id, o.ano_letivo, o.tipo_verba_id, tv.nome, tv.natureza,
 COMMENT ON TABLE pdde_orcamentos IS 'Verbas PDDE recebidas pela escola.';
 COMMENT ON TABLE pdde_despesas IS 'Despesas executadas com recursos PDDE.';
 COMMENT ON VIEW pdde_saldos IS 'Saldo atualizado por orcamento (recebido - executado).';
+
+COMMIT;

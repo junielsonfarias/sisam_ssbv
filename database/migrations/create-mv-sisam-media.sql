@@ -2,6 +2,8 @@
 -- Pre-calcula medias para cada aluno em resultados_consolidados
 -- Data: 2026-03-28
 
+BEGIN;
+
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_sisam_media AS
 SELECT
   rc.id as resultado_id,
@@ -38,3 +40,5 @@ CREATE INDEX IF NOT EXISTS idx_mv_sisam_media_presenca ON mv_sisam_media(presenc
 
 -- Para atualizar a view apos novas importacoes:
 -- REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sisam_media;
+
+COMMIT;

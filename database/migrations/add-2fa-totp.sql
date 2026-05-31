@@ -7,6 +7,8 @@
 -- Opcional para os demais.
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS usuarios_2fa (
   usuario_id          UUID PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
   -- Segredo TOTP base32 (16-32 chars). Armazenado em texto plano —
@@ -33,3 +35,5 @@ COMMENT ON TABLE usuarios_2fa IS
 
 COMMENT ON COLUMN usuarios_2fa.backup_codes_hashes IS
   'Hashes SHA-256 dos códigos de backup. Códigos plain text são mostrados ao usuário UMA vez na geração.';
+
+COMMIT;

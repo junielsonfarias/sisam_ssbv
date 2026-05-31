@@ -7,6 +7,8 @@
 -- ============================================================================
 
 -- 1. Alterar CHECK constraint para incluir 'professor'
+BEGIN;
+
 ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_tipo_usuario_check;
 ALTER TABLE usuarios ADD CONSTRAINT usuarios_tipo_usuario_check
   CHECK (tipo_usuario IN ('administrador', 'tecnico', 'polo', 'escola', 'professor'));
@@ -67,3 +69,5 @@ CREATE TRIGGER trigger_professor_turmas_updated
 -- SELECT conname, contype, pg_get_constraintdef(oid)
 -- FROM pg_constraint
 -- WHERE conrelid = 'usuarios'::regclass AND conname LIKE '%tipo_usuario%';
+
+COMMIT;

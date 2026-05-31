@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- Veiculos do transporte escolar
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS pnate_veiculos (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   placa             VARCHAR(10) UNIQUE NOT NULL,
@@ -115,3 +117,5 @@ CREATE INDEX IF NOT EXISTS idx_pnate_alunorota_rota ON pnate_alunos_rotas(rota_i
 COMMENT ON TABLE pnate_veiculos IS 'Frota do transporte escolar municipal (PNATE).';
 COMMENT ON TABLE pnate_motoristas IS 'Condutores autorizados a operar transporte escolar (Resolucao CONTRAN 789/2020).';
 COMMENT ON TABLE pnate_rotas IS 'Rotas de transporte escolar com paradas ordenadas.';
+
+COMMIT;

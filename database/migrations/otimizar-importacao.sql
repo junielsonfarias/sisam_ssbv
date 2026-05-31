@@ -2,6 +2,8 @@
 -- Data: 2025-01-01
 
 -- 1. Adicionar ano_letivo na tabela importacoes
+BEGIN;
+
 ALTER TABLE importacoes 
 ADD COLUMN IF NOT EXISTS ano_letivo VARCHAR(10);
 
@@ -44,3 +46,4 @@ CREATE INDEX IF NOT EXISTS idx_importacoes_ano_letivo ON importacoes(ano_letivo)
 CREATE INDEX IF NOT EXISTS idx_importacoes_status ON importacoes(status);
 CREATE INDEX IF NOT EXISTS idx_importacoes_criado_em ON importacoes(criado_em);
 
+COMMIT;

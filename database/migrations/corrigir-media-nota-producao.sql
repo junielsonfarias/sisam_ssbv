@@ -18,6 +18,8 @@
 -- ETAPA 1: Recriar VIEW resultados_consolidados_v2
 -- com media_aluno incluindo nota_producao
 -- ============================================
+BEGIN;
+
 CREATE OR REPLACE VIEW resultados_consolidados_v2 AS
 WITH questoes_serie AS (
   SELECT
@@ -336,3 +338,5 @@ COMMENT ON VIEW resultados_consolidados_v2 IS
 
 COMMENT ON VIEW resultados_consolidados_unificada IS
   'VIEW unificada que usa resultados_consolidados_v2 quando disponivel, ou resultados_consolidados como fallback. media_aluno para anos iniciais inclui nota_producao quando disponível. Prioriza dados calculados dinamicamente.';
+
+COMMIT;

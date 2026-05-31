@@ -4,6 +4,8 @@
 -- declarações, atestados) com código de validação por QR.
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS documentos_emitidos (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   -- Codigo curto e unico para validacao publica (URL: /validar/<codigo>)
@@ -70,3 +72,5 @@ CREATE TABLE IF NOT EXISTS documentos_validacoes_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_docval_doc ON documentos_validacoes_log(documento_id, validado_em DESC);
+
+COMMIT;

@@ -6,6 +6,8 @@
 -- ============================================================================
 
 -- Adicionar colunas de acesso
+BEGIN;
+
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS acesso_sisam BOOLEAN DEFAULT true;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS acesso_gestor BOOLEAN DEFAULT false;
 
@@ -21,3 +23,5 @@ WHERE tipo_usuario = 'escola'
 -- Indice para consultas de acesso
 CREATE INDEX IF NOT EXISTS idx_usuarios_acesso_modulos
 ON usuarios (acesso_sisam, acesso_gestor) WHERE ativo = true;
+
+COMMIT;

@@ -13,6 +13,8 @@
 -- ============================================
 
 -- Tabela principal: ata do conselho por turma/periodo
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS conselho_classe (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     turma_id UUID NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
@@ -61,3 +63,5 @@ DO $$
 BEGIN
     RAISE NOTICE '=== MIGRACAO CONSELHO DE CLASSE CONCLUIDA ===';
 END $$;
+
+COMMIT;

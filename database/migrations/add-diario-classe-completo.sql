@@ -8,6 +8,8 @@
 --  - Status (rascunho/publicado/assinado)
 -- ============================================================================
 
+BEGIN;
+
 ALTER TABLE diario_classe
   ADD COLUMN IF NOT EXISTS recursos_didaticos TEXT,
   ADD COLUMN IF NOT EXISTS atividades        JSONB DEFAULT '[]'::jsonb,
@@ -45,3 +47,5 @@ CREATE TABLE IF NOT EXISTS diario_classe_bncc_habilidades (
 );
 
 CREATE INDEX IF NOT EXISTS idx_dcbncc_habilidade ON diario_classe_bncc_habilidades(habilidade_codigo);
+
+COMMIT;

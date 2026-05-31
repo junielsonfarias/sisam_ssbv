@@ -1,6 +1,8 @@
 -- Migração: Indicadores e Metas por Escola
 -- Permite definir metas por escola/ano e acompanhar o atingimento
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS metas_escola (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   escola_id UUID NOT NULL REFERENCES escolas(id) ON DELETE CASCADE,
@@ -13,3 +15,5 @@ CREATE TABLE IF NOT EXISTS metas_escola (
 );
 
 CREATE INDEX IF NOT EXISTS idx_metas_escola_ano ON metas_escola(escola_id, ano_letivo);
+
+COMMIT;

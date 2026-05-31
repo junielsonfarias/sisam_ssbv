@@ -17,6 +17,8 @@
 -- TABELA 1: threads_chat
 -- Uma conversa entre professor e responsavel sobre um aluno
 -- ============================================
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS threads_chat (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     aluno_id UUID NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
@@ -70,3 +72,5 @@ BEGIN
     RAISE NOTICE '=== MIGRACAO CHAT PROFESSOR-RESPONSAVEL CONCLUIDA ===';
     RAISE NOTICE 'Tabelas criadas: threads_chat, mensagens_chat';
 END $$;
+
+COMMIT;

@@ -5,6 +5,8 @@
 -- Permite registrar faltas (status='ausente') e justificativas
 -- para alunos que não realizaram presença facial/manual/qrcode.
 
+BEGIN;
+
 ALTER TABLE frequencia_diaria
   ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'presente'
   CHECK (status IN ('presente', 'ausente'));
@@ -25,3 +27,5 @@ BEGIN
     RAISE NOTICE 'Coluna justificativa adicionada com sucesso';
   END IF;
 END $$;
+
+COMMIT;

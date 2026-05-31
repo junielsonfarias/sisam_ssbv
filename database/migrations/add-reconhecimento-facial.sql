@@ -20,6 +20,8 @@
 -- TABELA 1: dispositivos_faciais
 -- Dispositivos de reconhecimento facial nas escolas
 -- ============================================
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS dispositivos_faciais (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     escola_id UUID NOT NULL REFERENCES escolas(id) ON DELETE CASCADE,
@@ -143,3 +145,5 @@ BEGIN
     RAISE NOTICE 'Tabelas criadas: dispositivos_faciais, consentimentos_faciais, embeddings_faciais, frequencia_diaria, logs_dispositivos';
     RAISE NOTICE 'Coluna adicionada: frequencia_bimestral.metodo';
 END $$;
+
+COMMIT;

@@ -3,6 +3,8 @@
 -- Descrição: Adiciona campos para níveis LP, MAT, Produção e nível geral do aluno
 
 -- Adicionar colunas de níveis por disciplina
+BEGIN;
+
 ALTER TABLE resultados_consolidados
 ADD COLUMN IF NOT EXISTS nivel_lp VARCHAR(5),
 ADD COLUMN IF NOT EXISTS nivel_mat VARCHAR(5),
@@ -26,3 +28,5 @@ COMMENT ON COLUMN resultados_consolidados.nivel_lp IS 'Nível de LP baseado em a
 COMMENT ON COLUMN resultados_consolidados.nivel_mat IS 'Nível de MAT baseado em acertos (N1, N2, N3, N4)';
 COMMENT ON COLUMN resultados_consolidados.nivel_prod IS 'Nível de Produção convertido (N1, N2, N3, N4)';
 COMMENT ON COLUMN resultados_consolidados.nivel_aluno IS 'Nível geral do aluno (média dos 3 níveis)';
+
+COMMIT;

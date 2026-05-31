@@ -2,6 +2,8 @@
 -- MIGRATION: Patrimonio - Inventario de bens (Fase 3 SEMED)
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS patrimonio_bens (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   -- Numero de tombamento (etiqueta fisica)
@@ -68,3 +70,5 @@ CREATE INDEX IF NOT EXISTS idx_patr_mov_bem ON patrimonio_movimentacoes(bem_id, 
 
 COMMENT ON TABLE patrimonio_bens IS 'Inventario de bens patrimoniais por escola/SEMED.';
 COMMENT ON TABLE patrimonio_movimentacoes IS 'Historico de movimentacoes (transferencias, manutencao, baixa).';
+
+COMMIT;

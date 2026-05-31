@@ -7,6 +7,8 @@
 -- de rastreio em updates (hora_saida, confianca).
 -- ============================================
 
+BEGIN;
+
 ALTER TABLE frequencia_diaria ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 DROP TRIGGER IF EXISTS update_frequencia_diaria_updated_at ON frequencia_diaria;
@@ -18,3 +20,5 @@ DO $$
 BEGIN
     RAISE NOTICE '=== FIX: atualizado_em adicionado em frequencia_diaria ===';
 END $$;
+
+COMMIT;

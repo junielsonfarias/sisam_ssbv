@@ -7,6 +7,8 @@
 -- do botao FJ (Falta Justificada) no portal do professor, precisamos
 -- aceitar 'justificado' tambem.
 
+BEGIN;
+
 ALTER TABLE frequencia_diaria
   DROP CONSTRAINT IF EXISTS frequencia_diaria_status_check;
 
@@ -25,3 +27,5 @@ BEGIN
      AND conname = 'frequencia_diaria_status_check';
   RAISE NOTICE 'Novo CHECK: %', v_def;
 END $$;
+
+COMMIT;

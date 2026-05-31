@@ -6,6 +6,8 @@
 -- ============================================
 
 -- Criar tabela de logs de acesso
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS logs_acesso (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
@@ -35,3 +37,5 @@ COMMENT ON COLUMN logs_acesso.tipo_usuario IS 'Tipo do usuario: administrador, t
 COMMENT ON COLUMN logs_acesso.ip_address IS 'Endereco IP do cliente (parcialmente mascarado para privacidade)';
 COMMENT ON COLUMN logs_acesso.user_agent IS 'User-Agent do navegador/cliente';
 COMMENT ON COLUMN logs_acesso.criado_em IS 'Data e hora do login';
+
+COMMIT;

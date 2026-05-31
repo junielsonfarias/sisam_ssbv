@@ -3,6 +3,8 @@
 -- Data: 2026-03-14
 -- ============================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS anos_letivos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   ano VARCHAR(4) NOT NULL UNIQUE CHECK (ano ~ '^\d{4}$'),
@@ -53,3 +55,5 @@ BEGIN
   RAISE NOTICE 'Tabela criada: anos_letivos';
   RAISE NOTICE 'Coluna adicionada: periodos_letivos.dias_letivos';
 END $$;
+
+COMMIT;

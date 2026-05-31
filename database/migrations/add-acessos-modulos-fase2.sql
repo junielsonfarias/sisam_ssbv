@@ -8,6 +8,8 @@
 -- ============================================================================
 
 -- 1) Novas colunas (default FALSE — preenchido por tipo abaixo)
+BEGIN;
+
 ALTER TABLE usuarios
   ADD COLUMN IF NOT EXISTS acesso_semed         BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS acesso_transparencia BOOLEAN NOT NULL DEFAULT FALSE,
@@ -83,3 +85,5 @@ COMMENT ON COLUMN usuarios.acesso_transparencia IS
   'Permissão de acesso ao módulo Transparência (site, notícias, ouvidoria)';
 COMMENT ON COLUMN usuarios.acesso_admin IS
   'Permissão de acesso ao módulo Administração técnica (backup, logs, segurança)';
+
+COMMIT;

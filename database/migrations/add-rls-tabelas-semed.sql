@@ -23,6 +23,8 @@
 -- ============================================================================
 
 -- BNCC (consulta pública aceitável — leitura de habilidades educacionais)
+BEGIN;
+
 ALTER TABLE bncc_competencias_gerais ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bncc_etapas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bncc_areas_conhecimento ENABLE ROW LEVEL SECURITY;
@@ -210,3 +212,5 @@ CREATE POLICY "status_atual_public" ON status_atualizacoes FOR SELECT USING (tru
 
 COMMENT ON SCHEMA public IS
   'Schema principal. RLS habilitado nas tabelas das Fases 2/3/4 SEMED (49 tabelas). 53 tabelas legadas ficam sem RLS por decisão deliberada — protegidas pelo withAuth na aplicação.';
+
+COMMIT;

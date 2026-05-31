@@ -13,6 +13,8 @@
 -- ============================================
 
 -- Dados familiares
+BEGIN;
+
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS nome_mae VARCHAR(255);
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS nome_pai VARCHAR(255);
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS responsavel VARCHAR(255);
@@ -64,3 +66,5 @@ DO $$
 BEGIN
     RAISE NOTICE '=== MIGRACAO DADOS COMPLEMENTARES DO ALUNO CONCLUIDA ===';
 END $$;
+
+COMMIT;

@@ -9,6 +9,8 @@
 -- =====================================================
 
 -- Verificar quantos registros órfãos existem (para log)
+BEGIN;
+
 DO $$
 DECLARE
   total_orfaos INTEGER;
@@ -49,3 +51,5 @@ BEGIN
     RAISE WARNING 'Ainda existem % registros órfãos!', orfaos_restantes;
   END IF;
 END $$;
+
+COMMIT;

@@ -6,6 +6,8 @@
 -- =====================================================
 
 -- 1. Adicionar coluna tipo_ensino em configuracao_series
+BEGIN;
+
 ALTER TABLE configuracao_series
 ADD COLUMN IF NOT EXISTS tipo_ensino VARCHAR(20) DEFAULT 'anos_iniciais';
 
@@ -178,3 +180,5 @@ SELECT
 FROM configuracao_series cs
 LEFT JOIN configuracao_series_disciplinas csd ON cs.id = csd.serie_id
 ORDER BY cs.serie, csd.ordem;
+
+COMMIT;

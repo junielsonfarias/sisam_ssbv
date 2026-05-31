@@ -3,6 +3,8 @@
 -- ============================================================================
 
 -- 10 Competencias Gerais da BNCC (texto resumido oficial MEC)
+BEGIN;
+
 INSERT INTO bncc_competencias_gerais (id, titulo, descricao) VALUES
   (1, 'Conhecimento',
    'Valorizar e utilizar os conhecimentos historicamente construidos sobre o mundo fisico, social, cultural e digital para entender e explicar a realidade, continuar aprendendo e colaborar para a construcao de uma sociedade justa, democratica e inclusiva.'),
@@ -77,3 +79,5 @@ INSERT INTO bncc_componentes_curriculares (id, nome, area_id, abreviatura, ordem
   ('EI_EF',      'Escuta, fala, pensamento e imaginacao',       NULL, 'EF',   4),
   ('EI_ET',      'Espacos, tempos, quantidades, relacoes e transformacoes', NULL, 'ET', 5)
 ON CONFLICT (id) DO NOTHING;
+
+COMMIT;

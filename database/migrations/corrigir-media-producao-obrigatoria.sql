@@ -21,6 +21,8 @@
 -- ============================================
 -- ETAPA 1: Recriar VIEW unificada com calculo correto
 -- ============================================
+BEGIN;
+
 CREATE OR REPLACE VIEW resultados_consolidados_unificada AS
 SELECT
   aluno_id,
@@ -81,3 +83,5 @@ COMMENT ON VIEW resultados_consolidados_unificada IS
    - Anos Finais (6-9): media = (LP + CH + MAT + CN) / 4 (OBRIGATORIAS)
    Se uma disciplina nao tem nota, conta como 0 no numerador.
    Todas as medias sao arredondadas para 2 casas decimais (ROUND(..., 2)).';
+
+COMMIT;

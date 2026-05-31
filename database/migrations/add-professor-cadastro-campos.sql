@@ -6,6 +6,8 @@
 -- ============================================================================
 
 -- 1. Adicionar campos opcionais
+BEGIN;
+
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cpf VARCHAR(14);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone VARCHAR(20);
 
@@ -19,3 +21,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_cpf
 -- SELECT column_name, data_type, is_nullable
 -- FROM information_schema.columns
 -- WHERE table_name = 'usuarios' AND column_name IN ('cpf', 'telefone');
+
+COMMIT;

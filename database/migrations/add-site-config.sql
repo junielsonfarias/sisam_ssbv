@@ -8,6 +8,8 @@
 -- ============================================
 
 -- Criar tabela de configuracao do site
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS site_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   secao VARCHAR(50) UNIQUE NOT NULL,
@@ -200,3 +202,5 @@ INSERT INTO site_config (secao, conteudo) VALUES
   }'::jsonb
 )
 ON CONFLICT (secao) DO NOTHING;
+
+COMMIT;

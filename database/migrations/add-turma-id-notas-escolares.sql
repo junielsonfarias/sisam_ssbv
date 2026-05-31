@@ -2,6 +2,8 @@
 -- Objetivo: Permitir JOIN direto entre notas_escolares e turmas sem passar por alunos
 
 -- 1. Adicionar coluna turma_id
+BEGIN;
+
 ALTER TABLE notas_escolares
   ADD COLUMN IF NOT EXISTS turma_id UUID REFERENCES turmas(id) ON DELETE SET NULL;
 
@@ -14,3 +16,5 @@ SET turma_id = a.turma_id
 FROM alunos a
 WHERE ne.aluno_id = a.id
   AND ne.turma_id IS NULL;
+
+COMMIT;

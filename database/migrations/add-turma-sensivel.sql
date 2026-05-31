@@ -11,6 +11,8 @@
 -- para LEITURA, justificada por LGPD art. 11 (dados sensíveis).
 -- ============================================================================
 
+BEGIN;
+
 ALTER TABLE turmas
   ADD COLUMN IF NOT EXISTS sensivel BOOLEAN NOT NULL DEFAULT FALSE;
 
@@ -22,3 +24,5 @@ COMMENT ON COLUMN turmas.sensivel IS
 CREATE INDEX IF NOT EXISTS idx_turmas_sensivel
   ON turmas(id)
   WHERE sensivel = TRUE;
+
+COMMIT;

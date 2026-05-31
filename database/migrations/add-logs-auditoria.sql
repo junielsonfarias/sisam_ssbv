@@ -6,6 +6,8 @@
 -- com detalhes do que foi alterado.
 -- ============================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS logs_auditoria (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
@@ -29,3 +31,5 @@ COMMENT ON TABLE logs_auditoria IS 'Registra ações de auditoria no sistema (cr
 COMMENT ON COLUMN logs_auditoria.acao IS 'Tipo da ação: criar, editar, excluir, transferir, alterar_situacao, alterar_nota, login, logout';
 COMMENT ON COLUMN logs_auditoria.entidade IS 'Entidade afetada: aluno, turma, nota, frequencia, publicacao, usuario';
 COMMENT ON COLUMN logs_auditoria.detalhes IS 'Detalhes da alteração em formato JSON, ex: { campo: "situacao", de: "cursando", para: "transferido" }';
+
+COMMIT;

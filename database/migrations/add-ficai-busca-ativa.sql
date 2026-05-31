@@ -9,6 +9,8 @@
 --  - >= 7 dias consecutivos para nao alfabetizado
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS ficai_casos (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   aluno_id        UUID NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
@@ -92,3 +94,5 @@ CREATE TABLE IF NOT EXISTS ficai_acoes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ficai_acoes_caso ON ficai_acoes(caso_id, realizado_em DESC);
+
+COMMIT;

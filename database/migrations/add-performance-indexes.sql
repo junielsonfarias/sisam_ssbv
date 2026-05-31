@@ -4,6 +4,8 @@
 -- ============================================
 
 -- Índices para busca de alunos por nome (ILIKE)
+BEGIN;
+
 CREATE INDEX IF NOT EXISTS idx_alunos_nome_trgm ON alunos USING gin (nome gin_trgm_ops);
 -- Fallback se extensão pg_trgm não disponível
 CREATE INDEX IF NOT EXISTS idx_alunos_nome_lower ON alunos (lower(nome));
@@ -47,3 +49,5 @@ BEGIN
   RAISE NOTICE '=== Índices de Performance criados ===';
   RAISE NOTICE 'Total: 16 índices para suportar 50+ usuários simultâneos';
 END $$;
+
+COMMIT;

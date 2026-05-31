@@ -11,6 +11,8 @@
 -- - 1 nova tabela
 -- ============================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS tarefas_turma (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     turma_id UUID NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
@@ -38,3 +40,5 @@ DO $$
 BEGIN
     RAISE NOTICE '=== MIGRACAO TAREFAS TURMA CONCLUIDA ===';
 END $$;
+
+COMMIT;

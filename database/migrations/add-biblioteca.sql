@@ -2,6 +2,8 @@
 -- MIGRATION: Biblioteca - Acervo + Emprestimos (Fase 3 SEMED)
 -- ============================================================================
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS biblioteca_acervo (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   isbn            VARCHAR(20),
@@ -84,3 +86,5 @@ CREATE INDEX IF NOT EXISTS idx_bibl_res_acervo ON biblioteca_reservas(acervo_id,
 COMMENT ON TABLE biblioteca_acervo IS 'Acervo da biblioteca escolar.';
 COMMENT ON TABLE biblioteca_emprestimos IS 'Emprestimos de livros para alunos e servidores.';
 COMMENT ON TABLE biblioteca_reservas IS 'Fila de reservas quando o livro nao tem copia disponivel.';
+
+COMMIT;

@@ -11,6 +11,8 @@
 -- ============================================
 
 -- ETAPA 0: Dropar VIEWs existentes (na ordem correta por dependência)
+BEGIN;
+
 DROP VIEW IF EXISTS resultados_consolidados_unificada CASCADE;
 DROP VIEW IF EXISTS resultados_consolidados_v2 CASCADE;
 
@@ -178,3 +180,5 @@ COMMENT ON VIEW resultados_consolidados_v2 IS
 
 COMMENT ON VIEW resultados_consolidados_unificada IS
   'VIEW unificada que prioriza presença da tabela resultados_consolidados. Usa resultados_consolidados_v2 para notas calculadas.';
+
+COMMIT;

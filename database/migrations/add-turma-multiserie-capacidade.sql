@@ -4,6 +4,8 @@
 -- ============================================
 
 -- Campos multiserie e multietapa
+BEGIN;
+
 ALTER TABLE turmas ADD COLUMN IF NOT EXISTS multiserie BOOLEAN DEFAULT FALSE;
 ALTER TABLE turmas ADD COLUMN IF NOT EXISTS multietapa BOOLEAN DEFAULT FALSE;
 
@@ -18,3 +20,5 @@ BEGIN
   RAISE NOTICE '=== Migração Turma Multiserie/Multietapa concluída ===';
   RAISE NOTICE 'Colunas adicionadas: turmas.multiserie, turmas.multietapa';
 END $$;
+
+COMMIT;

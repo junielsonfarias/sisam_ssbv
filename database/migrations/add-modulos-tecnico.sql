@@ -1,6 +1,8 @@
 -- Migration: Tabela de Configuração de Módulos para Técnico
 -- Permite que administradores controlem quais módulos estão disponíveis para técnicos
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS modulos_tecnico (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   modulo_key VARCHAR(100) UNIQUE NOT NULL,
@@ -24,3 +26,4 @@ ON CONFLICT (modulo_key) DO NOTHING;
 CREATE INDEX IF NOT EXISTS idx_modulos_tecnico_habilitado ON modulos_tecnico(habilitado);
 CREATE INDEX IF NOT EXISTS idx_modulos_tecnico_ordem ON modulos_tecnico(ordem);
 
+COMMIT;
