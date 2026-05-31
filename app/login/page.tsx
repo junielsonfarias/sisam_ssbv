@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogIn, Eye, EyeOff, WifiOff, CheckCircle, GraduationCap, ArrowLeft } from 'lucide-react'
+import { LogIn, Eye, EyeOff, WifiOff, CheckCircle, GraduationCap, ArrowLeft, Users } from 'lucide-react'
 import Link from 'next/link'
 import Rodape from '@/components/rodape'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
@@ -346,8 +346,8 @@ export default function LoginPage() {
               </div>
             </form>
 
-            {/* Link cadastro professor */}
-            <div className="text-center mt-5 pt-4 border-t border-slate-100 dark:border-slate-700">
+            {/* Links de cadastro */}
+            <div className="text-center mt-5 pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">
               <Link
                 href="/cadastro-professor"
                 className="inline-flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400 hover:underline font-medium min-h-[44px] active:scale-95 transition-transform"
@@ -355,6 +355,15 @@ export default function LoginPage() {
                 <GraduationCap className="h-4 w-4" />
                 Sou professor — Criar minha conta
               </Link>
+              <div>
+                <Link
+                  href="/cadastro-responsavel"
+                  className="inline-flex items-center gap-2 text-sm text-indigo-700 dark:text-indigo-400 hover:underline font-medium min-h-[44px] active:scale-95 transition-transform"
+                >
+                  <Users className="h-4 w-4" />
+                  Sou responsável de aluno — Criar minha conta
+                </Link>
+              </div>
             </div>
           </div>
         </div>

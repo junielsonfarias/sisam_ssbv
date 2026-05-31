@@ -21,7 +21,10 @@ export const GET = withAuth(['responsavel'], async (_request, usuario) => {
       INNER JOIN responsaveis_alunos ra ON ra.aluno_id = a.id
       INNER JOIN escolas e ON a.escola_id = e.id
       LEFT JOIN turmas t ON a.turma_id = t.id
-      WHERE ra.usuario_id = $1 AND ra.ativo = true AND a.ativo = true
+      WHERE ra.usuario_id = $1
+        AND ra.ativo = true
+        AND ra.status = 'aprovado'
+        AND a.ativo = true
       ORDER BY a.nome`,
       [usuario.id]
     )
