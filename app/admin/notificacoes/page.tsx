@@ -185,6 +185,7 @@ export default function NotificacoesPage() {
               )}
               <button
                 onClick={carregarNotificacoes}
+                aria-label="Atualizar notificações"
                 className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition"
               >
                 <RefreshCw className="w-4 h-4" />

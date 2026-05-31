@@ -237,7 +237,7 @@ export default function AnosLetivosPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={carregarAnos} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition">
+              <button onClick={carregarAnos} aria-label="Atualizar lista de anos letivos" className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition">
                 <RefreshCw className="w-4 h-4" />
               </button>
               <button onClick={abrirCriar}

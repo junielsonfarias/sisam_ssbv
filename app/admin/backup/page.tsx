@@ -223,7 +223,7 @@ export default function BackupPage() {
               <Clock className="w-5 h-5 text-indigo-500" />
               Histórico de Backups
             </h2>
-            <button onClick={carregar} className="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
+            <button onClick={carregar} aria-label="Atualizar histórico de backups" className="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>

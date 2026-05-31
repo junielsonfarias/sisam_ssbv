@@ -77,7 +77,7 @@ export function PainelLancamento({
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <button onClick={voltar} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg">
+            <button onClick={voltar} aria-label="Voltar para a lista" className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>

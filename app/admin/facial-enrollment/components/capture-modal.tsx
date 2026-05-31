@@ -104,11 +104,11 @@ export function CaptureModal({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={onAlternarCamera}
+              <button onClick={onAlternarCamera} aria-label="Alternar câmera"
                 className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm active:bg-black/60">
                 <SwitchCamera className="w-5 h-5 text-white" />
               </button>
-              <button onClick={onCancelar}
+              <button onClick={onCancelar} aria-label="Cancelar captura"
                 className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm active:bg-black/60">
                 <X className="w-5 h-5 text-white" />
               </button>

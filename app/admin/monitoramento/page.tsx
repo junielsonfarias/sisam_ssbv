@@ -162,7 +162,7 @@ export default function MonitoramentoPage() {
               className="flex-1 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
               placeholder="email@exemplo.com"
             />
-            <button onClick={adicionarEmail} className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <button onClick={adicionarEmail} aria-label="Adicionar email de alerta" className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
               <Plus className="w-4 h-4" />
             </button>
           </div>

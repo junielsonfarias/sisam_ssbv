@@ -85,9 +85,9 @@ export default function CalendarioResponsavel() {
         {/* Navegação do mês */}
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
           <div className="flex items-center justify-between mb-4">
-            <button onClick={mesAnterior} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"><ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" /></button>
+            <button onClick={mesAnterior} aria-label="Mês anterior" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"><ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" /></button>
             <h2 className="text-base font-bold text-gray-900 dark:text-white">{MESES[mes - 1]} {ano}</h2>
-            <button onClick={mesProximo} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"><ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" /></button>
+            <button onClick={mesProximo} aria-label="Próximo mês" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"><ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" /></button>
           </div>
 
           {carregando ? (
