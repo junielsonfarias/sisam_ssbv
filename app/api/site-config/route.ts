@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Secao especifica
     if (secao) {
-      const redisKey = cacheKey('site-config', secao)
+      const redisKey = cacheKey('site-config', 'v1', secao)
       const data = await withRedisCache(redisKey, CACHE_TTL.SITE_CONFIG, async () => {
         const result = await pool.query(
           'SELECT id, secao, conteudo, atualizado_em FROM site_config WHERE secao = $1',
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Todas as secoes + dados complementares
-    const redisKey = cacheKey('site-config', 'all')
+    const redisKey = cacheKey('site-config', 'v1', 'all')
     const data = await withRedisCache(redisKey, CACHE_TTL.SITE_CONFIG, async () => {
       const [secoesResult, statsResult, escolasResult] = await Promise.all([
         pool.query('SELECT id, secao, conteudo, atualizado_em FROM site_config ORDER BY criado_em'),

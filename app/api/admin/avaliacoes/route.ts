@@ -22,7 +22,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   try {
     const anoLetivo = request.nextUrl.searchParams.get('ano_letivo')
 
-    const redisKey = cacheKey('avaliacoes', anoLetivo || 'all')
+    const redisKey = cacheKey('avaliacoes', 'v1', anoLetivo || 'all')
     const data = await withRedisCache(redisKey, CACHE_TTL.CONFIGURACAO, async () => {
       const where = createWhereBuilder()
       addRawCondition(where, 'ativo = true')

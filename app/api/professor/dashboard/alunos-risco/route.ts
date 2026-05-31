@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
+import { withRedisCache, cacheKey } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,7 +60,12 @@ export const GET = withAuth('professor', async (request, usuario) => {
 
   const turmaMap = new Map(turmasResult.rows.map((t: any) => [t.turma_id, t.turma_nome]))
 
-  // 1. Alunos com frequência baixa.
+  // Cache 60s das duas queries agregadas (5+ JOINs total). Chave inclui
+  // ids ordenados (estavel entre selects) e v1 para invalidacao manual.
+  const turmaIdsKey = [...turmaIds].sort().join(',')
+  const cacheKeyAgg = cacheKey('alunos-risco', 'v1', turmaIdsKey)
+  const { freqRows, notasRows } = await withRedisCache(cacheKeyAgg, 60, async () => {
+    // 1. Alunos com frequência baixa.
   //
   // Padrao alinhado com /api/admin/turmas/[id]/diario-completo:
   // - dias_letivos = contar_dias_letivos(ano_letivo_id, escola_id, dt_ini, dt_fim)
@@ -154,10 +160,13 @@ export const GET = withAuth('professor', async (request, usuario) => {
     [turmaIds]
   )
 
-  // Consolidar resultados
+    return { freqRows: freqResult.rows, notasRows: notasResult.rows }
+  })
+
+  // Consolidar resultados (fora do cache — barato)
   const alunosMap = new Map<string, AlunoRisco>()
 
-  for (const row of freqResult.rows as any[]) {
+  for (const row of freqRows as any[]) {
     alunosMap.set(row.id, {
       id: row.id,
       nome: row.nome,
@@ -168,7 +177,7 @@ export const GET = withAuth('professor', async (request, usuario) => {
     })
   }
 
-  for (const row of notasResult.rows as any[]) {
+  for (const row of notasRows as any[]) {
     const existente = alunosMap.get(row.id)
     const motivo = `${row.disciplinas_abaixo} disciplinas abaixo de 6.0 (${row.disciplinas.join(', ')})`
 

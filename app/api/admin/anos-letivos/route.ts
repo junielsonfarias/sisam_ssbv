@@ -48,7 +48,8 @@ export const dynamic = 'force-dynamic'
 
 // Listar anos letivos
 export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
-    const redisKey = cacheKey('anos-letivos')
+    // v1: versionada na auditoria 30/05 (antes sem versao — risco de stale)
+    const redisKey = cacheKey('anos-letivos', 'v1')
     const data = await withRedisCache(redisKey, CACHE_TTL.REFERENCIA, async () => {
       const result = await pool.query(`
         SELECT al.*,

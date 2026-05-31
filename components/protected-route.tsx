@@ -5,17 +5,29 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { TipoUsuario } from '@/lib/types'
 import * as offlineStorage from '@/lib/offline-storage'
+import { validarModulo, type Modulo } from '@/lib/auth/validar-modulo'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
   tiposPermitidos: TipoUsuario[]
+  /**
+   * Exige que o usuario tenha permissao para o modulo informado
+   * (`acesso_semed === true`, etc). Quando bloqueado, redireciona
+   * para `/modulos` em vez de `/login` — o usuario esta autenticado,
+   * so nao tem o modulo. Administradores sempre passam (fallback de
+   * seguranca para nao travar sistema em rollout).
+   *
+   * Adicionado na auditoria 30/05/2026: antes, acesso_* era populado
+   * no JWT mas nao validado em rota nenhuma — bypass por URL direta.
+   */
+  requerModulo?: Modulo
 }
 
 // Cache global de autorização keyed por userId+tiposPermitidos
 let authCache: { autorizado: boolean; timestamp: number; tiposPermitidos: string; userId: string } | null = null
 const AUTH_CACHE_TTL = 300000 // 5 minutos de cache para melhor navegação offline
 
-export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, tiposPermitidos, requerModulo }: ProtectedRouteProps) {
   const router = useRouter()
   const [carregando, setCarregando] = useState(true)
   const [autorizado, setAutorizado] = useState(false)
@@ -23,7 +35,7 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
 
   // Estabilizar tiposPermitidos para evitar re-renders infinitos
   // (arrays literais como prop criam nova referência a cada render do pai)
-  const tiposKey = tiposPermitidos.slice().sort().join(',')
+  const tiposKey = tiposPermitidos.slice().sort().join(',') + '|' + (requerModulo ?? '')
 
   useEffect(() => {
     const tiposArr = tiposKey.split(',')
@@ -44,6 +56,17 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
           tiposExpandidos.push('administrador')
         }
         return tiposExpandidos.includes(tipoUsuario)
+      }
+
+      // Wrapper que checa tipo + modulo (quando requerModulo informado).
+      // Bloqueio por modulo redireciona para /modulos (usuario autenticado,
+      // so nao tem acesso ao modulo) em vez de /login.
+      const verificarAcesso = (u: { tipo_usuario: string; acesso_sisam?: boolean; acesso_gestor?: boolean; acesso_semed?: boolean; acesso_transparencia?: boolean; acesso_admin?: boolean }): { ok: boolean; rotaFallback: string } => {
+        if (!verificarTipoPermitido(u.tipo_usuario)) return { ok: false, rotaFallback: '/login' }
+        if (requerModulo && !validarModulo(u as any, requerModulo)) {
+          return { ok: false, rotaFallback: '/modulos' }
+        }
+        return { ok: true, rotaFallback: '/' }
       }
 
       // PRIMEIRO: Verificar se existe usuário offline salvo no localStorage
@@ -68,13 +91,23 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
 
       // Se tiver usuário offline válido, autorizar imediatamente
       // (mesmo se online, para permitir navegação rápida)
-      if (offlineUser && verificarTipoPermitido(offlineUser.tipo_usuario)) {
-        console.log('[ProtectedRoute] Usuário offline válido encontrado, autorizando')
-        setAutorizado(true)
-        authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey, userId: currentUserId }
+      if (offlineUser) {
+        const acesso = verificarAcesso(offlineUser)
+        if (acesso.ok) {
+          console.log('[ProtectedRoute] Usuário offline válido encontrado, autorizando')
+          setAutorizado(true)
+          authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey, userId: currentUserId }
 
-        // Se offline, terminar aqui
-        if (!online) {
+          // Se offline, terminar aqui
+          if (!online) {
+            setCarregando(false)
+            verificandoRef.current = false
+            return
+          }
+        } else if (acesso.rotaFallback === '/modulos') {
+          // Tem tipo permitido mas falta o modulo — manda pra pagina de modulos
+          console.log('[ProtectedRoute] Usuario sem acesso ao modulo:', requerModulo)
+          router.push('/modulos')
           setCarregando(false)
           verificandoRef.current = false
           return
@@ -101,8 +134,9 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
 
           if (response.ok && data.usuario) {
             const tipoUsuarioOriginal = data.usuario.tipo_usuario
+            const acesso = verificarAcesso(data.usuario)
 
-            if (verificarTipoPermitido(tipoUsuarioOriginal)) {
+            if (acesso.ok) {
               // Atualizar usuário no localStorage
               offlineStorage.saveUser({
                 id: data.usuario.id?.toString() || data.usuario.usuario_id?.toString(),
@@ -122,6 +156,9 @@ export default function ProtectedRoute({ children, tiposPermitidos }: ProtectedR
               })
               setAutorizado(true)
               authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey, userId: currentUserId }
+            } else if (acesso.rotaFallback === '/modulos') {
+              console.log('[ProtectedRoute] Usuario sem acesso ao modulo:', requerModulo)
+              router.push('/modulos')
             } else {
               // Tipo não permitido - redirecionar para login
               console.log('[ProtectedRoute] Tipo de usuário não permitido:', tipoUsuarioOriginal)

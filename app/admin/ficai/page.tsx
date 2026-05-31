@@ -562,7 +562,7 @@ function FicaiAdmin() {
 
 export default function FicaiAdminPage() {
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo']}>
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo']} requerModulo="semed">
       <FicaiAdmin />
     </ProtectedRoute>
   )

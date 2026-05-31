@@ -5,6 +5,9 @@ import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import { processarImportacao } from '@/lib/services/importacao.service'
 import { lerPlanilha } from '@/lib/excel-reader'
 import { validarArquivoUpload } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminImportarCompleto')
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutos maximo (limite do plano Hobby da Vercel)
@@ -51,11 +54,11 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
 
   // Processar importacao em background
   processarImportacao(importacaoId, dados, anoLetivo, usuario.id, avaliacaoId).catch((error) => {
-    console.error('Erro ao processar importação em background:', error)
+    log.error('Erro ao processar importacao em background', error, { importacaoId })
     pool.query(
       `UPDATE importacoes SET status = 'erro', concluido_em = CURRENT_TIMESTAMP WHERE id = $1`,
       [importacaoId]
-    ).catch(console.error)
+    ).catch(err => log.error('Falha ao marcar importacao como erro', err, { importacaoId }))
   })
 
   return NextResponse.json({

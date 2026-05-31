@@ -285,7 +285,7 @@ export default function UsuariosPage() {
     : escolas
 
   return (
-    <ProtectedRoute tiposPermitidos={['administrador']}>
+    <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="admin">
         <div className="space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
             <div>
