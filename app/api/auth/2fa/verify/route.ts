@@ -16,6 +16,7 @@ import { SESSAO } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
 import { getClientIP } from '@/lib/rate-limiter'
 import { checkRateLimitAsync, resetRateLimitAsync, createRateLimitKeyPorUsuario } from '@/lib/rate-limiter-async'
+import { cacheGet, cacheKey, cacheSet } from '@/lib/cache/redis'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +46,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // V9 (auditoria 31/05): anti-replay. Se o jti já foi marcado como usado,
+    // rejeita. Marca após verify bem-sucedido (antes de gerar JWT principal).
+    // Sem Redis configurado o cacheGet retorna null e o fluxo segue normal —
+    // a proteção é "best-effort" mas crítica em produção (Vercel + Upstash).
+    const jtiKey = cacheKey('2fa-used', preAuth.jti)
+    const jaUsado = await cacheGet<boolean>(jtiKey)
+    if (jaUsado) {
+      log.warn(`Tentativa de replay 2FA | jti:${preAuth.jti.slice(0, 8)} | usuario:${preAuth.email}`)
+      return NextResponse.json(
+        { mensagem: 'Sessão já utilizada. Faça login novamente.' },
+        { status: 401 }
+      )
+    }
+
     const clientIP = getClientIP(request)
 
     // Rate limit por usuário no passo 2FA (proteção contra brute-force do código)
@@ -67,6 +82,12 @@ export async function POST(request: NextRequest) {
       log.warn(`Código 2FA inválido | usuario:${preAuth.email}`)
       return NextResponse.json({ mensagem: 'Código inválido' }, { status: 401 })
     }
+
+    // V9: marcar jti como usado ANTES de emitir o JWT principal.
+    // TTL = 11min (cobre a janela de 10min do token + buffer de clock skew).
+    // Se o cacheSet falhar silenciosamente (Redis off), o login continua —
+    // proteção é "best-effort" mas é o padrão acordado.
+    await cacheSet(jtiKey, true, 11 * 60)
 
     // Buscar dados completos do usuário para emitir JWT principal
     const result = await pool.query(

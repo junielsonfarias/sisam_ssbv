@@ -193,20 +193,27 @@ interface PreAuthPayload {
   scope: 'pre-2fa'
   userId: string
   email: string
+  /** JWT ID — anti-replay. Marcado no Redis após uso bem-sucedido. */
+  jti: string
 }
 
 export function generatePreAuthToken(userId: string, email: string): string {
   if (!JWT_SECRET) throw new Error('JWT_SECRET não configurado')
-  const payload: PreAuthPayload = { scope: 'pre-2fa', userId, email }
+  // V9 (auditoria 31/05): jti único para permitir invalidação anti-replay.
+  // Web Crypto API funciona no Edge runtime do Next.js.
+  const jti = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+    ? crypto.randomUUID()
+    : `${Date.now()}_${Math.random().toString(36).slice(2)}`
+  const payload: PreAuthPayload = { scope: 'pre-2fa', userId, email, jti }
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '10m' })
 }
 
-export function verifyPreAuthToken(token: string): { userId: string; email: string } | null {
+export function verifyPreAuthToken(token: string): { userId: string; email: string; jti: string } | null {
   try {
     if (!JWT_SECRET) return null
     const decoded = jwt.verify(token, JWT_SECRET) as PreAuthPayload
     if (decoded.scope !== 'pre-2fa') return null
-    return { userId: decoded.userId, email: decoded.email }
+    return { userId: decoded.userId, email: decoded.email, jti: decoded.jti }
   } catch {
     return null
   }
