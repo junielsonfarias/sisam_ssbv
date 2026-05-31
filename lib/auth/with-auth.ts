@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { Usuario, TipoUsuario } from '@/lib/types'
 import { createLogger } from '@/lib/logger'
+import { validarModulo, type Modulo } from '@/lib/auth/validar-modulo'
 
 const log = createLogger('with-auth')
 
@@ -64,6 +65,57 @@ export function withAuth(
       }
 
       return await fn(request, usuario)
+    } catch (error: unknown) {
+      log.error(`Erro na rota ${request.method} ${request.url}`, error)
+      return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+    }
+  }
+}
+
+/**
+ * Variante de `withAuth` que também exige acesso a um módulo (Pt.2).
+ *
+ * Antes deste wrapper, as colunas `acesso_sisam/gestor/semed/transparencia/admin`
+ * eram populadas no JWT mas NUNCA validadas no backend — qualquer usuário
+ * cujo tipo era permitido chegava nos endpoints `/api/semed/...` mesmo com
+ * `acesso_semed = false`. A coluna era cosmética.
+ *
+ * USO:
+ * ```ts
+ * export const GET = withAuthModulo(['administrador', 'tecnico'], 'semed', async (req, user) => {
+ *   // só chega aqui se user passar em verificarPermissao E em validarModulo('semed')
+ * })
+ * ```
+ *
+ * Administradores plenos sempre passam (fallback definido em `validarModulo`).
+ */
+export function withAuthModulo(
+  tiposPermitidos: TipoUsuario[] | TipoUsuario,
+  modulo: Modulo,
+  handler: (request: NextRequest, usuario: Usuario) => Promise<NextResponse>
+): (request: NextRequest) => Promise<NextResponse> {
+  const tipos = typeof tiposPermitidos === 'string' ? [tiposPermitidos] : tiposPermitidos
+
+  return async (request: NextRequest): Promise<NextResponse> => {
+    try {
+      const usuario = await getUsuarioFromRequest(request)
+
+      if (!usuario) {
+        return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 401 })
+      }
+
+      if (!verificarPermissao(usuario, tipos)) {
+        return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+      }
+
+      if (!validarModulo(usuario, modulo)) {
+        return NextResponse.json(
+          { mensagem: 'Você não tem acesso ao módulo solicitado.' },
+          { status: 403 }
+        )
+      }
+
+      return await handler(request, usuario)
     } catch (error: unknown) {
       log.error(`Erro na rota ${request.method} ${request.url}`, error)
       return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

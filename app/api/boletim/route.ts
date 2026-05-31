@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
 
@@ -42,7 +43,10 @@ const CACHE_MAX_ENTRIES = 2000   // Limite de memória (~2000 alunos * ~5KB = ~1
 
 function getCacheKey(codigo: string | null, cpf: string | null, dataNascimento: string | null, anoLetivo: string): string {
   if (codigo) return `cod:${codigo}:${anoLetivo}`
-  return `cpf:${cpf}:${dataNascimento}:${anoLetivo}`
+  // V5 fix (PII): hash do CPF+data para a chave em memória — evita que
+  // CPF em texto plano vaze em heap dumps / inspeção de processo.
+  const hash = crypto.createHash('sha256').update(`${cpf}|${dataNascimento}`).digest('hex').slice(0, 24)
+  return `cpf:${hash}:${anoLetivo}`
 }
 
 function getFromCache(key: string): any | null {

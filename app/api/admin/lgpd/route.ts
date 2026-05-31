@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
@@ -23,7 +23,7 @@ const patchSchema = z.object({
   observacao: z.string().max(2000).optional(),
 })
 
-export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico'], 'admin', async (request) => {
   const { searchParams } = new URL(request.url)
 
   if (searchParams.get('estatisticas') === 'true') {
@@ -59,7 +59,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
   return NextResponse.json({ solicitacoes })
 })
 
-export const PATCH = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const PATCH = withAuthModulo(['administrador', 'tecnico'], 'admin', async (request, usuario) => {
   const id = new URL(request.url).searchParams.get('id')
   if (!id) return NextResponse.json({ mensagem: 'Informe ?id=' }, { status: 400 })
 

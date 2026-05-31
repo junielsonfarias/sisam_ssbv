@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { hashPassword } from '@/lib/auth'
+import { maskCpf } from '@/lib/utils/mask-pii'
+import { createLogger } from '@/lib/logger'
 import { z } from 'zod'
+
+const log = createLogger('admin/responsaveis')
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +26,12 @@ const criarResponsavelSchema = z.object({
 export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
     const { searchParams } = new URL(request.url)
-    const escolaId = searchParams.get('escola_id') || usuario.escola_id
+    // V4 fix (PII): usuário 'escola' SEMPRE filtra pela própria escola — não
+    // pode passar escola_id via querystring para ver outras escolas. Para
+    // administrador/tecnico, o filtro continua opcional.
+    const escolaId = usuario.tipo_usuario === 'escola'
+      ? usuario.escola_id
+      : (searchParams.get('escola_id') || null)
 
     let query = `
       SELECT u.id, u.nome, u.email, u.cpf, u.ativo, u.criado_em,
@@ -51,9 +60,17 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     query += ` GROUP BY u.id ORDER BY u.nome`
 
     const result = await pool.query(query, params)
-    return NextResponse.json({ responsaveis: result.rows })
+
+    // V4 fix (PII): mascarar CPF na listagem. CPF completo só deve aparecer
+    // em telas de edição individual (com auditoria) ou na fila LGPD.
+    const responsaveis = result.rows.map((r: any) => ({
+      ...r,
+      cpf: maskCpf(r.cpf),
+    }))
+
+    return NextResponse.json({ responsaveis })
   } catch (error: unknown) {
-    console.error('Erro ao listar responsaveis:', error)
+    log.error('Erro ao listar responsaveis', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -112,7 +129,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       alunos_vinculados: vinculados,
     }, { status: 201 })
   } catch (error: unknown) {
-    console.error('Erro ao criar responsavel:', error)
+    log.error('Erro ao criar responsavel', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })

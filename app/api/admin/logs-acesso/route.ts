@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import {
   parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
   parseSearchParams, createWhereBuilder, addCondition, addSearchCondition,
@@ -9,7 +9,7 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuth(['administrador'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   // Obter parametros de filtro
   const searchParams = request.nextUrl.searchParams
   const { dataInicio, dataFim, email, tipoUsuario } = parseSearchParams(searchParams, ['dataInicio', 'dataFim', 'email', 'tipoUsuario'])

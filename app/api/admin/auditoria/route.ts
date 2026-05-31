@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 
@@ -23,7 +23,7 @@ const auditoriaQuerySchema = z.object({
  * GET /api/admin/auditoria
  * Lista logs de auditoria com filtros e paginação
  */
-export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico'], 'admin', async (request) => {
   const { searchParams } = new URL(request.url)
 
   // Extrair e validar query params

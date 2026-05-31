@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('resultados-sisam')
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +16,21 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
     if (!alunoId) {
       return NextResponse.json({ mensagem: 'ID do aluno é obrigatório' }, { status: 400 })
+    }
+
+    // V1 fix (IDOR): validar pertencimento aluno → escola/polo do usuário
+    // antes de qualquer leitura de resultados. Aluno sem escola é tratado
+    // como 404 (não revelar existência).
+    const alunoCheck = await pool.query(
+      'SELECT escola_id FROM alunos WHERE id = $1 AND ativo = true',
+      [alunoId]
+    )
+    if (alunoCheck.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
+    }
+    const escolaAlunoId = alunoCheck.rows[0].escola_id
+    if (escolaAlunoId && !(await podeAcessarEscola(usuario, escolaAlunoId))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
     const result = await pool.query(
@@ -36,7 +55,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
 
     return NextResponse.json(result.rows)
   } catch (error) {
-    console.error('[resultados-sisam] Erro:', (error as Error).message)
+    log.error('Erro ao buscar resultados SISAM', error)
     return NextResponse.json({ mensagem: 'Erro ao buscar resultados SISAM' }, { status: 500 })
   }
 })
