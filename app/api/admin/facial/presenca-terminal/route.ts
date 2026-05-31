@@ -5,6 +5,7 @@ import { FACIAL } from '@/lib/constants'
 import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { registrarEventoFacial } from '@/lib/services/presenca-facial-eventos.service'
 
 const log = createLogger('FacialTerminal')
 
@@ -66,31 +67,42 @@ export async function POST(request: NextRequest) {
 
     // Extrair data e hora no fuso local (não UTC)
     const { data, hora } = extrairDataHoraLocal(timestamp)
+    const registradoEm = new Date(timestamp)
+    if (isNaN(registradoEm.getTime())) {
+      return NextResponse.json({ mensagem: 'Timestamp inválido' }, { status: 400 })
+    }
 
-    // Terminal facial grava em frequencia_diaria — significa "aluno esta
-    // na escola". Em anos finais, professor de cada disciplina confirma
-    // aula-a-aula via /api/professor/frequencia-hora-aula (badge "chegou
-    // pelo facial" no UI da chamada).
-    const result = await pool.query(
-      `INSERT INTO frequencia_diaria
-        (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, confianca, registrado_por)
-       VALUES ($1, $2, $3, $4, $5, 'facial', $6, $7)
-       ON CONFLICT (aluno_id, data) DO UPDATE SET
-        hora_saida = $5,
-        confianca = GREATEST(frequencia_diaria.confianca, $6),
-        atualizado_em = CURRENT_TIMESTAMP
-       RETURNING id, hora_entrada, hora_saida`,
-      [aluno_id, aluno.turma_id, aluno.escola_id, data, hora, confianca, usuario.id]
-    )
+    // Service classifica entrada/saida/duplicado (janela 30min)
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
 
-    const registro = result.rows[0]
-    return NextResponse.json({
-      sucesso: true,
-      registro_id: registro.id,
-      tipo: registro.hora_saida ? 'saida' : 'entrada',
-      data,
-      hora,
-    })
+      const evento = await registrarEventoFacial(client, {
+        aluno_id,
+        escola_id: aluno.escola_id,
+        registrado_em: registradoEm,
+        data,
+        confianca,
+        origem: 'terminal_web',
+        registrado_por: usuario.id,
+      }, aluno.turma_id)
+
+      await client.query('COMMIT')
+
+      return NextResponse.json({
+        sucesso: true,
+        evento_id: evento.id,
+        tipo: evento.tipo,
+        primeiro_do_dia: evento.primeiro_do_dia,
+        data,
+        hora,
+      })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
   } catch (error: unknown) {
     log.error('Erro ao registrar presença via terminal', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })

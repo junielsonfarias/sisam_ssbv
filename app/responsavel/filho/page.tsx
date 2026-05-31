@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, BookOpen, CalendarCheck, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react'
+import { ArrowLeft, BookOpen, CalendarCheck, TrendingUp, AlertTriangle, CheckCircle, ScanFace, LogIn, LogOut } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Aluno {
@@ -23,7 +23,10 @@ function FilhoPage() {
   const alunoId = searchParams.get('id')
   const abaInicial = searchParams.get('aba') || 'boletim'
 
-  const [aba, setAba] = useState<'boletim' | 'frequencia'>(abaInicial as any)
+  const [aba, setAba] = useState<'boletim' | 'frequencia' | 'presenca'>(abaInicial as any)
+  const [presencaResumo, setPresencaResumo] = useState<Array<{ data: string; hora_entrada: string | null; hora_saida: string | null; metodo: string }>>([])
+  const [presencaEventos, setPresencaEventos] = useState<Record<string, Array<{ tipo: 'entrada' | 'saida'; registrado_em: string; origem: string }>>>({})
+  const [carregandoPresenca, setCarregandoPresenca] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [aluno, setAluno] = useState<Aluno | null>(null)
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
@@ -37,6 +40,27 @@ function FilhoPage() {
     if (!alunoId) { router.push('/responsavel/dashboard'); return }
     carregarDados()
   }, [alunoId])
+
+  // Carregar historico facial quando troca para a aba presenca
+  useEffect(() => {
+    if (aba !== 'presenca' || !alunoId) return
+    const hoje = new Date()
+    const inicio = new Date(hoje)
+    inicio.setDate(inicio.getDate() - 30)
+    const fmt = (d: Date) => d.toISOString().slice(0, 10)
+    setCarregandoPresenca(true)
+    fetch(`/api/responsavel/presenca-facial?filho_id=${alunoId}&inicio=${fmt(inicio)}&fim=${fmt(hoje)}`, {
+      credentials: 'include',
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setPresencaResumo(data.resumo || [])
+          setPresencaEventos(data.eventos_por_dia || {})
+        }
+      })
+      .finally(() => setCarregandoPresenca(false))
+  }, [aba, alunoId])
 
   const carregarDados = async () => {
     try {
@@ -97,6 +121,12 @@ function FilhoPage() {
               aba === 'frequencia' ? 'border-green-600 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}>
             <CalendarCheck className="w-4 h-4" /> Frequencia
+          </button>
+          <button onClick={() => setAba('presenca')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              aba === 'presenca' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}>
+            <ScanFace className="w-4 h-4" /> Entrada/Saida
           </button>
         </div>
       </div>
@@ -222,6 +252,72 @@ function FilhoPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ABA ENTRADA/SAIDA (terminal facial — ultimos 30 dias) */}
+        {aba === 'presenca' && (
+          <>
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4">
+              <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
+                <ScanFace className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+                <span>
+                  Registros de entrada e saida pelo terminal de reconhecimento facial — ultimos 30 dias.
+                  Scans muito proximos (&lt; 30 min) sao filtrados como duplicados para evitar erros.
+                </span>
+              </p>
+            </div>
+
+            {carregandoPresenca ? (
+              <div className="text-center py-8 text-gray-500"><LoadingSpinner centered /></div>
+            ) : presencaResumo.length === 0 ? (
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
+                <ScanFace className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                <p className="text-gray-500">Nenhum registro de entrada/saida nos ultimos 30 dias.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {presencaResumo.map((dia) => {
+                  const eventos = presencaEventos[dia.data] || []
+                  const dataFmt = new Date(dia.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+                  return (
+                    <div key={dia.data} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+                      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-slate-700">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{dataFmt}</p>
+                        <div className="flex gap-3 text-xs">
+                          {dia.hora_entrada && (
+                            <span className="flex items-center gap-1 text-green-700 dark:text-green-400">
+                              <LogIn className="w-3 h-3" aria-hidden="true" /> {String(dia.hora_entrada).slice(0, 5)}
+                            </span>
+                          )}
+                          {dia.hora_saida && (
+                            <span className="flex items-center gap-1 text-red-700 dark:text-red-400">
+                              <LogOut className="w-3 h-3" aria-hidden="true" /> {String(dia.hora_saida).slice(0, 5)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {eventos.length > 0 && (
+                        <div className="divide-y divide-gray-50 dark:divide-slate-700">
+                          {eventos.map(e => {
+                            const hh = new Date(e.registrado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false })
+                            return (
+                              <div key={e.registrado_em + e.tipo} className="px-4 py-2 flex items-center justify-between text-xs">
+                                <span className={`flex items-center gap-1.5 ${e.tipo === 'entrada' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                  {e.tipo === 'entrada' ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
+                                  {e.tipo === 'entrada' ? 'Entrada' : 'Saida'}
+                                </span>
+                                <span className="text-gray-600 dark:text-gray-300 font-mono">{hh}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </>

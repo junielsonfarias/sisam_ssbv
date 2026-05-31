@@ -6,6 +6,7 @@ import { FACIAL } from '@/lib/constants'
 import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { registrarEventoFacial } from '@/lib/services/presenca-facial-eventos.service'
 
 const log = createLogger('FacialPresencas')
 
@@ -75,55 +76,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extrair data e hora no fuso local (não UTC)
+    // Extrair data no fuso local (para particionar eventos por dia)
     let data: string, hora: string
     try {
       ({ data, hora } = extrairDataHoraLocal(timestamp))
     } catch {
       return NextResponse.json({ mensagem: 'Timestamp inválido' }, { status: 400 })
     }
+    const registradoEm = new Date(timestamp)
+    if (isNaN(registradoEm.getTime())) {
+      return NextResponse.json({ mensagem: 'Timestamp inválido' }, { status: 400 })
+    }
 
-    // Inserir ou atualizar presença + log em transação
+    // Service classifica o evento (entrada/saida/duplicado) baseado nos
+    // eventos do dia + janela de 30min. Atualiza frequencia_diaria so
+    // quando faz sentido (duplicado nao toca).
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
 
-      // Terminal facial grava em frequencia_diaria — significa "aluno
-      // esta na escola" (entrada/saida). NAO propaga para
-      // frequencia_hora_aula: em anos finais, o professor de cada
-      // disciplina precisa confirmar presenca aula-a-aula (aluno pode ter
-      // assistido 2-3 aulas e saido antes da ultima). O endpoint do
-      // professor de anos finais expoe `alunos_chegaram_facial` para
-      // mostrar badge "chegou pelo facial".
-      //
-      // Primeiro scan = hora_entrada, scans seguintes = hora_saida.
-      const result = await client.query(
-        `INSERT INTO frequencia_diaria
-          (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
-         VALUES ($1, $2, $3, $4, $5, 'facial', $6, $7)
-         ON CONFLICT (aluno_id, data) DO UPDATE SET
-          hora_saida = $5,
-          confianca = GREATEST(frequencia_diaria.confianca, $7),
-          atualizado_em = CURRENT_TIMESTAMP
-         RETURNING id, hora_entrada, hora_saida`,
-        [aluno_id, aluno.turma_id, dispositivo.escola_id, data, hora, dispositivo.id, confianca]
-      )
+      const evento = await registrarEventoFacial(client, {
+        aluno_id,
+        escola_id: dispositivo.escola_id,
+        registrado_em: registradoEm,
+        data,
+        dispositivo_id: dispositivo.id,
+        confianca,
+        origem: 'dispositivo',
+      }, aluno.turma_id)
 
-      // Log do registro
+      // Log do dispositivo (auditoria operacional)
       await client.query(
         `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
          VALUES ($1, 'presenca', $2)`,
-        [dispositivo.id, JSON.stringify({ aluno_id, data, hora, confianca })]
+        [dispositivo.id, JSON.stringify({ aluno_id, data, hora, confianca, tipo: evento.tipo })]
       )
 
       await client.query('COMMIT')
 
-      const registro = result.rows[0]
-
       return NextResponse.json({
         sucesso: true,
-        registro_id: registro.id,
-        tipo: registro.hora_saida ? 'saida' : 'entrada',
+        evento_id: evento.id,
+        tipo: evento.tipo,
+        primeiro_do_dia: evento.primeiro_do_dia,
         data,
         hora,
       })
