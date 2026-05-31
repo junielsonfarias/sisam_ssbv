@@ -6,6 +6,7 @@ import { FACIAL } from '@/lib/constants'
 import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { propagarPresencaFacialParaHoraAula } from '@/lib/services/frequencia-facial.service'
 
 const log = createLogger('FacialPresencas')
 
@@ -43,12 +44,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se aluno pertence à escola do dispositivo e está ativo
+    // Verificar se aluno pertence à escola do dispositivo e está ativo.
+    // Tambem traz a serie (de alunos OU da turma) para decidir se propaga
+    // para frequencia_hora_aula (anos finais).
     const alunoResult = await pool.query(
-      `SELECT a.id, a.turma_id, a.escola_id
-       FROM alunos a
-       WHERE a.id = $1 AND a.escola_id = $2 AND a.ativo = true
-         AND a.situacao = 'cursando'`,
+      `SELECT a.id, a.turma_id, a.escola_id, COALESCE(a.serie, t.serie) AS serie
+         FROM alunos a
+         LEFT JOIN turmas t ON t.id = a.turma_id
+        WHERE a.id = $1 AND a.escola_id = $2 AND a.ativo = true
+          AND a.situacao = 'cursando'`,
       [aluno_id, dispositivo.escola_id]
     )
 
@@ -88,7 +92,8 @@ export async function POST(request: NextRequest) {
     try {
       await client.query('BEGIN')
 
-      // Primeiro scan = hora_entrada, scans seguintes = hora_saida
+      // 1) Sempre grava frequencia_diaria (rastreia "esteve no predio")
+      //    Primeiro scan = hora_entrada, scans seguintes = hora_saida
       const result = await client.query(
         `INSERT INTO frequencia_diaria
           (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
@@ -101,11 +106,21 @@ export async function POST(request: NextRequest) {
         [aluno_id, aluno.turma_id, dispositivo.escola_id, data, hora, dispositivo.id, confianca]
       )
 
+      // 2) Anos finais (6-9): propaga presenca para frequencia_hora_aula
+      //    em todas as aulas previstas em horarios_aula daquele dia da
+      //    semana. Anos iniciais: skip (frequencia_diaria ja basta).
+      const propagacao = await propagarPresencaFacialParaHoraAula(client, {
+        aluno_id,
+        turma_id: aluno.turma_id,
+        data,
+        serie: aluno.serie,
+      })
+
       // Log do registro
       await client.query(
         `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
          VALUES ($1, 'presenca', $2)`,
-        [dispositivo.id, JSON.stringify({ aluno_id, data, hora, confianca })]
+        [dispositivo.id, JSON.stringify({ aluno_id, data, hora, confianca, propagacao })]
       )
 
       await client.query('COMMIT')
@@ -118,6 +133,7 @@ export async function POST(request: NextRequest) {
         tipo: registro.hora_saida ? 'saida' : 'entrada',
         data,
         hora,
+        propagacao_hora_aula: propagacao,
       })
     } catch (error: unknown) {
       await client.query('ROLLBACK')
