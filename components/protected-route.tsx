@@ -165,10 +165,44 @@ export default function ProtectedRoute({ children, tiposPermitidos, requerModulo
               router.push('/login')
             }
           } else if (response.status === 401 || response.status === 403) {
-            // Auth realmente expirada/invalida no servidor — nao adianta manter
-            // offline user "fantasma" pois nada vai funcionar. Limpa sessao
-            // local e redireciona para login (evita ProtectedRoute autorizando
-            // + APIs todas retornando 401 em cascata).
+            // V8 ideal: antes de desistir, tentar UMA VEZ /api/auth/refresh.
+            // Se o usuario tem refresh-token valido, recuperamos a sessao
+            // sem ir para /login.
+            const refreshOk = await fetch('/api/auth/refresh', { method: 'POST' })
+              .then(r => r.ok)
+              .catch(() => false)
+            if (refreshOk) {
+              console.log('[ProtectedRoute] Sessao renovada via refresh-token')
+              // Reverificar — agora com cookie novo
+              const segundo = await fetch('/api/auth/verificar').catch(() => null)
+              const dadosSegundo = await segundo?.json().catch(() => ({})) ?? {}
+              if (segundo?.ok && dadosSegundo.usuario) {
+                const acessoSegundo = verificarAcesso(dadosSegundo.usuario)
+                if (acessoSegundo.ok) {
+                  offlineStorage.saveUser({
+                    id: dadosSegundo.usuario.id?.toString() || dadosSegundo.usuario.usuario_id?.toString(),
+                    nome: dadosSegundo.usuario.nome,
+                    email: dadosSegundo.usuario.email,
+                    tipo_usuario: dadosSegundo.usuario.tipo_usuario,
+                    polo_id: dadosSegundo.usuario.polo_id,
+                    escola_id: dadosSegundo.usuario.escola_id,
+                    polo_nome: dadosSegundo.usuario.polo_nome,
+                    escola_nome: dadosSegundo.usuario.escola_nome,
+                    gestor_escolar_habilitado: dadosSegundo.usuario.gestor_escolar_habilitado,
+                    acesso_sisam: dadosSegundo.usuario.acesso_sisam,
+                    acesso_gestor: dadosSegundo.usuario.acesso_gestor,
+                    acesso_semed: dadosSegundo.usuario.acesso_semed,
+                    acesso_transparencia: dadosSegundo.usuario.acesso_transparencia,
+                    acesso_admin: dadosSegundo.usuario.acesso_admin,
+                  })
+                  setAutorizado(true)
+                  authCache = { autorizado: true, timestamp: Date.now(), tiposPermitidos: tiposKey, userId: currentUserId }
+                  setCarregando(false)
+                  verificandoRef.current = false
+                  return
+                }
+              }
+            }
             console.log('[ProtectedRoute] Auth expirada no servidor (status', response.status, '). Limpando sessao offline.')
             offlineStorage.clearUser()
             authCache = null
@@ -197,6 +231,20 @@ export default function ProtectedRoute({ children, tiposPermitidos, requerModulo
     verificarAuth()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, tiposKey])
+
+  // V8 ideal: refresh proativo do access-token a cada 13min (access vive 15min,
+  // refresh-token 7d com rotacao em rotina). Mantem sessao "infinita" enquanto
+  // a aba estiver aberta e o usuario nao deslogar.
+  useEffect(() => {
+    if (!autorizado) return
+    const interval = setInterval(() => {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+      fetch('/api/auth/refresh', { method: 'POST' }).catch(() => {
+        // silencioso: se falhar, a proxima request 401 vai disparar fluxo de login
+      })
+    }, 13 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [autorizado])
 
   if (carregando) {
     return (

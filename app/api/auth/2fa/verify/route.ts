@@ -17,6 +17,12 @@ import { createLogger } from '@/lib/logger'
 import { getClientIP } from '@/lib/rate-limiter'
 import { checkRateLimitAsync, resetRateLimitAsync, createRateLimitKeyPorUsuario } from '@/lib/rate-limiter-async'
 import { cacheGet, cacheKey, cacheSet } from '@/lib/cache/redis'
+import {
+  criarRefreshToken,
+  REFRESH_TOKEN_COOKIE,
+  REFRESH_COOKIE_MAX_AGE,
+  REFRESH_COOKIE_PATH,
+} from '@/lib/services/refresh-token.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,12 +145,28 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
 
+    const isProd = process.env.NODE_ENV === 'production' || (process.env.VERCEL_URL || '').includes('https')
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' || (process.env.VERCEL_URL || '').includes('https'),
+      secure: isProd,
       sameSite: 'lax',
       maxAge: SESSAO.COOKIE_MAX_AGE,
       path: '/',
+    })
+
+    // V8 ideal: emite refresh-token rotativo
+    const userAgent = request.headers.get('user-agent') || undefined
+    const refresh = await criarRefreshToken({
+      usuarioId: String(usuario.id),
+      ipAddress: clientIP,
+      userAgent,
+    })
+    response.cookies.set(REFRESH_TOKEN_COOKIE, refresh.token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      maxAge: REFRESH_COOKIE_MAX_AGE,
+      path: REFRESH_COOKIE_PATH,
     })
 
     return response

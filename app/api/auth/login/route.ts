@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { comparePassword, generateToken, generatePreAuthToken } from '@/lib/auth'
+import {
+  criarRefreshToken,
+  REFRESH_TOKEN_COOKIE,
+  REFRESH_COOKIE_MAX_AGE,
+  REFRESH_COOKIE_PATH,
+} from '@/lib/services/refresh-token.service'
 import { precisaDe2FANoLogin, tipoExige2FA } from '@/lib/services/dois-fatores.service'
 import { checkRateLimit, resetRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
 import { checkRateLimitAsync, resetRateLimitAsync, createRateLimitKeyPorUsuario } from '@/lib/rate-limiter-async'
@@ -310,18 +316,33 @@ export async function POST(request: NextRequest) {
     // Criar resposta
     const response = NextResponse.json(responseData, { status: 200 })
     
-    // Definir cookie
+    // Definir cookies (access curto + refresh rotativo — V8 ideal)
     try {
+      const isProd = process.env.NODE_ENV === 'production' || (process.env.VERCEL_URL || '').includes('https')
       response.cookies.set('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production' || (process.env.VERCEL_URL || '').includes('https'),
+        secure: isProd,
         sameSite: 'lax',
         maxAge: SESSAO.COOKIE_MAX_AGE,
         path: '/',
       })
-      log.info('Cookie definido com sucesso')
+
+      const userAgent = request.headers.get('user-agent') || undefined
+      const refresh = await criarRefreshToken({
+        usuarioId: String(usuario.id),
+        ipAddress: clientIP,
+        userAgent,
+      })
+      response.cookies.set(REFRESH_TOKEN_COOKIE, refresh.token, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'lax',
+        maxAge: REFRESH_COOKIE_MAX_AGE,
+        path: REFRESH_COOKIE_PATH,
+      })
+      log.info('Cookies de access + refresh definidos com sucesso')
     } catch (cookieError) {
-      log.error(`Erro ao definir cookie: ${(cookieError as Error).message}`, cookieError)
+      log.error(`Erro ao definir cookies: ${(cookieError as Error).message}`, cookieError)
     }
 
     log.info('Retornando resposta de login')
