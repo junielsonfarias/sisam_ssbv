@@ -161,14 +161,20 @@ export async function justificarFalta(frequenciaId: string, justificativa: strin
 }
 
 /**
- * Busca frequência por hora-aula de uma turma + data (6º-9º)
+ * Busca frequência por hora-aula de uma turma + data (6º-9º).
+ *
+ * Retorno inclui `alunos_chegaram_facial: string[]` — IDs dos alunos que
+ * tem registro de chegada via terminal facial naquele dia
+ * (frequencia_diaria.metodo='facial'). O UI da chamada usa para mostrar
+ * badge "chegou pelo facial" e o professor confirma presenca aula-a-aula
+ * manualmente (caso de aluno que assiste 2-3 aulas e sai antes da ultima).
  */
 export async function buscarFrequenciaHoraAula(turmaId: string, data: string) {
   const dataObj = new Date(data + 'T12:00:00')
   let diaSemana = dataObj.getDay()
   if (diaSemana === 0) diaSemana = 7
 
-  const [horariosResult, frequenciasResult, alunosResult] = await Promise.all([
+  const [horariosResult, frequenciasResult, alunosResult, facialResult] = await Promise.all([
     pool.query(
       `SELECT ha.numero_aula, ha.disciplina_id, de.nome as disciplina_nome, de.abreviacao
        FROM horarios_aula ha
@@ -195,12 +201,20 @@ export async function buscarFrequenciaHoraAula(turmaId: string, data: string) {
        ORDER BY nome`,
       [turmaId]
     ),
+    pool.query(
+      `SELECT aluno_id, hora_entrada, hora_saida
+         FROM frequencia_diaria
+        WHERE turma_id = $1 AND data = $2 AND metodo = 'facial'`,
+      [turmaId, data]
+    ),
   ])
 
   return {
     horarios: horariosResult.rows,
     frequencias: frequenciasResult.rows,
     alunos: alunosResult.rows,
+    alunos_chegaram_facial: facialResult.rows.map((r: any) => r.aluno_id),
+    chegadas_facial: facialResult.rows, // { aluno_id, hora_entrada, hora_saida }
   }
 }
 
