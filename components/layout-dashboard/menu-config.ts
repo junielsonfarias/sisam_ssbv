@@ -137,6 +137,16 @@ function gruposSisam(tipo: string): MenuItem[] {
           { icon: BarChart3, label: 'Comparativo Escolas', href: '/admin/comparativos' },
         ]
       },
+      {
+        icon: GraduationCap, label: 'Professores', children: [
+          { icon: ArrowLeftRight, label: 'Turmas e Professores', href: '/admin/professor-turmas' },
+        ]
+      },
+      {
+        icon: Users, label: 'Responsáveis', children: [
+          { icon: Users, label: 'Aprovar vínculos', href: '/admin/responsaveis' },
+        ]
+      },
     )
   } else if (tipo === 'escola') {
     base.push(
@@ -218,6 +228,11 @@ function gruposGestor(tipo: string): MenuItem[] {
         ]
       },
       {
+        icon: Users, label: 'Responsáveis', children: [
+          { icon: Users, label: 'Aprovar vínculos', href: '/admin/responsaveis' },
+        ]
+      },
+      {
         icon: Settings, label: 'Configurações', children: [
           { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
           { icon: GraduationCap, label: 'Séries', href: '/admin/series-escolares' },
@@ -264,6 +279,16 @@ function gruposGestor(tipo: string): MenuItem[] {
           { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
           { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
           { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
+        ]
+      },
+      {
+        icon: GraduationCap, label: 'Professores', children: [
+          { icon: ArrowLeftRight, label: 'Turmas e Professores', href: '/admin/professor-turmas' },
+        ]
+      },
+      {
+        icon: Users, label: 'Responsáveis', children: [
+          { icon: Users, label: 'Aprovar vínculos', href: '/admin/responsaveis' },
         ]
       },
       {
