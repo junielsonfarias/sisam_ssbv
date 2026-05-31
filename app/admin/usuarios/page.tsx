@@ -421,6 +421,7 @@ export default function UsuariosPage() {
                               onClick={() => handleToggleAtivo(usuario)}
                               className="group"
                               title={usuario.ativo ? 'Clique para desativar' : 'Clique para ativar'}
+                              aria-label={usuario.ativo ? `Desativar usuário ${usuario.nome}` : `Ativar usuário ${usuario.nome}`}
                             >
                               {usuario.ativo ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 group-hover:bg-green-200 dark:group-hover:bg-green-900 transition-colors">
@@ -441,6 +442,7 @@ export default function UsuariosPage() {
                                 onClick={() => handleAbrirModal(usuario)}
                                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                                 title="Editar usuário"
+                                aria-label={`Editar usuário ${usuario.nome}`}
                               >
                                 <Edit className="w-5 h-5" />
                               </button>
@@ -448,6 +450,7 @@ export default function UsuariosPage() {
                                 onClick={() => handleAbrirModalExcluir(usuario)}
                                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                                 title="Excluir usuário"
+                                aria-label={`Excluir usuário ${usuario.nome}`}
                               >
                                 <Trash2 className="w-5 h-5" />
                               </button>
@@ -482,6 +485,7 @@ export default function UsuariosPage() {
                       <button
                         onClick={() => setMostrarModal(false)}
                         className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        aria-label="Fechar modal"
                       >
                         <X className="w-6 h-6" />
                       </button>
@@ -608,6 +612,9 @@ export default function UsuariosPage() {
                           </div>
                           <button
                             type="button"
+                            role="switch"
+                            aria-checked={formData.acesso_sisam}
+                            aria-label="Acesso ao módulo SISAM"
                             onClick={() => setFormData({ ...formData, acesso_sisam: !formData.acesso_sisam })}
                             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
                               formData.acesso_sisam ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'
@@ -625,6 +632,9 @@ export default function UsuariosPage() {
                           </div>
                           <button
                             type="button"
+                            role="switch"
+                            aria-checked={formData.acesso_gestor}
+                            aria-label="Acesso ao módulo Gestor"
                             onClick={() => setFormData({ ...formData, acesso_gestor: !formData.acesso_gestor })}
                             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
                               formData.acesso_gestor ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
@@ -642,6 +652,9 @@ export default function UsuariosPage() {
                           </div>
                           <button
                             type="button"
+                            role="switch"
+                            aria-checked={formData.acesso_semed}
+                            aria-label="Acesso ao módulo SEMED"
                             onClick={() => setFormData({ ...formData, acesso_semed: !formData.acesso_semed })}
                             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                               formData.acesso_semed ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600'
@@ -659,6 +672,9 @@ export default function UsuariosPage() {
                           </div>
                           <button
                             type="button"
+                            role="switch"
+                            aria-checked={formData.acesso_transparencia}
+                            aria-label="Acesso ao módulo Transparência"
                             onClick={() => setFormData({ ...formData, acesso_transparencia: !formData.acesso_transparencia })}
                             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 ${
                               formData.acesso_transparencia ? 'bg-sky-500' : 'bg-gray-300 dark:bg-gray-600'
@@ -676,6 +692,9 @@ export default function UsuariosPage() {
                           </div>
                           <button
                             type="button"
+                            role="switch"
+                            aria-checked={formData.acesso_admin}
+                            aria-label="Acesso ao módulo Admin"
                             onClick={() => setFormData({ ...formData, acesso_admin: !formData.acesso_admin })}
                             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ${
                               formData.acesso_admin ? 'bg-slate-600' : 'bg-gray-300 dark:bg-gray-600'
@@ -698,6 +717,9 @@ export default function UsuariosPage() {
                           </div>
                           <button
                             type="button"
+                            role="switch"
+                            aria-checked={formData.ativo}
+                            aria-label="Usuário ativo"
                             onClick={() => setFormData({ ...formData, ativo: !formData.ativo })}
                             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
                               formData.ativo ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'

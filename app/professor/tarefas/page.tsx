@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 import {
   TarefaModal, FORM_TAREFA_VAZIO, TIPOS_TAREFA,
   type Turma, type FormTarefa,
@@ -67,6 +68,7 @@ export default function TarefasProfessor() {
   const [filtroTurma, setFiltroTurma] = useState<string>('')
   const [aba, setAba] = useState<Aba>('ativas')
   const [form, setForm] = useState<FormTarefa>(FORM_TAREFA_VAZIO)
+  const [confirmarExcluir, setConfirmarExcluir] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([carregarTurmas(), carregarTarefas()])
@@ -147,8 +149,13 @@ export default function TarefasProfessor() {
     }
   }, [form, toast])
 
-  const excluir = async (id: string) => {
-    if (!window.confirm('Excluir esta tarefa? Esta acao nao pode ser desfeita.')) return
+  const excluir = (id: string) => {
+    setConfirmarExcluir(id)
+  }
+
+  const confirmarExcluirTarefa = async () => {
+    if (!confirmarExcluir) return
+    const id = confirmarExcluir
     setExcluindo(id)
     try {
       const res = await fetch(`/api/professor/tarefas?id=${id}`, { method: 'DELETE', credentials: 'include' })
@@ -160,6 +167,7 @@ export default function TarefasProfessor() {
       }
     } finally {
       setExcluindo(null)
+      setConfirmarExcluir(null)
     }
   }
 
@@ -345,6 +353,17 @@ export default function TarefasProfessor() {
           form={form}
           setForm={setForm}
           turmas={turmas}
+        />
+
+        <ConfirmModal
+          aberto={confirmarExcluir !== null}
+          titulo="Excluir tarefa"
+          mensagem="Tem certeza? Esta ação não pode ser desfeita."
+          variant="danger"
+          textoConfirmar="Excluir"
+          processando={excluindo !== null}
+          onConfirmar={confirmarExcluirTarefa}
+          onFechar={() => setConfirmarExcluir(null)}
         />
       </div>
     </ProtectedRoute>

@@ -434,7 +434,7 @@ export default function AlunosPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={handlePesquisar} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Atualizar">
+                <button onClick={handlePesquisar} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Atualizar" aria-label="Atualizar lista de alunos">
                   <RefreshCw className="w-5 h-5" />
                 </button>
                 {alunos.length > 0 && (
@@ -462,6 +462,7 @@ export default function AlunosPage() {
                     )}
                     className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
                     title="Exportar CSV"
+                    aria-label="Exportar lista de alunos para CSV"
                   >
                     <Download className="w-5 h-5" />
                   </button>
@@ -637,6 +638,7 @@ export default function AlunosPage() {
                                   onClick={() => router.push(`/admin/alunos/${aluno.id}`)}
                                   className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                                   title="Ver Perfil"
+                                  aria-label={`Ver perfil de ${aluno.nome}`}
                                 >
                                   <UserCircle className="w-4 h-4" />
                                 </button>
@@ -644,6 +646,7 @@ export default function AlunosPage() {
                                   onClick={() => handleVisualizarHistorico(aluno)}
                                   className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                                   title="Histórico"
+                                  aria-label={`Histórico de ${aluno.nome}`}
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
@@ -651,6 +654,7 @@ export default function AlunosPage() {
                                   onClick={() => handleAbrirModal(aluno)}
                                   className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                                   title="Editar"
+                                  aria-label={`Editar aluno ${aluno.nome}`}
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
@@ -658,6 +662,7 @@ export default function AlunosPage() {
                                   onClick={() => handleExcluir(aluno.id)}
                                   className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                                   title="Excluir"
+                                  aria-label={`Excluir aluno ${aluno.nome}`}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>

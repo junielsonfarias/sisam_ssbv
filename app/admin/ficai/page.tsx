@@ -401,6 +401,7 @@ function FicaiAdmin() {
             onClick={() => carregarCasos()}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-slate-700 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600"
             title="Recarregar"
+            aria-label="Recarregar lista de casos FICAI"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
