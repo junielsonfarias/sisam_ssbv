@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { useAnoLetivo, AnoLetivoSelect } from '@/lib/contexts/ano-letivo-context'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 interface SlotVinculo {
   tipo: 'polivalente' | 'disciplina'
@@ -64,6 +65,12 @@ function PainelTurmasProfessores() {
   const [vinculandoKey, setVinculandoKey] = useState<string | null>(null)
   const [novoProfessor, setNovoProfessor] = useState('')
   const [salvandoVinculo, setSalvandoVinculo] = useState(false)
+
+  // Confirmacao de remocao (substitui confirm() nativo)
+  const [confirmandoRemocao, setConfirmandoRemocao] = useState<{
+    vinculo_id: string; descricao: string
+  } | null>(null)
+  const [removendo, setRemovendo] = useState(false)
 
   const fetchTurmas = async () => {
     setCarregando(true)
@@ -173,19 +180,27 @@ function PainelTurmasProfessores() {
     }
   }
 
-  const removerVinculo = async (vinculoId: string) => {
-    if (!confirm('Remover este vínculo? O professor ficará sem acesso a esta turma/disciplina.')) return
+  const confirmarRemocao = async () => {
+    if (!confirmandoRemocao) return
+    setRemovendo(true)
+    setErro(''); setMensagem('')
     try {
       const res = await fetch('/api/admin/professor-turmas', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vinculo_id: vinculoId }),
+        body: JSON.stringify({ vinculo_id: confirmandoRemocao.vinculo_id }),
       })
-      if (!res.ok) throw new Error('Erro ao remover')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.mensagem || 'Erro ao remover')
+      }
       setMensagem('Vínculo removido')
+      setConfirmandoRemocao(null)
       fetchTurmas()
     } catch (err: any) {
       setErro(err.message)
+    } finally {
+      setRemovendo(false)
     }
   }
 
@@ -415,7 +430,10 @@ function PainelTurmasProfessores() {
                                         <RefreshCw className="h-4 w-4" />
                                       </button>
                                       <button
-                                        onClick={() => removerVinculo(slot.vinculo!.id)}
+                                        onClick={() => setConfirmandoRemocao({
+                                          vinculo_id: slot.vinculo!.id,
+                                          descricao: `${slot.vinculo!.professor_nome} em ${t.codigo || t.serie}${slot.disciplina_nome ? ` (${slot.disciplina_nome})` : ''}`,
+                                        })}
                                         className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg"
                                         title="Remover vínculo"
                                         aria-label="Remover vínculo"
@@ -476,6 +494,21 @@ function PainelTurmasProfessores() {
           ))}
         </div>
       )}
+
+      {/* Confirmacao de remocao de vinculo */}
+      <ConfirmModal
+        aberto={confirmandoRemocao !== null}
+        titulo="Remover vínculo"
+        mensagem={confirmandoRemocao
+          ? `Remover ${confirmandoRemocao.descricao}? O professor ficará sem acesso a esta turma/disciplina. Os dados de frequência e notas já lançados são preservados.`
+          : ''
+        }
+        variant="danger"
+        textoConfirmar="Remover"
+        onConfirmar={confirmarRemocao}
+        onFechar={() => { if (!removendo) setConfirmandoRemocao(null) }}
+        processando={removendo}
+      />
     </div>
   )
 }
