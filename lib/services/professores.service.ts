@@ -365,11 +365,16 @@ export async function buscarTurmasComVinculos(filtros: {
       turmaIds
     ),
     pool.query(
-      `SELECT DISTINCT ha.turma_id, ha.disciplina_id, de.nome, de.abreviacao
+      // GROUP BY em vez de DISTINCT — Postgres exige que colunas do ORDER BY
+      // estejam no SELECT list quando se usa DISTINCT. MIN(de.ordem) preserva
+      // a ordenacao pedagogica.
+      `SELECT ha.turma_id, ha.disciplina_id,
+              de.nome, de.abreviacao, MIN(de.ordem) AS ordem
          FROM horarios_aula ha
          INNER JOIN disciplinas_escolares de ON de.id = ha.disciplina_id
         WHERE ha.turma_id IN (${turmaIdsPlaceholders})
-        ORDER BY de.ordem NULLS LAST, de.nome`,
+        GROUP BY ha.turma_id, ha.disciplina_id, de.nome, de.abreviacao
+        ORDER BY ordem NULLS LAST, de.nome`,
       turmaIds
     ),
   ])
