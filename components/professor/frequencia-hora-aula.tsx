@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Save, AlertCircle } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Save, AlertCircle, ScanFace } from 'lucide-react'
 
 interface Horario {
   numero_aula: number
@@ -24,17 +24,44 @@ interface Frequencia {
   presente: boolean
 }
 
+interface ChegadaFacial {
+  aluno_id: string
+  hora_entrada: string | null
+  hora_saida: string | null
+}
+
 interface Props {
   turmaId: string
   data: string
   horarios: Horario[]
   alunos: Aluno[]
   frequencias: Frequencia[]
+  /**
+   * Alunos que registraram chegada pelo terminal facial naquele dia.
+   * UI mostra badge "chegou pelo facial as HH:MM" mas NAO pre-marca
+   * presenca — professor precisa confirmar aula-a-aula (aluno pode ter
+   * assistido apenas as primeiras aulas).
+   */
+  chegadasFacial?: ChegadaFacial[]
   onSalvar: () => void
 }
 
-export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, alunos, frequencias, onSalvar }: Props) {
+function abreviarHora(h: string | null | undefined): string {
+  if (!h) return ''
+  // PG retorna 'HH:MM:SS' ou 'HH:MM:SS.fff' — pega so HH:MM
+  return h.slice(0, 5)
+}
+
+export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, alunos, frequencias, chegadasFacial, onSalvar }: Props) {
   const [aulaAtiva, setAulaAtiva] = useState(horarios.length > 0 ? horarios[0].numero_aula : 1)
+
+  // Map aluno_id -> { hora_entrada, hora_saida } para lookup O(1) por linha
+  const chegadasMap = useMemo(() => {
+    const m = new Map<string, ChegadaFacial>()
+    ;(chegadasFacial || []).forEach(c => m.set(c.aluno_id, c))
+    return m
+  }, [chegadasFacial])
+  const totalChegaram = chegadasMap.size
   const [registros, setRegistros] = useState<Record<string, Record<number, boolean>>>(() => {
     const map: Record<string, Record<number, boolean>> = {}
     frequencias.forEach(f => {
@@ -205,6 +232,20 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
         </div>
       )}
 
+      {/* Aviso de chegadas pelo terminal facial — exige confirmacao do professor */}
+      {totalChegaram > 0 && (
+        <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+          <ScanFace className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <span className="font-medium">{totalChegaram} aluno(s) chegaram pelo terminal facial.</span>
+            <span className="block text-xs opacity-90 mt-0.5">
+              O terminal apenas registra entrada na escola — confirme presença em cada aula
+              (aluno pode ter assistido só algumas).
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Ações rápidas */}
       <div className="flex gap-2">
         <button
@@ -227,6 +268,7 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
           const presente = registros[aluno.id]?.[aulaAtiva]
           const isPresente = presente === true
           const isAusente = presente === false
+          const chegou = chegadasMap.get(aluno.id)
 
           return (
             <div
@@ -234,12 +276,25 @@ export default function FrequenciaHoraAulaComponent({ turmaId, data, horarios, a
               className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border transition-colors ${
                 isPresente ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
                 isAusente ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                chegou ? 'bg-blue-50/40 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' :
                 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
               }`}
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <span className="text-xs text-gray-400 w-5 text-right flex-shrink-0">{i + 1}</span>
-                <p className="text-sm font-medium text-gray-900 dark:text-white break-words leading-snug flex-1">{aluno.nome}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white break-words leading-snug">{aluno.nome}</p>
+                  {chegou && (
+                    <span
+                      className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[11px] font-medium"
+                      title={`Aluno registrado no terminal facial${chegou.hora_entrada ? ` as ${abreviarHora(chegou.hora_entrada)}` : ''}${chegou.hora_saida ? ` (saida ${abreviarHora(chegou.hora_saida)})` : ''}. Confirme presenca nesta aula.`}
+                    >
+                      <ScanFace className="h-3 w-3" aria-hidden="true" />
+                      Chegou {chegou.hora_entrada ? `as ${abreviarHora(chegou.hora_entrada)}` : 'pelo facial'}
+                      {chegou.hora_saida && ` · saida ${abreviarHora(chegou.hora_saida)}`}
+                    </span>
+                  )}
+                </div>
               </div>
               <div
                 role="radiogroup"

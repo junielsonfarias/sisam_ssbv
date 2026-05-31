@@ -189,6 +189,7 @@ function FrequenciaTurma() {
           horarios={dadosHoraAula.horarios}
           alunos={dadosHoraAula.alunos}
           frequencias={dadosHoraAula.frequencias}
+          chegadasFacial={dadosHoraAula.chegadas_facial}
           onSalvar={() => { fetchFrequencia(); setHistoricoVersao(v => v + 1) }}
         />
       ) : dadosDiaria ? (
