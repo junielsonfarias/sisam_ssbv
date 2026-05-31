@@ -150,15 +150,27 @@ interface ModalFooterProps {
   /** Texto do botão de salvar quando está salvando */
   textoSalvando?: string
   /** Cor do botão primário. Default 'indigo' (CTA padrão). Use 'red' para
-   *  ações destrutivas (excluir, bloquear) e 'amber' para ações reversíveis
-   *  arriscadas (regenerar chave). Classes Tailwind literais p/ purge. */
-  variantePrimaria?: 'indigo' | 'red' | 'amber'
+   *  ações destrutivas (excluir, bloquear), 'amber' para ações reversíveis
+   *  arriscadas (regenerar chave), e cores específicas de módulo (green=pnae,
+   *  cyan=pnate, teal=pnld, rose=biblioteca, purple=aee, blue=padrão claro).
+   *  Classes Tailwind literais p/ purge. */
+  variantePrimaria?: 'indigo' | 'red' | 'amber' | 'green' | 'cyan' | 'teal' | 'rose' | 'purple' | 'blue' | 'emerald' | 'orange'
+  /** Ícone opcional antes do texto do botão primário (quando não está salvando) */
+  iconePrimario?: ReactNode
 }
 
 const VARIANTES_PRIMARIAS = {
-  indigo: 'bg-indigo-600 hover:bg-indigo-700',
-  red:    'bg-red-600 hover:bg-red-700',
-  amber:  'bg-amber-600 hover:bg-amber-700',
+  indigo:  'bg-indigo-600 hover:bg-indigo-700',
+  red:     'bg-red-600 hover:bg-red-700',
+  amber:   'bg-amber-600 hover:bg-amber-700',
+  green:   'bg-green-600 hover:bg-green-700',
+  cyan:    'bg-cyan-600 hover:bg-cyan-700',
+  teal:    'bg-teal-600 hover:bg-teal-700',
+  rose:    'bg-rose-600 hover:bg-rose-700',
+  purple:  'bg-purple-600 hover:bg-purple-700',
+  blue:    'bg-blue-600 hover:bg-blue-700',
+  emerald: 'bg-emerald-600 hover:bg-emerald-700',
+  orange:  'bg-orange-600 hover:bg-orange-700',
 } as const
 
 /**
@@ -173,6 +185,7 @@ export function ModalFooter({
   textoSalvar = 'Salvar',
   textoSalvando = 'Salvando...',
   variantePrimaria = 'indigo',
+  iconePrimario,
 }: ModalFooterProps) {
   return (
     <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
@@ -188,8 +201,9 @@ export function ModalFooter({
         onClick={onSalvar}
         disabled={salvando || desabilitado}
         aria-busy={salvando}
-        className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 ${VARIANTES_PRIMARIAS[variantePrimaria]} text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base`}
+        className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 ${VARIANTES_PRIMARIAS[variantePrimaria]} text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base inline-flex items-center justify-center gap-2`}
       >
+        {!salvando && iconePrimario}
         {salvando ? textoSalvando : textoSalvar}
       </button>
     </div>
