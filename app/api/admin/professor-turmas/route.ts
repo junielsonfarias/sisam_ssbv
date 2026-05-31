@@ -5,7 +5,7 @@ import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { validateRequest, professorTurmaPostSchema, professorTurmaPatchSchema, professorTurmaDeleteSchema } from '@/lib/schemas'
-import { buscarVinculos, criarVinculo, trocarProfessor, desativarVinculo } from '@/lib/services/professores.service'
+import { buscarVinculos, criarVinculo, trocarProfessor, desativarVinculo, buscarTurmasComVinculos } from '@/lib/services/professores.service'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('AdminProfessorTurmas')
@@ -14,24 +14,54 @@ export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/admin/professor-turmas
- * Lista vínculos professor-turma
+ * - sem mode: lista vinculos professor-turma (legado, compat)
+ * - mode=por_turma: lista TODAS as turmas (com ou sem professor) +
+ *   slots (1 polivalente para iniciais, N disciplinas para finais via
+ *   horarios_aula). Usado pelo painel /admin/professor-turmas.
+ *
+ * Filtros (escola_id, polo_id, ano_letivo, serie, turno) sao auto-
+ * restringidos pelo escopo do usuario:
+ * - escola: forca escola_id = usuario.escola_id
+ * - polo:   forca polo_id   = usuario.polo_id
+ * - admin/tecnico: ve tudo
  */
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
   try {
     const searchParams = request.nextUrl.searchParams
-    const { escola_id, professor_id, ano_letivo } = parseSearchParams(searchParams, ['escola_id', 'professor_id', 'ano_letivo'])
+    const mode = searchParams.get('mode')
+    const { escola_id, professor_id, ano_letivo, serie, turno, polo_id } = parseSearchParams(
+      searchParams,
+      ['escola_id', 'professor_id', 'ano_letivo', 'serie', 'turno', 'polo_id']
+    )
 
-    const escolaFiltro = escola_id || (usuario.tipo_usuario === 'escola' ? usuario.escola_id : null)
+    // Escopo automatico por tipo de usuario
+    const escolaFiltro = usuario.tipo_usuario === 'escola'
+      ? usuario.escola_id
+      : (escola_id || null)
+    const poloFiltro = usuario.tipo_usuario === 'polo'
+      ? usuario.polo_id
+      : (polo_id || null)
 
+    if (mode === 'por_turma') {
+      const turmas = await buscarTurmasComVinculos({
+        escolaId: escolaFiltro,
+        poloId: poloFiltro,
+        anoLetivo: ano_letivo,
+        serie,
+        turno,
+      })
+      return NextResponse.json({ turmas })
+    }
+
+    // Modo legado (lista de vinculos)
     const vinculos = await buscarVinculos({
       escolaId: escolaFiltro,
       professorId: professor_id,
       anoLetivo: ano_letivo,
     })
-
     return NextResponse.json({ vinculos })
   } catch (error: unknown) {
-    log.error('Erro ao listar vínculos', error)
+    log.error('Erro ao listar vinculos/turmas', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -41,7 +71,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
  * Cria vínculo professor-turma
  * Body: { professor_id, turma_id, disciplina_id?, tipo_vinculo, ano_letivo }
  */
-export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const POST = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
   try {
     const validacao = await validateRequest(request, professorTurmaPostSchema)
     if (!validacao.success) return validacao.response
@@ -56,15 +86,25 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
       return NextResponse.json({ mensagem: 'Professor não encontrado' }, { status: 404 })
     }
 
-    // Verificar se turma existe
-    const turmaResult = await pool.query('SELECT id, escola_id FROM turmas WHERE id = $1', [turma_id])
+    // Verificar se turma existe (e trazer polo_id para autz de polo)
+    const turmaResult = await pool.query(
+      `SELECT t.id, t.escola_id, e.polo_id
+         FROM turmas t
+         INNER JOIN escolas e ON e.id = t.escola_id
+        WHERE t.id = $1`,
+      [turma_id]
+    )
     if (turmaResult.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
     }
+    const turmaInfo = turmaResult.rows[0]
 
-    // Verificar permissão de escola
-    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && usuario.escola_id !== turmaResult.rows[0].escola_id) {
+    // Autorizacao por tipo de usuario
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && usuario.escola_id !== turmaInfo.escola_id) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+    }
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id && usuario.polo_id !== turmaInfo.polo_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para este polo' }, { status: 403 })
     }
 
     const resultado = await criarVinculo({ professor_id, turma_id, disciplina_id, tipo_vinculo, ano_letivo })
@@ -88,7 +128,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
  * Troca atômica de professor em uma turma/disciplina (preserva dados do anterior)
  * Body: { vinculo_id, novo_professor_id }
  */
-export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const PATCH = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
   try {
     const validacao = await validateRequest(request, professorTurmaPatchSchema)
     if (!validacao.success) return validacao.response
@@ -132,7 +172,7 @@ export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (req
  * Desativa vínculo (soft delete)
  * Body: { vinculo_id }
  */
-export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const DELETE = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
   try {
     const validacao = await validateRequest(request, professorTurmaDeleteSchema)
     if (!validacao.success) return validacao.response

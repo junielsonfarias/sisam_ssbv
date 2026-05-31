@@ -1,53 +1,83 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Plus, Trash2, Search, RefreshCw, BookOpen } from 'lucide-react'
+import {
+  Plus, Search, BookOpen, GraduationCap, Users, AlertCircle,
+  CheckCircle2, XCircle, Trash2, RefreshCw, Filter,
+} from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { useAnoLetivo, AnoLetivoSelect } from '@/lib/contexts/ano-letivo-context'
-import { FormNovoVinculo, type Professor, type Turma, type Disciplina, type VinculoSubmitPayload } from './components/FormNovoVinculo'
 
-interface Vinculo {
-  id: string
-  tipo_vinculo: string
-  ano_letivo: string
-  ativo: boolean
-  professor_id: string
-  professor_nome: string
-  professor_email: string
-  turma_id: string
-  turma_nome: string
-  serie: string
-  turno: string
-  escola_id: string
-  escola_nome: string
+interface SlotVinculo {
+  tipo: 'polivalente' | 'disciplina'
   disciplina_id: string | null
   disciplina_nome: string | null
+  disciplina_abrev: string | null
+  vinculo: null | {
+    id: string
+    professor_id: string
+    professor_nome: string
+    professor_email: string
+  }
 }
+interface TurmaComSlots {
+  turma_id: string
+  codigo: string | null
+  nome: string | null
+  serie: string
+  turno: string | null
+  ano_letivo: string
+  escola_id: string
+  escola_nome: string
+  polo_id: string | null
+  polo_nome: string | null
+  is_anos_finais: boolean
+  total_disciplinas_esperadas: number
+  total_disciplinas_com_professor: number
+  slots: SlotVinculo[]
+}
+interface Professor { id: string; nome: string }
+interface Escola { id: string; nome: string; polo_id: string | null }
+interface Polo { id: string; nome: string }
 
-function GerenciarVinculos() {
+function PainelTurmasProfessores() {
   const { anoLetivo } = useAnoLetivo()
-  const [vinculos, setVinculos] = useState<Vinculo[]>([])
+  const [turmas, setTurmas] = useState<TurmaComSlots[]>([])
   const [professores, setProfessores] = useState<Professor[]>([])
-  const [turmas, setTurmas] = useState<Turma[]>([])
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
+  const [escolas, setEscolas] = useState<Escola[]>([])
+  const [polos, setPolos] = useState<Polo[]>([])
   const [carregando, setCarregando] = useState(true)
-  const [carregandoDados, setCarregandoDados] = useState(true)
-  const [criando, setCriando] = useState(false)
-  const [mensagem, setMensagem] = useState('')
   const [erro, setErro] = useState('')
+  const [mensagem, setMensagem] = useState('')
+
+  // Filtros
   const [busca, setBusca] = useState('')
+  const [filtroEscola, setFiltroEscola] = useState('')
+  const [filtroPolo, setFiltroPolo] = useState('')
+  const [filtroSerie, setFiltroSerie] = useState('')
+  const [filtroTurno, setFiltroTurno] = useState('')
+  const [filtroVinculo, setFiltroVinculo] = useState<'todos' | 'com' | 'sem' | 'parcial'>('todos')
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
 
-  // Form de troca de professor
-  const [trocando, setTrocando] = useState<string | null>(null) // vinculo_id
+  // Estado de vinculação inline por (turma_id, slot_key)
+  const [vinculandoKey, setVinculandoKey] = useState<string | null>(null)
   const [novoProfessor, setNovoProfessor] = useState('')
+  const [salvandoVinculo, setSalvandoVinculo] = useState(false)
 
-  const fetchVinculos = async () => {
+  const fetchTurmas = async () => {
+    setCarregando(true)
+    setErro('')
     try {
-      const res = await fetch(`/api/admin/professor-turmas?ano_letivo=${anoLetivo}`)
-      if (!res.ok) throw new Error('Erro ao carregar')
+      const params = new URLSearchParams({ mode: 'por_turma', ano_letivo: anoLetivo })
+      if (filtroEscola) params.set('escola_id', filtroEscola)
+      if (filtroPolo) params.set('polo_id', filtroPolo)
+      if (filtroSerie) params.set('serie', filtroSerie)
+      if (filtroTurno) params.set('turno', filtroTurno)
+      const res = await fetch(`/api/admin/professor-turmas?${params.toString()}`)
+      if (!res.ok) throw new Error('Erro ao carregar turmas')
       const data = await res.json()
-      setVinculos(data.vinculos)
+      setTurmas(data.turmas || [])
     } catch (err: any) {
       setErro(err.message)
     } finally {
@@ -55,123 +85,96 @@ function GerenciarVinculos() {
     }
   }
 
-  const fetchDados = async () => {
-    setCarregandoDados(true)
+  const fetchSelects = async () => {
     try {
-      const [profRes, turmasRes, discRes] = await Promise.all([
+      const [pRes, eRes, poRes] = await Promise.all([
         fetch('/api/admin/professores'),
-        // mode=listagem retorna TODAS as turmas ativas; sem mode, /turmas exige
-        // INNER JOIN com resultados_consolidados_unificada (só turmas com avaliação SISAM lançada)
-        fetch(`/api/admin/turmas?mode=listagem&ano_letivo=${anoLetivo}`),
-        fetch('/api/admin/disciplinas-escolares'),
+        fetch('/api/admin/escolas'),
+        fetch('/api/admin/polos').catch(() => null),
       ])
-      const profData = await profRes.json()
-      const turmasData = await turmasRes.json()
-      const discData = await discRes.json()
-      // /api/admin/professores retorna { professores }; /turmas e /disciplinas retornam array direto
-      setProfessores(profData.professores || [])
-      setTurmas(Array.isArray(turmasData) ? turmasData : turmasData.turmas || [])
-      setDisciplinas(Array.isArray(discData) ? discData : discData.disciplinas || [])
-    } catch (err) {
-      console.error('[ProfessorTurmas] Erro ao carregar dados:', (err as Error).message)
-    } finally {
-      setCarregandoDados(false)
+      const pData = await pRes.json()
+      const eData = await eRes.json()
+      const poData = poRes && poRes.ok ? await poRes.json() : { polos: [] }
+      setProfessores(pData.professores || [])
+      setEscolas(Array.isArray(eData) ? eData : eData.escolas || [])
+      setPolos(Array.isArray(poData) ? poData : poData.polos || [])
+    } catch {
+      // selects sao opcionais — UI degradada mas funcional
     }
   }
 
-  useEffect(() => {
-    fetchVinculos()
-    fetchDados()
-  }, [anoLetivo])
+  useEffect(() => { fetchSelects() }, [])
+  useEffect(() => { fetchTurmas() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [anoLetivo, filtroEscola, filtroPolo, filtroSerie, filtroTurno])
 
-  const criarVinculo = async (payload: VinculoSubmitPayload) => {
-    setMensagem('')
-    setErro('')
-    const { professor_id, turma_ids, tipo_vinculo, disciplina_id } = payload
-
-    const turmaInfo = (id: string) => {
-      const t = turmas.find(x => x.id === id)
-      return t ? (t.codigo || t.nome || id) : id
-    }
-
-    // Confirmacao explicita para lotes grandes (> 20 turmas) — protege contra
-    // selecao acidental de "selecionar todas" sem o usuario perceber o volume.
-    if (turma_ids.length > 20) {
-      const ok = confirm(
-        `Voce esta prestes a criar ${turma_ids.length} vinculos. Confirma?`
-      )
-      if (!ok) return
-    }
-
-    // Chunking de 8 requests paralelos por vez. Sem isso, selecionar "todas
-    // filtradas" em 50+ turmas dispararia 50 POSTs simultaneos e estressaria
-    // o pool de conexoes do PostgreSQL.
-    const CHUNK_SIZE = 8
-    const todosResultados: PromiseSettledResult<{ status: number; mensagem?: string; turma_id: string }>[] = []
-
-    for (let i = 0; i < turma_ids.length; i += CHUNK_SIZE) {
-      const chunk = turma_ids.slice(i, i + CHUNK_SIZE)
-      const resultadosChunk = await Promise.allSettled(
-        chunk.map(turma_id =>
-          fetch('/api/admin/professor-turmas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              professor_id,
-              turma_id,
-              tipo_vinculo,
-              ...(disciplina_id ? { disciplina_id } : {}),
-              ano_letivo: anoLetivo,
-            }),
-          }).then(async res => {
-            const data = await res.json().catch(() => ({}))
-            return { status: res.status, mensagem: data.mensagem as string | undefined, turma_id }
-          })
-        )
-      )
-      todosResultados.push(...resultadosChunk)
-    }
-
-    const criados: string[] = []
-    const duplicados: string[] = []
-    const falharam: { nome: string; motivo: string }[] = []
-
-    todosResultados.forEach((r, i) => {
-      const turmaId = turma_ids[i]
-      const nome = turmaInfo(turmaId)
-      if (r.status === 'rejected') {
-        falharam.push({ nome, motivo: 'erro de rede' })
-        return
+  // Filtros client-side: busca textual e tipo de vinculo
+  const turmasFiltradas = useMemo(() => {
+    const q = busca.trim().toLowerCase()
+    return turmas.filter(t => {
+      if (q) {
+        const hit = (t.escola_nome + ' ' + (t.codigo || '') + ' ' + (t.nome || '') + ' ' + t.serie).toLowerCase().includes(q)
+        if (!hit) return false
       }
-      const { status, mensagem } = r.value
-      if (status === 201) criados.push(nome)
-      else if (status === 409) duplicados.push(nome)
-      else falharam.push({ nome, motivo: mensagem || `HTTP ${status}` })
+      if (filtroVinculo === 'com') return t.total_disciplinas_com_professor === t.total_disciplinas_esperadas && t.total_disciplinas_esperadas > 0
+      if (filtroVinculo === 'sem') return t.total_disciplinas_com_professor === 0
+      if (filtroVinculo === 'parcial') return t.total_disciplinas_com_professor > 0 && t.total_disciplinas_com_professor < t.total_disciplinas_esperadas
+      return true
     })
+  }, [turmas, busca, filtroVinculo])
 
-    const partes: string[] = []
-    if (criados.length > 0) partes.push(`${criados.length} criado${criados.length > 1 ? 's' : ''}`)
-    if (duplicados.length > 0) partes.push(`${duplicados.length} já existia${duplicados.length > 1 ? 'm' : ''}`)
-    if (falharam.length > 0) partes.push(`${falharam.length} falhou${falharam.length > 1 ? '/falharam' : ''}`)
+  // Agrupar por escola
+  const porEscola = useMemo(() => {
+    const map = new Map<string, { escola_nome: string; polo_nome: string | null; turmas: TurmaComSlots[] }>()
+    turmasFiltradas.forEach(t => {
+      const k = t.escola_id
+      if (!map.has(k)) map.set(k, { escola_nome: t.escola_nome, polo_nome: t.polo_nome, turmas: [] })
+      map.get(k)!.turmas.push(t)
+    })
+    return Array.from(map.entries())
+  }, [turmasFiltradas])
 
-    if (criados.length > 0 && falharam.length === 0) {
-      setMensagem(`${partes.join(' · ')}.`)
-      setCriando(false)
-    } else if (criados.length === 0 && falharam.length === 0) {
-      // Tudo era duplicado — fecha o form mas avisa
-      setMensagem(partes.join(' · ') + '. Nenhum vínculo novo foi criado.')
-      setCriando(false)
-    } else if (falharam.length > 0) {
-      // Pelo menos uma falha real: mantém form aberto e mostra detalhes
-      const detalhes = falharam.map(f => `${f.nome} (${f.motivo})`).join(', ')
-      setErro(`${partes.join(' · ')}. Falhas: ${detalhes}`)
+  const qtdFiltrosAtivos = [filtroEscola, filtroPolo, filtroSerie, filtroTurno, filtroVinculo !== 'todos' ? 'v' : ''].filter(Boolean).length
+
+  const limparFiltros = () => {
+    setFiltroEscola(''); setFiltroPolo(''); setFiltroSerie(''); setFiltroTurno(''); setFiltroVinculo('todos')
+  }
+
+  const vincularProfessor = async (turma: TurmaComSlots, slot: SlotVinculo) => {
+    if (!novoProfessor) {
+      setErro('Selecione o professor')
+      return
     }
+    setSalvandoVinculo(true)
+    setErro(''); setMensagem('')
+    try {
+      const body: any = {
+        professor_id: novoProfessor,
+        turma_id: turma.turma_id,
+        tipo_vinculo: slot.tipo,
+        ano_letivo: anoLetivo,
+      }
+      if (slot.disciplina_id) body.disciplina_id = slot.disciplina_id
 
-    fetchVinculos()
+      const res = await fetch('/api/admin/professor-turmas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.mensagem || 'Erro ao vincular')
+
+      setMensagem(`Professor vinculado a ${turma.codigo || turma.serie}${slot.disciplina_nome ? ` (${slot.disciplina_nome})` : ''}`)
+      setVinculandoKey(null)
+      setNovoProfessor('')
+      fetchTurmas()
+    } catch (err: any) {
+      setErro(err.message)
+    } finally {
+      setSalvandoVinculo(false)
+    }
   }
 
   const removerVinculo = async (vinculoId: string) => {
-    if (!confirm('Remover este vínculo?')) return
+    if (!confirm('Remover este vínculo? O professor ficará sem acesso a esta turma/disciplina.')) return
     try {
       const res = await fetch('/api/admin/professor-turmas', {
         method: 'DELETE',
@@ -180,179 +183,296 @@ function GerenciarVinculos() {
       })
       if (!res.ok) throw new Error('Erro ao remover')
       setMensagem('Vínculo removido')
-      fetchVinculos()
+      fetchTurmas()
     } catch (err: any) {
       setErro(err.message)
     }
   }
-
-  const trocarProfessor = async (vinculoId: string) => {
-    if (!novoProfessor) {
-      setErro('Selecione o novo professor')
-      return
-    }
-    setMensagem('')
-    setErro('')
-    try {
-      const res = await fetch('/api/admin/professor-turmas', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vinculo_id: vinculoId, novo_professor_id: novoProfessor }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.mensagem)
-      setMensagem(data.mensagem)
-      setTrocando(null)
-      setNovoProfessor('')
-      fetchVinculos()
-    } catch (err: any) {
-      setErro(err.message)
-    }
-  }
-
-  const filtrados = vinculos.filter(v =>
-    v.professor_nome.toLowerCase().includes(busca.toLowerCase()) ||
-    v.turma_nome.toLowerCase().includes(busca.toLowerCase()) ||
-    v.escola_nome.toLowerCase().includes(busca.toLowerCase())
-  )
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Vincular Professores a Turmas</h1>
-        <div className="flex gap-2">
-          <AnoLetivoSelect />
-          <button
-            onClick={() => setCriando(!criando)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Novo Vínculo
-          </button>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Turmas e Professores</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            Visualize todas as turmas, indicador de vinculação e acesse o diário de cada uma.
+          </p>
         </div>
+        <AnoLetivoSelect />
       </div>
 
-      {/* Form */}
-      {criando && (
-        <FormNovoVinculo
-          anoLetivo={anoLetivo}
-          professores={professores}
-          turmas={turmas}
-          disciplinas={disciplinas}
-          carregandoDados={carregandoDados}
-          onSubmit={criarVinculo}
-          onCancel={() => setCriando(false)}
-        />
+      {/* Busca + toggle filtros */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
+          <input
+            type="text"
+            placeholder="Buscar por escola, turma, código ou série..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            aria-label="Buscar turmas"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setMostrarFiltros(v => !v)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <Filter className="h-4 w-4" />
+          Filtros
+          {qtdFiltrosAtivos > 0 && (
+            <span className="inline-flex items-center justify-center bg-indigo-600 text-white text-xs font-bold rounded-full w-5 h-5">
+              {qtdFiltrosAtivos}
+            </span>
+          )}
+        </button>
+        {qtdFiltrosAtivos > 0 && (
+          <button onClick={limparFiltros} className="px-3 py-2 text-xs text-gray-500 hover:text-red-600 dark:hover:text-red-400 inline-flex items-center gap-1">
+            <XCircle className="h-3 w-3" /> Limpar
+          </button>
+        )}
+      </div>
+
+      {mostrarFiltros && (
+        <div className="p-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {polos.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Polo</label>
+              <select value={filtroPolo} onChange={e => setFiltroPolo(e.target.value)} className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                <option value="">Todos os polos</option>
+                {polos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+            </div>
+          )}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Escola</label>
+            <select value={filtroEscola} onChange={e => setFiltroEscola(e.target.value)} className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+              <option value="">Todas as escolas</option>
+              {escolas.filter(e => !filtroPolo || e.polo_id === filtroPolo).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Série</label>
+            <select value={filtroSerie} onChange={e => setFiltroSerie(e.target.value)} className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+              <option value="">Todas</option>
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(n => <option key={n} value={n}>{n}º Ano</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Turno</label>
+            <select value={filtroTurno} onChange={e => setFiltroTurno(e.target.value)} className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+              <option value="">Todos</option>
+              <option value="matutino">Matutino</option>
+              <option value="vespertino">Vespertino</option>
+              <option value="noturno">Noturno</option>
+              <option value="integral">Integral</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Vinculação</label>
+            <select value={filtroVinculo} onChange={e => setFiltroVinculo(e.target.value as any)} className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+              <option value="todos">Todas</option>
+              <option value="com">Com professor (completo)</option>
+              <option value="parcial">Vinculação parcial</option>
+              <option value="sem">Sem professor</option>
+            </select>
+          </div>
+        </div>
       )}
 
       {/* Mensagens */}
       {mensagem && (
-        <div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm">{mensagem}</div>
+        <div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4" /> {mensagem}
+        </div>
       )}
       {erro && (
-        <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm">{erro}</div>
+        <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" /> {erro}
+        </div>
       )}
 
-      {/* Busca */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Buscar por professor, turma ou escola..."
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
-        />
-      </div>
-
-      {/* Lista */}
+      {/* Lista por escola */}
       {carregando ? (
         <div className="space-y-2">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />)}
         </div>
-      ) : filtrados.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <ArrowLeftRight className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-          Nenhum vínculo encontrado
+      ) : turmasFiltradas.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <GraduationCap className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+          <p>Nenhuma turma encontrada com os filtros atuais.</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
-          {filtrados.map(v => (
-            <div key={v.id} className="border-b last:border-b-0 border-gray-200 dark:border-gray-700">
-              <div className="p-4 flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium text-gray-900 dark:text-white">{v.professor_nome}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {v.turma_nome} ({v.serie} - {v.turno}) | {v.escola_nome}
-                  </p>
-                  <div className="flex gap-2 mt-1">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      v.tipo_vinculo === 'polivalente'
-                        ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
-                        : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                    }`}>
-                      {v.tipo_vinculo === 'polivalente' ? 'Polivalente' : v.disciplina_nome}
-                    </span>
-                  </div>
+        <div className="space-y-6">
+          {porEscola.map(([escolaId, { escola_nome, polo_nome, turmas: tsEscola }]) => (
+            <section key={escolaId}>
+              <header className="flex items-center justify-between mb-3">
+                <div>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">{escola_nome}</h2>
+                  {polo_nome && <p className="text-xs text-gray-500 dark:text-gray-400">{polo_nome}</p>}
                 </div>
-                <div className="flex items-center gap-1">
-                  <Link
-                    href={`/admin/turmas/${v.turma_id}/diario`}
-                    className="p-2 text-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg"
-                    title="Ver diário de classe (frequência, notas, conteúdo)"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                  </Link>
-                  <button
-                    onClick={() => { setTrocando(trocando === v.id ? null : v.id); setNovoProfessor('') }}
-                    className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
-                    title="Trocar professor"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => removerVinculo(v.id)}
-                    className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg"
-                    title="Remover vínculo"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{tsEscola.length} turma(s)</span>
+              </header>
 
-              {/* Formulário inline de troca */}
-              {trocando === v.id && (
-                <div className="px-4 pb-4 pt-0">
-                  <div className="flex gap-2 items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <select
-                      value={novoProfessor}
-                      onChange={e => setNovoProfessor(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
-                    >
-                      <option value="">Selecione o novo professor</option>
-                      {professores.filter(p => p.id !== v.professor_id).map(p => (
-                        <option key={p.id} value={p.id}>{p.nome}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => trocarProfessor(v.id)}
-                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm whitespace-nowrap"
-                    >
-                      Trocar
-                    </button>
-                    <button
-                      onClick={() => setTrocando(null)}
-                      className="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Os dados de frequência lançados pelo professor anterior serão preservados.
-                  </p>
-                </div>
-              )}
-            </div>
+              <div className="grid gap-3">
+                {tsEscola.map(t => {
+                  const completo = t.total_disciplinas_com_professor === t.total_disciplinas_esperadas && t.total_disciplinas_esperadas > 0
+                  const parcial = t.total_disciplinas_com_professor > 0 && t.total_disciplinas_com_professor < t.total_disciplinas_esperadas
+                  const sem = t.total_disciplinas_com_professor === 0
+
+                  return (
+                    <article key={t.turma_id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                      {/* Header da turma */}
+                      <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-700">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-gray-900 dark:text-white">
+                              {t.codigo || t.nome || 'Sem código'}
+                            </h3>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {t.serie} · {t.turno || 'sem turno'}
+                            </span>
+                            {t.is_anos_finais ? (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                                Anos finais
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                                Anos iniciais
+                              </span>
+                            )}
+                            {completo && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                                <CheckCircle2 className="h-3 w-3" /> Completo
+                              </span>
+                            )}
+                            {parcial && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                                <AlertCircle className="h-3 w-3" /> {t.total_disciplinas_com_professor}/{t.total_disciplinas_esperadas} disciplinas
+                              </span>
+                            )}
+                            {sem && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                                <XCircle className="h-3 w-3" /> Sem professor
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Link
+                          href={`/admin/turmas/${t.turma_id}/diario`}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm whitespace-nowrap"
+                          aria-label={`Abrir diário da turma ${t.codigo || t.serie}`}
+                        >
+                          <BookOpen className="h-4 w-4" />
+                          Diário
+                        </Link>
+                      </div>
+
+                      {/* Slots */}
+                      {t.is_anos_finais && t.slots.length === 0 ? (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <span>
+                            Sem disciplinas configuradas em <code>horarios_aula</code>. Cadastre os horários da turma antes de vincular professores.
+                          </span>
+                        </div>
+                      ) : (
+                        <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                          {t.slots.map((slot, idx) => {
+                            const key = `${t.turma_id}-${slot.disciplina_id || 'polivalente'}-${idx}`
+                            return (
+                              <li key={key} className="px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  {slot.tipo === 'polivalente' ? (
+                                    <Users className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 rounded">
+                                      {slot.disciplina_abrev || slot.disciplina_nome?.slice(0, 3).toUpperCase()}
+                                    </span>
+                                  )}
+                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
+                                    {slot.tipo === 'polivalente' ? 'Professor polivalente' : slot.disciplina_nome}
+                                  </span>
+                                  {slot.vinculo ? (
+                                    <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                                      — <span className="font-medium">{slot.vinculo.professor_nome}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-red-600 dark:text-red-400 italic">— sem professor</span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                  {slot.vinculo ? (
+                                    <>
+                                      <button
+                                        onClick={() => { setVinculandoKey(key); setNovoProfessor('') }}
+                                        className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
+                                        title="Substituir professor"
+                                        aria-label="Substituir professor"
+                                      >
+                                        <RefreshCw className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => removerVinculo(slot.vinculo!.id)}
+                                        className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg"
+                                        title="Remover vínculo"
+                                        aria-label="Remover vínculo"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => { setVinculandoKey(key); setNovoProfessor('') }}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                                    >
+                                      <Plus className="h-3.5 w-3.5" />
+                                      Vincular
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Form inline de vinculação */}
+                                {vinculandoKey === key && (
+                                  <div className="w-full mt-2 flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <select
+                                      value={novoProfessor}
+                                      onChange={e => setNovoProfessor(e.target.value)}
+                                      aria-label="Selecionar professor"
+                                      className="flex-1 px-2 py-1.5 rounded border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
+                                    >
+                                      <option value="">Selecione um professor</option>
+                                      {professores
+                                        .filter(p => p.id !== slot.vinculo?.professor_id)
+                                        .map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                                    </select>
+                                    <button
+                                      onClick={() => vincularProfessor(t, slot)}
+                                      disabled={salvandoVinculo || !novoProfessor}
+                                      className="px-3 py-1.5 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50"
+                                    >
+                                      {salvandoVinculo ? 'Salvando...' : (slot.vinculo ? 'Substituir' : 'Vincular')}
+                                    </button>
+                                    <button
+                                      onClick={() => { setVinculandoKey(null); setNovoProfessor('') }}
+                                      className="px-2 py-1.5 text-gray-500 hover:text-gray-700 text-sm"
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                )}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
           ))}
         </div>
       )}
@@ -362,8 +482,8 @@ function GerenciarVinculos() {
 
 export default function ProfessorTurmasPage() {
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola']}>
-      <GerenciarVinculos />
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'escola', 'polo']}>
+      <PainelTurmasProfessores />
     </ProtectedRoute>
   )
 }
