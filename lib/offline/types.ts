@@ -1,8 +1,18 @@
 /**
- * Tipos e interfaces para armazenamento offline
+ * Tipos e interfaces para armazenamento offline.
+ * Atualizado em 2026-05-31 para incluir flags acesso_* (Pt.2).
  */
 
-export type ModuloAtivo = 'educatec' | 'gestor' | 'professor' | 'responsavel'
+// 'educatec' = legado, mantido como alias de 'sisam' para compat com dados existentes
+export type ModuloAtivo =
+  | 'sisam'           // Avaliações SISAM (antigo 'educatec')
+  | 'gestor'          // Gestão Escolar
+  | 'semed'           // SEMED — programas federais + recursos
+  | 'transparencia'   // Site + notícias + ouvidoria
+  | 'admin'           // Administração do sistema
+  | 'educatec'        // legado — equivalente a 'sisam'
+  | 'professor'       // portal mobile (sem escolha)
+  | 'responsavel'     // portal pais (sem escolha)
 
 export interface OfflineUser {
   id: string
@@ -14,6 +24,11 @@ export interface OfflineUser {
   polo_nome?: string
   escola_nome?: string
   gestor_escolar_habilitado?: boolean
+  acesso_sisam?: boolean
+  acesso_gestor?: boolean
+  acesso_semed?: boolean
+  acesso_transparencia?: boolean
+  acesso_admin?: boolean
 }
 
 export interface OfflinePolo {
@@ -105,27 +120,28 @@ export interface OfflineConfigSerie {
 }
 
 export interface EstatisticasAluno {
-  encontrado: boolean
-  aluno_nome?: string
-  escola_nome?: string
-  turma_codigo?: string
-  serie?: string
-  presenca?: string
-  media_aluno?: number
-  nota_lp?: number
-  nota_mat?: number
-  nota_ch?: number
-  nota_cn?: number
-  nota_producao?: number
-  nivel_aprendizagem?: string
-  nivel_lp?: string
-  nivel_mat?: string
-  nivel_prod?: string
-  nivel_aluno?: string
-  posicao_turma?: number
-  total_turma?: number
-  posicao_escola?: number
-  total_escola?: number
+  aluno: {
+    id: string
+    nome: string
+    serie: string | null
+    ano_letivo: string | null
+    escola_nome: string
+    turma_codigo: string | null
+  }
+  estatisticas: {
+    total: number
+    acertos: number
+    erros: number
+    por_area: {
+      'Língua Portuguesa': { total: number; acertos: number; erros: number; media: number }
+      'Ciências Humanas': { total: number; acertos: number; erros: number; media: number }
+      'Matemática': { total: number; acertos: number; erros: number; media: number }
+      'Ciências da Natureza': { total: number; acertos: number; erros: number; media: number }
+    }
+    media_geral: number
+    nivel_aprendizagem: string | null
+    nota_producao: number | null
+  }
 }
 
 export const STORAGE_KEYS = {
@@ -139,5 +155,5 @@ export const STORAGE_KEYS = {
   QUESTOES: 'educatec_offline_questoes',
   CONFIG_SERIES: 'educatec_offline_config_series',
   SYNC_DATE: 'educatec_offline_sync_date',
-  SYNC_STATUS: 'educatec_offline_sync_status'
+  SYNC_STATUS: 'educatec_offline_sync_status',
 } as const
