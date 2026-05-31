@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import {
   limparTodosOsCaches,
   limparCachesExpirados,
@@ -26,7 +26,7 @@ export const dynamic = 'force-dynamic'
  * - acao=limpar_memoria: Limpa apenas cache em memória
  * - acao=stats: Retorna estatísticas detalhadas
  */
-export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador', 'tecnico'], 'admin', async (request, usuario) => {
   try {
     const acao = request.nextUrl.searchParams.get('acao')
 

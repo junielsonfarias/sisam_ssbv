@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 const PERIODOS = ['semestre_1', 'semestre_2', 'final'] as const
 const STATUS = ['rascunho', 'publicado', 'entregue'] as const
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
 
   const conds: string[] = []

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { cacheDelPattern } from '@/lib/cache'
 import { z } from 'zod'
 
@@ -25,7 +25,7 @@ const filaUpdateSchema = z.object({
 /**
  * GET /api/admin/fila-espera?escola_id=X&serie=Y&status=Z&ano_letivo=W
  */
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const escolaId = searchParams.get('escola_id')
   const serie = searchParams.get('serie')
@@ -94,7 +94,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 /**
  * POST /api/admin/fila-espera — adicionar na fila
  */
-export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const body = await request.json()
   const validacao = filaSchema.safeParse(body)
   if (!validacao.success) {
@@ -132,7 +132,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
 /**
  * PUT /api/admin/fila-espera — atualizar status
  */
-export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const PUT = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const body = await request.json()
   const validacao = filaUpdateSchema.safeParse(body)
   if (!validacao.success) {
@@ -170,7 +170,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 /**
  * DELETE /api/admin/fila-espera?id=X
  */
-export const DELETE = withAuth(['administrador', 'tecnico'], async (request) => {
+export const DELETE = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

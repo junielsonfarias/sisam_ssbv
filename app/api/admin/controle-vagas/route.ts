@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
@@ -12,7 +12,7 @@ const log = createLogger('AdminControleVagas')
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const searchParams = request.nextUrl.searchParams
   const { escola_id, polo_id } = parseSearchParams(searchParams, ['escola_id', 'polo_id'])
   const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
@@ -91,7 +91,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 })
 
 // Atualizar capacidade (individual ou em lote)
-export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const PUT = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request, usuario) => {
   try {
     const validation = await validateRequest(request, controleVagasPutSchema)
     if (!validation.success) return validation.response

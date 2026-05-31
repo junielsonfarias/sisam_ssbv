@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { buscarCardapioSemana, criarCardapio, publicarCardapio } from '@/lib/services/pnae.service'
 
@@ -36,7 +36,7 @@ const postSchema = z.object({
   publicar: z.boolean().optional(),
 })
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola', 'responsavel'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'responsavel'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const escola_id = searchParams.get('escola')
   const data = searchParams.get('data') || new Date().toISOString().slice(0, 10)
@@ -52,7 +52,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'responsavel'
   return NextResponse.json({ cardapio })
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
   const body = await request.json().catch(() => null)
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) {

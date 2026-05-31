@@ -12,7 +12,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { emitirGuiaTransferencia } from '@/lib/services/transferencia-documento.service'
 
@@ -29,7 +29,7 @@ const schema = z.object({
   tipo: z.enum(['guia_transferencia', 'declaracao_transferencia']).optional(),
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const body = await request.json().catch(() => null)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {

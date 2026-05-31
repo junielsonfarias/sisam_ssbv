@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
@@ -24,7 +24,7 @@ const TIPOS = [
   'boletim_escolar', 'certificado_eja',
 ] as const
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
 
   // Filtros opcionais
@@ -92,7 +92,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   })
 })
 
-export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const PATCH = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const id = new URL(request.url).searchParams.get('id')
   if (!id) return NextResponse.json({ mensagem: 'Informe ?id=' }, { status: 400 })
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
 
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
  * Lista alunos em situação de recuperação (nota abaixo da média)
  * Params: periodo_id, escola_id?, turma_id?, serie?, ano_letivo?
  */
-export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     const periodoId = searchParams.get('periodo_id')
     const escolaId = searchParams.get('escola_id')

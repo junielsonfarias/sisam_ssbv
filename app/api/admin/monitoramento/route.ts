@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { cacheDelPattern } from '@/lib/cache'
@@ -33,7 +33,7 @@ const configMonitoramentoSchema = z.object({
  * Retorna configuração de monitoramento e status atual do sistema.
  * Acessível por administrador.
  */
-export const GET = withAuth(['administrador'], async () => {
+export const GET = withAuthModulo(['administrador'], 'admin', async () => {
   try {
     const [config, saude] = await Promise.all([
       buscarConfigMonitoramento(),
@@ -58,7 +58,7 @@ export const GET = withAuth(['administrador'], async () => {
  * Body: { emails_alerta, webhook_url, intervalo_min, alertar_banco, alertar_redis, alertar_erro }
  * Acessível por administrador.
  */
-export const PUT = withAuth(['administrador'], async (request, usuario) => {
+export const PUT = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   try {
     const body = await request.json()
     const parsed = configMonitoramentoSchema.safeParse(body)

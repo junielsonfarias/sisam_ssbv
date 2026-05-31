@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { getConfigDetalhe, setConfig } from '@/lib/services/configuracoes-sistema.service'
 import { createLogger } from '@/lib/logger'
 
@@ -19,7 +19,7 @@ const putSchema = z.object({
   habilitado: z.boolean(),
 })
 
-export const GET = withAuth(['administrador'], async () => {
+export const GET = withAuthModulo(['administrador'], 'admin', async () => {
   const detalhe = await getConfigDetalhe('dois_fatores_habilitado')
   return NextResponse.json({
     habilitado: detalhe?.valor === true,
@@ -28,7 +28,7 @@ export const GET = withAuth(['administrador'], async () => {
   })
 })
 
-export const PUT = withAuth(['administrador'], async (request, usuario) => {
+export const PUT = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   const body = await request.json().catch(() => ({}))
   const parsed = putSchema.safeParse(body)
   if (!parsed.success) {

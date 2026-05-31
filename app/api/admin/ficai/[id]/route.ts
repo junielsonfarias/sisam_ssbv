@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import {
   atualizarStatus,
@@ -22,14 +22,14 @@ const patchSchema = z.object({
   observacao: z.string().max(2000).optional(),
 })
 
-export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request) => {
   const id = request.nextUrl.pathname.split('/').pop()!
   const caso = await buscarCaso(id)
   if (!caso) return NextResponse.json({ mensagem: 'Não encontrado' }, { status: 404 })
   return NextResponse.json({ caso })
 })
 
-export const PATCH = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
+export const PATCH = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request, usuario) => {
   const id = request.nextUrl.pathname.split('/').pop()!
   const body = await request.json().catch(() => null)
   const parsed = patchSchema.safeParse(body)

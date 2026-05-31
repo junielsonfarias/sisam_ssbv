@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -85,7 +85,7 @@ const vincularSchema = z.object({
   vigencia_inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 })
 
-export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const recurso = searchParams.get('recurso') || 'rotas'
 
@@ -123,7 +123,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   }
 })
 
-export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const acao = searchParams.get('acao')
   const body = await request.json().catch(() => null)

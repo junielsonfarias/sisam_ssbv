@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -31,7 +31,7 @@ const justificarSchema = z.object({
   motivo: z.string().min(10).max(2000),
 })
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const recurso = searchParams.get('recurso') || 'mapas'
 
@@ -72,7 +72,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
   }
 })
 
-export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const acao = searchParams.get('acao')
   const body = await request.json().catch(() => null)

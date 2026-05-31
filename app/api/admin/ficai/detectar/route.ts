@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { detectarInfrequencia } from '@/lib/services/ficai.service'
 
@@ -18,7 +18,7 @@ const schema = z.object({
   anoLetivo: z.string().regex(/^\d{4}$/),
 })
 
-export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
+export const POST = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request) => {
   const body = await request.json().catch(() => null)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {

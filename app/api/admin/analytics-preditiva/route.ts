@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import {
   calcularRiscoAluno,
   estatisticasRisco,
@@ -16,7 +16,7 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const ano = searchParams.get('ano') || String(new Date().getFullYear())
 

@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import {
@@ -36,7 +36,7 @@ const atualizarSchema = z.object({
   mensagem: z.string().min(5).max(5000),
 })
 
-export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
 
   if (searchParams.get('saude') === 'true') {
@@ -72,7 +72,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
   return NextResponse.json({ incidentes: r.rows })
 })
 
-export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const acao = searchParams.get('acao')
   const body = await request.json().catch(() => null)

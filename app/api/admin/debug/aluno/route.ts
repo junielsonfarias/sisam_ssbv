@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/debug-aluno?nome=julia
  * Retorna dados de debug para um aluno específico
  */
-export const GET = withAuth(['administrador'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   try {
     const { searchParams } = new URL(request.url)
     const nome = searchParams.get('nome') || 'julia'

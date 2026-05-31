@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { createLogger } from '@/lib/logger'
 import {
   buscarConfigMonitoramento,
@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic'
  * Envia um email de teste para os emails cadastrados na config.
  * Acessível por administrador.
  */
-export const POST = withAuth(['administrador'], async (_request, usuario) => {
+export const POST = withAuthModulo(['administrador'], 'admin', async (_request, usuario) => {
   try {
     const config = await buscarConfigMonitoramento()
 

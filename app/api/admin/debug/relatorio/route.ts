@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/auth/with-auth';
+import { withAuthModulo } from '@/lib/auth/with-auth';
 import pool from '@/database/connection';
 import { DatabaseError } from '@/lib/validation'
 import { createLogger } from '@/lib/logger'
@@ -13,7 +13,7 @@ const log = createLogger('DebugRelatorio')
 
 export const dynamic = 'force-dynamic';
 
-export const GET = withAuth(['administrador'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   const { searchParams } = new URL(request.url);
   const escolaId = searchParams.get('escola_id') || 'e0690bbd-dc70-4ded-b1b3-9b310f3c4c5f';
 

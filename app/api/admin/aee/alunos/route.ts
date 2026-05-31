@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -39,7 +39,7 @@ const postSchema = z.object({
   frequencia_aee: z.string().max(50).nullable().optional(),
 })
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const aluno = searchParams.get('aluno')
   if (aluno) {
@@ -53,7 +53,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
   return NextResponse.json({ alunos: lista })
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const body = await request.json().catch(() => null)
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) {

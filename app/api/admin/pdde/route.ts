@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
@@ -49,7 +49,7 @@ const despesaSchema = z.object({
   observacoes: z.string().max(2000).optional(),
 })
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const recurso = searchParams.get('recurso') || 'saldos'
 
@@ -82,7 +82,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
   }
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const acao = searchParams.get('acao')
   const body = await request.json().catch(() => null)
@@ -163,7 +163,7 @@ const cancelarSchema = z.object({
   motivo: z.string().min(5).max(2000),
 })
 
-export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const PATCH = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const id = new URL(request.url).searchParams.get('despesa')
   if (!id) return NextResponse.json({ mensagem: 'Informe ?despesa=' }, { status: 400 })
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { validateRequest, modulosTecnicoUpdateSchema } from '@/lib/schemas'
 import { createLogger } from '@/lib/logger'
@@ -8,7 +8,7 @@ const log = createLogger('AdminModulosTecnico')
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador', 'tecnico'], 'admin', async (request, usuario) => {
   try {
     // Buscar todos os módulos ordenados por ordem
     const result = await pool.query(
@@ -25,7 +25,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
   }
 })
 
-export const PUT = withAuth(['administrador'], async (request, usuario) => {
+export const PUT = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   try {
     const validation = await validateRequest(request, modulosTecnicoUpdateSchema)
     if (!validation.success) return validation.response

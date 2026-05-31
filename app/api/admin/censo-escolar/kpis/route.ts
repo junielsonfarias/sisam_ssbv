@@ -9,12 +9,12 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const ano = searchParams.get('ano_letivo') || String(new Date().getFullYear())
   const escolaId = searchParams.get('escola_id') || null

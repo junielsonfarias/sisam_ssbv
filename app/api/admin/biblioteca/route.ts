@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -85,7 +85,7 @@ function tratarErroBiblioteca(e: unknown) {
   return NextResponse.json({ mensagem: 'Erro ao processar operação' }, { status: 500 })
 }
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo', 'professor', 'responsavel'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo', 'professor', 'responsavel'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const recurso = searchParams.get('recurso') || 'acervo'
 
@@ -113,7 +113,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo', 'prof
   }
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'escola', 'professor'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'professor'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const acao = searchParams.get('acao')
   const body = await request.json().catch(() => null)

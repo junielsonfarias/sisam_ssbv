@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
@@ -38,14 +38,14 @@ const patchSchema = z.object({
   { message: 'Informe ao menos 1 campo para atualizar' }
 )
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const incluirInativos = searchParams.get('inativos') === 'true'
   const dados = await listarNutricionistas(incluirInativos)
   return NextResponse.json({ nutricionistas: dados })
 })
 
-export const POST = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request, usuario) => {
   const body = await request.json().catch(() => null)
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) {
@@ -76,7 +76,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   }
 })
 
-export const PATCH = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+export const PATCH = withAuthModulo(['administrador', 'tecnico'], 'semed', async (request, usuario) => {
   const id = new URL(request.url).searchParams.get('id')
   if (!id) return NextResponse.json({ mensagem: 'Informe ?id=' }, { status: 400 })
 

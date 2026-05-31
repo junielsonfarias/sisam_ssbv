@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { validateRequest, filaEsperaPostSchema, filaEsperaPutSchema } from '@/lib/schemas'
@@ -11,7 +11,7 @@ const log = createLogger('ControleVagasFila')
 export const dynamic = 'force-dynamic'
 
 // Listar fila de espera
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   try {
     const searchParams = request.nextUrl.searchParams
     const { turma_id, escola_id, status } = parseSearchParams(searchParams, ['turma_id', 'escola_id', 'status'])
@@ -34,7 +34,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 })
 
 // Adicionar aluno à fila
-export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   try {
     const validacao = await validateRequest(request, filaEsperaPostSchema)
     if (!validacao.success) return validacao.response
@@ -73,7 +73,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
 })
 
 // Atualizar status na fila (convocar, matricular, desistência)
-export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const PUT = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   try {
     const validacao = await validateRequest(request, filaEsperaPutSchema)
     if (!validacao.success) return validacao.response
@@ -93,7 +93,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 })
 
 // Remover aluno da fila
-export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+export const DELETE = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

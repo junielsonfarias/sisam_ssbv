@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hashPassword } from '@/lib/auth'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { usuarioSchema, validateRequest, validateId } from '@/lib/schemas'
@@ -25,7 +25,7 @@ const atualizarUsuarioSchema = usuarioSchema.extend({
 export const dynamic = 'force-dynamic';
 
 // GET - Listar usuários
-export const GET = withAuth(['administrador'], async (request, usuario) => {
+export const GET = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   const result = await pool.query(
     `SELECT id, nome, email, tipo_usuario, polo_id, escola_id, ativo,
             acesso_sisam, acesso_gestor, acesso_semed, acesso_transparencia, acesso_admin,
@@ -37,7 +37,7 @@ export const GET = withAuth(['administrador'], async (request, usuario) => {
   return NextResponse.json(result.rows)
 })
 
-export const POST = withAuth(['administrador'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   try {
     // Validar dados de entrada com Zod
     const validacao = await validateRequest(request, criarUsuarioSchema)
@@ -85,7 +85,7 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
 })
 
 // PUT - Atualizar usuário
-export const PUT = withAuth(['administrador'], async (request, usuario) => {
+export const PUT = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   try {
     // Validar dados de entrada com Zod
     const validacao = await validateRequest(request, atualizarUsuarioSchema)
@@ -173,7 +173,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
 })
 
 // DELETE - Excluir ou desativar usuário
-export const DELETE = withAuth(['administrador'], async (request, usuario) => {
+export const DELETE = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   try {
     const { searchParams } = new URL(request.url)
     const idParam = searchParams.get('id')

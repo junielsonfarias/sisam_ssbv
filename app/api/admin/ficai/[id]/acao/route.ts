@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { registrarAcao } from '@/lib/services/ficai.service'
@@ -23,7 +23,7 @@ const schema = z.object({
   anexo_url: z.string().url().nullable().optional(),
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request, usuario) => {
   const id = request.nextUrl.pathname.split('/').slice(-2, -1)[0]
   const body = await request.json().catch(() => null)
   const parsed = schema.safeParse(body)

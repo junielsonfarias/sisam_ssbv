@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { cacheDelPattern } from '@/lib/cache'
@@ -35,7 +35,7 @@ const configBackupSchema = z.object({
  * Retorna configuração de backup e lista de backups recentes.
  * Acessível por administrador.
  */
-export const GET = withAuth(['administrador'], async () => {
+export const GET = withAuthModulo(['administrador'], 'admin', async () => {
   try {
     const [config, backups] = await Promise.all([
       buscarConfigBackup(),
@@ -59,7 +59,7 @@ export const GET = withAuth(['administrador'], async () => {
  * Atualiza configuração de backup.
  * Acessível por administrador.
  */
-export const PUT = withAuth(['administrador'], async (request, usuario) => {
+export const PUT = withAuthModulo(['administrador'], 'admin', async (request, usuario) => {
   try {
     const body = await request.json()
     const parsed = configBackupSchema.safeParse(body)
@@ -103,7 +103,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
  * Executa backup manual dos dados críticos.
  * Acessível por administrador.
  */
-export const POST = withAuth(['administrador'], async (_request, usuario) => {
+export const POST = withAuthModulo(['administrador'], 'admin', async (_request, usuario) => {
   try {
     log.info('Backup manual iniciado', { usuario: usuario.email })
 

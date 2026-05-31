@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/with-auth'
+import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { buscarPlano, salvarPlano } from '@/lib/services/aee.service'
@@ -29,7 +29,7 @@ const postSchema = z.object({
   data_fim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 })
 
-export const GET = withAuth(['administrador', 'tecnico', 'escola', 'professor'], async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'professor'], 'semed', async (request) => {
   const { searchParams } = new URL(request.url)
   const aluno = searchParams.get('aluno')
   const ano = searchParams.get('ano')
@@ -40,7 +40,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'professor'],
   return NextResponse.json({ plano })
 })
 
-export const POST = withAuth(['administrador', 'tecnico', 'escola', 'professor'], async (request, usuario) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'professor'], 'semed', async (request, usuario) => {
   const body = await request.json().catch(() => null)
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) {
