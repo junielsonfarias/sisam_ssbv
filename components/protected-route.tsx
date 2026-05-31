@@ -234,16 +234,31 @@ export default function ProtectedRoute({ children, tiposPermitidos, requerModulo
 
   // V8 ideal: refresh proativo do access-token a cada 13min (access vive 15min,
   // refresh-token 7d com rotacao em rotina). Mantem sessao "infinita" enquanto
-  // a aba estiver aberta e o usuario nao deslogar.
+  // a aba estiver visivel e online. Aba oculta nao dispara — evita carga
+  // desnecessaria com 10k+ usuarios em multi-aba.
   useEffect(() => {
     if (!autorizado) return
     const interval = setInterval(() => {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       fetch('/api/auth/refresh', { method: 'POST' }).catch(() => {
         // silencioso: se falhar, a proxima request 401 vai disparar fluxo de login
       })
     }, 13 * 60 * 1000)
-    return () => clearInterval(interval)
+
+    // Quando a aba volta a ficar visivel apos > 13min ocultada, fazer
+    // refresh imediato para evitar primeira request 401.
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine !== false) {
+        fetch('/api/auth/refresh', { method: 'POST' }).catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [autorizado])
 
   if (carregando) {

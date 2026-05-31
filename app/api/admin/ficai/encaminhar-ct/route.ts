@@ -11,6 +11,7 @@
  */
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
@@ -65,6 +66,19 @@ export const POST = withAuthModulo(['administrador','tecnico','escola'], 'semed'
   }
   const d = parsed.data
 
+  // IDOR: garantir que o ficai_caso pertence a uma escola que o usuario
+  // tem permissao de acessar (auditoria 31/05/2026).
+  const ficaiResult = await pool.query(
+    `SELECT escola_id FROM ficai_casos WHERE id = $1 LIMIT 1`,
+    [d.ficai_id]
+  )
+  if (ficaiResult.rows.length === 0) {
+    return NextResponse.json({ mensagem: 'Caso FICAI nao encontrado' }, { status: 404 })
+  }
+  if (!(await podeAcessarEscola(usuario, ficaiResult.rows[0].escola_id))) {
+    return NextResponse.json({ mensagem: 'Sem permissao para este caso FICAI' }, { status: 403 })
+  }
+
   const result = await pool.query(
     `INSERT INTO ficai_encaminhamentos_ct (
        ficai_id, conselho_tutelar_id, data_envio, meio_envio, protocolo,
@@ -94,6 +108,22 @@ export const PATCH = withAuthModulo(['administrador','tecnico','escola'], 'semed
     return NextResponse.json({ mensagem: 'Dados invalidos', detalhes: parsed.error.format() }, { status: 400 })
   }
   const d = parsed.data
+
+  // IDOR: validar vinculo do encaminhamento -> caso FICAI -> escola
+  const escolaResult = await pool.query(
+    `SELECT fc.escola_id
+       FROM ficai_encaminhamentos_ct enc
+       JOIN ficai_casos fc ON fc.id = enc.ficai_id
+      WHERE enc.id = $1
+      LIMIT 1`,
+    [d.id]
+  )
+  if (escolaResult.rows.length === 0) {
+    return NextResponse.json({ mensagem: 'Encaminhamento nao encontrado' }, { status: 404 })
+  }
+  if (!(await podeAcessarEscola(usuario, escolaResult.rows[0].escola_id))) {
+    return NextResponse.json({ mensagem: 'Sem permissao para este encaminhamento' }, { status: 403 })
+  }
 
   const result = await pool.query(
     `UPDATE ficai_encaminhamentos_ct
