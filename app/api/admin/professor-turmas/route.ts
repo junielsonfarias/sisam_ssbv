@@ -13,6 +13,51 @@ const log = createLogger('AdminProfessorTurmas')
 export const dynamic = 'force-dynamic'
 
 /**
+ * Verifica se o usuario tem permissao para alterar/remover o vinculo.
+ * Retorna { ok: true } | { ok: false, status, mensagem } para o caller
+ * tratar como early-return.
+ *
+ * Auditoria 31/05/2026: PATCH/DELETE aceitavam vinculo_id sem checar se
+ * o vinculo pertencia a escola/polo do usuario — diretor podia operar
+ * vinculos de outras escolas.
+ */
+async function autorizarEscopoVinculo(
+  vinculoId: string,
+  usuario: { tipo_usuario: string; escola_id?: string | null; polo_id?: string | null }
+): Promise<{ ok: true } | { ok: false; status: number; mensagem: string }> {
+  // admin/tecnico tem acesso total
+  if (usuario.tipo_usuario === 'administrador' || usuario.tipo_usuario === 'tecnico') {
+    return { ok: true }
+  }
+
+  const result = await pool.query(
+    `SELECT t.escola_id, e.polo_id
+       FROM professor_turmas pt
+       INNER JOIN turmas t ON t.id = pt.turma_id
+       INNER JOIN escolas e ON e.id = t.escola_id
+      WHERE pt.id = $1
+      LIMIT 1`,
+    [vinculoId]
+  )
+  if (result.rows.length === 0) {
+    return { ok: false, status: 404, mensagem: 'Vínculo não encontrado' }
+  }
+  const { escola_id, polo_id } = result.rows[0]
+
+  if (usuario.tipo_usuario === 'escola') {
+    if (!usuario.escola_id || usuario.escola_id !== escola_id) {
+      return { ok: false, status: 403, mensagem: 'Não autorizado para esta escola' }
+    }
+  }
+  if (usuario.tipo_usuario === 'polo') {
+    if (!usuario.polo_id || usuario.polo_id !== polo_id) {
+      return { ok: false, status: 403, mensagem: 'Não autorizado para este polo' }
+    }
+  }
+  return { ok: true }
+}
+
+/**
  * GET /api/admin/professor-turmas
  * - sem mode: lista vinculos professor-turma (legado, compat)
  * - mode=por_turma: lista TODAS as turmas (com ou sem professor) +
@@ -134,6 +179,12 @@ export const PATCH = withAuth(['administrador', 'tecnico', 'escola', 'polo'], as
     if (!validacao.success) return validacao.response
     const { vinculo_id, novo_professor_id } = validacao.data
 
+    // IDOR: validar que o vinculo pertence ao escopo do usuario
+    const autz = await autorizarEscopoVinculo(vinculo_id, usuario)
+    if (!autz.ok) {
+      return NextResponse.json({ mensagem: autz.mensagem }, { status: autz.status })
+    }
+
     // Verificar se novo professor existe
     const profResult = await pool.query(
       "SELECT id FROM usuarios WHERE id = $1 AND tipo_usuario = 'professor' AND ativo = true",
@@ -177,6 +228,12 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'escola', 'polo'], a
     const validacao = await validateRequest(request, professorTurmaDeleteSchema)
     if (!validacao.success) return validacao.response
     const { vinculo_id } = validacao.data
+
+    // IDOR: validar que o vinculo pertence ao escopo do usuario
+    const autz = await autorizarEscopoVinculo(vinculo_id, usuario)
+    if (!autz.ok) {
+      return NextResponse.json({ mensagem: autz.mensagem }, { status: autz.status })
+    }
 
     const encontrado = await desativarVinculo(vinculo_id)
 
