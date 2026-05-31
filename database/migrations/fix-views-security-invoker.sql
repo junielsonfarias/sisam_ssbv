@@ -9,7 +9,11 @@
 -- a view rodar com privilegios do executor da query.
 -- ============================================================================
 
+BEGIN;
+
 ALTER VIEW public.pdde_saldos                       SET (security_invoker = on);
 ALTER VIEW public.resultados_consolidados_unificada SET (security_invoker = on);
 ALTER VIEW public.vw_estatisticas_serie             SET (security_invoker = on);
 ALTER VIEW public.vw_resultados_por_serie           SET (security_invoker = on);
+
+COMMIT;

@@ -14,6 +14,8 @@
 -- Resultado pos-migration: 100% de cobertura RLS (114/114 tabelas em public).
 -- ============================================================================
 
+BEGIN;
+
 -- Fase 1: tabelas operacionais (alunos, frequencia, notas, etc.)
 ALTER TABLE public.alunos                    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.anos_letivos              ENABLE ROW LEVEL SECURITY;
@@ -74,3 +76,5 @@ ALTER TABLE public.pre_matriculas                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.configuracoes_sistema           ENABLE ROW LEVEL SECURITY;
 
 COMMENT ON TABLE public.usuarios IS 'RLS habilitada — autorizacao primaria via withAuth (service_role bypassa).';
+
+COMMIT;

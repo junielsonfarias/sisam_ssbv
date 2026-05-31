@@ -11,6 +11,8 @@
 -- lock anti-race documentado em /novo-codigo-sequencial).
 -- ============================================================================
 
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.gerar_numero_os()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -39,3 +41,5 @@ $function$;
 
 COMMENT ON FUNCTION public.gerar_numero_os() IS
   'Gera numero sequencial OS-YYYY-NNNNNN. Anti-race via pg_advisory_xact_lock. BD-3 auditoria 31/05/2026.';
+
+COMMIT;

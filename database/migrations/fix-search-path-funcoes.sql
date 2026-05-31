@@ -11,6 +11,8 @@
 -- gerenciadas pelos respectivos pacotes e NAO devem ser tocadas.
 -- ============================================================================
 
+BEGIN;
+
 ALTER FUNCTION public.atualizar_timestamp_anos_letivos()                          SET search_path = public;
 ALTER FUNCTION public.atualizar_timestamp_fila_espera()                           SET search_path = public;
 ALTER FUNCTION public.atualizar_timestamp_notificacoes()                          SET search_path = public;
@@ -26,3 +28,5 @@ ALTER FUNCTION public.trigger_update_escola_regras_avaliacao_timestamp()        
 ALTER FUNCTION public.update_professor_turmas_timestamp()                         SET search_path = public;
 ALTER FUNCTION public.update_updated_at_column()                                  SET search_path = public;
 -- gerar_numero_os ja foi alterada em fix-gerar-numero-os-race.sql
+
+COMMIT;
