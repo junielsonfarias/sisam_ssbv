@@ -164,9 +164,24 @@ const nextConfig = {
   // está em andamento (permite reverter sem resíduo). Promover a true (308)
   // quando a reorganização estiver concluída e estável.
   async redirects() {
+    // Reorganização de rotas por módulo: cada rota antiga /admin/<rota>
+    // redireciona para /admin/<modulo>/<rota>, cobrindo a rota base e subrotas
+    // dinâmicas. permanent: false (307) durante a migração — promover a true
+    // (308) quando concluída e estável.
+    const rotasSisam = [
+      'dashboard', 'dados', 'graficos', 'relatorios', 'resultados',
+      'comparativos', 'comparativos-polos', 'comparativo-notas', 'evolucao',
+      'evolucao-escolas', 'avaliacoes', 'questoes', 'cartao-resposta',
+      'importar-completo', 'importar-cadastros', 'importar-resultados',
+      'importacoes', 'metas', 'configuracao-series', 'modulos-tecnico',
+    ]
+    const gerarRedirects = (modulo, rotas) =>
+      rotas.flatMap((r) => [
+        { source: `/admin/${r}`, destination: `/admin/${modulo}/${r}`, permanent: false },
+        { source: `/admin/${r}/:path*`, destination: `/admin/${modulo}/${r}/:path*`, permanent: false },
+      ])
     return [
-      // Piloto: dashboard do módulo SISAM movido para namespace do módulo.
-      { source: '/admin/dashboard', destination: '/admin/sisam/dashboard', permanent: false },
+      ...gerarRedirects('sisam', rotasSisam),
     ]
   },
   // Headers de cache e permissões

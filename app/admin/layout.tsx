@@ -12,7 +12,7 @@ const MENU_MOBILE = [
   { label: 'Dashboard', href: '/admin/sisam/dashboard', icon: DashboardIcon },
   { label: 'Alunos', href: '/admin/alunos', icon: Users },
   { label: 'Turmas', href: '/admin/turmas', icon: BookOpen },
-  { label: 'SISAM', href: '/admin/dados', icon: GraduationCap },
+  { label: 'SISAM', href: '/admin/sisam/dados', icon: GraduationCap },
   { label: 'Perfil', href: '/perfil', icon: User },
 ]
 
