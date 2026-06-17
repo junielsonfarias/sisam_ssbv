@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
+import { calcularMediaAnual } from '@/lib/services/media-anual'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,36 +46,6 @@ function serieParaCodigo(serie: string): string {
   }
   const num = serie.replace(/[^0-9]/g, '')
   return num || serie
-}
-
-/**
- * Calcula a média ponderada dadas notas e pesos por período.
- * pesos_periodos: [{ periodo: 1, peso: 1 }, { periodo: 2, peso: 1 }, ...]
- * notas_por_periodo: Map<numero_periodo, nota_final>
- */
-function calcularMediaPonderada(
-  notasPorPeriodo: Map<number, number>,
-  pesosPeriodos: { periodo: number; peso: number }[]
-): { media: number; periodos_com_nota: number; periodos_total: number } {
-  let somaPesosNotas = 0
-  let somaPesos = 0
-  let periodosComNota = 0
-
-  for (const pp of pesosPeriodos) {
-    const nota = notasPorPeriodo.get(pp.periodo)
-    if (nota !== undefined && nota !== null) {
-      somaPesosNotas += nota * pp.peso
-      somaPesos += pp.peso
-      periodosComNota++
-    }
-  }
-
-  const media = somaPesos > 0 ? somaPesosNotas / somaPesos : 0
-  return {
-    media: Math.round(media * 100) / 100,
-    periodos_com_nota: periodosComNota,
-    periodos_total: pesosPeriodos.length,
-  }
 }
 
 /**
@@ -340,7 +311,12 @@ export async function GET(request: NextRequest) {
 
       if (disciplinas && disciplinas.size > 0) {
         for (const [, disc] of disciplinas) {
-          const resultado = calcularMediaPonderada(disc.notas, pesosPeriodos)
+          const resultado = calcularMediaAnual(disc.notas, {
+            formula: regra.formula_media,
+            pesosPeriodos,
+            casasDecimais: regra.casas_decimais,
+            arredondamento: regra.arredondamento,
+          })
 
           if (resultado.periodos_com_nota < resultado.periodos_total) {
             algumaParcial = true
