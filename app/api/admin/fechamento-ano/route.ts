@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 
 const resultadoSchema = z.object({
   aluno_id: z.string().uuid(),
-  situacao: z.enum(['aprovado', 'reprovado']),
+  situacao: z.enum(['aprovado', 'reprovado', 'progressao_parcial']),
 })
 
 const aplicarResultadosSchema = z.object({
@@ -133,15 +133,20 @@ async function buscarPareceresConselho(
   return mapa
 }
 
+/** Situações finais aplicáveis em `alunos.situacao` pelo fechamento. */
+type SituacaoFinal = 'aprovado' | 'reprovado' | 'progressao_parcial'
+
 /**
- * Converte o parecer do conselho para a situação aplicável em `alunos.situacao`
- * (que só aceita aprovado/reprovado nesta fase). Dependência/recuperação como
- * situação própria fica para a Fase 2.2.
- *  - aprovado, progressao_parcial → 'aprovado'
- *  - reprovado, recuperacao       → 'reprovado'
+ * Converte o parecer do conselho para a situação aplicável em `alunos.situacao`.
+ * O Conselho de Classe é soberano (Fase 1.2); a progressão parcial é uma
+ * situação própria desde a Fase 2.2 (aprovado com dependência).
+ *  - aprovado            → 'aprovado'
+ *  - progressao_parcial  → 'progressao_parcial' (avança com dependência)
+ *  - reprovado, recuperacao → 'reprovado'
  */
-function parecerParaSituacao(parecer: string): 'aprovado' | 'reprovado' | null {
-  if (parecer === 'aprovado' || parecer === 'progressao_parcial') return 'aprovado'
+function parecerParaSituacao(parecer: string): SituacaoFinal | null {
+  if (parecer === 'aprovado') return 'aprovado'
+  if (parecer === 'progressao_parcial') return 'progressao_parcial'
   if (parecer === 'reprovado' || parecer === 'recuperacao') return 'reprovado'
   return null
 }
@@ -182,13 +187,13 @@ export async function GET(request: NextRequest) {
     if (alunosResult.rows.length === 0) {
       return NextResponse.json({
         resultados: [],
-        resumo: { total: 0, aprovados: 0, reprovados: 0, em_recuperacao: 0, parciais: 0 },
+        resumo: { total: 0, aprovados: 0, reprovados: 0, em_recuperacao: 0, parciais: 0, dependencias: 0 },
       })
     }
 
     // 2. Buscar todas as regras de avaliação vinculadas a series_escolares
     const regrasResult = await pool.query(
-      `SELECT se.codigo as serie_codigo,
+      `SELECT se.codigo as serie_codigo, se.max_dependencias,
               ra.id as regra_id, ra.formula_media, ra.pesos_periodos, ra.media_aprovacao,
               ra.nota_maxima, ra.qtd_periodos, ra.aprovacao_automatica, ra.casas_decimais, ra.arredondamento,
               ta.tipo_resultado
@@ -281,6 +286,7 @@ export async function GET(request: NextRequest) {
     let totalReprovados = 0
     let totalEmRecuperacao = 0
     let totalParciais = 0
+    let totalDependencias = 0
 
     for (const aluno of alunosResult.rows) {
       const serieCodigo = serieParaCodigo(aluno.serie || '')
@@ -385,9 +391,20 @@ export async function GET(request: NextRequest) {
         const disciplinasAbaixo = medias
           .filter(m => m.media_anual !== null && m.media_anual < mediaAprovacao)
           .map(m => `${m.disciplina} (${m.media_anual?.toFixed(1)})`)
-        situacaoProposta = 'reprovado'
-        motivo = `Média abaixo em: ${disciplinasAbaixo.join(', ')}`
-        totalReprovados++
+        // Progressão parcial (dependência): se o nº de disciplinas abaixo da
+        // média cabe no limite da série (series_escolares.max_dependencias), o
+        // aluno avança carregando dependência em vez de ser reprovado direto
+        // (LDB art. 24 / regimento). max_dependencias = 0 → sem dependência.
+        const maxDependencias = parseInt(regra.max_dependencias) || 0
+        if (maxDependencias > 0 && disciplinasAbaixo.length <= maxDependencias) {
+          situacaoProposta = 'progressao_parcial'
+          motivo = `Progressão parcial — dependência em ${disciplinasAbaixo.length} de até ${maxDependencias}: ${disciplinasAbaixo.join(', ')}`
+          totalDependencias++
+        } else {
+          situacaoProposta = 'reprovado'
+          motivo = `Média abaixo em: ${disciplinasAbaixo.join(', ')}`
+          totalReprovados++
+        }
       } else if (algumaParcial) {
         situacaoProposta = 'parcial'
         motivo = 'Notas incompletas - nem todos os períodos foram lançados'
@@ -432,6 +449,7 @@ export async function GET(request: NextRequest) {
         reprovados: totalReprovados,
         em_recuperacao: totalEmRecuperacao,
         parciais: totalParciais,
+        dependencias: totalDependencias,
         dias_letivos_efetivos: diasLetivos.efetivos,
         dias_letivos_exigidos: diasLetivos.exigidos,
         dias_letivos_suficientes: diasLetivos.suficientes,
@@ -527,6 +545,7 @@ export async function POST(request: NextRequest) {
       let processados = 0
       let aprovados = 0
       let reprovados = 0
+      let dependencias = 0
       const errosProcessamento: { aluno_id: string; mensagem: string }[] = []
 
       const BATCH_SIZE = 50
@@ -565,6 +584,7 @@ export async function POST(request: NextRequest) {
 
             processados++
             if (situacaoFinal === 'aprovado') aprovados++
+            else if (situacaoFinal === 'progressao_parcial') dependencias++
             else reprovados++
           } catch (err: unknown) {
             console.error(`Erro ao processar aluno ${item.aluno_id}:`, (err as Error).message)
@@ -580,6 +600,7 @@ export async function POST(request: NextRequest) {
         processados,
         aprovados,
         reprovados,
+        dependencias,
         erros: errosProcessamento.length,
         errosDetalhes: errosProcessamento.length > 0 ? errosProcessamento : undefined,
       })

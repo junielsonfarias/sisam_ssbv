@@ -34,6 +34,7 @@ interface Resumo {
   reprovados: number
   em_recuperacao: number
   parciais: number
+  dependencias: number
 }
 
 export default function FechamentoAnoPage() {
@@ -45,7 +46,7 @@ export default function FechamentoAnoPage() {
   const [anoLetivo, setAnoLetivo] = useState(new Date().getFullYear().toString())
 
   const [resultados, setResultados] = useState<ResultadoAluno[]>([])
-  const [resumo, setResumo] = useState<Resumo>({ total: 0, aprovados: 0, reprovados: 0, em_recuperacao: 0, parciais: 0 })
+  const [resumo, setResumo] = useState<Resumo>({ total: 0, aprovados: 0, reprovados: 0, em_recuperacao: 0, parciais: 0, dependencias: 0 })
   const [carregando, setCarregando] = useState(false)
   const [aplicando, setAplicando] = useState(false)
   const [calculado, setCalculado] = useState(false)
@@ -76,7 +77,7 @@ export default function FechamentoAnoPage() {
       if (res.ok) {
         const data = await res.json()
         setResultados(data.resultados || [])
-        setResumo(data.resumo || { total: 0, aprovados: 0, reprovados: 0, em_recuperacao: 0, parciais: 0 })
+        setResumo(data.resumo || { total: 0, aprovados: 0, reprovados: 0, em_recuperacao: 0, parciais: 0, dependencias: 0 })
         setCalculado(true)
         if (data.resultados?.length === 0) {
           toast.info('Nenhum aluno cursando encontrado para esta escola/ano')
@@ -95,10 +96,12 @@ export default function FechamentoAnoPage() {
   const aplicarResultados = async () => {
     setConfirmarDialog(false)
 
-    // Filtrar apenas aprovados e reprovados (excluir parciais)
+    // Aplicar resultados definitivos: aprovado, reprovado e progressão parcial
+    // (dependência). Excluir 'parcial' (notas incompletas — sem decisão).
+    const definitivas = ['aprovado', 'reprovado', 'progressao_parcial']
     const resultadosParaAplicar = resultados
-      .filter(r => r.situacao_proposta === 'aprovado' || r.situacao_proposta === 'reprovado')
-      .map(r => ({ aluno_id: r.aluno_id, situacao: r.situacao_proposta as 'aprovado' | 'reprovado' }))
+      .filter(r => definitivas.includes(r.situacao_proposta))
+      .map(r => ({ aluno_id: r.aluno_id, situacao: r.situacao_proposta as 'aprovado' | 'reprovado' | 'progressao_parcial' }))
 
     if (resultadosParaAplicar.length === 0) {
       toast.info('Nenhum resultado definitivo para aplicar (todos são parciais)')
@@ -137,6 +140,7 @@ export default function FechamentoAnoPage() {
     switch (situacao) {
       case 'aprovado': return 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
       case 'reprovado': return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+      case 'progressao_parcial': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
       case 'em_recuperacao': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
       case 'parcial': return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
       default: return 'bg-gray-100 text-gray-600'
@@ -147,13 +151,14 @@ export default function FechamentoAnoPage() {
     switch (situacao) {
       case 'aprovado': return 'Aprovado'
       case 'reprovado': return 'Reprovado'
+      case 'progressao_parcial': return 'Progressão Parcial'
       case 'em_recuperacao': return 'Em Recuperacao'
       case 'parcial': return 'Parcial'
       default: return situacao
     }
   }
 
-  const totalDefinitivos = resultados.filter(r => r.situacao_proposta === 'aprovado' || r.situacao_proposta === 'reprovado').length
+  const totalDefinitivos = resultados.filter(r => ['aprovado', 'reprovado', 'progressao_parcial'].includes(r.situacao_proposta)).length
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
@@ -223,7 +228,7 @@ export default function FechamentoAnoPage() {
         ) : calculado && resultados.length > 0 ? (
           <>
             {/* Cards Resumo */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-5">
                 <div className="flex items-center gap-3">
                   <div className="bg-indigo-100 dark:bg-indigo-900/40 rounded-lg p-2">
@@ -254,6 +259,17 @@ export default function FechamentoAnoPage() {
                   <div>
                     <p className="text-2xl font-bold text-red-600 dark:text-red-400">{resumo.reprovados}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Reprovados</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-5">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-100 dark:bg-amber-900/40 rounded-lg p-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{resumo.dependencias}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Dependência</p>
                   </div>
                 </div>
               </div>
