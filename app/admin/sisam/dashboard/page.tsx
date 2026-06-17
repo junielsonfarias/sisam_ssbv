@@ -5,7 +5,7 @@ import PainelDados from '@/components/painel-dados'
 
 export default function AdminDashboard() {
   return (
-    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']}>
+    <ProtectedRoute tiposPermitidos={['administrador', 'tecnico']} requerModulo="sisam">
       <PainelDados
         tipoUsuario="admin"
         estatisticasEndpoint="/api/admin/estatisticas"

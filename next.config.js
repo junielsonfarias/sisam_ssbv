@@ -159,6 +159,16 @@ const nextConfig = {
     // Lint warnings não devem bloquear o build de produção
     ignoreDuringBuilds: true,
   },
+  // Redirects de compatibilidade durante a reorganização de rotas por módulo.
+  // permanent: false (307) — não cacheia no navegador enquanto a migração
+  // está em andamento (permite reverter sem resíduo). Promover a true (308)
+  // quando a reorganização estiver concluída e estável.
+  async redirects() {
+    return [
+      // Piloto: dashboard do módulo SISAM movido para namespace do módulo.
+      { source: '/admin/dashboard', destination: '/admin/sisam/dashboard', permanent: false },
+    ]
+  },
   // Headers de cache e permissões
   async headers() {
     return [

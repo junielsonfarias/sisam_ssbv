@@ -409,10 +409,13 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
   } else if (mod === 'semed') {
     items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/dashboard-semed' })
   } else if (mod === 'admin') {
-    items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/dashboard' })
+    items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/sisam/dashboard' })
   } else {
-    // sisam ou transparencia ou outros — usa rota por papel
-    items.push({ icon: LayoutGrid, label: 'Dashboard', href: `/${basePath}/dashboard` })
+    // sisam ou transparencia ou outros — usa rota por papel.
+    // Para admin, o dashboard do SISAM agora é namespaced em /admin/sisam/dashboard;
+    // demais papéis (escola/polo/tecnico) mantêm sua própria página de dashboard.
+    const dashboardHref = basePath === 'admin' ? '/admin/sisam/dashboard' : `/${basePath}/dashboard`
+    items.push({ icon: LayoutGrid, label: 'Dashboard', href: dashboardHref })
   }
 
   // Pesquisar Aluno — disponível para perfis com acesso a dados de alunos

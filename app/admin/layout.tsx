@@ -9,7 +9,7 @@ import { AnoLetivoProvider } from '@/lib/contexts/ano-letivo-context'
 import { LayoutDashboard as DashboardIcon, Users, BookOpen, GraduationCap, User } from 'lucide-react'
 
 const MENU_MOBILE = [
-  { label: 'Dashboard', href: '/admin/dashboard', icon: DashboardIcon },
+  { label: 'Dashboard', href: '/admin/sisam/dashboard', icon: DashboardIcon },
   { label: 'Alunos', href: '/admin/alunos', icon: Users },
   { label: 'Turmas', href: '/admin/turmas', icon: BookOpen },
   { label: 'SISAM', href: '/admin/dados', icon: GraduationCap },

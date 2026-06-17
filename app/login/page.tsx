@@ -62,10 +62,10 @@ export default function LoginPage() {
             router.push('/admin/dashboard-gestor')
           } else {
             const tipoUsuario = offlineUser.tipo_usuario
-            if (tipoUsuario === 'administrador') router.push('/admin/dashboard')
+            if (tipoUsuario === 'administrador') router.push('/admin/sisam/dashboard')
             else if (tipoUsuario === 'tecnico') router.push('/tecnico/dashboard')
             else if (tipoUsuario === 'escola') router.push('/escola/dashboard')
-            else router.push('/admin/dashboard')
+            else router.push('/admin/sisam/dashboard')
           }
         } else {
           // Sem módulo selecionado — ir para tela de escolha

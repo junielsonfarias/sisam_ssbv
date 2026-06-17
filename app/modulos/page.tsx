@@ -27,7 +27,7 @@ const MODULOS: Modulo[] = [
     Icon: Database,
     cor: 'indigo',
     destaques: ['Provas, questões e cartão-resposta', 'Resultados e comparativos', 'Painel de dados e importações'],
-    rotaAdmin: '/admin/dashboard',
+    rotaAdmin: '/admin/sisam/dashboard',
     habilitadoPara: (u) => u.acesso_sisam !== false,
   },
   {
@@ -150,7 +150,7 @@ export default function ModulosPage() {
     // Sem nenhum módulo → fallback para SISAM (mantém compat com instalações antigas)
     if (disponiveis.length === 0) {
       offlineStorage.saveModuloAtivo('sisam')
-      router.push(rotaPorTipoUsuario(user.tipo_usuario, '/admin/dashboard'))
+      router.push(rotaPorTipoUsuario(user.tipo_usuario, '/admin/sisam/dashboard'))
       return
     }
 
