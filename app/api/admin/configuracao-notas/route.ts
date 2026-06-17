@@ -56,7 +56,8 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     const {
       escola_id, ano_letivo, tipo_periodo, nota_maxima,
       media_aprovacao, media_recuperacao, peso_avaliacao,
-      peso_recuperacao, permite_recuperacao
+      peso_recuperacao, permite_recuperacao,
+      percentual_frequencia_minimo, abona_faltas_justificadas
     } = validacao.data
 
     // Usuário escola só pode configurar sua própria escola
@@ -66,10 +67,10 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
 
     const result = await pool.query(
       `INSERT INTO configuracao_notas_escola
-       (escola_id, ano_letivo, tipo_periodo, nota_maxima, media_aprovacao, media_recuperacao, peso_avaliacao, peso_recuperacao, permite_recuperacao)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (escola_id, ano_letivo, tipo_periodo, nota_maxima, media_aprovacao, media_recuperacao, peso_avaliacao, peso_recuperacao, permite_recuperacao, percentual_frequencia_minimo, abona_faltas_justificadas)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [escola_id, ano_letivo, tipo_periodo, nota_maxima, media_aprovacao, media_recuperacao, peso_avaliacao, peso_recuperacao, permite_recuperacao]
+      [escola_id, ano_letivo, tipo_periodo, nota_maxima, media_aprovacao, media_recuperacao, peso_avaliacao, peso_recuperacao, permite_recuperacao, percentual_frequencia_minimo, abona_faltas_justificadas]
     )
 
     log.info(`Config notas criada | escola:${escola_id} ano:${ano_letivo} | por ${usuario.email}`)
@@ -85,7 +86,8 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     const {
       id, escola_id, ano_letivo, tipo_periodo, nota_maxima,
       media_aprovacao, media_recuperacao, peso_avaliacao,
-      peso_recuperacao, permite_recuperacao
+      peso_recuperacao, permite_recuperacao,
+      percentual_frequencia_minimo, abona_faltas_justificadas
     } = validacao.data
 
     // Usuário escola só pode configurar sua própria escola
@@ -97,10 +99,11 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       `UPDATE configuracao_notas_escola
        SET escola_id = $1, ano_letivo = $2, tipo_periodo = $3, nota_maxima = $4,
            media_aprovacao = $5, media_recuperacao = $6, peso_avaliacao = $7,
-           peso_recuperacao = $8, permite_recuperacao = $9
-       WHERE id = $10
+           peso_recuperacao = $8, permite_recuperacao = $9,
+           percentual_frequencia_minimo = $10, abona_faltas_justificadas = $11
+       WHERE id = $12
        RETURNING *`,
-      [escola_id, ano_letivo, tipo_periodo, nota_maxima, media_aprovacao, media_recuperacao, peso_avaliacao, peso_recuperacao, permite_recuperacao, id]
+      [escola_id, ano_letivo, tipo_periodo, nota_maxima, media_aprovacao, media_recuperacao, peso_avaliacao, peso_recuperacao, permite_recuperacao, percentual_frequencia_minimo, abona_faltas_justificadas, id]
     )
 
     if (result.rows.length === 0) {

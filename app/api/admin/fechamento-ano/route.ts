@@ -240,12 +240,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Política de frequência da escola (% mínimo + abono de justificadas).
+    // Sem config: defaults LDB (75%, não abona).
+    const configFreqResult = await pool.query(
+      `SELECT percentual_frequencia_minimo, abona_faltas_justificadas
+         FROM configuracao_notas_escola WHERE escola_id = $1 AND ano_letivo = $2 LIMIT 1`,
+      [escolaId, anoLetivo]
+    )
+    const percentualMinimo: number = configFreqResult.rows[0]?.percentual_frequencia_minimo ?? 75
+    const abonaJustificadas: boolean = configFreqResult.rows[0]?.abona_faltas_justificadas === true
+
     // 4. Buscar frequência bimestral de todos os alunos
     const freqResult = await pool.query(
       `SELECT fb.aluno_id,
               SUM(fb.dias_letivos) as total_dias,
               SUM(fb.presencas) as total_presencas,
-              SUM(fb.faltas) as total_faltas
+              SUM(fb.faltas) as total_faltas,
+              SUM(fb.faltas_justificadas) as total_justificadas
        FROM frequencia_bimestral fb
        WHERE fb.escola_id = $1
          AND fb.ano_letivo = $2
@@ -254,12 +265,13 @@ export async function GET(request: NextRequest) {
       [escolaId, anoLetivo, alunoIds]
     )
 
-    const freqMap = new Map<string, { total_dias: number; total_presencas: number; total_faltas: number }>()
+    const freqMap = new Map<string, { total_dias: number; total_presencas: number; total_faltas: number; total_justificadas: number }>()
     for (const f of freqResult.rows) {
       freqMap.set(f.aluno_id, {
         total_dias: parseInt(f.total_dias) || 0,
         total_presencas: parseInt(f.total_presencas) || 0,
         total_faltas: parseInt(f.total_faltas) || 0,
+        total_justificadas: parseInt(f.total_justificadas) || 0,
       })
     }
 
@@ -349,8 +361,10 @@ export async function GET(request: NextRequest) {
       let frequenciaPercentual: number | null = null
       let reprovadoPorFrequencia = false
       if (freq && freq.total_dias > 0) {
-        frequenciaPercentual = Math.round((freq.total_presencas / freq.total_dias) * 10000) / 100
-        if (frequenciaPercentual < 75) {
+        // Abono opcional: faltas justificadas contam como presença.
+        const presencasEfetivas = freq.total_presencas + (abonaJustificadas ? freq.total_justificadas : 0)
+        frequenciaPercentual = Math.round((presencasEfetivas / freq.total_dias) * 10000) / 100
+        if (frequenciaPercentual < percentualMinimo) {
           reprovadoPorFrequencia = true
         }
       }
@@ -365,7 +379,7 @@ export async function GET(request: NextRequest) {
         totalParciais++
       } else if (reprovadoPorFrequencia) {
         situacaoProposta = 'reprovado'
-        motivo = `Reprovado por frequência (${frequenciaPercentual?.toFixed(1)}% < 75%)`
+        motivo = `Reprovado por frequência (${frequenciaPercentual?.toFixed(1)}% < ${percentualMinimo}%)`
         totalReprovados++
       } else if (!todasAprovadas) {
         const disciplinasAbaixo = medias

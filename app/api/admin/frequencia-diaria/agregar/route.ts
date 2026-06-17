@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     // Conta dias com presença efetiva por aluno e gera frequencia_bimestral
     const result = await pool.query(
       `INSERT INTO frequencia_bimestral
-        (aluno_id, periodo_id, turma_id, escola_id, ano_letivo, dias_letivos, presencas, faltas, percentual_frequencia, metodo, registrado_por)
+        (aluno_id, periodo_id, turma_id, escola_id, ano_letivo, dias_letivos, presencas, faltas, faltas_justificadas, percentual_frequencia, metodo, registrado_por)
        SELECT
         a.id,
         $2 AS periodo_id,
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
         $6 AS dias_letivos,
         LEAST(COUNT(DISTINCT CASE WHEN fd.status = 'presente' THEN fd.data END), $6) AS presencas,
         GREATEST(0, $6 - LEAST(COUNT(DISTINCT CASE WHEN fd.status = 'presente' THEN fd.data END), $6)) AS faltas,
+        COUNT(DISTINCT CASE WHEN fd.status = 'justificado' THEN fd.data END) AS faltas_justificadas,
         CASE WHEN $6 > 0
           THEN ROUND(LEAST(COUNT(DISTINCT CASE WHEN fd.status = 'presente' THEN fd.data END), $6)::numeric / $6 * 100, 2)
           ELSE 0
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
         dias_letivos = EXCLUDED.dias_letivos,
         presencas = EXCLUDED.presencas,
         faltas = EXCLUDED.faltas,
+        faltas_justificadas = EXCLUDED.faltas_justificadas,
         percentual_frequencia = EXCLUDED.percentual_frequencia,
         metodo = 'facial',
         registrado_por = EXCLUDED.registrado_por,
