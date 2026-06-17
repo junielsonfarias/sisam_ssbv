@@ -105,6 +105,25 @@ Este documento é a **fonte única e acionável** para o go-live. Complementa (n
 - [ ] Verificação automatizada de backup (alertar se > 24h sem sucesso).
 - [ ] Avaliar upgrade Capacitor e revisão de índices órfãos/redundantes.
 
+### Reorganização de rotas por módulo (concluída 17/06/2026)
+
+Todas as páginas migraram de `/admin/<pagina>` para `/admin/<modulo>/<pagina>`
+(sisam/gestor/semed/transparencia/admin), com redirects de compatibilidade e
+validação de módulo por layout (`ModuloGuard`). **Pendência única:**
+
+- [ ] **Promover redirects 307 → 308** (permanente) — **somente após** o deploy
+      rodar estável em produção por alguns dias **sem nenhum 404 ou redirect
+      torto reportado** (todos os perfis, bookmarks reais).
+  - **Por quê esperar:** 308 é cacheado **permanentemente** pelos navegadores —
+    se uma rota estiver mal mapeada, fica quase impossível reverter (cada
+    navegador que recebeu o 308 não consulta mais o servidor). 307 não cacheia.
+  - **Como promover (mudança de 1 linha):** em `next.config.js`, no helper
+    `gerarRedirects`, trocar `permanent: false` → `permanent: true` nas duas
+    entradas (rota base e `:path*`) e nos 2 redirects de dashboard renomeado
+    (`dashboard-gestor`, `dashboard-semed`). Rodar `npm run build` e revalidar.
+  - **Antes de promover:** confirmar no log de produção que não há
+    `404` recorrente em `/admin/*` nem loops de redirect.
+
 ---
 
 ## 🔧 Verificação pré-deploy (rodar localmente)
