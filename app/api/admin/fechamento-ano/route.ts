@@ -106,6 +106,46 @@ async function calcularDiasLetivos(
   return { efetivos, exigidos, suficientes: efetivos >= exigidos }
 }
 
+/**
+ * Busca o parecer do Conselho de Classe de cada aluno no período FINAL
+ * (maior `numero`) — o conselho de fechamento é soberano sobre o cálculo.
+ * Ignora 'sem_parecer'. Retorna Map<aluno_id, parecer>.
+ */
+async function buscarPareceresConselho(
+  escolaId: string,
+  anoLetivo: string,
+  alunoIds: string[]
+): Promise<Map<string, string>> {
+  if (alunoIds.length === 0) return new Map()
+  const r = await pool.query(
+    `SELECT DISTINCT ON (cca.aluno_id) cca.aluno_id, cca.parecer
+       FROM conselho_classe_alunos cca
+       JOIN conselho_classe cc ON cc.id = cca.conselho_id
+       JOIN periodos_letivos p ON p.id = cc.periodo_id
+      WHERE cc.escola_id = $1 AND cc.ano_letivo = $2
+        AND cca.aluno_id = ANY($3)
+        AND cca.parecer <> 'sem_parecer'
+      ORDER BY cca.aluno_id, p.numero DESC`,
+    [escolaId, anoLetivo, alunoIds]
+  )
+  const mapa = new Map<string, string>()
+  for (const row of r.rows) mapa.set(row.aluno_id, row.parecer)
+  return mapa
+}
+
+/**
+ * Converte o parecer do conselho para a situação aplicável em `alunos.situacao`
+ * (que só aceita aprovado/reprovado nesta fase). Dependência/recuperação como
+ * situação própria fica para a Fase 2.2.
+ *  - aprovado, progressao_parcial → 'aprovado'
+ *  - reprovado, recuperacao       → 'reprovado'
+ */
+function parecerParaSituacao(parecer: string): 'aprovado' | 'reprovado' | null {
+  if (parecer === 'aprovado' || parecer === 'progressao_parcial') return 'aprovado'
+  if (parecer === 'reprovado' || parecer === 'recuperacao') return 'reprovado'
+  return null
+}
+
 // ============================================
 // GET - Preview dos resultados de fechamento
 // ============================================
@@ -357,6 +397,16 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Parecer do Conselho de Classe (período final) — soberano sobre o cálculo.
+    // Anexa o parecer e sinaliza divergência com a proposta automática.
+    const pareceresConselho = await buscarPareceresConselho(escolaId, anoLetivo, alunoIds)
+    for (const res of resultados) {
+      const parecer = pareceresConselho.get(res.aluno_id) || null
+      res.parecer_conselho = parecer
+      const situacaoConselho = parecer ? parecerParaSituacao(parecer) : null
+      res.divergencia_conselho = situacaoConselho !== null && situacaoConselho !== res.situacao_proposta
+    }
+
     // Dias letivos efetivos x exigidos (LDB art. 24 — gate de fechamento)
     const diasLetivos = await calcularDiasLetivos(escolaId, anoLetivo)
 
@@ -445,6 +495,10 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Parecer do Conselho de Classe (soberano) — quando há parecer, ele decide
+    // a situação aplicada, prevalecendo sobre a proposta enviada pelo gestor.
+    const pareceresConselho = await buscarPareceresConselho(escola_id, ano_letivo, alunoIds)
+
     // Observação do histórico — registra override de dias letivos (auditoria)
     const observacaoBase = `Fechamento do ano letivo ${ano_letivo}` +
       (forcar && diasLetivos.suficientes === false
@@ -467,10 +521,20 @@ export async function POST(request: NextRequest) {
 
         for (const item of lote) {
           try {
+            // Conselho soberano: se há parecer, ele decide; senão, vale a
+            // situação enviada pelo gestor (que viu a proposta no preview).
+            const parecer = pareceresConselho.get(item.aluno_id) || null
+            const situacaoConselho = parecer ? parecerParaSituacao(parecer) : null
+            const situacaoFinal = situacaoConselho ?? item.situacao
+            const origem = situacaoConselho
+              ? `Decisão do Conselho de Classe (parecer: ${parecer})`
+              : 'Decisão do gestor'
+            const observacaoItem = `${observacaoBase} — ${origem}`
+
             // Atualizar situação do aluno
             await client.query(
               `UPDATE alunos SET situacao = $1 WHERE id = $2`,
-              [item.situacao, item.aluno_id]
+              [situacaoFinal, item.aluno_id]
             )
 
             // Registrar no histórico
@@ -479,14 +543,14 @@ export async function POST(request: NextRequest) {
                VALUES ($1, $2, 'cursando', CURRENT_DATE, $3, $4)`,
               [
                 item.aluno_id,
-                item.situacao,
-                observacaoBase,
+                situacaoFinal,
+                observacaoItem,
                 usuario.id,
               ]
             )
 
             processados++
-            if (item.situacao === 'aprovado') aprovados++
+            if (situacaoFinal === 'aprovado') aprovados++
             else reprovados++
           } catch (err: unknown) {
             console.error(`Erro ao processar aluno ${item.aluno_id}:`, (err as Error).message)
