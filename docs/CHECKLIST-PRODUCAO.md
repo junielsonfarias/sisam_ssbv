@@ -49,7 +49,7 @@ Este documento é a **fonte única e acionável** para o go-live. Complementa (n
 
 ### 4b. Aplicar migration de correção da view SISAM (`serie_numero`)
 - [x] Aplicar `database/migrations/corrigir-view-add-serie-numero.sql` no banco. ✅ *(aplicada em 17/06/2026)*
-- [ ] Validar: abrir `/admin/sisam/dashboard` → **média geral / taxa de aprovação / médias por tipo de ensino** devem preencher; o log do servidor **não** deve mais mostrar `column rc.serie_numero does not exist`.
+- [x] Validar: `/admin/sisam/dashboard` preenche média geral / aprovação / por tipo de ensino; log sem `column rc.serie_numero does not exist`. ✅ *(17/06/2026)*
 
 > **Bug pré-existente (regressão), descoberto em 17/06.** A view `resultados_consolidados_unificada` não expunha `serie_numero`, embora a tabela base a possua → ~50 queries do módulo SISAM (dashboard, gráficos, comparativos, resultados) falhavam, **mascaradas** por `executarQuerySegura` (painel carregava com seções vazias). A migration recria a view com a definição **atual exata** (obtida via `pg_get_viewdef`) + a coluna, e adiciona `serie_numero` em `resultados_provas` (corrige o `rp.serie_numero` dos gráficos). Risco baixo/reversível. **Não** relacionada à reorganização de rotas.
 
