@@ -10,6 +10,7 @@
 import { NextRequest } from 'next/server'
 import { Usuario } from './types'
 import { LIMITES } from './constants'
+import { reportarErroSilencioso } from './observabilidade/capturar-erro-silencioso'
 
 // ============================================================================
 // TIPOS
@@ -308,6 +309,9 @@ export async function safeQuery<T = Record<string, any>>(
     if (label) {
       console.error(`[safeQuery] Erro em ${label}:`, error instanceof Error ? (error as Error).message : error)
     }
+    // Reporta ao Sentry sempre (mesmo sem label) — caso contrario o erro fica
+    // 100% silencioso e a tela mostra vazio sem ninguem perceber.
+    reportarErroSilencioso(error, { origem: 'safeQuery', descricao: label, sql })
     return []
   }
 }

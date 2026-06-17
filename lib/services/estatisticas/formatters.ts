@@ -5,6 +5,7 @@
  */
 
 import { createLogger } from '@/lib/logger'
+import { reportarErroSilencioso } from '@/lib/observabilidade/capturar-erro-silencioso'
 import { PRESENCA } from '@/lib/constants'
 import type { Usuario } from '@/lib/types'
 import type { EscopoEstatisticas, EstatisticasGerais, QueryResult } from './types'
@@ -44,6 +45,8 @@ export async function executarQuerySegura<T>(
   } catch (error) {
     const mensagem = error instanceof Error ? (error as Error).message : 'Erro desconhecido'
     log.error(`Erro ao ${descricao}`, error, { data: { descricao } })
+    // Reporta ao Sentry — sem isto, o erro engolido fica invisivel em producao.
+    reportarErroSilencioso(error, { origem: 'executarQuerySegura', descricao })
     return { sucesso: false, erro: mensagem }
   }
 }
