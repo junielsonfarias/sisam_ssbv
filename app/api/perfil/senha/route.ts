@@ -4,6 +4,7 @@ import pool from '@/database/connection'
 import { validatePassword } from '@/lib/validation'
 import { checkRateLimit, getClientIP, resetRateLimit } from '@/lib/rate-limiter'
 import { validateRequest, perfilSenhaSchema } from '@/lib/schemas'
+import { validarSenhaNaoVazada } from '@/lib/utils/senha-vazada'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,6 +60,16 @@ export async function PUT(request: NextRequest) {
     if (!senhaValida) {
       return NextResponse.json(
         { mensagem: 'Senha atual incorreta' },
+        { status: 400 }
+      )
+    }
+
+    // Camada extra: rejeita nova senha presente em vazamentos públicos.
+    // Falha-aberto se a API HIBP estiver indisponível.
+    const checagemVazada = await validarSenhaNaoVazada(novaSenha)
+    if (!checagemVazada.ok) {
+      return NextResponse.json(
+        { mensagem: checagemVazada.mensagem },
         { status: 400 }
       )
     }

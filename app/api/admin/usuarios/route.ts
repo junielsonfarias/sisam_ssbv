@@ -5,6 +5,7 @@ import pool from '@/database/connection'
 import { PG_ERRORS } from '@/lib/constants'
 import { usuarioSchema, validateRequest, validateId } from '@/lib/schemas'
 import { invalidateUsuarioCache } from '@/lib/cache/memory'
+import { validarSenhaNaoVazada } from '@/lib/utils/senha-vazada'
 import { z } from 'zod'
 import { DatabaseError } from '@/lib/validation'
 import { createLogger } from '@/lib/logger'
@@ -49,6 +50,12 @@ export const POST = withAuthModulo(['administrador'], 'admin', async (request, u
       nome, email, senha, tipo_usuario, polo_id, escola_id,
       acesso_sisam, acesso_gestor, acesso_semed, acesso_transparencia, acesso_admin,
     } = validacao.data
+
+    // Camada extra: rejeita senha presente em vazamentos públicos (falha-aberto).
+    const checagemVazada = await validarSenhaNaoVazada(senha)
+    if (!checagemVazada.ok) {
+      return NextResponse.json({ mensagem: checagemVazada.mensagem }, { status: 400 })
+    }
 
     const senhaHash = await hashPassword(senha)
 
@@ -119,6 +126,12 @@ export const PUT = withAuthModulo(['administrador'], 'admin', async (request, us
 
     // Se senha foi fornecida, atualizar com hash
     if (senha && senha.trim() !== '') {
+      // Camada extra: rejeita senha presente em vazamentos públicos (falha-aberto).
+      const checagemVazada = await validarSenhaNaoVazada(senha)
+      if (!checagemVazada.ok) {
+        return NextResponse.json({ mensagem: checagemVazada.mensagem }, { status: 400 })
+      }
+
       const senhaHash = await hashPassword(senha)
       await pool.query(
         `UPDATE usuarios

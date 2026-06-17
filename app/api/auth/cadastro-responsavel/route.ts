@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import pool from '@/database/connection'
 import { hashPassword } from '@/lib/auth'
+import { validarSenhaNaoVazada } from '@/lib/utils/senha-vazada'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { createLogger } from '@/lib/logger'
 import { PG_ERRORS } from '@/lib/constants'
@@ -49,6 +50,13 @@ export async function POST(request: NextRequest) {
     // CPF deve ter 11 digitos
     if (cpf.length !== 11) {
       return NextResponse.json({ mensagem: 'CPF inválido (precisa 11 dígitos)' }, { status: 400 })
+    }
+
+    // Camada extra: rejeita senha presente em vazamentos públicos (falha-aberto).
+    // Antes de abrir a transação para não reter conexão durante I/O externo.
+    const checagemVazada = await validarSenhaNaoVazada(d.senha)
+    if (!checagemVazada.ok) {
+      return NextResponse.json({ mensagem: checagemVazada.mensagem }, { status: 400 })
     }
 
     const client = await pool.connect()

@@ -14,6 +14,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { hashPassword } from '@/lib/auth'
 import { senhaSchema } from '@/lib/schemas/base'
+import { validarSenhaNaoVazada } from '@/lib/utils/senha-vazada'
 import { createLogger } from '@/lib/logger'
 import { enviarEmail } from '@/lib/email/sender'
 import { senhaAlteradaTemplate } from '@/lib/email/templates'
@@ -76,6 +77,17 @@ export async function POST(request: NextRequest) {
     }
 
     const { id: tokenId, usuario_id, email, nome } = tokenResult.rows[0]
+
+    // Camada extra de defesa: rejeita senhas presentes em vazamentos públicos.
+    // Falha-aberto (não bloqueia se a API HIBP estiver indisponível). Feita
+    // antes de abrir a transação para não reter conexão durante I/O externo.
+    const checagemVazada = await validarSenhaNaoVazada(novaSenha)
+    if (!checagemVazada.ok) {
+      return NextResponse.json(
+        { mensagem: 'Dados inválidos', erros: [{ campo: 'novaSenha', mensagem: checagemVazada.mensagem }] },
+        { status: 400 }
+      )
+    }
 
     // Atualiza senha + marca token como usado (transação)
     const client = await pool.connect()

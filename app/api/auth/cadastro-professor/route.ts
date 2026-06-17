@@ -3,6 +3,7 @@ import { hashPassword } from '@/lib/auth'
 import pool from '@/database/connection'
 import { checkRateLimit, getClientIP, createRateLimitKey } from '@/lib/rate-limiter'
 import { validateRequest, cadastroProfessorSchema } from '@/lib/schemas'
+import { validarSenhaNaoVazada } from '@/lib/utils/senha-vazada'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('CadastroProfessor')
@@ -60,6 +61,12 @@ export async function POST(request: NextRequest) {
       if (existeCpf.rows.length > 0) {
         return NextResponse.json({ mensagem: 'Este CPF já está cadastrado no sistema' }, { status: 409 })
       }
+    }
+
+    // Camada extra: rejeita senha presente em vazamentos públicos (falha-aberto).
+    const checagemVazada = await validarSenhaNaoVazada(senha)
+    if (!checagemVazada.ok) {
+      return NextResponse.json({ mensagem: checagemVazada.mensagem }, { status: 400 })
     }
 
     const senhaHash = await hashPassword(senha)
