@@ -310,8 +310,8 @@ function gruposSemed(tipo: string): MenuItem[] {
   if (tipo === 'polo') {
     return [{
       icon: AlertTriangle, label: 'Acompanhamento Estudantil', children: [
-        { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/ficai' },
-        { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/aee' },
+        { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/semed/ficai' },
+        { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/semed/aee' },
       ]
     }]
   }
@@ -320,13 +320,13 @@ function gruposSemed(tipo: string): MenuItem[] {
   if (tipo === 'escola') {
     return [{
       icon: Building2, label: 'SEMED — Operacional', children: [
-        { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/ficai' },
-        { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/aee' },
-        { icon: UtensilsCrossed, label: 'PNAE / Alimentação', href: '/admin/pnae' },
-        { icon: BookMarked, label: 'PNLD / Livros didáticos', href: '/admin/pnld' },
-        { icon: Boxes, label: 'Patrimônio', href: '/admin/patrimonio' },
-        { icon: Library, label: 'Biblioteca', href: '/admin/biblioteca' },
-        { icon: Wrench, label: 'Ordens de Serviço', href: '/admin/ordens-servico' },
+        { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/semed/ficai' },
+        { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/semed/aee' },
+        { icon: UtensilsCrossed, label: 'PNAE / Alimentação', href: '/admin/semed/pnae' },
+        { icon: BookMarked, label: 'PNLD / Livros didáticos', href: '/admin/semed/pnld' },
+        { icon: Boxes, label: 'Patrimônio', href: '/admin/semed/patrimonio' },
+        { icon: Library, label: 'Biblioteca', href: '/admin/semed/biblioteca' },
+        { icon: Wrench, label: 'Ordens de Serviço', href: '/admin/semed/ordens-servico' },
       ]
     }]
   }
@@ -335,29 +335,29 @@ function gruposSemed(tipo: string): MenuItem[] {
   return [
     {
       icon: AlertTriangle, label: 'Acompanhamento Estudantil', children: [
-        { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/ficai' },
-        { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/aee' },
-        { icon: Baby, label: 'Educação Infantil', href: '/admin/ed-infantil' },
-        { icon: Activity, label: 'Analytics Preditiva', href: '/admin/analytics-preditiva' },
-        { icon: ClipboardList, label: 'Censo Escolar (INEP)', href: '/admin/censo-escolar' },
-        { icon: FileCheck, label: 'Documentos Emitidos', href: '/admin/documentos' },
+        { icon: AlertTriangle, label: 'FICAI / Busca Ativa', href: '/admin/semed/ficai' },
+        { icon: Accessibility, label: 'AEE / Inclusão', href: '/admin/semed/aee' },
+        { icon: Baby, label: 'Educação Infantil', href: '/admin/semed/ed-infantil' },
+        { icon: Activity, label: 'Analytics Preditiva', href: '/admin/semed/analytics-preditiva' },
+        { icon: ClipboardList, label: 'Censo Escolar (INEP)', href: '/admin/semed/censo-escolar' },
+        { icon: FileCheck, label: 'Documentos Emitidos', href: '/admin/semed/documentos' },
       ]
     },
     {
       icon: Building2, label: 'Programas Federais', children: [
-        { icon: UtensilsCrossed, label: 'PNAE / Alimentação', href: '/admin/pnae' },
-        { icon: Bus, label: 'PNATE / Transporte', href: '/admin/pnate' },
-        { icon: BookMarked, label: 'PNLD / Livros didáticos', href: '/admin/pnld' },
-        { icon: DollarSign, label: 'PDDE / Financeiro', href: '/admin/pdde' },
-        { icon: Heart, label: 'Bolsa Família', href: '/admin/bolsa-familia' },
+        { icon: UtensilsCrossed, label: 'PNAE / Alimentação', href: '/admin/semed/pnae' },
+        { icon: Bus, label: 'PNATE / Transporte', href: '/admin/semed/pnate' },
+        { icon: BookMarked, label: 'PNLD / Livros didáticos', href: '/admin/semed/pnld' },
+        { icon: DollarSign, label: 'PDDE / Financeiro', href: '/admin/semed/pdde' },
+        { icon: Heart, label: 'Bolsa Família', href: '/admin/semed/bolsa-familia' },
       ]
     },
     {
       icon: Briefcase, label: 'Recursos & Operação', children: [
-        { icon: Briefcase, label: 'RH Escolar', href: '/admin/rh' },
-        { icon: Boxes, label: 'Patrimônio', href: '/admin/patrimonio' },
-        { icon: Library, label: 'Biblioteca', href: '/admin/biblioteca' },
-        { icon: Wrench, label: 'Ordens de Serviço', href: '/admin/ordens-servico' },
+        { icon: Briefcase, label: 'RH Escolar', href: '/admin/semed/rh' },
+        { icon: Boxes, label: 'Patrimônio', href: '/admin/semed/patrimonio' },
+        { icon: Library, label: 'Biblioteca', href: '/admin/semed/biblioteca' },
+        { icon: Wrench, label: 'Ordens de Serviço', href: '/admin/semed/ordens-servico' },
       ]
     },
   ]
@@ -407,7 +407,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
   if (mod === 'gestor') {
     items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/gestor/dashboard' })
   } else if (mod === 'semed') {
-    items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/dashboard-semed' })
+    items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/semed/dashboard' })
   } else if (mod === 'admin') {
     items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/sisam/dashboard' })
   } else {

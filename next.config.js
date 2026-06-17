@@ -185,6 +185,11 @@ const nextConfig = {
       'professor-turmas', 'responsaveis', 'anos-letivos', 'series-escolares',
       'disciplinas', 'horarios-aula', 'calendario-escolar', 'calendario-eventos',
     ]
+    const rotasSemed = [
+      'ficai', 'aee', 'ed-infantil', 'analytics-preditiva', 'censo-escolar',
+      'documentos', 'pnae', 'pnate', 'pnld', 'pdde', 'bolsa-familia', 'rh',
+      'patrimonio', 'biblioteca', 'ordens-servico',
+    ]
     const gerarRedirects = (modulo, rotas) =>
       rotas.flatMap((r) => [
         { source: `/admin/${r}`, destination: `/admin/${modulo}/${r}`, permanent: false },
@@ -193,8 +198,10 @@ const nextConfig = {
     return [
       ...gerarRedirects('sisam', rotasSisam),
       ...gerarRedirects('gestor', rotasGestor),
-      // dashboard-gestor foi renomeado para gestor/dashboard (não cabe no gerador uniforme)
+      ...gerarRedirects('semed', rotasSemed),
+      // dashboards renomeados para <modulo>/dashboard (não cabem no gerador uniforme)
       { source: '/admin/dashboard-gestor', destination: '/admin/gestor/dashboard', permanent: false },
+      { source: '/admin/dashboard-semed', destination: '/admin/semed/dashboard', permanent: false },
     ]
   },
   // Headers de cache e permissões

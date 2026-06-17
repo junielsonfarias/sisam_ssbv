@@ -47,7 +47,7 @@ const MODULOS: Modulo[] = [
     Icon: Building2,
     cor: 'amber',
     destaques: ['FICAI, AEE, PNAE, PNATE, PNLD', 'PDDE, Bolsa Família, RH escolar', 'Patrimônio, Biblioteca, Ordens de Serviço'],
-    rotaAdmin: '/admin/dashboard-semed',
+    rotaAdmin: '/admin/semed/dashboard',
     habilitadoPara: (u) => u.acesso_semed === true,
   },
   {
