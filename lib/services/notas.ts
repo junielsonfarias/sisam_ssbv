@@ -45,6 +45,81 @@ interface ConfigNotas {
   peso_recuperacao?: number
 }
 
+// ============================================================================
+// Trilha de alteração de notas (Fase 3.2)
+// ============================================================================
+
+interface NotaSnapshot {
+  nota: number | null
+  nota_recuperacao: number | null
+  nota_final: number | null
+}
+
+interface LinhaAuditoriaNota {
+  aluno_id: string
+  acao: 'lancamento' | 'alteracao'
+  nota_anterior: number | null
+  nota_nova: number | null
+  nota_recuperacao_anterior: number | null
+  nota_recuperacao_nova: number | null
+  nota_final_anterior: number | null
+  nota_final_nova: number | null
+}
+
+function _num(v: unknown): number | null {
+  if (v === null || v === undefined) return null
+  const n = typeof v === 'number' ? v : parseFloat(String(v))
+  return isNaN(n) ? null : n
+}
+
+function _igual(a: number | null, b: number | null): boolean {
+  if (a === null && b === null) return true
+  if (a === null || b === null) return false
+  return Math.abs(a - b) < 0.001
+}
+
+/**
+ * Diferença "de-para" entre as notas anteriores e as novas, para auditoria.
+ * Pura/testável. Retorna só as linhas que REALMENTE mudaram:
+ *  - sem registro anterior + algum valor não-nulo → 'lancamento'
+ *  - registro anterior com algum campo diferente   → 'alteracao'
+ *  - sem alteração efetiva (UPSERT no-op)           → ignorado
+ */
+export function montarAuditoriaNotas(
+  anteriores: Map<string, NotaSnapshot>,
+  novas: Array<{ aluno_id: string; nota: number | null; nota_recuperacao: number | null; nota_final: number | null }>
+): LinhaAuditoriaNota[] {
+  const linhas: LinhaAuditoriaNota[] = []
+  for (const nv of novas) {
+    const nNota = _num(nv.nota)
+    const nRec = _num(nv.nota_recuperacao)
+    const nFin = _num(nv.nota_final)
+    const ant = anteriores.get(nv.aluno_id)
+
+    if (!ant) {
+      if (nNota === null && nRec === null && nFin === null) continue
+      linhas.push({
+        aluno_id: nv.aluno_id, acao: 'lancamento',
+        nota_anterior: null, nota_nova: nNota,
+        nota_recuperacao_anterior: null, nota_recuperacao_nova: nRec,
+        nota_final_anterior: null, nota_final_nova: nFin,
+      })
+    } else {
+      const aNota = _num(ant.nota)
+      const aRec = _num(ant.nota_recuperacao)
+      const aFin = _num(ant.nota_final)
+      if (_igual(aNota, nNota) && _igual(aRec, nRec) && _igual(aFin, nFin)) continue
+      linhas.push({
+        aluno_id: nv.aluno_id, acao: 'alteracao',
+        nota_anterior: aNota, nota_nova: nNota,
+        nota_recuperacao_anterior: aRec, nota_recuperacao_nova: nRec,
+        nota_final_anterior: aFin, nota_final_nova: nFin,
+      })
+    }
+  }
+  return linhas
+}
+
 /**
  * Calcula nota_final com base em nota, recuperação e config.
  * Lógica centralizada — usada por admin e professor.
@@ -156,6 +231,47 @@ export async function buscarTurma(turmaId: string) {
 }
 
 /**
+ * Grava a trilha de alteração de notas em lote (multi-row INSERT).
+ * NÃO-FATAL: qualquer erro (inclusive tabela ainda inexistente) é engolido —
+ * o lançamento de notas nunca pode ser bloqueado pela auditoria. Por isso é
+ * chamado FORA da transação principal, após o COMMIT.
+ */
+async function registrarAuditoriaNotas(
+  linhas: LinhaAuditoriaNota[],
+  meta: { disciplinaId: string | null; periodoId: string; turmaId: string; escolaId: string; anoLetivo: string; registradoPor: string }
+): Promise<void> {
+  if (linhas.length === 0) return
+  try {
+    const COLS = 14
+    const placeholders: string[] = []
+    const values: (string | number | null)[] = []
+    for (let i = 0; i < linhas.length; i++) {
+      const o = i * COLS
+      placeholders.push(`($${o + 1},$${o + 2},$${o + 3},$${o + 4},$${o + 5},$${o + 6},$${o + 7},$${o + 8},$${o + 9},$${o + 10},$${o + 11},$${o + 12},$${o + 13},$${o + 14})`)
+      const l = linhas[i]
+      values.push(
+        l.aluno_id, meta.disciplinaId, meta.periodoId, meta.turmaId, meta.escolaId, meta.anoLetivo,
+        l.acao,
+        l.nota_anterior, l.nota_nova,
+        l.nota_recuperacao_anterior, l.nota_recuperacao_nova,
+        l.nota_final_anterior, l.nota_final_nova,
+        meta.registradoPor
+      )
+    }
+    await pool.query(
+      `INSERT INTO notas_escolares_auditoria
+         (aluno_id, disciplina_id, periodo_id, turma_id, escola_id, ano_letivo,
+          acao, nota_anterior, nota_nova, nota_recuperacao_anterior,
+          nota_recuperacao_nova, nota_final_anterior, nota_final_nova, alterado_por)
+       VALUES ${placeholders.join(', ')}`,
+      values
+    )
+  } catch {
+    // Auditoria nunca bloqueia o lançamento (tabela pode não existir ainda).
+  }
+}
+
+/**
  * Lança notas em lote (UPSERT) para uma turma/disciplina/período.
  * Usa batch multi-row INSERT para reduzir ocupação de conexão
  * (1 query em vez de N individuais — crítico para 70+ professores simultâneos).
@@ -211,6 +327,26 @@ export async function lancarNotas(params: {
     return { processados: 0, erros }
   }
 
+  // 1b. Snapshot das notas ANTERIORES (para a trilha de alteração — Fase 3.2).
+  // Uma única query batched; IS NOT DISTINCT FROM trata disciplina_id nula.
+  // Não-fatal: se falhar, segue sem auditoria (não bloqueia o lançamento).
+  const anteriores = new Map<string, NotaSnapshot>()
+  try {
+    const alunoIds = validas.map(v => v.aluno_id)
+    const prev = await pool.query(
+      `SELECT aluno_id, nota, nota_recuperacao, nota_final
+         FROM notas_escolares
+        WHERE periodo_id = $1 AND aluno_id = ANY($2)
+          AND disciplina_id IS NOT DISTINCT FROM $3`,
+      [periodoId, alunoIds, disciplinaId]
+    )
+    for (const row of prev.rows) {
+      anteriores.set(row.aluno_id, {
+        nota: row.nota, nota_recuperacao: row.nota_recuperacao, nota_final: row.nota_final,
+      })
+    }
+  } catch { /* segue sem snapshot */ }
+
   // 2. Batch INSERT em 1 query (reduz ocupação de conexão de ~265ms para ~15ms)
   const processados = await withTransaction(async (client) => {
     // Construir multi-row VALUES: ($1,$2,...,$15), ($16,$17,...,$30), ...
@@ -254,6 +390,12 @@ export async function lancarNotas(params: {
     )
 
     return result.rowCount || 0
+  })
+
+  // 3. Trilha de alteração (após o COMMIT, não-fatal — Fase 3.2)
+  const linhasAuditoria = montarAuditoriaNotas(anteriores, validas)
+  await registrarAuditoriaNotas(linhasAuditoria, {
+    disciplinaId, periodoId, turmaId, escolaId, anoLetivo, registradoPor,
   })
 
   return { processados, erros }
