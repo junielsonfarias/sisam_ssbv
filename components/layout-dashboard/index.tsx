@@ -71,10 +71,14 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   // Também detecta o módulo pela URL atual
   useEffect(() => {
     const moduloStorage = offlineStorage.getModuloAtivo()
-    // Se a URL é de dashboard-gestor ou rota do gestor, forçar módulo gestor
-    if (pathname?.includes('dashboard-gestor')) {
-      setModuloAtivo('gestor')
-      offlineStorage.saveModuloAtivo('gestor')
+    // Detecta o módulo pelo namespace da URL (/admin/<modulo>/...). Tem
+    // precedência sobre o storage para manter o menu lateral coerente com a
+    // página aberta — inclusive ao acessar uma URL diretamente ou via bookmark.
+    const m = pathname?.match(/^\/admin\/(sisam|gestor|semed)\b/)
+    if (m) {
+      const moduloUrl = m[1] as offlineStorage.ModuloAtivo
+      setModuloAtivo(moduloUrl)
+      offlineStorage.saveModuloAtivo(moduloUrl)
     } else {
       setModuloAtivo(moduloStorage)
     }
@@ -258,12 +262,12 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
   const handleModuloChange = (novo: offlineStorage.ModuloAtivo) => {
     offlineStorage.saveModuloAtivo(novo)
     setModuloAtivo(novo)
-    // Rota de destino por módulo
-    if (novo === 'gestor') router.push('/admin/dashboard-gestor')
-    else if (novo === 'semed') router.push('/admin/dashboard-semed')
+    // Rota de destino por módulo (namespaced)
+    if (novo === 'gestor') router.push('/admin/gestor/dashboard')
+    else if (novo === 'semed') router.push('/admin/semed/dashboard')
     else if (novo === 'transparencia') router.push('/admin/site-institucional')
     else if (novo === 'admin') router.push('/admin/usuarios')
-    else router.push(`/${basePath}/dashboard`)
+    else router.push(basePath === 'admin' ? '/admin/sisam/dashboard' : `/${basePath}/dashboard`)
   }
 
   return (
