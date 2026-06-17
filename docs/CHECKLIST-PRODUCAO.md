@@ -82,7 +82,7 @@ Este documento é a **fonte única e acionável** para o go-live. Complementa (n
 ### 10. Endurecer fluxo de senha
 - [x] **HIBP (senha vazada)** — implementado em `lib/utils/senha-vazada.ts`, plugado em 5 rotas de senha escolhida (falha-aberto). ✅ *(17/06/2026)*
 - [x] **Gerador de senha forte** — `lib/utils/gerar-senha.ts` (isomórfico, Web Crypto), botão "Gerar" no modal de usuário + usado em `criar-admin`/`init`. ✅ *(17/06/2026)*
-- [ ] Rate limit de login por **usuário** (hoje é por IP — brute-force na mesma rede bloqueia legítimos).
+- [x] **Rate limit por usuário** nos pontos de credencial. ✅ *(17/06/2026)* — Correção de premissa: `login` e `2fa/verify` **já tinham** camada por usuário em Redis (não só por IP). O gap real era `2fa/ativar-prelogin` (validava código TOTP de 6 dígitos no setup pré-login sem rate limit → brute-forceável); corrigido espelhando o padrão do `2fa/verify` (5 tentativas/15min → 30min).
 
 ### 11. Qualidade de CI/testes
 - [ ] Endurecer lint no CI: `--max-warnings 0` (hoje `100` em `.github/workflows/ci.yml:39`).

@@ -12,6 +12,7 @@ import { generateToken, verifyPreAuthToken } from '@/lib/auth'
 import { ativar2FA } from '@/lib/services/dois-fatores.service'
 import { SESSAO } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
+import { checkRateLimitAsync, resetRateLimitAsync, createRateLimitKeyPorUsuario } from '@/lib/rate-limiter-async'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,11 +36,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Sessão expirou. Faça login novamente.' }, { status: 401 })
     }
 
+    // Rate limit POR USUÁRIO: protege o setup obrigatório pré-login contra
+    // brute-force do código TOTP de 6 dígitos (mesmo padrão de /2fa/verify).
+    // 5 tentativas em 15min → 30min de bloqueio.
+    const rateKey = `2fa-setup:${createRateLimitKeyPorUsuario(preAuth.email)}`
+    const rate = await checkRateLimitAsync(rateKey, 5, 15 * 60 * 1000, 30 * 60 * 1000)
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { mensagem: 'Muitas tentativas. Tente novamente mais tarde.', bloqueado_ate: rate.blockedUntil },
+        { status: 429 }
+      )
+    }
+
     // Ativa 2FA validando o código
     const ativacao = await ativar2FA({ usuarioId: preAuth.userId, codigo: parsed.data.codigo })
     if (!ativacao.ok) {
       return NextResponse.json({ mensagem: ativacao.mensagem || 'Código inválido' }, { status: 400 })
     }
+
+    // Código correto — zera o contador de tentativas.
+    await resetRateLimitAsync(rateKey)
 
     // Busca dados do usuário para emitir JWT principal
     const result = await pool.query(
