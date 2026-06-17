@@ -1,6 +1,20 @@
 import pool from '@/database/connection'
 import { withTransaction } from '@/lib/database/with-transaction'
 
+/**
+ * Indica se o ano letivo da rede está FINALIZADO (`anos_letivos.status`).
+ * Quando finalizado, o lançamento/alteração de notas é bloqueado — o resultado
+ * consolidado não pode mais ser alterado. Usado pelos endpoints de notas
+ * (admin e professor) para retornar 403.
+ */
+export async function anoLetivoFinalizado(anoLetivo: string): Promise<boolean> {
+  const r = await pool.query(
+    `SELECT status FROM anos_letivos WHERE ano = $1 LIMIT 1`,
+    [anoLetivo]
+  )
+  return r.rows[0]?.status === 'finalizado'
+}
+
 // ============================================================================
 // Cache em memória para dados que não mudam durante lançamento de notas
 // (turma, config) — evita queries repetitivas de 70 professores simultâneos

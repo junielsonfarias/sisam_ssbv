@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { cacheDelPattern } from '@/lib/cache/redis'
-import { calcularNotaFinal, lancarNotas } from '@/lib/services/notas'
+import { calcularNotaFinal, lancarNotas, anoLetivoFinalizado } from '@/lib/services/notas'
 import { z } from 'zod'
 import {
   parseSearchParams, createWhereBuilder, addCondition, addAccessControl, buildWhereString,
@@ -202,6 +202,14 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
         conceito: conceitoVal,
         parecer_descritivo: parecerVal,
       })
+    }
+
+    // Trava: ano letivo finalizado bloqueia lançamento de notas
+    if (await anoLetivoFinalizado(ano_letivo)) {
+      return NextResponse.json(
+        { mensagem: 'Ano letivo finalizado — lançamento de notas bloqueado.', erro: 'ANO_LETIVO_FINALIZADO' },
+        { status: 403 }
+      )
     }
 
     // Usar service layer centralizado para UPSERT

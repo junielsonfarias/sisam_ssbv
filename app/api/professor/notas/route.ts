@@ -3,7 +3,7 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { cacheDelPattern } from '@/lib/cache/redis'
 import { verificarVinculoProfessor } from '@/lib/professor-auth'
-import { buscarNotas, buscarTurma, buscarConfigNotas, lancarNotas } from '@/lib/services/notas'
+import { buscarNotas, buscarTurma, buscarConfigNotas, lancarNotas, anoLetivoFinalizado } from '@/lib/services/notas'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -100,6 +100,15 @@ export const POST = withAuth('professor', async (request, usuario) => {
   if (!turma) {
     return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
   }
+
+  // Trava: ano letivo finalizado bloqueia lançamento de notas
+  if (await anoLetivoFinalizado(turma.ano_letivo)) {
+    return NextResponse.json(
+      { mensagem: 'Ano letivo finalizado — lançamento de notas bloqueado.', erro: 'ANO_LETIVO_FINALIZADO' },
+      { status: 403 }
+    )
+  }
+
   const config = await buscarConfigNotas(turma.escola_id, turma.ano_letivo)
 
   const resultado = await lancarNotas({
