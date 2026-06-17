@@ -1,3 +1,5 @@
+import { formatarDataHora } from '@/lib/format'
+
 export interface Dispositivo {
   id: string
   nome: string
@@ -72,15 +74,8 @@ export function tempoRelativo(data: string | null): string {
 }
 
 export function formatarData(dataISO: string | null): string {
-  if (!dataISO) return 'Nunca'
-  const data = new Date(dataISO)
-  return data.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  // Centralizado em @/lib/format (fuso Belém consistente SSR/cliente).
+  return formatarDataHora(dataISO, 'Nunca')
 }
 
 export function isOfflineLongo(ultimoPing: string | null): boolean {
