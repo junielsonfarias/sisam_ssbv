@@ -59,7 +59,7 @@ export default function LoginPage() {
         if (offlineStorage.hasModuloAtivo()) {
           const modulo = offlineStorage.getModuloAtivo()
           if (modulo === 'gestor') {
-            router.push('/admin/dashboard-gestor')
+            router.push('/admin/gestor/dashboard')
           } else {
             const tipoUsuario = offlineUser.tipo_usuario
             if (tipoUsuario === 'administrador') router.push('/admin/sisam/dashboard')

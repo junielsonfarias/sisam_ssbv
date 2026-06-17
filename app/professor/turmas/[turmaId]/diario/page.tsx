@@ -11,14 +11,14 @@ import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type {
   Tipo, Periodo, DiarioPayload, LacunasPayload,
-} from '@/app/admin/turmas/[turmaId]/diario/components/types'
-import { imprimirDiario } from '@/app/admin/turmas/[turmaId]/diario/components/printDiario'
-import { imprimirDiarioDetalhado } from '@/app/admin/turmas/[turmaId]/diario/components/printDiarioDetalhado'
-import CoberturaDiario from '@/app/admin/turmas/[turmaId]/diario/components/CoberturaDiario'
-import SecaoFrequencia from '@/app/admin/turmas/[turmaId]/diario/components/SecaoFrequencia'
-import SecaoNotas from '@/app/admin/turmas/[turmaId]/diario/components/SecaoNotas'
-import SecaoConteudo from '@/app/admin/turmas/[turmaId]/diario/components/SecaoConteudo'
-import { formatarData } from '@/app/admin/turmas/[turmaId]/diario/components/formatters'
+} from '@/app/admin/gestor/turmas/[turmaId]/diario/components/types'
+import { imprimirDiario } from '@/app/admin/gestor/turmas/[turmaId]/diario/components/printDiario'
+import { imprimirDiarioDetalhado } from '@/app/admin/gestor/turmas/[turmaId]/diario/components/printDiarioDetalhado'
+import CoberturaDiario from '@/app/admin/gestor/turmas/[turmaId]/diario/components/CoberturaDiario'
+import SecaoFrequencia from '@/app/admin/gestor/turmas/[turmaId]/diario/components/SecaoFrequencia'
+import SecaoNotas from '@/app/admin/gestor/turmas/[turmaId]/diario/components/SecaoNotas'
+import SecaoConteudo from '@/app/admin/gestor/turmas/[turmaId]/diario/components/SecaoConteudo'
+import { formatarData } from '@/app/admin/gestor/turmas/[turmaId]/diario/components/formatters'
 
 function DiarioTurmaProfessorContent() {
   const router = useRouter()

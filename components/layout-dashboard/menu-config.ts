@@ -139,12 +139,12 @@ function gruposSisam(tipo: string): MenuItem[] {
       },
       {
         icon: GraduationCap, label: 'Professores', children: [
-          { icon: ArrowLeftRight, label: 'Turmas e Professores', href: '/admin/professor-turmas' },
+          { icon: ArrowLeftRight, label: 'Turmas e Professores', href: '/admin/gestor/professor-turmas' },
         ]
       },
       {
         icon: Users, label: 'Responsáveis', children: [
-          { icon: Users, label: 'Aprovar vínculos', href: '/admin/responsaveis' },
+          { icon: Users, label: 'Aprovar vínculos', href: '/admin/gestor/responsaveis' },
         ]
       },
     )
@@ -174,72 +174,72 @@ function gruposGestor(tipo: string): MenuItem[] {
     base.push(
       {
         icon: BookOpen, label: 'Cadastros', children: [
-          { icon: School, label: 'Escolas', href: '/admin/escolas' },
-          { icon: MapPin, label: 'Polos', href: '/admin/polos' },
-          { icon: GraduationCap, label: 'Alunos', href: '/admin/alunos' },
-          { icon: Users, label: 'Turmas', href: '/admin/turmas' },
+          { icon: School, label: 'Escolas', href: '/admin/gestor/escolas' },
+          { icon: MapPin, label: 'Polos', href: '/admin/gestor/polos' },
+          { icon: GraduationCap, label: 'Alunos', href: '/admin/gestor/alunos' },
+          { icon: Users, label: 'Turmas', href: '/admin/gestor/turmas' },
         ]
       },
       {
         icon: UserPlus, label: 'Matrículas e Vagas', children: [
-          { icon: UserPlus, label: 'Matrículas', href: '/admin/matriculas' },
-          { icon: UserPlus, label: 'Pré-Matrículas', href: '/admin/pre-matriculas' },
-          { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
-          { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
-          { icon: Clock, label: 'Fila de Espera', href: '/admin/fila-espera' },
+          { icon: UserPlus, label: 'Matrículas', href: '/admin/gestor/matriculas' },
+          { icon: UserPlus, label: 'Pré-Matrículas', href: '/admin/gestor/pre-matriculas' },
+          { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/gestor/transferencias' },
+          { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/gestor/controle-vagas' },
+          { icon: Clock, label: 'Fila de Espera', href: '/admin/gestor/fila-espera' },
         ]
       },
       {
         icon: CalendarCheck, label: 'Frequência', children: [
-          { icon: CalendarCheck, label: 'Frequência Bimestral', href: '/admin/frequencia' },
-          { icon: Scan, label: 'Frequência Diária', href: '/admin/frequencia-diaria' },
-          { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
-          { icon: LayoutList, label: 'Painel da Turma', href: '/admin/painel-turma' },
+          { icon: CalendarCheck, label: 'Frequência Bimestral', href: '/admin/gestor/frequencia' },
+          { icon: Scan, label: 'Frequência Diária', href: '/admin/gestor/frequencia-diaria' },
+          { icon: AlertTriangle, label: 'Infrequência', href: '/admin/gestor/infrequencia' },
+          { icon: LayoutList, label: 'Painel da Turma', href: '/admin/gestor/painel-turma' },
         ]
       },
       {
         icon: ScanFace, label: 'Reconhecimento Facial', children: [
-          { icon: Monitor, label: 'Dispositivos', href: '/admin/dispositivos-faciais' },
-          { icon: ScanFace, label: 'Cadastro Facial', href: '/admin/facial-enrollment' },
-          { icon: Tablet, label: 'Terminal', href: '/admin/terminal-facial' },
+          { icon: Monitor, label: 'Dispositivos', href: '/admin/gestor/dispositivos-faciais' },
+          { icon: ScanFace, label: 'Cadastro Facial', href: '/admin/gestor/facial-enrollment' },
+          { icon: Tablet, label: 'Terminal', href: '/admin/gestor/terminal-facial' },
         ]
       },
       {
         icon: FileSpreadsheet, label: 'Avaliações Escolares', children: [
-          { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
-          { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
-          { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/regras-avaliacao' },
-          { icon: Lock, label: 'Fechamento de Ano', href: '/admin/fechamento-ano' },
+          { icon: FileText, label: 'Lançar Notas', href: '/admin/gestor/notas-escolares' },
+          { icon: RotateCcw, label: 'Recuperação', href: '/admin/gestor/recuperacao' },
+          { icon: ClipboardList, label: 'Regras de Avaliação', href: '/admin/gestor/regras-avaliacao' },
+          { icon: Lock, label: 'Fechamento de Ano', href: '/admin/gestor/fechamento-ano' },
         ]
       },
       {
         icon: ClipboardList, label: 'Pedagógico', children: [
-          { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
-          { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
-          { icon: FileText, label: 'Avaliações Descritivas', href: '/admin/avaliacoes-descritivas' },
-          { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
-          { icon: AlertTriangle, label: 'Divergências', href: '/admin/divergencias' },
+          { icon: Users, label: 'Conselho de Classe', href: '/admin/gestor/conselho-classe' },
+          { icon: FileText, label: 'Histórico Escolar', href: '/admin/gestor/historico-escolar' },
+          { icon: FileText, label: 'Avaliações Descritivas', href: '/admin/gestor/avaliacoes-descritivas' },
+          { icon: Printer, label: 'Relatórios PDF', href: '/admin/gestor/relatorios-pdf' },
+          { icon: AlertTriangle, label: 'Divergências', href: '/admin/gestor/divergencias' },
         ]
       },
       {
         icon: GraduationCap, label: 'Professores', children: [
-          { icon: Users, label: 'Gerenciar Professores', href: '/admin/professores' },
-          { icon: ArrowLeftRight, label: 'Vincular Turmas', href: '/admin/professor-turmas' },
+          { icon: Users, label: 'Gerenciar Professores', href: '/admin/gestor/professores' },
+          { icon: ArrowLeftRight, label: 'Vincular Turmas', href: '/admin/gestor/professor-turmas' },
         ]
       },
       {
         icon: Users, label: 'Responsáveis', children: [
-          { icon: Users, label: 'Aprovar vínculos', href: '/admin/responsaveis' },
+          { icon: Users, label: 'Aprovar vínculos', href: '/admin/gestor/responsaveis' },
         ]
       },
       {
         icon: Settings, label: 'Configurações', children: [
-          { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/anos-letivos' },
-          { icon: GraduationCap, label: 'Séries', href: '/admin/series-escolares' },
-          { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
-          { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
-          { icon: Calendar, label: 'Calendário Escolar', href: '/admin/calendario-escolar' },
-          { icon: CalendarDays, label: 'Calendário · Eventos', href: '/admin/calendario-eventos' },
+          { icon: CalendarCheck, label: 'Anos Letivos', href: '/admin/gestor/anos-letivos' },
+          { icon: GraduationCap, label: 'Séries', href: '/admin/gestor/series-escolares' },
+          { icon: BookOpen, label: 'Disciplinas', href: '/admin/gestor/disciplinas' },
+          { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/gestor/horarios-aula' },
+          { icon: Calendar, label: 'Calendário Escolar', href: '/admin/gestor/calendario-escolar' },
+          { icon: CalendarDays, label: 'Calendário · Eventos', href: '/admin/gestor/calendario-eventos' },
         ]
       },
     )
@@ -249,54 +249,54 @@ function gruposGestor(tipo: string): MenuItem[] {
         icon: BookOpen, label: 'Cadastros', children: [
           { icon: GraduationCap, label: 'Alunos', href: '/escola/alunos' },
           { icon: UserPlus, label: 'Matrículas', href: '/escola/matriculas' },
-          { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/transferencias' },
-          { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/controle-vagas' },
-          { icon: Clock, label: 'Fila de Espera', href: '/admin/fila-espera' },
+          { icon: ArrowLeftRight, label: 'Transferências', href: '/admin/gestor/transferencias' },
+          { icon: DoorOpen, label: 'Controle de Vagas', href: '/admin/gestor/controle-vagas' },
+          { icon: Clock, label: 'Fila de Espera', href: '/admin/gestor/fila-espera' },
         ]
       },
       {
         icon: CalendarCheck, label: 'Frequência', children: [
-          { icon: CalendarCheck, label: 'Frequência Bimestral', href: '/admin/frequencia' },
-          { icon: Scan, label: 'Frequência Diária', href: '/admin/frequencia-diaria' },
-          { icon: AlertTriangle, label: 'Infrequência', href: '/admin/infrequencia' },
-          { icon: LayoutList, label: 'Painel da Turma', href: '/admin/painel-turma' },
+          { icon: CalendarCheck, label: 'Frequência Bimestral', href: '/admin/gestor/frequencia' },
+          { icon: Scan, label: 'Frequência Diária', href: '/admin/gestor/frequencia-diaria' },
+          { icon: AlertTriangle, label: 'Infrequência', href: '/admin/gestor/infrequencia' },
+          { icon: LayoutList, label: 'Painel da Turma', href: '/admin/gestor/painel-turma' },
         ]
       },
       {
         icon: ScanFace, label: 'Reconhecimento Facial', children: [
-          { icon: ScanFace, label: 'Cadastro Facial', href: '/admin/facial-enrollment' },
-          { icon: Tablet, label: 'Terminal', href: '/admin/terminal-facial' },
+          { icon: ScanFace, label: 'Cadastro Facial', href: '/admin/gestor/facial-enrollment' },
+          { icon: Tablet, label: 'Terminal', href: '/admin/gestor/terminal-facial' },
         ]
       },
       {
         icon: FileSpreadsheet, label: 'Avaliações Escolares', children: [
-          { icon: FileText, label: 'Lançar Notas', href: '/admin/notas-escolares' },
-          { icon: RotateCcw, label: 'Recuperação', href: '/admin/recuperacao' },
+          { icon: FileText, label: 'Lançar Notas', href: '/admin/gestor/notas-escolares' },
+          { icon: RotateCcw, label: 'Recuperação', href: '/admin/gestor/recuperacao' },
         ]
       },
       {
         icon: ClipboardList, label: 'Pedagógico', children: [
-          { icon: Users, label: 'Conselho de Classe', href: '/admin/conselho-classe' },
-          { icon: FileText, label: 'Histórico Escolar', href: '/admin/historico-escolar' },
-          { icon: Printer, label: 'Relatórios PDF', href: '/admin/relatorios-pdf' },
+          { icon: Users, label: 'Conselho de Classe', href: '/admin/gestor/conselho-classe' },
+          { icon: FileText, label: 'Histórico Escolar', href: '/admin/gestor/historico-escolar' },
+          { icon: Printer, label: 'Relatórios PDF', href: '/admin/gestor/relatorios-pdf' },
         ]
       },
       {
         icon: GraduationCap, label: 'Professores', children: [
-          { icon: ArrowLeftRight, label: 'Turmas e Professores', href: '/admin/professor-turmas' },
+          { icon: ArrowLeftRight, label: 'Turmas e Professores', href: '/admin/gestor/professor-turmas' },
         ]
       },
       {
         icon: Users, label: 'Responsáveis', children: [
-          { icon: Users, label: 'Aprovar vínculos', href: '/admin/responsaveis' },
+          { icon: Users, label: 'Aprovar vínculos', href: '/admin/gestor/responsaveis' },
         ]
       },
       {
         icon: Settings, label: 'Configurações', children: [
-          { icon: GraduationCap, label: 'Séries', href: '/admin/series-escolares' },
-          { icon: BookOpen, label: 'Disciplinas', href: '/admin/disciplinas' },
-          { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/horarios-aula' },
-          { icon: Calendar, label: 'Calendário Escolar', href: '/admin/calendario-escolar' },
+          { icon: GraduationCap, label: 'Séries', href: '/admin/gestor/series-escolares' },
+          { icon: BookOpen, label: 'Disciplinas', href: '/admin/gestor/disciplinas' },
+          { icon: CalendarClock, label: 'Horários de Aula', href: '/admin/gestor/horarios-aula' },
+          { icon: Calendar, label: 'Calendário Escolar', href: '/admin/gestor/calendario-escolar' },
         ]
       },
     )
@@ -405,7 +405,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
 
   // Dashboard sempre primeiro
   if (mod === 'gestor') {
-    items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/dashboard-gestor' })
+    items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/gestor/dashboard' })
   } else if (mod === 'semed') {
     items.push({ icon: LayoutGrid, label: 'Dashboard', href: '/admin/dashboard-semed' })
   } else if (mod === 'admin') {

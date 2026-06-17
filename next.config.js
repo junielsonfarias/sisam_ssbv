@@ -175,6 +175,16 @@ const nextConfig = {
       'importar-completo', 'importar-cadastros', 'importar-resultados',
       'importacoes', 'metas', 'configuracao-series', 'modulos-tecnico',
     ]
+    const rotasGestor = [
+      'escolas', 'polos', 'alunos', 'turmas', 'matriculas', 'pre-matriculas',
+      'transferencias', 'controle-vagas', 'fila-espera', 'frequencia',
+      'frequencia-diaria', 'infrequencia', 'painel-turma', 'dispositivos-faciais',
+      'facial-enrollment', 'terminal-facial', 'notas-escolares', 'recuperacao',
+      'regras-avaliacao', 'fechamento-ano', 'conselho-classe', 'historico-escolar',
+      'avaliacoes-descritivas', 'relatorios-pdf', 'divergencias', 'professores',
+      'professor-turmas', 'responsaveis', 'anos-letivos', 'series-escolares',
+      'disciplinas', 'horarios-aula', 'calendario-escolar', 'calendario-eventos',
+    ]
     const gerarRedirects = (modulo, rotas) =>
       rotas.flatMap((r) => [
         { source: `/admin/${r}`, destination: `/admin/${modulo}/${r}`, permanent: false },
@@ -182,6 +192,9 @@ const nextConfig = {
       ])
     return [
       ...gerarRedirects('sisam', rotasSisam),
+      ...gerarRedirects('gestor', rotasGestor),
+      // dashboard-gestor foi renomeado para gestor/dashboard (não cabe no gerador uniforme)
+      { source: '/admin/dashboard-gestor', destination: '/admin/gestor/dashboard', permanent: false },
     ]
   },
   // Headers de cache e permissões

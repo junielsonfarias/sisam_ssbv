@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { abreviarNome } from '@/app/admin/turmas/[turmaId]/diario/components/formatters'
+import { abreviarNome } from '@/app/admin/gestor/turmas/[turmaId]/diario/components/formatters'
 
 describe('abreviarNome', () => {
   describe('prioridade: nome completo quando <= 4 nomes proprios', () => {

@@ -10,8 +10,8 @@ import { LayoutDashboard as DashboardIcon, Users, BookOpen, GraduationCap, User 
 
 const MENU_MOBILE = [
   { label: 'Dashboard', href: '/admin/sisam/dashboard', icon: DashboardIcon },
-  { label: 'Alunos', href: '/admin/alunos', icon: Users },
-  { label: 'Turmas', href: '/admin/turmas', icon: BookOpen },
+  { label: 'Alunos', href: '/admin/gestor/alunos', icon: Users },
+  { label: 'Turmas', href: '/admin/gestor/turmas', icon: BookOpen },
   { label: 'SISAM', href: '/admin/sisam/dados', icon: GraduationCap },
   { label: 'Perfil', href: '/perfil', icon: User },
 ]

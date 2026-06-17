@@ -37,7 +37,7 @@ const MODULOS: Modulo[] = [
     Icon: BookOpen,
     cor: 'emerald',
     destaques: ['Matrículas, frequência, notas', 'Turmas, alunos, transferências', 'Conselho de classe e histórico'],
-    rotaAdmin: '/admin/dashboard-gestor',
+    rotaAdmin: '/admin/gestor/dashboard',
     habilitadoPara: (u) => u.acesso_gestor === true,
   },
   {
