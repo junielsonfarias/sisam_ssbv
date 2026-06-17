@@ -80,7 +80,7 @@ export async function coletarDadosTransferencia(
     )
     const f = await pool.query(
       `SELECT
-         COALESCE(SUM(CASE WHEN presenca IN ('P','p') THEN 1 ELSE 0 END), 0)::float /
+         COALESCE(SUM(CASE WHEN status IN ('presente','justificado') THEN 1 ELSE 0 END), 0)::float /
            NULLIF(COUNT(*), 0) * 100 AS pct
          FROM frequencia_diaria
         WHERE aluno_id = $1 AND data >= $2 || '-01-01' AND data <= $2 || '-12-31'`,

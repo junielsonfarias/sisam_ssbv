@@ -126,7 +126,7 @@ export async function listarEscolasPublicas(anoLetivo: string): Promise<EscolaPu
     let freq: number | null = null
     try {
       const f = await pool.query(
-        `SELECT AVG(CASE WHEN presenca IN ('P','p') THEN 100.0 ELSE 0 END) AS pct
+        `SELECT AVG(CASE WHEN f.status IN ('presente','justificado') THEN 100.0 ELSE 0 END) AS pct
            FROM frequencia_diaria f
            INNER JOIN alunos a ON a.id = f.aluno_id
           WHERE a.escola_id = $1

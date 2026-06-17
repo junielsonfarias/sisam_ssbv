@@ -81,7 +81,7 @@ export async function calcularRiscoAluno(
   // Fator 1: Frequência (peso 35)
   try {
     const freq = await pool.query(
-      `SELECT COUNT(*) FILTER (WHERE presenca IN ('P','p'))::float / NULLIF(COUNT(*), 0) AS pct
+      `SELECT COUNT(*) FILTER (WHERE status IN ('presente','justificado'))::float / NULLIF(COUNT(*), 0) AS pct
          FROM frequencia_diaria
         WHERE aluno_id = $1 AND data BETWEEN ($2 || '-01-01')::date AND ($2 || '-12-31')::date`,
       [alunoId, anoLetivo]

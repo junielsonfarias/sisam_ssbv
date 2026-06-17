@@ -100,7 +100,7 @@ export async function gerarDeclaracaoFrequencia(params: {
     const r = await pool.query(
       `SELECT
          COUNT(*) AS total,
-         COUNT(CASE WHEN presenca IN ('P','p') THEN 1 END) AS presentes
+         COUNT(CASE WHEN status IN ('presente','justificado') THEN 1 END) AS presentes
        FROM frequencia_diaria
        WHERE aluno_id = $1
          AND data >= ($2 || '-01-01')::date

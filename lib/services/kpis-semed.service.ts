@@ -119,7 +119,7 @@ export async function obterKpisFrequencia(anoLetivo: string): Promise<KpisFreque
          SELECT
            aluno_id,
            COUNT(*) AS total,
-           COUNT(CASE WHEN presenca IN ('P','p') THEN 1 END) AS presencas
+           COUNT(CASE WHEN status IN ('presente','justificado') THEN 1 END) AS presencas
            FROM frequencia_diaria
           WHERE data BETWEEN ($1 || '-01-01')::date AND ($1 || '-12-31')::date
           GROUP BY aluno_id
@@ -166,7 +166,7 @@ export async function obterKpisDesempenho(anoLetivo: string): Promise<KpisDesemp
     const situacaoR = await pool.query(
       `SELECT situacao, COUNT(*) AS total
          FROM historico_situacao
-        WHERE ano_letivo = $1
+        WHERE EXTRACT(YEAR FROM data)::text = $1
         GROUP BY situacao`,
       [anoLetivo]
     ).catch(() => ({ rows: [] }))
@@ -317,7 +317,7 @@ export async function obterComparativoEscolas(anoLetivo: string): Promise<Compar
   for (const escola of r.rows) {
     try {
       const freq = await pool.query(
-        `SELECT AVG(CASE WHEN presenca IN ('P','p') THEN 100.0 ELSE 0 END) AS pct
+        `SELECT AVG(CASE WHEN f.status IN ('presente','justificado') THEN 100.0 ELSE 0 END) AS pct
            FROM frequencia_diaria f
            INNER JOIN alunos a ON a.id = f.aluno_id
           WHERE a.escola_id = $1
