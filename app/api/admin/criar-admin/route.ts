@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { hashPassword, getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
-import crypto from 'crypto'
+import { gerarSenhaForte } from '@/lib/utils/gerar-senha'
 import { cacheDelPattern } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
 
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Gerar senha segura aleatoria
-    const senhaTemporaria = crypto.randomBytes(16).toString('hex')
+    // Gerar senha segura aleatoria (forte: passa na política de senha-forca)
+    const senhaTemporaria = gerarSenhaForte()
     const senhaHash = await hashPassword(senhaTemporaria)
 
     await pool.query(

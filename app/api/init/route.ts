@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool, { resetPool } from '@/database/connection'
 import { hashPassword, getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
-import crypto from 'crypto'
+import { gerarSenhaForte } from '@/lib/utils/gerar-senha'
 
 export const dynamic = 'force-dynamic';
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Gerar senha segura aleatoria (o admin precisara resetar via banco ou outro meio)
-    const senhaTemporaria = crypto.randomBytes(16).toString('hex')
+    const senhaTemporaria = gerarSenhaForte()
     const senhaHash = await hashPassword(senhaTemporaria)
 
     const result = await pool.query(

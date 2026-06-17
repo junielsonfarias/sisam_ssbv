@@ -1,7 +1,9 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { X, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import type { TipoUsuario } from '@/lib/types'
+import { gerarSenhaForte } from '@/lib/utils/gerar-senha'
 import { Escola, FormDataUsuario, Polo, Usuario } from './types'
 import { ToggleModulo } from './toggle-modulo'
 
@@ -20,6 +22,8 @@ interface Props {
 export function ModalUsuarioForm({
   aberto, usuarioEditando, form, polos, escolas, salvando, onChange, onFechar, onSalvar,
 }: Props) {
+  const [mostrarSenha, setMostrarSenha] = useState(false)
+
   if (!aberto) return null
 
   const set = (patch: Partial<FormDataUsuario>) => onChange({ ...form, ...patch })
@@ -61,13 +65,39 @@ export function ModalUsuarioForm({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   {usuarioEditando ? 'Nova Senha (opcional)' : 'Senha *'}
                 </label>
-                <input
-                  type="password"
-                  value={form.senha}
-                  onChange={(e) => set({ senha: e.target.value })}
-                  className={inputCls}
-                  placeholder={usuarioEditando ? 'Deixe vazio para manter' : 'Mínimo 12 caracteres (letra + número)'}
-                />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={mostrarSenha ? 'text' : 'password'}
+                      value={form.senha}
+                      onChange={(e) => set({ senha: e.target.value })}
+                      className={`${inputCls} pr-10`}
+                      placeholder={usuarioEditando ? 'Deixe vazio para manter' : 'Mínimo 12 caracteres'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenha((v) => !v)}
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                      aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { set({ senha: gerarSenhaForte() }); setMostrarSenha(true) }}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors whitespace-nowrap"
+                    title="Gerar senha forte"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Gerar
+                  </button>
+                </div>
+                {mostrarSenha && form.senha && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    Copie e repasse esta senha ao usuário — ela não será exibida depois.
+                  </p>
+                )}
               </div>
 
               <div>
