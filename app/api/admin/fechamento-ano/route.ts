@@ -18,6 +18,9 @@ const aplicarResultadosSchema = z.object({
   escola_id: z.string().uuid(),
   ano_letivo: z.string().min(4).max(10),
   resultados: z.array(resultadoSchema).min(1),
+  // Override consciente do gate de dias letivos (exige justificativa)
+  forcar: z.boolean().optional().default(false),
+  justificativa: z.string().max(500).optional(),
 })
 
 // ============================================
@@ -72,6 +75,35 @@ function calcularMediaPonderada(
     periodos_com_nota: periodosComNota,
     periodos_total: pesosPeriodos.length,
   }
+}
+
+/**
+ * Calcula os dias letivos efetivos da escola no ano (via função SQL
+ * contar_dias_letivos, que considera feriados/recessos/reposições do
+ * calendário) e compara com o mínimo exigido (anos_letivos.dias_letivos_total,
+ * default 200 — LDB art. 24, I). Retorna `suficientes: null` quando o ano não
+ * tem datas configuradas (não dá para validar).
+ */
+async function calcularDiasLetivos(
+  escolaId: string,
+  anoLetivo: string
+): Promise<{ efetivos: number | null; exigidos: number; suficientes: boolean | null }> {
+  const anoResult = await pool.query(
+    `SELECT id, data_inicio, data_fim, dias_letivos_total
+       FROM anos_letivos WHERE ano = $1 LIMIT 1`,
+    [anoLetivo]
+  )
+  const ano = anoResult.rows[0]
+  const exigidos = ano?.dias_letivos_total ?? 200
+  if (!ano || !ano.data_inicio || !ano.data_fim) {
+    return { efetivos: null, exigidos, suficientes: null }
+  }
+  const diasResult = await pool.query(
+    `SELECT contar_dias_letivos($1::uuid, $2::uuid, $3::date, $4::date) AS dias`,
+    [ano.id, escolaId, ano.data_inicio, ano.data_fim]
+  )
+  const efetivos = parseInt(diasResult.rows[0]?.dias) || 0
+  return { efetivos, exigidos, suficientes: efetivos >= exigidos }
 }
 
 // ============================================
@@ -325,6 +357,9 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Dias letivos efetivos x exigidos (LDB art. 24 — gate de fechamento)
+    const diasLetivos = await calcularDiasLetivos(escolaId, anoLetivo)
+
     return NextResponse.json({
       resultados,
       resumo: {
@@ -333,6 +368,9 @@ export async function GET(request: NextRequest) {
         reprovados: totalReprovados,
         em_recuperacao: totalEmRecuperacao,
         parciais: totalParciais,
+        dias_letivos_efetivos: diasLetivos.efetivos,
+        dias_letivos_exigidos: diasLetivos.exigidos,
+        dias_letivos_suficientes: diasLetivos.suficientes,
       },
     })
   } catch (error: unknown) {
@@ -362,7 +400,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const { escola_id, ano_letivo, resultados } = validacao.data
+    const { escola_id, ano_letivo, resultados, forcar, justificativa } = validacao.data
+
+    // Gate de dias letivos (LDB art. 24, I — mínimo de 200 dias/800h).
+    // Bloqueia o fechamento se insuficiente, salvo override explícito do gestor.
+    const diasLetivos = await calcularDiasLetivos(escola_id, ano_letivo)
+    if (diasLetivos.suficientes === false && !forcar) {
+      return NextResponse.json({
+        mensagem: `Dias letivos insuficientes: ${diasLetivos.efetivos} de ${diasLetivos.exigidos} exigidos (LDB art. 24). Reveja o calendário ou confirme o fechamento com justificativa.`,
+        erro: 'DIAS_LETIVOS_INSUFICIENTES',
+        dias_letivos_efetivos: diasLetivos.efetivos,
+        dias_letivos_exigidos: diasLetivos.exigidos,
+      }, { status: 422 })
+    }
 
     // Validar que todos os alunos existem e estão 'cursando'
     const alunoIds = resultados.map(r => r.aluno_id)
@@ -395,6 +445,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Observação do histórico — registra override de dias letivos (auditoria)
+    const observacaoBase = `Fechamento do ano letivo ${ano_letivo}` +
+      (forcar && diasLetivos.suficientes === false
+        ? ` — OVERRIDE de dias letivos (${diasLetivos.efetivos}/${diasLetivos.exigidos}): ${justificativa?.trim() || 'sem justificativa'}`
+        : '')
+
     // Aplicar em lote com transação
     const client = await pool.connect()
     try {
@@ -424,7 +480,7 @@ export async function POST(request: NextRequest) {
               [
                 item.aluno_id,
                 item.situacao,
-                `Fechamento do ano letivo ${ano_letivo}`,
+                observacaoBase,
                 usuario.id,
               ]
             )
