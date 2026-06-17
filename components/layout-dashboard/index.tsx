@@ -74,7 +74,7 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Detecta o módulo pelo namespace da URL (/admin/<modulo>/...). Tem
     // precedência sobre o storage para manter o menu lateral coerente com a
     // página aberta — inclusive ao acessar uma URL diretamente ou via bookmark.
-    const m = pathname?.match(/^\/admin\/(sisam|gestor|semed)\b/)
+    const m = pathname?.match(/^\/admin\/(sisam|gestor|semed|transparencia|admin)\b/)
     if (m) {
       const moduloUrl = m[1] as offlineStorage.ModuloAtivo
       setModuloAtivo(moduloUrl)
@@ -265,8 +265,8 @@ export default function LayoutDashboard({ children, tipoUsuario }: LayoutDashboa
     // Rota de destino por módulo (namespaced)
     if (novo === 'gestor') router.push('/admin/gestor/dashboard')
     else if (novo === 'semed') router.push('/admin/semed/dashboard')
-    else if (novo === 'transparencia') router.push('/admin/site-institucional')
-    else if (novo === 'admin') router.push('/admin/usuarios')
+    else if (novo === 'transparencia') router.push('/admin/transparencia/site-institucional')
+    else if (novo === 'admin') router.push('/admin/admin/usuarios')
     else router.push(basePath === 'admin' ? '/admin/sisam/dashboard' : `/${basePath}/dashboard`)
   }
 

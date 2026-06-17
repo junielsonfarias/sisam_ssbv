@@ -365,27 +365,27 @@ function gruposSemed(tipo: string): MenuItem[] {
 
 function gruposTransparencia(): MenuItem[] {
   return [
-    { icon: Globe, label: 'Site Institucional', href: '/admin/site-institucional' },
+    { icon: Globe, label: 'Site Institucional', href: '/admin/transparencia/site-institucional' },
     { icon: LayoutGrid, label: 'Notícias', href: '/editor/noticias' },
     { icon: FileText, label: 'Publicações', href: '/publicador/publicacoes' },
-    { icon: MessageCircle, label: 'Ouvidoria', href: '/admin/ouvidoria' },
-    { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
-    { icon: Building2, label: 'Relatórios Conselhos', href: '/admin/relatorios-conselhos' },
+    { icon: MessageCircle, label: 'Ouvidoria', href: '/admin/transparencia/ouvidoria' },
+    { icon: Calendar, label: 'Eventos', href: '/admin/transparencia/eventos' },
+    { icon: Building2, label: 'Relatórios Conselhos', href: '/admin/transparencia/relatorios-conselhos' },
   ]
 }
 
 function gruposAdministracao(): MenuItem[] {
   return [
-    { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
-    { icon: Bell, label: 'Notificações', href: '/admin/notificacoes' },
-    { icon: ShieldCheck, label: 'Segurança', href: '/admin/seguranca' },
-    { icon: Shield, label: 'LGPD / Solicitações', href: '/admin/lgpd' },
-    { icon: Shield, label: 'Auditoria', href: '/admin/auditoria' },
-    { icon: Activity, label: 'Logs de Acesso', href: '/admin/logs-acesso' },
-    { icon: HardDrive, label: 'Backup', href: '/admin/backup' },
-    { icon: HeartPulse, label: 'Monitoramento', href: '/admin/monitoramento' },
-    { icon: Activity, label: 'Status Page / Incidentes', href: '/admin/status-page' },
-    { icon: Settings, label: 'Personalização', href: '/admin/personalizacao' },
+    { icon: Users, label: 'Usuários', href: '/admin/admin/usuarios' },
+    { icon: Bell, label: 'Notificações', href: '/admin/admin/notificacoes' },
+    { icon: ShieldCheck, label: 'Segurança', href: '/admin/admin/seguranca' },
+    { icon: Shield, label: 'LGPD / Solicitações', href: '/admin/admin/lgpd' },
+    { icon: Shield, label: 'Auditoria', href: '/admin/admin/auditoria' },
+    { icon: Activity, label: 'Logs de Acesso', href: '/admin/admin/logs-acesso' },
+    { icon: HardDrive, label: 'Backup', href: '/admin/admin/backup' },
+    { icon: HeartPulse, label: 'Monitoramento', href: '/admin/admin/monitoramento' },
+    { icon: Activity, label: 'Status Page / Incidentes', href: '/admin/admin/status-page' },
+    { icon: Settings, label: 'Personalização', href: '/admin/admin/personalizacao' },
     { icon: Smartphone, label: 'Baixar App', href: '/app-download' },
   ]
 }
@@ -465,7 +465,7 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
     mod !== 'admin' &&
     ['admin', 'administrador', 'tecnico', 'escola', 'polo'].includes(tipo)
   ) {
-    items.push({ icon: Bell, label: 'Notificações', href: '/admin/notificacoes' })
+    items.push({ icon: Bell, label: 'Notificações', href: '/admin/admin/notificacoes' })
   }
 
   // ============================================================================
@@ -496,14 +496,14 @@ export function getMenuItems({ tipoUsuarioReal, moduloAtivo, basePath, usuario }
   if (tipo === 'editor') {
     return [
       { icon: LayoutGrid, label: 'Notícias', href: '/editor/noticias' },
-      { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
+      { icon: Calendar, label: 'Eventos', href: '/admin/transparencia/eventos' },
     ]
   }
 
   if (tipo === 'publicador') {
     return [
       { icon: FileText, label: 'Publicações', href: '/publicador/publicacoes' },
-      { icon: Calendar, label: 'Eventos', href: '/admin/eventos' },
+      { icon: Calendar, label: 'Eventos', href: '/admin/transparencia/eventos' },
     ]
   }
 

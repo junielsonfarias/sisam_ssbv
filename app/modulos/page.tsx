@@ -57,7 +57,7 @@ const MODULOS: Modulo[] = [
     Icon: Globe,
     cor: 'sky',
     destaques: ['Site institucional', 'Notícias e publicações', 'Ouvidoria e eventos'],
-    rotaAdmin: '/admin/site-institucional',
+    rotaAdmin: '/admin/transparencia/site-institucional',
     habilitadoPara: (u) => u.acesso_transparencia === true,
   },
   {
@@ -67,7 +67,7 @@ const MODULOS: Modulo[] = [
     Icon: Settings,
     cor: 'slate',
     destaques: ['Usuários, backup, monitoramento', 'Segurança, 2FA, LGPD', 'Logs, auditoria, status page'],
-    rotaAdmin: '/admin/usuarios',
+    rotaAdmin: '/admin/admin/usuarios',
     habilitadoPara: (u) => u.acesso_admin === true,
   },
 ]

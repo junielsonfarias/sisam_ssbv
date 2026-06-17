@@ -190,6 +190,13 @@ const nextConfig = {
       'documentos', 'pnae', 'pnate', 'pnld', 'pdde', 'bolsa-familia', 'rh',
       'patrimonio', 'biblioteca', 'ordens-servico',
     ]
+    const rotasTransparencia = [
+      'site-institucional', 'ouvidoria', 'eventos', 'relatorios-conselhos',
+    ]
+    const rotasAdmin = [
+      'usuarios', 'notificacoes', 'seguranca', 'lgpd', 'auditoria',
+      'logs-acesso', 'backup', 'monitoramento', 'status-page', 'personalizacao',
+    ]
     const gerarRedirects = (modulo, rotas) =>
       rotas.flatMap((r) => [
         { source: `/admin/${r}`, destination: `/admin/${modulo}/${r}`, permanent: false },
@@ -199,6 +206,8 @@ const nextConfig = {
       ...gerarRedirects('sisam', rotasSisam),
       ...gerarRedirects('gestor', rotasGestor),
       ...gerarRedirects('semed', rotasSemed),
+      ...gerarRedirects('transparencia', rotasTransparencia),
+      ...gerarRedirects('admin', rotasAdmin),
       // dashboards renomeados para <modulo>/dashboard (não cabem no gerador uniforme)
       { source: '/admin/dashboard-gestor', destination: '/admin/gestor/dashboard', permanent: false },
       { source: '/admin/dashboard-semed', destination: '/admin/semed/dashboard', permanent: false },
