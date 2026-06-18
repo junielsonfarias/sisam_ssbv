@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Accessibility, AlertCircle, CheckCircle, GraduationCap, Plus, Users } from 'lucide-react'
+import Link from 'next/link'
+import { Accessibility, AlertCircle, CheckCircle, Clock, GraduationCap, Plus, Users } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
 import { useToast } from '@/components/toast'
 
@@ -301,12 +302,20 @@ function AeeAdmin() {
               <p className="text-purple-100 text-sm">Inclusão escolar (Lei 13.146/2015 — LBI)</p>
             </div>
           </div>
-          <button
-            onClick={abrirCadastroNovo}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-bold transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Cadastrar aluno AEE
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/semed/aee/relatorios"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-bold transition-colors"
+            >
+              <Clock className="w-4 h-4" /> Relatório de horas
+            </Link>
+            <button
+              onClick={abrirCadastroNovo}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-bold transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Cadastrar aluno AEE
+            </button>
+          </div>
         </div>
       </div>
 
