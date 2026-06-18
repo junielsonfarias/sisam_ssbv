@@ -38,7 +38,10 @@ export default function ProtectedRoute({ children, tiposPermitidos, requerModulo
   const tiposKey = tiposPermitidos.slice().sort().join(',') + '|' + (requerModulo ?? '')
 
   useEffect(() => {
-    const tiposArr = tiposKey.split(',')
+    // tiposKey = "tipo1,tipo2|requerModulo" — separa o requerModulo (após o '|')
+    // ANTES de dividir por vírgula, senão o último tipo fica colado com '|requerModulo'
+    // (ex.: 'responsavel|') e nunca casa. (bug: quebrava o perfil que ordena por último.)
+    const tiposArr = tiposKey.split('|')[0].split(',')
 
     const verificarAuth = async () => {
       // Evitar verificações simultâneas
