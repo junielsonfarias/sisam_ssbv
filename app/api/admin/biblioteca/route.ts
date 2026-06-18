@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -85,14 +86,22 @@ function tratarErroBiblioteca(e: unknown) {
   return NextResponse.json({ mensagem: 'Erro ao processar operação' }, { status: 500 })
 }
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo', 'professor', 'responsavel'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo', 'professor', 'responsavel'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const recurso = searchParams.get('recurso') || 'acervo'
+
+  // Escopo: escola/professor só a própria escola; polo valida a informada
+  let escolaId = searchParams.get('escola') || undefined
+  if (usuario.tipo_usuario === 'escola' || usuario.tipo_usuario === 'professor') {
+    escolaId = usuario.escola_id || '00000000-0000-0000-0000-000000000000'
+  } else if (usuario.tipo_usuario === 'polo' && escolaId && !(await podeAcessarEscola(usuario, escolaId))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+  }
 
   switch (recurso) {
     case 'acervo': {
       const dados = await buscarAcervo({
-        escolaId: searchParams.get('escola') || undefined,
+        escolaId,
         busca: searchParams.get('busca') || undefined,
         categoria: searchParams.get('categoria') || undefined,
         apenasDisponiveis: searchParams.get('disponivel') === 'true',
@@ -102,7 +111,7 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo',
     }
     case 'emprestimos': {
       const dados = await listarEmprestimosAtivos({
-        escolaId: searchParams.get('escola') || undefined,
+        escolaId,
         atrasados: searchParams.get('atrasados') === 'true',
         pessoa_id: searchParams.get('pessoa') || undefined,
       })

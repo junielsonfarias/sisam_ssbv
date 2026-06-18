@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
+import { podeVerAlunoPedagogico } from '@/lib/professor-auth'
 import { z } from 'zod'
 import {
   buscarRelatorio,
@@ -28,7 +29,7 @@ const postSchema = z.object({
   status: z.enum(['rascunho', 'publicado', 'entregue']).optional(),
 })
 
-export const GET = withAuth(['professor', 'administrador', 'tecnico', 'escola', 'responsavel'], async (request) => {
+export const GET = withAuth(['professor', 'administrador', 'tecnico', 'escola', 'responsavel'], async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const aluno = searchParams.get('aluno')
   const ano = searchParams.get('ano')
@@ -36,6 +37,9 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico', 'escola', 
 
   if (!aluno || !ano || !periodo) {
     return NextResponse.json({ mensagem: 'Informe ?aluno=&ano=&periodo=' }, { status: 400 })
+  }
+  if (!(await podeVerAlunoPedagogico(usuario, aluno))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
   }
 
   const rel = await buscarRelatorio({ alunoId: aluno, anoLetivo: ano, periodo })
@@ -50,6 +54,10 @@ export const POST = withAuth('professor', async (request, usuario) => {
       { mensagem: 'Dados inválidos', erros: parsed.error.flatten() },
       { status: 400 }
     )
+  }
+
+  if (!(await podeVerAlunoPedagogico(usuario, parsed.data.aluno_id))) {
+    return NextResponse.json({ mensagem: 'Sem vínculo com a turma deste aluno' }, { status: 403 })
   }
 
   const id = await salvarRelatorio({

@@ -387,6 +387,30 @@ export async function podeAcessarEscola(usuario: Usuario, escolaId: string): Pro
 }
 
 /**
+ * Verifica se o usuário pode acessar um ALUNO (resolve a escola do aluno e
+ * delega a `podeAcessarEscola`). Admin/técnico têm acesso total; escola só a
+ * própria; polo só as do seu polo. Aluno inexistente → false.
+ *
+ * Use em rotas que recebem aluno_id do cliente e delegam a services que
+ * filtram só pelo id — evita IDOR (ler/escrever dados de aluno de outra escola).
+ */
+export async function podeAcessarAluno(usuario: Usuario, alunoId: string): Promise<boolean> {
+  if (isAdmin(usuario.tipo_usuario) || usuario.tipo_usuario === 'tecnico') {
+    return true;
+  }
+  if (!alunoId) return false;
+  try {
+    const result = await pool.query('SELECT escola_id FROM alunos WHERE id = $1', [alunoId]);
+    const escolaId = result.rows[0]?.escola_id;
+    if (!escolaId) return false;
+    return podeAcessarEscola(usuario, escolaId);
+  } catch (error) {
+    log.error('Erro ao verificar acesso ao aluno', error);
+    return false;
+  }
+}
+
+/**
  * Versão síncrona para verificação rápida de acesso a escola
  *
  * Diferente de `podeAcessarEscola`, esta função NÃO faz consulta ao banco.

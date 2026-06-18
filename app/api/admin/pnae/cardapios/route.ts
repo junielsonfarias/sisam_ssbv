@@ -36,11 +36,14 @@ const postSchema = z.object({
   publicar: z.boolean().optional(),
 })
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'responsavel'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'responsavel'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
-  const escola_id = searchParams.get('escola')
+  let escola_id = searchParams.get('escola')
   const data = searchParams.get('data') || new Date().toISOString().slice(0, 10)
   const faixa_etaria = searchParams.get('faixa') as any
+
+  // Escola só consulta o próprio cardápio
+  if (usuario.tipo_usuario === 'escola') escola_id = usuario.escola_id || escola_id
 
   if (!escola_id || !faixa_etaria) {
     return NextResponse.json({ mensagem: 'Informe ?escola=&faixa=' }, { status: 400 })

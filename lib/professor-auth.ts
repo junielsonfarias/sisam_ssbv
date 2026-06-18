@@ -1,4 +1,6 @@
 import pool from '@/database/connection'
+import { podeAcessarAluno } from './auth'
+import type { Usuario } from './types'
 
 /**
  * Valida formato de data ISO (YYYY-MM-DD)
@@ -47,6 +49,29 @@ export async function verificarVinculoProfessor(
   }
   const result = await pool.query(query, params)
   return result.rows.length > 0
+}
+
+/**
+ * Pode o usuário acessar os dados PEDAGÓGICOS de um aluno (ed. infantil, etc.)?
+ * - professor: precisa ter vínculo ativo com a turma do aluno
+ * - responsavel: precisa de vínculo aprovado em responsaveis_alunos
+ * - escola/polo/admin/tecnico: delega a podeAcessarAluno (escopo de escola)
+ */
+export async function podeVerAlunoPedagogico(usuario: Usuario, alunoId: string): Promise<boolean> {
+  if (!alunoId) return false
+  if (usuario.tipo_usuario === 'professor') {
+    const a = await pool.query('SELECT turma_id FROM alunos WHERE id = $1', [alunoId])
+    const turmaId = a.rows[0]?.turma_id
+    return turmaId ? verificarVinculoProfessor(usuario.id, turmaId) : false
+  }
+  if (usuario.tipo_usuario === 'responsavel') {
+    const v = await pool.query(
+      "SELECT 1 FROM responsaveis_alunos WHERE usuario_id = $1 AND aluno_id = $2 AND ativo = true AND status = 'aprovado' LIMIT 1",
+      [usuario.id, alunoId]
+    )
+    return v.rows.length > 0
+  }
+  return podeAcessarAluno(usuario, alunoId)
 }
 
 /**

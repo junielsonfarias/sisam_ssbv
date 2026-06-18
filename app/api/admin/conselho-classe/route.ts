@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import pool from '@/database/connection'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { cacheDelPattern } from '@/lib/cache'
@@ -21,6 +22,15 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
   if (!turmaId || !periodoId) {
     return NextResponse.json({ mensagem: 'Informe turma_id e periodo_id' }, { status: 400 })
+  }
+
+  // Escopo: escola só vê conselho de turma da própria escola
+  const turmaEsc = await pool.query('SELECT escola_id FROM turmas WHERE id = $1', [turmaId])
+  if (turmaEsc.rows.length === 0) {
+    return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+  }
+  if (!(await podeAcessarEscola(usuario, turmaEsc.rows[0].escola_id))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
   }
 
   // Buscar conselho existente
@@ -74,6 +84,11 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     }
 
     const { escola_id, ano_letivo } = turmaResult.rows[0]
+
+    // Escopo: escola só registra conselho de turma da própria escola
+    if (!(await podeAcessarEscola(usuario, escola_id))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
 
     const client = await pool.connect()
     try {

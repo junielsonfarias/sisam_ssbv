@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarAluno, podeAcessarEscola } from '@/lib/auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -39,15 +40,25 @@ const postSchema = z.object({
   frequencia_aee: z.string().max(50).nullable().optional(),
 })
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const aluno = searchParams.get('aluno')
   if (aluno) {
+    if (!(await podeAcessarAluno(usuario, aluno))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
     const dados = await buscarAlunoAee(aluno)
     return NextResponse.json({ aluno_aee: dados })
   }
+  // Escopo: escola só a própria; polo valida a escola informada
+  let escolaId = searchParams.get('escola') || undefined
+  if (usuario.tipo_usuario === 'escola') {
+    escolaId = usuario.escola_id || '00000000-0000-0000-0000-000000000000'
+  } else if (usuario.tipo_usuario === 'polo' && escolaId && !(await podeAcessarEscola(usuario, escolaId))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+  }
   const lista = await listarAlunosAee({
-    escolaId: searchParams.get('escola') || undefined,
+    escolaId,
     turmaId: searchParams.get('turma') || undefined,
   })
   return NextResponse.json({ alunos: lista })
@@ -61,6 +72,10 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'seme
       { mensagem: 'Dados inválidos', erros: parsed.error.flatten() },
       { status: 400 }
     )
+  }
+
+  if (!(await podeAcessarAluno(usuario, parsed.data.aluno_id))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
   }
 
   const id = await cadastrarOuAtualizarAlunoAee(parsed.data)

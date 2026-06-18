@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
+import { podeVerAlunoPedagogico } from '@/lib/professor-auth'
 import { z } from 'zod'
 import {
   adicionarRegistroPortfolio,
@@ -34,6 +35,9 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico', 'escola', 
   if (!alunoId) {
     return NextResponse.json({ mensagem: 'Informe ?aluno=...' }, { status: 400 })
   }
+  if (!(await podeVerAlunoPedagogico(usuario, alunoId))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+  }
 
   // Responsavel só vê registros visíveis para ele
   const apenasVisiveisResponsavel = usuario.tipo_usuario === 'responsavel'
@@ -57,6 +61,10 @@ export const POST = withAuth('professor', async (request, usuario) => {
       { mensagem: 'Dados inválidos', erros: parsed.error.flatten() },
       { status: 400 }
     )
+  }
+
+  if (!(await podeVerAlunoPedagogico(usuario, parsed.data.aluno_id))) {
+    return NextResponse.json({ mensagem: 'Sem vínculo com a turma deste aluno' }, { status: 403 })
   }
 
   const id = await adicionarRegistroPortfolio({

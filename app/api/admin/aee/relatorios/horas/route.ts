@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import { z } from 'zod'
 import { gerarRelatorioHorasAee } from '@/lib/services/aee-relatorio-horas'
 
@@ -26,7 +27,7 @@ const querySchema = z.object({
 export const GET = withAuthModulo(
   ['administrador', 'tecnico', 'escola', 'polo'],
   'semed',
-  async (request) => {
+  async (request, usuario) => {
     const { searchParams } = new URL(request.url)
     const parsed = querySchema.safeParse({
       ano: searchParams.get('ano') || String(new Date().getFullYear()),
@@ -39,9 +40,17 @@ export const GET = withAuthModulo(
       return NextResponse.json({ mensagem: 'Parâmetros inválidos', erros: parsed.error.flatten() }, { status: 400 })
     }
 
+    // Escopo: escola só a própria; polo valida a escola informada
+    let escolaId = parsed.data.escola
+    if (usuario.tipo_usuario === 'escola') {
+      escolaId = usuario.escola_id || '00000000-0000-0000-0000-000000000000'
+    } else if (usuario.tipo_usuario === 'polo' && escolaId && !(await podeAcessarEscola(usuario, escolaId))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
     const { linhas, totais } = await gerarRelatorioHorasAee({
       anoLetivo: parsed.data.ano,
-      escolaId: parsed.data.escola,
+      escolaId,
       turmaId: parsed.data.turma,
       inicio: parsed.data.inicio,
       fim: parsed.data.fim,

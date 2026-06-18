@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarAluno } from '@/lib/auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -26,10 +27,13 @@ const postSchema = z.object({
   observacoes: z.string().max(5000).optional(),
 })
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'professor'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'professor'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const aluno = searchParams.get('aluno')
   if (!aluno) return NextResponse.json({ mensagem: 'Informe ?aluno=' }, { status: 400 })
+  if (!(await podeAcessarAluno(usuario, aluno))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+  }
   const ano = searchParams.get('ano') || undefined
   const dados = await listarAtendimentos(aluno, ano)
   return NextResponse.json({ atendimentos: dados })
@@ -40,6 +44,9 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'profe
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+  }
+  if (!(await podeAcessarAluno(usuario, parsed.data.aluno_id))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
   }
   try {
     const id = await registrarAtendimento({ ...parsed.data, professor_id: usuario.id })

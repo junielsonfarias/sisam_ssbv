@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarAluno, podeAcessarEscola } from '@/lib/auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -60,12 +61,13 @@ const devolucaoSchema = z.object({
   observacoes: z.string().max(2000).optional(),
 })
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const recurso = searchParams.get('recurso') || 'titulos'
 
   switch (recurso) {
     case 'titulos': {
+      // Catálogo municipal de títulos — não é por escola
       const dados = await buscarTitulos({
         busca: searchParams.get('busca') || undefined,
         componenteId: searchParams.get('componente') || undefined,
@@ -75,10 +77,14 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo']
       return NextResponse.json({ titulos: dados })
     }
     case 'estoque': {
-      const escola = searchParams.get('escola')
+      let escola = searchParams.get('escola')
       const ano = searchParams.get('ano_letivo')
+      if (usuario.tipo_usuario === 'escola') escola = usuario.escola_id || escola
       if (!escola || !ano) {
         return NextResponse.json({ mensagem: 'Informe ?escola=&ano_letivo=' }, { status: 400 })
+      }
+      if (!(await podeAcessarEscola(usuario, escola))) {
+        return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
       }
       const dados = await listarEstoqueEscola(escola, ano)
       return NextResponse.json({ estoque: dados })
@@ -86,6 +92,9 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo']
     case 'distribuicoes': {
       const aluno = searchParams.get('aluno')
       if (!aluno) return NextResponse.json({ mensagem: 'Informe ?aluno=' }, { status: 400 })
+      if (!(await podeAcessarAluno(usuario, aluno))) {
+        return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+      }
       const dados = await listarDistribuicoesAluno(aluno, searchParams.get('ano_letivo') || undefined)
       return NextResponse.json({ distribuicoes: dados })
     }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { getUsuarioFromRequest, verificarPermissao, podeAcessarAluno } from '@/lib/auth'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
 
@@ -22,6 +22,9 @@ export async function GET(
     }
 
     const alunoId = params.id
+    if (!(await podeAcessarAluno(usuario, alunoId))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
 
     // Filtro opcional por ano_letivo (?ano_letivo=2026) — quando ausente,
     // retorna histórico completo do aluno (modo evolução cross-anos).

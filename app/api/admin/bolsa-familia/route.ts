@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import {
@@ -31,13 +32,19 @@ const justificarSchema = z.object({
   motivo: z.string().min(10).max(2000),
 })
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'polo'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const recurso = searchParams.get('recurso') || 'mapas'
 
   const ano_letivo = searchParams.get('ano') || String(new Date().getFullYear())
   const periodo = (searchParams.get('periodo') as any) || undefined
-  const escola_id = searchParams.get('escola') || undefined
+  let escola_id = searchParams.get('escola') || undefined
+  // Escopo: escola só a própria; polo valida a informada (LGPD art. 11)
+  if (usuario.tipo_usuario === 'escola') {
+    escola_id = usuario.escola_id || '00000000-0000-0000-0000-000000000000'
+  } else if (usuario.tipo_usuario === 'polo' && escola_id && !(await podeAcessarEscola(usuario, escola_id))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+  }
 
   switch (recurso) {
     case 'mapas': {

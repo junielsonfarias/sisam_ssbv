@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { getUsuarioFromRequest, verificarPermissao, podeAcessarAluno } from '@/lib/auth'
 import { situacaoAlunoSchema, uuidSchema } from '@/lib/schemas'
 import { z } from 'zod'
 import pool from '@/database/connection'
@@ -36,6 +36,9 @@ export async function GET(
     }
 
     const alunoId = params.id
+    if (!(await podeAcessarAluno(usuario, alunoId))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
 
     // Buscar aluno com situação atual
     const alunoResult = await pool.query(
@@ -92,6 +95,9 @@ export async function POST(
     }
 
     const alunoId = params.id
+    if (!(await podeAcessarAluno(usuario, alunoId))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
 
     let body: z.infer<typeof situacaoPostSchema>
     try {
