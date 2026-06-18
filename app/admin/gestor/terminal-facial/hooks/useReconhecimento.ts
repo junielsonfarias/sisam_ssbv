@@ -23,6 +23,18 @@ function normalizarDescritor(d: Float32Array): Float32Array {
   return out
 }
 
+// #8 EAR (Eye Aspect Ratio) de um olho de 6 pontos (face-api). Olho aberto
+// ~0.3; fechado ~0.1. A variacao ao longo do tempo indica piscar (vida) — uma
+// foto mantem o EAR praticamente constante.
+function calcularEAR(eye: { x: number; y: number }[]): number {
+  if (!eye || eye.length < 6) return 0.3
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
+  const v1 = dist(eye[1], eye[5])
+  const v2 = dist(eye[2], eye[4])
+  const h = dist(eye[0], eye[3])
+  return h === 0 ? 0.3 : (v1 + v2) / (2 * h)
+}
+
 // Melhor e segundo-melhor match (distancia minima por aluno, sobre seus 3
 // descritores). O segundo serve para o #4 ratio test (margem).
 function melhorMatch(desc: Float32Array, labeled: any[]): { bestLabel: string; bestDist: number; secondDist: number } {
@@ -65,6 +77,8 @@ export function useReconhecimento({
   const detectandoRef = useRef(false)
   // #3 Quantos frames consecutivos do MESMO aluno ja confirmaram
   const confirmacoesRef = useRef<{ alunoId: string | null; count: number }>({ alunoId: null, count: 0 })
+  // #8 Liveness: historico de EAR + se ja detectou "vida" (piscar) para o aluno atual
+  const livenessRef = useRef<{ alunoId: string | null; ears: number[]; vivo: boolean }>({ alunoId: null, ears: [], vivo: false })
 
   const iniciarReconhecimento = useCallback(() => {
     if (!faceapiRef.current || !videoRef.current || alunos.length === 0) return
@@ -88,6 +102,8 @@ export function useReconhecimento({
     // parecidos). #3 frames consecutivos para confirmar antes de registrar.
     const MARGEM_MINIMA = 0.05
     const CONFIRMACOES_NECESSARIAS = 3
+    // #8 Exige prova de vida (piscar) antes de registrar — anti-foto.
+    const LIVENESS_ATIVO = true
 
     setReconhecendo(true)
 
@@ -135,6 +151,7 @@ export function useReconhecimento({
               if (agora - ultimoRegistro < cooldownMs) {
                 // Já registrado — desenhar em amarelo
                 confirmacoesRef.current = { alunoId: null, count: 0 }
+                livenessRef.current = { alunoId: null, ears: [], vivo: false }
                 const box = detection.detection.box
                 if (ctx) {
                   // O vídeo é espelhado (selfie); espelhamos só o X do box/texto
@@ -154,6 +171,21 @@ export function useReconhecimento({
               // Reset unknown counter on successful recognition
               setUnknownCount(0)
 
+              // #8 Liveness (anti-foto): acompanha a variacao do EAR. Rosto vivo
+              // pisca/move os olhos; uma FOTO mantem o EAR constante. Exige um
+              // "piscar" (queda do EAR) na janela recente antes de registrar.
+              const lr = livenessRef.current
+              if (lr.alunoId !== alunoId) { lr.alunoId = alunoId; lr.ears = []; lr.vivo = false }
+              try {
+                const earAvg = (calcularEAR(detection.landmarks.getLeftEye()) + calcularEAR(detection.landmarks.getRightEye())) / 2
+                lr.ears.push(earAvg)
+                if (lr.ears.length > 16) lr.ears.shift()
+                if (!lr.vivo && lr.ears.length >= 4) {
+                  const maxE = Math.max(...lr.ears), minE = Math.min(...lr.ears)
+                  if (maxE - minE >= 0.07 && minE <= 0.21) lr.vivo = true
+                }
+              } catch { /* landmarks dos olhos indisponiveis neste frame */ }
+
               // #3 Consistencia temporal: exigir N frames consecutivos do MESMO
               // aluno antes de registrar (mata falso-positivo de 1 frame so).
               if (confirmacoesRef.current.alunoId === alunoId) {
@@ -161,7 +193,10 @@ export function useReconhecimento({
               } else {
                 confirmacoesRef.current = { alunoId, count: 1 }
               }
-              if (confirmacoesRef.current.count < CONFIRMACOES_NECESSARIAS) {
+
+              const faltaConfirmar = confirmacoesRef.current.count < CONFIRMACOES_NECESSARIAS
+              const faltaVivo = LIVENESS_ATIVO && !lr.vivo
+              if (faltaConfirmar || faltaVivo) {
                 const box = detection.detection.box
                 if (ctx) {
                   const mx = canvasRef.current.width - box.x - box.width
@@ -171,11 +206,13 @@ export function useReconhecimento({
                   ctx.strokeRect(mx, box.y, box.width, box.height)
                   ctx.fillStyle = '#3b82f6'
                   ctx.font = 'bold 14px sans-serif'
-                  ctx.fillText(`${aluno?.nome || ''} — confirmando ${confirmacoesRef.current.count}/${CONFIRMACOES_NECESSARIAS}`, mx, box.y - 5)
+                  const msg = faltaVivo ? 'pisque para confirmar' : `confirmando ${confirmacoesRef.current.count}/${CONFIRMACOES_NECESSARIAS}`
+                  ctx.fillText(`${aluno?.nome || ''} — ${msg}`, mx, box.y - 5)
                 }
                 continue
               }
               confirmacoesRef.current = { alunoId: null, count: 0 }
+              livenessRef.current = { alunoId: null, ears: [], vivo: false }
 
               // Registrar presença
               cooldownMapRef.current.set(alunoId, agora)
@@ -247,6 +284,7 @@ export function useReconhecimento({
             } else {
               // Desconhecido (ou margem insuficiente) — desenhar em vermelho
               confirmacoesRef.current = { alunoId: null, count: 0 }
+              livenessRef.current = { alunoId: null, ears: [], vivo: false }
               const box = detection.detection.box
               if (ctx) {
                 const mx = canvasRef.current.width - box.x - box.width
@@ -272,7 +310,7 @@ export function useReconhecimento({
       } finally {
         detectandoRef.current = false
       }
-    }, 500) // Detectar a cada 500ms
+    }, 300) // Detectar a cada 300ms (mais responsivo + melhora a deteccao de piscar/#8)
   }, [alunos, config.confianca_minima, config.cooldown_segundos, somAtivo,
       videoRef, canvasRef, faceapiRef, setReconhecendo, setUnknownCount,
       setRegistros, setMensagem, setMensagemTipo, setOnline])
