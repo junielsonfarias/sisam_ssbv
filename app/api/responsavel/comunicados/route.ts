@@ -21,7 +21,7 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
       const vinculoResult = await pool.query(
         `SELECT a.turma_id FROM alunos a
          INNER JOIN responsaveis_alunos ra ON ra.aluno_id = a.id
-         WHERE ra.usuario_id = $1 AND a.id = $2 AND ra.ativo = true`,
+         WHERE ra.usuario_id = $1 AND a.id = $2 AND ra.ativo = true AND ra.status = 'aprovado'`,
         [usuario.id, alunoId]
       )
       turmaIds = vinculoResult.rows.map((r: any) => r.turma_id).filter(Boolean)
@@ -30,7 +30,7 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
       const filhosResult = await pool.query(
         `SELECT DISTINCT a.turma_id FROM alunos a
          INNER JOIN responsaveis_alunos ra ON ra.aluno_id = a.id
-         WHERE ra.usuario_id = $1 AND ra.ativo = true AND a.ativo = true AND a.turma_id IS NOT NULL`,
+         WHERE ra.usuario_id = $1 AND ra.ativo = true AND ra.status = 'aprovado' AND a.ativo = true AND a.turma_id IS NOT NULL`,
         [usuario.id]
       )
       turmaIds = filhosResult.rows.map((r: any) => r.turma_id)

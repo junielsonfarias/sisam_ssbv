@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
 
 async function filhosIds(usuarioId: string): Promise<string[]> {
   const r = await pool.query(
-    'SELECT aluno_id FROM responsaveis_alunos WHERE usuario_id = $1 AND ativo = true',
+    "SELECT aluno_id FROM responsaveis_alunos WHERE usuario_id = $1 AND ativo = true AND status = 'aprovado'",
     [usuarioId]
   )
   return r.rows.map((x: any) => x.aluno_id)

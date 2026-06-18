@@ -19,7 +19,7 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
   }
 
   const vinculo = await pool.query(
-    'SELECT 1 FROM responsaveis_alunos WHERE usuario_id = $1 AND aluno_id = $2 AND ativo = true LIMIT 1',
+    "SELECT 1 FROM responsaveis_alunos WHERE usuario_id = $1 AND aluno_id = $2 AND ativo = true AND status = 'aprovado' LIMIT 1",
     [usuario.id, alunoId]
   )
   if (vinculo.rows.length === 0) {

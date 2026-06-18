@@ -125,7 +125,6 @@ export async function deletarAluno(alunoId: string): Promise<{ nome: string }> {
     const result = await client.query(
       `UPDATE alunos
           SET ativo = false,
-              situacao = 'inativo',
               atualizado_em = CURRENT_TIMESTAMP
         WHERE id = $1
         RETURNING id, nome`,

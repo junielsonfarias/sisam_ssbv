@@ -17,7 +17,7 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
     let turmaQuery = `
       SELECT DISTINCT a.turma_id FROM alunos a
       INNER JOIN responsaveis_alunos ra ON ra.aluno_id = a.id
-      WHERE ra.usuario_id = $1 AND ra.ativo = true AND a.ativo = true AND a.turma_id IS NOT NULL`
+      WHERE ra.usuario_id = $1 AND ra.ativo = true AND ra.status = 'aprovado' AND a.ativo = true AND a.turma_id IS NOT NULL`
     const params: string[] = [usuario.id]
 
     if (alunoId) {

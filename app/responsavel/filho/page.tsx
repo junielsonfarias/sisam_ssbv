@@ -46,6 +46,9 @@ function FilhoPage() {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
   const [periodos, setPeriodos] = useState<Periodo[]>([])
   const [notas, setNotas] = useState<Record<string, Record<string, any>>>({})
+  const [medias, setMedias] = useState<Record<string, number | null>>({})
+  const [mediaGeral, setMediaGeral] = useState<number | null>(null)
+  const [mediaAprovacao, setMediaAprovacao] = useState(6)
   const [frequencia, setFrequencia] = useState<Frequencia[]>([])
   const [freqGeral, setFreqGeral] = useState(0)
   const [totalFaltas, setTotalFaltas] = useState(0)
@@ -130,6 +133,9 @@ function FilhoPage() {
       setDisciplinas(data.disciplinas || [])
       setPeriodos(data.periodos || [])
       setNotas(data.notas || {})
+      setMedias(data.medias || {})
+      setMediaGeral(data.media_geral ?? null)
+      setMediaAprovacao(data.media_aprovacao || 6)
       setFrequencia(data.frequencia || [])
       setFreqGeral(data.frequencia_geral || 0)
       setTotalFaltas(data.total_faltas || 0)
@@ -185,13 +191,8 @@ function FilhoPage() {
   const fmtNota = (v: any) => (v === null || v === undefined || v === '' ? '—' : Number(v).toFixed(1))
 
   // ---- valores derivados ----
+  // medias e mediaGeral vêm da API (mesmo cálculo do boletim oficial/fechamento).
   const iniciais = aluno.nome.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'
-  const mediasDisc = disciplinas.map(d => {
-    const nd = notas[d.id] || {}
-    const vals = Object.values(nd).map((n: any) => parseFloat(n.nota_final)).filter((v) => !isNaN(v))
-    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-  }).filter((m): m is number => m !== null)
-  const mediaGeral = mediasDisc.length ? mediasDisc.reduce((a, b) => a + b, 0) / mediasDisc.length : null
 
   const TABS = [
     { id: 'boletim' as const, label: 'Boletim', Icon: BookOpen, cor: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/30' },
@@ -309,9 +310,8 @@ function FilhoPage() {
                   <tbody className="divide-y divide-gray-50 dark:divide-slate-700/60">
                     {disciplinas.map(d => {
                       const notasDisc = notas[d.id] || {}
-                      const vals = Object.values(notasDisc).map((n: any) => parseFloat(n.nota_final)).filter((v) => !isNaN(v))
-                      const media = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-                      const abaixo = media !== null && media < 6
+                      const media = medias[d.id] ?? null
+                      const abaixo = media !== null && media < mediaAprovacao
                       const bgRow = abaixo ? 'bg-red-50/60 dark:bg-red-900/10' : 'bg-white dark:bg-slate-800'
                       return (
                         <tr key={d.id} className={abaixo ? 'bg-red-50/60 dark:bg-red-900/10' : ''}>
@@ -343,9 +343,9 @@ function FilhoPage() {
                 </table>
               </div>
               <div className="px-3 py-2 text-[11px] text-gray-400 dark:text-gray-500 border-t border-gray-50 dark:border-slate-700/60 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span>Média p/ aprovação: <strong>6,0</strong></span>
-                <span className="text-emerald-600 dark:text-emerald-400">≥6 aprovado</span>
-                <span className="text-red-500">&lt;6 abaixo</span>
+                <span>Média p/ aprovação: <strong>{mediaAprovacao.toFixed(1).replace('.', ',')}</strong></span>
+                <span className="text-emerald-600 dark:text-emerald-400">≥{mediaAprovacao.toFixed(0)} aprovado</span>
+                <span className="text-red-500">abaixo = atenção</span>
                 <span><sup className="text-amber-500">R</sup> = recuperação</span>
               </div>
             </div>

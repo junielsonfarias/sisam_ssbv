@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { calcularMediaAnual, type PesoPeriodo } from '@/lib/services/media-anual'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,7 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
 
     // Verificar vinculo: o aluno pertence ao responsavel?
     const vinculoResult = await pool.query(
-      'SELECT id FROM responsaveis_alunos WHERE usuario_id = $1 AND aluno_id = $2 AND ativo = true',
+      "SELECT id FROM responsaveis_alunos WHERE usuario_id = $1 AND aluno_id = $2 AND ativo = true AND status = 'aprovado'",
       [usuario.id, alunoId]
     )
     if (vinculoResult.rows.length === 0) {
@@ -208,11 +209,73 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
     }
     const frequenciaGeral = totalAulas > 0 ? Math.round(((totalAulas - totalFaltas) / totalAulas) * 1000) / 10 : 0
 
+    // Média anual: usa o MESMO helper do boletim oficial e do fechamento, para
+    // que o número exibido ao responsável nunca divirja (honra formula_media,
+    // pesos, arredondamento e o critério de aprovação da série/escola).
+    const regraResult = await pool.query(
+      `SELECT
+          COALESCE(ra_over.formula_media, ra.formula_media) AS formula_efetiva,
+          COALESCE(ra_over.pesos_periodos, ra.pesos_periodos) AS pesos_efetivos,
+          COALESCE(ra_over.qtd_periodos, ra.qtd_periodos) AS qtd_periodos,
+          ra.arredondamento, ra.casas_decimais,
+          ra.media_aprovacao AS regra_media_aprovacao,
+          era.media_aprovacao AS escola_media_aprovacao
+       FROM series_escolares se
+       LEFT JOIN regras_avaliacao ra ON ra.id = se.regra_avaliacao_id
+       LEFT JOIN escola_regras_avaliacao era ON era.escola_id = $2 AND era.serie_escolar_id = se.id AND era.ativo = true
+       LEFT JOIN regras_avaliacao ra_over ON ra_over.id = era.regra_avaliacao_id
+       WHERE se.codigo = CASE
+         WHEN $1 ILIKE '%creche%' THEN 'CRE'
+         WHEN $1 ILIKE '%pré i%' OR $1 ILIKE '%pre i%' THEN 'PRE1'
+         WHEN $1 ILIKE '%pré ii%' OR $1 ILIKE '%pre ii%' THEN 'PRE2'
+         WHEN $1 ILIKE '%eja%1%' THEN 'EJA1'
+         WHEN $1 ILIKE '%eja%2%' THEN 'EJA2'
+         WHEN $1 ILIKE '%eja%3%' THEN 'EJA3'
+         WHEN $1 ILIKE '%eja%4%' THEN 'EJA4'
+         ELSE REGEXP_REPLACE($1, '[^0-9]', '', 'g')
+       END
+       LIMIT 1`,
+      [aluno.serie || '', aluno.escola_id]
+    )
+    const regra = regraResult.rows[0] || null
+    const formulaMedia = regra?.formula_efetiva || 'media_aritmetica'
+    const pesosConfig: PesoPeriodo[] = regra?.pesos_efetivos
+      ? (typeof regra.pesos_efetivos === 'string' ? JSON.parse(regra.pesos_efetivos) : regra.pesos_efetivos)
+      : []
+    const pesosPeriodos: PesoPeriodo[] = pesosConfig.length > 0
+      ? pesosConfig
+      : Array.from({ length: regra?.qtd_periodos || 4 }, (_, i) => ({ periodo: i + 1, peso: 1 }))
+    const mediaAprovacao = parseFloat(regra?.escola_media_aprovacao) || parseFloat(regra?.regra_media_aprovacao) || 6
+    const casasDecimais = regra?.casas_decimais ?? 1
+
+    // Média por disciplina (mesmo cálculo do oficial) + média geral
+    const medias: Record<string, number | null> = {}
+    const mediasValidas: number[] = []
+    for (const d of disciplinasResult.rows) {
+      const notasPorPeriodo = new Map<number, number>()
+      for (const [numero, n] of Object.entries(notas[d.id] || {})) {
+        const nf = parseFloat(String((n as any).nota_final))
+        if (!isNaN(nf)) notasPorPeriodo.set(Number(numero), nf)
+      }
+      const r = calcularMediaAnual(notasPorPeriodo, {
+        formula: formulaMedia, pesosPeriodos, casasDecimais, arredondamento: regra?.arredondamento || 'normal',
+      })
+      const m = r.periodos_com_nota > 0 ? r.media : null
+      medias[d.id] = m
+      if (m !== null) mediasValidas.push(m)
+    }
+    const mediaGeral = mediasValidas.length > 0
+      ? Math.round((mediasValidas.reduce((a, b) => a + b, 0) / mediasValidas.length) * 10) / 10
+      : null
+
     return NextResponse.json({
       aluno,
       disciplinas: disciplinasResult.rows,
       periodos: periodosResult.rows,
       notas,
+      medias,
+      media_geral: mediaGeral,
+      media_aprovacao: mediaAprovacao,
       frequencia: freqResult.rows,
       frequencia_geral: frequenciaGeral,
       total_faltas: totalFaltas,
