@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Search, Users, TrendingDown } from 'lucide-react'
+import { AlertTriangle, Search, Users, TrendingDown, BellRing } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSeries } from '@/lib/use-series'
@@ -25,6 +25,17 @@ interface AlunoInfrequente {
   total_disciplinas?: number
 }
 
+interface ResultadoNotif {
+  alunos_detectados: number
+  responsaveis_notificados: number
+  pulados_dedupe: number
+  alunos_sem_responsavel: number
+  emails_enviados: number
+  push_enviados: number
+  dry_run: boolean
+  limiar_padrao: number
+}
+
 export default function InfrequenciaPage() {
   const toast = useToast()
   const { formatSerie } = useSeries()
@@ -44,6 +55,11 @@ export default function InfrequenciaPage() {
   const [alunos, setAlunos] = useState<AlunoInfrequente[]>([])
   const [resumo, setResumo] = useState({ total: 0, infrequentes_75: 0 })
   const [carregando, setCarregando] = useState(false)
+
+  // Notificação de responsáveis (Fase 4.1)
+  const [notificando, setNotificando] = useState(false)
+  const [modalNotif, setModalNotif] = useState(false)
+  const [preview, setPreview] = useState<ResultadoNotif | null>(null)
 
   // Buscar infrequência
   const buscar = async () => {
@@ -74,6 +90,48 @@ export default function InfrequenciaPage() {
       toast.error('Erro ao buscar dados')
     } finally {
       setCarregando(false)
+    }
+  }
+
+  // Preview (dry-run) de quem seria notificado
+  const abrirNotificar = async () => {
+    if (!periodoId) { toast.info('Selecione um período'); return }
+    setNotificando(true)
+    try {
+      const res = await fetch('/api/admin/infrequencia/notificar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ano_letivo: anoLetivo, periodo_id: periodoId, escola_id: escolaId || undefined, dry_run: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.mensagem || 'Erro ao gerar prévia')
+      setPreview(data.resultado)
+      setModalNotif(true)
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setNotificando(false)
+    }
+  }
+
+  // Envio real
+  const confirmarNotificar = async () => {
+    setNotificando(true)
+    try {
+      const res = await fetch('/api/admin/infrequencia/notificar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ano_letivo: anoLetivo, periodo_id: periodoId, escola_id: escolaId || undefined, dry_run: false }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.mensagem || 'Erro ao notificar')
+      const r: ResultadoNotif = data.resultado
+      toast.success(`${r.responsaveis_notificados} responsável(eis) notificado(s) · ${r.emails_enviados} e-mail(s) · ${r.push_enviados} push${r.pulados_dedupe ? ` · ${r.pulados_dedupe} já avisados recentemente` : ''}`)
+      setModalNotif(false)
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setNotificando(false)
     }
   }
 
@@ -230,6 +288,21 @@ export default function InfrequenciaPage() {
               </div>
             </div>
 
+            {/* Ação: notificar responsáveis */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                Avise os responsáveis dos alunos com frequência abaixo do mínimo (LDB art. 24, VI) por e-mail, push e notificação no portal.
+              </p>
+              <button
+                onClick={abrirNotificar}
+                disabled={notificando}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+              >
+                <BellRing className="w-4 h-4" />
+                {notificando ? 'Processando...' : 'Notificar responsáveis'}
+              </button>
+            </div>
+
             {/* Tabela */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden">
               <div className="overflow-x-auto">
@@ -307,6 +380,67 @@ export default function InfrequenciaPage() {
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Verifique se a frequência foi lançada</p>
           </div>
         ) : null}
+
+        {/* Modal: confirmar notificação (com prévia dry-run) */}
+        {modalNotif && preview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 max-w-md w-full space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-100 dark:bg-amber-900/40 rounded-full p-2">
+                  <BellRing className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notificar responsáveis</h3>
+              </div>
+
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Prévia para o período selecionado (limiar padrão <strong>{preview.limiar_padrao}%</strong>;
+                a configuração da escola prevalece quando existir):
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">{preview.alunos_detectados}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Alunos infrequentes</p>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3">
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{preview.responsaveis_notificados}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Responsáveis a notificar</p>
+                </div>
+              </div>
+
+              {(preview.pulados_dedupe > 0 || preview.alunos_sem_responsavel > 0) && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {preview.pulados_dedupe > 0 && <>{preview.pulados_dedupe} já avisados nos últimos 7 dias (ignorados). </>}
+                  {preview.alunos_sem_responsavel > 0 && <>{preview.alunos_sem_responsavel} aluno(s) sem responsável vinculado.</>}
+                </p>
+              )}
+
+              {preview.responsaveis_notificados === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum responsável a notificar agora.</p>
+              ) : (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  O envio usa e-mail, push e notificação no portal. Sem credenciais de envio configuradas, a notificação no portal ainda é registrada.
+                </p>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setModalNotif(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarNotificar}
+                  disabled={notificando || preview.responsaveis_notificados === 0}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {notificando ? 'Enviando...' : 'Confirmar e enviar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   )

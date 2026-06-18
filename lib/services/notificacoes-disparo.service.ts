@@ -20,7 +20,7 @@ const log = createLogger('NotifDisparo')
 export type EventoTipo = 'nota_lancada' | 'falta_consecutiva' | 'comunicado_novo'
   | 'ficai_aberto' | 'ordem_servico_criada' | 'ordem_servico_concluida'
   | 'cardapio_publicado' | 'reuniao_marcada' | 'declaracao_emitida'
-  | 'matricula_aprovada' | 'sistema'
+  | 'matricula_aprovada' | 'infrequencia' | 'sistema'
 
 export type CanalNotif = 'push' | 'email' | 'in_app' | 'sms' | 'whatsapp'
 
@@ -132,14 +132,14 @@ export async function notificarNotaLancada(params: {
 }) {
   try {
     const resps = await pool.query(
-      `SELECT responsavel_id FROM responsaveis_alunos WHERE aluno_id = $1`,
+      `SELECT usuario_id FROM responsaveis_alunos WHERE aluno_id = $1 AND ativo = true`,
       [params.aluno_id]
     )
     const titulo = `Nova nota lançada: ${params.disciplina_nome}`
     const corpo = `${params.bimestre}º bimestre — nota: ${params.nota.toFixed(1)}`
     for (const row of resps.rows) {
       await dispararNotificacao({
-        destinatario_id: row.responsavel_id,
+        destinatario_id: row.usuario_id,
         evento_tipo: 'nota_lancada',
         titulo, corpo,
         dados: { aluno_id: params.aluno_id, disciplina: params.disciplina_nome, nota: params.nota },
@@ -156,14 +156,14 @@ export async function notificarFaltaConsecutiva(params: {
 }) {
   try {
     const resps = await pool.query(
-      `SELECT responsavel_id FROM responsaveis_alunos WHERE aluno_id = $1`,
+      `SELECT usuario_id FROM responsaveis_alunos WHERE aluno_id = $1 AND ativo = true`,
       [params.aluno_id]
     )
     const titulo = '⚠️ Faltas consecutivas detectadas'
     const corpo = `Seu(sua) filho(a) tem ${params.dias_consecutivos} dias consecutivos de falta. Por favor, entre em contato com a escola.`
     for (const row of resps.rows) {
       await dispararNotificacao({
-        destinatario_id: row.responsavel_id,
+        destinatario_id: row.usuario_id,
         evento_tipo: 'falta_consecutiva',
         titulo, corpo,
         dados: { aluno_id: params.aluno_id, dias: params.dias_consecutivos },
@@ -182,15 +182,15 @@ export async function notificarComunicadoTurma(params: {
 }) {
   try {
     const resps = await pool.query(
-      `SELECT DISTINCT ra.responsavel_id
+      `SELECT DISTINCT ra.usuario_id
          FROM alunos a
-         INNER JOIN responsaveis_alunos ra ON ra.aluno_id = a.id
+         INNER JOIN responsaveis_alunos ra ON ra.aluno_id = a.id AND ra.ativo = true
         WHERE a.turma_id = $1`,
       [params.turma_id]
     )
     for (const row of resps.rows) {
       await dispararNotificacao({
-        destinatario_id: row.responsavel_id,
+        destinatario_id: row.usuario_id,
         evento_tipo: 'comunicado_novo',
         titulo: `📢 ${params.titulo_comunicado}`,
         corpo: params.corpo_comunicado.slice(0, 200) + (params.corpo_comunicado.length > 200 ? '…' : ''),
@@ -209,7 +209,7 @@ export async function notificarFicaiAberto(params: {
 }) {
   try {
     const resps = await pool.query(
-      `SELECT responsavel_id FROM responsaveis_alunos WHERE aluno_id = $1`,
+      `SELECT usuario_id FROM responsaveis_alunos WHERE aluno_id = $1 AND ativo = true`,
       [params.aluno_id]
     )
     const titulo = '⚠️ Acompanhamento escolar necessário'
@@ -217,7 +217,7 @@ export async function notificarFicaiAberto(params: {
 
     for (const row of resps.rows) {
       await dispararNotificacao({
-        destinatario_id: row.responsavel_id,
+        destinatario_id: row.usuario_id,
         evento_tipo: 'ficai_aberto',
         titulo, corpo,
         dados: { caso_id: params.caso_id, aluno_id: params.aluno_id },
