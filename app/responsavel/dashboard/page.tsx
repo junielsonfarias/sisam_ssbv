@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BookOpen, CalendarCheck, Bell, LogOut, GraduationCap, AlertTriangle, MessageCircle, Calendar, Plus, Clock, XCircle, CheckCircle } from 'lucide-react'
+import { BookOpen, CalendarCheck, Bell, LogOut, GraduationCap, AlertTriangle, MessageCircle, Calendar, Plus, Clock, XCircle, CheckCircle, User, ChevronRight } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ModalBase, ModalFooter } from '@/components/ui/modal-base'
 import { EmptyCard } from '@/components/ui/empty-card'
@@ -137,6 +137,10 @@ export default function DashboardResponsavel() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
+              <button onClick={() => router.push('/responsavel/perfil')}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors" title="Meu perfil" aria-label="Meu perfil">
+                <User className="w-5 h-5" />
+              </button>
               <button onClick={() => router.push('/responsavel/calendario')}
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors" title="Calendário" aria-label="Calendário">
                 <Calendar className="w-5 h-5" />
@@ -208,7 +212,11 @@ export default function DashboardResponsavel() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
           {filhos.map(filho => (
             <div key={filho.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
-              <div className="p-4 sm:p-5 flex items-start gap-3.5">
+              <button
+                onClick={() => router.push(`/responsavel/filho?id=${filho.id}&aba=matricula`)}
+                className="w-full text-left p-4 sm:p-5 flex items-start gap-3.5 hover:bg-gray-50 dark:hover:bg-slate-700/40 active:bg-gray-100 dark:active:bg-slate-700/60 transition-colors"
+                title="Ver dados cadastrais"
+              >
                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-base font-extrabold shrink-0">
                   {iniciaisDe(filho.nome)}
                 </div>
@@ -228,8 +236,11 @@ export default function DashboardResponsavel() {
                     {filho.serie}{filho.turma_codigo ? ` · ${filho.turma_codigo}` : ''}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{filho.escola_nome}</p>
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 mt-1.5">
+                    Ver dados cadastrais <ChevronRight className="w-3 h-3" />
+                  </span>
                 </div>
-              </div>
+              </button>
 
               <div className="border-t border-gray-100 dark:border-slate-700 grid grid-cols-3 divide-x divide-gray-100 dark:divide-slate-700">
                 <button onClick={() => router.push(`/responsavel/filho?id=${filho.id}`)}

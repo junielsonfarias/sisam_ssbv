@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, BookOpen, CalendarCheck, AlertTriangle, ScanFace, LogIn, LogOut,
   Award, Percent, CalendarX, GraduationCap, History, School, ArrowRightLeft, ChevronDown,
+  FileText, Phone, MapPin, Heart, User,
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
@@ -31,6 +32,7 @@ function FilhoPage() {
   const [anosDisponiveis, setAnosDisponiveis] = useState<string[]>([])
   const [historico, setHistorico] = useState<any[]>([])
   const [matriculaInfo, setMatriculaInfo] = useState<any>(null)
+  const [dadosAluno, setDadosAluno] = useState<any>(null)
   const [carregandoHist, setCarregandoHist] = useState(false)
   const [presencaResumo, setPresencaResumo] = useState<Array<{ data: string; hora_entrada: string | null; hora_saida: string | null; metodo: string }>>([])
   const [presencaEventos, setPresencaEventos] = useState<Record<string, Array<{ tipo: 'entrada' | 'saida'; registrado_em: string; origem: string }>>>({})
@@ -50,13 +52,18 @@ function FilhoPage() {
     carregarDados()
   }, [alunoId])
 
-  // Histórico de matrícula (carrega ao abrir a aba)
+  // Dados cadastrais + histórico de matrícula (carrega ao abrir a aba "Dados")
   useEffect(() => {
     if (aba !== 'matricula' || !alunoId) return
     setCarregandoHist(true)
-    fetch(`/api/responsavel/historico-matricula?aluno_id=${alunoId}`, { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) { setMatriculaInfo(d.matricula); setHistorico(d.historico || []) } })
+    Promise.all([
+      fetch(`/api/responsavel/historico-matricula?aluno_id=${alunoId}`, { credentials: 'include' }).then(r => r.ok ? r.json() : null),
+      fetch(`/api/responsavel/aluno-detalhes?aluno_id=${alunoId}`, { credentials: 'include' }).then(r => r.ok ? r.json() : null),
+    ])
+      .then(([hist, det]) => {
+        if (hist) { setMatriculaInfo(hist.matricula); setHistorico(hist.historico || []) }
+        if (det) setDadosAluno(det.aluno)
+      })
       .finally(() => setCarregandoHist(false))
   }, [aba, alunoId])
 
@@ -143,6 +150,14 @@ function FilhoPage() {
     return 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'
   }
   const fmtData = (iso: string | null) => { if (!iso) return '—'; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}` }
+  const fmtGenero = (g: string | null) => {
+    if (!g) return null
+    const v = g.toLowerCase()
+    if (v === 'm' || v === 'masculino') return 'Masculino'
+    if (v === 'f' || v === 'feminino') return 'Feminino'
+    return g
+  }
+  const simNao = (b: boolean | null | undefined) => (b === true ? 'Sim' : b === false ? 'Não' : null)
 
   // ---- valores derivados ----
   const iniciais = aluno.nome.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'
@@ -157,7 +172,7 @@ function FilhoPage() {
     { id: 'boletim' as const, label: 'Boletim', Icon: BookOpen, cor: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/30' },
     { id: 'frequencia' as const, label: 'Frequência', Icon: CalendarCheck, cor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
     { id: 'presenca' as const, label: 'Presença', Icon: ScanFace, cor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
-    { id: 'matricula' as const, label: 'Matrícula', Icon: History, cor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/30' },
+    { id: 'matricula' as const, label: 'Dados', Icon: FileText, cor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/30' },
   ]
 
   const ring = { r: 30, c: 2 * Math.PI * 30 }
@@ -447,12 +462,62 @@ function FilhoPage() {
           </>
         )}
 
-        {/* ---------- MATRÍCULA / HISTÓRICO ---------- */}
+        {/* ---------- DADOS / MATRÍCULA / HISTÓRICO ---------- */}
         {aba === 'matricula' && (
           carregandoHist ? (
             <div className="py-10"><LoadingSpinner centered /></div>
           ) : (
             <>
+              {dadosAluno && (
+                <>
+                  <div className="bg-violet-50 dark:bg-violet-900/15 rounded-2xl border border-violet-100 dark:border-violet-800 p-3.5 flex items-start gap-2.5">
+                    <FileText className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-violet-700 dark:text-violet-300 leading-relaxed">
+                      Dados cadastrais do(a) aluno(a) — <strong>somente leitura</strong>. Para corrigir alguma informação, procure a secretaria da escola.
+                    </p>
+                  </div>
+
+                  <CardCampos titulo="Identificação" Icon={User} campos={[
+                    ['Nome', dadosAluno.nome],
+                    ['Matrícula nº', dadosAluno.codigo],
+                    ['CPF', dadosAluno.cpf],
+                    ['RG', dadosAluno.rg],
+                    ['Nascimento', fmtData(dadosAluno.data_nascimento)],
+                    ['Gênero', fmtGenero(dadosAluno.genero)],
+                    ['Raça/cor', dadosAluno.raca_cor],
+                    ['Naturalidade', dadosAluno.naturalidade],
+                    ['Nacionalidade', dadosAluno.nacionalidade],
+                    ['Nº SUS', dadosAluno.sus],
+                    ['Código INEP', dadosAluno.codigo_inep_aluno],
+                  ]} />
+
+                  <CardCampos titulo="Filiação e contato" Icon={Phone} campos={[
+                    ['Nome da mãe', dadosAluno.nome_mae],
+                    ['Nome do pai', dadosAluno.nome_pai],
+                    ['Responsável', dadosAluno.responsavel],
+                    ['Telefone', dadosAluno.telefone_responsavel],
+                  ]} />
+
+                  <CardCampos titulo="Endereço e transporte" Icon={MapPin} campos={[
+                    ['Endereço', dadosAluno.endereco],
+                    ['Bairro', dadosAluno.bairro],
+                    ['Cidade', dadosAluno.cidade],
+                    ['CEP', dadosAluno.cep],
+                    ['Zona', dadosAluno.zona_residencia],
+                    ['Transporte escolar', simNao(dadosAluno.utiliza_transporte_publico)],
+                    ['Tipo de transporte', dadosAluno.tipo_transporte],
+                  ]} />
+
+                  <CardCampos titulo="Saúde" Icon={Heart} campos={[
+                    ['PCD', simNao(dadosAluno.pcd)],
+                    ['Tipo de deficiência', dadosAluno.tipo_deficiencia],
+                    ['Alergia', dadosAluno.alergia],
+                    ['Medicação', dadosAluno.medicacao],
+                  ]} />
+
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1 pt-1">Matrícula</p>
+                </>
+              )}
               {matriculaInfo && (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-50 dark:border-slate-700/60 flex items-center justify-between">
@@ -511,6 +576,32 @@ function FilhoPage() {
           )
         )}
       </div>
+    </div>
+  )
+}
+
+function CardCampos({ titulo, Icon, campos }: {
+  titulo: string
+  Icon: React.ComponentType<{ className?: string }>
+  campos: Array<[string, React.ReactNode]>
+}) {
+  const visiveis = campos.filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== '—')
+  if (visiveis.length === 0) return null
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-50 dark:border-slate-700/60">
+        <p className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <Icon className="w-4 h-4 text-violet-600 dark:text-violet-400" /> {titulo}
+        </p>
+      </div>
+      <dl className="divide-y divide-gray-50 dark:divide-slate-700/60 text-sm">
+        {visiveis.map(([k, v]) => (
+          <div key={k} className="px-4 py-2.5 flex items-start justify-between gap-3">
+            <dt className="text-gray-500 dark:text-gray-400 shrink-0">{k}</dt>
+            <dd className="font-medium text-gray-800 dark:text-gray-100 text-right break-words">{v}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   )
 }
