@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import { z } from 'zod'
 import {
   atualizarRegistroDiario,
@@ -33,13 +34,18 @@ const putSchema = z.object({
   habilidades_bncc: z.array(z.string()).max(30).optional(),
 })
 
-export const GET = withAuth(async (request, usuario) => {
+export const GET = withAuth(['professor', 'administrador', 'tecnico', 'escola'], async (request, usuario) => {
   const id = request.nextUrl.pathname.split('/').pop()!
   const reg = await buscarRegistroPorId(id)
   if (!reg) return NextResponse.json({ mensagem: 'Não encontrado' }, { status: 404 })
 
-  // Professor só vê o próprio registro; outros perfis dependem da autorização da rota
+  // Professor só vê o próprio registro
   if (usuario.tipo_usuario === 'professor' && reg.professor_id !== usuario.id) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+  }
+  // Escola/polo só veem registros da(s) sua(s) escola(s) (admin/tecnico: tudo)
+  if ((usuario.tipo_usuario === 'escola' || usuario.tipo_usuario === 'polo')
+      && !(await podeAcessarEscola(usuario, reg.escola_id))) {
     return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
   }
 

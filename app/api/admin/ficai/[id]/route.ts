@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import { z } from 'zod'
 import {
   atualizarStatus,
@@ -22,10 +23,14 @@ const patchSchema = z.object({
   observacao: z.string().max(2000).optional(),
 })
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request, usuario) => {
   const id = request.nextUrl.pathname.split('/').pop()!
   const caso = await buscarCaso(id)
   if (!caso) return NextResponse.json({ mensagem: 'Não encontrado' }, { status: 404 })
+  // Escola/polo só acessam casos da(s) sua(s) escola(s) (admin/tecnico: tudo)
+  if (!(await podeAcessarEscola(usuario, caso.escola_id))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+  }
   return NextResponse.json({ caso })
 })
 
@@ -35,6 +40,13 @@ export const PATCH = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola
   const parsed = patchSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+  }
+
+  // Escola/polo só alteram casos da(s) sua(s) escola(s)
+  const caso = await buscarCaso(id)
+  if (!caso) return NextResponse.json({ mensagem: 'Caso não encontrado' }, { status: 404 })
+  if (!(await podeAcessarEscola(usuario, caso.escola_id))) {
+    return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
   }
 
   try {

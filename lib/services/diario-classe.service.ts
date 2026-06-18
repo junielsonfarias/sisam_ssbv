@@ -154,7 +154,7 @@ export async function atualizarRegistroDiario(
 
 export async function buscarRegistroPorId(id: string) {
   const r = await pool.query(
-    `SELECT d.*, t.codigo AS turma_codigo, t.nome AS turma_nome,
+    `SELECT d.*, t.codigo AS turma_codigo, t.nome AS turma_nome, t.escola_id,
             di.nome AS disciplina_nome
        FROM diario_classe d
        LEFT JOIN turmas t ON t.id = d.turma_id

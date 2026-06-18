@@ -7,6 +7,9 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
+import { verificarVinculoProfessor } from '@/lib/professor-auth'
+import pool from '@/database/connection'
 import { z } from 'zod'
 import {
   criarOuAtualizar,
@@ -29,10 +32,39 @@ const postSchema = z.object({
   status: z.enum(['rascunho', 'publicada']).optional(),
 })
 
-export const GET = withAuth(['professor', 'administrador', 'tecnico', 'escola'], async (request) => {
+export const GET = withAuth(['professor', 'administrador', 'tecnico', 'escola'], async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const alunoId = searchParams.get('aluno')
   const turmaId = searchParams.get('turma')
+
+  if (!alunoId && !turmaId) {
+    return NextResponse.json({ mensagem: 'Informe ?aluno=... ou ?turma=...' }, { status: 400 })
+  }
+
+  // Resolve a turma e a escola alvo para checar escopo (professor: vínculo
+  // com a turma; escola/polo: pertencimento da escola). Evita IDOR: o service
+  // filtra só por aluno/turma do query param, sem validar acesso.
+  let turmaAlvo: string | null = turmaId
+  let escolaAlvo: string | null = null
+  if (alunoId) {
+    const a = await pool.query('SELECT turma_id, escola_id FROM alunos WHERE id = $1', [alunoId])
+    if (a.rows.length === 0) return NextResponse.json({ avaliacoes: [] })
+    turmaAlvo = a.rows[0].turma_id
+    escolaAlvo = a.rows[0].escola_id
+  } else if (turmaId) {
+    const t = await pool.query('SELECT escola_id FROM turmas WHERE id = $1', [turmaId])
+    escolaAlvo = t.rows[0]?.escola_id || null
+  }
+
+  if (usuario.tipo_usuario === 'professor') {
+    if (!turmaAlvo || !(await verificarVinculoProfessor(usuario.id, turmaAlvo))) {
+      return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
+    }
+  } else if (usuario.tipo_usuario === 'escola' || usuario.tipo_usuario === 'polo') {
+    if (!escolaAlvo || !(await podeAcessarEscola(usuario, escolaAlvo))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+  }
 
   if (alunoId) {
     const status = searchParams.get('status') as 'rascunho' | 'publicada' | null
@@ -40,16 +72,12 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico', 'escola'],
     return NextResponse.json({ avaliacoes: lista })
   }
 
-  if (turmaId) {
-    const lista = await listarPorTurma({
-      turmaId,
-      periodoId: searchParams.get('periodo') || undefined,
-      disciplinaId: searchParams.get('disciplina') || undefined,
-    })
-    return NextResponse.json({ avaliacoes: lista })
-  }
-
-  return NextResponse.json({ mensagem: 'Informe ?aluno=... ou ?turma=...' }, { status: 400 })
+  const lista = await listarPorTurma({
+    turmaId: turmaId!,
+    periodoId: searchParams.get('periodo') || undefined,
+    disciplinaId: searchParams.get('disciplina') || undefined,
+  })
+  return NextResponse.json({ avaliacoes: lista })
 })
 
 export const POST = withAuth('professor', async (request, usuario) => {
@@ -60,6 +88,13 @@ export const POST = withAuth('professor', async (request, usuario) => {
       { mensagem: 'Dados inválidos', erros: parsed.error.flatten() },
       { status: 400 }
     )
+  }
+
+  // Professor só grava avaliação para aluno de turma à qual está vinculado
+  const a = await pool.query('SELECT turma_id FROM alunos WHERE id = $1', [parsed.data.aluno_id])
+  const turmaId = a.rows[0]?.turma_id
+  if (!turmaId || !(await verificarVinculoProfessor(usuario.id, turmaId))) {
+    return NextResponse.json({ mensagem: 'Sem vínculo com a turma deste aluno' }, { status: 403 })
   }
 
   const id = await criarOuAtualizar({

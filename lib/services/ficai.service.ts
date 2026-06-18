@@ -319,6 +319,7 @@ export async function registrarAcao(params: {
 
 export async function listarCasos(filtros: {
   escolaId?: string
+  escolaIds?: string[]
   status?: StatusFicai
   anoLetivo?: string
   apenasAbertos?: boolean
@@ -330,6 +331,8 @@ export async function listarCasos(filtros: {
   let i = 1
 
   if (filtros.escolaId) { params.push(filtros.escolaId); conds.push(`f.escola_id = $${i++}`) }
+  // Escopo por conjunto de escolas (ex.: todas as escolas de um polo)
+  if (filtros.escolaIds && filtros.escolaIds.length) { params.push(filtros.escolaIds); conds.push(`f.escola_id = ANY($${i++}::uuid[])`) }
   if (filtros.status) { params.push(filtros.status); conds.push(`f.status = $${i++}`) }
   if (filtros.anoLetivo) { params.push(filtros.anoLetivo); conds.push(`f.ano_letivo = $${i++}`) }
   if (filtros.apenasAbertos) {

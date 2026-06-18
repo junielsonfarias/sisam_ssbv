@@ -7,6 +7,8 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
+import pool from '@/database/connection'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { abrirCaso, listarCasos, obterEstatisticas } from '@/lib/services/ficai.service'
@@ -21,7 +23,7 @@ const postSchema = z.object({
   detalhes_motivo: z.string().max(2000).optional(),
 })
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
 
   if (searchParams.get('estatisticas') === 'true') {
@@ -30,8 +32,27 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola']
     return NextResponse.json({ estatisticas: stats })
   }
 
+  // Escopo por papel: escola só a própria; polo só as suas; admin/tecnico tudo.
+  // Casos FICAI envolvem ECA/menores — leitura cruzada entre escolas é IDOR.
+  let escolaId = searchParams.get('escola') || undefined
+  let escolaIds: string[] | undefined
+  if (usuario.tipo_usuario === 'escola') {
+    escolaId = usuario.escola_id || '00000000-0000-0000-0000-000000000000'
+  } else if (usuario.tipo_usuario === 'polo') {
+    if (escolaId) {
+      if (!(await podeAcessarEscola(usuario, escolaId))) {
+        return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+      }
+    } else {
+      const r = await pool.query('SELECT id FROM escolas WHERE polo_id = $1 AND ativo = true', [usuario.polo_id])
+      escolaIds = r.rows.map((x: { id: string }) => x.id)
+      if (escolaIds.length === 0) escolaIds = ['00000000-0000-0000-0000-000000000000']
+    }
+  }
+
   const casos = await listarCasos({
-    escolaId: searchParams.get('escola') || undefined,
+    escolaId,
+    escolaIds,
     status: searchParams.get('status') as any || undefined,
     anoLetivo: searchParams.get('ano') || undefined,
     apenasAbertos: searchParams.get('apenasAbertos') === 'true',
