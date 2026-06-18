@@ -14,6 +14,7 @@ import { useSeries } from '@/lib/use-series'
 import {
   SITUACAO_CORES,
   AbaDadosPessoais,
+  ResponsaveisAluno,
   AbaEscolar,
   AbaNotas,
   AbaFrequencia,
@@ -280,7 +281,12 @@ export default function AlunoDetalhePage() {
         </div>
 
         {/* ==================== CONTEÚDO DA ABA ==================== */}
-        {abaAtiva === 'pessoal' && <AbaDadosPessoais aluno={aluno} form={form} editando={editando} updateForm={updateForm} />}
+        {abaAtiva === 'pessoal' && (
+          <div className="space-y-6">
+            <AbaDadosPessoais aluno={aluno} form={form} editando={editando} updateForm={updateForm} />
+            <ResponsaveisAluno alunoId={alunoId} />
+          </div>
+        )}
         {abaAtiva === 'escolar' && <AbaEscolar aluno={aluno} dados={dados} />}
         {abaAtiva === 'notas' && <AbaNotas dados={dados} />}
         {abaAtiva === 'frequencia' && <AbaFrequencia dados={dados} />}
