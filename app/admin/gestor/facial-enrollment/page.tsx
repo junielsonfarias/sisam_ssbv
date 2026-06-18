@@ -326,6 +326,7 @@ export default function FacialEnrollmentPage() {
             cameraMode={faceCapture.cameraMode}
             iluminacao={faceCapture.iluminacao}
             autoCapturaProg={faceCapture.autoCapturaProg}
+            autoCaptura={faceCapture.autoCaptura}
             videoRef={faceCapture.videoRef}
             canvasRef={faceCapture.canvasRef}
             poseBufferRef={faceCapture.poseBufferRef}
@@ -334,6 +335,7 @@ export default function FacialEnrollmentPage() {
             posesConcluidasCount={faceCapture.posesConcluidasCount}
             onAlternarCamera={faceCapture.alternarCamera}
             onCapturarPose={faceCapture.capturarPose}
+            onToggleAuto={faceCapture.toggleAutoCaptura}
             onRecapturarPose={faceCapture.recapturarPose}
             onSalvarEmbedding={faceCapture.salvarEmbedding}
             onCancelar={() => { faceCapture.pararCamera(); faceCapture.setCapturaAlunoId(null) }}

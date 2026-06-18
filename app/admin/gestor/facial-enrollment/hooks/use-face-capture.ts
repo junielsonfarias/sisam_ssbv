@@ -33,6 +33,7 @@ export function useFaceCapture(onSaved: () => void) {
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user')
   const [iluminacao, setIluminacao] = useState<IluminacaoInfo>({ nivel: 128, status: 'bom', mensagem: '' })
   const [autoCapturaProg, setAutoCapturaProg] = useState(0) // 0-100 progresso da auto-captura
+  const [autoCaptura, setAutoCaptura] = useState(true)      // captura automatica ligada/desligada
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -42,6 +43,7 @@ export function useFaceCapture(onSaved: () => void) {
   const poseBufferRef = useRef<{ descriptor: Float32Array; score: number }[]>([])
   const autoCapturaTimerRef = useRef<number | null>(null) // timestamp inicio condições boas
   const detectandoRef = useRef(false)
+  const autoCapturaRef = useRef(true) // espelho de autoCaptura para o loop de deteccao
 
   const poseConfig = POSES[poseAtual] || POSES[0]
   const todasPosesCapturadas = POSES.every(p => posesCapturadas[p.key] !== null)
@@ -111,9 +113,11 @@ export function useFaceCapture(onSaved: () => void) {
     return 'frontal'
   }
 
-  // Executar auto-captura quando buffer estiver cheio
+  // Finaliza a captura da pose atual com as amostras disponiveis no buffer.
+  // Usado tanto pela auto-captura (buffer cheio) quanto pela captura manual
+  // (botao) — neste caso basta >= 1 amostra valida.
   const executarAutoCaptura = useCallback(() => {
-    if (poseBufferRef.current.length < AMOSTRAS_POR_POSE) return
+    if (poseBufferRef.current.length < 1) return
     if (!videoRef.current) return
 
     const descriptors = poseBufferRef.current.map(s => s.descriptor)
@@ -235,7 +239,8 @@ export function useFaceCapture(onSaved: () => void) {
             }
 
             // Auto-captura: iniciar timer quando temos amostras suficientes
-            if (poseBufferRef.current.length >= AMOSTRAS_POR_POSE) {
+            // (somente quando o modo automatico esta ligado).
+            if (autoCapturaRef.current && poseBufferRef.current.length >= AMOSTRAS_POR_POSE) {
               if (!autoCapturaTimerRef.current) {
                 autoCapturaTimerRef.current = Date.now()
               }
@@ -352,14 +357,25 @@ export function useFaceCapture(onSaved: () => void) {
     return resultado
   }
 
-  // Capturar pose manualmente (caso auto-captura esteja lenta)
+  // Capturar pose manualmente (botao). Funciona com as amostras ja coletadas
+  // (>= 1). Captura na hora, sem esperar o buffer encher nem o delay do auto.
   const capturarPose = () => {
-    if (poseBufferRef.current.length < AMOSTRAS_POR_POSE) {
-      toast.error(`Aguarde ${AMOSTRAS_POR_POSE} amostras. Mantenha a posicao.`)
+    if (poseBufferRef.current.length < 1) {
+      toast.error('Posicione o rosto na area marcada antes de capturar.')
       return
     }
     executarAutoCaptura()
   }
+
+  // Ligar/desligar a captura automatica. Desligada, a captura so ocorre pelo botao.
+  const toggleAutoCaptura = useCallback(() => {
+    setAutoCaptura(prev => {
+      const next = !prev
+      autoCapturaRef.current = next
+      if (!next) { autoCapturaTimerRef.current = null; setAutoCapturaProg(0) }
+      return next
+    })
+  }, [])
 
   // Recapturar pose especifica
   const recapturarPose = (poseIndex: number) => {
@@ -483,6 +499,8 @@ export function useFaceCapture(onSaved: () => void) {
     cameraMode,
     iluminacao,
     autoCapturaProg,
+    autoCaptura,
+    toggleAutoCaptura,
     videoRef,
     canvasRef,
     poseBufferRef,

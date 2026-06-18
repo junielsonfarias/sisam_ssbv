@@ -32,6 +32,7 @@ interface CaptureModalProps {
   cameraMode: 'user' | 'environment'
   iluminacao: IluminacaoInfo
   autoCapturaProg: number
+  autoCaptura: boolean
   videoRef: React.RefObject<HTMLVideoElement>
   canvasRef: React.RefObject<HTMLCanvasElement>
   poseBufferRef: React.MutableRefObject<{ descriptor: Float32Array; score: number }[]>
@@ -40,6 +41,7 @@ interface CaptureModalProps {
   posesConcluidasCount: number
   onAlternarCamera: () => void
   onCapturarPose: () => void
+  onToggleAuto: () => void
   onRecapturarPose: (index: number) => void
   onSalvarEmbedding: () => void
   onCancelar: () => void
@@ -71,9 +73,9 @@ function IndicadorMobile({ ok }: { ok: boolean }) {
 export function CaptureModal({
   alunoNome, cameraAtiva, carregandoModelos, faceDetectada, qualidadeFace,
   tamanhoRosto, anguloDetectado, enviandoEmbed, capturaStatus, poseAtual,
-  posesCapturadas, cameraMode, iluminacao, autoCapturaProg, videoRef, canvasRef,
+  posesCapturadas, cameraMode, iluminacao, autoCapturaProg, autoCaptura, videoRef, canvasRef,
   poseBufferRef, poseConfig, todasPosesCapturadas, posesConcluidasCount,
-  onAlternarCamera, onCapturarPose, onRecapturarPose, onSalvarEmbedding, onCancelar,
+  onAlternarCamera, onCapturarPose, onToggleAuto, onRecapturarPose, onSalvarEmbedding, onCancelar,
 }: CaptureModalProps) {
   const amostras = poseBufferRef.current.length
   const detectando = capturaStatus === 'detectando'
@@ -228,7 +230,7 @@ export function CaptureModal({
           {/* Botão de ação */}
           <div className="px-4 pb-2">
             {!todasPosesCapturadas ? (
-              <button onClick={onCapturarPose} disabled={!faceDetectada || amostras < AMOSTRAS_POR_POSE}
+              <button onClick={onCapturarPose} disabled={!faceDetectada}
                 className="w-full h-14 text-base font-bold text-white bg-indigo-600 active:bg-indigo-700 rounded-2xl disabled:bg-white/10 disabled:text-white/30 transition-all flex items-center justify-center gap-2">
                 <Camera className="w-5 h-5" />
                 Capturar {poseConfig.label} ({poseAtual + 1}/{POSES.length})
@@ -242,11 +244,17 @@ export function CaptureModal({
             )}
           </div>
 
-          {/* Dica auto-captura */}
+          {/* Toggle auto-captura */}
           {cameraAtiva && !todasPosesCapturadas && detectando && (
-            <p className="text-center text-[11px] text-white/30 pb-1 flex items-center justify-center gap-1">
-              <Zap className="w-3 h-3" /> Captura automatica ao manter posicao
-            </p>
+            <button onClick={onToggleAuto}
+              className="mx-auto flex items-center justify-center gap-2 text-[12px] pb-1 active:opacity-70">
+              <Zap className={`w-3.5 h-3.5 ${autoCaptura ? 'text-green-400' : 'text-white/40'}`} />
+              <span className="text-white/60">Captura automática:</span>
+              <span className={`font-bold ${autoCaptura ? 'text-green-400' : 'text-white/70'}`}>{autoCaptura ? 'LIGADA' : 'DESLIGADA'}</span>
+              <span className={`relative w-8 h-4 rounded-full transition-colors ${autoCaptura ? 'bg-green-500' : 'bg-white/25'}`}>
+                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${autoCaptura ? 'left-[18px]' : 'left-0.5'}`} />
+              </span>
+            </button>
           )}
         </div>
       </div>
@@ -447,14 +455,20 @@ export function CaptureModal({
               })}
             </div>
             {cameraAtiva && !todasPosesCapturadas && detectando && (
-              <div className="mt-4 flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-700/50 rounded-lg p-2.5">
-                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                <span>Captura <strong>automatica</strong> ao manter posicao por 1.5s.</span>
-              </div>
+              <button onClick={onToggleAuto}
+                className="mt-4 w-full flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg p-2.5 transition-colors">
+                <span className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                  <Zap className={`w-3.5 h-3.5 ${autoCaptura ? 'text-amber-500' : 'text-gray-400'}`} />
+                  Captura automática {autoCaptura ? '(mantém 1.5s)' : '(desligada)'}
+                </span>
+                <span className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${autoCaptura ? 'bg-green-500' : 'bg-gray-300 dark:bg-slate-600'}`}>
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${autoCaptura ? 'left-[18px]' : 'left-0.5'}`} />
+                </span>
+              </button>
             )}
             <div className="mt-4 space-y-2">
               {!todasPosesCapturadas ? (
-                <button onClick={onCapturarPose} disabled={!faceDetectada || amostras < AMOSTRAS_POR_POSE}
+                <button onClick={onCapturarPose} disabled={!faceDetectada}
                   className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
                   <Camera className="w-4 h-4" /> Capturar {poseConfig.label}
                 </button>
