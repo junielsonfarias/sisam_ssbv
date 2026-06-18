@@ -2,7 +2,16 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/notificar-infrequencia",
+      "schedule": "0 11 * * 1"
+    }
+  ],
   "functions": {
+    "app/api/cron/notificar-infrequencia/route.ts": {
+      "maxDuration": 300
+    },
     "app/api/admin/importar-completo/route.ts": {
       "maxDuration": 300
     },
