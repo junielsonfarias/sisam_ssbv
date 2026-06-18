@@ -26,6 +26,13 @@ Ao final de cada sessao de trabalho, **SEMPRE** atualizar `docs/HORAS-DESENVOLVI
 
 ---
 
+## Push (OBRIGATORIO)
+- **NUNCA fazer `git push` sem o usuario solicitar explicitamente.**
+- Pode commitar a vontade (local), mas o push so acontece quando o usuario pedir ("faca push", "suba", "pode subir", etc.).
+- Lembrar: push na `main` dispara deploy automatico no Vercel (educanet). Por isso o push e sempre decisao do usuario.
+
+---
+
 ## CI/CD
 - GitHub Actions deve estar **verde** antes de considerar deploy pronto
 - Node.js **20** no CI (Vitest 4.x requer Node 20.12+)

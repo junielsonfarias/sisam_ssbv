@@ -343,26 +343,44 @@ function FilhoPage() {
             {frequencia.length === 0 ? (
               <EmptyState Icon={CalendarCheck} texto="Nenhuma frequência lançada ainda" />
             ) : (
-              frequencia.map(f => {
-                const pct = parseFloat(String(f.percentual_frequencia)) || 0
-                return (
-                  <div key={f.bimestre} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-4">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-white">{f.periodo_nome || `${f.bimestre}º Bimestre`}</p>
-                      <p className={`text-lg font-bold ${corFreq(pct)}`}>{pct.toFixed(0)}%</p>
-                    </div>
-                    <div className="h-2.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${pct >= 90 ? 'bg-emerald-500' : pct >= 75 ? 'bg-amber-500' : 'bg-red-500'}`}
-                        style={{ width: `${Math.min(100, pct)}%` }} />
-                    </div>
-                    <div className="flex gap-4 text-[11px] text-gray-500 dark:text-gray-400 mt-2.5">
-                      <span>Aulas: <strong className="text-gray-700 dark:text-gray-200">{f.aulas_dadas || 0}</strong></span>
-                      <span>Presenças: <strong className="text-gray-700 dark:text-gray-200">{(f.aulas_dadas || 0) - (f.faltas || 0)}</strong></span>
-                      <span className={f.faltas > 0 ? 'text-red-500 font-semibold' : ''}>Faltas: {f.faltas || 0}</span>
-                    </div>
-                  </div>
-                )
-              })
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-slate-700/50 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        <th className="text-left font-semibold px-4 py-2.5">Período</th>
+                        <th className="text-center font-semibold px-3 py-2.5">Aulas</th>
+                        <th className="text-center font-semibold px-3 py-2.5">Pres.</th>
+                        <th className="text-center font-semibold px-3 py-2.5">Faltas</th>
+                        <th className="text-right font-semibold px-4 py-2.5">Freq.</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                      {frequencia.map(f => {
+                        const pct = parseFloat(String(f.percentual_frequencia)) || 0
+                        const presencas = (f.aulas_dadas || 0) - (f.faltas || 0)
+                        const baixo = pct < 75
+                        return (
+                          <tr key={f.bimestre} className={baixo ? 'bg-red-50/60 dark:bg-red-900/10' : ''}>
+                            <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-white whitespace-nowrap">
+                              {f.periodo_nome || `${f.bimestre}º Bimestre`}
+                            </td>
+                            <td className="px-3 py-2.5 text-center text-gray-600 dark:text-gray-300 tabular-nums">{f.aulas_dadas || 0}</td>
+                            <td className="px-3 py-2.5 text-center text-gray-600 dark:text-gray-300 tabular-nums">{presencas}</td>
+                            <td className={`px-3 py-2.5 text-center tabular-nums ${f.faltas > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-300'}`}>{f.faltas || 0}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              <span className={`font-bold tabular-nums ${corFreq(pct)}`}>{pct.toFixed(0)}%</span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="px-4 py-2.5 text-[11px] text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-slate-700">
+                  Mínimo de 75% de frequência para aprovação · faltas em vermelho · linha destacada = abaixo do mínimo
+                </p>
+              </div>
             )}
           </>
         )}
