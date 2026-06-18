@@ -211,7 +211,7 @@ function FilhoPage() {
                       {media !== null ? media.toFixed(1) : '—'}
                     </span>
                   </div>
-                  <div className="px-3 pb-3 grid grid-cols-4 gap-2">
+                  <div className="px-3 pb-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(4, Math.max(periodos.length, 1))}, minmax(0,1fr))` }}>
                     {periodos.map(p => {
                       const nota = notasDisc[p.numero]
                       const valor = nota ? parseFloat(nota.nota_final) : null
