@@ -256,7 +256,7 @@ function FilhoPage() {
               const vals = Object.values(notasDisc).map((n: any) => parseFloat(n.nota_final)).filter((v) => !isNaN(v))
               const media = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
               return (
-                <div key={d.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div key={d.id} className={`bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 border-t-4 shadow-sm overflow-hidden ${media === null ? 'border-t-gray-200 dark:border-t-slate-600' : media >= 6 ? 'border-t-emerald-400' : 'border-t-red-400'}`}>
                   <div className="px-4 py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">

@@ -109,36 +109,62 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
                     )
                   END AS dias_letivos
              FROM escopos e
+         ),
+         -- Frequencia diaria agregada por periodo (anos iniciais)
+         fd_agg AS (
+           SELECT e.periodo_id,
+                  COUNT(fd.id) FILTER (WHERE fd.status = 'presente')::int    AS presencas,
+                  COUNT(fd.id) FILTER (WHERE fd.status = 'ausente')::int     AS faltas,
+                  COUNT(fd.id) FILTER (WHERE fd.status = 'justificado')::int AS justificadas,
+                  COUNT(fd.id)::int AS total
+             FROM escopos e
+             LEFT JOIN frequencia_diaria fd
+                    ON fd.aluno_id = $1 AND fd.turma_id = $4::uuid
+                   AND fd.data BETWEEN e.data_inicio AND e.data_fim
+            GROUP BY e.periodo_id
+         ),
+         -- Frequencia por hora-aula agregada a nivel de DIA (anos finais 6-9):
+         -- o aluno conta presente no dia se esteve presente em ao menos 1 aula.
+         -- Sem isso, a frequencia de 6-9 so aparecia apos a agregacao manual.
+         fha_agg AS (
+           SELECT e.periodo_id,
+                  COUNT(*) FILTER (WHERE dh.presente)::int     AS presencas,
+                  COUNT(*) FILTER (WHERE NOT dh.presente)::int AS faltas,
+                  COUNT(*)::int AS total
+             FROM escopos e
+             JOIN (
+               SELECT data, BOOL_OR(presente) AS presente
+                 FROM frequencia_hora_aula
+                WHERE aluno_id = $1 AND turma_id = $4::uuid
+                GROUP BY data
+             ) dh ON dh.data BETWEEN e.data_inicio AND e.data_fim
+            GROUP BY e.periodo_id
          )
          SELECT e.numero AS bimestre,
                 d.dias_letivos AS aulas_dadas,
                 COALESCE(fb.presencas,
-                         COUNT(*) FILTER (WHERE fd.status = 'presente')::int) AS presencas,
+                         CASE WHEN COALESCE(fd.total,0) > 0 THEN fd.presencas
+                              WHEN COALESCE(fha.total,0) > 0 THEN fha.presencas
+                              ELSE 0 END) AS presencas,
                 COALESCE(fb.faltas,
-                         COUNT(*) FILTER (WHERE fd.status = 'ausente')::int) AS faltas,
-                COALESCE(fb.faltas_justificadas,
-                         COUNT(*) FILTER (WHERE fd.status = 'justificado')::int) AS faltas_justificadas,
+                         CASE WHEN COALESCE(fd.total,0) > 0 THEN fd.faltas
+                              WHEN COALESCE(fha.total,0) > 0 THEN fha.faltas
+                              ELSE 0 END) AS faltas,
+                COALESCE(fb.faltas_justificadas, COALESCE(fd.justificadas, 0)) AS faltas_justificadas,
                 COALESCE(fb.percentual_frequencia,
                          CASE WHEN d.dias_letivos > 0
                               THEN ROUND(
-                                (COUNT(*) FILTER (WHERE fd.status = 'presente')::numeric / d.dias_letivos) * 100,
-                                2
-                              )
+                                ((CASE WHEN COALESCE(fd.total,0) > 0 THEN fd.presencas
+                                       WHEN COALESCE(fha.total,0) > 0 THEN fha.presencas
+                                       ELSE 0 END)::numeric / d.dias_letivos) * 100, 2)
                               ELSE NULL
                          END) AS percentual_frequencia,
                 e.nome AS periodo_nome
            FROM escopos e
            JOIN dias d ON d.periodo_id = e.periodo_id
-           LEFT JOIN frequencia_diaria fd
-                  ON fd.aluno_id = $1
-                 AND fd.turma_id = $4::uuid
-                 AND fd.data BETWEEN e.data_inicio AND e.data_fim
-           LEFT JOIN frequencia_bimestral fb
-                  ON fb.aluno_id = $1
-                 AND fb.periodo_id = e.periodo_id
-          GROUP BY e.numero, e.nome, d.dias_letivos,
-                   fb.presencas, fb.faltas, fb.faltas_justificadas,
-                   fb.percentual_frequencia
+           LEFT JOIN frequencia_bimestral fb ON fb.aluno_id = $1 AND fb.periodo_id = e.periodo_id
+           LEFT JOIN fd_agg fd ON fd.periodo_id = e.periodo_id
+           LEFT JOIN fha_agg fha ON fha.periodo_id = e.periodo_id
           ORDER BY e.numero`,
         [alunoId, anoLetivo, aluno.escola_id || null, aluno.turma_id || null]
       ),
