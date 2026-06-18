@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { LogIn, Eye, EyeOff, WifiOff, CheckCircle, GraduationCap, ArrowLeft, Users } from 'lucide-react'
 import Link from 'next/link'
 import Rodape from '@/components/rodape'
+import { DemoCredenciais } from '@/components/demo-credenciais'
 import { getPersonalizacaoLogin } from '@/lib/personalizacao'
 import * as offlineStorage from '@/lib/offline-storage'
 import { ThemeToggleSimple } from '@/components/theme-toggle'
@@ -364,6 +365,11 @@ export default function LoginPage() {
                   Sou responsável de aluno — Criar minha conta
                 </Link>
               </div>
+            </div>
+
+            {/* Credenciais de demonstração (só no modo demo) */}
+            <div className="mt-4">
+              <DemoCredenciais onPreencher={(e, s) => { setEmail(e); setSenha(s) }} />
             </div>
           </div>
         </div>
