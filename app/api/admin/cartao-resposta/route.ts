@@ -22,12 +22,13 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
     return NextResponse.json({ mensagem: 'turma_id é obrigatório.' }, { status: 400 })
   }
 
-  // Buscar alunos da turma
+  // Buscar alunos da turma. A fonte de verdade é alunos.turma_id (a tabela
+  // `matriculas` não existe no schema) — ativos e cursando, igual ao resto do
+  // sistema (lib/services/turmas.service buscarAlunosDaTurma).
   const alunos = await pool.query(
     `SELECT a.id, a.nome, a.codigo
      FROM alunos a
-     JOIN matriculas m ON m.aluno_id = a.id
-     WHERE m.turma_id = $1 AND m.status = 'ativa'
+     WHERE a.turma_id = $1 AND a.ativo = true AND a.situacao = 'cursando'
      ORDER BY a.nome`,
     [turma_id]
   )

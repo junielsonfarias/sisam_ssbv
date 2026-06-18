@@ -73,6 +73,7 @@ export const SITUACAO_CONFIG: Record<string, { label: string; cor: string; bg: s
   transferido: { label: 'Transferido', cor: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-100 dark:bg-amber-900/40' },
   abandono: { label: 'Abandono', cor: 'text-gray-700 dark:text-gray-300', bg: 'bg-gray-100 dark:bg-gray-800' },
   remanejado: { label: 'Remanejado', cor: 'text-purple-700 dark:text-purple-300', bg: 'bg-purple-100 dark:bg-purple-900/40' },
+  progressao_parcial: { label: 'Progressão Parcial', cor: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-100 dark:bg-amber-900/40' },
   em_recuperacao: { label: 'Em Recuperação', cor: 'text-orange-700 dark:text-orange-300', bg: 'bg-orange-100 dark:bg-orange-900/40' },
 }
 

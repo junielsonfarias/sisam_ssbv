@@ -14,7 +14,7 @@ import { tipoPeriodoSchema } from './gestor'
 // ============================================
 
 export const situacaoAlunoSchema = z.enum([
-  'cursando', 'transferido', 'abandono', 'aprovado', 'reprovado', 'remanejado'
+  'cursando', 'transferido', 'abandono', 'aprovado', 'reprovado', 'remanejado', 'progressao_parcial'
 ])
 
 export const statusFilaSchema = z.enum([

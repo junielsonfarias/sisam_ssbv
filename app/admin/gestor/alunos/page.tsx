@@ -132,7 +132,7 @@ export default function AlunosPage() {
 
   useEffect(() => {
     if (filtroEscola) {
-      fetch(`/api/admin/turmas?escolas_ids=${filtroEscola}`)
+      fetch(`/api/admin/turmas?escolas_ids=${filtroEscola}&mode=listagem`)
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(setTurmas)
         .catch(() => setTurmas([]))
@@ -318,7 +318,7 @@ export default function AlunosPage() {
   }
 
   const carregarTurmas = async (escolaId: string) => {
-    const data = await fetch(`/api/admin/turmas?escolas_ids=${escolaId}`).then(r => r.ok ? r.json() : Promise.reject())
+    const data = await fetch(`/api/admin/turmas?escolas_ids=${escolaId}&mode=listagem`).then(r => r.ok ? r.json() : Promise.reject())
     setTurmas(data)
   }
 

@@ -150,7 +150,7 @@ export default function NotasEscolaresPage() {
   // Carregar turmas ao selecionar escola
   useEffect(() => {
     if (escolaId) {
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}&ano_letivo=${anoLetivo}`)
+      fetch(`/api/admin/turmas?escolas_ids=${escolaId}&ano_letivo=${anoLetivo}&mode=listagem`)
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => setTurmas(Array.isArray(data) ? data : []))
         .catch(() => setTurmas([]))
