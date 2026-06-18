@@ -9,7 +9,7 @@ import {
 
 export interface IluminacaoInfo {
   nivel: number       // 0-255
-  status: 'escuro' | 'bom' | 'claro'
+  status: 'muito_escuro' | 'escuro' | 'bom' | 'claro'
   mensagem: string
 }
 
@@ -69,8 +69,14 @@ export function useFaceCapture(onSaved: () => void) {
     }
   }
 
-  // Analisar iluminacao do video
-  const analisarIluminacao = (video: HTMLVideoElement): IluminacaoInfo => {
+  // Analisar iluminacao. Quando recebe o box do rosto, mede o brilho na
+  // REGIAO DO ROSTO (e nao no frame inteiro) — isso evita que fundo/roupa
+  // escura, ou um tom de pele mais escuro, derrubem a media e bloqueiem a
+  // captura injustamente. Pouca luz vira AVISO; so escuridao extrema bloqueia.
+  const analisarIluminacao = (
+    video: HTMLVideoElement,
+    box?: { x: number; y: number; width: number; height: number },
+  ): IluminacaoInfo => {
     const tempCanvas = document.createElement('canvas')
     const size = 64 // amostra pequena para performance
     tempCanvas.width = size
@@ -78,7 +84,11 @@ export function useFaceCapture(onSaved: () => void) {
     const ctx = tempCanvas.getContext('2d')
     if (!ctx) return { nivel: 128, status: 'bom', mensagem: '' }
 
-    ctx.drawImage(video, 0, 0, size, size)
+    if (box && box.width > 0 && box.height > 0) {
+      ctx.drawImage(video, box.x, box.y, box.width, box.height, 0, 0, size, size)
+    } else {
+      ctx.drawImage(video, 0, 0, size, size)
+    }
     const imageData = ctx.getImageData(0, 0, size, size)
     const data = imageData.data
 
@@ -87,11 +97,13 @@ export function useFaceCapture(onSaved: () => void) {
       // Luminancia percebida (ITU-R BT.709)
       totalBrightness += data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722
     }
-    const avgBrightness = totalBrightness / (size * size)
+    const avg = totalBrightness / (size * size)
+    const nivel = Math.round(avg)
 
-    if (avgBrightness < 60) return { nivel: Math.round(avgBrightness), status: 'escuro', mensagem: 'Ambiente muito escuro — melhore a iluminacao' }
-    if (avgBrightness > 210) return { nivel: Math.round(avgBrightness), status: 'claro', mensagem: 'Luz muito forte — evite luz direta no rosto' }
-    return { nivel: Math.round(avgBrightness), status: 'bom', mensagem: '' }
+    if (avg < 30) return { nivel, status: 'muito_escuro', mensagem: 'Muito escuro para capturar — acenda uma luz' }
+    if (avg < 55) return { nivel, status: 'escuro', mensagem: 'Pouca luz — se possivel, melhore a iluminacao' }
+    if (avg > 225) return { nivel, status: 'claro', mensagem: 'Luz muito forte — evite luz direta no rosto' }
+    return { nivel, status: 'bom', mensagem: '' }
   }
 
   // Detectar angulo do rosto via landmarks
@@ -177,10 +189,6 @@ export function useFaceCapture(onSaved: () => void) {
         const video = videoRef.current
         const canvas = canvasRef.current
 
-        // Verificar iluminacao a cada frame
-        const luzInfo = analisarIluminacao(video)
-        setIluminacao(luzInfo)
-
         const detections = await faceapi
           .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.6 }))
           .withFaceLandmarks(true)
@@ -199,7 +207,11 @@ export function useFaceCapture(onSaved: () => void) {
           const rostoPct = Math.round((box.width / displaySize.width) * 100)
           const rostoGrande = rostoPct >= TAMANHO_MINIMO_ROSTO
           const boaQualidade = score > QUALIDADE_MINIMA
-          const boaIluminacao = luzInfo.status === 'bom'
+          // Iluminacao medida na REGIAO DO ROSTO (justa p/ tons de pele variados).
+          // So escuridao EXTREMA bloqueia; pouca luz é apenas aviso.
+          const luzInfo = analisarIluminacao(video, box)
+          setIluminacao(luzInfo)
+          const boaIluminacao = luzInfo.status !== 'muito_escuro'
 
           const angulo = detectarAngulo(det.landmarks)
           setAnguloDetectado(angulo)
@@ -280,6 +292,8 @@ export function useFaceCapture(onSaved: () => void) {
           setFaceDetectada(condicoesOk)
           setQualidadeFace(Math.round(score * 100))
         } else {
+          // Sem rosto: avalia a luz do frame inteiro so para o indicador
+          setIluminacao(analisarIluminacao(video))
           setFaceDetectada(false)
           setProntoCaptura(false)
           ultimoDescritorRef.current = null

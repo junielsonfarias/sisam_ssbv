@@ -4,6 +4,41 @@ import { useCallback, useRef } from 'react'
 import { AlunoEmbedding, RegistroPresenca } from '../types'
 import { tocarSom } from '../utils/tocarSom'
 
+// Distancia euclidiana entre dois descritores de 128 dimensoes.
+function distanciaEuclidiana(a: Float32Array, b: Float32Array): number {
+  let soma = 0
+  for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; soma += d * d }
+  return Math.sqrt(soma)
+}
+
+// #1 Normaliza o descritor para norma unitaria — DEVE casar com a normalizacao
+// feita no cadastro (concatenarDescriptors), senao a distancia fica inconsistente.
+function normalizarDescritor(d: Float32Array): Float32Array {
+  let norma = 0
+  for (let i = 0; i < d.length; i++) norma += d[i] * d[i]
+  norma = Math.sqrt(norma)
+  if (norma === 0) return d
+  const out = new Float32Array(d.length)
+  for (let i = 0; i < d.length; i++) out[i] = d[i] / norma
+  return out
+}
+
+// Melhor e segundo-melhor match (distancia minima por aluno, sobre seus 3
+// descritores). O segundo serve para o #4 ratio test (margem).
+function melhorMatch(desc: Float32Array, labeled: any[]): { bestLabel: string; bestDist: number; secondDist: number } {
+  let bestLabel = 'unknown', bestDist = Infinity, secondDist = Infinity
+  for (const ld of labeled) {
+    let dmin = Infinity
+    for (const d of ld.descriptors) {
+      const dist = distanciaEuclidiana(desc, d)
+      if (dist < dmin) dmin = dist
+    }
+    if (dmin < bestDist) { secondDist = bestDist; bestDist = dmin; bestLabel = ld.label }
+    else if (dmin < secondDist) { secondDist = dmin }
+  }
+  return { bestLabel, bestDist, secondDist }
+}
+
 interface UseReconhecimentoParams {
   alunos: AlunoEmbedding[]
   config: { confianca_minima: number; cooldown_segundos: number }
@@ -28,6 +63,8 @@ export function useReconhecimento({
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const cooldownMapRef = useRef<Map<string, number>>(new Map())
   const detectandoRef = useRef(false)
+  // #3 Quantos frames consecutivos do MESMO aluno ja confirmaram
+  const confirmacoesRef = useRef<{ alunoId: string | null; count: number }>({ alunoId: null, count: 0 })
 
   const iniciarReconhecimento = useCallback(() => {
     if (!faceapiRef.current || !videoRef.current || alunos.length === 0) return
@@ -47,7 +84,10 @@ export function useReconhecimento({
     // Antes: 1 - confianca_minima (0.15 para 0.85) era restritivo demais
     const confianca = config.confianca_minima
     const maxDistance = confianca >= 0.9 ? 0.5 : confianca >= 0.85 ? 0.6 : 0.7
-    const matcher = new faceapi.FaceMatcher(labeledDescriptors, maxDistance)
+    // #4 Margem minima entre o melhor e o 2o melhor match (evita trocar alunos
+    // parecidos). #3 frames consecutivos para confirmar antes de registrar.
+    const MARGEM_MINIMA = 0.05
+    const CONFIRMACOES_NECESSARIAS = 3
 
     setReconhecendo(true)
 
@@ -76,11 +116,16 @@ export function useReconhecimento({
 
           // Para cada rosto detectado
           for (const detection of resized) {
-            const match = matcher.findBestMatch(detection.descriptor)
+            // #1 normaliza o descritor vivo + #4 match com ratio test (margem)
+            const descNorm = normalizarDescritor(detection.descriptor)
+            const { bestLabel, bestDist, secondDist } = melhorMatch(descNorm, labeledDescriptors)
+            const reconhecido = bestLabel !== 'unknown'
+              && bestDist <= maxDistance
+              && (secondDist - bestDist) >= MARGEM_MINIMA
 
-            if (match.label !== 'unknown') {
-              const alunoId = match.label
-              const confianca = 1 - match.distance
+            if (reconhecido) {
+              const alunoId = bestLabel
+              const confianca = 1 - bestDist
 
               // Verificar cooldown
               const agora = Date.now()
@@ -89,6 +134,7 @@ export function useReconhecimento({
 
               if (agora - ultimoRegistro < cooldownMs) {
                 // Já registrado — desenhar em amarelo
+                confirmacoesRef.current = { alunoId: null, count: 0 }
                 const box = detection.detection.box
                 if (ctx) {
                   // O vídeo é espelhado (selfie); espelhamos só o X do box/texto
@@ -107,6 +153,29 @@ export function useReconhecimento({
 
               // Reset unknown counter on successful recognition
               setUnknownCount(0)
+
+              // #3 Consistencia temporal: exigir N frames consecutivos do MESMO
+              // aluno antes de registrar (mata falso-positivo de 1 frame so).
+              if (confirmacoesRef.current.alunoId === alunoId) {
+                confirmacoesRef.current.count += 1
+              } else {
+                confirmacoesRef.current = { alunoId, count: 1 }
+              }
+              if (confirmacoesRef.current.count < CONFIRMACOES_NECESSARIAS) {
+                const box = detection.detection.box
+                if (ctx) {
+                  const mx = canvasRef.current.width - box.x - box.width
+                  const aluno = alunos.find(a => a.aluno_id === alunoId)
+                  ctx.strokeStyle = '#3b82f6'
+                  ctx.lineWidth = 3
+                  ctx.strokeRect(mx, box.y, box.width, box.height)
+                  ctx.fillStyle = '#3b82f6'
+                  ctx.font = 'bold 14px sans-serif'
+                  ctx.fillText(`${aluno?.nome || ''} — confirmando ${confirmacoesRef.current.count}/${CONFIRMACOES_NECESSARIAS}`, mx, box.y - 5)
+                }
+                continue
+              }
+              confirmacoesRef.current = { alunoId: null, count: 0 }
 
               // Registrar presença
               cooldownMapRef.current.set(alunoId, agora)
@@ -176,7 +245,8 @@ export function useReconhecimento({
               // Limpar mensagem após 4 segundos
               setTimeout(() => setMensagem(''), 4000)
             } else {
-              // Desconhecido — desenhar em vermelho
+              // Desconhecido (ou margem insuficiente) — desenhar em vermelho
+              confirmacoesRef.current = { alunoId: null, count: 0 }
               const box = detection.detection.box
               if (ctx) {
                 const mx = canvasRef.current.width - box.x - box.width

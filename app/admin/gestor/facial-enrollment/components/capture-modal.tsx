@@ -150,7 +150,7 @@ export function CaptureModal({
           {cameraAtiva && !luzOk && detectando && (
             <div className="mx-4 mb-2">
               <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold backdrop-blur-md ${
-                iluminacao.status === 'escuro'
+                iluminacao.status === 'escuro' || iluminacao.status === 'muito_escuro'
                   ? 'bg-amber-500/25 text-amber-100 border border-amber-500/30'
                   : 'bg-yellow-500/25 text-yellow-100 border border-yellow-500/30'
               }`} style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
@@ -366,7 +366,7 @@ export function CaptureModal({
               {cameraAtiva && iluminacao.status !== 'bom' && detectando && (
                 <div className="absolute top-2 left-2 right-2">
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-                    iluminacao.status === 'escuro' ? 'bg-amber-900/80 text-amber-200' : 'bg-yellow-900/80 text-yellow-200'
+                    iluminacao.status === 'escuro' || iluminacao.status === 'muito_escuro' ? 'bg-amber-900/80 text-amber-200' : 'bg-yellow-900/80 text-yellow-200'
                   }`}>
                     <Sun className="w-3.5 h-3.5 shrink-0" /><span>{iluminacao.mensagem}</span>
                   </div>
