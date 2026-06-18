@@ -1,3 +1,4 @@
+import { PoolClient } from 'pg'
 import pool from '@/database/connection'
 import { withTransaction } from '@/lib/database/with-transaction'
 import {
@@ -205,38 +206,50 @@ export async function revogarConsentimento(
 }
 
 /**
+ * Núcleo da exclusão LGPD facial, executado dentro de uma transação EXISTENTE
+ * (recebe o `client`). Deleta embeddings, revoga consentimento e anonimiza a
+ * frequência facial (mantém o registro de presença, remove o vínculo biométrico).
+ * Reusado pela exclusão manual (purgarDadosFaciaisLGPD) e pela exclusão
+ * automática ao transferir/evadir (alterarSituacao — Fase 4.4).
+ */
+export async function anonimizarDadosFaciaisTx(
+  client: PoolClient,
+  alunoId: string,
+): Promise<RevogarConsentimentoResult> {
+  const embeddingResult = await client.query(
+    'DELETE FROM embeddings_faciais WHERE aluno_id = $1',
+    [alunoId],
+  )
+
+  const consentimentoResult = await client.query(
+    `UPDATE consentimentos_faciais
+     SET consentido = false, data_revogacao = CURRENT_TIMESTAMP
+     WHERE aluno_id = $1`,
+    [alunoId],
+  )
+
+  const frequenciaResult = await client.query(
+    `UPDATE frequencia_diaria
+     SET metodo = 'manual', dispositivo_id = NULL, confianca = NULL
+     WHERE aluno_id = $1 AND metodo = 'facial'`,
+    [alunoId],
+  )
+
+  return {
+    embeddings: embeddingResult.rowCount || 0,
+    consentimentos_revogados: consentimentoResult.rowCount || 0,
+    frequencias_anonimizadas: frequenciaResult.rowCount || 0,
+  }
+}
+
+/**
  * Exclusão LGPD completa — retorna contadores de registros afetados.
  * Mesma lógica de revogarConsentimento, mas retorna quantidades.
  */
 export async function purgarDadosFaciaisLGPD(
   alunoId: string,
 ): Promise<RevogarConsentimentoResult> {
-  return withTransaction(async (client) => {
-    const embeddingResult = await client.query(
-      'DELETE FROM embeddings_faciais WHERE aluno_id = $1',
-      [alunoId],
-    )
-
-    const consentimentoResult = await client.query(
-      `UPDATE consentimentos_faciais
-       SET consentido = false, data_revogacao = CURRENT_TIMESTAMP
-       WHERE aluno_id = $1`,
-      [alunoId],
-    )
-
-    const frequenciaResult = await client.query(
-      `UPDATE frequencia_diaria
-       SET metodo = 'manual', dispositivo_id = NULL, confianca = NULL
-       WHERE aluno_id = $1 AND metodo = 'facial'`,
-      [alunoId],
-    )
-
-    return {
-      embeddings: embeddingResult.rowCount || 0,
-      consentimentos_revogados: consentimentoResult.rowCount || 0,
-      frequencias_anonimizadas: frequenciaResult.rowCount || 0,
-    }
-  })
+  return withTransaction((client) => anonimizarDadosFaciaisTx(client, alunoId))
 }
 
 // ---------------------------------------------------------------------------

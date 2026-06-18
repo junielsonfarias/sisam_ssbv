@@ -4,6 +4,7 @@ import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 import {
   createWhereBuilder, addRawCondition, addSearchCondition, addCondition, buildConditionsString,
 } from '@/lib/api-helpers'
+import { anonimizarDadosFaciaisTx } from '@/lib/services/facial.service'
 
 // ============================================================================
 // Service de Alunos — lógica compartilhada entre admin, professor e matrículas
@@ -266,7 +267,7 @@ export async function alterarSituacao(alunoId: string, dados: {
   tipo_transferencia?: string | null; escola_destino_id?: string | null;
   escola_destino_nome?: string | null; escola_origem_id?: string | null;
   escola_origem_nome?: string | null;
-}, registradoPor: string): Promise<{ sucesso: boolean; mensagem: string; situacao_anterior?: string; situacao_nova?: string }> {
+}, registradoPor: string): Promise<{ sucesso: boolean; mensagem: string; situacao_anterior?: string; situacao_nova?: string; dados_faciais_removidos?: { embeddings: number; consentimentos_revogados: number; frequencias_anonimizadas: number } }> {
   const {
     situacao, data, observacao, tipo_transferencia,
     escola_destino_id, escola_destino_nome, escola_origem_id, escola_origem_nome,
@@ -340,11 +341,21 @@ export async function alterarSituacao(alunoId: string, dados: {
       ]
     )
 
+    // LGPD — direito ao esquecimento (Fase 4.4): ao SAIR da rede (transferido
+    // ou abandono), o dado biométrico não é mais necessário. Exclui embeddings,
+    // revoga consentimento e anonimiza a frequência facial — atômico com a
+    // mudança de situação (mesma transação).
+    let dadosFaciaisRemovidos
+    if (situacao === 'transferido' || situacao === 'abandono') {
+      dadosFaciaisRemovidos = await anonimizarDadosFaciaisTx(client, alunoId)
+    }
+
     return {
       sucesso: true,
       mensagem: 'Situação atualizada com sucesso',
       situacao_anterior: situacaoAnterior,
       situacao_nova: situacao,
+      dados_faciais_removidos: dadosFaciaisRemovidos,
     }
   })
 }

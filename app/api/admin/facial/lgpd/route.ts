@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { purgarDadosFaciaisLGPD } from '@/lib/services/facial.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,49 +33,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
     }
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
+    // Exclusão LGPD atômica (embeddings + consentimento + frequência facial),
+    // reusando o service compartilhado com a exclusão automática ao transferir/evadir.
+    const removidos = await purgarDadosFaciaisLGPD(alunoId)
 
-      // 1. Deletar embeddings faciais
-      const embeddingResult = await client.query(
-        'DELETE FROM embeddings_faciais WHERE aluno_id = $1',
-        [alunoId]
-      )
-
-      // 2. Revogar consentimento
-      const consentimentoResult = await client.query(
-        `UPDATE consentimentos_faciais
-         SET consentido = false, data_revogacao = CURRENT_TIMESTAMP
-         WHERE aluno_id = $1`,
-        [alunoId]
-      )
-
-      // 3. Manter frequências mas remover vínculo com reconhecimento facial
-      const frequenciaResult = await client.query(
-        `UPDATE frequencia_diaria
-         SET metodo = 'manual', dispositivo_id = NULL, confianca = NULL
-         WHERE aluno_id = $1 AND metodo = 'facial'`,
-        [alunoId]
-      )
-
-      await client.query('COMMIT')
-
-      return NextResponse.json({
-        mensagem: 'Dados faciais excluídos conforme LGPD',
-        aluno: alunoResult.rows[0],
-        removidos: {
-          embeddings: embeddingResult.rowCount || 0,
-          consentimentos_revogados: consentimentoResult.rowCount || 0,
-          frequencias_anonimizadas: frequenciaResult.rowCount || 0,
-        },
-      })
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
-    }
+    return NextResponse.json({
+      mensagem: 'Dados faciais excluídos conforme LGPD',
+      aluno: alunoResult.rows[0],
+      removidos,
+    })
   } catch (error: unknown) {
     console.error('Erro na exclusão LGPD:', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
