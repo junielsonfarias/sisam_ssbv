@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { calcularMediaAnual, type PesoPeriodo } from '@/lib/services/media-anual'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
           era.nota_maxima as escola_nota_maxima,
           COALESCE(ra_over.formula_media, ra.formula_media) as formula_efetiva,
           COALESCE(ra_over.pesos_periodos, ra.pesos_periodos) as pesos_efetivos,
+          COALESCE(ra_over.qtd_periodos, ra.qtd_periodos) as qtd_periodos,
           COALESCE(ra_over.aprovacao_automatica, ra.aprovacao_automatica) as aprovacao_efetiva
        FROM series_escolares se
        LEFT JOIN regras_avaliacao ra ON ra.id = se.regra_avaliacao_id
@@ -96,11 +98,21 @@ export async function GET(request: NextRequest) {
 
     const regra = regraResult.rows[0] || null
     const formulaMedia = regra?.formula_efetiva || 'media_aritmetica'
-    const pesosConfig: { periodo: number; peso: number }[] = regra?.pesos_efetivos || []
+    // pesos_efetivos pode vir como JSONB (array) ou string JSON — normaliza igual ao fechamento.
+    const pesosConfig: PesoPeriodo[] = regra?.pesos_efetivos
+      ? (typeof regra.pesos_efetivos === 'string' ? JSON.parse(regra.pesos_efetivos) : regra.pesos_efetivos)
+      : []
     const arredondamento = regra?.arredondamento || 'normal'
     const casasDecimais = regra?.casas_decimais ?? 1
     const aprovacaoAutomatica = regra?.aprovacao_efetiva || false
     const tipoResultado = regra?.tipo_resultado || 'numerico'
+
+    // Períodos + pesos para o cálculo da média anual. Mesmo fallback do
+    // fechamento (qtd_periodos da regra, default 4) — garante que soma_dividida
+    // use o divisor TOTAL e não apenas os períodos com nota.
+    const pesosPeriodos: PesoPeriodo[] = pesosConfig.length > 0
+      ? pesosConfig
+      : Array.from({ length: regra?.qtd_periodos || 4 }, (_, i) => ({ periodo: i + 1, peso: 1 }))
 
     // Config final: override escola > regra > config escola > fallback
     const config = {
@@ -149,58 +161,6 @@ export async function GET(request: NextRequest) {
       notasMap[nota.disciplina_id][nota.periodo_id] = nota
     }
 
-    // Montar mapa de pesos por número do período
-    const pesosMap: Record<number, number> = {}
-    let somaPesos = 0
-    for (const p of pesosConfig) {
-      pesosMap[p.periodo] = p.peso
-      somaPesos += p.peso
-    }
-
-    /**
-     * Calcular média anual conforme fórmula da regra
-     */
-    function calcularMediaAnual(notasFinais: { numero: number; valor: number }[]): number | null {
-      if (notasFinais.length === 0) return null
-
-      let media: number
-
-      if (formulaMedia === 'media_ponderada' && somaPesos > 0) {
-        // Média ponderada: Σ(nota × peso) / Σ(pesos)
-        let somaNotasPeso = 0
-        let somaPesosUsados = 0
-        for (const nf of notasFinais) {
-          const peso = pesosMap[nf.numero] ?? 1
-          somaNotasPeso += nf.valor * peso
-          somaPesosUsados += peso
-        }
-        media = somaPesosUsados > 0 ? somaNotasPeso / somaPesosUsados : 0
-      } else if (formulaMedia === 'maior_nota') {
-        media = Math.max(...notasFinais.map(n => n.valor))
-      } else if (formulaMedia === 'soma_dividida') {
-        media = notasFinais.reduce((s, n) => s + n.valor, 0) / notasFinais.length
-      } else {
-        // media_aritmetica (default)
-        media = notasFinais.reduce((s, n) => s + n.valor, 0) / notasFinais.length
-      }
-
-      // Arredondamento
-      const fator = Math.pow(10, casasDecimais)
-      if (arredondamento === 'cima') {
-        media = Math.ceil(media * fator) / fator
-      } else if (arredondamento === 'baixo') {
-        media = Math.floor(media * fator) / fator
-      } else if (arredondamento === 'nenhum') {
-        // Sem arredondamento, mas limitar casas decimais
-        media = Math.trunc(media * fator) / fator
-      } else {
-        // normal (Math.round)
-        media = Math.round(media * fator) / fator
-      }
-
-      return media
-    }
-
     // Montar boletim
     const boletim = disciplinasResult.rows.map(disc => {
       const periodos = periodosResult.rows.map(per => {
@@ -219,14 +179,23 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      // Calcular média anual com a fórmula da regra
-      const notasFinais = periodos
-        .filter(p => p.nota_final !== null)
-        .map(p => ({ numero: p.periodo_numero, valor: p.nota_final as number }))
+      // Calcular média anual com o MESMO helper do fechamento do ano, para que
+      // boletim e fechamento nunca divirjam (fórmulas, divisor e arredondamento).
+      const notasPorPeriodo = new Map<number, number>()
+      for (const p of periodos) {
+        if (p.nota_final !== null) notasPorPeriodo.set(p.periodo_numero, p.nota_final as number)
+      }
 
-      const mediaAnual = tipoResultado === 'parecer'
-        ? null
-        : calcularMediaAnual(notasFinais)
+      let mediaAnual: number | null = null
+      if (tipoResultado !== 'parecer') {
+        const r = calcularMediaAnual(notasPorPeriodo, {
+          formula: formulaMedia,
+          pesosPeriodos,
+          casasDecimais,
+          arredondamento,
+        })
+        mediaAnual = r.periodos_com_nota > 0 ? r.media : null
+      }
 
       const totalFaltas = periodos.reduce((s, p) => s + p.faltas, 0)
 
