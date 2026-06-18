@@ -125,7 +125,7 @@ export default function DashboardResponsavel() {
     <div className="min-h-screen bg-gradient-to-b from-indigo-50/60 to-gray-50 dark:from-slate-900 dark:to-slate-900 pb-10">
       {/* ===================== HERO ===================== */}
       <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 text-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-5 pb-7">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-7">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-12 h-12 rounded-2xl bg-white/15 ring-2 ring-white/30 flex items-center justify-center text-lg font-extrabold shrink-0 backdrop-blur-sm">
@@ -154,7 +154,7 @@ export default function DashboardResponsavel() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 -mt-3 relative z-10 space-y-3.5">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-3 relative z-10 space-y-3.5">
         {/* Banner: solicitacoes pendentes */}
         {pendentes.length > 0 && (
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
@@ -205,7 +205,8 @@ export default function DashboardResponsavel() {
               : 'Toque em "Adicionar" e informe o CPF ou código de matrícula do(a) aluno(a).'}
           />
         ) : (
-          filhos.map(filho => (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+          {filhos.map(filho => (
             <div key={filho.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
               <div className="p-4 sm:p-5 flex items-start gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-base font-extrabold shrink-0">
@@ -248,7 +249,8 @@ export default function DashboardResponsavel() {
                 </button>
               </div>
             </div>
-          ))
+          ))}
+          </div>
         )}
 
         {/* Info */}
