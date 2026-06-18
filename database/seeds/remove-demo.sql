@@ -20,6 +20,16 @@ DELETE FROM frequencia_bimestral WHERE escola_id IN
 DELETE FROM resultados_consolidados WHERE escola_id IN
   (SELECT e.id FROM escolas e JOIN polos p ON p.id = e.polo_id WHERE p.codigo = 'DEMO');
 
+DELETE FROM tarefas_turma WHERE turma_id IN
+  (SELECT t.id FROM turmas t JOIN escolas e ON e.id = t.escola_id JOIN polos p ON p.id = e.polo_id WHERE p.codigo = 'DEMO');
+
+DELETE FROM notificacoes WHERE aluno_id IN
+  (SELECT a.id FROM alunos a JOIN escolas e ON e.id = a.escola_id JOIN polos p ON p.id = e.polo_id WHERE p.codigo = 'DEMO')
+  OR destinatario_id IN (SELECT id FROM usuarios WHERE email LIKE '%.demo@educanet.app');
+
+DELETE FROM notificacoes_disparos WHERE destinatario_id IN
+  (SELECT id FROM usuarios WHERE email LIKE '%.demo@educanet.app');
+
 DELETE FROM historico_situacao WHERE aluno_id IN
   (SELECT a.id FROM alunos a JOIN escolas e ON e.id = a.escola_id JOIN polos p ON p.id = e.polo_id WHERE p.codigo = 'DEMO');
 

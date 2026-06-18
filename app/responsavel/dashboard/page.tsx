@@ -41,6 +41,7 @@ export default function DashboardResponsavel() {
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([])
   const [carregando, setCarregando] = useState(true)
   const [nomeUsuario, setNomeUsuario] = useState('')
+  const [avisosNaoLidos, setAvisosNaoLidos] = useState(0)
 
   // Modal "adicionar filho"
   const [adicionando, setAdicionando] = useState(false)
@@ -57,7 +58,15 @@ export default function DashboardResponsavel() {
     }
     carregarFilhos()
     carregarSolicitacoes()
+    carregarAvisos()
   }, [])
+
+  const carregarAvisos = async () => {
+    try {
+      const res = await fetch('/api/responsavel/notificacoes', { credentials: 'include' })
+      if (res.ok) { const d = await res.json(); setAvisosNaoLidos(d.nao_lidos || 0) }
+    } catch { /* */ }
+  }
 
   const carregarFilhos = async () => {
     try {
@@ -140,6 +149,15 @@ export default function DashboardResponsavel() {
               <button onClick={() => router.push('/responsavel/perfil')}
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors" title="Meu perfil" aria-label="Meu perfil">
                 <User className="w-5 h-5" />
+              </button>
+              <button onClick={() => router.push('/responsavel/avisos')}
+                className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors" title="Avisos" aria-label="Avisos">
+                <Bell className="w-5 h-5" />
+                {avisosNaoLidos > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold ring-2 ring-indigo-700">
+                    {avisosNaoLidos > 9 ? '9+' : avisosNaoLidos}
+                  </span>
+                )}
               </button>
               <button onClick={() => router.push('/responsavel/calendario')}
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors" title="Calendário" aria-label="Calendário">
