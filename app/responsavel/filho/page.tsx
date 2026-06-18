@@ -477,43 +477,47 @@ function FilhoPage() {
                     </p>
                   </div>
 
-                  <CardCampos titulo="Identificação" Icon={User} campos={[
-                    ['Nome', dadosAluno.nome],
-                    ['Matrícula nº', dadosAluno.codigo],
-                    ['CPF', dadosAluno.cpf],
-                    ['RG', dadosAluno.rg],
-                    ['Nascimento', fmtData(dadosAluno.data_nascimento)],
-                    ['Gênero', fmtGenero(dadosAluno.genero)],
-                    ['Raça/cor', dadosAluno.raca_cor],
-                    ['Naturalidade', dadosAluno.naturalidade],
-                    ['Nacionalidade', dadosAluno.nacionalidade],
-                    ['Nº SUS', dadosAluno.sus],
-                    ['Código INEP', dadosAluno.codigo_inep_aluno],
-                  ]} />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 items-start">
+                    <div className="lg:col-span-2">
+                      <CardCampos titulo="Identificação" Icon={User} cols={3} campos={[
+                        ['Nome', dadosAluno.nome],
+                        ['Matrícula nº', dadosAluno.codigo],
+                        ['CPF', dadosAluno.cpf],
+                        ['RG', dadosAluno.rg],
+                        ['Nascimento', fmtData(dadosAluno.data_nascimento)],
+                        ['Gênero', fmtGenero(dadosAluno.genero)],
+                        ['Raça/cor', dadosAluno.raca_cor],
+                        ['Naturalidade', dadosAluno.naturalidade],
+                        ['Nacionalidade', dadosAluno.nacionalidade],
+                        ['Nº SUS', dadosAluno.sus],
+                        ['Código INEP', dadosAluno.codigo_inep_aluno],
+                      ]} />
+                    </div>
 
-                  <CardCampos titulo="Filiação e contato" Icon={Phone} campos={[
-                    ['Nome da mãe', dadosAluno.nome_mae],
-                    ['Nome do pai', dadosAluno.nome_pai],
-                    ['Responsável', dadosAluno.responsavel],
-                    ['Telefone', dadosAluno.telefone_responsavel],
-                  ]} />
+                    <CardCampos titulo="Filiação e contato" Icon={Phone} cols={2} campos={[
+                      ['Nome da mãe', dadosAluno.nome_mae],
+                      ['Nome do pai', dadosAluno.nome_pai],
+                      ['Responsável', dadosAluno.responsavel],
+                      ['Telefone', dadosAluno.telefone_responsavel],
+                    ]} />
 
-                  <CardCampos titulo="Endereço e transporte" Icon={MapPin} campos={[
-                    ['Endereço', dadosAluno.endereco],
-                    ['Bairro', dadosAluno.bairro],
-                    ['Cidade', dadosAluno.cidade],
-                    ['CEP', dadosAluno.cep],
-                    ['Zona', dadosAluno.zona_residencia],
-                    ['Transporte escolar', simNao(dadosAluno.utiliza_transporte_publico)],
-                    ['Tipo de transporte', dadosAluno.tipo_transporte],
-                  ]} />
+                    <CardCampos titulo="Endereço e transporte" Icon={MapPin} cols={2} campos={[
+                      ['Endereço', dadosAluno.endereco],
+                      ['Bairro', dadosAluno.bairro],
+                      ['Cidade', dadosAluno.cidade],
+                      ['CEP', dadosAluno.cep],
+                      ['Zona', dadosAluno.zona_residencia],
+                      ['Transporte escolar', simNao(dadosAluno.utiliza_transporte_publico)],
+                      ['Tipo de transporte', dadosAluno.tipo_transporte],
+                    ]} />
 
-                  <CardCampos titulo="Saúde" Icon={Heart} campos={[
-                    ['PCD', simNao(dadosAluno.pcd)],
-                    ['Tipo de deficiência', dadosAluno.tipo_deficiencia],
-                    ['Alergia', dadosAluno.alergia],
-                    ['Medicação', dadosAluno.medicacao],
-                  ]} />
+                    <CardCampos titulo="Saúde" Icon={Heart} cols={2} campos={[
+                      ['PCD', simNao(dadosAluno.pcd)],
+                      ['Tipo de deficiência', dadosAluno.tipo_deficiencia],
+                      ['Alergia', dadosAluno.alergia],
+                      ['Medicação', dadosAluno.medicacao],
+                    ]} />
+                  </div>
 
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1 pt-1">Matrícula</p>
                 </>
@@ -526,7 +530,7 @@ function FilhoPage() {
                     </p>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${corSit(matriculaInfo.situacao)}`}>{labelSit(matriculaInfo.situacao)}</span>
                   </div>
-                  <dl className="divide-y divide-gray-50 dark:divide-slate-700/60 text-sm">
+                  <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 p-4 text-sm">
                     {[
                       ['Ano letivo', matriculaInfo.ano_letivo],
                       ['Escola', matriculaInfo.escola_nome],
@@ -535,9 +539,9 @@ function FilhoPage() {
                       ['Matrícula nº', matriculaInfo.codigo || '—'],
                       ['Data de matrícula', fmtData(matriculaInfo.data_matricula)],
                     ].map(([k, v]) => (
-                      <div key={k as string} className="px-4 py-2.5 flex items-center justify-between gap-3">
-                        <dt className="text-gray-500 dark:text-gray-400 shrink-0">{k}</dt>
-                        <dd className="font-medium text-gray-800 dark:text-gray-100 text-right truncate">{(v as string) || '—'}</dd>
+                      <div key={k as string} className="min-w-0">
+                        <dt className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 truncate">{k}</dt>
+                        <dd className="font-medium text-gray-800 dark:text-gray-100 break-words leading-snug">{(v as string) || '—'}</dd>
                       </div>
                     ))}
                   </dl>
@@ -580,25 +584,27 @@ function FilhoPage() {
   )
 }
 
-function CardCampos({ titulo, Icon, campos }: {
+function CardCampos({ titulo, Icon, campos, cols = 2 }: {
   titulo: string
   Icon: React.ComponentType<{ className?: string }>
   campos: Array<[string, React.ReactNode]>
+  cols?: 2 | 3
 }) {
   const visiveis = campos.filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== '—')
   if (visiveis.length === 0) return null
+  const grid = cols === 3
+    ? 'grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3'
+    : 'grid grid-cols-2 gap-x-4 gap-y-3'
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-50 dark:border-slate-700/60">
-        <p className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <Icon className="w-4 h-4 text-violet-600 dark:text-violet-400" /> {titulo}
-        </p>
-      </div>
-      <dl className="divide-y divide-gray-50 dark:divide-slate-700/60 text-sm">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-4">
+      <p className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+        <Icon className="w-4 h-4 text-violet-600 dark:text-violet-400" /> {titulo}
+      </p>
+      <dl className={grid}>
         {visiveis.map(([k, v]) => (
-          <div key={k} className="px-4 py-2.5 flex items-start justify-between gap-3">
-            <dt className="text-gray-500 dark:text-gray-400 shrink-0">{k}</dt>
-            <dd className="font-medium text-gray-800 dark:text-gray-100 text-right break-words">{v}</dd>
+          <div key={k} className="min-w-0">
+            <dt className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 truncate">{k}</dt>
+            <dd className="text-sm font-medium text-gray-800 dark:text-gray-100 break-words leading-snug">{v}</dd>
           </div>
         ))}
       </dl>
