@@ -26,10 +26,16 @@ const pool = new Pool({
   connectionTimeoutMillis: 20000,
 })
 
-function listSql(dir) {
+// Pular migrations de DADOS/manutenção (semeiam alunos/escolas reais, unificações,
+// diagnósticos) — num banco novo/demo só queremos o SCHEMA (DDL).
+const SKIP = /lourdes|matricula|fuzzy|diagnostico|unificar|^seed-|prevenir-duplicatas-alunos|aplicar-ano-letivo|fix-alunos|fix-serie-formato|update-site-config/i
+
+function listSql(dir, skip = false) {
   const full = path.join(ROOT, dir)
   if (!fs.existsSync(full)) return []
-  return fs.readdirSync(full).filter((f) => f.endsWith('.sql')).sort().map((f) => path.join(full, f))
+  return fs.readdirSync(full)
+    .filter((f) => f.endsWith('.sql') && (!skip || !SKIP.test(f)))
+    .sort().map((f) => path.join(full, f))
 }
 
 const CORE = ['usuarios', 'polos', 'escolas', 'turmas', 'alunos', 'periodos_letivos',
@@ -38,7 +44,7 @@ const CORE = ['usuarios', 'polos', 'escolas', 'turmas', 'alunos', 'periodos_leti
 async function main() {
   // Base consolidada primeiro, depois as deltas.
   const base = listSql('supabase/migrations')
-  const deltas = listSql('database/migrations')
+  const deltas = listSql('database/migrations', true)
   let pending = [...base, ...deltas]
   console.log(`📦 ${pending.length} arquivos SQL (${base.length} base + ${deltas.length} deltas)`)
 
@@ -59,6 +65,10 @@ async function main() {
         } catch (e) {
           erros[path.basename(file)] = e.message
           aindaFalha.push(file)
+        } finally {
+          // Limpa qualquer transação abortada/aberta (migrations com BEGIN sem COMMIT
+          // por falha no meio) para não contaminar o próximo arquivo.
+          await c.query('ROLLBACK').catch(() => {})
         }
       }
       console.log(`  passe ${passe}: aplicados ${aplicados}, pendentes ${aindaFalha.length}`)

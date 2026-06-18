@@ -78,6 +78,12 @@ async function main() {
     await c.query('BEGIN')
     const hash = await bcrypt.hash(SENHA_DEMO, 10)
 
+    // Garante que a constraint de tipo_usuario aceita todos os perfis
+    // (o replay de migrations pode deixar uma versão antiga sem 'responsavel').
+    await c.query(`ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_tipo_usuario_check`)
+    await c.query(`ALTER TABLE usuarios ADD CONSTRAINT usuarios_tipo_usuario_check
+      CHECK (tipo_usuario IN ('administrador','tecnico','polo','escola','professor','editor','publicador','responsavel'))`)
+
     // 1. Polo
     const polo = (await c.query(
       `INSERT INTO polos (nome, codigo, descricao, ativo) VALUES ('Polo Demonstração', $1, 'Polo fictício do ambiente de demonstração', true) RETURNING id`,
@@ -92,8 +98,8 @@ async function main() {
     // 3. Ano letivo 2026 (se não existir)
     await c.query(
       `INSERT INTO anos_letivos (ano, status, data_inicio, data_fim, dias_letivos_total)
-       SELECT $1, 'em_andamento', '2026-02-02', '2026-12-18', 200
-       WHERE NOT EXISTS (SELECT 1 FROM anos_letivos WHERE ano = $1)`, [ANO])
+       SELECT $1::varchar, 'em_andamento', '2026-02-02'::date, '2026-12-18'::date, 200
+       WHERE NOT EXISTS (SELECT 1 FROM anos_letivos WHERE ano = $1::varchar)`, [ANO])
 
     // 4. Períodos (4 bimestres) — ativa o 2º (ano em andamento)
     const periodoIds = {}
