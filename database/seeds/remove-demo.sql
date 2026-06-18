@@ -17,6 +17,9 @@ DELETE FROM notas_escolares WHERE escola_id IN
 DELETE FROM frequencia_bimestral WHERE escola_id IN
   (SELECT e.id FROM escolas e JOIN polos p ON p.id = e.polo_id WHERE p.codigo = 'DEMO');
 
+DELETE FROM resultados_consolidados WHERE escola_id IN
+  (SELECT e.id FROM escolas e JOIN polos p ON p.id = e.polo_id WHERE p.codigo = 'DEMO');
+
 DELETE FROM historico_situacao WHERE aluno_id IN
   (SELECT a.id FROM alunos a JOIN escolas e ON e.id = a.escola_id JOIN polos p ON p.id = e.polo_id WHERE p.codigo = 'DEMO');
 

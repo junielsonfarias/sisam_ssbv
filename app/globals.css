@@ -850,3 +850,12 @@ html.movimento-reduzido *::after {
   }
 }
 
+
+/* Esconde a barra de rolagem mantendo o scroll (usado em barras de abas roláveis) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

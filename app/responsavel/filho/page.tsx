@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, BookOpen, CalendarCheck, AlertTriangle, ScanFace, LogIn, LogOut,
   Award, Percent, CalendarX, GraduationCap, History, School, ArrowRightLeft, ChevronDown,
-  FileText, Phone, MapPin, Heart, User,
+  FileText, Phone, MapPin, Heart, User, RotateCcw, Landmark,
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
@@ -27,13 +27,15 @@ function FilhoPage() {
   const alunoId = searchParams.get('id')
   const abaInicial = searchParams.get('aba') || 'boletim'
 
-  const [aba, setAba] = useState<'boletim' | 'frequencia' | 'presenca' | 'matricula'>(abaInicial as any)
+  const [aba, setAba] = useState<'boletim' | 'recuperacao' | 'sisam' | 'frequencia' | 'presenca' | 'matricula'>(abaInicial as any)
   const [anoLetivo, setAnoLetivo] = useState('')
   const [anosDisponiveis, setAnosDisponiveis] = useState<string[]>([])
   const [historico, setHistorico] = useState<any[]>([])
   const [matriculaInfo, setMatriculaInfo] = useState<any>(null)
   const [dadosAluno, setDadosAluno] = useState<any>(null)
   const [carregandoHist, setCarregandoHist] = useState(false)
+  const [sisamResultados, setSisamResultados] = useState<any[]>([])
+  const [carregandoSisam, setCarregandoSisam] = useState(false)
   const [presencaResumo, setPresencaResumo] = useState<Array<{ data: string; hora_entrada: string | null; hora_saida: string | null; metodo: string }>>([])
   const [presencaEventos, setPresencaEventos] = useState<Record<string, Array<{ tipo: 'entrada' | 'saida'; registrado_em: string; origem: string }>>>({})
   const [carregandoPresenca, setCarregandoPresenca] = useState(false)
@@ -65,6 +67,16 @@ function FilhoPage() {
         if (det) setDadosAluno(det.aluno)
       })
       .finally(() => setCarregandoHist(false))
+  }, [aba, alunoId])
+
+  // Resultados SISAM (carrega ao abrir a aba)
+  useEffect(() => {
+    if (aba !== 'sisam' || !alunoId) return
+    setCarregandoSisam(true)
+    fetch(`/api/responsavel/resultados-sisam?aluno_id=${alunoId}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setSisamResultados(d.resultados || []) })
+      .finally(() => setCarregandoSisam(false))
   }, [aba, alunoId])
 
   // Carregar historico facial quando troca para a aba presenca
@@ -158,6 +170,7 @@ function FilhoPage() {
     return g
   }
   const simNao = (b: boolean | null | undefined) => (b === true ? 'Sim' : b === false ? 'Não' : null)
+  const fmtNota = (v: any) => (v === null || v === undefined || v === '' ? '—' : Number(v).toFixed(1))
 
   // ---- valores derivados ----
   const iniciais = aluno.nome.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'
@@ -170,6 +183,8 @@ function FilhoPage() {
 
   const TABS = [
     { id: 'boletim' as const, label: 'Boletim', Icon: BookOpen, cor: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/30' },
+    { id: 'recuperacao' as const, label: 'Recuperação', Icon: RotateCcw, cor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
+    { id: 'sisam' as const, label: 'SISAM', Icon: Landmark, cor: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/30' },
     { id: 'frequencia' as const, label: 'Frequência', Icon: CalendarCheck, cor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
     { id: 'presenca' as const, label: 'Presença', Icon: ScanFace, cor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
     { id: 'matricula' as const, label: 'Dados', Icon: FileText, cor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/30' },
@@ -241,18 +256,18 @@ function FilhoPage() {
 
       {/* ===================== TABS (pílulas) ===================== */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-4 relative z-10">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-indigo-900/5 border border-gray-100 dark:border-slate-700 p-1.5 flex gap-1">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-indigo-900/5 border border-gray-100 dark:border-slate-700 p-1.5 flex gap-1 overflow-x-auto scrollbar-hide">
           {TABS.map(({ id, label, Icon, cor, bg }) => {
             const ativo = aba === id
             return (
               <button
                 key={id}
                 onClick={() => setAba(id)}
-                className={`flex-1 inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[48px] ${
+                className={`shrink-0 sm:flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[48px] whitespace-nowrap ${
                   ativo ? `${bg} ${cor} shadow-sm` : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50'
                 }`}
               >
-                <Icon className="w-4 h-4" /> {label}
+                <Icon className="w-4 h-4 shrink-0" /> {label}
               </button>
             )
           })}
@@ -321,6 +336,135 @@ function FilhoPage() {
                 <span><sup className="text-amber-500">R</sup> = recuperação</span>
               </div>
             </div>
+          )
+        )}
+
+        {/* ---------- RECUPERAÇÃO ---------- */}
+        {aba === 'recuperacao' && (() => {
+          const linhas: Array<{ disc: Disciplina; periodo: Periodo; original: any; recup: any }> = []
+          for (const d of disciplinas) {
+            const nd = notas[d.id] || {}
+            for (const p of periodos) {
+              const n = nd[p.numero]
+              if (n && n.nota_recuperacao !== null && n.nota_recuperacao !== undefined && n.nota_recuperacao !== '') {
+                linhas.push({ disc: d, periodo: p, original: n.nota_final, recup: n.nota_recuperacao })
+              }
+            }
+          }
+          return (
+            <>
+              <div className="bg-amber-50 dark:bg-amber-900/15 rounded-2xl border border-amber-100 dark:border-amber-800 p-3.5 flex items-start gap-2.5">
+                <RotateCcw className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                  Notas obtidas em <strong>recuperação</strong> por disciplina e período. A nota de recuperação substitui a original quando for maior.
+                </p>
+              </div>
+              {linhas.length === 0 ? (
+                <EmptyState Icon={RotateCcw} texto="Nenhuma nota de recuperação lançada." />
+              ) : (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 dark:bg-slate-700/40 text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                          <th className="text-left px-4 py-2.5 font-semibold">Disciplina</th>
+                          <th className="px-3 py-2.5 text-center font-semibold">Período</th>
+                          <th className="px-3 py-2.5 text-center font-semibold">Nota</th>
+                          <th className="px-3 py-2.5 text-center font-semibold">Recup.</th>
+                          <th className="px-4 py-2.5 text-right font-semibold">Situação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50 dark:divide-slate-700/60">
+                        {linhas.map(({ disc, periodo, original, recup }) => {
+                          const r = parseFloat(String(recup))
+                          const recuperou = !isNaN(r) && r >= 6
+                          return (
+                            <tr key={disc.id + '-' + periodo.id} className={recuperou ? '' : 'bg-red-50/60 dark:bg-red-900/10'}>
+                              <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-100 whitespace-nowrap">{disc.nome}</td>
+                              <td className="px-3 py-2.5 text-center text-gray-600 dark:text-gray-300">{periodo.numero}º</td>
+                              <td className={`px-3 py-2.5 text-center font-bold tabular-nums ${corNota(original !== null && original !== undefined ? parseFloat(String(original)) : null)}`}>{fmtNota(original)}</td>
+                              <td className="px-3 py-2.5 text-center font-bold tabular-nums text-amber-600 dark:text-amber-400">{fmtNota(recup)}</td>
+                              <td className="px-4 py-2.5 text-right">
+                                <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold ${recuperou ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
+                                  {recuperou ? 'Recuperado' : 'Não recuperado'}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="px-4 py-2.5 text-[11px] text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-slate-700">
+                    Recuperação ≥ 6,0 = recuperado · valor em âmbar é a nota da recuperação
+                  </p>
+                </div>
+              )}
+            </>
+          )
+        })()}
+
+        {/* ---------- SISAM (AVALIAÇÃO MUNICIPAL) ---------- */}
+        {aba === 'sisam' && (
+          carregandoSisam ? (
+            <div className="py-10"><LoadingSpinner centered /></div>
+          ) : (
+            <>
+              <div className="bg-rose-50 dark:bg-rose-900/15 rounded-2xl border border-rose-100 dark:border-rose-800 p-3.5 flex items-start gap-2.5">
+                <Landmark className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-rose-700 dark:text-rose-300 leading-relaxed">
+                  Resultados da <strong>Avaliação Municipal (SISAM)</strong> — desempenho por área de conhecimento e nível de aprendizagem.
+                </p>
+              </div>
+              {sisamResultados.length === 0 ? (
+                <EmptyState Icon={Landmark} texto="Nenhum resultado de avaliação municipal disponível." />
+              ) : (
+                sisamResultados.map((r, idx) => {
+                  const areas = [
+                    { sigla: 'LP', nome: 'Língua Portuguesa', nota: r.nota_lp },
+                    { sigla: 'MAT', nome: 'Matemática', nota: r.nota_mat },
+                    { sigla: 'CH', nome: 'Ciências Humanas', nota: r.nota_ch },
+                    { sigla: 'CN', nome: 'Ciências da Natureza', nota: r.nota_cn },
+                    { sigla: 'PROD', nome: 'Produção textual', nota: r.nota_producao },
+                  ].filter(a => a.nota !== null && a.nota !== undefined)
+                  return (
+                    <div key={idx} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                      <div className="px-4 py-3 border-b border-gray-50 dark:border-slate-700/60 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{r.avaliacao_nome || 'Avaliação Municipal'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{r.ano_letivo}{r.serie ? ` · ${r.serie}` : ''}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {r.presenca === 'F' && <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Ausente</span>}
+                          {r.media_aluno !== null && r.media_aluno !== undefined && (
+                            <div className="text-right">
+                              <p className="text-[10px] uppercase tracking-wide text-gray-400">Média</p>
+                              <p className="text-xl font-extrabold text-rose-600 dark:text-rose-400 leading-none">{fmtNota(r.media_aluno)}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {areas.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-gray-50 dark:divide-slate-700/60">
+                          {areas.map(a => (
+                            <div key={a.sigla} className="p-3 text-center">
+                              <p className="text-[10px] uppercase tracking-wide text-gray-400" title={a.nome}>{a.sigla}</p>
+                              <p className="text-lg font-bold text-gray-800 dark:text-gray-100 tabular-nums">{fmtNota(a.nota)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {r.nivel_aprendizagem && (
+                        <div className="px-4 py-2.5 border-t border-gray-50 dark:border-slate-700/60 flex items-center gap-2">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">Nível de aprendizagem:</span>
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">{r.nivel_aprendizagem}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </>
           )
         )}
 
