@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     const validacao = await validateRequest(request, enrollmentFacialSchema)
     if (!validacao.success) return validacao.response
 
-    const { aluno_id, embedding_data, qualidade } = validacao.data
+    const { aluno_id, embedding_data, qualidade, modo } = validacao.data
 
     // Verificar se aluno existe
     const alunoResult = await pool.query(
@@ -99,7 +99,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Converter base64 para buffer
-    const embeddingBuffer = Buffer.from(embedding_data, 'base64')
+    let embeddingBuffer = Buffer.from(embedding_data, 'base64')
+
+    // Modo 'adicionar': acumula a nova captura ao template existente
+    // (multi-sessao). Cada sessao = 3 poses x 128 floats x 4 bytes = 1536 bytes.
+    // Mantemos no maximo as 3 sessoes mais recentes (4608 bytes / 9 descritores)
+    // — o terminal ja compara contra todos os descritores armazenados.
+    if (modo === 'adicionar') {
+      const existente = await pool.query(
+        'SELECT embedding_data FROM embeddings_faciais WHERE aluno_id = $1',
+        [aluno_id]
+      )
+      if (existente.rows[0]?.embedding_data) {
+        const anterior = Buffer.from(existente.rows[0].embedding_data)
+        let combinado = Buffer.concat([anterior, embeddingBuffer])
+        const MAX_BYTES = 1536 * 3
+        if (combinado.length > MAX_BYTES) {
+          combinado = combinado.subarray(combinado.length - MAX_BYTES)
+        }
+        embeddingBuffer = combinado
+      }
+    }
 
     // Inserir ou atualizar embedding
     const result = await pool.query(

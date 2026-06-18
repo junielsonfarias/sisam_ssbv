@@ -289,7 +289,7 @@ export default function FacialEnrollmentPage() {
                 consentido: aluno.consentido,
               })
             }}
-            onCapturar={(alunoId) => faceCapture.abrirCaptura(alunoId)}
+            onCapturar={(alunoId) => faceCapture.abrirCaptura(alunoId, alunos.find(a => a.aluno_id === alunoId)?.tem_embedding ?? false)}
             onDeletar={(alunoId) => setDeleteAlunoId(alunoId)}
           />
         </div>

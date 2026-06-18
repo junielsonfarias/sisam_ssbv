@@ -46,6 +46,7 @@ export function useFaceCapture(onSaved: () => void) {
   const detectandoRef = useRef(false)
   const autoCapturaRef = useRef(true) // espelho de autoCaptura para o loop de deteccao
   const ultimoDescritorRef = useRef<{ descriptor: Float32Array; score: number } | null>(null) // ultimo rosto de boa qualidade (qualquer angulo) p/ captura manual
+  const temEmbeddingRef = useRef(false) // aluno ja possui cadastro → nova captura ACUMULA (multi-sessao)
 
   const poseConfig = POSES[poseAtual] || POSES[0]
   const todasPosesCapturadas = POSES.every(p => posesCapturadas[p.key] !== null)
@@ -330,7 +331,19 @@ export function useFaceCapture(onSaved: () => void) {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+        video: {
+          facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          // #5 Best-effort: exposicao/foco/balanco de branco continuos ajudam a
+          // expor melhor rostos de pele mais escura (que a auto-exposicao tende
+          // a subexpor). Em 'advanced' sao opcionais — ignorados se nao houver suporte.
+          advanced: [
+            { exposureMode: 'continuous' },
+            { focusMode: 'continuous' },
+            { whiteBalanceMode: 'continuous' },
+          ] as unknown as MediaTrackConstraintSet[],
+        },
       })
       streamRef.current = stream
       if (videoRef.current) {
@@ -469,11 +482,12 @@ export function useFaceCapture(onSaved: () => void) {
       const scores = POSES.map(p => posesCapturadas[p.key]?.score || 0).filter(s => s > 0)
       const mediaQualidade = scores.length > 0 ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) : 70
 
+      const modo = temEmbeddingRef.current ? 'adicionar' : 'substituir'
       const res = await fetch('/api/admin/facial/enrollment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ aluno_id: capturaAlunoId, embedding_data: base64, qualidade: mediaQualidade }),
+        body: JSON.stringify({ aluno_id: capturaAlunoId, embedding_data: base64, qualidade: mediaQualidade, modo }),
       })
 
       if (!res.ok) {
@@ -484,7 +498,9 @@ export function useFaceCapture(onSaved: () => void) {
         return
       }
 
-      toast.success(`Rosto cadastrado com 3 angulos! Qualidade media: ${mediaQualidade}%`)
+      toast.success(temEmbeddingRef.current
+        ? `Captura adicionada ao cadastro (multi-sessao)! Qualidade media: ${mediaQualidade}%`
+        : `Rosto cadastrado com 3 angulos! Qualidade media: ${mediaQualidade}%`)
       setCapturaStatus('capturado')
 
       setTimeout(() => {
@@ -500,8 +516,10 @@ export function useFaceCapture(onSaved: () => void) {
     }
   }
 
-  // Abrir modal de captura
-  const abrirCaptura = async (alunoId: string) => {
+  // Abrir modal de captura. temEmbedding=true → a nova captura sera ACUMULADA
+  // ao template existente (multi-sessao), em vez de substituir.
+  const abrirCaptura = async (alunoId: string, temEmbedding = false) => {
+    temEmbeddingRef.current = temEmbedding
     setCapturaAlunoId(alunoId)
     setCapturaStatus('aguardando')
     setFaceDetectada(false)

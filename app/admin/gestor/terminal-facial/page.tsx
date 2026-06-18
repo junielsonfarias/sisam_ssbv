@@ -147,8 +147,16 @@ function TerminalFacialContent() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          // #5 Best-effort: exposicao/foco/WB continuos melhoram a exposicao de
+          // rostos de pele mais escura. Em 'advanced' sao opcionais (ignorados
+          // se nao suportados pelo dispositivo).
+          advanced: [
+            { exposureMode: 'continuous' },
+            { focusMode: 'continuous' },
+            { whiteBalanceMode: 'continuous' },
+          ] as unknown as MediaTrackConstraintSet[],
         },
       })
 

@@ -57,6 +57,9 @@ export const enrollmentFacialSchema = z.object({
   aluno_id: uuidSchema,
   embedding_data: z.string().min(1, 'Embedding é obrigatório'),
   qualidade: z.number().min(0).max(100).optional(),
+  // 'substituir' (padrao) refaz o cadastro; 'adicionar' acumula a nova captura
+  // ao template existente (multi-sessao) — mais robustez de reconhecimento.
+  modo: z.enum(['substituir', 'adicionar']).optional(),
 })
 
 // ============================================
