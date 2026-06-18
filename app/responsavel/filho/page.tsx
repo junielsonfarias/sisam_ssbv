@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, BookOpen, CalendarCheck, AlertTriangle, ScanFace, LogIn, LogOut,
-  Award, Percent, CalendarX, GraduationCap,
+  Award, Percent, CalendarX, GraduationCap, History, School, ArrowRightLeft, ChevronDown,
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
@@ -26,7 +26,12 @@ function FilhoPage() {
   const alunoId = searchParams.get('id')
   const abaInicial = searchParams.get('aba') || 'boletim'
 
-  const [aba, setAba] = useState<'boletim' | 'frequencia' | 'presenca'>(abaInicial as any)
+  const [aba, setAba] = useState<'boletim' | 'frequencia' | 'presenca' | 'matricula'>(abaInicial as any)
+  const [anoLetivo, setAnoLetivo] = useState('')
+  const [anosDisponiveis, setAnosDisponiveis] = useState<string[]>([])
+  const [historico, setHistorico] = useState<any[]>([])
+  const [matriculaInfo, setMatriculaInfo] = useState<any>(null)
+  const [carregandoHist, setCarregandoHist] = useState(false)
   const [presencaResumo, setPresencaResumo] = useState<Array<{ data: string; hora_entrada: string | null; hora_saida: string | null; metodo: string }>>([])
   const [presencaEventos, setPresencaEventos] = useState<Record<string, Array<{ tipo: 'entrada' | 'saida'; registrado_em: string; origem: string }>>>({})
   const [carregandoPresenca, setCarregandoPresenca] = useState(false)
@@ -41,8 +46,19 @@ function FilhoPage() {
 
   useEffect(() => {
     if (!alunoId) { router.push('/responsavel/dashboard'); return }
+    carregarAnos()
     carregarDados()
   }, [alunoId])
+
+  // Histórico de matrícula (carrega ao abrir a aba)
+  useEffect(() => {
+    if (aba !== 'matricula' || !alunoId) return
+    setCarregandoHist(true)
+    fetch(`/api/responsavel/historico-matricula?aluno_id=${alunoId}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) { setMatriculaInfo(d.matricula); setHistorico(d.historico || []) } })
+      .finally(() => setCarregandoHist(false))
+  }, [aba, alunoId])
 
   // Carregar historico facial quando troca para a aba presenca
   useEffect(() => {
@@ -65,9 +81,18 @@ function FilhoPage() {
       .finally(() => setCarregandoPresenca(false))
   }, [aba, alunoId])
 
-  const carregarDados = async () => {
+  const carregarAnos = async () => {
     try {
-      const res = await fetch(`/api/responsavel/boletim?aluno_id=${alunoId}`, { credentials: 'include' })
+      const res = await fetch(`/api/responsavel/anos-disponiveis?aluno_id=${alunoId}`, { credentials: 'include' })
+      if (res.ok) { const d = await res.json(); setAnosDisponiveis(d.anos || []) }
+    } catch { /* */ }
+  }
+
+  const carregarDados = async (ano?: string) => {
+    setCarregando(true)
+    try {
+      const url = `/api/responsavel/boletim?aluno_id=${alunoId}${ano ? `&ano_letivo=${ano}` : ''}`
+      const res = await fetch(url, { credentials: 'include' })
       if (!res.ok) { router.push('/responsavel/dashboard'); return }
       const data = await res.json()
       setAluno(data.aluno)
@@ -77,10 +102,13 @@ function FilhoPage() {
       setFrequencia(data.frequencia || [])
       setFreqGeral(data.frequencia_geral || 0)
       setTotalFaltas(data.total_faltas || 0)
+      setAnoLetivo(prev => prev || data.aluno?.ano_letivo || String(new Date().getFullYear()))
     } catch { /* offline */ } finally {
       setCarregando(false)
     }
   }
+
+  const onChangeAno = (ano: string) => { setAnoLetivo(ano); carregarDados(ano) }
 
   if (carregando) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center"><LoadingSpinner centered /></div>
   if (!aluno) return null
@@ -103,6 +131,19 @@ function FilhoPage() {
   }
   const strokeFreq = (p: number) => (p >= 90 ? 'text-emerald-500' : p >= 75 ? 'text-amber-500' : 'text-red-500')
 
+  const labelSit = (s: string | null) => {
+    const m: Record<string, string> = { cursando: 'Cursando', aprovado: 'Aprovado', reprovado: 'Reprovado', transferido: 'Transferido', abandono: 'Abandono', remanejado: 'Remanejado', progressao_parcial: 'Progressão parcial' }
+    return s ? (m[s] || s) : '—'
+  }
+  const corSit = (s: string | null) => {
+    if (s === 'aprovado' || s === 'cursando') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+    if (s === 'reprovado' || s === 'abandono') return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+    if (s === 'transferido' || s === 'remanejado') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+    if (s === 'progressao_parcial') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+    return 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'
+  }
+  const fmtData = (iso: string | null) => { if (!iso) return '—'; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}` }
+
   // ---- valores derivados ----
   const iniciais = aluno.nome.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'
   const mediasDisc = disciplinas.map(d => {
@@ -115,7 +156,8 @@ function FilhoPage() {
   const TABS = [
     { id: 'boletim' as const, label: 'Boletim', Icon: BookOpen, cor: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/30' },
     { id: 'frequencia' as const, label: 'Frequência', Icon: CalendarCheck, cor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
-    { id: 'presenca' as const, label: 'Entrada/Saída', Icon: ScanFace, cor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+    { id: 'presenca' as const, label: 'Presença', Icon: ScanFace, cor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+    { id: 'matricula' as const, label: 'Matrícula', Icon: History, cor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/30' },
   ]
 
   const ring = { r: 30, c: 2 * Math.PI * 30 }
@@ -132,18 +174,33 @@ function FilhoPage() {
             <ArrowLeft className="w-4 h-4" /> Meus filhos
           </button>
 
-          <div className="flex items-center gap-4 mt-1">
-            <div className="w-16 h-16 rounded-2xl bg-white/15 ring-2 ring-white/30 flex items-center justify-center text-2xl font-extrabold shrink-0 backdrop-blur-sm">
-              {iniciais}
+          <div className="flex items-start justify-between gap-3 mt-1">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-16 h-16 rounded-2xl bg-white/15 ring-2 ring-white/30 flex items-center justify-center text-2xl font-extrabold shrink-0 backdrop-blur-sm">
+                {iniciais}
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold leading-tight truncate">{aluno.nome}</h1>
+                <p className="text-indigo-100 text-sm mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  <GraduationCap className="w-4 h-4 shrink-0" />
+                  {aluno.serie}{aluno.turma_codigo ? ` · ${aluno.turma_codigo}` : ''}
+                </p>
+                <p className="text-indigo-200 text-xs truncate mt-0.5">{aluno.escola_nome}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold leading-tight truncate">{aluno.nome}</h1>
-              <p className="text-indigo-100 text-sm mt-0.5 flex items-center gap-1.5 flex-wrap">
-                <GraduationCap className="w-4 h-4 shrink-0" />
-                {aluno.serie}{aluno.turma_codigo ? ` · ${aluno.turma_codigo}` : ''}
-              </p>
-              <p className="text-indigo-200 text-xs truncate mt-0.5">{aluno.escola_nome}</p>
-            </div>
+            {anosDisponiveis.length > 0 && (
+              <div className="shrink-0 relative">
+                <select
+                  value={anoLetivo}
+                  onChange={(e) => onChangeAno(e.target.value)}
+                  aria-label="Ano letivo"
+                  className="appearance-none bg-white/15 hover:bg-white/25 text-white text-sm font-bold rounded-xl pl-3 pr-8 py-2 ring-1 ring-white/25 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+                >
+                  {anosDisponiveis.map((a) => <option key={a} value={a} className="text-gray-900">{a}</option>)}
+                </select>
+                <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/80" />
+              </div>
+            )}
           </div>
 
           {/* KPIs */}
@@ -357,6 +414,70 @@ function FilhoPage() {
               })
             )}
           </>
+        )}
+
+        {/* ---------- MATRÍCULA / HISTÓRICO ---------- */}
+        {aba === 'matricula' && (
+          carregandoHist ? (
+            <div className="py-10"><LoadingSpinner centered /></div>
+          ) : (
+            <>
+              {matriculaInfo && (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-50 dark:border-slate-700/60 flex items-center justify-between">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <School className="w-4 h-4 text-violet-600 dark:text-violet-400" /> Matrícula atual
+                    </p>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${corSit(matriculaInfo.situacao)}`}>{labelSit(matriculaInfo.situacao)}</span>
+                  </div>
+                  <dl className="divide-y divide-gray-50 dark:divide-slate-700/60 text-sm">
+                    {[
+                      ['Ano letivo', matriculaInfo.ano_letivo],
+                      ['Escola', matriculaInfo.escola_nome],
+                      ['Turma', matriculaInfo.turma_codigo ? `${matriculaInfo.turma_codigo}${matriculaInfo.turma_nome ? ` · ${matriculaInfo.turma_nome}` : ''}` : '—'],
+                      ['Série', matriculaInfo.serie],
+                      ['Matrícula nº', matriculaInfo.codigo || '—'],
+                      ['Data de matrícula', fmtData(matriculaInfo.data_matricula)],
+                    ].map(([k, v]) => (
+                      <div key={k as string} className="px-4 py-2.5 flex items-center justify-between gap-3">
+                        <dt className="text-gray-500 dark:text-gray-400 shrink-0">{k}</dt>
+                        <dd className="font-medium text-gray-800 dark:text-gray-100 text-right truncate">{(v as string) || '—'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1 pt-1">Linha do tempo</p>
+              {historico.length === 0 ? (
+                <EmptyState Icon={History} texto="Nenhuma movimentação registrada." />
+              ) : (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-4">
+                  {historico.map((h, i) => (
+                    <div key={i} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <span className="w-3.5 h-3.5 rounded-full bg-violet-500 ring-4 ring-violet-100 dark:ring-violet-900/40 mt-1 shrink-0" />
+                        {i < historico.length - 1 && <span className="w-0.5 flex-1 bg-gray-100 dark:bg-slate-700 my-1" />}
+                      </div>
+                      <div className="flex-1 pb-4 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${corSit(h.situacao)}`}>{labelSit(h.situacao)}</span>
+                          <span className="text-xs text-gray-400">{fmtData(h.data)}</span>
+                        </div>
+                        {(h.escola_origem_nome || h.escola_destino_nome) && (
+                          <p className="text-xs text-gray-600 dark:text-gray-300 mt-1.5 flex items-center gap-1.5">
+                            <ArrowRightLeft className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{h.escola_origem_nome || '—'} → {h.escola_destino_nome || '—'}</span>
+                          </p>
+                        )}
+                        {h.observacao && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{h.observacao}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )
         )}
       </div>
     </div>

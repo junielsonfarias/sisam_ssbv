@@ -32,7 +32,7 @@ export const POST = withAuth('responsavel', async (request, usuario) => {
   // Valida vínculo responsável-aluno
   const vinculo = await pool.query(
     `SELECT 1 FROM responsaveis_alunos
-      WHERE responsavel_id = $1 AND aluno_id = $2 LIMIT 1`,
+      WHERE usuario_id = $1 AND aluno_id = $2 AND ativo = true LIMIT 1`,
     [usuario.id, parsed.data.alunoId]
   ).catch(() => ({ rowCount: 0 }))
 

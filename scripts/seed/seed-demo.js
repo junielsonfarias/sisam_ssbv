@@ -46,22 +46,29 @@ const DISCIPLINAS = [
   ['Educação Física', 'EDF', 'Ed.Fís', 7], ['Ensino Religioso', 'REL', 'Rel', 8], ['Língua Inglesa', 'ING', 'Ing', 9],
 ]
 
-const PERIODOS = [
-  ['1º Bimestre', 1, '2026-02-02', '2026-04-17'],
-  ['2º Bimestre', 2, '2026-04-20', '2026-07-03'],
-  ['3º Bimestre', 3, '2026-07-20', '2026-10-02'],
-  ['4º Bimestre', 4, '2026-10-05', '2026-12-18'],
+const PERIODOS_BASE = [
+  ['1º Bimestre', 1, '02-02', '04-17'],
+  ['2º Bimestre', 2, '04-20', '07-03'],
+  ['3º Bimestre', 3, '07-20', '10-02'],
+  ['4º Bimestre', 4, '10-05', '12-18'],
+]
+
+// Anos com dados de demonstração: 2025 concluído (4 bimestres) + 2026 em andamento (2 bimestres).
+const ANOS_DADOS = [
+  { ano: '2025', status: 'em_andamento', bimestres: 4 },
+  { ano: ANO, status: 'em_andamento', bimestres: 2 },
 ]
 
 const REMOVE_DEMO_SQL = `
   DELETE FROM notas_escolares WHERE escola_id IN (SELECT e.id FROM escolas e JOIN polos p ON p.id=e.polo_id WHERE p.codigo='${POLO_CODIGO}');
   DELETE FROM frequencia_bimestral WHERE escola_id IN (SELECT e.id FROM escolas e JOIN polos p ON p.id=e.polo_id WHERE p.codigo='${POLO_CODIGO}');
+  DELETE FROM historico_situacao WHERE aluno_id IN (SELECT a.id FROM alunos a JOIN escolas e ON e.id=a.escola_id JOIN polos p ON p.id=e.polo_id WHERE p.codigo='${POLO_CODIGO}');
   DELETE FROM professor_turmas WHERE turma_id IN (SELECT t.id FROM turmas t JOIN escolas e ON e.id=t.escola_id JOIN polos p ON p.id=e.polo_id WHERE p.codigo='${POLO_CODIGO}');
   DELETE FROM responsaveis_alunos WHERE aluno_id IN (SELECT a.id FROM alunos a JOIN escolas e ON e.id=a.escola_id JOIN polos p ON p.id=e.polo_id WHERE p.codigo='${POLO_CODIGO}');
   DELETE FROM alunos WHERE escola_id IN (SELECT e.id FROM escolas e JOIN polos p ON p.id=e.polo_id WHERE p.codigo='${POLO_CODIGO}');
   DELETE FROM turmas WHERE escola_id IN (SELECT e.id FROM escolas e JOIN polos p ON p.id=e.polo_id WHERE p.codigo='${POLO_CODIGO}');
+  UPDATE usuarios SET escola_id = NULL WHERE email LIKE '%.demo@educanet.app';
   DELETE FROM escolas WHERE polo_id IN (SELECT id FROM polos WHERE codigo='${POLO_CODIGO}');
-  DELETE FROM usuarios WHERE email LIKE '%.demo@educanet.app';
   DELETE FROM polos WHERE codigo='${POLO_CODIGO}';
 `
 
@@ -95,22 +102,22 @@ async function main() {
        VALUES ('Escola Municipal Modelo (Demonstração)', 'DEMO-ESC-01', $1, true, true, 'São Sebastião da Boa Vista', 'PA') RETURNING id`,
       [polo])).rows[0].id
 
-    // 3. Ano letivo 2026 (se não existir)
-    await c.query(
-      `INSERT INTO anos_letivos (ano, status, data_inicio, data_fim, dias_letivos_total)
-       SELECT $1::varchar, 'em_andamento', '2026-02-02'::date, '2026-12-18'::date, 200
-       WHERE NOT EXISTS (SELECT 1 FROM anos_letivos WHERE ano = $1::varchar)`, [ANO])
-
-    // 4. Períodos (4 bimestres) — ativa o 2º (ano em andamento)
-    const periodoIds = {}
-    for (const [nome, numero, ini, fim] of PERIODOS) {
-      const ativo = numero === 2
-      const r = await c.query(
-        `INSERT INTO periodos_letivos (nome, tipo, numero, ano_letivo, data_inicio, data_fim, ativo, dias_letivos)
-         VALUES ($1,'bimestre',$2,$3,$4,$5,$6,50)
-         ON CONFLICT (tipo, numero, ano_letivo) DO UPDATE SET ativo = EXCLUDED.ativo
-         RETURNING id`, [nome, numero, ANO, ini, fim, ativo])
-      periodoIds[numero] = r.rows[0].id
+    // 3. Anos letivos (2025 + 2026) + 4. Períodos (4 bimestres por ano)
+    const periodoIds = {} // chave: `${ano}_${numero}`
+    for (const ad of ANOS_DADOS) {
+      await c.query(
+        `INSERT INTO anos_letivos (ano, status, data_inicio, data_fim, dias_letivos_total)
+         SELECT $1::varchar, $2, ($1 || '-02-02')::date, ($1 || '-12-18')::date, 200
+         WHERE NOT EXISTS (SELECT 1 FROM anos_letivos WHERE ano = $1::varchar)`, [ad.ano, ad.status])
+      for (const [nome, numero, ini, fim] of PERIODOS_BASE) {
+        const ativo = ad.ano === ANO && numero === ad.bimestres
+        const r = await c.query(
+          `INSERT INTO periodos_letivos (nome, tipo, numero, ano_letivo, data_inicio, data_fim, ativo, dias_letivos)
+           VALUES ($1,'bimestre',$2,$3,$4,$5,$6,50)
+           ON CONFLICT (tipo, numero, ano_letivo) DO UPDATE SET ativo = EXCLUDED.ativo
+           RETURNING id`, [nome, numero, ad.ano, `${ad.ano}-${ini}`, `${ad.ano}-${fim}`, ativo])
+        periodoIds[`${ad.ano}_${numero}`] = r.rows[0].id
+      }
     }
 
     // 5. Disciplinas (9 padrão)
@@ -161,7 +168,7 @@ async function main() {
     }
 
     // 9. Alunos (8 por turma) + 10. responsável + 11. notas + 12. frequência
-    let nAlunos = 0, nNotas = 0, nFreq = 0, nVinc = 0
+    let nAlunos = 0, nNotas = 0, nFreq = 0, nVinc = 0, nHist = 0
     let alunoSeq = 0
     for (const turma of turmaIds) {
       for (let i = 0; i < 8; i++) {
@@ -183,31 +190,45 @@ async function main() {
           nVinc++
         }
 
-        // Notas: bimestres 1 e 2, todas as disciplinas. 1 aluno por turma com nota baixa.
+        // Notas + frequência por ANO (2025 completo, 2026 parcial). 1 aluno por turma "em risco".
         const baixo = i === 0
-        for (const periodo of [1, 2]) {
-          for (let d = 0; d < discIds.length; d++) {
-            const base = baixo ? 4.0 : 6.0
-            const nota = Math.min(10, base + ((alunoSeq + d + periodo) % 5) * 0.8)
-            await c.query(
-              `INSERT INTO notas_escolares (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id, nota, nota_final, faltas, registrado_por)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9)
-               ON CONFLICT (aluno_id, disciplina_id, periodo_id) DO NOTHING`,
-              [aluno, discIds[d].id, periodoIds[periodo], escola, ANO, turma.id, Number(nota.toFixed(1)), (alunoSeq + d) % 3, professorId])
-            nNotas++
+        for (const ad of ANOS_DADOS) {
+          for (let periodo = 1; periodo <= ad.bimestres; periodo++) {
+            const pid = periodoIds[`${ad.ano}_${periodo}`]
+            for (let d = 0; d < discIds.length; d++) {
+              const base = baixo ? 4.0 : 6.0
+              const nota = Math.min(10, base + ((alunoSeq + d + periodo) % 5) * 0.8)
+              await c.query(
+                `INSERT INTO notas_escolares (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id, nota, nota_final, faltas, registrado_por)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9)
+                 ON CONFLICT (aluno_id, disciplina_id, periodo_id) DO NOTHING`,
+                [aluno, discIds[d].id, pid, escola, ad.ano, turma.id, Number(nota.toFixed(1)), (alunoSeq + d) % 3, professorId])
+              nNotas++
+            }
+            const dias = 50
+            const presencas = baixo ? 32 : 46 + (i % 4)
+            const faltas = dias - presencas
+            const pct = Number(((presencas / dias) * 100).toFixed(2))
+            const cols = ['aluno_id', 'periodo_id', 'turma_id', 'escola_id', 'ano_letivo', 'dias_letivos', 'presencas', 'faltas', 'faltas_justificadas', 'registrado_por']
+            const vals = [aluno, pid, turma.id, escola, ad.ano, dias, presencas, faltas, Math.min(faltas, 2), professorId]
+            if (!pctGenerated) { cols.splice(9, 0, 'percentual_frequencia'); vals.splice(9, 0, pct) }
+            const ph = vals.map((_, k) => `$${k + 1}`).join(',')
+            await c.query(`INSERT INTO frequencia_bimestral (${cols.join(',')}) VALUES (${ph}) ON CONFLICT (aluno_id, periodo_id) DO NOTHING`, vals)
+            nFreq++
           }
-          // Frequência: 1 aluno por turma com infrequência (<75%)
-          const dias = 50
-          const presencas = baixo ? 32 : 46 + (i % 4)
-          const faltas = dias - presencas
-          const pct = Number(((presencas / dias) * 100).toFixed(2))
-          const cols = ['aluno_id', 'periodo_id', 'turma_id', 'escola_id', 'ano_letivo', 'dias_letivos', 'presencas', 'faltas', 'faltas_justificadas', 'registrado_por']
-          const vals = [aluno, periodoIds[periodo], turma.id, escola, ANO, dias, presencas, faltas, Math.min(faltas, 2), professorId]
-          if (!pctGenerated) { cols.splice(9, 0, 'percentual_frequencia'); vals.splice(9, 0, pct) }
-          const ph = vals.map((_, k) => `$${k + 1}`).join(',')
-          await c.query(`INSERT INTO frequencia_bimestral (${cols.join(',')}) VALUES (${ph}) ON CONFLICT (aluno_id, periodo_id) DO NOTHING`, vals)
-          nFreq++
         }
+
+        // Histórico de matrícula (timeline): matrícula 2025 → aprovação → renovação 2026
+        await c.query(
+          `INSERT INTO historico_situacao (aluno_id, situacao, data, observacao, registrado_por, tipo_movimentacao)
+           VALUES ($1,'cursando','2025-02-03','Matrícula inicial (2025).',$2,'matricula')`, [aluno, professorId])
+        await c.query(
+          `INSERT INTO historico_situacao (aluno_id, situacao, situacao_anterior, data, observacao, registrado_por, tipo_movimentacao)
+           VALUES ($1,'aprovado','cursando','2025-12-18','Aprovado(a) ao final de 2025.',$2,'aprovacao')`, [aluno, professorId])
+        await c.query(
+          `INSERT INTO historico_situacao (aluno_id, situacao, situacao_anterior, data, observacao, registrado_por, tipo_movimentacao)
+           VALUES ($1,'cursando','aprovado','2026-02-02','Renovação de matrícula (2026).',$2,'matricula')`, [aluno, professorId])
+        nHist += 3
       }
     }
 
@@ -216,7 +237,7 @@ async function main() {
     console.log(`   Polo: Polo Demonstração (${POLO_CODIGO})`)
     console.log(`   Escola: Escola Municipal Modelo (Demonstração)`)
     console.log(`   Turmas: ${turmaIds.length} | Alunos: ${nAlunos} | Vínculos responsável: ${nVinc}`)
-    console.log(`   Notas: ${nNotas} | Frequência: ${nFreq} registros`)
+    console.log(`   Notas: ${nNotas} | Frequência: ${nFreq} | Histórico: ${nHist} (anos: ${ANOS_DADOS.map(a => a.ano).join(', ')})`)
     console.log(`\n🔑 Credenciais (senha: ${SENHA_DEMO}):`)
     for (const u of users) console.log(`   ${u.tipo.padEnd(14)} ${u.email}`)
   } catch (e) {
