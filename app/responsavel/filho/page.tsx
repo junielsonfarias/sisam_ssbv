@@ -251,48 +251,61 @@ function FilhoPage() {
           disciplinas.length === 0 ? (
             <EmptyState Icon={BookOpen} texto="Nenhuma nota lançada ainda" />
           ) : (
-            disciplinas.map(d => {
-              const notasDisc = notas[d.id] || {}
-              const vals = Object.values(notasDisc).map((n: any) => parseFloat(n.nota_final)).filter((v) => !isNaN(v))
-              const media = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-              return (
-                <div key={d.id} className={`bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 border-t-4 shadow-sm overflow-hidden ${media === null ? 'border-t-gray-200 dark:border-t-slate-600' : media >= 6 ? 'border-t-emerald-400' : 'border-t-red-400'}`}>
-                  <div className="px-4 py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">
-                        {d.abreviacao?.slice(0, 3) || d.nome.slice(0, 3)}
-                      </div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{d.nome}</p>
-                    </div>
-                    <span className={`shrink-0 px-3 py-1 rounded-full text-sm font-bold ${badgeNota(media)}`}>
-                      {media !== null ? media.toFixed(1) : '—'}
-                    </span>
-                  </div>
-                  <div className="px-3 pb-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(4, Math.max(periodos.length, 1))}, minmax(0,1fr))` }}>
-                    {periodos.map(p => {
-                      const nota = notasDisc[p.numero]
-                      const valor = nota ? parseFloat(nota.nota_final) : null
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-slate-700/40 text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      <th className="text-left px-3 py-2.5 font-semibold sticky left-0 bg-gray-50 dark:bg-slate-700/40 z-10">Disciplina</th>
+                      {periodos.map(p => (
+                        <th key={p.id} className="px-1.5 py-2.5 text-center font-semibold w-11">{p.numero}º</th>
+                      ))}
+                      <th className="px-3 py-2.5 text-center font-semibold">Média</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-slate-700/60">
+                    {disciplinas.map(d => {
+                      const notasDisc = notas[d.id] || {}
+                      const vals = Object.values(notasDisc).map((n: any) => parseFloat(n.nota_final)).filter((v) => !isNaN(v))
+                      const media = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+                      const abaixo = media !== null && media < 6
+                      const bgRow = abaixo ? 'bg-red-50/60 dark:bg-red-900/10' : 'bg-white dark:bg-slate-800'
                       return (
-                        <div key={p.id} className="rounded-xl bg-gray-50 dark:bg-slate-700/40 px-1 py-2 text-center">
-                          <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500">{p.numero}º Bim</p>
-                          <p className={`text-base font-bold mt-0.5 ${corNota(valor)}`}>
-                            {valor !== null ? valor.toFixed(1) : '—'}
-                          </p>
-                          <div className="flex items-center justify-center gap-1 mt-0.5 min-h-[14px]">
-                            {nota?.nota_recuperacao && (
-                              <span className="text-[9px] text-amber-600 dark:text-amber-400">R{parseFloat(nota.nota_recuperacao).toFixed(1)}</span>
-                            )}
-                            {nota?.faltas > 0 && (
-                              <span className="text-[9px] text-gray-400">{nota.faltas}F</span>
-                            )}
-                          </div>
-                        </div>
+                        <tr key={d.id} className={abaixo ? 'bg-red-50/60 dark:bg-red-900/10' : ''}>
+                          <td className={`px-3 py-2 sticky left-0 z-10 ${bgRow}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="shrink-0 w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold" title={d.nome}>
+                                {d.abreviacao?.slice(0, 3) || d.nome.slice(0, 3)}
+                              </span>
+                              <span className="font-medium text-gray-800 dark:text-gray-100 truncate hidden sm:inline">{d.nome}</span>
+                            </div>
+                          </td>
+                          {periodos.map(p => {
+                            const nota = notasDisc[p.numero]
+                            const valor = nota ? parseFloat(nota.nota_final) : null
+                            return (
+                              <td key={p.id} className="px-1.5 py-2 text-center whitespace-nowrap">
+                                <span className={`font-bold ${corNota(valor)}`}>{valor !== null ? valor.toFixed(1) : '—'}</span>
+                                {nota?.nota_recuperacao && <sup className="text-[9px] text-amber-500 ml-0.5">R</sup>}
+                              </td>
+                            )
+                          })}
+                          <td className="px-3 py-2 text-center">
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-sm font-bold ${badgeNota(media)}`}>{media !== null ? media.toFixed(1) : '—'}</span>
+                          </td>
+                        </tr>
                       )
                     })}
-                  </div>
-                </div>
-              )
-            })
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-3 py-2 text-[11px] text-gray-400 dark:text-gray-500 border-t border-gray-50 dark:border-slate-700/60 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span>Média p/ aprovação: <strong>6,0</strong></span>
+                <span className="text-emerald-600 dark:text-emerald-400">≥6 aprovado</span>
+                <span className="text-red-500">&lt;6 abaixo</span>
+                <span><sup className="text-amber-500">R</sup> = recuperação</span>
+              </div>
+            </div>
           )
         )}
 
