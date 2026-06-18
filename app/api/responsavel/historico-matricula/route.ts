@@ -27,7 +27,8 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
 
   // Resumo da matrícula atual
   const alunoR = await pool.query(
-    `SELECT a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao, a.data_matricula,
+    `SELECT a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao,
+            to_char(a.data_matricula, 'YYYY-MM-DD') AS data_matricula,
             e.nome AS escola_nome, t.codigo AS turma_codigo, t.nome AS turma_nome
        FROM alunos a
        JOIN escolas e ON e.id = a.escola_id
@@ -41,7 +42,8 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
 
   // Timeline de situação/movimentação (mais recente primeiro)
   const histR = await pool.query(
-    `SELECT situacao, situacao_anterior, data, observacao, tipo_transferencia,
+    `SELECT situacao, situacao_anterior, to_char(data, 'YYYY-MM-DD') AS data,
+            observacao, tipo_transferencia,
             tipo_movimentacao, escola_origem_nome, escola_destino_nome, criado_em
        FROM historico_situacao
       WHERE aluno_id = $1
