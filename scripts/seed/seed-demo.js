@@ -114,7 +114,9 @@ async function main() {
         const r = await c.query(
           `INSERT INTO periodos_letivos (nome, tipo, numero, ano_letivo, data_inicio, data_fim, ativo, dias_letivos)
            VALUES ($1,'bimestre',$2,$3,$4,$5,$6,50)
-           ON CONFLICT (tipo, numero, ano_letivo) DO UPDATE SET ativo = EXCLUDED.ativo
+           ON CONFLICT (tipo, numero, ano_letivo) DO UPDATE SET
+             ativo = EXCLUDED.ativo, nome = EXCLUDED.nome,
+             data_inicio = EXCLUDED.data_inicio, data_fim = EXCLUDED.data_fim
            RETURNING id`, [nome, numero, ad.ano, `${ad.ano}-${ini}`, `${ad.ano}-${fim}`, ativo])
         periodoIds[`${ad.ano}_${numero}`] = r.rows[0].id
       }
