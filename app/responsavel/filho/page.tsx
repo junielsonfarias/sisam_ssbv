@@ -181,7 +181,7 @@ function FilhoPage() {
     <div className="min-h-screen bg-gradient-to-b from-indigo-50/60 to-gray-50 dark:from-slate-900 dark:to-slate-900 pb-10">
       {/* ===================== HERO ===================== */}
       <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 text-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-7">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-7">
           <button
             onClick={() => router.push('/responsavel/dashboard')}
             className="inline-flex items-center gap-1.5 text-indigo-100 hover:text-white text-sm font-medium min-h-[44px] active:scale-95 transition"
@@ -240,7 +240,7 @@ function FilhoPage() {
       </div>
 
       {/* ===================== TABS (pílulas) ===================== */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 -mt-4 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-4 relative z-10">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-indigo-900/5 border border-gray-100 dark:border-slate-700 p-1.5 flex gap-1">
           {TABS.map(({ id, label, Icon, cor, bg }) => {
             const ativo = aba === id
@@ -260,7 +260,7 @@ function FilhoPage() {
       </div>
 
       {/* ===================== CONTEÚDO ===================== */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-3.5">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-3.5">
         {/* ---------- BOLETIM ---------- */}
         {aba === 'boletim' && (
           disciplinas.length === 0 ? (
