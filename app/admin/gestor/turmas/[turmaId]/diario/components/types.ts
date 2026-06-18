@@ -120,6 +120,44 @@ export interface LacunasPayload {
 }
 
 // ============================================================================
+// Cobertura de conteúdo (endpoint /cobertura-plano)
+// ============================================================================
+export interface ResumoCoberturaConteudo {
+  total_habilidades: number
+  cobertas: number
+  pendentes: number
+  percentual: number | null
+}
+
+export interface HabilidadeCobertura {
+  codigo: string
+  descricao: string | null
+  coberta: boolean
+  coberta_em: string | null
+}
+
+export interface PlanoCobertura {
+  plano_id: string
+  disciplina_nome: string | null
+  periodo: string | null
+  status: string
+  data_inicio: string
+  data_fim: string | null
+  objetivo_resumo: string
+  resumo: ResumoCoberturaConteudo
+  habilidades: HabilidadeCobertura[]
+}
+
+export interface CoberturaPlanoPayload {
+  escopo: {
+    periodo: { id: string; nome: string; numero: number } | null
+    ano_letivo: string
+  }
+  resumo: ResumoCoberturaConteudo
+  planos: PlanoCobertura[]
+}
+
+// ============================================================================
 // Diário detalhado (endpoint /diario-detalhado)
 // ============================================================================
 export type StatusCelula = 'P' | 'F' | 'FJ' | null

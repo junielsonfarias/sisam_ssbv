@@ -10,11 +10,12 @@ import {
 import ProtectedRoute from '@/components/protected-route'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type {
-  Tipo, Periodo, DiarioPayload, LacunasPayload,
+  Tipo, Periodo, DiarioPayload, LacunasPayload, CoberturaPlanoPayload,
 } from './components/types'
 import { imprimirDiario } from './components/printDiario'
 import { imprimirDiarioDetalhado } from './components/printDiarioDetalhado'
 import CoberturaDiario from './components/CoberturaDiario'
+import CoberturaPlano from './components/CoberturaPlano'
 import SecaoFrequencia from './components/SecaoFrequencia'
 import SecaoNotas from './components/SecaoNotas'
 import SecaoConteudo from './components/SecaoConteudo'
@@ -33,6 +34,7 @@ function DiarioTurmaContent() {
   const [erro, setErro] = useState<string | null>(null)
   const [lacunas, setLacunas] = useState<LacunasPayload | null>(null)
   const [carregandoLacunas, setCarregandoLacunas] = useState(false)
+  const [coberturaPlano, setCoberturaPlano] = useState<CoberturaPlanoPayload | null>(null)
   const [tipoUsuario, setTipoUsuario] = useState<string | null>(null)
   const [alterandoSensivel, setAlterandoSensivel] = useState(false)
   const [gerandoDetalhado, setGerandoDetalhado] = useState(false)
@@ -137,6 +139,17 @@ function DiarioTurmaContent() {
       .then(data => { if (!cancelado) setLacunas(data) })
       .catch(() => { if (!cancelado) setLacunas(null) })
       .finally(() => { if (!cancelado) setCarregandoLacunas(false) })
+    return () => { cancelado = true }
+  }, [turmaId, periodoId])
+
+  useEffect(() => {
+    let cancelado = false
+    const url = new URL(`/api/admin/turmas/${turmaId}/cobertura-plano`, window.location.origin)
+    if (periodoId) url.searchParams.set('periodo_id', periodoId)
+    fetch(url.toString())
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (!cancelado) setCoberturaPlano(data) })
+      .catch(() => { if (!cancelado) setCoberturaPlano(null) })
     return () => { cancelado = true }
   }, [turmaId, periodoId])
 
@@ -346,6 +359,9 @@ function DiarioTurmaContent() {
           Calculando cobertura do diário…
         </div>
       )}
+
+      {/* Cobertura de conteúdo (planos de aula vs diário) */}
+      {coberturaPlano && <CoberturaPlano cobertura={coberturaPlano} />}
 
       {/* Aviso quando não há dados */}
       {!frequencia?.length && !notas?.length && !conteudo?.length && (
