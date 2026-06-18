@@ -2,7 +2,10 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, BookOpen, CalendarCheck, TrendingUp, AlertTriangle, CheckCircle, ScanFace, LogIn, LogOut } from 'lucide-react'
+import {
+  ArrowLeft, BookOpen, CalendarCheck, AlertTriangle, ScanFace, LogIn, LogOut,
+  Award, Percent, CalendarX, GraduationCap,
+} from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface Aluno {
@@ -82,115 +85,210 @@ function FilhoPage() {
   if (carregando) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center"><LoadingSpinner centered /></div>
   if (!aluno) return null
 
+  // ---- helpers de cor ----
   const corNota = (n: number | null) => {
-    if (n === null || n === undefined) return 'text-gray-400'
-    return n >= 6 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+    if (n === null || n === undefined || isNaN(n)) return 'text-gray-400'
+    return n >= 6 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
   }
-
+  const badgeNota = (n: number | null) => {
+    if (n === null || n === undefined || isNaN(n)) return 'bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-gray-300'
+    return n >= 6
+      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+      : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+  }
   const corFreq = (p: number) => {
-    if (p >= 90) return 'text-green-600 dark:text-green-400'
+    if (p >= 90) return 'text-emerald-600 dark:text-emerald-400'
     if (p >= 75) return 'text-amber-600 dark:text-amber-400'
     return 'text-red-600 dark:text-red-400'
   }
+  const strokeFreq = (p: number) => (p >= 90 ? 'text-emerald-500' : p >= 75 ? 'text-amber-500' : 'text-red-500')
+
+  // ---- valores derivados ----
+  const iniciais = aluno.nome.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'
+  const mediasDisc = disciplinas.map(d => {
+    const nd = notas[d.id] || {}
+    const vals = Object.values(nd).map((n: any) => parseFloat(n.nota_final)).filter((v) => !isNaN(v))
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+  }).filter((m): m is number => m !== null)
+  const mediaGeral = mediasDisc.length ? mediasDisc.reduce((a, b) => a + b, 0) / mediasDisc.length : null
+
+  const TABS = [
+    { id: 'boletim' as const, label: 'Boletim', Icon: BookOpen, cor: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/30' },
+    { id: 'frequencia' as const, label: 'Frequência', Icon: CalendarCheck, cor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
+    { id: 'presenca' as const, label: 'Entrada/Saída', Icon: ScanFace, cor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+  ]
+
+  const ring = { r: 30, c: 2 * Math.PI * 30 }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 sm:px-6 py-4">
-        <div className="max-w-3xl mx-auto">
-          <button onClick={() => router.push('/responsavel/dashboard')}
-            className="flex items-center gap-2 text-indigo-200 hover:text-white mb-2 text-sm">
-            <ArrowLeft className="w-4 h-4" /> Voltar
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50/60 to-gray-50 dark:from-slate-900 dark:to-slate-900 pb-10">
+      {/* ===================== HERO ===================== */}
+      <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 text-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-7">
+          <button
+            onClick={() => router.push('/responsavel/dashboard')}
+            className="inline-flex items-center gap-1.5 text-indigo-100 hover:text-white text-sm font-medium min-h-[44px] active:scale-95 transition"
+          >
+            <ArrowLeft className="w-4 h-4" /> Meus filhos
           </button>
-          <h1 className="text-lg font-bold">{aluno.nome}</h1>
-          <p className="text-indigo-200 text-sm">{aluno.serie} {aluno.turma_codigo ? `— ${aluno.turma_codigo}` : ''} | {aluno.escola_nome}</p>
+
+          <div className="flex items-center gap-4 mt-1">
+            <div className="w-16 h-16 rounded-2xl bg-white/15 ring-2 ring-white/30 flex items-center justify-center text-2xl font-extrabold shrink-0 backdrop-blur-sm">
+              {iniciais}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold leading-tight truncate">{aluno.nome}</h1>
+              <p className="text-indigo-100 text-sm mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <GraduationCap className="w-4 h-4 shrink-0" />
+                {aluno.serie}{aluno.turma_codigo ? ` · ${aluno.turma_codigo}` : ''}
+              </p>
+              <p className="text-indigo-200 text-xs truncate mt-0.5">{aluno.escola_nome}</p>
+            </div>
+          </div>
+
+          {/* KPIs */}
+          <div className="grid grid-cols-3 gap-2.5 mt-5">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 ring-1 ring-white/15">
+              <Award className="w-4 h-4 text-indigo-100 mb-1" />
+              <p className="text-2xl font-extrabold leading-none">{mediaGeral !== null ? mediaGeral.toFixed(1) : '—'}</p>
+              <p className="text-[11px] text-indigo-100 mt-1">Média geral</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 ring-1 ring-white/15">
+              <Percent className="w-4 h-4 text-indigo-100 mb-1" />
+              <p className="text-2xl font-extrabold leading-none">{freqGeral}<span className="text-base">%</span></p>
+              <p className="text-[11px] text-indigo-100 mt-1">Frequência</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 ring-1 ring-white/15">
+              <CalendarX className="w-4 h-4 text-indigo-100 mb-1" />
+              <p className="text-2xl font-extrabold leading-none">{totalFaltas}</p>
+              <p className="text-[11px] text-indigo-100 mt-1">Faltas</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Abas */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <div className="flex border-b border-gray-200 dark:border-slate-700 mt-1">
-          <button onClick={() => setAba('boletim')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              aba === 'boletim' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}>
-            <BookOpen className="w-4 h-4" /> Boletim
-          </button>
-          <button onClick={() => setAba('frequencia')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              aba === 'frequencia' ? 'border-green-600 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}>
-            <CalendarCheck className="w-4 h-4" /> Frequencia
-          </button>
-          <button onClick={() => setAba('presenca')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              aba === 'presenca' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}>
-            <ScanFace className="w-4 h-4" /> Entrada/Saida
-          </button>
+      {/* ===================== TABS (pílulas) ===================== */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 -mt-4 relative z-10">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-indigo-900/5 border border-gray-100 dark:border-slate-700 p-1.5 flex gap-1">
+          {TABS.map(({ id, label, Icon, cor, bg }) => {
+            const ativo = aba === id
+            return (
+              <button
+                key={id}
+                onClick={() => setAba(id)}
+                className={`flex-1 inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[48px] ${
+                  ativo ? `${bg} ${cor} shadow-sm` : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                <Icon className="w-4 h-4" /> {label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 space-y-4">
-        {/* ABA BOLETIM */}
+      {/* ===================== CONTEÚDO ===================== */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-3.5">
+        {/* ---------- BOLETIM ---------- */}
         {aba === 'boletim' && (
-          <>
-            {disciplinas.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
-                <BookOpen className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                <p className="text-gray-500">Nenhuma nota lancada ainda</p>
-              </div>
-            ) : (
-              disciplinas.map(d => {
-                const notasDisc = notas[d.id] || {}
-                // Calcular media
-                const vals = Object.values(notasDisc).map((n: any) => parseFloat(n.nota_final)).filter(v => !isNaN(v))
-                const media = vals.length > 0 ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : null
-
-                return (
-                  <div key={d.id} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    {/* Disciplina header */}
-                    <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-slate-700">
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">{d.nome}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{d.abreviacao}</p>
+          disciplinas.length === 0 ? (
+            <EmptyState Icon={BookOpen} texto="Nenhuma nota lançada ainda" />
+          ) : (
+            disciplinas.map(d => {
+              const notasDisc = notas[d.id] || {}
+              const vals = Object.values(notasDisc).map((n: any) => parseFloat(n.nota_final)).filter((v) => !isNaN(v))
+              const media = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+              return (
+                <div key={d.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">
+                        {d.abreviacao?.slice(0, 3) || d.nome.slice(0, 3)}
                       </div>
-                      {media !== null && (
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">Media</p>
-                          <p className={`text-lg font-bold ${corNota(media)}`}>{media.toFixed(1)}</p>
-                        </div>
-                      )}
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{d.nome}</p>
                     </div>
-                    {/* Notas por periodo */}
-                    <div className="divide-y divide-gray-50 dark:divide-slate-700">
-                      {periodos.map(p => {
-                        const nota = notasDisc[p.numero]
-                        return (
-                          <div key={p.id} className="px-4 py-2.5 flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-300">{p.nome}</span>
-                            <div className="flex items-center gap-3">
-                              {nota ? (
-                                <>
-                                  <span className={`text-sm font-bold ${corNota(parseFloat(nota.nota_final))}`}>
-                                    {parseFloat(nota.nota_final).toFixed(1)}
-                                  </span>
-                                  {nota.nota_recuperacao && (
-                                    <span className="text-xs text-amber-600 dark:text-amber-400">
-                                      Rec: {parseFloat(nota.nota_recuperacao).toFixed(1)}
-                                    </span>
-                                  )}
-                                  {nota.faltas > 0 && (
-                                    <span className="text-xs text-gray-400">{nota.faltas}F</span>
-                                  )}
-                                </>
-                              ) : (
-                                <span className="text-xs text-gray-400">—</span>
-                              )}
-                            </div>
+                    <span className={`shrink-0 px-3 py-1 rounded-full text-sm font-bold ${badgeNota(media)}`}>
+                      {media !== null ? media.toFixed(1) : '—'}
+                    </span>
+                  </div>
+                  <div className="px-3 pb-3 grid grid-cols-4 gap-2">
+                    {periodos.map(p => {
+                      const nota = notasDisc[p.numero]
+                      const valor = nota ? parseFloat(nota.nota_final) : null
+                      return (
+                        <div key={p.id} className="rounded-xl bg-gray-50 dark:bg-slate-700/40 px-1 py-2 text-center">
+                          <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500">{p.numero}º Bim</p>
+                          <p className={`text-base font-bold mt-0.5 ${corNota(valor)}`}>
+                            {valor !== null ? valor.toFixed(1) : '—'}
+                          </p>
+                          <div className="flex items-center justify-center gap-1 mt-0.5 min-h-[14px]">
+                            {nota?.nota_recuperacao && (
+                              <span className="text-[9px] text-amber-600 dark:text-amber-400">R{parseFloat(nota.nota_recuperacao).toFixed(1)}</span>
+                            )}
+                            {nota?.faltas > 0 && (
+                              <span className="text-[9px] text-gray-400">{nota.faltas}F</span>
+                            )}
                           </div>
-                        )
-                      })}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })
+          )
+        )}
+
+        {/* ---------- FREQUÊNCIA ---------- */}
+        {aba === 'frequencia' && (
+          <>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-5">
+              <div className="flex items-center gap-5">
+                <div className="relative shrink-0">
+                  <svg width="84" height="84" viewBox="0 0 80 80" className="-rotate-90">
+                    <circle cx="40" cy="40" r={ring.r} fill="none" strokeWidth="8" className="text-gray-100 dark:text-slate-700" stroke="currentColor" />
+                    <circle cx="40" cy="40" r={ring.r} fill="none" strokeWidth="8" strokeLinecap="round"
+                      className={strokeFreq(freqGeral)} stroke="currentColor"
+                      strokeDasharray={ring.c} strokeDashoffset={ring.c * (1 - Math.min(100, freqGeral) / 100)} />
+                  </svg>
+                  <span className={`absolute inset-0 flex items-center justify-center text-lg font-extrabold ${corFreq(freqGeral)}`}>
+                    {freqGeral}%
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-white">Frequência geral</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total de faltas no ano: <strong className="text-gray-700 dark:text-gray-200">{totalFaltas}</strong></p>
+                  {freqGeral < 75 ? (
+                    <div className="mt-2 inline-flex items-start gap-1.5 bg-red-50 dark:bg-red-900/20 rounded-lg px-2.5 py-1.5 text-[11px] text-red-700 dark:text-red-300">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                      <span>Abaixo de 75% — risco de reprovação por falta.</span>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Frequência dentro do esperado.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {frequencia.length === 0 ? (
+              <EmptyState Icon={CalendarCheck} texto="Nenhuma frequência lançada ainda" />
+            ) : (
+              frequencia.map(f => {
+                const pct = parseFloat(String(f.percentual_frequencia)) || 0
+                return (
+                  <div key={f.bimestre} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-4">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-white">{f.periodo_nome || `${f.bimestre}º Bimestre`}</p>
+                      <p className={`text-lg font-bold ${corFreq(pct)}`}>{pct.toFixed(0)}%</p>
+                    </div>
+                    <div className="h-2.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${pct >= 90 ? 'bg-emerald-500' : pct >= 75 ? 'bg-amber-500' : 'bg-red-500'}`}
+                        style={{ width: `${Math.min(100, pct)}%` }} />
+                    </div>
+                    <div className="flex gap-4 text-[11px] text-gray-500 dark:text-gray-400 mt-2.5">
+                      <span>Aulas: <strong className="text-gray-700 dark:text-gray-200">{f.aulas_dadas || 0}</strong></span>
+                      <span>Presenças: <strong className="text-gray-700 dark:text-gray-200">{(f.aulas_dadas || 0) - (f.faltas || 0)}</strong></span>
+                      <span className={f.faltas > 0 ? 'text-red-500 font-semibold' : ''}>Faltas: {f.faltas || 0}</span>
                     </div>
                   </div>
                 )
@@ -199,130 +297,79 @@ function FilhoPage() {
           </>
         )}
 
-        {/* ABA FREQUENCIA */}
-        {aba === 'frequencia' && (
-          <>
-            {/* Resumo geral */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Frequencia Geral</p>
-                  <p className={`text-3xl font-bold ${corFreq(freqGeral)}`}>{freqGeral}%</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total de Faltas</p>
-                  <p className="text-2xl font-bold text-gray-800 dark:text-white">{totalFaltas}</p>
-                </div>
-              </div>
-              {freqGeral < 75 && (
-                <div className="mt-3 flex items-center gap-2 bg-red-50 dark:bg-red-900/20 rounded-lg p-2.5 text-xs text-red-700 dark:text-red-300">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Frequencia abaixo de 75%. Risco de reprovacao por falta.</span>
-                </div>
-              )}
-            </div>
-
-            {/* Por bimestre */}
-            {frequencia.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
-                <CalendarCheck className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                <p className="text-gray-500">Nenhuma frequencia lancada ainda</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {frequencia.map(f => (
-                  <div key={f.bimestre} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-white">{f.periodo_nome || `${f.bimestre}o Bimestre`}</p>
-                      <p className={`text-lg font-bold ${corFreq(parseFloat(String(f.percentual_frequencia)) || 0)}`}>
-                        {parseFloat(String(f.percentual_frequencia))?.toFixed(1) || '0'}%
-                      </p>
-                    </div>
-                    <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-                      <span>Aulas: {f.aulas_dadas || 0}</span>
-                      <span>Presencas: {(f.aulas_dadas || 0) - (f.faltas || 0)}</span>
-                      <span className={f.faltas > 0 ? 'text-red-500 font-medium' : ''}>Faltas: {f.faltas || 0}</span>
-                    </div>
-                    {/* Barra visual */}
-                    <div className="mt-2 h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${
-                        (parseFloat(String(f.percentual_frequencia)) || 0) >= 90 ? 'bg-green-500' :
-                        (parseFloat(String(f.percentual_frequencia)) || 0) >= 75 ? 'bg-amber-500' : 'bg-red-500'
-                      }`} style={{ width: `${Math.min(100, parseFloat(String(f.percentual_frequencia)) || 0)}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ABA ENTRADA/SAIDA (terminal facial — ultimos 30 dias) */}
+        {/* ---------- ENTRADA / SAÍDA ---------- */}
         {aba === 'presenca' && (
           <>
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4">
-              <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
-                <ScanFace className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
-                <span>
-                  Registros de entrada e saida pelo terminal de reconhecimento facial — ultimos 30 dias.
-                  Scans muito proximos (&lt; 30 min) sao filtrados como duplicados para evitar erros.
-                </span>
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 p-3.5 flex items-start gap-2.5">
+              <ScanFace className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                Registros pelo terminal de reconhecimento facial — <strong>últimos 30 dias</strong>.
+                Scans muito próximos (&lt; 30 min) são filtrados como duplicados.
               </p>
             </div>
 
             {carregandoPresenca ? (
-              <div className="text-center py-8 text-gray-500"><LoadingSpinner centered /></div>
+              <div className="py-10"><LoadingSpinner centered /></div>
             ) : presencaResumo.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
-                <ScanFace className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                <p className="text-gray-500">Nenhum registro de entrada/saida nos ultimos 30 dias.</p>
-              </div>
+              <EmptyState Icon={ScanFace} texto="Nenhum registro de entrada/saída nos últimos 30 dias." />
             ) : (
-              <div className="space-y-2">
-                {presencaResumo.map((dia) => {
-                  const eventos = presencaEventos[dia.data] || []
-                  const dataFmt = new Date(dia.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
-                  return (
-                    <div key={dia.data} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
-                      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-slate-700">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{dataFmt}</p>
-                        <div className="flex gap-3 text-xs">
-                          {dia.hora_entrada && (
-                            <span className="flex items-center gap-1 text-green-700 dark:text-green-400">
-                              <LogIn className="w-3 h-3" aria-hidden="true" /> {String(dia.hora_entrada).slice(0, 5)}
-                            </span>
-                          )}
-                          {dia.hora_saida && (
-                            <span className="flex items-center gap-1 text-red-700 dark:text-red-400">
-                              <LogOut className="w-3 h-3" aria-hidden="true" /> {String(dia.hora_saida).slice(0, 5)}
-                            </span>
-                          )}
-                        </div>
+              presencaResumo.map((dia) => {
+                const eventos = presencaEventos[dia.data] || []
+                const dataFmt = new Date(dia.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+                return (
+                  <div key={dia.data} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 flex items-center justify-between border-b border-gray-50 dark:border-slate-700/60">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{dataFmt}</p>
+                      <div className="flex gap-2">
+                        {dia.hora_entrada && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            <LogIn className="w-3 h-3" aria-hidden="true" /> {String(dia.hora_entrada).slice(0, 5)}
+                          </span>
+                        )}
+                        {dia.hora_saida && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                            <LogOut className="w-3 h-3" aria-hidden="true" /> {String(dia.hora_saida).slice(0, 5)}
+                          </span>
+                        )}
                       </div>
-                      {eventos.length > 0 && (
-                        <div className="divide-y divide-gray-50 dark:divide-slate-700">
-                          {eventos.map(e => {
-                            const hh = new Date(e.registrado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false })
-                            return (
-                              <div key={e.registrado_em + e.tipo} className="px-4 py-2 flex items-center justify-between text-xs">
-                                <span className={`flex items-center gap-1.5 ${e.tipo === 'entrada' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                  {e.tipo === 'entrada' ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
-                                  {e.tipo === 'entrada' ? 'Entrada' : 'Saida'}
-                                </span>
-                                <span className="text-gray-600 dark:text-gray-300 font-mono">{hh}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
                     </div>
-                  )
-                })}
-              </div>
+                    {eventos.length > 0 && (
+                      <div className="divide-y divide-gray-50 dark:divide-slate-700/60">
+                        {eventos.map(e => {
+                          const hh = new Date(e.registrado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false })
+                          const entrada = e.tipo === 'entrada'
+                          return (
+                            <div key={e.registrado_em + e.tipo} className="px-4 py-2.5 flex items-center justify-between text-xs">
+                              <span className={`flex items-center gap-2 font-medium ${entrada ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center ${entrada ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
+                                  {entrada ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
+                                </span>
+                                {entrada ? 'Entrada' : 'Saída'}
+                              </span>
+                              <span className="text-gray-500 dark:text-gray-300 font-mono">{hh}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
             )}
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function EmptyState({ Icon, texto }: { Icon: React.ComponentType<{ className?: string }>; texto: string }) {
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl p-10 text-center border border-gray-100 dark:border-slate-700 shadow-sm">
+      <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-slate-700/50 flex items-center justify-center mx-auto mb-3">
+        <Icon className="w-7 h-7 text-gray-300 dark:text-gray-500" />
+      </div>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{texto}</p>
     </div>
   )
 }
