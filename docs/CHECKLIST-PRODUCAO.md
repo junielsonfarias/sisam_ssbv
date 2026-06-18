@@ -1,8 +1,8 @@
 # ✅ Checklist de Produção — SISAM
 
-> **Gerado em:** 2026-06-17
+> **Gerado em:** 2026-06-17 · **Atualizado:** 2026-06-17 (noite)
 > **Base:** auditoria de release (código + docs) + validação manual.
-> **Status geral:** sistema funcionalmente ~98% pronto (774 commits, 761 testes verdes, 114 tabelas). Os pendentes são majoritariamente **configuração de terceiros + segurança operacional**, não bugs de código.
+> **Status geral:** sistema funcionalmente ~98% pronto (809 commits, 802 testes verdes, 115 tabelas). Os pendentes são majoritariamente **configuração de terceiros + segurança operacional**, não bugs de código. Em 17/06 (noite) foram fechados os **ciclos pedagógicos conforme LDB** (Fases 1, 2, 3.2, 4.4 — ver seção própria abaixo).
 
 Este documento é a **fonte única e acionável** para o go-live. Complementa (não substitui):
 - `docs/PREPARACAO_PRODUCAO.md` — passos detalhados de setup (JWT, backup, headers).
@@ -132,6 +132,38 @@ validação de módulo por layout (`ModuloGuard`). **Pendência única:**
 
 ---
 
+## 🎓 Fechamento do ciclo pedagógico (LDB) — 17/06/2026
+
+Plano de 4 fases a partir de análise funcional (ótica de secretário/professor).
+**Fora de escopo (decisão do usuário):** Educacenso/INEP e assinatura digital.
+Cada fase = análise de impacto → commit atômico → migration idempotente.
+
+**Migrations aplicadas no Supabase nesta sessão (✅ confirmadas pelo usuário):**
+- [x] `add-trava-fechamento-ano.sql` — `anos_letivos.data_fechamento` + trigger que recusa lançamento de nota com ano finalizado.
+- [x] `add-politica-frequencia-config.sql` — `configuracao_notas_escola.percentual_frequencia_minimo` + `abona_faltas_justificadas`.
+- [x] `add-progressao-parcial-situacao.sql` — expande o CHECK de `situacao` (alunos + historico_situacao) com `progressao_parcial`.
+- [x] `add-notas-auditoria.sql` — tabela `notas_escolares_auditoria` (trilha de alteração de notas).
+
+**Entregue (código + testes):**
+- [x] **F1.1** Gate de 200 dias letivos no fechamento (`contar_dias_letivos` + `dias_letivos_total`; bloqueia POST 422, override com justificativa) — LDB art. 24.
+- [x] **F1.2** Conselho de Classe **soberano**: o parecer do período final prevalece sobre o cálculo no fechamento (origem registrada no histórico).
+- [x] **F1.3** Trava de lançamento de notas quando `anos_letivos.status='finalizado'` (403 no admin e professor + trigger no banco).
+- [x] **F2.1** Política de falta justificada configurável + correção do bug `faltas_justificadas = 0` nos agregadores.
+- [x] **F2.2** Progressão parcial / dependência (≤ `series_escolares.max_dependencias`).
+- [x] **F2.3** `formula_media` (aritmética/ponderada/maior_nota/soma_dividida) + arredondamento — helper puro `lib/services/media-anual.ts`.
+- [x] **F3.2** Trilha de alteração de notas (de-para, não-fatal, fora da transação).
+- [x] **F4.4** LGPD: `alterarSituacao` exclui embedding facial ao transferir/evadir.
+
+**Pendências desta frente (próximas sessões):**
+- [ ] **F3.1 — Responsável como entidade própria** (tabela `responsaveis` + N:N + backfill). **ADIADA como dívida** (opção C): alto toque em dados + risco ao portal existente (16 arquivos usam `responsaveis_alunos`; 25+ leem os campos texto). Recomendação registrada: fazer de forma **aditiva** (não tocar em `responsaveis_alunos`), em iteração dedicada.
+- [ ] **F4.1** Notificação automática de infrequência ao responsável (depende de Resend/Firebase configurados — itens 2 e 5 dos bloqueadores).
+- [ ] **F4.2** Plano de aula ↔ diário (cobertura de conteúdo) — estende o painel de lacunas.
+- [ ] **F4.3** Relatório de horas AEE (realizado × periodicidade do PEI).
+- [ ] **Dívida:** alinhar o **boletim** ao helper `media-anual` (hoje calcula a média em código próprio — pode divergir do fechamento para fórmulas não-aritméticas).
+- [ ] **UI (refino):** banner de dias letivos insuficientes + coluna de parecer do conselho na página `fechamento-ano` (backend já expõe os dados).
+
+---
+
 ## 🔧 Verificação pré-deploy (rodar localmente)
 
 ```bash
@@ -151,8 +183,9 @@ NODE_ENV=production npm run build
 | Checagem | Comando | Estado em 17/06/2026 |
 |---|---|---|
 | TypeScript | `npx tsc --noEmit` | ✅ exit 0 |
-| Testes | `npx vitest run` | ✅ 761/761 |
+| Testes | `npx vitest run` | ✅ 802/802 |
 | Migrations RLS aplicadas em prod | Supabase MCP / Dashboard | ⏳ pendente (item 4) |
+| Migrations pedagógicas (F1/F2/F3.2) | Supabase Dashboard | ✅ 4 aplicadas em 17/06 (ver seção própria) |
 | Env vars de produção | Painel Vercel | ⏳ pendente (itens 1–3, 5) |
 
 ---
