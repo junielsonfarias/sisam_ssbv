@@ -327,6 +327,7 @@ export default function FacialEnrollmentPage() {
             iluminacao={faceCapture.iluminacao}
             autoCapturaProg={faceCapture.autoCapturaProg}
             autoCaptura={faceCapture.autoCaptura}
+            prontoCaptura={faceCapture.prontoCaptura}
             videoRef={faceCapture.videoRef}
             canvasRef={faceCapture.canvasRef}
             poseBufferRef={faceCapture.poseBufferRef}

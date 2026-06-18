@@ -33,6 +33,7 @@ interface CaptureModalProps {
   iluminacao: IluminacaoInfo
   autoCapturaProg: number
   autoCaptura: boolean
+  prontoCaptura: boolean
   videoRef: React.RefObject<HTMLVideoElement>
   canvasRef: React.RefObject<HTMLCanvasElement>
   poseBufferRef: React.MutableRefObject<{ descriptor: Float32Array; score: number }[]>
@@ -73,7 +74,7 @@ function IndicadorMobile({ ok }: { ok: boolean }) {
 export function CaptureModal({
   alunoNome, cameraAtiva, carregandoModelos, faceDetectada, qualidadeFace,
   tamanhoRosto, anguloDetectado, enviandoEmbed, capturaStatus, poseAtual,
-  posesCapturadas, cameraMode, iluminacao, autoCapturaProg, autoCaptura, videoRef, canvasRef,
+  posesCapturadas, cameraMode, iluminacao, autoCapturaProg, autoCaptura, prontoCaptura, videoRef, canvasRef,
   poseBufferRef, poseConfig, todasPosesCapturadas, posesConcluidasCount,
   onAlternarCamera, onCapturarPose, onToggleAuto, onRecapturarPose, onSalvarEmbedding, onCancelar,
 }: CaptureModalProps) {
@@ -230,7 +231,7 @@ export function CaptureModal({
           {/* Botão de ação */}
           <div className="px-4 pb-2">
             {!todasPosesCapturadas ? (
-              <button onClick={onCapturarPose} disabled={!faceDetectada}
+              <button onClick={onCapturarPose} disabled={!prontoCaptura}
                 className="w-full h-14 text-base font-bold text-white bg-indigo-600 active:bg-indigo-700 rounded-2xl disabled:bg-white/10 disabled:text-white/30 transition-all flex items-center justify-center gap-2">
                 <Camera className="w-5 h-5" />
                 Capturar {poseConfig.label} ({poseAtual + 1}/{POSES.length})
@@ -468,7 +469,7 @@ export function CaptureModal({
             )}
             <div className="mt-4 space-y-2">
               {!todasPosesCapturadas ? (
-                <button onClick={onCapturarPose} disabled={!faceDetectada}
+                <button onClick={onCapturarPose} disabled={!prontoCaptura}
                   className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
                   <Camera className="w-4 h-4" /> Capturar {poseConfig.label}
                 </button>

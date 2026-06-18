@@ -91,13 +91,16 @@ export function useReconhecimento({
                 // Já registrado — desenhar em amarelo
                 const box = detection.detection.box
                 if (ctx) {
+                  // O vídeo é espelhado (selfie); espelhamos só o X do box/texto
+                  // para alinhar com a imagem, mantendo o texto legível.
+                  const mx = canvasRef.current.width - box.x - box.width
                   ctx.strokeStyle = '#facc15'
                   ctx.lineWidth = 3
-                  ctx.strokeRect(box.x, box.y, box.width, box.height)
+                  ctx.strokeRect(mx, box.y, box.width, box.height)
                   const aluno = alunos.find(a => a.aluno_id === alunoId)
                   ctx.fillStyle = '#facc15'
                   ctx.font = 'bold 14px sans-serif'
-                  ctx.fillText(`${aluno?.nome || ''} (já registrado)`, box.x, box.y - 5)
+                  ctx.fillText(`${aluno?.nome || ''} (já registrado)`, mx, box.y - 5)
                 }
                 continue
               }
@@ -112,12 +115,13 @@ export function useReconhecimento({
               // Desenhar em verde
               const box = detection.detection.box
               if (ctx) {
+                const mx = canvasRef.current.width - box.x - box.width
                 ctx.strokeStyle = '#22c55e'
                 ctx.lineWidth = 3
-                ctx.strokeRect(box.x, box.y, box.width, box.height)
+                ctx.strokeRect(mx, box.y, box.width, box.height)
                 ctx.fillStyle = '#22c55e'
                 ctx.font = 'bold 16px sans-serif'
-                ctx.fillText(`${aluno?.nome || ''} ✓`, box.x, box.y - 5)
+                ctx.fillText(`${aluno?.nome || ''} ✓`, mx, box.y - 5)
               }
 
               // Enviar para API
@@ -175,9 +179,10 @@ export function useReconhecimento({
               // Desconhecido — desenhar em vermelho
               const box = detection.detection.box
               if (ctx) {
+                const mx = canvasRef.current.width - box.x - box.width
                 ctx.strokeStyle = '#ef4444'
                 ctx.lineWidth = 2
-                ctx.strokeRect(box.x, box.y, box.width, box.height)
+                ctx.strokeRect(mx, box.y, box.width, box.height)
               }
               // Track consecutive unknown detections
               setUnknownCount(prev => {

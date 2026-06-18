@@ -34,6 +34,7 @@ export function useFaceCapture(onSaved: () => void) {
   const [iluminacao, setIluminacao] = useState<IluminacaoInfo>({ nivel: 128, status: 'bom', mensagem: '' })
   const [autoCapturaProg, setAutoCapturaProg] = useState(0) // 0-100 progresso da auto-captura
   const [autoCaptura, setAutoCaptura] = useState(true)      // captura automatica ligada/desligada
+  const [prontoCaptura, setProntoCaptura] = useState(false) // rosto com boa qualidade (independe do angulo) → habilita botao manual
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -44,6 +45,7 @@ export function useFaceCapture(onSaved: () => void) {
   const autoCapturaTimerRef = useRef<number | null>(null) // timestamp inicio condições boas
   const detectandoRef = useRef(false)
   const autoCapturaRef = useRef(true) // espelho de autoCaptura para o loop de deteccao
+  const ultimoDescritorRef = useRef<{ descriptor: Float32Array; score: number } | null>(null) // ultimo rosto de boa qualidade (qualquer angulo) p/ captura manual
 
   const poseConfig = POSES[poseAtual] || POSES[0]
   const todasPosesCapturadas = POSES.every(p => posesCapturadas[p.key] !== null)
@@ -117,12 +119,17 @@ export function useFaceCapture(onSaved: () => void) {
   // Usado tanto pela auto-captura (buffer cheio) quanto pela captura manual
   // (botao) — neste caso basta >= 1 amostra valida.
   const executarAutoCaptura = useCallback(() => {
-    if (poseBufferRef.current.length < 1) return
+    // Usa as amostras do buffer (auto/qualidade). Se vazio (captura manual de
+    // um angulo que o detector nao classificou), cai no ultimo rosto bom.
+    const amostras = poseBufferRef.current.length >= 1
+      ? poseBufferRef.current
+      : (ultimoDescritorRef.current ? [ultimoDescritorRef.current] : [])
+    if (amostras.length < 1) return
     if (!videoRef.current) return
 
-    const descriptors = poseBufferRef.current.map(s => s.descriptor)
+    const descriptors = amostras.map(s => s.descriptor)
     const medianaDescriptor = calcularMedianaDescriptors(descriptors)
-    const melhorScore = Math.max(...poseBufferRef.current.map(s => s.score))
+    const melhorScore = Math.max(...amostras.map(s => s.score))
 
     const video = videoRef.current
     const tempCanvas = document.createElement('canvas')
@@ -140,8 +147,10 @@ export function useFaceCapture(onSaved: () => void) {
 
     setPosesCapturadas(prev => ({ ...prev, [poseKey]: { descriptor: medianaDescriptor, score: melhorScore, foto } }))
     poseBufferRef.current = []
+    ultimoDescritorRef.current = null
     autoCapturaTimerRef.current = null
     setAutoCapturaProg(0)
+    setProntoCaptura(false)
 
     if (poseAtual < POSES.length - 1) {
       setPoseAtual(prev => prev + 1)
@@ -201,6 +210,10 @@ export function useFaceCapture(onSaved: () => void) {
 
           // Cor do box baseada nas condições
           const condicoesOk = rostoGrande && boaQualidade && anguloCorreto && boaIluminacao
+          // Qualidade boa INDEPENDENTE do angulo — habilita a captura manual
+          // (permite capturar esquerda/direita mesmo se o detector nao
+          // classificar o angulo com precisao).
+          const qualidadeBoa = rostoGrande && boaQualidade && boaIluminacao
           const corBox = !rostoGrande ? '#ef4444' :
             condicoesOk ? '#10b981' :
             boaQualidade ? '#3b82f6' : '#eab308'
@@ -230,6 +243,12 @@ export function useFaceCapture(onSaved: () => void) {
               ctx.fillText(approxText, box.x + 6, box.y + box.height + 18)
             }
           }
+
+          // Guardar o ultimo rosto de boa qualidade (qualquer angulo) p/ captura manual
+          if (qualidadeBoa && det.descriptor) {
+            ultimoDescritorRef.current = { descriptor: new Float32Array(det.descriptor), score }
+          }
+          setProntoCaptura(qualidadeBoa)
 
           // Acumular amostras boas
           if (condicoesOk && det.descriptor) {
@@ -262,6 +281,8 @@ export function useFaceCapture(onSaved: () => void) {
           setQualidadeFace(Math.round(score * 100))
         } else {
           setFaceDetectada(false)
+          setProntoCaptura(false)
+          ultimoDescritorRef.current = null
           setQualidadeFace(0)
           setTamanhoRosto(0)
           setAnguloDetectado(null)
@@ -340,8 +361,10 @@ export function useFaceCapture(onSaved: () => void) {
     setPoseAtual(0)
     setPosesCapturadas({ frontal: null, esquerda: null, direita: null })
     poseBufferRef.current = []
+    ultimoDescritorRef.current = null
     autoCapturaTimerRef.current = null
     setAutoCapturaProg(0)
+    setProntoCaptura(false)
   }
 
   // Calcular mediana component-wise dos descriptors
@@ -360,7 +383,7 @@ export function useFaceCapture(onSaved: () => void) {
   // Capturar pose manualmente (botao). Funciona com as amostras ja coletadas
   // (>= 1). Captura na hora, sem esperar o buffer encher nem o delay do auto.
   const capturarPose = () => {
-    if (poseBufferRef.current.length < 1) {
+    if (poseBufferRef.current.length < 1 && !ultimoDescritorRef.current) {
       toast.error('Posicione o rosto na area marcada antes de capturar.')
       return
     }
@@ -382,8 +405,10 @@ export function useFaceCapture(onSaved: () => void) {
     setPosesCapturadas(prev => ({ ...prev, [POSES[poseIndex].key]: null }))
     setPoseAtual(poseIndex)
     poseBufferRef.current = []
+    ultimoDescritorRef.current = null
     autoCapturaTimerRef.current = null
     setAutoCapturaProg(0)
+    setProntoCaptura(false)
     setCapturaStatus('detectando')
   }
 
@@ -501,6 +526,7 @@ export function useFaceCapture(onSaved: () => void) {
     autoCapturaProg,
     autoCaptura,
     toggleAutoCaptura,
+    prontoCaptura,
     videoRef,
     canvasRef,
     poseBufferRef,
