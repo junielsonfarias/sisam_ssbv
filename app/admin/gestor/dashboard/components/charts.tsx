@@ -5,10 +5,25 @@ import dynamic from 'next/dynamic'
 export const PieChartComponent = dynamic(() => import('recharts').then(mod => {
   const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } = mod
   return function PieChartWrapper({ data, colors }: { data: { name: string; value: number }[]; colors: string[] }) {
+    // Rótulo customizado: posicionado FORA do anel com margem suficiente (não
+    // corta no topo) e colorido pela própria fatia (visível em claro e escuro).
+    const renderLabel = (p: any) => {
+      const { cx, cy, midAngle, outerRadius, percent, fill } = p
+      if (!percent || percent < 0.04) return null
+      const RADIAN = Math.PI / 180
+      const r = outerRadius + 14
+      const x = cx + r * Math.cos(-midAngle * RADIAN)
+      const y = cy + r * Math.sin(-midAngle * RADIAN)
+      return (
+        <text x={x} y={y} fill={fill} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={11} fontWeight={600}>
+          {`${Math.round(percent * 100)}%`}
+        </text>
+      )
+    }
     return (
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
-          <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" label={({ name, percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''} labelLine={false} fontSize={11}>
+      <ResponsiveContainer width="100%" height={240}>
+        <PieChart margin={{ top: 16, right: 32, bottom: 8, left: 32 }}>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={48} outerRadius={70} paddingAngle={3} dataKey="value" label={renderLabel} labelLine={false}>
             {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
           </Pie>
           <Tooltip formatter={(value: number) => [value, 'Alunos']} />
@@ -17,7 +32,7 @@ export const PieChartComponent = dynamic(() => import('recharts').then(mod => {
       </ResponsiveContainer>
     )
   }
-}), { ssr: false, loading: () => <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">Carregando...</div> })
+}), { ssr: false, loading: () => <div className="h-[240px] flex items-center justify-center text-gray-400 text-sm">Carregando...</div> })
 
 export const BarChartComponent = dynamic(() => import('recharts').then(mod => {
   const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } = mod

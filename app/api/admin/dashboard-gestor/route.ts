@@ -136,18 +136,29 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       freqWhere += ` AND fb.escola_id = $${freqParams.length}`
     }
 
+    // Distribuição de frequência POR ALUNO (não por registro bimestral): agrega
+    // a média anual de cada aluno primeiro e só então classifica nas faixas.
+    // Antes, COUNT(*) contava as 4 linhas bimestrais por aluno (denominador
+    // inconsistente com COUNT(DISTINCT aluno) do total) — o donut distribuía
+    // registros, não alunos, e os números não batiam.
     const freqQuery = `
       SELECT
-        COUNT(DISTINCT fb.aluno_id) as total_com_frequencia,
-        ROUND(AVG(fb.percentual_frequencia)::numeric, 1) as media_frequencia,
-        COUNT(*) FILTER (WHERE fb.percentual_frequencia < 75) as abaixo_75,
-        COUNT(*) FILTER (WHERE fb.percentual_frequencia >= 75 AND fb.percentual_frequencia < 90) as entre_75_90,
-        COUNT(*) FILTER (WHERE fb.percentual_frequencia >= 90) as acima_90,
-        SUM(fb.faltas) as total_faltas
-      FROM frequencia_bimestral fb
-      INNER JOIN alunos a ON fb.aluno_id = a.id
-      ${freqWhere}
-      AND (a.situacao = 'cursando' OR a.situacao IS NULL)
+        COUNT(*) as total_com_frequencia,
+        ROUND(AVG(pf)::numeric, 1) as media_frequencia,
+        COUNT(*) FILTER (WHERE pf < 75) as abaixo_75,
+        COUNT(*) FILTER (WHERE pf >= 75 AND pf < 90) as entre_75_90,
+        COUNT(*) FILTER (WHERE pf >= 90) as acima_90,
+        SUM(faltas_aluno) as total_faltas
+      FROM (
+        SELECT fb.aluno_id,
+               AVG(fb.percentual_frequencia) as pf,
+               SUM(fb.faltas) as faltas_aluno
+        FROM frequencia_bimestral fb
+        INNER JOIN alunos a ON fb.aluno_id = a.id
+        ${freqWhere}
+        AND (a.situacao = 'cursando' OR a.situacao IS NULL)
+        GROUP BY fb.aluno_id
+      ) per_aluno
     `
 
     // ============================================
