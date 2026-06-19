@@ -14,6 +14,9 @@
  *     data dentro do ano, observacao curta SEM PII, tipo_movimentacao)
  *   - transferências dentro_municipio (escola_destino_id real) e
  *     fora_municipio (escola_destino_nome livre) -> KPI "Transferências"
+ *   - rematrícula (tipo_movimentacao='entrada') dos transferidos dentro_municipio
+ *     com turma compatível no destino -> espelha lib/services/matriculas e fecha
+ *     o saldo de transferências (os sem turma no destino ficam "em trânsito")
  *   - frequência rebaixada (<75%) para abandonos + ~10% dos cursando -> faixa
  *     "<75%" da Distribuição de Frequência e relatórios de infrequência
  *
@@ -538,6 +541,66 @@ async function main() {
       }, updates)
     }
     console.log(`  registros de frequência rebaixados: ${regFreqAtualizados}`)
+
+    // 6) Rematrícula (ENTRADA) dos transferidos DENTRO do município que têm
+    //    turma compatível no destino. Sem isso o painel só registra 'saida' e o
+    //    saldo de transferências nunca fecha. Espelha o caminho real de
+    //    lib/services/matriculas/matricula.ts: move escola_id p/ o destino,
+    //    situacao='cursando', e grava historico 'entrada' com escola_origem_id =
+    //    escola destino (a DONA do movimento, como o painel lê em GET
+    //    /transferencias). Os sem turma compatível ficam "em trânsito".
+    const remat = await client.query(
+      `WITH ult_saida AS (
+         SELECT DISTINCT ON (hs.aluno_id)
+           hs.aluno_id, hs.escola_destino_id, hs.registrado_por, hs.data AS data_saida
+         FROM historico_situacao hs
+         JOIN alunos a ON a.id = hs.aluno_id
+         JOIN escolas e ON e.id = a.escola_id
+         WHERE hs.tipo_movimentacao = 'saida'
+           AND hs.tipo_transferencia = 'dentro_municipio'
+           AND a.situacao = 'transferido'
+           AND a.codigo LIKE 'SEED-%'
+           AND e.codigo LIKE 'SEED-ESC-%'
+         ORDER BY hs.aluno_id, hs.data DESC, hs.criado_em DESC
+       ),
+       elegiveis AS (
+         SELECT us.aluno_id, us.escola_destino_id, us.registrado_por, us.data_saida,
+                (SELECT t.id FROM turmas t
+                   WHERE t.escola_id = us.escola_destino_id AND t.ativo = true
+                     AND t.serie = a.serie AND t.ano_letivo = a.ano_letivo
+                   ORDER BY t.codigo LIMIT 1) AS turma_destino
+         FROM ult_saida us
+         JOIN alunos a ON a.id = us.aluno_id
+       ),
+       validos AS (SELECT * FROM elegiveis WHERE turma_destino IS NOT NULL),
+       upd AS (
+         UPDATE alunos a SET
+           escola_id = v.escola_destino_id,
+           turma_id  = v.turma_destino,
+           situacao  = 'cursando',
+           ativo     = true,
+           atualizado_em = CURRENT_TIMESTAMP
+         FROM validos v
+         WHERE a.id = v.aluno_id
+         RETURNING a.id
+       ),
+       ins AS (
+         INSERT INTO historico_situacao
+           (id, aluno_id, situacao, situacao_anterior, data, observacao,
+            registrado_por, tipo_movimentacao, escola_origem_id)
+         SELECT gen_random_uuid(), v.aluno_id, 'cursando', 'transferido',
+                LEAST(v.data_saida + INTERVAL '7 days', CURRENT_DATE)::date,
+                'Rematrícula via sistema (seed demo)', v.registrado_por,
+                'entrada', v.escola_destino_id
+         FROM validos v
+         RETURNING aluno_id
+       )
+       SELECT (SELECT COUNT(*) FROM ins)  AS entradas,
+              (SELECT COUNT(*) FROM upd)  AS movidos,
+              (SELECT COUNT(*) FROM elegiveis WHERE turma_destino IS NULL) AS em_transito`
+    )
+    const r6 = remat.rows[0]
+    console.log(`  rematrículas (entrada) geradas: ${r6.entradas} | movidos: ${r6.movidos} | em trânsito (sem turma no destino): ${r6.em_transito}`)
 
     await client.query('COMMIT')
     console.log('\n== COMMIT OK ==')
