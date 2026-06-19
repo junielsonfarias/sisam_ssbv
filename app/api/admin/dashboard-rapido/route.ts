@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import {
-  memoryCache,
   CACHE_TTL,
   getCacheKeyDashboard,
   getCacheKeyFiltros,
-  getCacheKeyMetricas
+  getCacheKeyMetricas,
+  cacheKey,
+  cacheGet,
+  cacheSet,
 } from '@/lib/cache'
+
+// TTL do memoryCache é em ms; o Redis usa segundos.
+const toSec = (ms: number) => Math.max(1, Math.round(ms / 1000))
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('DashboardRapido')
@@ -62,10 +67,18 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       filtros
     )
 
+    // Chaves Redis sob o prefixo 'dashboard' p/ que cacheDelPattern('dashboard:*')
+    // (chamado por notas/matriculas/importacao/etc.) invalide TODAS as camadas
+    // entre instancias serverless (antes era Map process-local).
+    const kMet = cacheKey('dashboard', cacheKeyMetricas)
+    const kFil = cacheKey('dashboard', cacheKeyFiltros)
+    const kDash = cacheKey('dashboard', cacheKeyDashboard)
+
+    const cachedFiltros = await cacheGet<any>(kFil)
+
     // CAMADA 1: Verificar cache de métricas (TTL longo)
     if (!forcarAtualizacao) {
-      const cachedMetricas = memoryCache.get<any>(cacheKeyMetricas)
-      const cachedFiltros = memoryCache.get<any>(cacheKeyFiltros)
+      const cachedMetricas = await cacheGet<any>(kMet)
 
       // Se só precisa de métricas e tem cache, retornar imediatamente
       if (apenasMetricas && cachedMetricas) {
@@ -73,21 +86,19 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
           ...cachedMetricas,
           filtros: cachedFiltros || {},
           _cache: {
-            origem: 'memoria',
-            ttlRestante: memoryCache.getTTL(cacheKeyMetricas),
+            origem: 'redis',
             tempoResposta: Date.now() - startTime
           }
         })
       }
 
       // Verificar cache completo do dashboard
-      const cachedDashboard = memoryCache.get<any>(cacheKeyDashboard)
+      const cachedDashboard = await cacheGet<any>(kDash)
       if (cachedDashboard) {
         return NextResponse.json({
           ...cachedDashboard,
           _cache: {
-            origem: 'memoria',
-            ttlRestante: memoryCache.getTTL(cacheKeyDashboard),
+            origem: 'redis',
             tempoResposta: Date.now() - startTime
           }
         })
@@ -273,8 +284,8 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     // CAMADA 4: Executar queries em paralelo controlado
     const [resultadoPrincipal, resultadoFiltros] = await Promise.all([
       pool.query(queryConsolidada, params),
-      // Query de filtros separada (cache longo)
-      !memoryCache.has(cacheKeyFiltros) ? buscarFiltros(usuario, presenca) : Promise.resolve(null)
+      // Query de filtros separada (cache longo) — só busca se não houver no Redis
+      !cachedFiltros ? buscarFiltros(usuario, presenca) : Promise.resolve(null)
     ])
 
     const dadosPrincipais = resultadoPrincipal.rows[0]
@@ -310,21 +321,21 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
         status: row.status,
         quantidade: parseInt(row.quantidade)
       })),
-      filtros: resultadoFiltros || memoryCache.get(cacheKeyFiltros) || {}
+      filtros: resultadoFiltros || cachedFiltros || {}
     }
 
-    // CAMADA 5: Salvar no cache
-    memoryCache.set(cacheKeyMetricas, {
+    // CAMADA 5: Salvar no cache Redis
+    await cacheSet(kMet, {
       metricas: dadosResposta.metricas,
       niveis: dadosResposta.niveis,
       faixasNota: dadosResposta.faixasNota,
       presenca: dadosResposta.presenca
-    }, CACHE_TTL.METRICAS_GERAIS)
+    }, toSec(CACHE_TTL.METRICAS_GERAIS))
 
-    memoryCache.set(cacheKeyDashboard, dadosResposta, CACHE_TTL.DASHBOARD)
+    await cacheSet(kDash, dadosResposta, toSec(CACHE_TTL.DASHBOARD))
 
     if (resultadoFiltros) {
-      memoryCache.set(cacheKeyFiltros, resultadoFiltros, CACHE_TTL.FILTROS)
+      await cacheSet(kFil, resultadoFiltros, toSec(CACHE_TTL.FILTROS))
     }
 
     const tempoResposta = Date.now() - startTime
@@ -336,8 +347,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
         origem: 'banco',
         geradoEm: new Date().toISOString(),
         tempoResposta
-      },
-      _stats: memoryCache.getStats()
+      }
     })
 
   } catch (error: unknown) {

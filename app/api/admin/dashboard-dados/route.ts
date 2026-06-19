@@ -4,10 +4,15 @@ import {
   verificarCache,
   carregarCache,
   salvarCache,
-  memoryCache,
   CACHE_TTL,
   getCacheKeyDashboard,
+  cacheKey,
+  cacheGet,
+  cacheSet,
 } from '@/lib/cache'
+
+// TTL do CACHE_TTL é em ms; o Redis usa segundos.
+const toSec = (ms: number) => Math.max(1, Math.round(ms / 1000))
 import {
   getDashboardData,
   DashboardFiltros,
@@ -99,11 +104,15 @@ export const GET = withAuth(
       }
     )
 
-    // VERIFICAR CACHE EM MEMÓRIA PRIMEIRO
+    // Chave Redis sob o prefixo 'dashboard' p/ cacheDelPattern('dashboard:*')
+    // invalidar entre instâncias serverless (antes era Map process-local).
+    const kDash = cacheKey('dashboard', memoryCacheKey)
+
+    // VERIFICAR CACHE REDIS PRIMEIRO
     if (USE_MEMORY_CACHE && !forcarAtualizacao) {
-      const cachedData = memoryCache.get<any>(memoryCacheKey)
+      const cachedData = await cacheGet<any>(kDash)
       if (cachedData) {
-        log.info('Cache em memória encontrado')
+        log.info('Cache Redis encontrado')
         const alunosDetalhados = cachedData.alunosDetalhados || []
         const totalItens = alunosDetalhados.length
         const alunosPaginados = alunosDetalhados.slice(
@@ -121,9 +130,8 @@ export const GET = withAuth(
             totalPaginas: Math.ceil(totalItens / limiteAlunos),
           },
           _cache: {
-            origem: 'memoria',
+            origem: 'redis',
             carregadoEm: new Date().toISOString(),
-            ttlRestante: memoryCache.getTTL(memoryCacheKey),
           },
         })
       }
@@ -136,7 +144,7 @@ export const GET = withAuth(
         if (dadosCache) {
           log.info('Cache em arquivo encontrado')
           if (USE_MEMORY_CACHE) {
-            memoryCache.set(memoryCacheKey, dadosCache, CACHE_TTL.DASHBOARD)
+            await cacheSet(kDash, dadosCache, toSec(CACHE_TTL.DASHBOARD))
           }
           return NextResponse.json({
             ...dadosCache,
@@ -154,13 +162,13 @@ export const GET = withAuth(
     // Buscar dados do banco via service
     const dadosResposta = await getDashboardData(usuario, filtros, paginacao)
 
-    // SALVAR NO CACHE EM MEMÓRIA
+    // SALVAR NO CACHE REDIS
     if (USE_MEMORY_CACHE) {
       try {
-        memoryCache.set(memoryCacheKey, dadosResposta, CACHE_TTL.DASHBOARD)
-        log.info('Cache em memória salvo')
+        await cacheSet(kDash, dadosResposta, toSec(CACHE_TTL.DASHBOARD))
+        log.info('Cache Redis salvo')
       } catch (cacheError) {
-        log.error('Erro ao salvar cache em memória', cacheError)
+        log.error('Erro ao salvar cache Redis', cacheError)
       }
     }
 
@@ -179,7 +187,6 @@ export const GET = withAuth(
         origem: 'banco',
         geradoEm: new Date().toISOString(),
       },
-      _stats: memoryCache.getStats(),
     })
   }
 )
