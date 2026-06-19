@@ -386,13 +386,26 @@ export async function buscarCaso(id: string) {
   return { ...caso, acoes: acoes.rows }
 }
 
-export async function obterEstatisticas(anoLetivo: string) {
+export async function obterEstatisticas(
+  anoLetivo: string,
+  scope?: { escolaId?: string; escolaIds?: string[] }
+) {
+  const conds = ['ano_letivo = $1']
+  const params: unknown[] = [anoLetivo]
+  if (scope?.escolaId) {
+    params.push(scope.escolaId)
+    conds.push(`escola_id = $${params.length}`)
+  } else if (scope?.escolaIds && scope.escolaIds.length > 0) {
+    params.push(scope.escolaIds)
+    conds.push(`escola_id = ANY($${params.length}::uuid[])`)
+  }
+
   const r = await pool.query(
     `SELECT status, COUNT(*) AS total
        FROM ficai_casos
-      WHERE ano_letivo = $1
+      WHERE ${conds.join(' AND ')}
       GROUP BY status`,
-    [anoLetivo]
+    params
   )
   const porStatus: Record<string, number> = {}
   for (const row of r.rows) porStatus[row.status] = parseInt(row.total, 10)

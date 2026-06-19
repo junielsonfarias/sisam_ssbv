@@ -14,15 +14,19 @@ export const dynamic = 'force-dynamic'
 const PERIODOS = ['semestre_1', 'semestre_2', 'final'] as const
 const STATUS = ['rascunho', 'publicado', 'entregue'] as const
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
 
   const conds: string[] = []
   const params: unknown[] = []
   let i = 1
 
-  const escola = searchParams.get('escola')
-  if (escola) { params.push(escola); conds.push(`a.escola_id = $${i++}`) }
+  // IDOR: usuário escola só vê relatórios pedagógicos (dados de menores) da
+  // própria escola. Sobrescreve qualquer ?escola= do cliente.
+  const escolaScope = usuario.tipo_usuario === 'escola'
+    ? (usuario.escola_id || '00000000-0000-0000-0000-000000000000')
+    : (searchParams.get('escola') || null)
+  if (escolaScope) { params.push(escolaScope); conds.push(`a.escola_id = $${i++}`) }
 
   const ano = searchParams.get('ano')
   if (ano) { params.push(ano); conds.push(`r.ano_letivo = $${i++}`) }
@@ -70,14 +74,25 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
     params
   )
 
+  // Stats herdam o escopo de escola (não vazar agregados) + ano se informado
+  const statsConds: string[] = []
+  const statsParams: unknown[] = []
+  let j = 1
+  if (escolaScope) { statsParams.push(escolaScope); statsConds.push(`a.escola_id = $${j++}`) }
+  if (ano) { statsParams.push(ano); statsConds.push(`r.ano_letivo = $${j++}`) }
+  const statsWhere = statsConds.length ? `WHERE ${statsConds.join(' AND ')}` : ''
+
   const statsR = await pool.query(
     `SELECT
        COUNT(*) AS total,
-       COUNT(*) FILTER (WHERE status = 'rascunho') AS rascunhos,
-       COUNT(*) FILTER (WHERE status = 'publicado') AS publicados,
-       COUNT(*) FILTER (WHERE status = 'entregue') AS entregues,
-       COUNT(DISTINCT aluno_id) AS alunos_distintos
-     FROM ed_infantil_relatorios`
+       COUNT(*) FILTER (WHERE r.status = 'rascunho') AS rascunhos,
+       COUNT(*) FILTER (WHERE r.status = 'publicado') AS publicados,
+       COUNT(*) FILTER (WHERE r.status = 'entregue') AS entregues,
+       COUNT(DISTINCT r.aluno_id) AS alunos_distintos
+     FROM ed_infantil_relatorios r
+     INNER JOIN alunos a ON a.id = r.aluno_id
+     ${statsWhere}`,
+    statsParams
   )
 
   return NextResponse.json({

@@ -36,11 +36,21 @@ const patchSchema = z.object({
   retorno_acao:       z.string().max(2000).nullable().optional(),
 })
 
-export const GET = withAuthModulo(['administrador','tecnico','escola','polo'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador','tecnico','escola','polo'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const ficaiId = searchParams.get('ficai_id')
   if (!ficaiId) {
     return NextResponse.json({ mensagem: 'ficai_id obrigatorio' }, { status: 400 })
+  }
+
+  // IDOR: POST/PATCH já validam o vínculo caso->escola; o GET não validava e
+  // expunha encaminhamentos ao CT (parecer/retorno/protocolo, dados ECA).
+  const casoResult = await pool.query('SELECT escola_id FROM ficai_casos WHERE id = $1 LIMIT 1', [ficaiId])
+  if (casoResult.rows.length === 0) {
+    return NextResponse.json({ mensagem: 'Caso FICAI nao encontrado' }, { status: 404 })
+  }
+  if (!(await podeAcessarEscola(usuario, casoResult.rows[0].escola_id))) {
+    return NextResponse.json({ mensagem: 'Sem permissao para este caso FICAI' }, { status: 403 })
   }
 
   const result = await pool.query(

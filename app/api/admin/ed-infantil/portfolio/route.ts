@@ -15,12 +15,19 @@ export const dynamic = 'force-dynamic'
 const TIPOS = ['foto', 'video', 'audio', 'atividade', 'observacao'] as const
 const CAMPOS = ['EOEU', 'CG', 'TS', 'EF', 'ET'] as const
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
 
   const conds: string[] = []
   const params: unknown[] = []
   let i = 1
+
+  // IDOR: usuário escola só vê portfólio (mídia de menores, LGPD art. 11) da
+  // própria escola. Sobrescreve qualquer ?escola= do cliente.
+  const escolaScope = usuario.tipo_usuario === 'escola'
+    ? (usuario.escola_id || '00000000-0000-0000-0000-000000000000')
+    : (searchParams.get('escola') || null)
+  if (escolaScope) { params.push(escolaScope); conds.push(`a.escola_id = $${i++}`) }
 
   // Ano letivo (derivado de data_registro — portfólio é registrado ao longo do ano civil)
   const ano = searchParams.get('ano_letivo') || searchParams.get('ano')
@@ -28,9 +35,6 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
     params.push(parseInt(ano, 10))
     conds.push(`EXTRACT(YEAR FROM p.data_registro) = $${i++}`)
   }
-
-  const escola = searchParams.get('escola')
-  if (escola) { params.push(escola); conds.push(`a.escola_id = $${i++}`) }
 
   const aluno = searchParams.get('aluno')
   if (aluno) { params.push(aluno); conds.push(`p.aluno_id = $${i++}`) }
@@ -82,34 +86,29 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
     params
   )
 
-  // Stats refletem o filtro de ano se informado
-  const statsR = ano
-    ? await pool.query(
-        `SELECT
-           COUNT(*) AS total,
-           COUNT(DISTINCT aluno_id) AS alunos_distintos,
-           COUNT(DISTINCT professor_id) AS professores_distintos,
-           COUNT(*) FILTER (WHERE visivel_responsavel = TRUE) AS visiveis_pais,
-           COUNT(*) FILTER (WHERE tipo = 'foto') AS fotos,
-           COUNT(*) FILTER (WHERE tipo = 'video') AS videos,
-           COUNT(*) FILTER (WHERE tipo = 'atividade') AS atividades,
-           COUNT(*) FILTER (WHERE tipo = 'observacao') AS observacoes
-         FROM ed_infantil_portfolio
-         WHERE EXTRACT(YEAR FROM data_registro) = $1`,
-        [parseInt(ano, 10)]
-      )
-    : await pool.query(
-        `SELECT
-           COUNT(*) AS total,
-           COUNT(DISTINCT aluno_id) AS alunos_distintos,
-           COUNT(DISTINCT professor_id) AS professores_distintos,
-           COUNT(*) FILTER (WHERE visivel_responsavel = TRUE) AS visiveis_pais,
-           COUNT(*) FILTER (WHERE tipo = 'foto') AS fotos,
-           COUNT(*) FILTER (WHERE tipo = 'video') AS videos,
-           COUNT(*) FILTER (WHERE tipo = 'atividade') AS atividades,
-           COUNT(*) FILTER (WHERE tipo = 'observacao') AS observacoes
-         FROM ed_infantil_portfolio`
-      )
+  // Stats herdam o escopo de escola (não vazar agregados) + ano se informado
+  const statsConds: string[] = []
+  const statsParams: unknown[] = []
+  let j = 1
+  if (escolaScope) { statsParams.push(escolaScope); statsConds.push(`a.escola_id = $${j++}`) }
+  if (ano) { statsParams.push(parseInt(ano, 10)); statsConds.push(`EXTRACT(YEAR FROM p.data_registro) = $${j++}`) }
+  const statsWhere = statsConds.length ? `WHERE ${statsConds.join(' AND ')}` : ''
+
+  const statsR = await pool.query(
+    `SELECT
+       COUNT(*) AS total,
+       COUNT(DISTINCT p.aluno_id) AS alunos_distintos,
+       COUNT(DISTINCT p.professor_id) AS professores_distintos,
+       COUNT(*) FILTER (WHERE p.visivel_responsavel = TRUE) AS visiveis_pais,
+       COUNT(*) FILTER (WHERE p.tipo = 'foto') AS fotos,
+       COUNT(*) FILTER (WHERE p.tipo = 'video') AS videos,
+       COUNT(*) FILTER (WHERE p.tipo = 'atividade') AS atividades,
+       COUNT(*) FILTER (WHERE p.tipo = 'observacao') AS observacoes
+     FROM ed_infantil_portfolio p
+     INNER JOIN alunos a ON a.id = p.aluno_id
+     ${statsWhere}`,
+    statsParams
+  )
 
   return NextResponse.json({
     registros: r.rows,

@@ -6,6 +6,8 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
+import pool from '@/database/connection'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { registrarAcao } from '@/lib/services/ficai.service'
@@ -29,6 +31,16 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+  }
+
+  // IDOR: o irmão [id]/route.ts (PATCH/GET) valida o dono do caso; /acao não.
+  // Ações da timeline FICAI têm peso ECA (encaminhamentos a CT/MP).
+  const casoResult = await pool.query('SELECT escola_id FROM ficai_casos WHERE id = $1 LIMIT 1', [id])
+  if (casoResult.rows.length === 0) {
+    return NextResponse.json({ mensagem: 'Caso FICAI não encontrado' }, { status: 404 })
+  }
+  if (!(await podeAcessarEscola(usuario, casoResult.rows[0].escola_id))) {
+    return NextResponse.json({ mensagem: 'Sem permissão para este caso FICAI' }, { status: 403 })
   }
 
   const acaoId = await registrarAcao({

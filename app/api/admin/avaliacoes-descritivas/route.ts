@@ -16,19 +16,23 @@ import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
 
   const conds: string[] = []
   const params: unknown[] = []
   let i = 1
 
+  // IDOR: usuário escola só vê pareceres descritivos (dado pedagógico de
+  // menores) da própria escola. Sobrescreve qualquer ?escola= do cliente.
+  const escolaScope = usuario.tipo_usuario === 'escola'
+    ? (usuario.escola_id || '00000000-0000-0000-0000-000000000000')
+    : (searchParams.get('escola') || null)
+  if (escolaScope) { params.push(escolaScope); conds.push(`a.escola_id = $${i++}`) }
+
   // Ano letivo é derivado via periodos_letivos.ano_letivo
   const ano = searchParams.get('ano_letivo') || searchParams.get('ano')
   if (ano) { params.push(ano); conds.push(`p.ano_letivo = $${i++}`) }
-
-  const escola = searchParams.get('escola')
-  if (escola) { params.push(escola); conds.push(`a.escola_id = $${i++}`) }
 
   const turma = searchParams.get('turma')
   if (turma) { params.push(turma); conds.push(`a.turma_id = $${i++}`) }
@@ -77,29 +81,27 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
     params
   )
 
-  // Estatísticas — se ano foi informado, filtra; senão panorâmico
-  const statsR = ano
-    ? await pool.query(
-        `SELECT
-           COUNT(*) AS total,
-           COUNT(*) FILTER (WHERE av.status = 'rascunho') AS rascunhos,
-           COUNT(*) FILTER (WHERE av.status = 'publicada') AS publicadas,
-           COUNT(DISTINCT av.aluno_id) AS alunos_distintos,
-           COUNT(DISTINCT av.professor_id) AS professores_distintos
-         FROM avaliacoes_descritivas av
-         INNER JOIN periodos_letivos p ON p.id = av.periodo_id
-         WHERE p.ano_letivo = $1`,
-        [ano]
-      )
-    : await pool.query(
-        `SELECT
-           COUNT(*) AS total,
-           COUNT(*) FILTER (WHERE status = 'rascunho') AS rascunhos,
-           COUNT(*) FILTER (WHERE status = 'publicada') AS publicadas,
-           COUNT(DISTINCT aluno_id) AS alunos_distintos,
-           COUNT(DISTINCT professor_id) AS professores_distintos
-         FROM avaliacoes_descritivas`
-      )
+  // Estatísticas — herdam o mesmo escopo de escola (não vazar agregados) + ano
+  const statsConds: string[] = []
+  const statsParams: unknown[] = []
+  let j = 1
+  if (escolaScope) { statsParams.push(escolaScope); statsConds.push(`a.escola_id = $${j++}`) }
+  if (ano) { statsParams.push(ano); statsConds.push(`p.ano_letivo = $${j++}`) }
+  const statsWhere = statsConds.length ? `WHERE ${statsConds.join(' AND ')}` : ''
+
+  const statsR = await pool.query(
+    `SELECT
+       COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE av.status = 'rascunho') AS rascunhos,
+       COUNT(*) FILTER (WHERE av.status = 'publicada') AS publicadas,
+       COUNT(DISTINCT av.aluno_id) AS alunos_distintos,
+       COUNT(DISTINCT av.professor_id) AS professores_distintos
+     FROM avaliacoes_descritivas av
+     INNER JOIN alunos a ON a.id = av.aluno_id
+     LEFT JOIN periodos_letivos p ON p.id = av.periodo_id
+     ${statsWhere}`,
+    statsParams
+  )
 
   return NextResponse.json({
     avaliacoes: r.rows,

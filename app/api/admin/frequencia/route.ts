@@ -106,6 +106,12 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
 
     const { escola_id, ano_letivo } = turmaResult.rows[0]
 
+    // IDOR: o GET já valida turma->escola; o POST não validava e permitia
+    // escrita (UPSERT) de frequência bimestral em turma de outra escola.
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id !== escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta turma' }, { status: 403 })
+    }
+
     const client = await pool.connect()
     try {
       await client.query('BEGIN')

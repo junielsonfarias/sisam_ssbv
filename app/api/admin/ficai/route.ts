@@ -26,14 +26,9 @@ const postSchema = z.object({
 export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
 
-  if (searchParams.get('estatisticas') === 'true') {
-    const ano = searchParams.get('ano') || String(new Date().getFullYear())
-    const stats = await obterEstatisticas(ano)
-    return NextResponse.json({ estatisticas: stats })
-  }
-
-  // Escopo por papel: escola só a própria; polo só as suas; admin/tecnico tudo.
-  // Casos FICAI envolvem ECA/menores — leitura cruzada entre escolas é IDOR.
+  // Escopo por papel (calculado ANTES de qualquer ramo): escola só a própria;
+  // polo só as suas; admin/tecnico tudo. Casos FICAI envolvem ECA/menores —
+  // leitura cruzada entre escolas é IDOR (vale também p/ o agregado estatístico).
   let escolaId = searchParams.get('escola') || undefined
   let escolaIds: string[] | undefined
   if (usuario.tipo_usuario === 'escola') {
@@ -48,6 +43,12 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'polo', 'escola']
       escolaIds = r.rows.map((x: { id: string }) => x.id)
       if (escolaIds.length === 0) escolaIds = ['00000000-0000-0000-0000-000000000000']
     }
+  }
+
+  if (searchParams.get('estatisticas') === 'true') {
+    const ano = searchParams.get('ano') || String(new Date().getFullYear())
+    const stats = await obterEstatisticas(ano, { escolaId, escolaIds })
+    return NextResponse.json({ estatisticas: stats })
   }
 
   const casos = await listarCasos({
