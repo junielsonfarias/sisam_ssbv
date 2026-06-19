@@ -1,7 +1,7 @@
 import pool from '@/database/connection'
 import { withTransaction } from '@/lib/database/with-transaction'
 import { withSavepoint } from '@/lib/database/with-savepoint'
-import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
+import { criarGeradorCodigoAlunoTx } from '@/lib/gerar-codigo-aluno'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
 import { PoolClient } from 'pg'
@@ -251,6 +251,11 @@ export async function matricularAlunosBatch(params: {
       }
     }
 
+    // Gerador de código DENTRO da transação (vê inserts não-commitados; não
+    // abre 2ª conexão do pool como gerarCodigoAluno). Lock 42 adquirido só na
+    // 1ª criação — lote só de rematrículas nunca toma o lock.
+    const proximoCodigo = criarGeradorCodigoAlunoTx(client)
+
     for (const aluno of alunos) {
       try {
         // SAVEPOINT por aluno: um erro (ex.: UNIQUE_VIOLATION de código/CPF, que
@@ -276,6 +281,7 @@ export async function matricularAlunosBatch(params: {
               serie,
               anoLetivo,
               resultados,
+              proximoCodigo,
             })
           }
         })
@@ -385,11 +391,12 @@ async function processarNovoAluno(
     serie: string
     anoLetivo: string
     resultados: ResultadoMatriculaBatch
+    proximoCodigo: () => Promise<string>
   }
 ): Promise<void> {
-  const { aluno, turmaId, escolaId, serie, anoLetivo, resultados } = ctx
+  const { aluno, turmaId, escolaId, serie, anoLetivo, resultados, proximoCodigo } = ctx
 
-  const codigo = aluno.codigo || (await gerarCodigoAluno())
+  const codigo = aluno.codigo || (await proximoCodigo())
   const serieNovoAluno = aluno.serie_individual || serie
 
   const result = await client.query(

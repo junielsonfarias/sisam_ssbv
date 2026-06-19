@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { withTransaction } from '@/lib/database/with-transaction'
 import { withSavepoint } from '@/lib/database/with-savepoint'
+import { criarGeradorCodigoAlunoTx } from '@/lib/gerar-codigo-aluno'
 import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches } from '@/lib/cache'
 import { validarArquivoUpload } from '@/lib/api-helpers'
@@ -217,22 +218,10 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
         alunosExistentesMap.set(`${a.nome_upper}:${a.escola_id}:${a.turma_id || 'null'}`, a.id)
       }
 
-      // Geração de código sequencial DENTRO da transação: contador local vê os
-      // inserts ainda não commitados (gerarCodigoAluno usa conexão própria e
-      // colidiria entre alunos novos do mesmo import). Advisory lock serializa
-      // contra imports concorrentes (mesma chave 42 de gerarCodigoAluno).
-      await client.query('SELECT pg_advisory_xact_lock(42)')
-      let proximoNumeroAluno = 1
-      const maxCodAluno = await client.query(
-        `SELECT codigo FROM alunos
-         WHERE codigo LIKE 'ALU%' AND codigo ~ '^ALU[0-9]+$'
-         ORDER BY CAST(SUBSTRING(codigo FROM 4) AS INTEGER) DESC LIMIT 1`
-      )
-      if (maxCodAluno.rows.length > 0 && maxCodAluno.rows[0].codigo) {
-        const n = parseInt(maxCodAluno.rows[0].codigo.replace('ALU', ''))
-        if (!isNaN(n)) proximoNumeroAluno = n + 1
-      }
-      const proximoCodigoAluno = () => `ALU${(proximoNumeroAluno++).toString().padStart(4, '0')}`
+      // Geração de código sequencial DENTRO da transação (vê inserts não
+      // commitados; não abre 2ª conexão como gerarCodigoAluno). Lock 42 tomado
+      // só na 1ª criação de aluno.
+      const proximoCodigoAluno = criarGeradorCodigoAlunoTx(client)
 
       // Criar Alunos (com pré-cache)
       for (const [nomeAluno, { escola, turma, serie }] of alunosUnicos) {
@@ -259,7 +248,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             ))
             resultado.alunos.existentes++
           } else {
-            const codigoAluno = proximoCodigoAluno()
+            const codigoAluno = await proximoCodigoAluno()
             await withSavepoint(client, () => client.query(
               'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6)',
               [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo]
