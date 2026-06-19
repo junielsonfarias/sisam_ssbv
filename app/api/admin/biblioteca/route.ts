@@ -14,13 +14,32 @@ import {
   buscarAcervo,
   cadastrarItem,
   listarEmprestimosAtivos,
+  obterEscolaDoAcervo,
+  obterEscolaDoEmprestimo,
   registrarDevolucao,
   registrarEmprestimo,
   renovarEmprestimo,
   reservarItem,
 } from '@/lib/services/biblioteca.service'
+import type { Usuario } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * Escopo de escrita na biblioteca. Admin/técnico operam em qualquer escola;
+ * escola e PROFESSOR só na própria (podeAcessarEscola retorna false p/
+ * professor, por isso a checagem direta por usuario.escola_id); polo só nas
+ * do seu polo. escolaId nulo (acervo/empréstimo inexistente) → nega.
+ */
+async function podeOperarNaEscolaBiblioteca(usuario: Usuario, escolaId: string | null): Promise<boolean> {
+  if (usuario.tipo_usuario === 'administrador' || usuario.tipo_usuario === 'tecnico') return true
+  if (!escolaId) return false
+  if (usuario.tipo_usuario === 'escola' || usuario.tipo_usuario === 'professor') {
+    return usuario.escola_id === escolaId
+  }
+  if (usuario.tipo_usuario === 'polo') return podeAcessarEscola(usuario, escolaId)
+  return false
+}
 
 // CHECK constraint do DB exige um destes valores (add-biblioteca.sql)
 const CATEGORIAS_BIBLIOTECA = [
@@ -131,7 +150,16 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'profe
     case 'acervo': {
       const parsed = itemSchema.safeParse(body)
       if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
-      const id = await cadastrarItem(parsed.data)
+
+      // IDOR: escola/professor não escolhem a escola do item — é a sua própria
+      // (ignora o escola_id do payload). Admin/técnico usam o informado.
+      const escolaItem = (usuario.tipo_usuario === 'escola' || usuario.tipo_usuario === 'professor')
+        ? (usuario.escola_id ?? undefined)
+        : parsed.data.escola_id
+      if (usuario.tipo_usuario === 'polo' && escolaItem && !(await podeAcessarEscola(usuario, escolaItem))) {
+        return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
+      }
+      const id = await cadastrarItem({ ...parsed.data, escola_id: escolaItem })
 
       await registrarAuditoria({
         usuarioId: usuario.id,
@@ -142,7 +170,7 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'profe
           titulo: parsed.data.titulo,
           isbn: parsed.data.isbn,
           categoria: parsed.data.categoria,
-          escola_id: parsed.data.escola_id,
+          escola_id: escolaItem,
           qtd_total: parsed.data.qtd_total,
         },
       })
@@ -152,6 +180,10 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'profe
     case 'emprestimo': {
       const parsed = emprestimoSchema.safeParse(body)
       if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+      // IDOR: só empresta item do acervo da própria escola
+      if (!(await podeOperarNaEscolaBiblioteca(usuario, await obterEscolaDoAcervo(parsed.data.acervo_id)))) {
+        return NextResponse.json({ mensagem: 'Item não encontrado' }, { status: 404 })
+      }
       try {
         const id = await registrarEmprestimo({ ...parsed.data, registrado_por: usuario.id })
 
@@ -176,6 +208,10 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'profe
     case 'devolucao': {
       const parsed = devolucaoSchema.safeParse(body)
       if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+      // IDOR: só devolve/baixa empréstimo de item da própria escola
+      if (!(await podeOperarNaEscolaBiblioteca(usuario, await obterEscolaDoEmprestimo(parsed.data.emprestimo_id)))) {
+        return NextResponse.json({ mensagem: 'Empréstimo não encontrado' }, { status: 404 })
+      }
       try {
         await registrarDevolucao(parsed.data)
 
@@ -203,6 +239,10 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'profe
     case 'renovar': {
       const id = body?.emprestimo_id
       if (!id) return NextResponse.json({ mensagem: 'Informe emprestimo_id' }, { status: 400 })
+      // IDOR: só renova empréstimo de item da própria escola
+      if (!(await podeOperarNaEscolaBiblioteca(usuario, await obterEscolaDoEmprestimo(id)))) {
+        return NextResponse.json({ mensagem: 'Empréstimo não encontrado' }, { status: 404 })
+      }
       const ok = await renovarEmprestimo(id)
       if (!ok) return NextResponse.json({ mensagem: 'Não foi possível renovar (limite atingido ou empréstimo finalizado)' }, { status: 409 })
 
@@ -218,6 +258,10 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola', 'profe
     case 'reservar': {
       const parsed = reservaSchema.safeParse(body)
       if (!parsed.success) return NextResponse.json({ mensagem: 'Dados inválidos', erros: parsed.error.flatten() }, { status: 400 })
+      // IDOR: só reserva item do acervo da própria escola
+      if (!(await podeOperarNaEscolaBiblioteca(usuario, await obterEscolaDoAcervo(parsed.data.acervo_id)))) {
+        return NextResponse.json({ mensagem: 'Item não encontrado' }, { status: 404 })
+      }
       try {
         const id = await reservarItem(parsed.data)
 

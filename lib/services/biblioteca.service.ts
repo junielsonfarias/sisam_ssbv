@@ -6,6 +6,30 @@
 
 import pool from '@/database/connection'
 
+/**
+ * Resolve a escola dona de um item do acervo (para checagem de escopo/IDOR).
+ * Retorna null se o acervo não existir.
+ */
+export async function obterEscolaDoAcervo(acervoId: string): Promise<string | null> {
+  const r = await pool.query('SELECT escola_id FROM biblioteca_acervo WHERE id = $1', [acervoId])
+  return r.rows[0]?.escola_id ?? null
+}
+
+/**
+ * Resolve a escola dona de um empréstimo (via acervo) para checagem de escopo.
+ * Retorna null se o empréstimo não existir.
+ */
+export async function obterEscolaDoEmprestimo(emprestimoId: string): Promise<string | null> {
+  const r = await pool.query(
+    `SELECT a.escola_id
+       FROM biblioteca_emprestimos e
+       INNER JOIN biblioteca_acervo a ON a.id = e.acervo_id
+      WHERE e.id = $1`,
+    [emprestimoId]
+  )
+  return r.rows[0]?.escola_id ?? null
+}
+
 export interface Item {
   id?: string
   isbn?: string
