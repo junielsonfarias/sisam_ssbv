@@ -4,6 +4,7 @@ import { situacaoAlunoSchema, uuidSchema } from '@/lib/schemas'
 import { z } from 'zod'
 import pool from '@/database/connection'
 import { alterarSituacao } from '@/lib/services/alunos.service'
+import { cacheDelPattern, invalidateDashboardCache, invalidateFiltrosCache, limparTodosOsCaches } from '@/lib/cache'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { createLogger } from '@/lib/logger'
 
@@ -180,6 +181,19 @@ export async function POST(
       },
       ip,
     })
+
+    // Mudanca de situacao/transferencia altera escola_id/turma_id/situacao do
+    // aluno -> contagens, rosters e dashboards ficam stale. Invalidar as 3
+    // camadas (arquivo + memoria + Redis), senao o painel mostra o aluno na
+    // situacao antiga ate o TTL.
+    try {
+      limparTodosOsCaches()
+      invalidateDashboardCache()
+      invalidateFiltrosCache()
+      for (const p of ['alunos:*', 'turmas:*', 'dashboard:*', 'stats:*', 'executivo:*', 'evolucao:*', 'alunos-risco:*', 'dashboard-gestor:*']) {
+        try { await cacheDelPattern(p) } catch {}
+      }
+    } catch { /* invalidacao de cache nao e critica */ }
 
     return NextResponse.json({
       mensagem: resultado.mensagem,
