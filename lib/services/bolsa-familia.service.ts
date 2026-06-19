@@ -34,8 +34,12 @@ export const PERIODO_LABEL: Record<PeriodoBF, string> = {
 /**
  * Gera mapa de frequência para todos beneficiários no período.
  *
- * Presença é determinada por `hora_entrada IS NOT NULL` em frequencia_diaria
- * (a tabela só registra presenças efetivas via face/QR/manual).
+ * Presença é determinada por `status = 'presente'` em frequencia_diaria — mesma
+ * convenção do resto do sistema (boletim, FICAI, dashboards). Antes usava
+ * `hora_entrada IS NOT NULL`, que só é preenchido por face/QR; presença manual
+ * (status='presente' sem hora) era contada como falta e gerava alerta falso de
+ * condicionalidade em escolas sem terminal facial. Falta justificada NÃO conta
+ * como presença (tem campo `motivo_baixa_frequencia` próprio no mapa).
  * Dias letivos aproximados por dias úteis (seg-sex) no período — para precisão
  * por escola, futuramente integrar com contar_dias_letivos() do calendario.
  */
@@ -60,7 +64,7 @@ export async function gerarMapaPeriodo(params: {
          LEFT JOIN frequencia_diaria f
            ON f.aluno_id = a.id
           AND f.data BETWEEN $1::date AND $2::date
-          AND f.hora_entrada IS NOT NULL
+          AND f.status = 'presente'
         WHERE a.beneficiario_bolsa_familia = TRUE
           AND COALESCE(a.ativo, TRUE) = TRUE
         GROUP BY a.id, a.data_nascimento
