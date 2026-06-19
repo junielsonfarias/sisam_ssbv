@@ -1,12 +1,15 @@
 /**
  * /api/admin/alunos/[id]/responsaveis
  *
- * GET  — lista os responsáveis (entidade) vinculados ao aluno.
+ * GET  — lista os responsáveis vinculados ao aluno.
  * POST — adiciona/vincula um responsável ao aluno.
  *
- * Entidade legal `responsaveis` (Fase 3.1), distinta de `responsaveis_alunos`
- * (vínculo do portal). Permissão: administrador/tecnico (qualquer escola) ·
- * escola/polo (apenas alunos da própria escola/polo).
+ * Modelo unificado (Lote 3.2): o responsável é um `usuarios`
+ * (tipo_usuario='responsavel') e o vínculo vive em `responsaveis_alunos`.
+ * O cadastro admin cria a conta automaticamente quando não existir e o vínculo
+ * nasce status='aprovado'/origem='admin' (já visível no portal).
+ * Permissão: administrador/tecnico (qualquer escola) · escola/polo (apenas
+ * alunos da própria escola/polo).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -81,7 +84,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ ...r, mensagem: 'Responsável vinculado' }, { status: 201 })
   } catch (e) {
     if ((e as { code?: string }).code === '23505') {
-      return NextResponse.json({ mensagem: 'CPF já cadastrado para outro responsável' }, { status: 409 })
+      // Colisão ao criar a conta de usuário (CPF ou e-mail já em uso por outra conta).
+      return NextResponse.json({ mensagem: 'CPF ou e-mail já cadastrado em outra conta do sistema' }, { status: 409 })
     }
     if ((e as { code?: string }).code === '23503') {
       return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })

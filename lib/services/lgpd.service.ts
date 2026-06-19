@@ -120,7 +120,9 @@ export async function coletarDadosTitular(
          INNER JOIN alunos a ON a.id = ra.aluno_id
          LEFT JOIN turmas t ON t.id = a.turma_id
          LEFT JOIN escolas e ON e.id = a.escola_id
-        WHERE ra.responsavel_id = $1`,
+        WHERE ra.usuario_id = $1
+          AND ra.status = 'aprovado'
+          AND ra.ativo = TRUE`,
       [usuarioId]
     )
     dados.filhos = filhos.rows

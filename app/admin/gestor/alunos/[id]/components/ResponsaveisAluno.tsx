@@ -129,7 +129,7 @@ export function ResponsaveisAluno({ alunoId }: { alunoId: string }) {
         <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           Responsáveis
-          <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400">(cadastro estruturado)</span>
+          <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400">(acesso ao portal)</span>
         </h3>
         {podeEditar && !mostrarForm && (
           <button
@@ -147,7 +147,7 @@ export function ResponsaveisAluno({ alunoId }: { alunoId: string }) {
         </div>
       ) : lista.length === 0 ? (
         <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
-          Nenhum responsável estruturado vinculado. {podeEditar && 'Use "Adicionar" para cadastrar.'}
+          Nenhum responsável vinculado. {podeEditar && 'Use "Adicionar" para cadastrar.'}
         </p>
       ) : (
         <ul className="space-y-2">
@@ -164,11 +164,9 @@ export function ResponsaveisAluno({ alunoId }: { alunoId: string }) {
                       <Star className="w-2.5 h-2.5 fill-current" /> Principal
                     </span>
                   )}
-                  {r.usuario_id && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                      Portal
-                    </span>
-                  )}
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                    Portal
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-xs text-gray-500 dark:text-gray-400">
                   {r.cpf && <span className="inline-flex items-center gap-1"><Fingerprint className="w-3 h-3" /> {r.cpf}</span>}
@@ -266,7 +264,7 @@ export function ResponsaveisAluno({ alunoId }: { alunoId: string }) {
       )}
 
       <p className="mt-3 text-[10px] text-gray-400 dark:text-gray-500">
-        Cadastro estruturado de responsáveis (independente dos campos de texto e do acesso ao portal).
+        Ao vincular um responsável, uma conta de acesso ao portal é criada automaticamente caso ainda não exista.
       </p>
     </div>
   )

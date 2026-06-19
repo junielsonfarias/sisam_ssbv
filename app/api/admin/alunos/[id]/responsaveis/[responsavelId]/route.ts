@@ -1,9 +1,10 @@
 /**
  * /api/admin/alunos/[id]/responsaveis/[responsavelId]
  *
- * PATCH  — atualiza dados do responsável + parentesco/principal do vínculo.
- * DELETE — remove o vínculo (e a entidade se ficar órfã). (Fase 3.1)
+ * PATCH  — atualiza dados do responsável (usuarios) + parentesco/principal do vínculo.
+ * DELETE — remove o vínculo (NÃO apaga a conta de usuário). (Lote 3.2)
  *
+ * Modelo unificado: o segmento [responsavelId] é o `usuario_id`.
  * Permissão: administrador / tecnico / escola (escola apenas alunos da sua escola).
  */
 
@@ -61,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     return NextResponse.json({ mensagem: 'Responsável atualizado' })
   } catch (e) {
     if ((e as { code?: string }).code === '23505') {
-      return NextResponse.json({ mensagem: 'CPF já cadastrado para outro responsável' }, { status: 409 })
+      return NextResponse.json({ mensagem: 'CPF ou e-mail já cadastrado em outra conta do sistema' }, { status: 409 })
     }
     throw e
   }
