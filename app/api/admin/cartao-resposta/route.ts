@@ -47,7 +47,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
   const serie = turmaRes.rows[0]?.serie
   if (serie) {
     const configRes = await pool.query(
-      `SELECT total_questoes FROM config_series WHERE serie = $1 LIMIT 1`,
+      `SELECT total_questoes_objetivas AS total_questoes FROM configuracao_series WHERE serie = $1 LIMIT 1`,
       [serie]
     )
     if (configRes.rows.length > 0 && configRes.rows[0].total_questoes) {

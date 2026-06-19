@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { buscarEmbeddings } from '@/lib/services/facial.service'
-import { withRedisCache } from '@/lib/cache/redis'
+import { withRedisCache, cacheKey } from '@/lib/cache/redis'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,8 +30,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
-    const cacheKey = `facial:embeddings:${escola_id}:${anoLetivo}${turma_id ? `:${turma_id}` : ''}`
-    const result = await withRedisCache(cacheKey, 300, () =>
+    // cacheKey() prefixa `sisam:` — sem isso a chave crua não era alcançada
+    // pelo cacheDelPattern('facial:embeddings:...') do enrollment (embeddings
+    // estale no terminal por 300s após cadastrar/remover rosto).
+    const chave = cacheKey('facial', 'embeddings', escola_id, anoLetivo, turma_id || undefined)
+    const result = await withRedisCache(chave, 300, () =>
       buscarEmbeddings(escola_id, anoLetivo, turma_id)
     )
 

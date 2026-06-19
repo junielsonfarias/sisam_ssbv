@@ -46,7 +46,7 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request: NextRe
           COUNT(DISTINCT pt.professor_id) as total_professores
         FROM escolas e
         LEFT JOIN turmas t ON t.escola_id = e.id AND t.ano_letivo = $1
-        LEFT JOIN professor_turma pt ON pt.turma_id = t.id
+        LEFT JOIN professor_turmas pt ON pt.turma_id = t.id
         WHERE e.ativo = true
         GROUP BY e.id`,
         [ano_letivo]

@@ -153,7 +153,7 @@ export default function AlunosEscolaPage() {
   // Carregar todas as turmas (para o modal)
   useEffect(() => {
     if (escolaId) {
-      fetch(`/api/admin/turmas?escolas_ids=${escolaId}`)
+      fetch(`/api/admin/turmas?escolas_ids=${escolaId}&mode=listagem`)
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => setTodasTurmas(Array.isArray(data) ? data : []))
         .catch(() => setTodasTurmas([]))
@@ -167,6 +167,7 @@ export default function AlunosEscolaPage() {
       params.append('escolas_ids', escolaId)
       params.append('serie', filtroSerie)
       if (filtroAno) params.append('ano_letivo', filtroAno)
+      params.append('mode', 'listagem')
       const response = await fetch(`/api/admin/turmas?${params}`)
       const data = await response.json()
       setTurmas(Array.isArray(data) ? data : [])

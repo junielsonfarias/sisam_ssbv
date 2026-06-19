@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
-import { withRedisCache } from '@/lib/cache/redis'
+import { withRedisCache, cacheKey } from '@/lib/cache/redis'
 import { CACHE_TTL } from '@/lib/constants'
 
 const log = createLogger('DashboardGestor')
@@ -289,10 +289,11 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       }
     }
 
-    // Cache key baseada nos parâmetros (escola + ano)
-    const cacheKey = `dashboard-gestor:${escolaId || 'all'}:${anoLetivo}`
+    // Cache key via cacheKey() para que ganhe o prefixo `sisam:` e seja
+    // alcançada pelo cacheDelPattern('dashboard-gestor:*') na invalidação.
+    const chave = cacheKey('dashboard-gestor', escolaId || 'all', anoLetivo)
 
-    const dados = await withRedisCache(cacheKey, CACHE_TTL.DASHBOARD, async () => {
+    const dados = await withRedisCache(chave, CACHE_TTL.DASHBOARD, async () => {
       // Executar todas as queries em paralelo (cada uma tolerante a falha)
       const [
         alunosResult,
