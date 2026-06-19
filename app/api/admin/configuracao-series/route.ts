@@ -6,7 +6,7 @@ import {
   parseSearchParams, createWhereBuilder, addCondition, addRawCondition, buildConditionsString,
 } from '@/lib/api-helpers'
 import { validateRequest, configuracaoSeriePostSchema } from '@/lib/schemas'
-import { withRedisCache, cacheKey } from '@/lib/cache'
+import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
 
@@ -179,6 +179,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
 
     // Limpar cache após atualização
     limparCacheConfigSeries()
+    try { await cacheDelPattern('config-series:*') } catch {}
 
     return NextResponse.json({
       mensagem: 'Configuração atualizada com sucesso',
@@ -270,6 +271,7 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     // Limpar cache após exclusão
     limparCacheConfigSeries()
+    try { await cacheDelPattern('config-series:*') } catch {}
 
     return NextResponse.json({
       mensagem: 'Série excluída com sucesso',
@@ -350,6 +352,7 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
 
     // Limpar cache após criação
     limparCacheConfigSeries()
+    try { await cacheDelPattern('config-series:*') } catch {}
 
     return NextResponse.json({
       mensagem: 'Série criada com sucesso',
