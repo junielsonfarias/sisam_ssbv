@@ -273,7 +273,7 @@ export async function PUT(
 
     try { await cacheDelPattern('alunos:*') } catch {}
     try { await cacheDelPattern('dashboard:*') } catch {}
-    try { await cacheDelPattern('estatisticas:*') } catch {}
+    try { await cacheDelPattern('stats:*') } catch {}
 
     return NextResponse.json({ mensagem: 'Aluno atualizado com sucesso' })
   } catch (error: unknown) {

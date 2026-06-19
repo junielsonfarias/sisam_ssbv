@@ -42,7 +42,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     try { await cacheDelPattern('alunos:*') } catch {}
     try { await cacheDelPattern('turmas:*') } catch {}
     try { await cacheDelPattern('dashboard:*') } catch {}
-    try { await cacheDelPattern('estatisticas:*') } catch {}
+    try { await cacheDelPattern('stats:*') } catch {}
 
     return NextResponse.json({
       mensagem: `${resultados.matriculados} aluno(s) matriculado(s) com sucesso${resultados.criados > 0 ? ` (${resultados.criados} novo(s))` : ''}`,
