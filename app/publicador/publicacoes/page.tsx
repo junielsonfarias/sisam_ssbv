@@ -75,7 +75,7 @@ function GestaoPublicacoes() {
   const fetchPublicacoes = useCallback(async () => {
     try {
       setCarregando(true)
-      const params = new URLSearchParams({ page: String(pagina), limit: '20' })
+      const params = new URLSearchParams({ pagina: String(pagina), limite: '20' })
       if (filtroTipo) params.set('tipo', filtroTipo)
       if (filtroOrgao) params.set('orgao', filtroOrgao)
       if (filtroAno) params.set('ano', filtroAno)

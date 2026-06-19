@@ -76,9 +76,21 @@ export async function GET(request: NextRequest) {
             ...conteudoMapeado,
           }
         } else if (s.secao === 'news') {
+          // Itens podem vir de `itens` (editor) ou `items` (admin); cada item
+          // é gravado em PT (titulo/resumo/data/...). Normalizamos para o shape
+          // que o componente SiteNews consome (title/excerpt/date/image).
+          const rawNews = c.itens || c.items || c.noticias || c.news || []
           conteudoMapeado = {
             title: c.titulo || c.title,
-            news: c.items || c.noticias || c.news,
+            subtitle: c.descricao || c.subtitulo || c.subtitle,
+            news: (Array.isArray(rawNews) ? rawNews : []).map((it: any) => ({
+              title: it.titulo ?? it.title ?? '',
+              excerpt: it.resumo ?? it.excerpt ?? it.descricao ?? '',
+              date: it.data ?? it.date ?? null,
+              content: it.conteudo ?? it.content ?? '',
+              image: it.imagem_url ?? it.image ?? null,
+              link: it.link ?? null,
+            })),
             ...conteudoMapeado,
           }
         } else if (s.secao === 'contact') {
