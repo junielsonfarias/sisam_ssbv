@@ -84,8 +84,16 @@ export const PUT = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
     return NextResponse.json(result)
 
   } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes('não encontrado')) {
-      return NextResponse.json({ mensagem: 'Registro não encontrado na fila' }, { status: 404 })
+    if (error instanceof Error) {
+      if (error.message.includes('não encontrado')) {
+        return NextResponse.json({ mensagem: 'Registro não encontrado na fila' }, { status: 404 })
+      }
+      if (error.message === 'Turma não encontrada') {
+        return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+      }
+      if (error.message.includes('sem vagas disponíveis')) {
+        return NextResponse.json({ mensagem: error.message }, { status: 400 })
+      }
     }
     log.error('Erro ao atualizar fila', error)
     return NextResponse.json({ mensagem: 'Erro interno' }, { status: 500 })

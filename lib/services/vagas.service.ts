@@ -226,6 +226,30 @@ export async function atualizarStatusFila(
 
     // Se matriculado, vincular aluno à turma automaticamente
     if (status === 'matriculado') {
+      // Capacity-check DENTRO da transacao com SELECT FOR UPDATE: evita race de
+      // duas confirmacoes concorrentes matricularem alem da capacidade (mesmo
+      // padrao de matriculas.service.matricularAlunosBatch). O throw faz rollback.
+      const turmaLock = await client.query(
+        `SELECT capacidade_maxima FROM turmas WHERE id = $1 FOR UPDATE`,
+        [item.turma_id]
+      )
+      if (turmaLock.rows.length === 0) {
+        throw new Error('Turma não encontrada')
+      }
+      const capacidade = turmaLock.rows[0].capacidade_maxima as number | null
+      if (capacidade && capacidade > 0) {
+        const ocupacao = await client.query(
+          `SELECT COUNT(*)::int AS total
+             FROM alunos
+            WHERE turma_id = $1 AND situacao = 'cursando' AND ativo = true`,
+          [item.turma_id]
+        )
+        const ocupados = ocupacao.rows[0].total as number
+        if (capacidade - ocupados <= 0) {
+          throw new Error(`Turma sem vagas disponíveis (${ocupados}/${capacidade})`)
+        }
+      }
+
       await client.query(
         `UPDATE alunos
          SET turma_id = $1, escola_id = $2, serie = $3, ano_letivo = $4,

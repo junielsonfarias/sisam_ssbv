@@ -10,7 +10,7 @@ import {
   DadosMatricula, ResultadoMatricula, DadosAluno, DadosAlunoExistente, DadosNovoAluno,
   ResultadoMatriculaBatch, MatriculaError, isAlunoExistente,
 } from './types'
-import { verificarCapacidadeTurma, verificarAnoLetivoAtivo } from './consultas'
+import { verificarAnoLetivoAtivo } from './consultas'
 
 // ============================================================================
 // Operações de matrícula (single + batch)
@@ -26,16 +26,37 @@ export async function matricularAluno(
 ): Promise<ResultadoMatricula> {
   const { alunoId, turmaId, escolaId, serie, anoLetivo } = dados
 
-  // Verificar capacidade
-  const capacidade = await verificarCapacidadeTurma(turmaId)
-  if (capacidade.capacidade > 0 && capacidade.disponivel <= 0) {
-    return {
-      sucesso: false,
-      mensagem: `Turma sem vagas disponíveis (${capacidade.matriculados}/${capacidade.capacidade})`,
-    }
-  }
+  let semVagas: ResultadoMatricula | null = null
 
   await withTransaction(async (client: PoolClient) => {
+    // Capacity-check DENTRO da transacao com SELECT FOR UPDATE evita race entre
+    // confirmacoes concorrentes (mesmo padrao de matricularAlunosBatch).
+    const turmaLock = await client.query(
+      `SELECT capacidade_maxima FROM turmas WHERE id = $1 FOR UPDATE`,
+      [turmaId]
+    )
+    if (turmaLock.rows.length === 0) {
+      semVagas = { sucesso: false, mensagem: 'Turma não encontrada' }
+      return
+    }
+    const capacidade = turmaLock.rows[0].capacidade_maxima as number | null
+    if (capacidade && capacidade > 0) {
+      const ocupacao = await client.query(
+        `SELECT COUNT(*)::int AS total
+           FROM alunos
+          WHERE turma_id = $1 AND situacao = 'cursando' AND ativo = true`,
+        [turmaId]
+      )
+      const ocupados = ocupacao.rows[0].total as number
+      if (capacidade - ocupados <= 0) {
+        semVagas = {
+          sucesso: false,
+          mensagem: `Turma sem vagas disponíveis (${ocupados}/${capacidade})`,
+        }
+        return
+      }
+    }
+
     await client.query(
       `UPDATE alunos
        SET turma_id = $1, escola_id = $2, serie = $3, ano_letivo = $4,
@@ -44,6 +65,8 @@ export async function matricularAluno(
       [turmaId, escolaId, serie, anoLetivo, alunoId]
     )
   })
+
+  if (semVagas) return semVagas
 
   return { sucesso: true, mensagem: 'Aluno matriculado com sucesso' }
 }
