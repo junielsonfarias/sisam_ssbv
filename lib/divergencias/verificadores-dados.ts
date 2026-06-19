@@ -8,6 +8,7 @@ import {
   CONFIGURACOES_DIVERGENCIAS
 } from './tipos'
 import { carregarConfigSeries, extrairNumeroSerie } from './verificadores-helpers'
+import { getMediaGeralSQL } from '@/lib/sql/media-geral'
 
 /**
  * Verifica alunos duplicados:
@@ -247,11 +248,12 @@ export async function verificarResultadosOrfaos(): Promise<Divergencia | null> {
 }
 
 /**
- * Verifica médias calculadas incorretamente
- * USA A MESMA LÓGICA DO PAINEL DE DADOS E RESULTADOS CONSOLIDADOS:
- * - Anos Iniciais (2º, 3º, 5º): (LP + MAT + PROD) / quantidade de notas > 0
- * - Anos Finais (8º, 9º): (LP + CH + MAT + CN) / quantidade de notas > 0
- * IMPORTANTE: Só conta a nota se nota > 0 (não apenas != null)
+ * Verifica médias calculadas incorretamente.
+ * USA A MESMA FÓRMULA CANÔNICA DO PAINEL (lib/sql/media-geral), divisor FIXO:
+ * - Anos Iniciais (2º, 3º, 5º): (LP + MAT + PROD) / 3
+ * - Anos Finais (demais): (LP + CH + MAT + CN) / 4
+ * Notas ausentes contam como 0 (COALESCE). Assim o verificador e o corretor
+ * ficam consistentes com o media_aluno gravado pelo painel.
  */
 export async function verificarMediasInconsistentes(): Promise<Divergencia | null> {
   try {
@@ -269,43 +271,11 @@ export async function verificarMediasInconsistentes(): Promise<Divergencia | nul
           WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN 'anos_iniciais'
           ELSE 'anos_finais'
         END as tipo_calculo,
-        -- Média calculada dinamicamente (MESMA LÓGICA DO PAINEL DE DADOS)
-        CASE
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            -- Anos iniciais: media de LP, MAT e PROD (se nota > 0)
-            ROUND(
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
-              2
-            )
-          ELSE
-            -- Anos finais: media de LP, CH, MAT, CN
-            ROUND(
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
-              2
-            )
-        END as media_calculada
+        -- Média calculada com a fórmula CANÔNICA (lib/sql/media-geral): divisor
+        -- FIXO /3 (anos iniciais) e /4 (anos finais), idêntica ao painel. Antes
+        -- usava divisor variável (nº de notas > 0) e acusava divergência falsa
+        -- contra o media_aluno gravado pelo painel quando havia disciplina nula.
+        ROUND(${getMediaGeralSQL('rc')}, 2) as media_calculada
       FROM resultados_consolidados rc
       LEFT JOIN alunos a ON rc.aluno_id = a.id
       LEFT JOIN escolas e ON rc.escola_id = e.id

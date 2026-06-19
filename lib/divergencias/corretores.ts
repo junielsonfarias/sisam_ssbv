@@ -8,6 +8,7 @@ import {
   ResultadoCorrecao,
   CONFIGURACOES_DIVERGENCIAS
 } from './tipos'
+import { getMediaGeralSQL, getMediaAnosIniciaisSQL } from '@/lib/sql/media-geral'
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -134,43 +135,11 @@ export async function corrigirMediasInconsistentes(
         rc.nota_producao,
         rc.media_aluno as media_atual,
         REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') as numero_serie,
-        -- Média calculada dinamicamente (MESMA LÓGICA DO PAINEL DE DADOS)
-        CASE
-          WHEN REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5') THEN
-            -- Anos iniciais: media de LP, MAT e PROD (se nota > 0)
-            ROUND(
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
-              2
-            )
-          ELSE
-            -- Anos finais: media de LP, CH, MAT, CN
-            ROUND(
-              (
-                COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_ch AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-                COALESCE(CAST(rc.nota_cn AS DECIMAL), 0)
-              ) /
-              NULLIF(
-                CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_ch IS NOT NULL AND CAST(rc.nota_ch AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-                CASE WHEN rc.nota_cn IS NOT NULL AND CAST(rc.nota_cn AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-                0
-              ),
-              2
-            )
-        END as media_calculada
+        -- Média calculada com a fórmula CANÔNICA (lib/sql/media-geral): divisor
+        -- FIXO /3 (anos iniciais: LP+MAT+PROD) e /4 (anos finais: LP+CH+MAT+CN),
+        -- exatamente como o painel/dashboard. Antes usava divisor variável (nº de
+        -- notas > 0), o que divergia do painel quando havia disciplina nula/zero.
+        ROUND(${getMediaGeralSQL('rc')}, 2) as media_calculada
       FROM resultados_consolidados rc
       WHERE rc.presenca = 'P'
         AND rc.media_aluno IS NOT NULL
@@ -252,21 +221,9 @@ export async function corrigirNivelAprendizagemErrado(
         rc.nivel_aprendizagem as nivel_atual,
         rc.nivel_aprendizagem_id,
         REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') as numero_serie,
-        -- Média calculada dinamicamente (MESMA LÓGICA DO PAINEL DE DADOS)
-        ROUND(
-          (
-            COALESCE(CAST(rc.nota_lp AS DECIMAL), 0) +
-            COALESCE(CAST(rc.nota_mat AS DECIMAL), 0) +
-            COALESCE(CAST(rc.nota_producao AS DECIMAL), 0)
-          ) /
-          NULLIF(
-            CASE WHEN rc.nota_lp IS NOT NULL AND CAST(rc.nota_lp AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-            CASE WHEN rc.nota_mat IS NOT NULL AND CAST(rc.nota_mat AS DECIMAL) > 0 THEN 1 ELSE 0 END +
-            CASE WHEN rc.nota_producao IS NOT NULL AND CAST(rc.nota_producao AS DECIMAL) > 0 THEN 1 ELSE 0 END,
-            0
-          ),
-          2
-        ) as media_calculada
+        -- Média calculada com a fórmula CANÔNICA (divisor FIXO /3), igual ao
+        -- painel. Esta query é restrita a anos iniciais (2/3/5) pelo WHERE.
+        ROUND(${getMediaAnosIniciaisSQL('rc')}, 2) as media_calculada
       FROM resultados_consolidados rc
       WHERE rc.presenca = 'P'
         AND REGEXP_REPLACE(rc.serie::text, '[^0-9]', '', 'g') IN ('2', '3', '5')
