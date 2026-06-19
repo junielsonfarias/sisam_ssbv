@@ -3,6 +3,7 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('EditorNoticias')
@@ -26,7 +27,9 @@ export const GET = withAuth(['administrador', 'tecnico', 'editor'], async (reque
   return NextResponse.json({
     titulo: conteudo.titulo || 'Notícias',
     descricao: conteudo.descricao || '',
-    noticias: conteudo.itens || [],
+    // Chave canonica e `items` (mesma do CMS admin TabNoticias e da secao
+    // 'services'); `itens` aceito como legado de versoes antigas do editor.
+    noticias: conteudo.items || conteudo.itens || [],
   })
 })
 
@@ -56,7 +59,11 @@ export const PUT = withAuth(['administrador', 'tecnico', 'editor'], async (reque
   const conteudo = {
     titulo: titulo || 'Notícias e Eventos',
     descricao: descricao || 'Fique por dentro das últimas novidades da educação municipal.',
-    itens: noticias.map((n: any) => ({
+    // Grava sob `items` (chave unica do CMS admin + public reader). Antes
+    // gravava `itens`, divergindo do admin: ambos escreviam na mesma linha
+    // secao='news' com UPSERT que substitui o conteudo inteiro, entao um
+    // sobrescrevia o outro e cada CMS nao via os dados do outro.
+    items: noticias.map((n: any) => ({
       titulo: n.titulo?.trim(),
       resumo: n.resumo?.trim() || '',
       conteudo: n.conteudo?.trim() || '',
@@ -76,6 +83,10 @@ export const PUT = withAuth(['administrador', 'tecnico', 'editor'], async (reque
        atualizado_em = NOW()`,
     [JSON.stringify(conteudo), usuario.id]
   )
+
+  // Invalidar cache do site-config publico (o admin PUT ja fazia; aqui faltava,
+  // entao o site mostrava noticias antigas ate o TTL apos o editor salvar).
+  try { await cacheDelPattern('site-config:*') } catch {}
 
   log.info('Notícias atualizadas', { email: usuario.email, tipo: usuario.tipo_usuario, total: noticias.length })
 
