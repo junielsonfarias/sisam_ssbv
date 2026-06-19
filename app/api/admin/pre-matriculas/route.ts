@@ -19,7 +19,7 @@ const updateSchema = z.object({
 /**
  * GET /api/admin/pre-matriculas — Lista com filtros, KPIs, paginação
  */
-export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request) => {
+export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const escola_id = searchParams.get('escola_id')
@@ -64,8 +64,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
   }
 
   // Escola vê somente as suas pré-matrículas
-  const usuario = (request as any).usuario
-  if (usuario?.tipo_usuario === 'escola' && usuario?.escola_id) {
+  if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
     conditions.push(`pm.escola_pretendida_id = $${paramIndex}`)
     params.push(usuario.escola_id)
     paramIndex++
@@ -109,7 +108,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 /**
  * PUT /api/admin/pre-matriculas — Atualizar status
  */
-export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (request) => {
+export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
   try {
     const body = await request.json()
     const parsed = updateSchema.safeParse(body)
@@ -118,19 +117,26 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     }
 
     const { id, status, motivo_rejeicao, observacoes } = parsed.data
-    const usuario = (request as any).usuario
 
     if (status === 'rejeitada' && !motivo_rejeicao) {
       return NextResponse.json({ mensagem: 'Informe o motivo da rejeição.' }, { status: 400 })
+    }
+
+    // Escola só pode atualizar pré-matrículas da própria escola
+    const params: any[] = [status, motivo_rejeicao || null, observacoes || null, usuario.id, id]
+    let escopoEscola = ''
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      escopoEscola = ' AND escola_pretendida_id = $6'
+      params.push(usuario.escola_id)
     }
 
     const result = await pool.query(
       `UPDATE pre_matriculas
        SET status = $1, motivo_rejeicao = $2, observacoes = $3,
            analisado_por = $4, analisado_em = NOW(), atualizado_em = NOW()
-       WHERE id = $5
+       WHERE id = $5${escopoEscola}
        RETURNING *`,
-      [status, motivo_rejeicao || null, observacoes || null, usuario?.id, id]
+      params
     )
 
     if (result.rows.length === 0) {

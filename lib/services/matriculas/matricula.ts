@@ -3,6 +3,8 @@ import { withSavepoint } from '@/lib/database/with-savepoint'
 import { criarGeradorCodigoAlunoTx } from '@/lib/gerar-codigo-aluno'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
+import { podeAcessarEscolaSync } from '@/lib/auth'
+import type { Usuario } from '@/lib/types'
 import { PoolClient } from 'pg'
 import {
   DadosMatricula, ResultadoMatricula, DadosAluno, DadosAlunoExistente, DadosNovoAluno,
@@ -61,8 +63,10 @@ export async function matricularAlunosBatch(params: {
   anoLetivo: string
   alunos: DadosAluno[]
   usuarioId: string
+  /** Usuário autenticado — usado para impedir IDOR de escrita (mover aluno de outra escola/polo). */
+  usuario?: Usuario
 }): Promise<ResultadoMatriculaBatch> {
-  const { escolaId, turmaId, serie, anoLetivo, alunos, usuarioId } = params
+  const { escolaId, turmaId, serie, anoLetivo, alunos, usuarioId, usuario } = params
 
   const resultados: ResultadoMatriculaBatch = {
     matriculados: 0,
@@ -120,7 +124,7 @@ export async function matricularAlunosBatch(params: {
         await withSavepoint(client, async () => {
           if (isAlunoExistente(aluno)) {
             await processarAlunoExistente(client, {
-              aluno, turmaId, escolaId, serie, anoLetivo, usuarioId, resultados,
+              aluno, turmaId, escolaId, serie, anoLetivo, usuarioId, resultados, usuario,
             })
           } else {
             await processarNovoAluno(client, {
@@ -157,9 +161,32 @@ async function processarAlunoExistente(
     anoLetivo: string
     usuarioId: string
     resultados: ResultadoMatriculaBatch
+    usuario?: Usuario
   }
 ): Promise<void> {
-  const { aluno, turmaId, escolaId, serie, anoLetivo, usuarioId, resultados } = ctx
+  const { aluno, turmaId, escolaId, serie, anoLetivo, usuarioId, resultados, usuario } = ctx
+
+  // Buscar situacao + escola ATUAL do aluno (e o polo da escola) — usado tanto
+  // para a regra de transferencia quanto para o controle de escopo (anti-IDOR).
+  const alunoAtual = await client.query(
+    `SELECT a.situacao, a.escola_id, e.polo_id
+       FROM alunos a
+       LEFT JOIN escolas e ON e.id = a.escola_id
+      WHERE a.id = $1`,
+    [aluno.id]
+  )
+
+  // Controle de escopo (anti-IDOR de escrita): um usuario de escola/polo NAO
+  // pode "sequestrar" um aluno de outra escola para a sua, mesmo enviando seu
+  // proprio escola_id no payload. Admin/tecnico nao sofrem restricao.
+  if (usuario && alunoAtual.rows.length > 0) {
+    const escolaAtualId = alunoAtual.rows[0].escola_id as string | null
+    const poloAtualId = alunoAtual.rows[0].polo_id as string | null
+    if (escolaAtualId && !podeAcessarEscolaSync(usuario, escolaAtualId, poloAtualId)) {
+      resultados.erros.push(`Aluno ${aluno.nome}: fora do seu escopo de acesso`)
+      return
+    }
+  }
 
   // Verificar se aluno ja esta em outra turma no mesmo ano
   const conflito = await client.query(
@@ -174,10 +201,6 @@ async function processarAlunoExistente(
   }
 
   // Verificar se aluno esta transferido e validar data
-  const alunoAtual = await client.query(
-    'SELECT situacao FROM alunos WHERE id = $1',
-    [aluno.id]
-  )
   if (alunoAtual.rows.length > 0 && alunoAtual.rows[0].situacao === 'transferido') {
     const ultimaTransf = await client.query(
       `SELECT data FROM historico_situacao

@@ -31,6 +31,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
         anoLetivo: ano_letivo,
         alunos,
         usuarioId: usuario.id,
+        usuario,
       })
     } catch (err: unknown) {
       if (err instanceof MatriculaError) {
