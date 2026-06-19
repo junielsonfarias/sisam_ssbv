@@ -5,6 +5,7 @@ import pool from '@/database/connection'
 import { parseSearchParams } from '@/lib/api-helpers'
 import { cacheDelPattern } from '@/lib/cache'
 import { validateRequest, conselhoClassePostSchema } from '@/lib/schemas'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('AdminConselhoClasse')
@@ -132,6 +133,16 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
 
       try { await cacheDelPattern('conselho:*') } catch {}
       try { await cacheDelPattern('boletim:*') } catch {}
+
+      // Auditoria SEMED — conselho decide aprovação/reprovação dos alunos.
+      // Não grava os pareceres individuais (decisão sensível), só metadados.
+      await registrarAuditoria({
+        usuarioId: usuario.id,
+        acao: 'CONSELHO_REGISTRAR_PARECERES',
+        entidade: 'conselho_classe',
+        entidadeId: conselhoId,
+        detalhes: { turma_id, periodo_id, ano_letivo, qtd_pareceres: salvos },
+      })
 
       return NextResponse.json({
         mensagem: `Conselho de classe salvo com ${salvos} parecer(es)`,

@@ -13,6 +13,7 @@ import {
   registrarAtendimentoDiario,
   resumoMensalAtendimentos,
 } from '@/lib/services/pnae.service'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,5 +63,20 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'seme
     ...parsed.data,
     registrado_por: usuario.id,
   })
+
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    acao: 'PNAE_REGISTRAR_ATENDIMENTO',
+    entidade: 'pnae_atendimentos',
+    entidadeId: id,
+    detalhes: {
+      escola_id: parsed.data.escola_id,
+      data_atendimento: parsed.data.data_atendimento,
+      faixa_etaria: parsed.data.faixa_etaria,
+      tipo_refeicao: parsed.data.tipo_refeicao,
+      qtd_alunos: parsed.data.qtd_alunos,
+    },
+  })
+
   return NextResponse.json({ id, mensagem: 'Atendimento registrado' }, { status: 201 })
 })

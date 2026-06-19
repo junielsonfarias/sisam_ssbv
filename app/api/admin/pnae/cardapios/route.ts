@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
 import { z } from 'zod'
 import { buscarCardapioSemana, criarCardapio, publicarCardapio } from '@/lib/services/pnae.service'
+import { registrarAuditoria } from '@/lib/services/auditoria.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,7 +56,7 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola', 'respon
   return NextResponse.json({ cardapio })
 })
 
-export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
+export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const body = await request.json().catch(() => null)
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) {
@@ -67,6 +68,21 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'seme
 
   const id = await criarCardapio(parsed.data)
   if (parsed.data.publicar) await publicarCardapio(id)
+
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    acao: 'PNAE_CRIAR_CARDAPIO',
+    entidade: 'pnae_cardapios',
+    entidadeId: id,
+    detalhes: {
+      escola_id: parsed.data.escola_id,
+      semana_inicio: parsed.data.semana_inicio,
+      semana_fim: parsed.data.semana_fim,
+      faixa_etaria: parsed.data.faixa_etaria,
+      qtd_refeicoes: parsed.data.refeicoes.length,
+      publicado: !!parsed.data.publicar,
+    },
+  })
 
   return NextResponse.json({ id, mensagem: 'Cardápio criado' }, { status: 201 })
 })

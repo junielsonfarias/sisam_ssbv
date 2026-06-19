@@ -80,8 +80,9 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'seme
 
   const id = await cadastrarOuAtualizarAlunoAee(parsed.data)
 
-  // Auditoria LGPD art. 11 — dados sensíveis de saúde/educação especial
-  // CID e laudo NÃO são gravados em detalhes (apenas se há laudo, sem conteúdo)
+  // Auditoria LGPD art. 11 — dados sensíveis de saúde/educação especial.
+  // CID, laudo e os TIPOS de deficiência NÃO vão para detalhes (categoria de
+  // saúde é dado sensível); registra-se apenas a contagem, sem o conteúdo.
   await registrarAuditoria({
     usuarioId: usuario.id,
     acao: 'AEE_CADASTRAR_ALUNO_PNE',
@@ -89,7 +90,7 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'seme
     entidadeId: id,
     detalhes: {
       aluno_id: parsed.data.aluno_id,
-      tipos_deficiencia: parsed.data.tipos_deficiencia,
+      qtd_tipos_deficiencia: (parsed.data.tipos_deficiencia || []).length,
       tem_laudo: !!parsed.data.laudo_medico,
       necessita_cuidador: !!parsed.data.necessita_cuidador,
       necessita_interprete: !!parsed.data.necessita_interprete,
