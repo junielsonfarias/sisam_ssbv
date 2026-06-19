@@ -12,6 +12,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
+import { podeAcessarEscola } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { registrarAuditoria } from '@/lib/services/auditoria.service'
@@ -44,7 +45,7 @@ const editarSchema = z.object({
   carga_horaria: z.number().min(0).max(24).optional(),
 })
 
-export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request) => {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   const { searchParams } = new URL(request.url)
 
   const conds: string[] = []
@@ -61,6 +62,11 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   if (escola === 'geral') {
     conds.push(`e.escola_id IS NULL`)
   } else if (escola) {
+    // IDOR: escola/polo não podem listar eventos específicos de escola fora do
+    // seu escopo. Admin/técnico passam; demais precisam de pertencimento.
+    if (!(await podeAcessarEscola(usuario, escola))) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
     params.push(escola); conds.push(`(e.escola_id = $${i++} OR e.escola_id IS NULL)`)
   }
 

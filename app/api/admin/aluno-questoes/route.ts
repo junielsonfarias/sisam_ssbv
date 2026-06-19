@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
+import { podeAcessarAluno } from '@/lib/auth'
 import { buscarAlunoQuestoes } from '@/lib/services/alunoQuestoes.service'
 import { createLogger } from '@/lib/logger'
 
@@ -21,6 +22,13 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola', 'polo'], asyn
 
     if (!alunoId) {
       return NextResponse.json({ mensagem: 'ID do aluno é obrigatório' }, { status: 400 })
+    }
+
+    // IDOR: escola/polo só acessam questões (PII pedagógica) de alunos do seu
+    // escopo. Resolve a escola do aluno e valida pertencimento. Aluno fora do
+    // escopo → 404 (não revelar existência).
+    if (!(await podeAcessarAluno(usuario, alunoId))) {
+      return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
     }
 
     const result = await buscarAlunoQuestoes(alunoId, anoLetivo, limiteSeguranca)
