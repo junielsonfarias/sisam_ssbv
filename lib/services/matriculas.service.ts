@@ -26,11 +26,11 @@ export interface CapacidadeTurma {
 
 export interface DadosNovoAluno {
   nome: string
-  codigo?: string
+  codigo?: string | null
   cpf?: string | null
   data_nascimento?: string | null
   pcd?: boolean
-  serie_individual?: string
+  serie_individual?: string | null
 }
 
 export interface DadosAlunoExistente extends DadosNovoAluno {

@@ -154,10 +154,12 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     // 5. Transferências recentes
     // ============================================
     const transfParams: unknown[] = [anoLetivo]
+    // E3-A: atribuir o movimento à escola DONA (origem do movimento), não à
+    // escola atual do aluno. COALESCE com a.escola_id cobre dados legados.
     let transfWhere = `WHERE a.ano_letivo = $1 AND hs.tipo_movimentacao IS NOT NULL`
     if (escolaId) {
       transfParams.push(escolaId)
-      transfWhere += ` AND a.escola_id = $${transfParams.length}`
+      transfWhere += ` AND em.id = $${transfParams.length}`
     }
 
     const transfQuery = `
@@ -168,6 +170,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
         COUNT(*) FILTER (WHERE hs.tipo_transferencia = 'fora_municipio') as fora_municipio
       FROM historico_situacao hs
       INNER JOIN alunos a ON hs.aluno_id = a.id
+      INNER JOIN escolas em ON em.id = COALESCE(hs.escola_origem_id, a.escola_id)
       ${transfWhere}
     `
 

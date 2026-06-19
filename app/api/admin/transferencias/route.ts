@@ -18,12 +18,18 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     )
     const paginacao = parsePaginacao(searchParams, { limitePadrao: 50 })
 
+    // E3-A: atribuir o movimento à escola DONA, não à escola atual do aluno.
+    // Owning = origem do movimento: numa 'saida' é a escola_origem_id (origem da
+    // transferência); numa 'entrada' (rematrícula) a escola_origem_id guarda a
+    // própria escola de entrada. COALESCE com a.escola_id cobre dados legados.
+    // Antes a atribuição era por a.escola_id (escola ATUAL) — depois da
+    // rematrícula a saída migrava para o destino e o saldo nunca fechava.
     const where = createWhereBuilder()
     addRawCondition(where, 'hs.tipo_movimentacao IS NOT NULL')
     addCondition(where, 'hs.data', data_inicio, '>=')
     addCondition(where, 'hs.data', data_fim, '<=')
-    addCondition(where, 'a.escola_id', escola_id)
-    addCondition(where, 'e.polo_id', polo_id)
+    addCondition(where, 'em.id', escola_id)
+    addCondition(where, 'em.polo_id', polo_id)
 
     if (tipo_movimentacao && ['saida', 'entrada'].includes(tipo_movimentacao)) {
       addCondition(where, 'hs.tipo_movimentacao', tipo_movimentacao)
@@ -32,15 +38,15 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
       addCondition(where, 'hs.tipo_transferencia', tipo_transferencia)
     }
 
-    addAccessControl(where, usuario, { escolaIdField: 'a.escola_id', poloIdField: 'e.polo_id' })
+    addAccessControl(where, usuario, { escolaIdField: 'em.id', poloIdField: 'em.polo_id' })
 
     const whereClause = `WHERE ${buildConditionsString(where)}`
 
     const baseQuery = `
       FROM historico_situacao hs
       INNER JOIN alunos a ON hs.aluno_id = a.id
-      INNER JOIN escolas e ON a.escola_id = e.id
-      LEFT JOIN polos p ON e.polo_id = p.id
+      INNER JOIN escolas em ON em.id = COALESCE(hs.escola_origem_id, a.escola_id)
+      LEFT JOIN polos p ON em.polo_id = p.id
       LEFT JOIN escolas ed ON hs.escola_destino_id = ed.id
       LEFT JOIN escolas eo ON hs.escola_origem_id = eo.id
       ${whereClause}
@@ -52,7 +58,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
                hs.observacao, hs.situacao, hs.situacao_anterior,
                hs.escola_destino_nome, hs.escola_origem_nome,
                a.id as aluno_id, a.nome as aluno_nome, a.serie, a.ano_letivo,
-               e.nome as escola_nome, e.id as escola_id,
+               em.nome as escola_nome, em.id as escola_id,
                p.nome as polo_nome, p.id as polo_id,
                ed.nome as escola_destino_ref_nome,
                eo.nome as escola_origem_ref_nome

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { PoolClient } from 'pg'
 import { withAuth } from '@/lib/auth/with-auth'
-import pool from '@/database/connection'
+import { withTransaction } from '@/lib/database/with-transaction'
 import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches } from '@/lib/cache'
 import { validarArquivoUpload } from '@/lib/api-helpers'
@@ -10,6 +11,24 @@ const log = createLogger('ImportarCadastros')
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutos (limite Vercel)
+
+/**
+ * E2-B: executa `fn` dentro de um SAVEPOINT. Se falhar, faz ROLLBACK TO o
+ * savepoint e relança — assim uma linha ruim não aborta a transação inteira,
+ * preservando a tolerância "continua no próximo item" original mas mantendo a
+ * importação atômica (tudo-ou-nada) no nível do request.
+ */
+async function comSavepoint<T>(client: PoolClient, fn: () => Promise<T>): Promise<T> {
+  await client.query('SAVEPOINT sp_item')
+  try {
+    const r = await fn()
+    await client.query('RELEASE SAVEPOINT sp_item')
+    return r
+  } catch (e) {
+    await client.query('ROLLBACK TO SAVEPOINT sp_item')
+    throw e
+  }
+}
 
 export const POST = withAuth(['administrador', 'tecnico'], async (request: NextRequest, usuario) => {
   try {
@@ -61,19 +80,12 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
 
     if (!colPolo || !colEscola) {
       return NextResponse.json(
-        { 
+        {
           mensagem: 'Colunas POLO e ESCOLA são obrigatórias',
-          colunasDisponiveis 
+          colunasDisponiveis
         },
         { status: 400 }
       )
-    }
-
-    const resultado = {
-      polos: { criados: 0, existentes: 0, erros: [] as string[] },
-      escolas: { criados: 0, existentes: 0, erros: [] as string[] },
-      turmas: { criados: 0, existentes: 0, erros: [] as string[] },
-      alunos: { criados: 0, existentes: 0, erros: [] as string[] },
     }
 
     // Extrair valores únicos
@@ -99,198 +111,228 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       }
     })
 
-    // Pré-carregar polos existentes (elimina N+1)
-    const polosExistentes = await pool.query('SELECT id, nome, UPPER(TRIM(nome)) as nome_norm FROM polos')
-    const polosMap = new Map<string, string>()
-    for (const p of polosExistentes.rows) {
-      polosMap.set((p.nome_norm || p.nome).toUpperCase().trim(), p.id)
-    }
+    // E2-B: TODA a gravação roda numa única transação. Se o request falhar no
+    // meio (timeout, erro, conexão), nada é persistido (antes ficava cadastro
+    // parcial: alguns polos/escolas/turmas/alunos sim, outros não).
+    const { resultado, questoesCriadas } = await withTransaction(async (client) => {
+      const resultado = {
+        polos: { criados: 0, existentes: 0, erros: [] as string[] },
+        escolas: { criados: 0, existentes: 0, erros: [] as string[] },
+        turmas: { criados: 0, existentes: 0, erros: [] as string[] },
+        alunos: { criados: 0, existentes: 0, erros: [] as string[] },
+      }
 
-    // Criar Polos (com pré-cache)
-    for (const nomePolo of polosUnicos) {
-      try {
-        const nomeNorm = nomePolo.toUpperCase().trim()
-        if (polosMap.has(nomeNorm)) {
-          resultado.polos.existentes++
-        } else {
-          const novoResult = await pool.query(
-            'INSERT INTO polos (nome, codigo) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id',
-            [nomePolo, nomePolo.toUpperCase().replace(/\s+/g, '_')]
-          )
-          if (novoResult.rows.length > 0) {
-            polosMap.set(nomeNorm, novoResult.rows[0].id)
+      // Pré-carregar polos existentes (elimina N+1)
+      const polosExistentes = await client.query('SELECT id, nome, UPPER(TRIM(nome)) as nome_norm FROM polos')
+      const polosMap = new Map<string, string>()
+      for (const p of polosExistentes.rows) {
+        polosMap.set((p.nome_norm || p.nome).toUpperCase().trim(), p.id)
+      }
+
+      // Criar Polos (com pré-cache)
+      for (const nomePolo of polosUnicos) {
+        try {
+          const nomeNorm = nomePolo.toUpperCase().trim()
+          if (polosMap.has(nomeNorm)) {
+            resultado.polos.existentes++
+          } else {
+            const novoResult = await comSavepoint(client, () => client.query(
+              'INSERT INTO polos (nome, codigo) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id',
+              [nomePolo, nomePolo.toUpperCase().replace(/\s+/g, '_')]
+            ))
+            if (novoResult.rows.length > 0) {
+              polosMap.set(nomeNorm, novoResult.rows[0].id)
+            }
+            resultado.polos.criados++
           }
-          resultado.polos.criados++
-        }
-      } catch (error: unknown) {
-        resultado.polos.erros.push(`Polo "${nomePolo}": Erro ao processar`)
-      }
-    }
-
-    // Pré-carregar escolas existentes (elimina N+1)
-    const escolasExistentes = await pool.query('SELECT id, nome, polo_id FROM escolas WHERE ativo = true')
-    const escolasMap = new Map<string, string>() // nome escola -> id
-    for (const e of escolasExistentes.rows) {
-      const nomeNorm = e.nome.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
-      escolasMap.set(nomeNorm, e.id)
-    }
-
-    // Criar Escolas (com pré-cache de polos)
-    for (const [nomeEscola, nomePolo] of escolasUnicas) {
-      try {
-        const nomePoloNorm = nomePolo.toUpperCase().trim()
-        const poloId = polosMap.get(nomePoloNorm)
-
-        if (!poloId) {
-          resultado.escolas.erros.push(`Escola "${nomeEscola}": Polo "${nomePolo}" não encontrado`)
-          continue
-        }
-
-        const nomeEscolaNormalizado = nomeEscola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
-
-        if (escolasMap.has(nomeEscolaNormalizado)) {
-          resultado.escolas.existentes++
-        } else {
-          const codigoEscola = nomeEscolaNormalizado.replace(/\s+/g, '_').substring(0, 50)
-          const escolaResult = await pool.query(
-            'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
-            [nomeEscola.trim(), codigoEscola, poloId]
-          )
-          escolasMap.set(nomeEscolaNormalizado, escolaResult.rows[0].id)
-          // Também mapear pelo nome original
-          escolasMap.set(nomeEscola, escolaResult.rows[0].id)
-          resultado.escolas.criados++
-        }
-      } catch (error: unknown) {
-        resultado.escolas.erros.push(`Escola "${nomeEscola}": Erro ao processar`)
-      }
-    }
-
-    // Pré-carregar turmas existentes (elimina N+1)
-    const turmasExistentes = await pool.query(
-      'SELECT id, codigo, escola_id FROM turmas WHERE ano_letivo = $1',
-      [anoLetivo]
-    )
-    const turmasMap = new Map<string, string>() // "escola_id:codigo" -> id
-    for (const t of turmasExistentes.rows) {
-      turmasMap.set(`${t.escola_id}:${t.codigo}`, t.id)
-    }
-
-    // Criar Turmas (com pré-cache)
-    for (const [codigoTurma, { escola, serie }] of turmasUnicas) {
-      try {
-        const nomeEscolaNorm = escola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
-        const escolaId = escolasMap.get(nomeEscolaNorm) || escolasMap.get(escola)
-        if (!escolaId) {
-          resultado.turmas.erros.push(`Turma "${codigoTurma}": Escola "${escola}" não encontrada`)
-          continue
-        }
-
-        const chave = `${escolaId}:${codigoTurma}`
-        if (turmasMap.has(chave)) {
-          resultado.turmas.existentes++
-        } else {
-          const turmaResult = await pool.query(
-            'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo]
-          )
-          turmasMap.set(chave, turmaResult.rows[0].id)
-          resultado.turmas.criados++
-        }
-      } catch (error: unknown) {
-        resultado.turmas.erros.push(`Turma "${codigoTurma}": erro ao processar`)
-      }
-    }
-
-    // Pré-carregar alunos existentes (elimina N+1)
-    const alunosExistentes = await pool.query(
-      'SELECT id, UPPER(TRIM(nome)) as nome_upper, escola_id, turma_id FROM alunos WHERE ano_letivo = $1 AND ativo = true',
-      [anoLetivo]
-    )
-    const alunosExistentesMap = new Map<string, string>()
-    for (const a of alunosExistentes.rows) {
-      alunosExistentesMap.set(`${a.nome_upper}:${a.escola_id}:${a.turma_id || 'null'}`, a.id)
-    }
-
-    // Criar Alunos (com pré-cache)
-    const { gerarCodigoAluno } = await import('@/lib/gerar-codigo-aluno')
-    for (const [nomeAluno, { escola, turma, serie }] of alunosUnicos) {
-      try {
-        const nomeEscolaNorm = escola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
-        const escolaId = escolasMap.get(nomeEscolaNorm) || escolasMap.get(escola)
-        if (!escolaId) {
-          resultado.alunos.erros.push(`Aluno "${nomeAluno}": Escola "${escola}" não encontrada`)
-          continue
-        }
-
-        const turmaChave = turma ? `${escolaId}:${turma}` : null
-        const turmaId = turmaChave ? turmasMap.get(turmaChave) : null
-        const alunoChave = `${nomeAluno.toUpperCase().trim()}:${escolaId}:${turmaId || 'null'}`
-
-        if (alunosExistentesMap.has(alunoChave)) {
-          // Aluno já existe - atualizar turma e série se necessário
-          const alunoIdExistente = alunosExistentesMap.get(alunoChave)!
-          await pool.query(
-            `UPDATE alunos
-             SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
-             WHERE id = $3`,
-            [turmaId, serie || null, alunoIdExistente]
-          )
-          resultado.alunos.existentes++
-        } else {
-          const codigoAluno = await gerarCodigoAluno()
-          await pool.query(
-            'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6)',
-            [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo]
-          )
-          resultado.alunos.criados++
-        }
-      } catch (error: unknown) {
-        resultado.alunos.erros.push(`Aluno "${nomeAluno}": erro ao processar`)
-      }
-    }
-
-    // Criar Questões (Q1 a Q60) — pré-cache + batch INSERT
-    const questoesCriadas = { criadas: 0, existentes: 0 }
-    const areas = [
-      { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
-      { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas' },
-      { inicio: 31, fim: 50, area: 'Matemática', disciplina: 'Matemática' },
-      { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza' },
-    ]
-
-    // Pré-carregar questões existentes (1 query em vez de 60)
-    const questoesExistentes = await pool.query('SELECT codigo FROM questoes')
-    const questoesSet = new Set(questoesExistentes.rows.map((q: any) => q.codigo))
-
-    const questoesParaInserir: [string, string, string, string][] = []
-    for (const { inicio, fim, area, disciplina } of areas) {
-      for (let num = inicio; num <= fim; num++) {
-        const codigo = `Q${num}`
-        if (questoesSet.has(codigo)) {
-          questoesCriadas.existentes++
-        } else {
-          questoesParaInserir.push([codigo, `Questão ${num}`, disciplina, area])
+        } catch (error: unknown) {
+          resultado.polos.erros.push(`Polo "${nomePolo}": Erro ao processar`)
         }
       }
-    }
 
-    // Batch INSERT de todas as questões novas (1 query em vez de N)
-    if (questoesParaInserir.length > 0) {
-      try {
-        const values = questoesParaInserir.map((_, i) =>
-          `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`
-        ).join(', ')
-        const params = questoesParaInserir.flat()
-        await pool.query(
-          `INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento) VALUES ${values} ON CONFLICT (codigo) DO NOTHING`,
-          params
-        )
-        questoesCriadas.criadas = questoesParaInserir.length
-      } catch (error: unknown) {
-        log.error('Erro ao criar questões em batch', error)
+      // Pré-carregar escolas existentes (elimina N+1)
+      const escolasExistentes = await client.query('SELECT id, nome, polo_id FROM escolas WHERE ativo = true')
+      const escolasMap = new Map<string, string>() // nome escola -> id
+      for (const e of escolasExistentes.rows) {
+        const nomeNorm = e.nome.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+        escolasMap.set(nomeNorm, e.id)
       }
-    }
+
+      // Criar Escolas (com pré-cache de polos)
+      for (const [nomeEscola, nomePolo] of escolasUnicas) {
+        try {
+          const nomePoloNorm = nomePolo.toUpperCase().trim()
+          const poloId = polosMap.get(nomePoloNorm)
+
+          if (!poloId) {
+            resultado.escolas.erros.push(`Escola "${nomeEscola}": Polo "${nomePolo}" não encontrado`)
+            continue
+          }
+
+          const nomeEscolaNormalizado = nomeEscola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+
+          if (escolasMap.has(nomeEscolaNormalizado)) {
+            resultado.escolas.existentes++
+          } else {
+            const codigoEscola = nomeEscolaNormalizado.replace(/\s+/g, '_').substring(0, 50)
+            const escolaResult = await comSavepoint(client, () => client.query(
+              'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
+              [nomeEscola.trim(), codigoEscola, poloId]
+            ))
+            escolasMap.set(nomeEscolaNormalizado, escolaResult.rows[0].id)
+            // Também mapear pelo nome original
+            escolasMap.set(nomeEscola, escolaResult.rows[0].id)
+            resultado.escolas.criados++
+          }
+        } catch (error: unknown) {
+          resultado.escolas.erros.push(`Escola "${nomeEscola}": Erro ao processar`)
+        }
+      }
+
+      // Pré-carregar turmas existentes (elimina N+1)
+      const turmasExistentes = await client.query(
+        'SELECT id, codigo, escola_id FROM turmas WHERE ano_letivo = $1',
+        [anoLetivo]
+      )
+      const turmasMap = new Map<string, string>() // "escola_id:codigo" -> id
+      for (const t of turmasExistentes.rows) {
+        turmasMap.set(`${t.escola_id}:${t.codigo}`, t.id)
+      }
+
+      // Criar Turmas (com pré-cache)
+      for (const [codigoTurma, { escola, serie }] of turmasUnicas) {
+        try {
+          const nomeEscolaNorm = escola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+          const escolaId = escolasMap.get(nomeEscolaNorm) || escolasMap.get(escola)
+          if (!escolaId) {
+            resultado.turmas.erros.push(`Turma "${codigoTurma}": Escola "${escola}" não encontrada`)
+            continue
+          }
+
+          const chave = `${escolaId}:${codigoTurma}`
+          if (turmasMap.has(chave)) {
+            resultado.turmas.existentes++
+          } else {
+            const turmaResult = await comSavepoint(client, () => client.query(
+              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+              [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo]
+            ))
+            turmasMap.set(chave, turmaResult.rows[0].id)
+            resultado.turmas.criados++
+          }
+        } catch (error: unknown) {
+          resultado.turmas.erros.push(`Turma "${codigoTurma}": erro ao processar`)
+        }
+      }
+
+      // Pré-carregar alunos existentes (elimina N+1)
+      const alunosExistentes = await client.query(
+        'SELECT id, UPPER(TRIM(nome)) as nome_upper, escola_id, turma_id FROM alunos WHERE ano_letivo = $1 AND ativo = true',
+        [anoLetivo]
+      )
+      const alunosExistentesMap = new Map<string, string>()
+      for (const a of alunosExistentes.rows) {
+        alunosExistentesMap.set(`${a.nome_upper}:${a.escola_id}:${a.turma_id || 'null'}`, a.id)
+      }
+
+      // Geração de código sequencial DENTRO da transação: contador local vê os
+      // inserts ainda não commitados (gerarCodigoAluno usa conexão própria e
+      // colidiria entre alunos novos do mesmo import). Advisory lock serializa
+      // contra imports concorrentes (mesma chave 42 de gerarCodigoAluno).
+      await client.query('SELECT pg_advisory_xact_lock(42)')
+      let proximoNumeroAluno = 1
+      const maxCodAluno = await client.query(
+        `SELECT codigo FROM alunos
+         WHERE codigo LIKE 'ALU%' AND codigo ~ '^ALU[0-9]+$'
+         ORDER BY CAST(SUBSTRING(codigo FROM 4) AS INTEGER) DESC LIMIT 1`
+      )
+      if (maxCodAluno.rows.length > 0 && maxCodAluno.rows[0].codigo) {
+        const n = parseInt(maxCodAluno.rows[0].codigo.replace('ALU', ''))
+        if (!isNaN(n)) proximoNumeroAluno = n + 1
+      }
+      const proximoCodigoAluno = () => `ALU${(proximoNumeroAluno++).toString().padStart(4, '0')}`
+
+      // Criar Alunos (com pré-cache)
+      for (const [nomeAluno, { escola, turma, serie }] of alunosUnicos) {
+        try {
+          const nomeEscolaNorm = escola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+          const escolaId = escolasMap.get(nomeEscolaNorm) || escolasMap.get(escola)
+          if (!escolaId) {
+            resultado.alunos.erros.push(`Aluno "${nomeAluno}": Escola "${escola}" não encontrada`)
+            continue
+          }
+
+          const turmaChave = turma ? `${escolaId}:${turma}` : null
+          const turmaId = turmaChave ? turmasMap.get(turmaChave) : null
+          const alunoChave = `${nomeAluno.toUpperCase().trim()}:${escolaId}:${turmaId || 'null'}`
+
+          if (alunosExistentesMap.has(alunoChave)) {
+            // Aluno já existe - atualizar turma e série se necessário
+            const alunoIdExistente = alunosExistentesMap.get(alunoChave)!
+            await comSavepoint(client, () => client.query(
+              `UPDATE alunos
+               SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
+               WHERE id = $3`,
+              [turmaId, serie || null, alunoIdExistente]
+            ))
+            resultado.alunos.existentes++
+          } else {
+            const codigoAluno = proximoCodigoAluno()
+            await comSavepoint(client, () => client.query(
+              'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6)',
+              [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo]
+            ))
+            resultado.alunos.criados++
+          }
+        } catch (error: unknown) {
+          resultado.alunos.erros.push(`Aluno "${nomeAluno}": erro ao processar`)
+        }
+      }
+
+      // Criar Questões (Q1 a Q60) — pré-cache + batch INSERT
+      const questoesCriadas = { criadas: 0, existentes: 0 }
+      const areas = [
+        { inicio: 1, fim: 20, area: 'Língua Portuguesa', disciplina: 'Língua Portuguesa' },
+        { inicio: 21, fim: 30, area: 'Ciências Humanas', disciplina: 'Ciências Humanas' },
+        { inicio: 31, fim: 50, area: 'Matemática', disciplina: 'Matemática' },
+        { inicio: 51, fim: 60, area: 'Ciências da Natureza', disciplina: 'Ciências da Natureza' },
+      ]
+
+      // Pré-carregar questões existentes (1 query em vez de 60)
+      const questoesExistentes = await client.query('SELECT codigo FROM questoes')
+      const questoesSet = new Set(questoesExistentes.rows.map((q: any) => q.codigo))
+
+      const questoesParaInserir: [string, string, string, string][] = []
+      for (const { inicio, fim, area, disciplina } of areas) {
+        for (let num = inicio; num <= fim; num++) {
+          const codigo = `Q${num}`
+          if (questoesSet.has(codigo)) {
+            questoesCriadas.existentes++
+          } else {
+            questoesParaInserir.push([codigo, `Questão ${num}`, disciplina, area])
+          }
+        }
+      }
+
+      // Batch INSERT de todas as questões novas (1 query em vez de N)
+      if (questoesParaInserir.length > 0) {
+        try {
+          const values = questoesParaInserir.map((_, i) =>
+            `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`
+          ).join(', ')
+          const params = questoesParaInserir.flat()
+          await comSavepoint(client, () => client.query(
+            `INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento) VALUES ${values} ON CONFLICT (codigo) DO NOTHING`,
+            params
+          ))
+          questoesCriadas.criadas = questoesParaInserir.length
+        } catch (error: unknown) {
+          log.error('Erro ao criar questões em batch', error)
+        }
+      }
+
+      return { resultado, questoesCriadas }
+    })
 
     // Invalidar cache do dashboard após importação bem-sucedida
     try {

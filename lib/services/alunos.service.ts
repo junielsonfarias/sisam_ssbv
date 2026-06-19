@@ -273,9 +273,9 @@ export async function alterarSituacao(alunoId: string, dados: {
   } = dados
 
   return withTransaction(async (client) => {
-    // Buscar situação atual
+    // Buscar situação atual (escola_id atual = origem em caso de transferência)
     const alunoResult = await client.query(
-      'SELECT id, situacao, ativo FROM alunos WHERE id = $1',
+      'SELECT id, situacao, ativo, escola_id FROM alunos WHERE id = $1',
       [alunoId]
     )
 
@@ -284,6 +284,7 @@ export async function alterarSituacao(alunoId: string, dados: {
     }
 
     const situacaoAnterior = alunoResult.rows[0].situacao
+    const escolaAtual = alunoResult.rows[0].escola_id
 
     if (situacaoAnterior === situacao) {
       throw new Error('O aluno já possui esta situação')
@@ -293,17 +294,16 @@ export async function alterarSituacao(alunoId: string, dados: {
     const isAtivo = !['transferido', 'abandono'].includes(situacao)
 
     if (situacao === 'transferido') {
-      if (escola_destino_id) {
-        await client.query(
-          `UPDATE alunos SET situacao = $2, ativo = $3, turma_id = NULL, escola_id = $4, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1`,
-          [alunoId, situacao, isAtivo, escola_destino_id]
-        )
-      } else {
-        await client.query(
-          `UPDATE alunos SET situacao = $2, ativo = $3, turma_id = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1`,
-          [alunoId, situacao, isAtivo]
-        )
-      }
+      // E3-A: a "saída" é um evento na escola de ORIGEM. NÃO movemos o
+      // escola_id para o destino aqui — o aluno permanece vinculado à origem
+      // (transferido/inativo) até que a escola destino o re-matricule. A
+      // rematrícula (matriculas.service) grava a 'entrada' e move o escola_id.
+      // Mover cedo demais fazia a saída aparecer atribuída ao destino e o saldo
+      // de transferências nunca fechar (só havia 'saida', sempre ≤ 0).
+      await client.query(
+        `UPDATE alunos SET situacao = $2, ativo = $3, turma_id = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1`,
+        [alunoId, situacao, isAtivo]
+      )
     } else {
       await client.query(
         `UPDATE alunos SET situacao = $2, ativo = $3, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1`,
@@ -318,6 +318,12 @@ export async function alterarSituacao(alunoId: string, dados: {
     } else if (situacao === 'cursando' && (escola_origem_id || escola_origem_nome)) {
       tipoMovimentacao = 'entrada'
     }
+
+    // Em uma 'saida' a escola de origem é a escola atual do aluno (antes da
+    // rematrícula no destino). Garantir que escola_origem_id fique preenchido
+    // para o painel atribuir o movimento corretamente à escola dona.
+    const escolaOrigemFinal = escola_origem_id
+      || (situacao === 'transferido' ? escolaAtual : null)
 
     // Registrar no histórico com dados de transferência
     await client.query(
@@ -334,7 +340,7 @@ export async function alterarSituacao(alunoId: string, dados: {
         tipo_transferencia || null,
         escola_destino_id || null,
         escola_destino_nome || null,
-        escola_origem_id || null,
+        escolaOrigemFinal,
         escola_origem_nome || null,
         tipoMovimentacao,
       ]

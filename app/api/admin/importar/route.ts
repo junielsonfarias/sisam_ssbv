@@ -196,10 +196,11 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     )
   }
 
-  // Pré-carregar escolas e questões em memória (elimina N+1)
-  const [escolasResult, questoesResult] = await Promise.all([
+  // Pré-carregar escolas, questões e alunos em memória (elimina N+1)
+  const [escolasResult, questoesResult, alunosResult] = await Promise.all([
     pool.query('SELECT id, codigo, nome FROM escolas WHERE ativo = true'),
     pool.query('SELECT id, codigo FROM questoes'),
+    pool.query("SELECT id, codigo FROM alunos WHERE ativo = true AND codigo IS NOT NULL AND codigo <> ''"),
   ])
 
   const escolasCache = new Map<string, string>()
@@ -215,6 +216,15 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
   const questoesCache = new Map<string, string>()
   for (const q of questoesResult.rows) {
     if (q.codigo) questoesCache.set(q.codigo, q.id)
+  }
+
+  // Cache codigo -> aluno_id. Sem aluno_id, o ON CONFLICT
+  // (aluno_id, questao_codigo, avaliacao_id) NUNCA colide (NULLs sao distintos),
+  // duplicando resultados a cada reimport e gerando linhas orfas ilegiveis por
+  // aluno. Resolvemos o aluno_id aqui e exigimos que a linha tenha um aluno.
+  const alunosCache = new Map<string, string>()
+  for (const a of alunosResult.rows) {
+    if (a.codigo) alunosCache.set(a.codigo.toString().toLowerCase().trim(), a.id)
   }
 
   // Função de busca de escola com fallback parcial
@@ -310,10 +320,17 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
           throw new Error(`Escola não encontrada: "${escolaCodigo || 'vazio'}"`)
         }
 
+        // aluno_id e obrigatorio: e a chave do upsert. Sem ele, a linha duplica
+        // a cada reimport e fica orfa (ilegivel por aluno).
+        const alunoId = alunoCodigo ? (alunosCache.get(alunoCodigo.toLowerCase()) || null) : null
+        if (!alunoId) {
+          throw new Error(`Aluno não encontrado: "${alunoCodigo || 'vazio'}"`)
+        }
+
         const questaoId = questaoCodigo ? (questoesCache.get(questaoCodigo) || null) : null
 
         const rowValues = [
-          escolaId, alunoCodigo || null, alunoNome || null, questaoId,
+          escolaId, alunoId, alunoCodigo || null, alunoNome || null, questaoId,
           questaoCodigo || null, respostaAluno || null, acertou, nota,
           dataProva, anoLetivo || null, serie || null, turma || null,
           disciplina || null, areaConhecimento || null, avaliacaoId,
@@ -325,7 +342,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         linhasProcessadas++
       } catch (error: unknown) {
         linhasComErro++
-        erros.push(`Linha ${i + 2}: Erro ao processar registro`)
+        erros.push(`Linha ${i + 2}: ${(error as Error)?.message || 'Erro ao processar registro'}`)
         if (erros.length >= 100) {
           erros.push(`... e mais ${dados.length - i - 1} erros`)
           break
@@ -338,7 +355,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       try {
         await pool.query(
           `INSERT INTO resultados_provas
-           (escola_id, aluno_codigo, aluno_nome, questao_id, questao_codigo,
+           (escola_id, aluno_id, aluno_codigo, aluno_nome, questao_id, questao_codigo,
             resposta_aluno, acertou, nota, data_prova, ano_letivo, serie,
             turma, disciplina, area_conhecimento, avaliacao_id)
            VALUES ${placeholders.join(', ')}
