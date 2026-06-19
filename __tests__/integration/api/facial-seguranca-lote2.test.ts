@@ -442,6 +442,178 @@ describe('Regressão Lote 2 — B2: GET /api/admin/dispositivos-faciais/[id]/qrc
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 4 — Liveness / Prova de vida em POST /api/admin/facial/presenca-terminal
+// (Lote 2, Opção A — reforço no servidor)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Regressão Lote 2 — B4: liveness / prova de vida (POST /api/admin/facial/presenca-terminal)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockVerificarPermissao.mockReturnValue(true)
+    // Usuário admin: podeAcessarEscolaSync sempre true (admin não tem escola_id)
+    mockGetUser.mockResolvedValue(usuarioAdmin() as any)
+    mockPodeAcessarEscola.mockReturnValue(true)
+    // pool.connect devolve o client mock
+    mockPoolConnect.mockResolvedValue(mockClient as any)
+    mockClient.query.mockResolvedValue({ rows: [] })
+    mockClient.release.mockResolvedValue(undefined)
+  })
+
+  /**
+   * Setup completo das queries para o caminho feliz:
+   * 1. busca aluno (com consentimento e escola)
+   * 2. verifica consentimento facial
+   * 3. BEGIN / COMMIT (via client.query)
+   * registrarEventoFacial é mockado globalmente.
+   */
+  function mockCaminhoFeliz() {
+    // Query 1: busca aluno
+    mockPoolQuery.mockResolvedValueOnce({
+      rows: [{ id: ALUNO_ID, turma_id: 'turma-001', escola_id: ESC_A }],
+    } as any)
+    // Query 2: consentimento ativo
+    mockPoolQuery.mockResolvedValueOnce({
+      rows: [{ id: 'consent-liveness-001' }],
+    } as any)
+    // Transação via client
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // COMMIT
+  }
+
+  // ── Caso B4.1 ───────────────────────────────────────────────────────────────
+  it('B4.1: prova_vida com vivo=false → 422 com mensagem "Prova de vida"', async () => {
+    // Arrange — liveness detectou foto; o check ocorre antes de qualquer query
+    const body = {
+      ...payloadPresencaValido,
+      prova_vida: { metodo: 'ear', vivo: false },
+    }
+
+    const { POST } = await import('@/app/api/admin/facial/presenca-terminal/route')
+    const res = await POST(postPresencaReq(body, '10.1.0.1'))
+
+    // Assert
+    expect(res.status).toBe(422)
+    const json = await res.json()
+    expect(json).toHaveProperty('mensagem')
+    expect(json.mensagem).toMatch(/Prova de vida/i)
+
+    // O banco NÃO deve ter sido consultado (check ocorre antes das queries)
+    expect(mockPoolQuery).not.toHaveBeenCalled()
+  })
+
+  // ── Caso B4.2 ───────────────────────────────────────────────────────────────
+  it('B4.2: prova_vida com vivo=true → 200 sucesso (fluxo normal prossegue)', async () => {
+    // Arrange
+    mockCaminhoFeliz()
+    const body = {
+      ...payloadPresencaValido,
+      prova_vida: { metodo: 'ear', vivo: true, score: 0.42 },
+    }
+
+    const { POST } = await import('@/app/api/admin/facial/presenca-terminal/route')
+    const res = await POST(postPresencaReq(body, '10.1.0.2'))
+
+    // Assert
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.sucesso).toBe(true)
+    expect(json).toHaveProperty('evento_id')
+    expect(json).toHaveProperty('tipo')
+  })
+
+  // ── Caso B4.3 ───────────────────────────────────────────────────────────────
+  it('B4.3: sem prova_vida → 200 sucesso (retrocompatibilidade — caminho offline legado)', async () => {
+    // Arrange — payload idêntico ao dos clientes antigos (sem prova_vida)
+    mockCaminhoFeliz()
+    const body = { ...payloadPresencaValido } // sem prova_vida
+
+    const { POST } = await import('@/app/api/admin/facial/presenca-terminal/route')
+    const res = await POST(postPresencaReq(body, '10.1.0.3'))
+
+    // Assert — deve passar como se prova_vida não existisse
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.sucesso).toBe(true)
+  })
+
+  // ── Caso B4.4 (schema) ──────────────────────────────────────────────────────
+  it('B4.4 schema: presencaFacialSchema aceita payload COM prova_vida válido', async () => {
+    const { presencaFacialSchema } = await import('@/lib/schemas')
+
+    const resultado = presencaFacialSchema.safeParse({
+      aluno_id: ALUNO_ID,
+      timestamp: '2026-06-19T08:00:00.000Z',
+      confianca: 0.92,
+      prova_vida: { metodo: 'ear', vivo: true, score: 0.35 },
+    })
+
+    expect(resultado.success).toBe(true)
+    if (resultado.success) {
+      expect(resultado.data.prova_vida).toEqual({ metodo: 'ear', vivo: true, score: 0.35 })
+    }
+  })
+
+  it('B4.4 schema: presencaFacialSchema aceita payload SEM prova_vida (campo opcional)', async () => {
+    const { presencaFacialSchema } = await import('@/lib/schemas')
+
+    const resultado = presencaFacialSchema.safeParse({
+      aluno_id: ALUNO_ID,
+      timestamp: '2026-06-19T08:00:00.000Z',
+      confianca: 0.88,
+    })
+
+    expect(resultado.success).toBe(true)
+    if (resultado.success) {
+      expect(resultado.data.prova_vida).toBeUndefined()
+    }
+  })
+
+  it('B4.4 schema: presencaFacialSchema rejeita prova_vida com metodo inválido (ex: "xyz")', async () => {
+    const { presencaFacialSchema } = await import('@/lib/schemas')
+
+    const resultado = presencaFacialSchema.safeParse({
+      aluno_id: ALUNO_ID,
+      timestamp: '2026-06-19T08:00:00.000Z',
+      confianca: 0.88,
+      prova_vida: { metodo: 'xyz', vivo: true },
+    })
+
+    expect(resultado.success).toBe(false)
+  })
+
+  it('B4.4 schema: presencaFacialSchema rejeita prova_vida sem campo vivo', async () => {
+    const { presencaFacialSchema } = await import('@/lib/schemas')
+
+    const resultado = presencaFacialSchema.safeParse({
+      aluno_id: ALUNO_ID,
+      timestamp: '2026-06-19T08:00:00.000Z',
+      confianca: 0.88,
+      prova_vida: { metodo: 'ear' }, // vivo ausente
+    })
+
+    expect(resultado.success).toBe(false)
+  })
+
+  it('B4.4 schema: presencaFacialSchema aceita prova_vida sem score (score é opcional)', async () => {
+    const { presencaFacialSchema } = await import('@/lib/schemas')
+
+    const resultado = presencaFacialSchema.safeParse({
+      aluno_id: ALUNO_ID,
+      timestamp: '2026-06-19T08:00:00.000Z',
+      confianca: 0.91,
+      prova_vida: { metodo: 'ear', vivo: false }, // score ausente — válido
+    })
+
+    expect(resultado.success).toBe(true)
+    if (resultado.success) {
+      expect(resultado.data.prova_vida?.score).toBeUndefined()
+      expect(resultado.data.prova_vida?.vivo).toBe(false)
+    }
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 // BLOCO 3 — Rate-limit POST /api/ouvidoria (5 req / 15 min por IP)
 // ─────────────────────────────────────────────────────────────────────────────
 

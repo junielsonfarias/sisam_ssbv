@@ -18,11 +18,23 @@ export const dispositivoFacialSchema = z.object({
   localizacao: z.string().max(255).optional().nullable(),
 })
 
+/**
+ * Sinal de prova de vida (anti-foto). Opcional para retrocompatibilidade:
+ * clientes/eventos offline antigos não o enviam. Quando presente, o servidor
+ * pode exigir `vivo === true`. Hoje o único método é EAR (piscar dos olhos).
+ */
+export const provaVidaSchema = z.object({
+  metodo: z.literal('ear'),
+  vivo: z.boolean(),
+  score: z.number().optional(),
+})
+
 /** Schema para presença via reconhecimento facial (unitário) */
 export const presencaFacialSchema = z.object({
   aluno_id: uuidSchema,
   timestamp: z.string().datetime({ message: 'Timestamp deve ser ISO 8601 válido' }),
   confianca: z.number().min(0, 'Confiança mínima é 0').max(1, 'Confiança máxima é 1'),
+  prova_vida: provaVidaSchema.optional(),
 })
 
 /** Schema para presença em lote (sync offline) */

@@ -240,6 +240,8 @@ export function useReconhecimento({
                     aluno_id: alunoId,
                     timestamp: new Date().toISOString(),
                     confianca: Math.round(confianca * 10000) / 10000,
+                    // Liveness ja confirmado (gate #8 acima); informa o servidor.
+                    prova_vida: { metodo: 'ear', vivo: true },
                   }),
                 })
 

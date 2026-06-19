@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const validacao = await validateRequest(request, presencaFacialSchema)
     if (!validacao.success) return validacao.response
 
-    const { aluno_id, timestamp, confianca } = validacao.data
+    const { aluno_id, timestamp, confianca, prova_vida } = validacao.data
 
     // O FaceMatcher no terminal já filtra por threshold configurável.
     // A API aceita qualquer confiança > 0 (a qualidade é controlada no terminal).
@@ -34,6 +34,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { mensagem: 'Confiança deve ser maior que 0' },
         { status: 400 }
+      )
+    }
+
+    // Reforço de prova de vida (anti-foto), retrocompatível:
+    // - prova_vida ausente -> aceita (eventos offline legados / clientes antigos)
+    // - prova_vida presente com vivo !== true -> rejeita (cliente detectou foto)
+    // O endurecimento (exigir prova_vida em eventos online) é dívida documentada.
+    if (prova_vida && prova_vida.vivo !== true) {
+      return NextResponse.json(
+        { mensagem: 'Prova de vida não confirmada' },
+        { status: 422 }
       )
     }
 

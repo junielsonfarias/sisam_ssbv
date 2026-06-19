@@ -171,6 +171,9 @@ export interface PresencaLocal {
   nome: string
   timestamp: string // ISO
   confianca: number
+  // Prova de vida (anti-foto) capturada no momento do reconhecimento offline.
+  // Opcional: eventos gravados antes desta feature não a possuem.
+  prova_vida?: { metodo: 'ear'; vivo: boolean; score?: number }
   sync_status: 'pendente' | 'enviado' | 'erro'
   tentativas: number
   criado_em: string
@@ -275,6 +278,7 @@ export async function sincronizarPresencas(apiUrl: string, _token: string): Prom
       aluno_id: p.aluno_id,
       timestamp: p.timestamp,
       confianca: p.confianca,
+      ...(p.prova_vida ? { prova_vida: p.prova_vida } : {}),
     }))
 
     try {
@@ -298,7 +302,7 @@ export async function sincronizarPresencas(apiUrl: string, _token: string): Prom
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
-              body: JSON.stringify({ aluno_id: p.aluno_id, timestamp: p.timestamp, confianca: p.confianca }),
+              body: JSON.stringify({ aluno_id: p.aluno_id, timestamp: p.timestamp, confianca: p.confianca, ...(p.prova_vida ? { prova_vida: p.prova_vida } : {}) }),
             })
             if (r.ok) { enviados++; if (p.id) idsEnviados.push(p.id) }
             else erros++

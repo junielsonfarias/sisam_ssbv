@@ -4,6 +4,18 @@ import { useEffect, useRef } from 'react'
 import { registrarPresenca } from '@/lib/terminal-db'
 import type { AlunoEmMemoria, Fase, RegistroLocal } from '../types'
 
+// Liveness anti-foto (espelha o terminal do gestor). EAR (Eye Aspect Ratio) de
+// um olho de 6 pontos (face-api): aberto ~0.3, fechado ~0.1. Uma FOTO mantem o
+// EAR constante; um rosto vivo pisca. Exige um "piscar" antes de registrar.
+function calcularEAR(eye: { x: number; y: number }[]): number {
+  if (!eye || eye.length < 6) return 0.3
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
+  const v1 = dist(eye[1], eye[5])
+  const v2 = dist(eye[2], eye[4])
+  const h = dist(eye[0], eye[3])
+  return h === 0 ? 0.3 : (v1 + v2) / (2 * h)
+}
+
 interface UseFaceRecognitionParams {
   fase: Fase
   cameraAtiva: boolean
@@ -36,6 +48,8 @@ export function useFaceRecognition({
   const cooldownMapRef = useRef<Map<string, number>>(new Map())
   const confirmacaoTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const detectandoRef = useRef(false)
+  // Estado de liveness por aluno: janela deslizante de EARs + flag "vivo".
+  const livenessMapRef = useRef<Map<string, { ears: number[]; vivo: boolean; score: number }>>(new Map())
 
   useEffect(() => {
     if (fase !== 'terminal' || !cameraAtiva || !faceapiRef.current || alunos.length === 0) {
@@ -106,13 +120,32 @@ export function useFaceRecognition({
             const agora = Date.now()
             const emCooldown = ultimoRegistro && (agora - ultimoRegistro) < cooldown * 1000
 
-            const cor = emCooldown ? '#eab308' : '#10b981'
+            // Liveness anti-foto: acompanha a variacao do EAR. So registra apos
+            // detectar um "piscar" (queda do EAR) na janela recente.
+            const lr = livenessMapRef.current.get(alunoId) || { ears: [], vivo: false, score: 0 }
+            try {
+              const earAvg = (calcularEAR(det.landmarks.getLeftEye()) + calcularEAR(det.landmarks.getRightEye())) / 2
+              lr.ears.push(earAvg)
+              if (lr.ears.length > 16) lr.ears.shift()
+              if (!lr.vivo && lr.ears.length >= 4) {
+                const maxE = Math.max(...lr.ears), minE = Math.min(...lr.ears)
+                lr.score = maxE - minE
+                if (maxE - minE >= 0.07 && minE <= 0.21) lr.vivo = true
+              }
+            } catch { /* landmarks dos olhos indisponiveis neste frame */ }
+            livenessMapRef.current.set(alunoId, lr)
+            const faltaVivo = !lr.vivo
+
+            // Azul = aguardando piscar; amarelo = cooldown; verde = pronto.
+            const cor = faltaVivo && !emCooldown ? '#3b82f6' : emCooldown ? '#eab308' : '#10b981'
             ctx.strokeStyle = cor
             ctx.lineWidth = 3
             ctx.strokeRect(box.x, box.y, box.width, box.height)
 
             const nome = aluno?.nome || alunoId
-            const info = [aluno?.turma_codigo, aluno?.serie ? `${aluno.serie}º Ano` : ''].filter(Boolean).join(' - ')
+            const info = faltaVivo && !emCooldown
+              ? 'pisque para confirmar'
+              : [aluno?.turma_codigo, aluno?.serie ? `${aluno.serie}º Ano` : ''].filter(Boolean).join(' - ')
 
             ctx.font = 'bold 15px sans-serif'
             const nomeW = ctx.measureText(nome).width
@@ -132,8 +165,11 @@ export function useFaceRecognition({
               ctx.fillText(info, box.x + 10, box.y - 8)
             }
 
-            if (!emCooldown && aluno) {
+            if (!emCooldown && aluno && !faltaVivo) {
               cooldownMapRef.current.set(alunoId, agora)
+              // Liveness consumido neste registro — zera para o proximo ciclo.
+              livenessMapRef.current.delete(alunoId)
+              const prova_vida = { metodo: 'ear' as const, vivo: true, score: Math.round(lr.score * 1000) / 1000 }
 
               const timestamp = new Date().toISOString()
               const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -147,7 +183,7 @@ export function useFaceRecognition({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ aluno_id: alunoId, timestamp, confianca: conf }),
+                    body: JSON.stringify({ aluno_id: alunoId, timestamp, confianca: conf, prova_vida }),
                   })
                   if (res.ok) {
                     const data = await res.json()
@@ -160,7 +196,7 @@ export function useFaceRecognition({
               }
 
               if (!salvoNoServidor) {
-                await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf })
+                await registrarPresenca({ aluno_id: alunoId, nome: aluno.nome, timestamp, confianca: conf, prova_vida })
                 setPendentesSync(prev => prev + 1)
               }
 
