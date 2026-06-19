@@ -71,11 +71,13 @@ export async function coletarDadosTransferencia(
   let situacaoParcial: DadosTransferencia['situacao_parcial'] = undefined
   try {
     const n = await pool.query(
-      `SELECT d.nome AS disciplina, ne.bimestre, ne.nota
+      `SELECT d.nome AS disciplina, p.numero AS bimestre,
+              COALESCE(ne.nota_final, ne.nota) AS nota
          FROM notas_escolares ne
          LEFT JOIN disciplinas_escolares d ON d.id = ne.disciplina_id
+         JOIN periodos_letivos p ON p.id = ne.periodo_id
         WHERE ne.aluno_id = $1 AND ne.ano_letivo = $2
-        ORDER BY d.nome, ne.bimestre`,
+        ORDER BY d.nome, p.numero`,
       [alunoId, anoLetivo]
     )
     const f = await pool.query(
