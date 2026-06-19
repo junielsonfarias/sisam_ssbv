@@ -56,7 +56,7 @@ export async function matricularAluno(
  */
 export async function matricularAlunosBatch(params: {
   escolaId: string
-  turmaId: string | null
+  turmaId: string
   serie: string
   anoLetivo: string
   alunos: DadosAluno[]

@@ -26,7 +26,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     try {
       resultados = await matricularAlunosBatch({
         escolaId: escola_id,
-        turmaId: turma_id ?? null,
+        turmaId: turma_id,
         serie,
         anoLetivo: ano_letivo,
         alunos,
