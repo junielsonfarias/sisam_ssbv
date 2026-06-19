@@ -1,5 +1,6 @@
 import pool from '@/database/connection'
 import { withTransaction } from '@/lib/database/with-transaction'
+import { withSavepoint } from '@/lib/database/with-savepoint'
 import { gerarCodigoAluno } from '@/lib/gerar-codigo-aluno'
 import { PG_ERRORS } from '@/lib/constants'
 import { DatabaseError } from '@/lib/validation'
@@ -252,26 +253,32 @@ export async function matricularAlunosBatch(params: {
 
     for (const aluno of alunos) {
       try {
-        if (isAlunoExistente(aluno)) {
-          await processarAlunoExistente(client, {
-            aluno,
-            turmaId,
-            escolaId,
-            serie,
-            anoLetivo,
-            usuarioId,
-            resultados,
-          })
-        } else {
-          await processarNovoAluno(client, {
-            aluno,
-            turmaId,
-            escolaId,
-            serie,
-            anoLetivo,
-            resultados,
-          })
-        }
+        // SAVEPOINT por aluno: um erro (ex.: UNIQUE_VIOLATION de código/CPF, que
+        // o catch abaixo trata) não pode abortar a transação inteira — sem isso,
+        // os alunos seguintes falhariam com "transaction aborted" e o COMMIT
+        // viraria rollback silencioso, reportando "matriculados" mas salvando 0.
+        await withSavepoint(client, async () => {
+          if (isAlunoExistente(aluno)) {
+            await processarAlunoExistente(client, {
+              aluno,
+              turmaId,
+              escolaId,
+              serie,
+              anoLetivo,
+              usuarioId,
+              resultados,
+            })
+          } else {
+            await processarNovoAluno(client, {
+              aluno,
+              turmaId,
+              escolaId,
+              serie,
+              anoLetivo,
+              resultados,
+            })
+          }
+        })
       } catch (err: unknown) {
         if ((err as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
           resultados.erros.push(`Aluno ${aluno.nome}: código ou CPF já cadastrado`)

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PoolClient } from 'pg'
 import { withAuth } from '@/lib/auth/with-auth'
 import { withTransaction } from '@/lib/database/with-transaction'
+import { withSavepoint } from '@/lib/database/with-savepoint'
 import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches } from '@/lib/cache'
 import { validarArquivoUpload } from '@/lib/api-helpers'
@@ -11,24 +11,6 @@ const log = createLogger('ImportarCadastros')
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutos (limite Vercel)
-
-/**
- * E2-B: executa `fn` dentro de um SAVEPOINT. Se falhar, faz ROLLBACK TO o
- * savepoint e relança — assim uma linha ruim não aborta a transação inteira,
- * preservando a tolerância "continua no próximo item" original mas mantendo a
- * importação atômica (tudo-ou-nada) no nível do request.
- */
-async function comSavepoint<T>(client: PoolClient, fn: () => Promise<T>): Promise<T> {
-  await client.query('SAVEPOINT sp_item')
-  try {
-    const r = await fn()
-    await client.query('RELEASE SAVEPOINT sp_item')
-    return r
-  } catch (e) {
-    await client.query('ROLLBACK TO SAVEPOINT sp_item')
-    throw e
-  }
-}
 
 export const POST = withAuth(['administrador', 'tecnico'], async (request: NextRequest, usuario) => {
   try {
@@ -136,7 +118,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           if (polosMap.has(nomeNorm)) {
             resultado.polos.existentes++
           } else {
-            const novoResult = await comSavepoint(client, () => client.query(
+            const novoResult = await withSavepoint(client, () => client.query(
               'INSERT INTO polos (nome, codigo) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id',
               [nomePolo, nomePolo.toUpperCase().replace(/\s+/g, '_')]
             ))
@@ -175,7 +157,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             resultado.escolas.existentes++
           } else {
             const codigoEscola = nomeEscolaNormalizado.replace(/\s+/g, '_').substring(0, 50)
-            const escolaResult = await comSavepoint(client, () => client.query(
+            const escolaResult = await withSavepoint(client, () => client.query(
               'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
               [nomeEscola.trim(), codigoEscola, poloId]
             ))
@@ -213,7 +195,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           if (turmasMap.has(chave)) {
             resultado.turmas.existentes++
           } else {
-            const turmaResult = await comSavepoint(client, () => client.query(
+            const turmaResult = await withSavepoint(client, () => client.query(
               'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) RETURNING id',
               [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo]
             ))
@@ -269,7 +251,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           if (alunosExistentesMap.has(alunoChave)) {
             // Aluno já existe - atualizar turma e série se necessário
             const alunoIdExistente = alunosExistentesMap.get(alunoChave)!
-            await comSavepoint(client, () => client.query(
+            await withSavepoint(client, () => client.query(
               `UPDATE alunos
                SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
                WHERE id = $3`,
@@ -278,7 +260,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             resultado.alunos.existentes++
           } else {
             const codigoAluno = proximoCodigoAluno()
-            await comSavepoint(client, () => client.query(
+            await withSavepoint(client, () => client.query(
               'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6)',
               [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo]
             ))
@@ -321,7 +303,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`
           ).join(', ')
           const params = questoesParaInserir.flat()
-          await comSavepoint(client, () => client.query(
+          await withSavepoint(client, () => client.query(
             `INSERT INTO questoes (codigo, descricao, disciplina, area_conhecimento) VALUES ${values} ON CONFLICT (codigo) DO NOTHING`,
             params
           ))
