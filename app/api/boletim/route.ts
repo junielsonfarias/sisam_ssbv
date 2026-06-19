@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import pool from '@/database/connection'
+import { cacheKey as buildRedisKey, cacheGet, cacheSet } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('Boletim')
@@ -35,54 +36,28 @@ function checkBoletimRate(ip: string): boolean {
 }
 
 // ============================================================================
-// CACHE EM MEMÓRIA (5 min TTL — reduz 7 queries para 0 em consultas repetidas)
+// CACHE — Redis (5 min TTL). Migrado de Map process-local para Redis: em
+// serverless cada instância tinha seu próprio Map, então cacheDelPattern
+// ('boletim:*') (chamado por notas/config/frequencia/conselho/cartao) nunca
+// alcançava o cache e o boletim ficava stale até o TTL. Agora a chave vive no
+// Redis sob o prefixo 'boletim' e a invalidação funciona entre instâncias.
 // ============================================================================
-const boletimCache = new Map<string, { data: any; expiresAt: number }>()
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutos
-const CACHE_MAX_ENTRIES = 2000   // Limite de memória (~2000 alunos * ~5KB = ~10MB)
+const CACHE_TTL_SECONDS = 5 * 60 // 5 minutos
 
 function getCacheKey(codigo: string | null, cpf: string | null, dataNascimento: string | null, anoLetivo: string): string {
-  if (codigo) return `cod:${codigo}:${anoLetivo}`
-  // V5 fix (PII): hash do CPF+data para a chave em memória — evita que
-  // CPF em texto plano vaze em heap dumps / inspeção de processo.
-  const hash = crypto.createHash('sha256').update(`${cpf}|${dataNascimento}`).digest('hex').slice(0, 24)
-  return `cpf:${hash}:${anoLetivo}`
+  // Discriminador: código direto, ou hash do CPF+data (não expor PII na chave).
+  const disc = codigo
+    ? `cod:${codigo}`
+    : `cpf:${crypto.createHash('sha256').update(`${cpf}|${dataNascimento}`).digest('hex').slice(0, 24)}`
+  // Prefixo 'boletim' p/ casar com cacheDelPattern('boletim:*') -> sisam:boletim:*
+  return buildRedisKey('boletim', disc, anoLetivo)
 }
 
-function getFromCache(key: string): any | null {
-  const entry = boletimCache.get(key)
-  if (!entry) return null
-  if (Date.now() > entry.expiresAt) {
-    boletimCache.delete(key)
-    return null
-  }
-  return entry.data
-}
-
-function setInCache(key: string, data: any): void {
-  // Evictar entradas antigas se atingir limite
-  if (boletimCache.size >= CACHE_MAX_ENTRIES) {
-    const now = Date.now()
-    for (const [k, v] of boletimCache) {
-      if (now > v.expiresAt) boletimCache.delete(k)
-    }
-    // Se ainda cheio, remover as mais antigas (FIFO)
-    if (boletimCache.size >= CACHE_MAX_ENTRIES) {
-      const keysToDelete = Array.from(boletimCache.keys()).slice(0, Math.floor(CACHE_MAX_ENTRIES * 0.2))
-      for (const k of keysToDelete) boletimCache.delete(k)
-    }
-  }
-  boletimCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL })
-}
-
-// Cleanup a cada 10 minutos (rate limiter + cache)
+// Cleanup periódico do rate limiter (o cache agora é no Redis, com TTL próprio).
 setInterval(() => {
   const now = Date.now()
   for (const [ip, entry] of boletimLimiter) {
     if (now > entry.resetAt) boletimLimiter.delete(ip)
-  }
-  for (const [key, entry] of boletimCache) {
-    if (now > entry.expiresAt) boletimCache.delete(key)
   }
 }, 10 * 60 * 1000)
 
@@ -161,7 +136,7 @@ export async function GET(request: NextRequest) {
     // CACHE: verificar se já temos resultado em memória
     // ============================================
     const cacheKey = getCacheKey(codigo || null, cpf, dataNascimento || null, anoLetivo)
-    const cached = getFromCache(cacheKey)
+    const cached = await cacheGet<any>(cacheKey)
     if (cached) {
       const response = NextResponse.json(cached)
       response.headers.set('X-Cache', 'HIT')
@@ -482,8 +457,8 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    // Salvar no cache (5 min TTL)
-    setInCache(cacheKey, responseData)
+    // Salvar no cache Redis (5 min TTL)
+    await cacheSet(cacheKey, responseData, CACHE_TTL_SECONDS)
 
     const response = NextResponse.json(responseData)
     response.headers.set('X-Cache', 'MISS')

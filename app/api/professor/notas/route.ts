@@ -126,6 +126,8 @@ export const POST = withAuth('professor', async (request, usuario) => {
   try { await cacheDelPattern('dashboard:*') } catch { /* não crítico */ }
   try { await cacheDelPattern('graficos:*') } catch { /* não crítico */ }
   try { await cacheDelPattern('dashboard-gestor:*') } catch { /* não crítico */ }
+  // Boletim (agora no Redis): nota nova precisa refletir no boletim do aluno
+  try { await cacheDelPattern('boletim:*') } catch { /* não crítico */ }
 
   return NextResponse.json({
     mensagem: `${resultado.processados} nota(s) salva(s) com sucesso`,
