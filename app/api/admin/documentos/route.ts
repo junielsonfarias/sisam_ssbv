@@ -24,7 +24,7 @@ const TIPOS = [
   'boletim_escolar', 'certificado_eja',
 ] as const
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
 
   // Filtros opcionais
@@ -32,8 +32,12 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
   const params: unknown[] = []
   let i = 1
 
-  const escola = searchParams.get('escola')
-  if (escola) { params.push(escola); conds.push(`d.escola_id = $${i++}`) }
+  // IDOR: usuário escola só lista documentos oficiais (históricos, guias) da
+  // própria escola. Sobrescreve qualquer ?escola= do cliente.
+  const escolaScope = usuario.tipo_usuario === 'escola'
+    ? (usuario.escola_id || '00000000-0000-0000-0000-000000000000')
+    : (searchParams.get('escola') || null)
+  if (escolaScope) { params.push(escolaScope); conds.push(`d.escola_id = $${i++}`) }
 
   const aluno = searchParams.get('aluno')
   if (aluno) { params.push(aluno); conds.push(`d.aluno_id = $${i++}`) }
@@ -71,14 +75,16 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
     params
   )
 
-  // Estatísticas paralelas
+  // Estatísticas paralelas — herdam o escopo de escola (não vazar agregados)
   const statsR = await pool.query(
     `SELECT
        COUNT(*) AS total,
        COUNT(*) FILTER (WHERE status = 'ativo') AS ativos,
        COUNT(*) FILTER (WHERE status = 'cancelado') AS cancelados,
        SUM(vezes_validado) AS total_validacoes
-     FROM documentos_emitidos`
+     FROM documentos_emitidos
+     ${escolaScope ? 'WHERE escola_id = $1' : ''}`,
+    escolaScope ? [escolaScope] : []
   )
 
   return NextResponse.json({
@@ -106,6 +112,8 @@ export const PATCH = withAuthModulo(['administrador', 'tecnico', 'escola'], 'sem
     id,
     canceladoPor: usuario.id,
     motivo: parsed.data.motivo,
+    // IDOR: escola só cancela documento da própria escola
+    escolaId: usuario.tipo_usuario === 'escola' ? (usuario.escola_id ?? undefined) : undefined,
   })
   if (!ok) {
     return NextResponse.json({ mensagem: 'Documento não encontrado ou já cancelado' }, { status: 404 })

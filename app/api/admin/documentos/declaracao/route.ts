@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthModulo } from '@/lib/auth/with-auth'
+import { podeAcessarAluno } from '@/lib/auth'
 import { z } from 'zod'
 import {
   gerarDeclaracaoMatricula,
@@ -32,6 +33,12 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'seme
       { mensagem: 'Dados inválidos', erros: parsed.error.flatten() },
       { status: 400 }
     )
+  }
+
+  // IDOR: escola só emite declaração (documento com fé pública) de aluno da
+  // própria escola.
+  if (!(await podeAcessarAluno(usuario, parsed.data.alunoId))) {
+    return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
   }
 
   try {

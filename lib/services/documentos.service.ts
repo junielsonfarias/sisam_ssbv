@@ -171,15 +171,23 @@ export async function cancelarDocumento(params: {
   id: string
   canceladoPor: string
   motivo: string
+  /** Quando informado, restringe o cancelamento a documentos desta escola (IDOR). */
+  escolaId?: string
 }): Promise<boolean> {
+  const sqlParams: unknown[] = [params.id, params.canceladoPor, params.motivo]
+  let escolaCond = ''
+  if (params.escolaId) {
+    sqlParams.push(params.escolaId)
+    escolaCond = ` AND escola_id = $${sqlParams.length}`
+  }
   const r = await pool.query(
     `UPDATE documentos_emitidos
        SET status = 'cancelado',
            cancelado_em = NOW(),
            cancelado_por = $2,
            motivo_cancelamento = $3
-     WHERE id = $1 AND status = 'ativo'`,
-    [params.id, params.canceladoPor, params.motivo]
+     WHERE id = $1 AND status = 'ativo'${escolaCond}`,
+    sqlParams
   )
   return (r.rowCount ?? 0) > 0
 }
