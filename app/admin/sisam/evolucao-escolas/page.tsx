@@ -139,21 +139,21 @@ export default function EvolucaoEscolasPage() {
                     <BarChart3 className="w-5 h-5 text-blue-500" />
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Média Geral</span>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{dados.kpis.mediaGeral?.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{dados.kpis.mediaGeral != null ? dados.kpis.mediaGeral.toFixed(2) : '-'}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
                   <div className="flex items-center gap-2 mb-1">
                     <TrendingUp className="w-5 h-5 text-emerald-500" />
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Melhoraram</span>
                   </div>
-                  <p className="text-2xl font-bold text-emerald-600">{dados.kpis.melhoraram}</p>
+                  <p className="text-2xl font-bold text-emerald-600">{dados.kpis.melhoraram != null ? dados.kpis.melhoraram : '-'}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-4">
                   <div className="flex items-center gap-2 mb-1">
                     <TrendingDown className="w-5 h-5 text-red-500" />
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Pioraram</span>
                   </div>
-                  <p className="text-2xl font-bold text-red-600">{dados.kpis.pioraram}</p>
+                  <p className="text-2xl font-bold text-red-600">{dados.kpis.pioraram != null ? dados.kpis.pioraram : '-'}</p>
                 </div>
               </div>
             )}

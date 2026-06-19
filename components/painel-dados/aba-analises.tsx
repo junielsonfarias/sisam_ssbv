@@ -72,12 +72,12 @@ export default function AbaAnalises({ estatisticas, carregando, serieSelecionada
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Anos Iniciais</p>
-                <p className="text-lg font-bold text-emerald-600">{estatisticas.mediaAnosIniciais.toFixed(2)}</p>
+                <p className="text-lg font-bold text-emerald-600">{estatisticas.mediaAnosIniciais > 0 ? estatisticas.mediaAnosIniciais.toFixed(2) : '-'}</p>
               </div>
               <div className="text-gray-400">vs</div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Anos Finais</p>
-                <p className="text-lg font-bold text-violet-600">{estatisticas.mediaAnosFinais.toFixed(2)}</p>
+                <p className="text-lg font-bold text-violet-600">{estatisticas.mediaAnosFinais > 0 ? estatisticas.mediaAnosFinais.toFixed(2) : '-'}</p>
               </div>
             </div>
           </div>

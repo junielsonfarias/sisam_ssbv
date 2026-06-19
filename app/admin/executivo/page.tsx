@@ -73,14 +73,41 @@ const LABELS_SITUACAO: Record<string, string> = {
 }
 
 function PainelExecutivo() {
-  const [anoLetivo, setAnoLetivo] = useState(String(new Date().getFullYear()))
+  const anoAtual = new Date().getFullYear()
+  const [anoLetivo, setAnoLetivo] = useState(String(anoAtual))
+  const [anosDisponiveis, setAnosDisponiveis] = useState<string[]>([])
   const [dados, setDados] = useState<DadosExecutivo | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detectar viewport mobile para ocultar labels da pizza (mantém a Legend)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const atualizar = () => setIsMobile(mq.matches)
+    atualizar()
+    mq.addEventListener('change', atualizar)
+    return () => mq.removeEventListener('change', atualizar)
+  }, [])
 
   useEffect(() => {
     fetchDados()
   }, [anoLetivo])
+
+  // Buscar anos letivos disponíveis (do banco + garantir ano anterior e atual)
+  useEffect(() => {
+    const anosBase = new Set([String(anoAtual - 1), String(anoAtual)])
+    fetch('/api/admin/dashboard-dados?apenas_anos=true')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.filtros?.anosLetivos) {
+          data.filtros.anosLetivos.forEach((a: string) => anosBase.add(a))
+        }
+        setAnosDisponiveis(Array.from(anosBase).sort().reverse())
+      })
+      .catch(() => setAnosDisponiveis(Array.from(anosBase).sort().reverse()))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const fetchDados = async () => {
     setCarregando(true)
@@ -110,11 +137,22 @@ function PainelExecutivo() {
   }
 
   const kpis = [
-    { icon: Users, label: 'Total de Alunos', valor: dados?.kpis.total_alunos ?? '-', cor: 'from-blue-500 to-blue-600' },
+    { icon: Users, label: 'Total de Alunos', valor: dados?.kpis.total_alunos != null ? dados.kpis.total_alunos.toLocaleString('pt-BR') : '-', cor: 'from-blue-500 to-blue-600' },
     { icon: School, label: 'Escolas Ativas', valor: dados?.kpis.total_escolas ?? '-', cor: 'from-emerald-500 to-emerald-600' },
     { icon: GraduationCap, label: 'Turmas', valor: dados?.kpis.total_turmas ?? '-', cor: 'from-purple-500 to-purple-600' },
-    { icon: TrendingUp, label: 'Media SISAM', valor: dados?.kpis.media_sisam ?? '-', cor: 'from-amber-500 to-amber-600' },
+    { icon: TrendingUp, label: 'Media SISAM', valor: dados?.kpis.media_sisam != null ? dados.kpis.media_sisam.toFixed(1) : '-', cor: 'from-amber-500 to-amber-600' },
   ]
+
+  // Estilo escuro para o Tooltip do Recharts (espelha o padrão do dashboard do gestor)
+  const tooltipContentStyle = {
+    backgroundColor: '#1e293b', // slate-800
+    border: '1px solid #334155', // slate-700
+    borderRadius: '0.5rem',
+    color: '#fff',
+    fontSize: '12px',
+  }
+  const tooltipItemStyle = { color: '#fff' }
+  const tooltipLabelStyle = { color: '#cbd5e1' } // slate-300
 
   // Dados para o grafico de pizza
   const dadosPizza = (dados?.distribuicao || []).map(d => ({
@@ -149,8 +187,13 @@ function PainelExecutivo() {
             onChange={e => setAnoLetivo(e.target.value)}
             className="bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
           >
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
+            {anosDisponiveis.length === 0 ? (
+              <option value={anoLetivo}>{anoLetivo}</option>
+            ) : (
+              anosDisponiveis.map(ano => (
+                <option key={ano} value={ano}>{ano}</option>
+              ))
+            )}
           </select>
         </div>
       </div>
@@ -220,11 +263,11 @@ function PainelExecutivo() {
               </h2>
               {dadosTop5.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={dadosTop5} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" domain={[0, 10]} />
-                    <YAxis type="category" dataKey="nome" width={140} tick={{ fontSize: 11 }} />
-                    <Tooltip />
+                  <BarChart data={dadosTop5} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }} className="text-gray-600 dark:text-gray-300">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" strokeOpacity={0.3} />
+                    <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11, fill: 'currentColor' }} />
+                    <YAxis type="category" dataKey="nome" width={140} tick={{ fontSize: 11, fill: 'currentColor' }} />
+                    <Tooltip contentStyle={tooltipContentStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} cursor={{ fill: '#94a3b8', fillOpacity: 0.1 }} />
                     <Bar dataKey="media" fill="#22c55e" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -238,11 +281,11 @@ function PainelExecutivo() {
                     <ArrowDown className="h-4 w-4 text-red-500" /> 5 Escolas com Menor Media
                   </h2>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={dadosBottom5} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" domain={[0, 10]} />
-                      <YAxis type="category" dataKey="nome" width={140} tick={{ fontSize: 11 }} />
-                      <Tooltip />
+                    <BarChart data={dadosBottom5} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }} className="text-gray-600 dark:text-gray-300">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" strokeOpacity={0.3} />
+                      <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11, fill: 'currentColor' }} />
+                      <YAxis type="category" dataKey="nome" width={140} tick={{ fontSize: 11, fill: 'currentColor' }} />
+                      <Tooltip contentStyle={tooltipContentStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} cursor={{ fill: '#94a3b8', fillOpacity: 0.1 }} />
                       <Bar dataKey="media" fill="#ef4444" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -266,14 +309,15 @@ function PainelExecutivo() {
                       outerRadius={110}
                       paddingAngle={2}
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      labelLine={!isMobile}
+                      label={isMobile ? false : ({ name, percent }) => percent >= 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : ''}
                     >
                       {dadosPizza.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
-                    <Tooltip />
-                    <Legend />
+                    <Tooltip contentStyle={tooltipContentStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
+                    <Legend iconSize={10} wrapperStyle={{ fontSize: '12px' }} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (

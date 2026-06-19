@@ -23,7 +23,9 @@ import {
 } from '@/lib/dados/utils'
 import {
   SeriesChips,
+  AbaNavegacao,
 } from '@/components/dados'
+import { PieChartIcon, School, Layers, Users, Target } from 'lucide-react'
 
 // Sub-componentes extraídos
 import AbaGeral from './aba-geral'
@@ -492,6 +494,26 @@ export default function PainelDados({
     )
   }, [turmas, buscaTurma])
 
+  // Configuração das abas de navegação
+  const abasNavegacao: { id: AbaAtiva; label: string; icon: typeof PieChartIcon }[] = [
+    { id: 'geral', label: 'Geral', icon: PieChartIcon },
+    { id: 'escolas', label: 'Escolas', icon: School },
+    { id: 'turmas', label: 'Turmas', icon: Layers },
+    { id: 'alunos', label: 'Alunos', icon: Users },
+    { id: 'analises', label: 'Análises', icon: Target },
+  ]
+
+  // Trocar de aba; carrega dados de escolas/turmas de forma lazy na primeira visita
+  const handleTrocarAba = (novaAba: AbaAtiva) => {
+    setAbaAtiva(novaAba)
+    if (novaAba === 'escolas' && !pesquisouEscolas) {
+      carregarEscolas(filtrosAlunos.serie)
+    }
+    if (novaAba === 'turmas' && !pesquisouTurmas) {
+      carregarTurmas(filtrosAlunos.serie)
+    }
+  }
+
   // Titulo baseado no tipo de usuario
   const getTitulo = () => {
     switch (tipoUsuario) {
@@ -575,6 +597,13 @@ export default function PainelDados({
           </p>
         )}
       </div>
+
+      {/* Barra de Abas */}
+      <AbaNavegacao
+        abas={abasNavegacao}
+        abaAtiva={abaAtiva}
+        onChange={(novaAba) => handleTrocarAba(novaAba as AbaAtiva)}
+      />
 
       {/* Conteudo das Abas */}
       <div className="space-y-4">
