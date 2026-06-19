@@ -10,6 +10,15 @@
  *   - frequencia_bimestral (4 bimestres)
  *   - SISAM completo: avaliações 2025, questões, sisam_series_participantes,
  *     resultados_provas (por questão) e resultados_consolidados (por aluno)
+ *   - resultados_producao (produção textual: 8 itens × aluno × avaliação) +
+ *     nota_producao/item_producao_1..8 no consolidado
+ *   - conselho_classe (1 por turma, 4º bimestre) + conselho_classe_alunos
+ *     (parecer coerente cruzando média do 4º bim + frequência)
+ *
+ * NOTA: series_disciplinas é catálogo GLOBAL (serie_id -> series_escolares,
+ * não ligado às escolas seed) e já vem 100% povoado no banco — por isso NÃO é
+ * gerado aqui. Para garantir a grade do fundamental de forma idempotente, use
+ * scripts/seed/seed-extras-demo.js (ON CONFLICT DO NOTHING).
  *
  * IDEMPOTENTE: tudo é marcado por prefixos identificáveis e o script limpa
  * SOMENTE o que casa com esses marcadores no início. NÃO toca em DEMO-ESC-01
@@ -220,6 +229,9 @@ async function main() {
 
     const cfgSeries = {}
     for (const r of (await client.query(`SELECT * FROM configuracao_series`)).rows) cfgSeries[r.serie] = r
+
+    // Itens de produção textual (catálogo) — usados na PARTE 14
+    const itensProducao = (await client.query(`SELECT id, ordem FROM itens_producao WHERE ativo ORDER BY ordem`)).rows
 
     // ---- LIMPEZA ----
     await limpar(client)
@@ -510,6 +522,7 @@ async function main() {
     //       - consolida acertos/notas por área
     const respProvas = []
     const consolidados = []
+    const producaoRows = [] // PARTE 14: resultados_producao (8 itens × aluno × avaliação)
     let totalRespostas = 0
 
     for (const t of turmas) {
@@ -553,13 +566,33 @@ async function main() {
           const totalResp = totalPorArea.lp + totalPorArea.mat + totalPorArea.ch + totalPorArea.cn
           let nivel = null
           if (media !== null) nivel = media >= 8 ? 'Avançado' : media >= 6 ? 'Adequado' : media >= 4 ? 'Básico' : 'Abaixo do Básico'
+          // PARTE 14: produção textual — 8 itens reais (itens_producao) por aluno×avaliação.
+          // nota_producao do consolidado = média dos 8 itens.
+          const itemNotas = []
+          const itemCols = {}
+          if (itensProducao.length) {
+            const baseEscrita = 4 + rnd() * 5 // 4.0 .. 9.0
+            let idxItem = 0
+            for (const item of itensProducao) {
+              let np = Math.max(0, Math.min(10, Math.round((baseEscrita + (rnd() * 2 - 1)) * 10) / 10))
+              itemNotas.push(np)
+              idxItem++
+              if (idxItem <= 8) itemCols[`item_producao_${idxItem}`] = np
+              producaoRows.push({
+                id: uuidv4(), aluno_id: a.id, escola_id: t.escola_id, turma_id: t.id,
+                item_producao_id: item.id, ano_letivo: ano, serie: t.serie,
+                data_avaliacao: `${ano}-10-15`, nota: np, observacao: null, avaliacao_id: avaliacaoId,
+              })
+            }
+          }
+          const notaProducao = itemNotas.length ? Math.round((itemNotas.reduce((x, y) => x + y, 0) / itemNotas.length) * 10) / 10 : null
           consolidados.push({
             id: uuidv4(), aluno_id: a.id, escola_id: t.escola_id, turma_id: t.id, ano_letivo: ano, serie: t.serie,
             presenca: 'P',
             total_acertos_lp: acertos.lp, total_acertos_ch: acertos.ch, total_acertos_mat: acertos.mat, total_acertos_cn: acertos.cn,
-            nota_lp: nlp, nota_ch: nch, nota_mat: nmat, nota_cn: ncn, media_aluno: media, nota_producao: null,
+            nota_lp: nlp, nota_ch: nch, nota_mat: nmat, nota_cn: ncn, media_aluno: media, nota_producao: notaProducao,
             nivel_aprendizagem: nivel, total_questoes_respondidas: totalResp, total_questoes_esperadas: totalResp,
-            avaliacao_id: avaliacaoId, serie_numero: s,
+            avaliacao_id: avaliacaoId, serie_numero: s, ...itemCols,
           })
         }
       }
@@ -577,8 +610,68 @@ async function main() {
     console.log(`resultados_provas: ${totalRespostas}`)
 
     const nCons = await bulkInsert(client, 'resultados_consolidados',
-      ['id', 'aluno_id', 'escola_id', 'turma_id', 'ano_letivo', 'serie', 'presenca', 'total_acertos_lp', 'total_acertos_ch', 'total_acertos_mat', 'total_acertos_cn', 'nota_lp', 'nota_ch', 'nota_mat', 'nota_cn', 'media_aluno', 'nota_producao', 'nivel_aprendizagem', 'total_questoes_respondidas', 'total_questoes_esperadas', 'avaliacao_id', 'serie_numero'], consolidados)
+      ['id', 'aluno_id', 'escola_id', 'turma_id', 'ano_letivo', 'serie', 'presenca', 'total_acertos_lp', 'total_acertos_ch', 'total_acertos_mat', 'total_acertos_cn', 'nota_lp', 'nota_ch', 'nota_mat', 'nota_cn', 'media_aluno', 'nota_producao', 'nivel_aprendizagem', 'total_questoes_respondidas', 'total_questoes_esperadas', 'avaliacao_id', 'serie_numero', 'item_producao_1', 'item_producao_2', 'item_producao_3', 'item_producao_4', 'item_producao_5', 'item_producao_6', 'item_producao_7', 'item_producao_8'], consolidados)
     console.log(`resultados_consolidados: ${nCons}`)
+
+    // 14) RESULTADOS_PRODUCAO — produção textual (8 itens × aluno × avaliação)
+    //     UNIQUE(aluno_id, item_producao_id, avaliacao_id). Gerada no laço acima.
+    const nProd = await bulkInsert(client, 'resultados_producao',
+      ['id', 'aluno_id', 'escola_id', 'turma_id', 'item_producao_id', 'ano_letivo', 'serie', 'data_avaliacao', 'nota', 'observacao', 'avaliacao_id'], producaoRows)
+    console.log(`resultados_producao: ${nProd}`)
+
+    // 15) CONSELHO DE CLASSE — 1 por turma no 4º bimestre + parecer por aluno
+    //     UNIQUE(turma_id, periodo_id) e UNIQUE(conselho_id, aluno_id).
+    //     Parecer cruza a média do 4º bimestre (notas_escolares) + frequência.
+    const conselhos = []
+    const conselhoAlunos = []
+    // média do 4º bimestre por aluno (a partir das notas já em memória)
+    const medias4 = {} // aluno_id -> {soma, n}
+    const periodo4 = {} // ano -> periodo_id do 4º bimestre
+    for (const a of ANOS) periodo4[a] = periodoMap[a][3]
+    for (const n of notas) {
+      // só o 4º bimestre
+      if (n.periodo_id !== periodo4[n.ano_letivo]) continue
+      const m = (medias4[n.aluno_id] ||= { soma: 0, n: 0 })
+      m.soma += Number(n.nota_final); m.n++
+    }
+    const freq4 = {} // aluno_id -> percentual do 4º bimestre
+    for (const f of freq) {
+      if (f.periodo_id !== periodo4[f.ano_letivo]) continue
+      freq4[f.aluno_id] = Number(f.percentual_frequencia)
+    }
+    const ATAS_CC = [
+      'Reunião do conselho de classe final. Análise de aprovação por turma.',
+      'Conselho final: deliberação sobre rendimento e frequência da turma.',
+      'Reunião deliberativa de encerramento do ano letivo.',
+    ]
+    for (const t of turmas) {
+      const conselhoId = uuidv4()
+      conselhos.push({
+        id: conselhoId, turma_id: t.id, periodo_id: periodo4[t.ano_letivo], escola_id: t.escola_id,
+        ano_letivo: t.ano_letivo, data_reuniao: `${t.ano_letivo}-12-${String(randint(5, 18)).padStart(2, '0')}`,
+        ata_geral: pick(ATAS_CC), registrado_por: null,
+      })
+      for (const a of alunosPorTurma[t.id]) {
+        const mm = medias4[a.id]
+        const media = mm && mm.n ? mm.soma / mm.n : null
+        const fr = freq4[a.id]
+        let parecer, obs
+        if (media != null && media >= MEDIA_APROVACAO && (fr == null || fr >= 75)) {
+          parecer = 'aprovado'; obs = 'Aprovado por média e frequência.'
+        } else if (fr != null && fr < 60) {
+          parecer = 'reprovado'; obs = 'Reprovado por frequência insuficiente.'
+        } else if (media != null && media < MEDIA_APROVACAO) {
+          if (rnd() < 0.7) { parecer = 'conselho'; obs = 'Encaminhado ao conselho de classe.' }
+          else { parecer = 'reprovado'; obs = 'Reprovado por rendimento.' }
+        } else { parecer = 'aprovado'; obs = 'Aprovado.' }
+        conselhoAlunos.push({ id: uuidv4(), conselho_id: conselhoId, aluno_id: a.id, parecer, observacao: obs })
+      }
+    }
+    const nCC = await bulkInsert(client, 'conselho_classe',
+      ['id', 'turma_id', 'periodo_id', 'escola_id', 'ano_letivo', 'data_reuniao', 'ata_geral', 'registrado_por'], conselhos)
+    const nCCA = await bulkInsert(client, 'conselho_classe_alunos',
+      ['id', 'conselho_id', 'aluno_id', 'parecer', 'observacao'], conselhoAlunos)
+    console.log(`conselho_classe: ${nCC} | conselho_classe_alunos: ${nCCA}`)
 
     await client.query('COMMIT')
     console.log('\n== COMMIT OK ==')
