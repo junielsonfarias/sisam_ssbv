@@ -17,7 +17,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { lerPlanilha } from '@/lib/excel-reader'
-import { limparTodosOsCaches } from '@/lib/cache'
+import { limparTodosOsCaches, invalidateDashboardCache, invalidateFiltrosCache, cacheDelPattern } from '@/lib/cache'
 import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import { validarArquivoUpload } from '@/lib/api-helpers'
 import { createLogger } from '@/lib/logger'
@@ -123,10 +123,18 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       ]
     )
 
-    // Invalidar cache (não-crítico)
+    // Invalidar cache após importação. limparTodosOsCaches() só limpa o cache de
+    // ARQUIVO; os dashboards/análises leem do memoryCache (Map) e do Redis e
+    // precisam ser invalidados explicitamente, senão mostram números pré-importação
+    // até o TTL (mesmo bug que c3b9c00 corrigiu em /importar — aqui faltava).
     try {
       limparTodosOsCaches()
-      log.info('Cache do dashboard invalidado após importação')
+      invalidateDashboardCache()
+      invalidateFiltrosCache()
+      for (const p of ['dashboard:*', 'stats:*', 'graficos:*', 'alunos:*', 'executivo:*', 'evolucao:*', 'alunos-risco:*', 'dashboard-gestor:*']) {
+        try { await cacheDelPattern(p) } catch {}
+      }
+      log.info('Cache (arquivo + memoria + Redis) invalidado após importação')
     } catch (cacheError) {
       log.error('Erro ao invalidar cache (não crítico)', cacheError)
     }

@@ -189,7 +189,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     limparTodosOsCaches()
     invalidateDashboardCache()
     invalidateFiltrosCache()
-    for (const p of ['dashboard:*', 'stats:*', 'graficos:*', 'alunos:*']) {
+    for (const p of ['dashboard:*', 'stats:*', 'graficos:*', 'alunos:*', 'executivo:*', 'evolucao:*', 'alunos-risco:*', 'dashboard-gestor:*']) {
       try { await cacheDelPattern(p) } catch {}
     }
     log.info('Cache (arquivo + memoria + Redis) invalidado após importação')

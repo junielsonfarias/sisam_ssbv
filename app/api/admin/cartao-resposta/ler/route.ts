@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { resolverAvaliacaoId } from '@/lib/avaliacoes'
+import { limparTodosOsCaches, invalidateDashboardCache, invalidateFiltrosCache, cacheDelPattern } from '@/lib/cache'
 import sharp from 'sharp'
 import Jimp from 'jimp'
 
@@ -240,6 +241,17 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
       } finally {
         client.release()
       }
+
+      // Gravou resultados_provas: invalidar dashboards/análises (arquivo +
+      // memória + Redis), senão mostram números pré-leitura até o TTL.
+      try {
+        limparTodosOsCaches()
+        invalidateDashboardCache()
+        invalidateFiltrosCache()
+        for (const p of ['dashboard:*', 'stats:*', 'graficos:*', 'alunos:*', 'executivo:*', 'evolucao:*', 'alunos-risco:*', 'dashboard-gestor:*']) {
+          try { await cacheDelPattern(p) } catch {}
+        }
+      } catch { /* invalidacao de cache nao e critica */ }
     }
 
     return NextResponse.json({
