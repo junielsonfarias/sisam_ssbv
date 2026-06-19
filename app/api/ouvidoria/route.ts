@@ -26,6 +26,23 @@ function gerarProtocolo(): string {
   return `OUV-${y}${m}${d}-${rand}`
 }
 
+// Rate limiting simples por IP (rota pública gravável — evita flood/spam)
+const limiter = new Map<string, { count: number; resetAt: number }>()
+const MAX_REQ = 5
+const WINDOW = 15 * 60 * 1000
+
+function checkRate(ip: string): boolean {
+  const now = Date.now()
+  const entry = limiter.get(ip)
+  if (!entry || now > entry.resetAt) {
+    limiter.set(ip, { count: 1, resetAt: now + WINDOW })
+    return true
+  }
+  if (entry.count >= MAX_REQ) return false
+  entry.count++
+  return true
+}
+
 /**
  * GET /api/ouvidoria?protocolo=OUV-XXXXXXXX-XXXX
  * Consulta pública de protocolo
@@ -61,6 +78,11 @@ export async function GET(request: NextRequest) {
  * Criar nova manifestação
  */
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') || 'unknown'
+  if (!checkRate(ip)) {
+    return NextResponse.json({ mensagem: 'Muitas requisições. Tente novamente em alguns minutos.' }, { status: 429 })
+  }
+
   try {
     const body = await request.json()
     const parsed = ouvidoriaSchema.safeParse(body)

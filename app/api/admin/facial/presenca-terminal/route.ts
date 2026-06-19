@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { getUsuarioFromRequest, verificarPermissao, podeAcessarEscolaSync } from '@/lib/auth'
 import { validateRequest, presencaFacialSchema } from '@/lib/schemas'
 import { FACIAL } from '@/lib/constants'
 import { extrairDataHoraLocal } from '@/lib/api-helpers'
@@ -50,6 +50,13 @@ export async function POST(request: NextRequest) {
     }
 
     const aluno = alunoResult.rows[0]
+
+    // Controle de acesso por escopo (IDOR): usuario do tipo 'escola' so pode
+    // registrar presenca de alunos da propria escola. Admin/tecnico irrestritos.
+    // A rota nao admite 'polo', entao o check sincrono (sem polo_id) basta.
+    if (!podeAcessarEscolaSync(usuario, aluno.escola_id)) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
 
     // Verificar consentimento facial ativo (LGPD)
     const consentimentoResult = await pool.query(

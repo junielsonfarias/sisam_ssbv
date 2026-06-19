@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
-import { generateApiKey } from '@/lib/device-auth'
 import pool from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/admin/dispositivos-faciais/[id]/qrcode
- * Gera dados para QR Code de configuração rápida do dispositivo
- * Regenera a API key e retorna dados para o QR
+ * Retorna os dados de configuração (URL, IDs, escola) para o QR Code.
+ *
+ * GET é idempotente: NÃO regenera nem invalida a API key (isso era um efeito
+ * colateral perigoso — prefetch/crawler/replay derrubava o dispositivo, e a
+ * chave nova sequer era exibida). Para gerar/rotacionar a chave, use o endpoint
+ * dedicado POST /regenerar-chave.
  */
 export async function GET(
   request: NextRequest,
@@ -38,14 +41,6 @@ export async function GET(
 
     const dispositivo = result.rows[0]
 
-    // Gerar nova API key para o QR
-    const { apiKey, apiKeyHash, apiKeyPrefix } = await generateApiKey()
-
-    await pool.query(
-      `UPDATE dispositivos_faciais SET api_key_hash = $1, api_key_prefix = $2 WHERE id = $3`,
-      [apiKeyHash, apiKeyPrefix, id]
-    )
-
     // URL segura via variável de ambiente (evita host header injection)
     const sisamUrl = process.env.NEXT_PUBLIC_APP_URL
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
@@ -68,13 +63,12 @@ export async function GET(
 
     return NextResponse.json({
       qr_data: JSON.stringify(qrData),
-      api_key: apiKey,
       dispositivo: {
         id: dispositivo.id,
         nome: dispositivo.nome,
         escola_nome: dispositivo.escola_nome,
       },
-      aviso: 'Uma nova API key foi gerada. A chave anterior foi invalidada.',
+      aviso: 'Estes dados não contêm a API key. Para obter/rotacionar a chave do dispositivo, use "Regenerar chave".',
     })
   } catch (error: unknown) {
     console.error('Erro ao gerar QR code:', error)
