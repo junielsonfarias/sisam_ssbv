@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import sharp from 'sharp'
 import Jimp from 'jimp'
 
@@ -19,6 +20,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
     const imagem = formData.get('imagem') as File
     const anoLetivo = formData.get('ano_letivo') as string
     const alunoId = formData.get('aluno_id') as string
+    const avaliacaoIdParam = formData.get('avaliacao_id') as string | null
 
     if (!imagem || !anoLetivo) {
       return NextResponse.json(
@@ -156,6 +158,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
 
     // Salvar resultados no banco (se aluno fornecido)
     if (alunoId && Object.keys(respostas).length > 0) {
+      // resultados_provas.avaliacao_id e NOT NULL desde add-avaliacoes.sql; sem
+      // resolver a avaliacao o INSERT abaixo sempre falhava (rollback -> 500).
+      const avaliacaoId = await resolverAvaliacaoId(avaliacaoIdParam, anoLetivo)
       const client = await pool.connect()
       try {
         await client.query('BEGIN')
@@ -194,13 +199,21 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
                 acertou = gabaritoResult.rows[0].gabarito === alternativa
               }
 
-              // Inserir/atualizar resultado
+              // Inserir/atualizar resultado. ON CONFLICT no indice unico real
+              // (aluno_id, questao_codigo, avaliacao_id) com DO UPDATE: reler o
+              // mesmo cartao atualiza a marcacao em vez de ser ignorado.
               await client.query(
-                `INSERT INTO resultados_provas 
-                 (escola_id, aluno_id, turma_id, questao_id, questao_codigo, 
-                  resposta_aluno, alternativa_marcada, acertou, nota, ano_letivo, serie)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                 ON CONFLICT DO NOTHING`,
+                `INSERT INTO resultados_provas
+                 (escola_id, aluno_id, turma_id, questao_id, questao_codigo,
+                  resposta_aluno, alternativa_marcada, acertou, nota, ano_letivo, serie, avaliacao_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                 ON CONFLICT (aluno_id, questao_codigo, avaliacao_id)
+                 DO UPDATE SET
+                   resposta_aluno = EXCLUDED.resposta_aluno,
+                   alternativa_marcada = EXCLUDED.alternativa_marcada,
+                   acertou = EXCLUDED.acertou,
+                   nota = EXCLUDED.nota,
+                   atualizado_em = CURRENT_TIMESTAMP`,
                 [
                   aluno.escola_id,
                   alunoId,
@@ -212,7 +225,8 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
                   acertou,
                   acertou ? 1 : 0,
                   anoLetivo,
-                  aluno.serie || null
+                  aluno.serie || null,
+                  avaliacaoId
                 ]
               )
             }
