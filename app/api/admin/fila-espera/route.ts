@@ -67,7 +67,7 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
 
   const result = await pool.query(`
     SELECT f.*, e.nome AS escola_nome
-    FROM fila_espera f
+    FROM fila_espera_publica f
     LEFT JOIN escolas e ON e.id = f.escola_id
     ${where}
     ORDER BY f.data_entrada ASC NULLS LAST, f.criado_em ASC
@@ -81,7 +81,7 @@ export const GET = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
       COUNT(*) FILTER (WHERE status = 'rejeitado') AS total_rejeitados,
       COUNT(*) FILTER (WHERE status = 'matriculado') AS total_matriculados,
       COUNT(*) AS total
-    FROM fila_espera f
+    FROM fila_espera_publica f
     ${where}
   `, params)
 
@@ -113,13 +113,13 @@ export const POST = withAuthModulo(['administrador', 'tecnico', 'escola'], 'seme
 
   // Calcular próxima posição
   const posResult = await pool.query(
-    'SELECT COALESCE(MAX(posicao), 0) + 1 AS proxima FROM fila_espera WHERE escola_id = $1 AND serie = $2 AND ano_letivo = $3 AND status = $4',
+    'SELECT COALESCE(MAX(posicao), 0) + 1 AS proxima FROM fila_espera_publica WHERE escola_id = $1 AND serie = $2 AND ano_letivo = $3 AND status = $4',
     [escola_id, serie, ano_letivo, 'aguardando']
   )
   const posicao = posResult.rows[0].proxima
 
   const result = await pool.query(`
-    INSERT INTO fila_espera (aluno_nome, responsavel_nome, telefone, escola_id, serie, ano_letivo, observacao, posicao, status, data_entrada)
+    INSERT INTO fila_espera_publica (aluno_nome, responsavel_nome, telefone, escola_id, serie, ano_letivo, observacao, posicao, status, data_entrada)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'aguardando', NOW())
     RETURNING *
   `, [aluno_nome, responsavel_nome || null, telefone || null, escola_id, serie, ano_letivo, observacao || null, posicao])
@@ -145,7 +145,7 @@ export const PUT = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
   const { id, status, observacao } = validacao.data
 
   // Verificar se existe
-  const check = await pool.query('SELECT id, escola_id FROM fila_espera WHERE id = $1', [id])
+  const check = await pool.query('SELECT id, escola_id FROM fila_espera_publica WHERE id = $1', [id])
   if (check.rows.length === 0) {
     return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
   }
@@ -155,10 +155,10 @@ export const PUT = withAuthModulo(['administrador', 'tecnico', 'escola'], 'semed
     return NextResponse.json({ mensagem: 'Sem permissão' }, { status: 403 })
   }
 
-  const dateField = status === 'aprovado' ? ', data_convocacao = NOW()' : status === 'rejeitado' || status === 'matriculado' ? ', data_resolucao = NOW()' : ''
+  const dateField = status === 'aprovado' || status === 'rejeitado' || status === 'matriculado' ? ', data_resolucao = NOW()' : ''
 
   const result = await pool.query(`
-    UPDATE fila_espera SET status = $2, observacao = COALESCE($3, observacao), atualizado_em = NOW() ${dateField}
+    UPDATE fila_espera_publica SET status = $2, observacao = COALESCE($3, observacao), atualizado_em = NOW() ${dateField}
     WHERE id = $1 RETURNING *
   `, [id, status, observacao || null])
 
@@ -178,7 +178,7 @@ export const DELETE = withAuthModulo(['administrador', 'tecnico'], 'semed', asyn
     return NextResponse.json({ mensagem: 'id é obrigatório' }, { status: 400 })
   }
 
-  const result = await pool.query('DELETE FROM fila_espera WHERE id = $1 RETURNING id', [id])
+  const result = await pool.query('DELETE FROM fila_espera_publica WHERE id = $1 RETURNING id', [id])
   if (result.rows.length === 0) {
     return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
   }
