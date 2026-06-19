@@ -8,6 +8,7 @@ vi.mock('@/database/connection', () => ({
 vi.mock('@/lib/auth', () => ({
   getUsuarioFromRequest: vi.fn(),
   verificarPermissao: vi.fn().mockReturnValue(true),
+  podeAcessarAluno: vi.fn().mockResolvedValue(true),
 }))
 
 vi.mock('@/lib/services/documentos.service', () => ({
@@ -39,6 +40,7 @@ vi.mock('@/lib/services/auditoria.service', () => ({
 }))
 
 import { getUsuarioFromRequest } from '@/lib/auth'
+import pool from '@/database/connection'
 import * as doc from '@/lib/services/documentos.service'
 import * as transf from '@/lib/services/transferencia-documento.service'
 import * as decl from '@/lib/services/declaracoes.service'
@@ -65,6 +67,8 @@ describe('/api/admin/documentos/historico', () => {
   })
 
   it('emite historico com codigo de validacao', async () => {
+    // Histórico resolve a escola do aluno (não a do emissor) antes de emitir
+    vi.mocked(pool.query).mockResolvedValue({ rows: [{ escola_id: 'esc-1' }] } as any)
     vi.mocked(doc.coletarDadosHistoricoEscolar).mockResolvedValue({
       aluno: { id: 'al-1', nome: 'Joao' },
       escola_atual: { nome: 'EM Teste' },

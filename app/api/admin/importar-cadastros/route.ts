@@ -4,7 +4,7 @@ import { withTransaction } from '@/lib/database/with-transaction'
 import { withSavepoint } from '@/lib/database/with-savepoint'
 import { criarGeradorCodigoAlunoTx } from '@/lib/gerar-codigo-aluno'
 import { lerPlanilha } from '@/lib/excel-reader'
-import { limparTodosOsCaches } from '@/lib/cache'
+import { limparTodosOsCaches, invalidateDashboardCache, invalidateFiltrosCache, cacheDelPattern } from '@/lib/cache'
 import { validarArquivoUpload } from '@/lib/api-helpers'
 import { createLogger } from '@/lib/logger'
 
@@ -305,10 +305,17 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       return { resultado, questoesCriadas }
     })
 
-    // Invalidar cache do dashboard após importação bem-sucedida
+    // Invalidar cache após importação. limparTodosOsCaches() só limpa o cache
+    // de ARQUIVO; dashboards leem do memoryCache (Map) e do Redis. Como esta
+    // rota cria escolas/polos/turmas/alunos, invalida todos esses prefixos.
     try {
       limparTodosOsCaches()
-      log.info('Cache do dashboard invalidado após importação')
+      invalidateDashboardCache()
+      invalidateFiltrosCache()
+      for (const p of ['dashboard:*', 'stats:*', 'graficos:*', 'alunos:*', 'turmas:*', 'escolas:*', 'polos:*']) {
+        try { await cacheDelPattern(p) } catch {}
+      }
+      log.info('Cache (arquivo + memoria + Redis) invalidado após importação')
     } catch (cacheError) {
       log.error('Erro ao invalidar cache (não crítico)', cacheError)
     }
