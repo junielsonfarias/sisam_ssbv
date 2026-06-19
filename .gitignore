@@ -207,6 +207,9 @@ estrutura-dados.json
 analisar-excel.py
 /nul
 
+# Scripts locais de performance/diagnóstico (raiz) — contêm credenciais de conexão
+_perf_*
+
 # Backups locais do banco
 /backups/
 *.dump

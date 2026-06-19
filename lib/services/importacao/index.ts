@@ -135,7 +135,7 @@ export async function processarImportacao(
     await inserirConsolidados(consolidadosParaInserir, erros)
 
     // Fase 8.5: Batch insert de producao textual
-    await inserirProducao(producaoParaInserir, alunosParaInserir, consolidadosParaInserir)
+    await inserirProducao(producaoParaInserir)
 
     // Fase 9: Batch insert de resultados de provas
     await inserirResultadosProvas(resultadosParaInserir, resultado, erros)

@@ -303,7 +303,7 @@ function addSecurityHeaders(response: NextResponse, requestId?: string, pathname
   }
 
   // CSP e Permissions-Policy diferenciados por contexto
-  const isFacial = pathname?.startsWith('/terminal') || pathname?.startsWith('/admin/terminal-facial') || pathname?.startsWith('/admin/facial-enrollment')
+  const isFacial = pathname?.startsWith('/terminal') || pathname?.startsWith('/admin/terminal-facial') || pathname?.startsWith('/admin/facial-enrollment') || pathname?.startsWith('/admin/gestor/terminal-facial') || pathname?.startsWith('/admin/gestor/facial-enrollment')
   const isAdmin = pathname?.startsWith('/admin')
   const isDev = process.env.NODE_ENV !== 'production'
 

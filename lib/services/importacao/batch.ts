@@ -488,28 +488,12 @@ export async function inserirConsolidados(
  * Fase 8.5: Insere resultados de producao textual em batch
  */
 export async function inserirProducao(
-  producaoParaInserir: ProducaoParaInserir[],
-  alunosParaInserir: AlunoParaInserir[],
-  consolidadosParaInserir: ConsolidadoParaInserir[]
+  producaoParaInserir: ProducaoParaInserir[]
 ): Promise<void> {
   log.info('[FASE 8.5] Criando resultados de producao textual em batch...')
   if (producaoParaInserir.length > 0) {
-    // Converter IDs temporarios para IDs reais
-    const tempToRealAlunos = new Map<string, string>()
-    alunosParaInserir.forEach((a, idx) => {
-      // O mapa foi preenchido na fase 7, mas precisamos reconstruir se necessario
-    })
-
-    // Atualizar IDs temporarios
-    producaoParaInserir.forEach(p => {
-      if (p.aluno_id && p.aluno_id.startsWith('TEMP_ALUNO_')) {
-        const consolidadoCorrespondente = consolidadosParaInserir.find(c =>
-          c.aluno_id && !c.aluno_id.startsWith('TEMP_')
-        )
-      }
-    })
-
-    // Filtrar apenas resultados com IDs reais
+    // A conversao de IDs temporarios -> reais ja ocorreu na fase 7.
+    // Aqui apenas filtramos os resultados que ja possuem ID real.
     const producaoValida = producaoParaInserir.filter(
       p => p.aluno_id && !p.aluno_id.startsWith('TEMP_')
     )
