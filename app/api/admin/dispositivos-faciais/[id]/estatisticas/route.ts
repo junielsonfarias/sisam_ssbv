@@ -21,6 +21,21 @@ export async function GET(
     const { id } = params
     const hoje = new Date().toISOString().split('T')[0]
 
+    // Controle de acesso: usuário 'escola' só vê estatísticas de dispositivos
+    // da própria escola — verificar antes das agregações
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      const escolaCheck = await pool.query(
+        'SELECT escola_id FROM dispositivos_faciais WHERE id = $1',
+        [id]
+      )
+      if (escolaCheck.rows.length === 0) {
+        return NextResponse.json({ mensagem: 'Dispositivo não encontrado' }, { status: 404 })
+      }
+      if (escolaCheck.rows[0].escola_id !== usuario.escola_id) {
+        return NextResponse.json({ mensagem: 'Não autorizado para este dispositivo' }, { status: 403 })
+      }
+    }
+
     // Total de presenças registradas hoje por este dispositivo
     const hojeResult = await pool.query(
       `SELECT COUNT(*) AS total_hoje

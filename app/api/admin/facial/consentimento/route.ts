@@ -26,12 +26,28 @@ export async function GET(request: NextRequest) {
 
     // Busca por aluno específico (usado na aba facial do perfil)
     if (alunoIdParam) {
+      // Controle de acesso: usuário 'escola' só consulta consentimento (dados
+      // LGPD) de alunos da própria escola
+      if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+        const alunoCheck = await pool.query(
+          'SELECT id FROM alunos WHERE id = $1 AND escola_id = $2',
+          [alunoIdParam, usuario.escola_id]
+        )
+        if (alunoCheck.rows.length === 0) {
+          return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+        }
+      }
       const alunos = await buscarConsentimentoAluno(alunoIdParam)
       return NextResponse.json({ alunos })
     }
 
     if (!escolaId) {
       return NextResponse.json({ mensagem: 'escola_id é obrigatório' }, { status: 400 })
+    }
+
+    // Controle de acesso: usuário 'escola' só lista consentimentos da própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id !== escolaId) {
+      return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
@@ -63,11 +79,17 @@ export async function POST(request: NextRequest) {
 
     // Verificar se aluno existe
     const alunoResult = await pool.query(
-      'SELECT id, nome FROM alunos WHERE id = $1 AND ativo = true',
+      'SELECT id, nome, escola_id FROM alunos WHERE id = $1 AND ativo = true',
       [aluno_id]
     )
     if (alunoResult.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
+    }
+
+    // Controle de acesso: usuário 'escola' só registra/altera consentimento
+    // (dados LGPD) de alunos da própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id !== alunoResult.rows[0].escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { getUsuarioFromRequest, verificarPermissao, podeAcessarEscolaSync } from '@/lib/auth'
 import { validateRequest } from '@/lib/schemas'
 import { enrollmentFacialSchema } from '@/lib/schemas'
 import pool from '@/database/connection'
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const result = await pool.query(
       `SELECT ef.embedding_data, ef.qualidade, ef.versao_modelo,
               ef.criado_em, ef.atualizado_em,
-              a.nome AS aluno_nome
+              a.nome AS aluno_nome, a.escola_id
        FROM embeddings_faciais ef
        INNER JOIN alunos a ON a.id = ef.aluno_id
        WHERE ef.aluno_id = $1`,
@@ -43,6 +43,13 @@ export async function GET(request: NextRequest) {
     }
 
     const row = result.rows[0]
+
+    // Controle de acesso: usuário 'escola' só lê dados biométricos de alunos
+    // da própria escola (LGPD art. 11). Admin/técnico irrestritos.
+    if (!podeAcessarEscolaSync(usuario, row.escola_id)) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
+    }
+
     const embeddingBase64 = Buffer.from(row.embedding_data).toString('base64')
 
     return NextResponse.json({
@@ -78,11 +85,17 @@ export async function POST(request: NextRequest) {
 
     // Verificar se aluno existe
     const alunoResult = await pool.query(
-      'SELECT id, nome FROM alunos WHERE id = $1 AND ativo = true',
+      'SELECT id, nome, escola_id FROM alunos WHERE id = $1 AND ativo = true',
       [aluno_id]
     )
     if (alunoResult.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Aluno não encontrado' }, { status: 404 })
+    }
+
+    // Controle de acesso: usuário 'escola' só cadastra/sobrescreve template
+    // facial de alunos da própria escola (LGPD art. 11). Admin/técnico irrestritos.
+    if (!podeAcessarEscolaSync(usuario, alunoResult.rows[0].escola_id)) {
+      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
     // Verificar se há consentimento ativo

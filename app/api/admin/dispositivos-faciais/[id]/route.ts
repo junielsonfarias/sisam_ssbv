@@ -39,6 +39,11 @@ export async function GET(
       return NextResponse.json({ mensagem: 'Dispositivo não encontrado' }, { status: 404 })
     }
 
+    // Controle de acesso: usuário 'escola' só vê detalhes/logs de dispositivos da própria escola
+    if (usuario.tipo_usuario === 'escola' && result.dispositivo.escola_id !== usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Não autorizado para este dispositivo' }, { status: 403 })
+    }
+
     return NextResponse.json(result)
   } catch (error: unknown) {
     log.error('Erro ao buscar dispositivo', error)
