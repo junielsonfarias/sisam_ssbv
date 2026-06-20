@@ -9,3 +9,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 ## Início — 2026-06-20 19:54
 - Infraestrutura criada (branch, workflow, estado, log).
 
+- ciclo 1 | api-facial | aprovado | 6 tarefas | tsc:ok vitest:ok | 0acbc36
