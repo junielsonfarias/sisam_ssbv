@@ -31,7 +31,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'editor', 'publicador']
     `SELECT e.*, u.nome as criado_por_nome
      FROM eventos e
      LEFT JOIN usuarios u ON e.criado_por = u.id
-     WHERE EXTRACT(YEAR FROM e.data_inicio) = $1
+     WHERE e.ativo = true AND EXTRACT(YEAR FROM e.data_inicio) = $1
      ORDER BY e.data_inicio DESC`,
     [ano]
   )
@@ -89,7 +89,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'editor', 'publicador']
   params.push(id)
 
   const result = await pool.query(
-    `UPDATE eventos SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+    `UPDATE eventos SET ${sets.join(', ')} WHERE id = $${paramIndex} AND ativo = true RETURNING *`,
     params
   )
 

@@ -43,6 +43,20 @@ export async function GET(
       )
     }
 
+    // Polo users can only see schools within their polo
+    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+      const escolaCheck = await pool.query(
+        'SELECT polo_id FROM escolas WHERE id = $1',
+        [escolaId]
+      )
+      if (escolaCheck.rows.length === 0 || escolaCheck.rows[0].polo_id !== usuario.polo_id) {
+        return NextResponse.json(
+          { mensagem: 'Não autorizado para esta escola' },
+          { status: 403 }
+        )
+      }
+    }
+
     const { searchParams } = new URL(request.url)
     const anoLetivo = searchParams.get('ano_letivo') || undefined
 
