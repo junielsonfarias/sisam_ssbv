@@ -10,3 +10,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - Infraestrutura criada (branch, workflow, estado, log).
 
 - ciclo 1 | api-facial | aprovado | 6 tarefas | tsc:ok vitest:ok | 0acbc36
+- ciclo 1 | api-admin-academico | aprovado | 4 tarefas | tsc:ok vitest:ok | bbee290
