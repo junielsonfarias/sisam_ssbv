@@ -78,12 +78,16 @@ export interface FilterHelpers {
 }
 
 export function useFilterState(): { filters: FilterState; setters: FilterSetters; helpers: FilterHelpers } {
+  // Ano letivo corrente é o padrão: os dados são isolados por ano, então abrir
+  // já filtrando o ano corrente evita misturar resultados de anos diferentes.
+  const anoLetivoPadrao = new Date().getFullYear().toString()
+
   // Filtros
   const [filtroPoloId, setFiltroPoloId] = useState('')
   const [filtroEscolaId, setFiltroEscolaId] = useState('')
   const [filtroSerie, setFiltroSerie] = useState('')
   const [filtroTurmaId, setFiltroTurmaId] = useState('')
-  const [filtroAnoLetivo, setFiltroAnoLetivo] = useState('')
+  const [filtroAnoLetivo, setFiltroAnoLetivo] = useState(anoLetivoPadrao)
   const [filtroPresenca, setFiltroPresenca] = useState('')
   const [filtroNivel, setFiltroNivel] = useState('')
   const [filtroFaixaMedia, setFiltroFaixaMedia] = useState('')
@@ -127,8 +131,11 @@ export function useFilterState(): { filters: FilterState; setters: FilterSetters
   const [filtrosCache, setFiltrosCache] = useState<FiltrosCache | null>(null)
 
   // Helpers
-  const temFiltrosAtivos = !!(filtroPoloId || filtroEscolaId || filtroTurmaId || filtroAnoLetivo || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTipoEnsino || filtroSerie)
-  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroTurmaId, filtroAnoLetivo, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, filtroSerie].filter(Boolean).length
+  // O ano letivo padrão (corrente) NÃO conta como "filtro ativo" — é o estado
+  // base. Só conta se o usuário escolheu um ano diferente do padrão.
+  const anoLetivoFiltroExtra = filtroAnoLetivo && filtroAnoLetivo !== anoLetivoPadrao ? filtroAnoLetivo : ''
+  const temFiltrosAtivos = !!(filtroPoloId || filtroEscolaId || filtroTurmaId || anoLetivoFiltroExtra || filtroPresenca || filtroNivel || filtroFaixaMedia || filtroDisciplina || filtroTipoEnsino || filtroSerie)
+  const qtdFiltros = [filtroPoloId, filtroEscolaId, filtroTurmaId, anoLetivoFiltroExtra, filtroPresenca, filtroNivel, filtroFaixaMedia, filtroDisciplina, filtroTipoEnsino, filtroSerie].filter(Boolean).length
 
   const limparFiltros = useCallback(() => {
     // Para usuários polo ou escola, manter o polo_id fixo
@@ -141,7 +148,7 @@ export function useFilterState(): { filters: FilterState; setters: FilterSetters
     }
     setFiltroSerie('')
     setFiltroTurmaId('')
-    setFiltroAnoLetivo('')
+    setFiltroAnoLetivo(anoLetivoPadrao)
     setFiltroPresenca('')
     setFiltroNivel('')
     setFiltroFaixaMedia('')
@@ -157,7 +164,7 @@ export function useFilterState(): { filters: FilterState; setters: FilterSetters
       } catch (e) {
       }
     }
-  }, [usuario?.tipo_usuario])
+  }, [usuario?.tipo_usuario, anoLetivoPadrao])
 
   const filtrosPrincipaisIguais = useCallback(() => {
     if (!filtrosCache) return false

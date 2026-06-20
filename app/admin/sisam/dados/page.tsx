@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import ModalQuestoesAluno from '@/components/modal-questoes-aluno'
-import { useEffect, useMemo, useCallback } from 'react'
+import { useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Users, School, GraduationCap, MapPin, TrendingUp, TrendingDown,
   Filter, X, ChevronDown, ChevronUp, RefreshCw, Download,
@@ -113,10 +113,14 @@ export default function DadosPage() {
     { id: 'analises', label: 'Análises', icon: Target },
   ], [])
 
-  const opcoesAnoLetivo = useMemo(() =>
-    dados?.filtros.anosLetivos.map(ano => ({ value: ano, label: ano })) || [],
-    [dados?.filtros.anosLetivos]
-  )
+  const opcoesAnoLetivo = useMemo(() => {
+    const anos = dados?.filtros.anosLetivos || []
+    // Garante o ano corrente na lista mesmo antes do 1º carregamento, senão o
+    // select (default = ano corrente) apareceria vazio até a primeira pesquisa.
+    const anoCorrente = new Date().getFullYear().toString()
+    const lista = anos.includes(anoCorrente) ? anos : [anoCorrente, ...anos]
+    return lista.map(ano => ({ value: ano, label: ano }))
+  }, [dados?.filtros.anosLetivos])
 
   const opcoesPolos = useMemo(() =>
     dados?.filtros.polos.map(polo => ({ value: polo.id, label: polo.nome })) || [],
@@ -207,6 +211,24 @@ export default function DadosPage() {
       setFiltroDisciplina('')
     }
   }, [filtroTipoEnsino, filtroSerie, filtroDisciplina])
+
+  // Trocar o ANO LETIVO recarrega do servidor imediatamente. O ano é um filtro
+  // ESTRUTURAL: o cache local (dadosCache) é por ano, então não dá para filtrar
+  // localmente — é preciso nova busca. Mostra o loading principal
+  // (TabelaCarregando) para o usuário ver claramente que o painel está sendo
+  // atualizado. Só dispara após a 1ª pesquisa e quando o ano REALMENTE muda
+  // (a ref evita re-disparo a cada render por outras dependências).
+  const anoAnteriorRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (anoAnteriorRef.current === null) { anoAnteriorRef.current = filtroAnoLetivo; return }
+    if (anoAnteriorRef.current === filtroAnoLetivo) return
+    anoAnteriorRef.current = filtroAnoLetivo
+    if (!pesquisaRealizada) return
+    setUsandoCache(false)
+    setPaginaAtual(1)
+    carregarDados(false, undefined, false, filtroSerie)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroAnoLetivo])
 
   return (
     <ProtectedRoute tiposPermitidos={['administrador', 'tecnico', 'polo', 'escola']}>
@@ -372,7 +394,10 @@ export default function DadosPage() {
           )}
 
           {carregando ? (
-            <TabelaCarregando mensagem="Carregando dados..." />
+            <TabelaCarregando
+              mensagem={filtroAnoLetivo ? `Carregando dados do ano letivo ${filtroAnoLetivo}...` : 'Carregando dados de todos os anos letivos...'}
+              submensagem="Atualizando o painel, aguarde um momento"
+            />
           ) : dados ? (
             <>
               {/* KPIs */}
