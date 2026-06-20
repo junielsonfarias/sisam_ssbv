@@ -1,0 +1,13 @@
+{
+  "branch": "auto/revisao-noturna",
+  "iniciadoEm": "2026-06-20T19:54:00-03:00",
+  "deadline": "2026-06-21T09:00:00-03:00",
+  "cicloAtual": 0,
+  "ciclosAlvo": 5,
+  "modoPosCiclos": "continuar-revisando-ate-deadline",
+  "aceitacao": "automatica",
+  "verificacao": "tsc+vitest",
+  "naoVerde": "reverter-automaticamente",
+  "push": "NUNCA (decisao manual do usuario)",
+  "historico": []
+}
