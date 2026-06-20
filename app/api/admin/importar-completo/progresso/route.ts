@@ -26,9 +26,9 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT id, nome_arquivo, total_linhas, linhas_processadas, linhas_com_erro, 
-              status, criado_em, concluido_em
-       FROM importacoes 
+      `SELECT id, nome_arquivo, total_linhas, linhas_processadas, linhas_com_erro,
+              status, criado_em, concluido_em, usuario_id
+       FROM importacoes
        WHERE id = $1`,
       [importacaoId]
     )
@@ -41,6 +41,15 @@ export async function GET(request: NextRequest) {
     }
 
     const importacao = result.rows[0]
+
+    // Não-admin só pode acompanhar as próprias importações.
+    // Retorna 404 (e não 403) para não revelar a existência da importação alheia.
+    if (usuario.tipo_usuario !== 'administrador' && importacao.usuario_id !== usuario.id) {
+      return NextResponse.json(
+        { mensagem: 'Importação não encontrada' },
+        { status: 404 }
+      )
+    }
     const porcentagem = importacao.total_linhas > 0
       ? Math.round((importacao.linhas_processadas / importacao.total_linhas) * 100)
       : 0

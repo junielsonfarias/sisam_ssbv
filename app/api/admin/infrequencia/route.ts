@@ -32,6 +32,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Informe periodo_id' }, { status: 400 })
     }
 
+    // Guarda de vínculo: usuário escola/polo sem unidade vinculada não pode
+    // cair em consulta sem filtro (vazaria dados de todas as unidades).
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem escola vinculada' }, { status: 403 })
+    }
+    if (usuario.tipo_usuario === 'polo' && !usuario.polo_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem polo vinculado' }, { status: 403 })
+    }
+
     // Restrições por permissão
     let escolaFilter: string | null = escolaId
     let poloFilter: string | null = poloId

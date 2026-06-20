@@ -19,14 +19,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Cancelar todas as importações em processamento ou pausadas
-    const result = await pool.query(`
-      UPDATE importacoes
-      SET status = 'cancelado',
-          concluido_em = CURRENT_TIMESTAMP
-      WHERE status IN ('processando', 'pausado')
-      RETURNING id, nome_arquivo, status
-    `)
+    // Cancelar importações em processamento ou pausadas.
+    // Não-admin (ex.: técnico) só pode cancelar as próprias importações.
+    const isAdmin = usuario.tipo_usuario === 'administrador'
+    const params: any[] = []
+    let filtroUsuario = ''
+    if (!isAdmin) {
+      params.push(usuario.id)
+      filtroUsuario = ` AND usuario_id = $${params.length}`
+    }
+
+    const result = await pool.query(
+      `UPDATE importacoes
+       SET status = 'cancelado',
+           concluido_em = CURRENT_TIMESTAMP
+       WHERE status IN ('processando', 'pausado')${filtroUsuario}
+       RETURNING id, nome_arquivo, status`,
+      params
+    )
 
     // Registrar auditoria do cancelamento
     registrarAuditoria({
