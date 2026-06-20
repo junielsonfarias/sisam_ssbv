@@ -5,6 +5,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { executarCorrecao } from '@/lib/divergencias/corretores'
 import { TipoDivergencia, CONFIGURACOES_DIVERGENCIAS } from '@/lib/divergencias/tipos'
+import {
+  cacheDelPattern,
+  invalidateDashboardCache,
+  invalidateFiltrosCache,
+  limparTodosOsCaches,
+} from '@/lib/cache'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -94,6 +100,24 @@ export async function POST(request: NextRequest) {
       usuario.id,
       usuario.nome
     )
+
+    // Invalidar as 3 camadas de cache após correção bem-sucedida (armadilha #4):
+    // a correção altera resultados_consolidados, alunos, escolas e turmas, então
+    // dashboards/comparativos/resultados precisam refletir os dados corrigidos.
+    if (resultado.sucesso) {
+      try {
+        await Promise.all([
+          cacheDelPattern('stats:*'),
+          cacheDelPattern('executivo:*'),
+          cacheDelPattern('evolucao:*'),
+        ])
+        invalidateDashboardCache()
+        invalidateFiltrosCache()
+        limparTodosOsCaches()
+      } catch (cacheError) {
+        console.error('Erro ao invalidar cache após correção (não crítico):', cacheError)
+      }
+    }
 
     return NextResponse.json({
       ...resultado,
