@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, QrCode, User, Loader2 } from 'lucide-react'
 
 export default function PresencaQrWrapper() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-emerald-600 flex items-center justify-center"><Loader2 className="w-8 h-8 text-white animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-blue-600 flex items-center justify-center"><Loader2 className="w-8 h-8 text-white animate-spin" /></div>}>
       <PresencaQrPage />
     </Suspense>
   )
@@ -63,12 +63,12 @@ function PresencaQrPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-600 to-emerald-700 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-blue-700 to-blue-800 flex flex-col">
       {/* Header */}
       <div className="text-center text-white pt-8 pb-4 px-6">
         <QrCode className="w-10 h-10 mx-auto mb-3 opacity-80" />
         <h1 className="text-xl font-bold">Registro de Presenca</h1>
-        <p className="text-emerald-200 text-sm mt-1">Digite seu codigo de matricula</p>
+        <p className="text-blue-200 text-sm mt-1">Digite seu codigo de matricula</p>
       </div>
 
       {/* Card principal */}
@@ -116,14 +116,14 @@ function PresencaQrPage() {
                     placeholder="Ex: MATA0001"
                     autoFocus
                     autoComplete="off"
-                    className="w-full pl-12 pr-4 py-4 text-lg font-mono tracking-wider border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-gray-400 uppercase"
+                    className="w-full pl-12 pr-4 py-4 text-lg font-mono tracking-wider border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-400 uppercase"
                   />
                 </div>
               </div>
 
               <button onClick={registrar}
                 disabled={!codigo.trim() || registrando}
-                className="w-full h-14 text-base font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl disabled:bg-gray-300 dark:disabled:bg-slate-600 disabled:text-gray-500 transition-colors flex items-center justify-center gap-2">
+                className="w-full h-14 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl disabled:bg-gray-300 dark:disabled:bg-slate-600 disabled:text-gray-500 transition-colors flex items-center justify-center gap-2">
                 {registrando ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Registrando...</>
                 ) : (

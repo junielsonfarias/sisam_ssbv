@@ -79,7 +79,7 @@ export default function OuvidoriaPage() {
         body: JSON.stringify({ tipo, nome: nome || null, email: email || null, telefone: telefone || null, escola_id: escolaId || null, assunto, mensagem }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao enviar')
+      if (!res.ok) throw new Error(data.mensagem || data.error || 'Erro ao enviar')
       setProtocoloGerado(data.protocolo)
       // Reset form
       setTipo('')
@@ -105,7 +105,7 @@ export default function OuvidoriaPage() {
     try {
       const res = await fetch(`/api/ouvidoria?protocolo=${encodeURIComponent(protocoloConsulta.trim())}`)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Protocolo não encontrado')
+      if (!res.ok) throw new Error(data.mensagem || data.error || 'Protocolo não encontrado')
       setResultado(data)
     } catch (err: any) {
       setErroConsulta(err.message || 'Erro ao consultar')

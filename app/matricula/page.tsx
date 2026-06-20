@@ -62,7 +62,7 @@ function phoneMask(v: string) {
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pendente: { label: 'Pendente', color: 'text-amber-600 bg-amber-50 border-amber-200', icon: Clock },
   em_analise: { label: 'Em Análise', color: 'text-blue-600 bg-blue-50 border-blue-200', icon: Search },
-  aprovada: { label: 'Aprovada', color: 'text-emerald-600 bg-emerald-50 border-emerald-200', icon: CheckCircle },
+  aprovada: { label: 'Aprovada', color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle },
   rejeitada: { label: 'Rejeitada', color: 'text-red-600 bg-red-50 border-red-200', icon: XCircle },
   matriculada: { label: 'Matriculada', color: 'text-purple-600 bg-purple-50 border-purple-200', icon: GraduationCap },
 }
@@ -167,24 +167,24 @@ export default function MatriculaPage() {
     }
   }
 
-  const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all'
-  const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5'
+  const inputClass = 'w-full rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
+  const labelClass = 'block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5'
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100">
+      <header className="bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Image src="/logo-semed.png" alt="SEMED" width={56} height={56} className="h-12 sm:h-14 w-auto object-contain" />
             <div className="w-px h-10 bg-slate-200 flex-shrink-0" />
             <Image src="/logo-prefeitura.png" alt="Prefeitura" width={56} height={56} className="h-12 sm:h-14 w-auto object-contain" />
             <div className="hidden sm:block">
-              <span className="font-bold text-sm text-blue-900">Pré-Matrícula</span>
-              <p className="text-[10px] text-slate-400">SEMED — São Sebastião da Boa Vista</p>
+              <span className="font-bold text-sm text-blue-900 dark:text-blue-300">Pré-Matrícula</span>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">SEMED — São Sebastião da Boa Vista</p>
             </div>
           </Link>
-          <Link href="/" className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 hover:text-blue-800 transition-colors">
+          <Link href="/" className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
             <ArrowLeft className="w-4 h-4" /> Voltar
           </Link>
         </div>
@@ -193,21 +193,21 @@ export default function MatriculaPage() {
       <main className="max-w-4xl mx-auto px-4 py-8 flex-1">
         {/* Título */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/25">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-xl shadow-blue-600/25">
             <FileText className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Pré-Matrícula Online</h1>
-          <p className="text-slate-500 mt-2">SEMED - São Sebastião da Boa Vista</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Pré-Matrícula Online</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">SEMED - São Sebastião da Boa Vista</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-slate-100 rounded-xl p-1 max-w-md mx-auto mb-8">
+        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 max-w-md mx-auto mb-8">
           <button onClick={() => { setAba('formulario'); setSucesso(null); setErro('') }}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${aba === 'formulario' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${aba === 'formulario' ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>
             Nova Pré-Matrícula
           </button>
           <button onClick={() => { setAba('consulta'); setErro('') }}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${aba === 'consulta' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${aba === 'consulta' ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>
             Consultar Protocolo
           </button>
         </div>
@@ -220,20 +220,20 @@ export default function MatriculaPage() {
               {[1, 2, 3].map(n => (
                 <div key={n} className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                    etapa === n ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25' :
-                    etapa > n ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'
+                    etapa === n ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25' :
+                    etapa > n ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500'
                   }`}>{n}</div>
-                  {n < 3 && <div className={`w-8 h-0.5 ${etapa > n ? 'bg-emerald-400' : 'bg-gray-200'}`} />}
+                  {n < 3 && <div className={`w-8 h-0.5 ${etapa > n ? 'bg-blue-500' : 'bg-gray-200 dark:bg-slate-600'}`} />}
                 </div>
               ))}
             </div>
-            <p className="text-center text-sm text-slate-500 mb-6">
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-6">
               {etapa === 1 && 'Dados do Aluno'}
               {etapa === 2 && 'Dados do Responsável'}
               {etapa === 3 && 'Escola e Série'}
             </p>
 
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-6 space-y-4">
               {/* Etapa 1: Dados do Aluno */}
               {etapa === 1 && (
                 <>
@@ -263,8 +263,8 @@ export default function MatriculaPage() {
                     <div className="flex items-end">
                       <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
                         <input type="checkbox" checked={form.aluno_pcd} onChange={e => setField('aluno_pcd', e.target.checked)}
-                          className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500" />
-                        <span className="text-sm text-slate-700">PCD (Pessoa com Deficiência)</span>
+                          className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">PCD (Pessoa com Deficiência)</span>
                       </label>
                     </div>
                   </div>
@@ -334,7 +334,7 @@ export default function MatriculaPage() {
                   </div>
                   <div>
                     <label className={labelClass}>Ano letivo</label>
-                    <input type="text" value={form.ano_letivo} readOnly className={`${inputClass} bg-gray-50`} />
+                    <input type="text" value={form.ano_letivo} readOnly className={`${inputClass} bg-gray-50 dark:bg-slate-800`} />
                   </div>
                 </>
               )}
@@ -350,18 +350,18 @@ export default function MatriculaPage() {
               <div className="flex gap-3 pt-2">
                 {etapa > 1 && (
                   <button onClick={() => { setEtapa(etapa - 1); setErro('') }}
-                    className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                    className="flex-1 py-3 border border-gray-200 dark:border-slate-600 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2">
                     <ArrowLeft className="w-4 h-4" /> Voltar
                   </button>
                 )}
                 {etapa < 3 ? (
                   <button onClick={avancar}
-                    className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2">
+                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2">
                     Próximo <ArrowRight className="w-4 h-4" />
                   </button>
                 ) : (
                   <button onClick={enviar} disabled={carregando}
-                    className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center justify-center gap-2">
+                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2">
                     {carregando ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle className="w-5 h-5" /> Enviar Pré-Matrícula</>}
                   </button>
                 )}
@@ -373,17 +373,17 @@ export default function MatriculaPage() {
         {/* SUCESSO */}
         {aba === 'formulario' && sucesso && (
           <div className="max-w-lg mx-auto text-center">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-emerald-600" />
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-8">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
               </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Pré-Matrícula Enviada!</h2>
-              <p className="text-slate-500 mb-6">Sua solicitação foi registrada com sucesso.</p>
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6">
-                <p className="text-sm text-emerald-700 font-medium mb-1">Seu protocolo:</p>
-                <p className="text-2xl font-bold text-emerald-800 font-mono">{sucesso.protocolo}</p>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Pré-Matrícula Enviada!</h2>
+              <p className="text-slate-500 dark:text-slate-400 mb-6">Sua solicitação foi registrada com sucesso.</p>
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-1">Seu protocolo:</p>
+                <p className="text-2xl font-bold text-blue-800 dark:text-blue-200 font-mono">{sucesso.protocolo}</p>
               </div>
-              <p className="text-sm text-slate-500 mb-6">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                 Guarde este protocolo para acompanhar o andamento da sua solicitação.
                 Você pode consultar o status a qualquer momento na aba "Consultar Protocolo".
               </p>
@@ -393,11 +393,11 @@ export default function MatriculaPage() {
                   responsavel_nome: '', responsavel_cpf: '', responsavel_telefone: '', responsavel_email: '', parentesco: '',
                   endereco: '', bairro: '', escola_pretendida_id: '', serie_pretendida: '', ano_letivo: String(new Date().getFullYear()),
                 }) }}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                  className="flex-1 py-3 border border-gray-200 dark:border-slate-600 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
                   Nova Pré-Matrícula
                 </button>
                 <button onClick={() => { setAba('consulta'); setProtocolo(sucesso.protocolo) }}
-                  className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600">
+                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">
                   Consultar Status
                 </button>
               </div>
@@ -408,7 +408,7 @@ export default function MatriculaPage() {
         {/* CONSULTA */}
         {aba === 'consulta' && (
           <div className="max-w-lg mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-6 space-y-4">
               <div>
                 <label className={labelClass}>Número do Protocolo</label>
                 <input type="text" value={protocolo} onChange={e => setProtocolo(e.target.value.toUpperCase())}
@@ -421,7 +421,7 @@ export default function MatriculaPage() {
                 </div>
               )}
               <button onClick={consultar} disabled={carregando}
-                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2">
                 {carregando ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Search className="w-5 h-5" /> Consultar</>}
               </button>
             </div>
@@ -431,34 +431,34 @@ export default function MatriculaPage() {
               const cfg = statusConfig[consultaResult.status] || statusConfig.pendente
               const StatusIcon = cfg.icon
               return (
-                <div className="mt-6 bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <div className="mt-6 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-slate-800">Protocolo: {consultaResult.protocolo}</h3>
+                    <h3 className="font-bold text-slate-800 dark:text-white">Protocolo: {consultaResult.protocolo}</h3>
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border ${cfg.color}`}>
                       <StatusIcon className="w-4 h-4" /> {cfg.label}
                     </span>
                   </div>
                   <div className="space-y-3 text-sm">
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                       <User className="w-4 h-4 text-slate-400" />
                       <span className="font-medium">Aluno:</span> {consultaResult.aluno_nome}
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                       <School className="w-4 h-4 text-slate-400" />
                       <span className="font-medium">Série:</span> {SERIES_LABELS[consultaResult.serie_pretendida] || consultaResult.serie_pretendida}
                     </div>
                     {consultaResult.escola_nome && (
-                      <div className="flex items-center gap-2 text-slate-600">
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                         <MapPin className="w-4 h-4 text-slate-400" />
                         <span className="font-medium">Escola:</span> {consultaResult.escola_nome}
                       </div>
                     )}
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                       <Clock className="w-4 h-4 text-slate-400" />
                       <span className="font-medium">Solicitado em:</span> {new Date(consultaResult.criado_em).toLocaleDateString('pt-BR')}
                     </div>
                     {consultaResult.analisado_em && (
-                      <div className="flex items-center gap-2 text-slate-600">
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                         <CheckCircle className="w-4 h-4 text-slate-400" />
                         <span className="font-medium">Analisado em:</span> {new Date(consultaResult.analisado_em).toLocaleDateString('pt-BR')}
                       </div>
@@ -471,26 +471,26 @@ export default function MatriculaPage() {
                   </div>
 
                   {/* Timeline */}
-                  <div className="mt-6 pt-4 border-t border-gray-100">
-                    <h4 className="text-sm font-semibold text-slate-700 mb-3">Histórico</h4>
+                  <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-700">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Histórico</h4>
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 mt-1.5 rounded-full bg-emerald-500" />
-                        <div><p className="text-sm font-medium text-slate-700">Solicitação recebida</p>
+                        <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-600" />
+                        <div><p className="text-sm font-medium text-slate-700 dark:text-slate-200">Solicitação recebida</p>
                           <p className="text-xs text-slate-400">{new Date(consultaResult.criado_em).toLocaleString('pt-BR')}</p>
                         </div>
                       </div>
                       {(consultaResult.status === 'em_analise' || consultaResult.status === 'aprovada' || consultaResult.status === 'rejeitada') && (
                         <div className="flex items-start gap-3">
                           <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500" />
-                          <div><p className="text-sm font-medium text-slate-700">Em análise</p></div>
+                          <div><p className="text-sm font-medium text-slate-700 dark:text-slate-200">Em análise</p></div>
                         </div>
                       )}
                       {(consultaResult.status === 'aprovada' || consultaResult.status === 'rejeitada') && consultaResult.analisado_em && (
                         <div className="flex items-start gap-3">
-                          <div className={`w-2 h-2 mt-1.5 rounded-full ${consultaResult.status === 'aprovada' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                          <div className={`w-2 h-2 mt-1.5 rounded-full ${consultaResult.status === 'aprovada' ? 'bg-green-500' : 'bg-red-500'}`} />
                           <div>
-                            <p className="text-sm font-medium text-slate-700">{consultaResult.status === 'aprovada' ? 'Aprovada' : 'Rejeitada'}</p>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{consultaResult.status === 'aprovada' ? 'Aprovada' : 'Rejeitada'}</p>
                             <p className="text-xs text-slate-400">{new Date(consultaResult.analisado_em).toLocaleString('pt-BR')}</p>
                           </div>
                         </div>
