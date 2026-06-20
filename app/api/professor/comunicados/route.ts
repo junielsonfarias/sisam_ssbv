@@ -37,7 +37,7 @@ export const GET = withAuth(['professor', 'administrador', 'tecnico'], async (re
     FROM comunicados_turma c
     JOIN turmas t ON t.id = c.turma_id
     JOIN usuarios u ON u.id = c.professor_id
-    WHERE c.turma_id = $1
+    WHERE c.turma_id = $1 AND c.ativo = true
     ORDER BY c.data_publicacao DESC
   `, [turmaId])
 

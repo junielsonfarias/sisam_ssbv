@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { verificarVinculoProfessor } from '@/lib/professor-auth'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -23,15 +24,10 @@ export const GET = withAuth('professor', async (request, usuario) => {
 
   const { turma_id } = parsed.data
 
-  // Verificar vínculo do professor com a turma
-  const vinculo = await pool.query(
-    `SELECT id FROM professor_turmas
-     WHERE professor_id = $1 AND turma_id = $2 AND ativo = true
-     LIMIT 1`,
-    [usuario.id, turma_id]
-  )
-
-  if (vinculo.rows.length === 0) {
+  // Verificar vínculo do professor com a turma (cruza ano_letivo do vínculo
+  // com o da turma — evita vínculo órfão de ano anterior em turma homônima).
+  const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
+  if (!temVinculo) {
     return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
   }
 

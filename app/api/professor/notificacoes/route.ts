@@ -148,12 +148,35 @@ export const PUT = withAuth('professor', async (request, usuario) => {
       return NextResponse.json({ mensagem: 'ids e obrigatorio' }, { status: 400 })
     }
 
-    const placeholders = ids.map((_: string, i: number) => `$${i + 2}`).join(',')
+    // Escopo de propriedade: o professor so pode marcar notificacoes que ele
+    // teria direito de ver (diretas ou da escola), mesmo informando UUIDs.
+    const escolasResult = await pool.query(
+      `SELECT DISTINCT t.escola_id
+       FROM professor_turmas pt
+       INNER JOIN turmas t ON t.id = pt.turma_id
+       WHERE pt.professor_id = $1 AND pt.ativo = true`,
+      [usuario.id]
+    )
+    const escolaIds = escolasResult.rows.map((r: any) => r.escola_id)
+
+    // Params: $1 = lida_por, $2 = destinatario_id, seguido das escolas e ids.
+    const params: (string | null)[] = [usuario.id, usuario.id]
+    let escolaCondition = 'FALSE'
+    if (escolaIds.length > 0) {
+      const escolaPlaceholders = escolaIds.map((_: string, i: number) => `$${i + 3}`).join(',')
+      escolaCondition = `(destinatario_tipo = 'professor' AND escola_id IN (${escolaPlaceholders}))`
+      params.push(...escolaIds)
+    }
+
+    const idsPlaceholders = ids.map((_: string, i: number) => `$${params.length + 1 + i}`).join(',')
+    params.push(...ids)
+
     await pool.query(
       `UPDATE notificacoes
        SET lida = TRUE, lida_em = CURRENT_TIMESTAMP, lida_por = $1
-       WHERE id IN (${placeholders})`,
-      [usuario.id, ...ids]
+       WHERE id IN (${idsPlaceholders})
+         AND (destinatario_id = $2 OR ${escolaCondition})`,
+      params
     )
 
     return NextResponse.json({ mensagem: `${ids.length} notificacao(oes) marcada(s) como lida(s)` })
