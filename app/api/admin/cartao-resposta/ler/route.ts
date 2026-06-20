@@ -63,10 +63,13 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
     const width = jimpImage.getWidth()
     const height = jimpImage.getHeight()
 
-    // Buscar questões do banco
+    // Buscar questões do banco. `questoes` não tem coluna ano_letivo — seleciona
+    // as objetivas na mesma ordem do PDF gerado (cartao-resposta/gerar) para que
+    // as coordenadas da grade batam com a leitura OMR.
     const questoesResult = await pool.query(
-      'SELECT codigo FROM questoes WHERE ano_letivo = $1 ORDER BY codigo',
-      [anoLetivo]
+      `SELECT codigo FROM questoes
+       WHERE tipo_questao = 'objetiva'
+       ORDER BY numero_questao NULLS LAST, codigo`
     )
 
     if (questoesResult.rows.length === 0) {
@@ -176,29 +179,17 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
           const aluno = alunoResult.rows[0]
 
           for (const [questaoCodigo, alternativa] of Object.entries(respostas)) {
-            // Buscar questão
+            // Buscar questão pelo código (questoes não tem coluna ano_letivo).
+            // O gabarito vem direto de questoes.gabarito (questoes_gabaritos não existe).
             const questaoResult = await client.query(
-              'SELECT id FROM questoes WHERE codigo = $1 AND ano_letivo = $2',
-              [questaoCodigo, anoLetivo]
+              'SELECT id, gabarito FROM questoes WHERE codigo = $1',
+              [questaoCodigo]
             )
 
             if (questaoResult.rows.length > 0) {
               const questaoId = questaoResult.rows[0].id
-
-              // Verificar se acertou (buscar gabarito)
-              let acertou = false
-              const gabaritoResult = await client.query(
-                `SELECT gabarito FROM questoes_gabaritos 
-                 WHERE questao_id = $1 AND serie = $2
-                 UNION ALL
-                 SELECT gabarito FROM questoes WHERE id = $1 AND gabarito IS NOT NULL
-                 LIMIT 1`,
-                [questaoId, aluno.serie || '']
-              )
-
-              if (gabaritoResult.rows.length > 0) {
-                acertou = gabaritoResult.rows[0].gabarito === alternativa
-              }
+              const gabarito = questaoResult.rows[0].gabarito
+              const acertou = gabarito != null && gabarito === alternativa
 
               // Inserir/atualizar resultado. ON CONFLICT no indice unico real
               // (aluno_id, questao_codigo, avaliacao_id) com DO UPDATE: reler o
@@ -206,12 +197,11 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
               await client.query(
                 `INSERT INTO resultados_provas
                  (escola_id, aluno_id, turma_id, questao_id, questao_codigo,
-                  resposta_aluno, alternativa_marcada, acertou, nota, ano_letivo, serie, avaliacao_id)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                  resposta_aluno, acertou, nota, ano_letivo, serie, avaliacao_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                  ON CONFLICT (aluno_id, questao_codigo, avaliacao_id)
                  DO UPDATE SET
                    resposta_aluno = EXCLUDED.resposta_aluno,
-                   alternativa_marcada = EXCLUDED.alternativa_marcada,
                    acertou = EXCLUDED.acertou,
                    nota = EXCLUDED.nota,
                    atualizado_em = CURRENT_TIMESTAMP`,
@@ -221,7 +211,6 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
                   aluno.turma_id,
                   questaoId,
                   questaoCodigo,
-                  alternativa,
                   alternativa,
                   acertou,
                   acertou ? 1 : 0,
