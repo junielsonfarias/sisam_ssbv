@@ -49,11 +49,11 @@ export async function exportarAlunosCsv(params: {
   const r = await pool.query(
     `SELECT
         a.id AS aluno_id,
-        a.matricula,
+        a.codigo AS matricula,
         a.nome,
         a.cpf,
         a.data_nascimento,
-        a.sexo,
+        a.genero AS sexo,
         a.nome_mae,
         a.nome_pai,
         a.naturalidade,

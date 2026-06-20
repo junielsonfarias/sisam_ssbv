@@ -36,7 +36,7 @@ export interface DadosDeclaracao {
 
 async function coletarDadosBase(alunoId: string) {
   const r = await pool.query(
-    `SELECT a.id, a.nome, a.cpf, a.matricula, a.data_nascimento, a.serie,
+    `SELECT a.id, a.nome, a.cpf, a.codigo AS matricula, a.data_nascimento, a.serie,
             e.nome AS escola_nome, e.codigo_inep
        FROM alunos a
        LEFT JOIN escolas e ON e.id = a.escola_id

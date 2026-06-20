@@ -346,7 +346,7 @@ export async function listarCasos(filtros: {
   params.push(limite, offset)
 
   const r = await pool.query(
-    `SELECT f.*, a.nome AS aluno_nome, a.matricula,
+    `SELECT f.*, a.nome AS aluno_nome, a.codigo AS matricula,
             e.nome AS escola_nome
        FROM ficai_casos f
        INNER JOIN alunos a ON a.id = f.aluno_id
@@ -361,7 +361,7 @@ export async function listarCasos(filtros: {
 
 export async function buscarCaso(id: string) {
   const r = await pool.query(
-    `SELECT f.*, a.nome AS aluno_nome, a.matricula,
+    `SELECT f.*, a.nome AS aluno_nome, a.codigo AS matricula,
             e.nome AS escola_nome,
             u.nome AS responsavel_caso_nome
        FROM ficai_casos f
