@@ -67,18 +67,30 @@ export const POST = withAuth(['administrador'], async (request) => {
   }
   const { ano_letivo, series } = parsed.data
 
-  await pool.query(
-    'UPDATE sisam_series_participantes SET ativo = false, atualizado_em = CURRENT_TIMESTAMP WHERE ano_letivo = $1',
-    [ano_letivo]
-  )
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
 
-  for (const serie of series) {
-    await pool.query(
-      `INSERT INTO sisam_series_participantes (ano_letivo, serie, ativo)
-       VALUES ($1, $2, true)
-       ON CONFLICT (ano_letivo, serie) DO UPDATE SET ativo = true, atualizado_em = CURRENT_TIMESTAMP`,
-      [ano_letivo, serie]
+    await client.query(
+      'UPDATE sisam_series_participantes SET ativo = false, atualizado_em = CURRENT_TIMESTAMP WHERE ano_letivo = $1',
+      [ano_letivo]
     )
+
+    for (const serie of series) {
+      await client.query(
+        `INSERT INTO sisam_series_participantes (ano_letivo, serie, ativo)
+         VALUES ($1, $2, true)
+         ON CONFLICT (ano_letivo, serie) DO UPDATE SET ativo = true, atualizado_em = CURRENT_TIMESTAMP`,
+        [ano_letivo, serie]
+      )
+    }
+
+    await client.query('COMMIT')
+  } catch (err) {
+    await client.query('ROLLBACK')
+    throw err
+  } finally {
+    client.release()
   }
 
   await cacheDelPattern('series-part:*')

@@ -78,14 +78,14 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     if (!result.success) return result.response
     const { ano, data_inicio, data_fim, dias_letivos_total, observacao, bimestres } = result.data
 
+    // Validar datas antes de abrir a transação (early-return fora do BEGIN)
+    if (data_inicio && data_fim && data_fim < data_inicio) {
+      return NextResponse.json({ mensagem: 'Data de fim deve ser posterior à data de início' }, { status: 400 })
+    }
+
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
-
-      // Validar datas
-      if (data_inicio && data_fim && data_fim < data_inicio) {
-        return NextResponse.json({ mensagem: 'Data de fim deve ser posterior à data de início' }, { status: 400 })
-      }
 
       // Criar ano letivo
       const anoResult = await client.query(

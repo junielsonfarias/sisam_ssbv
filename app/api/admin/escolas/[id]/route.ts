@@ -174,6 +174,8 @@ export async function PUT(
 
     try { await cacheDelPattern('escolas:*') } catch {}
     try { await cacheDelPattern('dashboard:*') } catch {}
+    try { await cacheDelPattern('transparencia:*') } catch {}
+    try { await cacheDelPattern('site-config:*') } catch {}
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {

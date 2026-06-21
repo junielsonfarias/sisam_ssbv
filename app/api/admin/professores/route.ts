@@ -4,6 +4,7 @@ import { parseSearchParams } from '@/lib/api-helpers'
 import { validateRequest, professorPostSchema, professorPutSchema, professorPatchSchema, professorDeleteSchema } from '@/lib/schemas'
 import { buscarProfessores, criarProfessor, atualizarProfessor, toggleAtivoProfessor, deletarProfessor } from '@/lib/services/professores.service'
 import { createLogger } from '@/lib/logger'
+import pool from '@/database/connection'
 
 const log = createLogger('AdminProfessores')
 
@@ -92,6 +93,20 @@ export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (req
     const validacao = await validateRequest(request, professorPatchSchema)
     if (!validacao.success) return validacao.response
     const { professor_id, ativo } = validacao.data
+
+    // Controle de acesso: usuário 'escola' só pode alternar professor vinculado a uma turma da própria escola
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      const vinculo = await pool.query(
+        `SELECT 1 FROM professor_turmas pt
+         JOIN turmas t ON t.id = pt.turma_id
+         WHERE pt.professor_id = $1 AND t.escola_id = $2
+         LIMIT 1`,
+        [professor_id, usuario.escola_id]
+      )
+      if (vinculo.rows.length === 0) {
+        return NextResponse.json({ mensagem: 'Não autorizado para este professor' }, { status: 403 })
+      }
+    }
 
     const resultado = await toggleAtivoProfessor(professor_id, ativo)
 
