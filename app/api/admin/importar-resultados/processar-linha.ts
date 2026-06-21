@@ -13,6 +13,8 @@ import {
 } from './helpers-serie'
 import { extrairPresenca, lerItensProducao, lerNotasPlanilha } from './parsers'
 import { BatchConsolidados, BatchProvas } from './batch-inserts'
+import { ORIGEM_SISAM_ETL, podeCriarMestre } from '@/lib/services/gestor/mestre.service'
+import { registrarMestreCriado } from '@/lib/services/importacao/governanca'
 
 const log = createLogger('ImportarResultados:Linha')
 
@@ -22,6 +24,10 @@ export interface ContextoLinha {
   batchConsolidados: BatchConsolidados
   anoLetivo: string
   avaliacaoId: string | null
+  /** ID da importação corrente — rastreabilidade de origem do dado mestre. */
+  importacaoId: string
+  /** ID do usuário que disparou o ETL — trilha de governança. */
+  usuarioId: string
 }
 
 /**
@@ -32,7 +38,7 @@ export async function processarLinha(
   indice: number,
   ctx: ContextoLinha
 ): Promise<void> {
-  const { caches, batchProvas, batchConsolidados, anoLetivo, avaliacaoId } = ctx
+  const { caches, batchProvas, batchConsolidados, anoLetivo, avaliacaoId, importacaoId, usuarioId } = ctx
 
   // ============================================================================
   // EXTRAIR CAMPOS BÁSICOS
@@ -94,22 +100,39 @@ export async function processarLinha(
   const alunoCacheKey = `${alunoNomeNorm}_${escolaId}`
   let alunoId = caches.cacheAlunos.get(alunoCacheKey) || null
 
-  // Criar aluno automaticamente se não existir (UPSERT idempotente)
-  if (!alunoId) {
+  // Criar aluno automaticamente se não existir (UPSERT idempotente).
+  // Fonte única de mestre (mestre.service): o ETL do Sisam pode criar aluno em
+  // modo transição, sempre marcando origem='sisam_etl' + origem_importacao_id, e
+  // registrando breadcrumb de governança para o Gestor assumir depois.
+  // Padrão de referência: load.ts (criação de polo pelo ETL).
+  if (!alunoId && podeCriarMestre(ORIGEM_SISAM_ETL, 'aluno')) {
     try {
       const novoAlunoResult = await pool.query(
-        `INSERT INTO alunos (nome, escola_id, turma_id, serie, ano_letivo, ativo)
-         VALUES ($1, $2, $3, $4, $5, true)
+        `INSERT INTO alunos (nome, escola_id, turma_id, serie, ano_letivo, ativo, origem, origem_importacao_id)
+         VALUES ($1, $2, $3, $4, $5, true, $6, $7)
          ON CONFLICT (UPPER(TRIM(nome)), escola_id, ano_letivo)
          DO UPDATE SET turma_id = COALESCE(EXCLUDED.turma_id, alunos.turma_id),
                        serie = COALESCE(EXCLUDED.serie, alunos.serie),
                        atualizado_em = CURRENT_TIMESTAMP
-         RETURNING id`,
-        [alunoNome, escolaId, turmaId, serie, anoLetivo]
+         RETURNING id, (xmax = 0) AS criado`,
+        [alunoNome, escolaId, turmaId, serie, anoLetivo, ORIGEM_SISAM_ETL, importacaoId]
       )
       alunoId = novoAlunoResult.rows[0].id
+      const alunoFoiCriado = novoAlunoResult.rows[0].criado === true
       if (alunoId) caches.cacheAlunos.set(alunoCacheKey, alunoId)
-      log.info(`Aluno criado/atualizado: "${alunoNome}" (ID: ${alunoId})`)
+      log.info(`Aluno ${alunoFoiCriado ? 'criado' : 'atualizado'}: "${alunoNome}" (ID: ${alunoId})`)
+      // Só o INSERT efetivo (não o ON CONFLICT) é cadastro mestre novo do ETL.
+      if (alunoFoiCriado && alunoId) {
+        await registrarMestreCriado({
+          entidade: 'aluno',
+          entidadeId: alunoId,
+          nome: alunoNome,
+          escolaNome,
+          anoLetivo,
+          importacaoId,
+          usuarioId,
+        })
+      }
     } catch (createError: unknown) {
       log.error(`Erro ao criar aluno "${alunoNome}"`, createError)
       try {
