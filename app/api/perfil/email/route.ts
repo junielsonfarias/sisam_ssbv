@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, comparePassword } from '@/lib/auth'
 import pool from '@/database/connection'
-import { isValidEmail } from '@/lib/validation'
 import { checkRateLimit, resetRateLimit } from '@/lib/rate-limiter'
 import { validateRequest, perfilEmailSchema } from '@/lib/schemas'
 

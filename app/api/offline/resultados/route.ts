@@ -37,6 +37,22 @@ export async function GET(request: NextRequest) {
     // Construir cláusula WHERE
     let whereClause = `WHERE 1=1`
 
+    // Guarda anti-IDOR: usuário de polo/escola SEM unidade vinculada não pode
+    // cair no whereClause permissivo (1=1) e vazar dados de todas as unidades.
+    // administrador/tecnico continuam vendo tudo.
+    if (usuario.tipo_usuario === 'polo' && !usuario.polo_id) {
+      return NextResponse.json(
+        { mensagem: 'Usuário sem unidade vinculada' },
+        { status: 403 }
+      )
+    }
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json(
+        { mensagem: 'Usuário sem unidade vinculada' },
+        { status: 403 }
+      )
+    }
+
     // Aplicar restrições de acesso
     if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
       whereClause += ` AND e.polo_id = $${paramIndex}`
