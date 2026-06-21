@@ -5,6 +5,10 @@ import { calcularNotaFinal } from './calculo'
 import { montarAuditoriaNotas, registrarAuditoriaNotas } from './auditoria'
 import { turmaCache, CACHE_TTL } from './config'
 import { dualWriteRecuperacao } from './recuperacao-dual-write'
+import { createLogger } from '@/lib/logger'
+import { reportarErroSilencioso } from '@/lib/observabilidade/capturar-erro-silencioso'
+
+const log = createLogger('NotasLancamento')
 
 /**
  * Indica se o ano letivo da rede está FINALIZADO (`anos_letivos.status`).
@@ -128,7 +132,15 @@ export async function lancarNotas(params: {
         nota: row.nota, nota_recuperacao: row.nota_recuperacao, nota_final: row.nota_final,
       })
     }
-  } catch { /* segue sem snapshot */ }
+  } catch (error) {
+    // Não-fatal: segue sem snapshot, mas NÃO em silêncio — perder a trilha de
+    // auditoria de notas sem alerta foi a classe de bug da auditoria de 17/06.
+    log.error('Falha ao capturar snapshot de notas anteriores (sem auditoria)', error)
+    reportarErroSilencioso(error, {
+      origem: 'lancarNotas.snapshotAnterior',
+      descricao: 'SELECT de notas anteriores para trilha de alteração',
+    })
+  }
 
   // 2. Batch INSERT em 1 query (reduz ocupação de conexão de ~265ms para ~15ms)
   const processados = await withTransaction(async (client) => {

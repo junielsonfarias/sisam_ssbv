@@ -53,41 +53,51 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
     let atualizados = 0
     let erros = 0
 
+    // 1) Cálculo puro em JS (sem dependência entre linhas) → acumula as atualizações.
+    const atualizacoes: Array<{ id: string; nivelLp: string | null; nivelMat: string | null; nivelProd: string | null; nivelAluno: string | null }> = []
     for (const registro of registrosResult.rows) {
+      const serie = registro.serie
+      const nivelLp = calcularNivelPorAcertos(registro.total_acertos_lp, serie, 'LP')
+      const nivelMat = calcularNivelPorAcertos(registro.total_acertos_mat, serie, 'MAT')
+      let nivelProd = converterNivelProducao(registro.nivel_aprendizagem)
+      if (!nivelProd && registro.nota_producao !== null && registro.nota_producao !== undefined && Number(registro.nota_producao) > 0) {
+        nivelProd = calcularNivelPorNota(Number(registro.nota_producao))
+      }
+      const nivelAlunoCalc = calcularNivelAluno(nivelLp, nivelMat, nivelProd)
+      atualizacoes.push({ id: registro.id, nivelLp, nivelMat, nivelProd, nivelAluno: nivelAlunoCalc })
+    }
+
+    // 2) UPDATE em lote (ceil(N/500) queries em vez de N) — evita N+1 e risco de
+    //    timeout no recálculo de milhares de registros consolidados.
+    const LOTE = 500
+    for (let i = 0; i < atualizacoes.length; i += LOTE) {
+      const lote = atualizacoes.slice(i, i + LOTE)
+      const valores: string[] = []
+      const params: Array<string | null> = []
+      lote.forEach((a, idx) => {
+        const b = idx * 5
+        // Cast só na 1ª linha basta para o Postgres inferir os tipos das colunas
+        // do VALUES (id uuid; níveis varchar — podem ser NULL em nivel_prod).
+        valores.push(idx === 0
+          ? `($${b + 1}::uuid, $${b + 2}::varchar, $${b + 3}::varchar, $${b + 4}::varchar, $${b + 5}::varchar)`
+          : `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5})`)
+        params.push(a.id, a.nivelLp, a.nivelMat, a.nivelProd, a.nivelAluno)
+      })
       try {
-        const serie = registro.serie
-
-        // Calcular nível de LP baseado em acertos
-        const nivelLp = calcularNivelPorAcertos(registro.total_acertos_lp, serie, 'LP')
-
-        // Calcular nível de MAT baseado em acertos
-        const nivelMat = calcularNivelPorAcertos(registro.total_acertos_mat, serie, 'MAT')
-
-        // Converter nível de produção textual (do nivel_aprendizagem existente, com fallback pela nota)
-        let nivelProd = converterNivelProducao(registro.nivel_aprendizagem)
-        if (!nivelProd && registro.nota_producao !== null && registro.nota_producao !== undefined && Number(registro.nota_producao) > 0) {
-          nivelProd = calcularNivelPorNota(Number(registro.nota_producao))
-        }
-
-        // Calcular nível geral do aluno (média dos 3 níveis)
-        const nivelAlunoCalc = calcularNivelAluno(nivelLp, nivelMat, nivelProd)
-
-        // Atualizar registro
         await pool.query(`
-          UPDATE resultados_consolidados
-          SET
-            nivel_lp = $1,
-            nivel_mat = $2,
-            nivel_prod = $3,
-            nivel_aluno = $4,
-            atualizado_em = CURRENT_TIMESTAMP
-          WHERE id = $5
-        `, [nivelLp, nivelMat, nivelProd, nivelAlunoCalc, registro.id])
-
-        atualizados++
+          UPDATE resultados_consolidados AS rc
+          SET nivel_lp = v.nivel_lp,
+              nivel_mat = v.nivel_mat,
+              nivel_prod = v.nivel_prod,
+              nivel_aluno = v.nivel_aluno,
+              atualizado_em = CURRENT_TIMESTAMP
+          FROM (VALUES ${valores.join(', ')}) AS v(id, nivel_lp, nivel_mat, nivel_prod, nivel_aluno)
+          WHERE rc.id = v.id
+        `, params)
+        atualizados += lote.length
       } catch (error: unknown) {
-        log.error(`Erro ao atualizar registro ${registro.id}`, error)
-        erros++
+        log.error(`Erro ao atualizar lote de níveis (offset ${i})`, error)
+        erros += lote.length
       }
     }
 
