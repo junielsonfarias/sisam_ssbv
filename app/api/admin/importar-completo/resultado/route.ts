@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,10 @@ export async function GET(request: NextRequest) {
         { mensagem: 'ID da importação não fornecido' },
         { status: 400 }
       )
+    }
+
+    if (!z.string().uuid().safeParse(importacaoId).success) {
+      return NextResponse.json({ mensagem: 'ID inválido' }, { status: 400 })
     }
 
     // Buscar dados da importação

@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
       params
     )
 
-    // Registrar auditoria do cancelamento
-    registrarAuditoria({
+    // Registrar auditoria do cancelamento (await para garantir o INSERT em serverless)
+    await registrarAuditoria({
       usuarioId: usuario.id,
       usuarioEmail: usuario.email,
       acao: 'cancelar',
