@@ -1,8 +1,8 @@
 // SISAM - API de Divergências
 // GET: Lista divergências | POST: Executa verificação completa
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/auth/with-auth'
 import { executarTodasVerificacoes, verificarDivergenciasCriticas } from '@/lib/divergencias/verificadores'
 import { createLogger } from '@/lib/logger'
 
@@ -18,17 +18,8 @@ export const dynamic = 'force-dynamic'
  *   - tipo: filtrar por tipo específico
  *   - apenas_criticos: true para retornar apenas contagem de críticos (para alerta login)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Acesso não autorizado. Apenas administradores podem acessar.' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const apenasCriticos = searchParams.get('apenas_criticos') === 'true'
     const nivel = searchParams.get('nivel')
@@ -69,23 +60,14 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * POST /api/admin/divergencias
  * Executa uma nova verificação completa
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Acesso não autorizado. Apenas administradores podem executar verificações.' },
-        { status: 403 }
-      )
-    }
-
     // Executar verificação completa
     const resultado = await executarTodasVerificacoes()
 
@@ -103,4 +85,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

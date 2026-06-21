@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUsuarioFromRequest, podeAcessarPolo } from '@/lib/auth';
 import { buscarDadosRelatorioPolo } from '@/lib/relatorios/consultas-relatorio';
 import { DatabaseError } from '@/lib/validation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('RelatorioPoloDados')
 
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +66,7 @@ export async function GET(
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao buscar dados do relatório do polo:', error);
+    log.error('Erro ao buscar dados do relatório do polo', error);
 
     return NextResponse.json(
       { mensagem: 'Erro ao buscar dados do relatório' },

@@ -1,8 +1,8 @@
 // SISAM - API de Exportação de Divergências
 // GET: Exporta relatório de divergências em JSON (para processamento no frontend)
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/auth/with-auth'
 import { executarTodasVerificacoes } from '@/lib/divergencias/verificadores'
 import { LABELS_NIVEL } from '@/lib/divergencias/tipos'
 import { createLogger } from '@/lib/logger'
@@ -19,17 +19,8 @@ export const dynamic = 'force-dynamic'
  *   - formato: 'json' (padrão) ou 'csv'
  *   - nivel: filtrar por nível
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Acesso não autorizado.' },
-        { status: 403 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const formato = searchParams.get('formato') || 'json'
     const nivelFiltro = searchParams.get('nivel')
@@ -110,4 +101,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

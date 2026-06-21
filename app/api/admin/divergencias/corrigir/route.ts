@@ -1,8 +1,8 @@
 // SISAM - API de Correção de Divergências
 // POST: Executa correção de divergências
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/auth/with-auth'
 import { executarCorrecao } from '@/lib/divergencias/corretores'
 import { TipoDivergencia, CONFIGURACOES_DIVERGENCIAS } from '@/lib/divergencias/tipos'
 import {
@@ -28,17 +28,8 @@ export const dynamic = 'force-dynamic'
  *   - corrigirTodos: boolean (opcional - corrigir todos do tipo)
  *   - dadosCorrecao: object (opcional - dados adicionais para correção manual)
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Acesso não autorizado. Apenas administradores podem corrigir divergências.' },
-        { status: 403 }
-      )
-    }
-
     const correcaoSchema = z.object({
       tipo: z.string().min(1, 'Tipo é obrigatório'),
       ids: z.array(z.string()).optional(),
@@ -135,4 +126,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
