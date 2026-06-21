@@ -87,7 +87,16 @@ export async function PUT(request: NextRequest) {
     if (!validacao.success) return validacao.response
     const { nome, telefone } = validacao.data
 
-    if (!nome || nome.trim().length < 3) {
+    // nome é opcional no schema: garantir que veio como string não-vazia
+    // antes de qualquer operação (.trim()), evitando TypeError → 500.
+    if (typeof nome !== 'string' || nome.trim().length === 0) {
+      return NextResponse.json(
+        { mensagem: 'Nome é obrigatório' },
+        { status: 400 }
+      )
+    }
+
+    if (nome.trim().length < 3) {
       return NextResponse.json(
         { mensagem: 'Nome deve ter pelo menos 3 caracteres' },
         { status: 400 }
