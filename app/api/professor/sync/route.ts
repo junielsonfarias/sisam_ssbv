@@ -207,7 +207,10 @@ export const POST = withAuth('professor', async (request, usuario) => {
                    (aluno_id, disciplina_id, periodo_id, escola_id, ano_letivo, turma_id,
                     nota, nota_recuperacao, nota_final, faltas, observacao, registrado_por)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                 ON CONFLICT (aluno_id, disciplina_id, periodo_id) DO UPDATE SET
+                 -- Conflict target via COALESCE: infere notas_escolares_upsert_uidx,
+                 -- que normaliza disciplina_id NULL para sentinela. Evita duplicatas
+                 -- de parecer descritivo (disciplina NULL) no sync offline.
+                 ON CONFLICT (aluno_id, COALESCE(disciplina_id, '00000000-0000-0000-0000-000000000000'::uuid), periodo_id) DO UPDATE SET
                    nota = EXCLUDED.nota, nota_recuperacao = EXCLUDED.nota_recuperacao,
                    nota_final = EXCLUDED.nota_final, faltas = EXCLUDED.faltas,
                    observacao = EXCLUDED.observacao, registrado_por = EXCLUDED.registrado_por,

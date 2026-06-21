@@ -158,7 +158,12 @@ export async function lancarNotas(params: {
           nota, nota_recuperacao, nota_final, faltas, observacao,
           conceito, parecer_descritivo, tipo_avaliacao_id, registrado_por)
        VALUES ${placeholders.join(', ')}
-       ON CONFLICT (aluno_id, disciplina_id, periodo_id)
+       -- Conflict target via COALESCE: infere o indice de expressao
+       -- notas_escolares_upsert_uidx, que normaliza disciplina_id NULL (parecer
+       -- descritivo sem disciplina) para um UUID sentinela. Sem isso, NULL nao
+       -- deduplica na UNIQUE padrao e o UPSERT geraria linhas duplicadas em vez
+       -- de atualizar. Para disciplina_id NOT NULL o comportamento e identico.
+       ON CONFLICT (aluno_id, COALESCE(disciplina_id, '00000000-0000-0000-0000-000000000000'::uuid), periodo_id)
        DO UPDATE SET
          nota = EXCLUDED.nota,
          nota_recuperacao = EXCLUDED.nota_recuperacao,
