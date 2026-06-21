@@ -119,6 +119,20 @@ function mockClientTurmaIlimitada() {
   mockClientQuery.mockResolvedValueOnce({ rows: [{ capacidade_maxima: null }] } as any)
 }
 
+/**
+ * Dual-write ADR-002 (fase 3): após cada UPDATE bem-sucedido o service chama
+ * dualWriteMatricula, que executa 3 queries no client (resolverAnoLetivoId,
+ * resolverSerieId e o UPSERT em matriculas). Enfileira essas respostas.
+ */
+function mockClientDualWrite() {
+  // resolverAnoLetivoId → anos_letivos.id
+  mockClientQuery.mockResolvedValueOnce({ rows: [{ id: 'ano-2026-uuid' }] } as any)
+  // resolverSerieId → series_escolares.id
+  mockClientQuery.mockResolvedValueOnce({ rows: [{ id: 'serie-1ano-uuid' }] } as any)
+  // INSERT ... ON CONFLICT em matriculas (UPSERT)
+  mockClientQuery.mockResolvedValueOnce({ rows: [] } as any)
+}
+
 // ================================================================ testes ===
 
 describe('C1 IDOR: controle de escopo em matricularAlunosBatch', () => {
@@ -173,6 +187,7 @@ describe('C1 IDOR: controle de escopo em matricularAlunosBatch', () => {
     mockClientQuery.mockResolvedValueOnce({
       rows: [{ id: 'aluno-uuid-0001', nome: 'João Lima', escola_id: ESC_A }],
     } as any)
+    mockClientDualWrite()
 
     const aluno = { id: 'aluno-uuid-0001', nome: 'João Lima' }
 
@@ -203,6 +218,7 @@ describe('C1 IDOR: controle de escopo em matricularAlunosBatch', () => {
     mockClientQuery.mockResolvedValueOnce({
       rows: [{ id: 'aluno-uuid-0002', nome: 'Carlos Melo', escola_id: ESC_A }],
     } as any)
+    mockClientDualWrite()
 
     const aluno = { id: 'aluno-uuid-0002', nome: 'Carlos Melo' }
 
@@ -236,6 +252,7 @@ describe('C1 IDOR: controle de escopo em matricularAlunosBatch', () => {
     mockClientQuery.mockResolvedValueOnce({
       rows: [{ id: 'aluno-uuid-0003', nome: 'Ana Clara', escola_id: ESC_A }],
     } as any)
+    mockClientDualWrite()
 
     const alunos = [
       { id: 'aluno-uuid-9999', nome: 'Invasor Externo' },
@@ -289,6 +306,7 @@ describe('C1 IDOR: controle de escopo em matricularAlunosBatch', () => {
     mockClientQuery.mockResolvedValueOnce({
       rows: [{ id: 'aluno-uuid-8888', nome: 'Sem Escopo', escola_id: ESC_A }],
     } as any)
+    mockClientDualWrite()
 
     const aluno = { id: 'aluno-uuid-8888', nome: 'Sem Escopo' }
 

@@ -11,6 +11,7 @@ import {
   ResultadoMatriculaBatch, MatriculaError, isAlunoExistente,
 } from './types'
 import { verificarAnoLetivoAtivo } from './consultas'
+import { dualWriteMatricula } from './dual-write'
 
 // ============================================================================
 // Operações de matrícula (single + batch)
@@ -64,6 +65,16 @@ export async function matricularAluno(
        WHERE id = $5`,
       [turmaId, escolaId, serie, anoLetivo, alunoId]
     )
+
+    // Dual-write ADR-002 (fase 3): espelha o vinculo na tabela `matriculas`
+    // dentro da mesma transacao. Aditivo — nao substitui alunos.turma_id acima.
+    await dualWriteMatricula(client, {
+      alunoId,
+      turmaId,
+      anoLetivo,
+      serie,
+      situacao: 'cursando',
+    })
   })
 
   if (semVagas) return semVagas
@@ -264,6 +275,17 @@ async function processarAlunoExistente(
         [aluno.id, usuarioId, result.rows[0].escola_id]
       )
     }
+
+    // Dual-write ADR-002 (fase 3): espelha o vinculo na tabela `matriculas`
+    // dentro do mesmo savepoint. Aditivo — alunos.turma_id ja foi gravado acima.
+    await dualWriteMatricula(client, {
+      alunoId: aluno.id,
+      turmaId,
+      anoLetivo,
+      serie: serieAluno,
+      situacao: 'cursando',
+    })
+
     resultados.matriculados++
     resultados.alunos.push(result.rows[0])
   } else {
@@ -304,6 +326,16 @@ async function processarNovoAluno(
       aluno.pcd || false,
     ]
   )
+
+  // Dual-write ADR-002 (fase 3): espelha o vinculo do aluno recem-criado na
+  // tabela `matriculas` dentro do mesmo savepoint. Aditivo.
+  await dualWriteMatricula(client, {
+    alunoId: result.rows[0].id,
+    turmaId,
+    anoLetivo,
+    serie: serieNovoAluno,
+    situacao: 'cursando',
+  })
 
   resultados.criados++
   resultados.matriculados++
