@@ -150,26 +150,36 @@ export async function GET(request: NextRequest) {
     let alunoQuery: string
     let alunoParams: any[]
 
+    // ADR-002 (fase 4): o vínculo aluno↔turma do ano é lido de `matriculas`
+    // (fonte dedicada por ano letivo) com FALLBACK para `alunos.turma_id`
+    // quando não houver matrícula — COALESCE(m.turma_id, a.turma_id). Aditivo:
+    // se a matrícula não existir, mantém o comportamento atual sem regressão.
     if (codigo) {
       alunoQuery = `
         SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao, a.pcd,
-               a.data_nascimento, a.turma_id, a.escola_id,
+               a.data_nascimento,
+               COALESCE(m.turma_id, a.turma_id) AS turma_id, a.escola_id,
                e.nome as escola_nome,
                t.codigo as turma_codigo, t.nome as turma_nome, t.serie as turma_serie
         FROM alunos a
         INNER JOIN escolas e ON a.escola_id = e.id
-        LEFT JOIN turmas t ON a.turma_id = t.id
+        LEFT JOIN matriculas m ON m.aluno_id = a.id
+          AND m.ano_letivo_id = (SELECT id FROM anos_letivos WHERE ano = $2 LIMIT 1)
+        LEFT JOIN turmas t ON t.id = COALESCE(m.turma_id, a.turma_id)
         WHERE a.codigo = $1 AND a.ativo = true AND a.ano_letivo = $2`
       alunoParams = [codigo, anoLetivo]
     } else {
       alunoQuery = `
         SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao, a.pcd,
-               a.data_nascimento, a.turma_id, a.escola_id,
+               a.data_nascimento,
+               COALESCE(m.turma_id, a.turma_id) AS turma_id, a.escola_id,
                e.nome as escola_nome,
                t.codigo as turma_codigo, t.nome as turma_nome, t.serie as turma_serie
         FROM alunos a
         INNER JOIN escolas e ON a.escola_id = e.id
-        LEFT JOIN turmas t ON a.turma_id = t.id
+        LEFT JOIN matriculas m ON m.aluno_id = a.id
+          AND m.ano_letivo_id = (SELECT id FROM anos_letivos WHERE ano = $3 LIMIT 1)
+        LEFT JOIN turmas t ON t.id = COALESCE(m.turma_id, a.turma_id)
         WHERE a.cpf = $1 AND a.data_nascimento = $2 AND a.ativo = true AND a.ano_letivo = $3`
       alunoParams = [cpf, dataNascimento, anoLetivo]
     }
