@@ -108,7 +108,8 @@ export async function validarTurmaEscola(turmaId: string, escolaId: string): Pro
  * Deleta aluno com cascata em transação
  * Usado por: admin/alunos DELETE
  *
- * SOFT delete: marca aluno como ativo=false e situacao='inativo'.
+ * SOFT delete: marca aluno como ativo=false; situacao e preservada
+ * (nao e alterada pelo UPDATE).
  *
  * Antes (até 2026-05-26): fazia DELETE FROM alunos em cascata. Como 28+
  * tabelas filhas (frequencia_diaria, notas_escolares, conselho, AEE, PNAE,

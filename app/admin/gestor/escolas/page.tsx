@@ -125,7 +125,7 @@ export default function EscolasPage() {
 
       const vinculos = await verificarVinculos.json()
 
-      if (vinculos.totalAlunos > 0 || vinculos.totalTurmas > 0 || vinculos.totalResultados > 0 || vinculos.totalConsolidados > 0 || vinculos.totalUsuarios > 0) {
+      if (vinculos.temVinculos) {
         let mensagem = `Escola "${nome}" possui vínculos: `
         const partes = []
         if (vinculos.totalAlunos > 0) partes.push(`${vinculos.totalAlunos} aluno(s)`)
@@ -133,6 +133,9 @@ export default function EscolasPage() {
         if (vinculos.totalResultados > 0) partes.push(`${vinculos.totalResultados} resultado(s)`)
         if (vinculos.totalConsolidados > 0) partes.push(`${vinculos.totalConsolidados} consolidado(s)`)
         if (vinculos.totalUsuarios > 0) partes.push(`${vinculos.totalUsuarios} usuário(s)`)
+        if (vinculos.totalNotas > 0) partes.push(`${vinculos.totalNotas} nota(s) escolar(es)`)
+        if (vinculos.totalFrequencia > 0) partes.push(`${vinculos.totalFrequencia} registro(s) de frequência`)
+        if (vinculos.totalDocumentos > 0) partes.push(`${vinculos.totalDocumentos} documento(s) emitido(s)`)
         mensagem += partes.join(', ')
         toast.warning(mensagem)
         return
@@ -165,6 +168,9 @@ export default function EscolasPage() {
           if (data.vinculos.totalResultados > 0) partes.push(`${data.vinculos.totalResultados} resultado(s)`)
           if (data.vinculos.totalConsolidados > 0) partes.push(`${data.vinculos.totalConsolidados} consolidado(s)`)
           if (data.vinculos.totalUsuarios > 0) partes.push(`${data.vinculos.totalUsuarios} usuário(s)`)
+          if (data.vinculos.totalNotas > 0) partes.push(`${data.vinculos.totalNotas} nota(s) escolar(es)`)
+          if (data.vinculos.totalFrequencia > 0) partes.push(`${data.vinculos.totalFrequencia} registro(s) de frequência`)
+          if (data.vinculos.totalDocumentos > 0) partes.push(`${data.vinculos.totalDocumentos} documento(s) emitido(s)`)
           mensagem += partes.join(', ')
           toast.warning(mensagem)
         } else {

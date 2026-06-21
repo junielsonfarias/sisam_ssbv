@@ -31,6 +31,9 @@ export interface VinculosEscola {
   totalResultados: number
   totalConsolidados: number
   totalUsuarios: number
+  totalNotas: number
+  totalFrequencia: number
+  totalDocumentos: number
   temVinculos: boolean
 }
 
@@ -84,19 +87,25 @@ export async function buscarEscolaDetalhada(
 // ---------------------------------------------------------------------------
 
 /**
- * Verifica vinculos de uma escola antes de excluir.
- * Retorna contagens de: alunos, turmas, resultados, consolidados, usuarios.
+ * Verifica vinculos de uma escola antes de excluir. Espelha exatamente o
+ * check de bloqueio de excluirEscola() para que o pre-check mostrado ao
+ * usuario nao divirja da regra real de exclusao.
+ * Retorna contagens de: alunos, turmas, resultados, consolidados, usuarios,
+ * notas_escolares, frequencia_bimestral e documentos_emitidos.
  */
 export async function verificarVinculosEscola(
   escolaId: string
 ): Promise<VinculosEscola> {
   const vinculosResult = await pool.query(`
     SELECT
-      (SELECT COUNT(*) FROM alunos WHERE escola_id = $1) as total_alunos,
-      (SELECT COUNT(*) FROM turmas WHERE escola_id = $1) as total_turmas,
-      (SELECT COUNT(*) FROM resultados_provas WHERE escola_id = $1) as total_resultados,
+      (SELECT COUNT(*) FROM alunos             WHERE escola_id = $1) as total_alunos,
+      (SELECT COUNT(*) FROM turmas             WHERE escola_id = $1) as total_turmas,
+      (SELECT COUNT(*) FROM resultados_provas  WHERE escola_id = $1) as total_resultados,
       (SELECT COUNT(*) FROM resultados_consolidados_unificada WHERE escola_id = $1) as total_consolidados,
-      (SELECT COUNT(*) FROM usuarios WHERE escola_id = $1) as total_usuarios
+      (SELECT COUNT(*) FROM usuarios           WHERE escola_id = $1) as total_usuarios,
+      (SELECT COUNT(*) FROM notas_escolares ne JOIN alunos a ON a.id = ne.aluno_id WHERE a.escola_id = $1) as total_notas,
+      (SELECT COUNT(*) FROM frequencia_bimestral fb JOIN alunos a ON a.id = fb.aluno_id WHERE a.escola_id = $1) as total_frequencia,
+      (SELECT COUNT(*) FROM documentos_emitidos WHERE escola_id = $1) as total_documentos
   `, [escolaId])
 
   const row = vinculosResult.rows[0]
@@ -106,6 +115,9 @@ export async function verificarVinculosEscola(
   const totalResultados = parseInt(row.total_resultados) || 0
   const totalConsolidados = parseInt(row.total_consolidados) || 0
   const totalUsuarios = parseInt(row.total_usuarios) || 0
+  const totalNotas = parseInt(row.total_notas) || 0
+  const totalFrequencia = parseInt(row.total_frequencia) || 0
+  const totalDocumentos = parseInt(row.total_documentos) || 0
 
   return {
     totalAlunos,
@@ -113,12 +125,18 @@ export async function verificarVinculosEscola(
     totalResultados,
     totalConsolidados,
     totalUsuarios,
+    totalNotas,
+    totalFrequencia,
+    totalDocumentos,
     temVinculos:
       totalAlunos > 0 ||
       totalTurmas > 0 ||
       totalResultados > 0 ||
       totalConsolidados > 0 ||
-      totalUsuarios > 0,
+      totalUsuarios > 0 ||
+      totalNotas > 0 ||
+      totalFrequencia > 0 ||
+      totalDocumentos > 0,
   }
 }
 

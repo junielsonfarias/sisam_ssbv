@@ -33,6 +33,10 @@ export async function GET(request: NextRequest) {
       totalResultados: vinculos.totalResultados,
       totalConsolidados: vinculos.totalConsolidados,
       totalUsuarios: vinculos.totalUsuarios,
+      totalNotas: vinculos.totalNotas,
+      totalFrequencia: vinculos.totalFrequencia,
+      totalDocumentos: vinculos.totalDocumentos,
+      temVinculos: vinculos.temVinculos,
     })
   } catch (error: unknown) {
     console.error('Erro ao verificar vínculos:', error)
