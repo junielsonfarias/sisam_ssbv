@@ -17,6 +17,19 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Guarda anti-IDOR: usuário de polo/escola SEM polo vinculado não pode
+    // escapar do filtro abaixo e receber TODOS os polos do município.
+    // administrador/tecnico continuam vendo tudo.
+    if (
+      (usuario.tipo_usuario === 'polo' || usuario.tipo_usuario === 'escola') &&
+      !usuario.polo_id
+    ) {
+      return NextResponse.json(
+        { mensagem: 'Usuário sem unidade vinculada' },
+        { status: 403 }
+      )
+    }
+
     const where = createWhereBuilder()
     addRawCondition(where, 'ativo = true')
 
