@@ -11,7 +11,14 @@ export const meta = {
 // ============================================================
 // Parametros do ciclo (vindos do driver /loop via args)
 // ============================================================
-const CICLO = (args && args.ciclo) || 1
+// args pode chegar como objeto OU como string JSON — normaliza
+let ARGS = args
+if (typeof ARGS === 'string') {
+  try { ARGS = JSON.parse(ARGS) } catch (e) { ARGS = {} }
+}
+if (!ARGS || typeof ARGS !== 'object') ARGS = {}
+
+const CICLO = ARGS.ciclo || 1
 const BRANCH = 'auto/revisao-noturna'
 const COAUTHOR = 'Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>'
 
@@ -42,7 +49,7 @@ const MODULOS_DEFAULT = [
   { key: 'database', alvo: 'database/migrations/** + database/connection.ts' },
 ]
 
-const MODULOS = (args && args.modulos) || MODULOS_DEFAULT
+const MODULOS = ARGS.modulos || MODULOS_DEFAULT
 
 // ============================================================
 // Schemas de saida estruturada

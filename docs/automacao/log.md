@@ -46,3 +46,9 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 1 | pages-publicas-components | aprovado | 2 tarefas | tsc:ok vitest:ok | c5edfad
 - ciclo 1 | api-publico | aprovado | 1 tarefas | tsc:ok vitest:ok | 7aea316
 - ciclo 1 | database | aprovado | 1 tarefas | tsc:ok vitest:ok | ef2b897
+
+## ✅ Ciclo 2 concluído — ~22:06 (duração ~45min)
+- Revisados: 16 · com achados: 14 · **aprovados: 14** · revertidos: 0 · erros: 0 · ~46 tarefas.
+- NOTA: as linhas acima (commits 793ed24…ef2b897 e ae4c42a) são do **ciclo 2**, mas saíram
+  rotuladas "ciclo 1" por um bug de passagem de `args` (já corrigido no workflow).
+- Disparando ciclo 3.

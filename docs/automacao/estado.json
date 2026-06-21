@@ -2,7 +2,7 @@
   "branch": "auto/revisao-noturna",
   "iniciadoEm": "2026-06-20T19:54:00-03:00",
   "deadline": "2026-06-21T09:00:00-03:00",
-  "cicloAtual": 1,
+  "cicloAtual": 2,
   "ciclosAlvo": 5,
   "modoPosCiclos": "continuar-revisando-ate-deadline",
   "aceitacao": "automatica",
@@ -11,6 +11,7 @@
   "naoVerde": "reverter-automaticamente",
   "push": "NUNCA (decisao manual do usuario)",
   "historico": [
-    { "ciclo": 1, "aprovados": 15, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 15, "tarefas": 58 }
+    { "ciclo": 1, "aprovados": 15, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 15, "tarefas": 58 },
+    { "ciclo": 2, "aprovados": 14, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 14, "tarefas": 46, "obs": "commits rotulados ciclo 1 por bug de args ja corrigido" }
   ]
 }
