@@ -56,9 +56,13 @@ BEGIN;
 -- Funcao do gate (idempotente via CREATE OR REPLACE).
 -- Espelha a politica da fonte unica (mestre.service.ts):
 --   podeCriarMestre('sisam_etl', 'escola') === false.
+-- SET search_path = '' fixa o caminho de busca (hardening — advisor
+-- function_search_path_mutable). A funcao so usa built-ins (btrim) e NEW.*,
+-- entao nao depende do search_path; fixar e seguro.
 CREATE OR REPLACE FUNCTION public.fn_escolas_gate_origem()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = ''
 AS $fn$
 BEGIN
     -- 1. origem deve estar definida (NULL/branco nao e aceito como "sem rastreio").

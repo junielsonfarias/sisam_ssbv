@@ -20,3 +20,4 @@ Formato das linhas de correção: `- ciclo N | integração | status | tipo`
 - ciclo 2 | Gestor -> historico de migracoes/importacoes | aplicado | codigo
 - ciclo 3 | Sisam (ETL) -> Gestor Escolar | aplicado | codigo
 - ciclo 3 | Sisam (ETL) -> Gestor Escolar (regularizacao) | aplicado | codigo
+- ciclo 3 | Gestor Escolar (banco / fonte unica) | aplicado | banco-naodestrutivo
