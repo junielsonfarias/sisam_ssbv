@@ -23,3 +23,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 1 | api-offline-perfil | aprovado | 3 tarefas | tsc:ok vitest:ok | a9ab5ff
 - ciclo 1 | database | aprovado | 1 tarefas | tsc:ok vitest:ok | be86cde
 - ciclo 1 | api-publico | aprovado | 2 tarefas | tsc:ok vitest:ok | 0034561
+- ciclo 1 | services-core | aprovado | 2 tarefas | tsc:ok vitest:ok | 795bf3e
