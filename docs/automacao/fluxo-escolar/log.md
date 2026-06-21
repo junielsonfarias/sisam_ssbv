@@ -23,3 +23,5 @@ Formato das linhas de correção: `- ciclo N | integração | status | tipo`
 - ciclo 3 | Gestor Escolar (banco / fonte unica) | aplicado | banco-naodestrutivo
 - ciclo 3 | Gestor Escolar (integridade interna do mestre) | aplicado | banco-naodestrutivo
 - ciclo 4 | Sisam (ETL importar-resultados) -> Gestor [mestre aluno] | aplicado | codigo
+- ciclo 4 | Gestor (banco) — fonte unica / integridade | proposto | banco-naodestrutivo
+- ciclo 4 | Sisam/Gestor (governanca de mestre) — defesa em profundidade | aplicado | banco-naodestrutivo
