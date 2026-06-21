@@ -25,6 +25,7 @@
  */
 
 import pool from '@/database/connection'
+import { reportarErroSilencioso } from '@/lib/observabilidade/capturar-erro-silencioso'
 import type { Usuario } from '@/lib/types/usuario'
 
 export type NivelRisco = 'baixo' | 'medio' | 'alto'
@@ -114,7 +115,10 @@ export async function calcularRiscoAluno(
       else if (pct < 85) { contrib = 10; fatores.push({ nome: 'Frequência regular (<85%)', contribuicao: 10, detalhe: `${pct.toFixed(1)}%` }) }
       score += contrib
     }
-  } catch { /* sem dados */ }
+  } catch (error) {
+    reportarErroSilencioso(error, { origem: 'analytics-preditiva', descricao: 'fator:frequencia' })
+    /* sem dados — fator não contabilizado */
+  }
 
   // Fator 2: Notas (peso 25)
   try {
@@ -132,7 +136,10 @@ export async function calcularRiscoAluno(
       else if (media < 6) { contrib = 10; fatores.push({ nome: 'Média insuficiente (<6.0)', contribuicao: 10, detalhe: media.toFixed(1) }) }
       score += contrib
     }
-  } catch { /* sem dados */ }
+  } catch (error) {
+    reportarErroSilencioso(error, { origem: 'analytics-preditiva', descricao: 'fator:notas' })
+    /* sem dados — fator não contabilizado */
+  }
 
   // Fator 3: FICAI ativo (peso 20)
   try {
@@ -150,7 +157,10 @@ export async function calcularRiscoAluno(
       score += 20
       fatores.push({ nome: 'Caso FICAI ativo', contribuicao: 20, detalhe: `${total} caso(s)` })
     }
-  } catch { /* sem dados */ }
+  } catch (error) {
+    reportarErroSilencioso(error, { origem: 'analytics-preditiva', descricao: 'fator:ficai' })
+    /* sem dados — fator não contabilizado */
+  }
 
   // Fator 4: Histórico social (peso 10) — Bolsa Família + idade-série acima do esperado
   if (aluno.beneficiario_bolsa_familia) {
@@ -192,7 +202,10 @@ export async function calcularRiscoAluno(
       score += 5
       fatores.push({ nome: 'Histórico de transferência', contribuicao: 5, detalhe: '1 evento anterior' })
     }
-  } catch { /* tabela pode não existir */ }
+  } catch (error) {
+    reportarErroSilencioso(error, { origem: 'analytics-preditiva', descricao: 'fator:historico' })
+    /* tabela pode não existir — fator não contabilizado */
+  }
 
   score = Math.min(100, Math.round(score))
 

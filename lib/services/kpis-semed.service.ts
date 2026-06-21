@@ -16,6 +16,7 @@
  */
 
 import pool from '@/database/connection'
+import { reportarErroSilencioso } from '@/lib/observabilidade/capturar-erro-silencioso'
 import type { Usuario } from '@/lib/types/usuario'
 
 /** Subconjunto do usuário necessário para aplicar escopo de acesso. */
@@ -120,7 +121,10 @@ export async function obterKpisGerais(anoLetivo: string, usuario?: UsuarioEscopo
          WHERE beneficiario_bolsa_familia = TRUE
            AND ano_letivo = $1 AND ativo IS NOT FALSE${alunosEscolaFiltro}) AS alunos_bf`,
     params
-  ).catch(() => ({ rows: [{}] }))
+  ).catch((error) => {
+    reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisGerais' })
+    return { rows: [{}] }
+  })
 
   const row = r.rows[0]
   return {
@@ -209,7 +213,10 @@ export async function obterKpisDesempenho(anoLetivo: string, usuario?: UsuarioEs
          FROM notas_escolares
         WHERE ano_letivo = $1 AND nota IS NOT NULL${notasEscolaFiltro}`,
       notasParams
-    ).catch(() => ({ rows: [{}] }))
+    ).catch((error) => {
+      reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisDesempenho/notas' })
+      return { rows: [{}] }
+    })
 
     // Taxa aprovação/reprovação
     const situacaoParams: unknown[] = [anoLetivo]
@@ -224,7 +231,10 @@ export async function obterKpisDesempenho(anoLetivo: string, usuario?: UsuarioEs
         WHERE EXTRACT(YEAR FROM data)::text = $1${situacaoEscolaFiltro}
         GROUP BY situacao`,
       situacaoParams
-    ).catch(() => ({ rows: [] }))
+    ).catch((error) => {
+      reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisDesempenho/situacao' })
+      return { rows: [] as any[] }
+    })
 
     const totalSituacoes = situacaoR.rows.reduce((s: number, r: any) => s + parseInt(r.total, 10), 0)
     const aprovados = situacaoR.rows.find((r: any) => r.situacao === 'aprovado')
@@ -262,7 +272,10 @@ export async function obterKpisDesempenho(anoLetivo: string, usuario?: UsuarioEs
          FROM expectativa
         WHERE idade_esperada IS NOT NULL`,
       distorcaoParams
-    ).catch(() => ({ rows: [{}] }))
+    ).catch((error) => {
+      reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisDesempenho/distorcao' })
+      return { rows: [{}] }
+    })
 
     const distorcao = distorcaoR.rows[0]?.pct
       ? Math.round(parseFloat(distorcaoR.rows[0].pct) * 10) / 10
@@ -283,7 +296,8 @@ export async function obterKpisDesempenho(anoLetivo: string, usuario?: UsuarioEs
       distorcao_idade_serie_pct: distorcao,
       ideb_projetado: idebProjetado,
     }
-  } catch {
+  } catch (error) {
+    reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisDesempenho' })
     return {
       media_geral: null, taxa_aprovacao_pct: null, taxa_reprovacao_pct: null,
       taxa_abandono_pct: null, distorcao_idade_serie_pct: null, ideb_projetado: null,
@@ -318,13 +332,19 @@ export async function obterKpisProgramas(anoLetivo: string, usuario?: UsuarioEsc
           WHERE EXTRACT(YEAR FROM data_atendimento) = $1
             AND EXTRACT(MONTH FROM data_atendimento) = $2${pnaeEscolaFiltro}`,
         pnaeParams
-      ).catch(() => ({ rows: [{ total: 0 }] }))
+      ).catch((error) => {
+        reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisProgramas/pnae' })
+        return { rows: [{ total: 0 }] }
+      })
     : await pool.query(
         `SELECT COALESCE(SUM(qtd_alunos), 0) AS total
            FROM pnae_atendimentos_diarios
           WHERE EXTRACT(YEAR FROM data_atendimento) = $1${pnaeEscolaFiltro}`,
         pnaeParams
-      ).catch(() => ({ rows: [{ total: 0 }] }))
+      ).catch((error) => {
+        reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisProgramas/pnae' })
+        return { rows: [{ total: 0 }] }
+      })
 
   const pnateParams: unknown[] = []
   let pnateEscolaFiltro = ''
@@ -336,7 +356,10 @@ export async function obterKpisProgramas(anoLetivo: string, usuario?: UsuarioEsc
     `SELECT COUNT(DISTINCT aluno_id) AS total
        FROM pnate_alunos_rotas WHERE ativo = TRUE${pnateEscolaFiltro}`,
     pnateParams
-  ).catch(() => ({ rows: [{ total: 0 }] }))
+  ).catch((error) => {
+    reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisProgramas/pnate' })
+    return { rows: [{ total: 0 }] }
+  })
 
   const pddeParams: unknown[] = [anoLetivo]
   let pddeEscolaFiltro = ''
@@ -350,7 +373,10 @@ export async function obterKpisProgramas(anoLetivo: string, usuario?: UsuarioEsc
        SUM(valor_executado) AS executado
        FROM pdde_saldos WHERE ano_letivo = $1${pddeEscolaFiltro}`,
     pddeParams
-  ).catch(() => ({ rows: [{}] }))
+  ).catch((error) => {
+    reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisProgramas/pdde' })
+    return { rows: [{}] }
+  })
 
   const pddeRow = pdde.rows[0] || {}
   const pddePct = pddeRow.recebido && parseFloat(pddeRow.recebido) > 0
@@ -369,7 +395,10 @@ export async function obterKpisProgramas(anoLetivo: string, usuario?: UsuarioEsc
        COUNT(*) FILTER (WHERE status NOT IN ('concluida','cancelada') AND prioridade = 'urgente') AS urgentes
        FROM ordens_servico${osEscolaFiltro}`,
     osParams
-  ).catch(() => ({ rows: [{ abertas: 0, urgentes: 0 }] }))
+  ).catch((error) => {
+    reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterKpisProgramas/ordens_servico' })
+    return { rows: [{ abertas: 0, urgentes: 0 }] }
+  })
 
   return {
     pnae_refeicoes_mes: parseInt(pnae.rows[0]?.total || '0', 10),
@@ -409,7 +438,10 @@ export async function obterComparativoEscolas(anoLetivo: string, usuario?: Usuar
       WHERE e.ativo IS NOT FALSE${poloFiltro}
       ORDER BY e.nome`,
     compParams
-  ).catch(() => ({ rows: [] }))
+  ).catch((error) => {
+    reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterComparativoEscolas' })
+    return { rows: [] as any[] }
+  })
 
   // Adiciona frequência e média (queries separadas para não bloquear o resto)
   for (const escola of r.rows) {
@@ -423,7 +455,10 @@ export async function obterComparativoEscolas(anoLetivo: string, usuario?: Usuar
         [escola.escola_id, anoLetivo]
       )
       escola.frequencia_pct = freq.rows[0]?.pct ? Math.round(parseFloat(freq.rows[0].pct) * 10) / 10 : null
-    } catch { escola.frequencia_pct = null }
+    } catch (error) {
+      reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterComparativoEscolas/frequencia' })
+      escola.frequencia_pct = null
+    }
 
     try {
       const nota = await pool.query(
@@ -434,7 +469,10 @@ export async function obterComparativoEscolas(anoLetivo: string, usuario?: Usuar
         [escola.escola_id, anoLetivo]
       )
       escola.media_geral = nota.rows[0]?.media ? Math.round(parseFloat(nota.rows[0].media) * 10) / 10 : null
-    } catch { escola.media_geral = null }
+    } catch (error) {
+      reportarErroSilencioso(error, { origem: 'kpis-semed', descricao: 'obterComparativoEscolas/media' })
+      escola.media_geral = null
+    }
   }
 
   return r.rows.map((row: any) => ({
