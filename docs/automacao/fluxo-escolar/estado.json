@@ -3,7 +3,7 @@
   "branch": "auto/fluxo-escolar",
   "iniciadoEm": "2026-06-21T09:21:00-03:00",
   "ciclosAlvo": 5,
-  "cicloAtual": 0,
+  "cicloAtual": 1,
   "criterioParada": "5 ciclos (retoma apos reset de creditos)",
   "aceitacao": "automatica",
   "verificacaoCodigo": "tsc+vitest (revert no vermelho)",
@@ -20,5 +20,7 @@
     "retomarEm": null,
     "cicloPendente": null
   },
-  "historico": []
+  "historico": [
+    { "ciclo": 1, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 9, "aplicados": 4, "revertidos": 0, "propostas": 5, "erros": 0, "achadoChave": "ETL Sisam (importar-completo) e o dono de fato dos cadastros mestres - viola fonte unica" }
+  ]
 }
