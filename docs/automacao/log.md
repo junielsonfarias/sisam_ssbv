@@ -76,3 +76,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - Ciclo 4 falhou às ~23:15 (session limit, reset 01:10 Fortaleza); 0 commits, árvore git ficou limpa.
 - Auto-retomada não foi instantânea: loop só voltou ~07:47 (perdeu a janela da madrugada).
 - Créditos de volta → ciclo 4 re-disparado às 07:47 (restam ~73min até o deadline 09:00).
+- ciclo 4 | api-facial | aprovado | 4 tarefas | tsc:ok vitest:ok | 58be10e
