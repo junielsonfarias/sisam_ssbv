@@ -92,3 +92,5 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 4 | api-professor | aprovado | 1 tarefas | tsc:ok vitest:ok | c326574
 
 - ciclo 4 | services-core | aprovado | 1 tarefas | tsc:ok vitest:ok | 5d25db4
+
+- ciclo 4 | pages-admin | aprovado | 2 tarefas | tsc:ok vitest:ok | 87fecdd
