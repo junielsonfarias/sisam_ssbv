@@ -77,6 +77,39 @@ export async function validarImportacao(
     )
   }
 
+  // Resumo estruturado por entidade afetada (historico de migracoes consultavel
+  // pelo Gestor). Inclui `divergentes` — registros de cadastro mestre ausentes
+  // ou criados pelo ETL que precisam de regularizacao no modulo Gestor. A trilha
+  // detalhada por entidade e consultada via origem_importacao_id.
+  const resumo = {
+    ano_letivo: anoLetivo,
+    gerado_em: new Date().toISOString(),
+    polos: { criados: resultado.polos.criados, existentes: resultado.polos.existentes, divergentes: 0 },
+    escolas: {
+      criados: resultado.escolas.criados,
+      existentes: resultado.escolas.existentes,
+      divergentes: resultado.escolas.divergentes,
+    },
+    turmas: {
+      criados: resultado.turmas.criados,
+      existentes: resultado.turmas.existentes,
+      divergentes: resultado.turmas.divergentes,
+    },
+    alunos: {
+      criados: resultado.alunos.criados,
+      existentes: resultado.alunos.existentes,
+      divergentes: resultado.alunos.divergentes,
+    },
+    questoes: { criadas: resultado.questoes.criadas, existentes: resultado.questoes.existentes },
+    resultados: {
+      processados: resultado.resultados.processados,
+      novos: resultado.resultados.novos,
+      duplicados: resultado.resultados.duplicados,
+      erros: resultado.resultados.erros,
+    },
+    total_divergencias: totalDivergencias,
+  }
+
   await pool.query(
     `UPDATE importacoes
      SET linhas_processadas = $1, linhas_com_erro = $2,
@@ -87,8 +120,9 @@ export async function validarImportacao(
          turmas_criadas = $9, turmas_existentes = $10,
          alunos_criados = $11, alunos_existentes = $12,
          questoes_criadas = $13, questoes_existentes = $14,
-         resultados_novos = $15, resultados_duplicados = $16
-     WHERE id = $17`,
+         resultados_novos = $15, resultados_duplicados = $16,
+         resumo = $17
+     WHERE id = $18`,
     [
       resultado.resultados.processados,
       resultado.resultados.erros,
@@ -100,6 +134,7 @@ export async function validarImportacao(
       resultado.alunos.criados, resultado.alunos.existentes,
       resultado.questoes.criadas, resultado.questoes.existentes,
       resultado.resultados.novos, resultado.resultados.duplicados,
+      JSON.stringify(resumo),
       importacaoId,
     ]
   )

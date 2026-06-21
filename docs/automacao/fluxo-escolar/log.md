@@ -16,3 +16,5 @@ Formato das linhas de correção: `- ciclo N | integração | status | tipo`
 - ciclo 2 | Gestor (governanca) -> rastreabilidade do dado mestre | aplicado | codigo
 
 - ciclo 2 | Gestor (cadastro via planilha) vs Sisam (ETL) — duas portas de criacao de mestre | aplicado | codigo
+- ciclo 2 | Gestor -> identidade do aluno (anti-duplicacao) | aplicado | banco-naodestrutivo
+- ciclo 2 | Gestor -> historico de migracoes/importacoes | aplicado | codigo

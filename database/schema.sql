@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS importacoes (
     linhas_com_erro INTEGER DEFAULT 0,
     status VARCHAR(20) DEFAULT 'processando' CHECK (status IN ('processando', 'concluido', 'erro')),
     erros TEXT,
+    resumo JSONB, -- Resumo por entidade (criados/existentes/divergentes) — historico consultavel pelo Gestor
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     concluido_em TIMESTAMP
 );
