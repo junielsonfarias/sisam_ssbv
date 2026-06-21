@@ -34,7 +34,8 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo'], async (request
         anoLetivo,
         serie,
         turmaId,
-        tipoEnsino
+        tipoEnsino,
+        avaliacaoId
       },
       tipoUsuario: usuario.tipo_usuario,
       usuarioId: usuario.id,
