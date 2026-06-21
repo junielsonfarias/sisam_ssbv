@@ -3,7 +3,8 @@
   "branch": "auto/fluxo-escolar",
   "iniciadoEm": "2026-06-21T09:21:00-03:00",
   "ciclosAlvo": 5,
-  "cicloAtual": 4,
+  "cicloAtual": 5,
+  "finalizado": true,
   "criterioParada": "5 ciclos (retoma apos reset de creditos)",
   "aceitacao": "automatica",
   "verificacaoCodigo": "tsc+vitest (revert no vermelho)",
@@ -24,6 +25,7 @@
     { "ciclo": 1, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 9, "aplicados": 4, "revertidos": 0, "propostas": 5, "erros": 0, "achadoChave": "ETL Sisam (importar-completo) e o dono de fato dos cadastros mestres - viola fonte unica" },
     { "ciclo": 2, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 7, "aplicados": 5, "revertidos": 0, "propostas": 2, "erros": 0, "achadoChave": "ETL grava origem do dado; indice de identidade forte do aluno aplicado no demo" },
     { "ciclo": 3, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 7, "aplicados": 4, "revertidos": 0, "propostas": 3, "erros": 0, "achadoChave": "regularizacao do ETL + integridade interna do mestre; restam itens destrutivos/producao como proposta" },
-    { "ciclo": 4, "statusGeral": "Parcial", "coracao": "Forte", "gaps": 5, "aplicados": 2, "revertidos": 0, "propostas": 2, "erros": 0, "achadoChave": "coracao subiu para Forte: defesa em profundidade na governanca de mestre; restam itens de baixa prioridade" }
+    { "ciclo": 4, "statusGeral": "Parcial", "coracao": "Forte", "gaps": 5, "aplicados": 2, "revertidos": 0, "propostas": 2, "erros": 0, "achadoChave": "coracao subiu para Forte: defesa em profundidade na governanca de mestre; restam itens de baixa prioridade" },
+    { "ciclo": 5, "statusGeral": "Saudavel", "coracao": "Forte", "gaps": 7, "aplicados": 3, "revertidos": 0, "propostas": 4, "erros": 0, "achadoChave": "status subiu para Saudavel; restam apenas propostas de baixa prioridade (ADR/dados externos/destrutivo)" }
   ]
 }
