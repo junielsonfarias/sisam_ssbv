@@ -11,6 +11,15 @@
   "verificacao": "tsc+vitest",
   "naoVerde": "reverter-automaticamente",
   "push": "NUNCA (decisao manual do usuario)",
+  "retomadaPosCreditos": {
+    "mecanismo": "sleep-background-ate-reset+2min",
+    "helper": "scripts/automacao/calc-retomada.js",
+    "bufferMin": 2,
+    "status": "ocioso",
+    "resetEm": null,
+    "retomarEm": null,
+    "cicloPendente": null
+  },
   "historico": [
     { "ciclo": 1, "aprovados": 15, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 15, "tarefas": 58 },
     { "ciclo": 2, "aprovados": 14, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 14, "tarefas": 46, "obs": "commits rotulados ciclo 1 por bug de args ja corrigido" },

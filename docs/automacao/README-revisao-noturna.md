@@ -26,13 +26,35 @@ corrigido ficou adequado e pegando regressões — é o "loop das revisões" ped
 | Driver | Skill `/loop` (modo dinâmico, `ScheduleWakeup`) | Dispara o motor repetidamente, conta os ciclos (5 completos, depois segue revisando), checa o horário e **sobrevive ao reset de créditos** re-agendando o próximo disparo. |
 | Estado | `docs/automacao/estado.json` + `log.md` | Persistem ciclo atual e histórico — sobrevivem a reinícios. |
 
+## Retomada após reset de créditos (v2 — corrigido)
+
+Quando um ciclo falha por limite de sessão, o driver agora:
+
+1. **Lê o horário de reset** da mensagem de falha (ex.: `resets 1:10am America/Fortaleza`).
+2. Calcula o tempo até **reset + 2 min** com `scripts/automacao/calc-retomada.js`.
+3. Grava o estado de pausa em `estado.json` (`retomadaPosCreditos.status = "pausado"`,
+   `resetEm`, `retomarEm`, `cicloPendente`).
+4. **Inicia um `sleep` em background** com a duração exata até *reset + 2 min*. Esse timer:
+   - roda no nível do SO, **independe de créditos**;
+   - aguenta esperas **> 1 h** num disparo só (sem o teto de 1 h do ScheduleWakeup);
+   - **não dispara na "zona morta"** (sem fires intermediários que morreriam sem crédito);
+   - ao terminar, **reinvoca o agente** — e nesse momento os créditos já voltaram.
+5. Ao acordar, o driver limpa a pausa e **re-dispara o ciclo pendente** do ponto salvo
+   (módulos já corrigidos estão commitados; o novo ciclo re-revisa tudo, nada se perde).
+
+> Por que mudou: na 1ª versão a rede de segurança era um `ScheduleWakeup` cego de 30 min.
+> Quando o limite caiu às 23:15 (reset 01:10), os fires de 30 min caíam dentro da janela
+> sem crédito, a corrente quebrava e a retomada só ocorreu às 07:47. O `sleep` até
+> *reset + 2 min* elimina exatamente esse buraco.
+
 ## Limites honestos (leia)
 
 - **A sessão/terminal precisa ficar aberta.** O loop roda *dentro desta sessão* do Claude
   Code. Se a janela for fechada, a automação para.
-- **Reset de créditos:** quando o limite de uso é atingido, o Claude Code pausa e o
-  `/loop` re-tenta no próximo disparo agendado (após a janela resetar). Não é instantâneo,
-  mas retoma sozinho enquanto a sessão estiver viva.
+- **Reset de créditos (v2):** ao bater o limite, o driver agenda um `sleep` em background
+  até *reset + 2 min* e retoma sozinho nesse instante (ver seção "Retomada após reset de
+  créditos"). Requisito: a **sessão precisa ficar aberta** e o PC **não pode suspender**
+  (o `sleep` é pausado se o SO hibernar).
 - **Auto-aceitação:** dentro do Workflow os subagentes editam arquivos sem prompt. Para o
   driver lançar os workflows sem pedir confirmação a cada ciclo, rode o Claude Code em modo
   de permissões que aceite a ferramenta `Workflow` (ex.: aceitar/bypass de permissões).
