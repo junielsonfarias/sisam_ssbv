@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ClipboardList, Plus, AlertTriangle, FileText } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { PlanosLista, PlanoModal, imprimirPlano } from './components'
 import type { Turma, Disciplina, Plano } from './components'
 
@@ -34,6 +35,8 @@ function PlanejamentoAulas() {
   const [formObservacoes, setFormObservacoes] = useState('')
   const [formStatus, setFormStatus] = useState('rascunho')
   const [formHabilidadesBncc, setFormHabilidadesBncc] = useState<string[]>([])
+  const [confirmarExcluir, setConfirmarExcluir] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/professor/turmas')
@@ -150,8 +153,15 @@ function PlanejamentoAulas() {
     }
   }
 
-  const excluir = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este plano?')) return
+  const excluir = (id: string) => {
+    setConfirmarExcluir(id)
+  }
+
+  const confirmarExclusaoPlano = async () => {
+    if (!confirmarExcluir) return
+    const id = confirmarExcluir
+    setExcluindo(id)
+    setErro('')
     try {
       const res = await fetch(`/api/professor/planos?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Erro ao excluir')
@@ -159,6 +169,9 @@ function PlanejamentoAulas() {
       carregarPlanos()
     } catch {
       setErro('Erro ao excluir plano')
+    } finally {
+      setExcluindo(null)
+      setConfirmarExcluir(null)
     }
   }
 
@@ -299,6 +312,17 @@ function PlanejamentoAulas() {
           onSalvar={salvar}
         />
       )}
+
+      <ConfirmModal
+        aberto={confirmarExcluir !== null}
+        titulo="Excluir plano"
+        mensagem="Tem certeza? Esta ação não pode ser desfeita."
+        variant="danger"
+        textoConfirmar="Excluir"
+        processando={excluindo !== null}
+        onConfirmar={confirmarExclusaoPlano}
+        onFechar={() => setConfirmarExcluir(null)}
+      />
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { MessageSquare, Plus, Trash2, X, Send, AlertTriangle } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 interface Turma {
   turma_id: string
@@ -46,6 +47,8 @@ function ComunicadosTurma() {
   const [formTitulo, setFormTitulo] = useState('')
   const [formMensagem, setFormMensagem] = useState('')
   const [formTipo, setFormTipo] = useState<string>('aviso')
+  const [confirmarExcluir, setConfirmarExcluir] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/professor/turmas')
@@ -108,8 +111,11 @@ function ComunicadosTurma() {
     }
   }
 
-  const excluir = async (id: string) => {
-    if (!confirm('Deseja realmente remover este comunicado?')) return
+  const confirmarExclusaoComunicado = async () => {
+    if (!confirmarExcluir) return
+    const id = confirmarExcluir
+    setExcluindo(id)
+    setErro('')
     try {
       const res = await fetch(`/api/professor/comunicados?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Erro ao remover')
@@ -117,6 +123,9 @@ function ComunicadosTurma() {
       carregarComunicados()
     } catch {
       setErro('Erro ao remover comunicado')
+    } finally {
+      setExcluindo(null)
+      setConfirmarExcluir(null)
     }
   }
 
@@ -223,7 +232,7 @@ function ComunicadosTurma() {
                   </p>
                 </div>
                 {c.ativo && (
-                  <button onClick={() => excluir(c.id)} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded text-red-500 shrink-0">
+                  <button onClick={() => setConfirmarExcluir(c.id)} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded text-red-500 shrink-0">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
@@ -294,6 +303,17 @@ function ComunicadosTurma() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        aberto={confirmarExcluir !== null}
+        titulo="Excluir comunicado"
+        mensagem="Tem certeza? Esta ação não pode ser desfeita."
+        variant="danger"
+        textoConfirmar="Excluir"
+        processando={excluindo !== null}
+        onConfirmar={confirmarExclusaoComunicado}
+        onFechar={() => setConfirmarExcluir(null)}
+      />
     </div>
   )
 }

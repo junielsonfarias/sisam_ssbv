@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Save, AlertTriangle, Newspaper, Eye, Calendar, GripVertical } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 
 interface Noticia {
   titulo: string
@@ -22,6 +23,7 @@ function GerenciarNoticias() {
   const [mensagem, setMensagem] = useState('')
   const [erro, setErro] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [confirmarRemoverIndex, setConfirmarRemoverIndex] = useState<number | null>(null)
 
   useEffect(() => {
     fetchNoticias()
@@ -53,9 +55,10 @@ function GerenciarNoticias() {
     }, ...prev])
   }
 
-  const removerNoticia = (index: number) => {
-    if (!confirm('Remover esta notícia?')) return
-    setNoticias(prev => prev.filter((_, i) => i !== index))
+  const confirmarRemocaoNoticia = () => {
+    if (confirmarRemoverIndex === null) return
+    setNoticias(prev => prev.filter((_, i) => i !== confirmarRemoverIndex))
+    setConfirmarRemoverIndex(null)
   }
 
   const atualizarNoticia = (index: number, campo: keyof Noticia, valor: string) => {
@@ -175,7 +178,7 @@ function GerenciarNoticias() {
                     {noticia.data}
                   </div>
                   <button
-                    onClick={() => removerNoticia(index)}
+                    onClick={() => setConfirmarRemoverIndex(index)}
                     className="p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -270,6 +273,17 @@ function GerenciarNoticias() {
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        aberto={confirmarRemoverIndex !== null}
+        titulo="Remover notícia"
+        mensagem="Tem certeza? Esta ação não pode ser desfeita."
+        variant="danger"
+        textoConfirmar="Remover"
+        processando={false}
+        onConfirmar={confirmarRemocaoNoticia}
+        onFechar={() => setConfirmarRemoverIndex(null)}
+      />
     </div>
   )
 }

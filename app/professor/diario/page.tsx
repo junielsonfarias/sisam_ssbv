@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { BookOpen, Calendar, List, AlertTriangle } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 import ContextoLancamento from '@/components/professor/contexto-lancamento'
 import { DiarioCalendario, DiarioLista, DiarioModal } from './components'
 import type { Turma, Disciplina, RegistroDiario } from './components'
@@ -32,6 +33,8 @@ function DiarioDeClasse() {
   const [formMetodologia, setFormMetodologia] = useState('')
   const [formObservacoes, setFormObservacoes] = useState('')
   const [formHabilidadesBncc, setFormHabilidadesBncc] = useState<string[]>([])
+  const [confirmarExcluir, setConfirmarExcluir] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/professor/turmas')
@@ -128,15 +131,27 @@ function DiarioDeClasse() {
     }
   }
 
-  const excluir = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este registro?')) return
+  const excluir = (id: string) => {
+    setConfirmarExcluir(id)
+  }
+
+  const confirmarExclusaoRegistro = async () => {
+    if (!confirmarExcluir) return
+    const id = confirmarExcluir
+    setExcluindo(id)
+    setErro('')
     try {
       const res = await fetch(`/api/professor/diario?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Erro ao excluir')
       setMensagem('Registro excluído')
+      // Fecha o modal de edição caso a exclusão tenha partido de dentro dele
+      setModalAberto(false)
       carregarRegistros()
     } catch {
       setErro('Erro ao excluir registro')
+    } finally {
+      setExcluindo(null)
+      setConfirmarExcluir(null)
     }
   }
 
@@ -293,6 +308,17 @@ function DiarioDeClasse() {
           onExcluir={excluir}
         />
       )}
+
+      <ConfirmModal
+        aberto={confirmarExcluir !== null}
+        titulo="Excluir registro"
+        mensagem="Tem certeza? Esta ação não pode ser desfeita."
+        variant="danger"
+        textoConfirmar="Excluir"
+        processando={excluindo !== null}
+        onConfirmar={confirmarExclusaoRegistro}
+        onFechar={() => setConfirmarExcluir(null)}
+      />
     </div>
   )
 }
