@@ -26,6 +26,8 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 1 | services-core | aprovado | 2 tarefas | tsc:ok vitest:ok | 795bf3e
 - ciclo 1 | pages-admin | aprovado | 1 tarefas | tsc:ok vitest:ok | 24b7c6b
 
+- ciclo 1 | api-offline-perfil | aprovado | 6 tarefas | tsc:ok vitest:ok | ae4c42a
+
 ## ✅ Ciclo 1 concluído — ~21:17 (duração ~82min)
 - Revisados: 16 · com achados: 15 · **aprovados: 15** · revertidos: 0 · erros: 0 · ~58 tarefas.
 - 1 módulo sem achados (api-escola-polo-tecnico). Disparando ciclo 2 (re-revisão + regressões).
