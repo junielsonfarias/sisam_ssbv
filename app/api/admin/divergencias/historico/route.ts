@@ -9,6 +9,9 @@ import {
   parseSearchParams, parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
   createWhereBuilder, addCondition, buildWhereString, buildConditionsString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DivergenciasHistorico')
 
 export const dynamic = 'force-dynamic'
 
@@ -80,7 +83,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Erro ao buscar histórico:', error)
+    log.error('Erro ao buscar histórico', error)
     return NextResponse.json(
       { mensagem: 'Erro ao buscar histórico' },
       { status: 500 }
@@ -111,7 +114,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Erro ao limpar histórico:', error)
+    log.error('Erro ao limpar histórico', error)
     return NextResponse.json(
       { mensagem: 'Erro ao limpar histórico' },
       { status: 500 }

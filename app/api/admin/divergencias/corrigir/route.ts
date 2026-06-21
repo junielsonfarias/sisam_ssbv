@@ -11,7 +11,10 @@ import {
   invalidateFiltrosCache,
   limparTodosOsCaches,
 } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
 import { z } from 'zod'
+
+const log = createLogger('DivergenciasCorrigir')
 
 export const dynamic = 'force-dynamic'
 
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
         invalidateFiltrosCache()
         limparTodosOsCaches()
       } catch (cacheError) {
-        console.error('Erro ao invalidar cache após correção (não crítico):', cacheError)
+        log.error('Erro ao invalidar cache após correção (não crítico)', cacheError)
       }
     }
 
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
     }, { status: resultado.sucesso ? 200 : 400 })
 
   } catch (error: unknown) {
-    console.error('Erro ao corrigir divergência:', error)
+    log.error('Erro ao corrigir divergência', error)
     return NextResponse.json(
       { mensagem: 'Erro ao corrigir divergência' },
       { status: 500 }

@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { executarTodasVerificacoes } from '@/lib/divergencias/verificadores'
 import { LABELS_NIVEL } from '@/lib/divergencias/tipos'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DivergenciasExportar')
 
 export const dynamic = 'force-dynamic'
 
@@ -101,7 +104,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Erro ao exportar divergências:', error)
+    log.error('Erro ao exportar divergências', error)
     return NextResponse.json(
       { mensagem: 'Erro ao exportar divergências' },
       { status: 500 }

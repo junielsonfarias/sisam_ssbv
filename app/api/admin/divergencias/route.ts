@@ -4,6 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { executarTodasVerificacoes, verificarDivergenciasCriticas } from '@/lib/divergencias/verificadores'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminDivergencias')
 
 export const dynamic = 'force-dynamic'
 
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Erro ao buscar divergências:', error)
+    log.error('Erro ao buscar divergências', error)
     return NextResponse.json(
       { mensagem: 'Erro ao buscar divergências' },
       { status: 500 }
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Erro ao executar verificação:', error)
+    log.error('Erro ao executar verificação', error)
     return NextResponse.json(
       { mensagem: 'Erro ao executar verificação' },
       { status: 500 }

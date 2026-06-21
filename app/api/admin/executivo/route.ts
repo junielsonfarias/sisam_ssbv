@@ -3,6 +3,9 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminExecutivo')
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +14,7 @@ export const dynamic = 'force-dynamic'
  * Dados agregados para o Painel Executivo do Secretário
  */
 export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+  try {
     const { searchParams } = new URL(request.url)
     const anoLetivo = searchParams.get('ano_letivo') || String(new Date().getFullYear())
 
@@ -170,4 +174,8 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
     })
 
     return NextResponse.json(data)
+  } catch (error) {
+    log.error('Erro ao buscar dados executivos', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
 })
