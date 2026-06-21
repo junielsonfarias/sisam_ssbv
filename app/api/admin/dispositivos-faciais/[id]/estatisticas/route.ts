@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { uuidSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,9 @@ export async function GET(
     }
 
     const { id } = params
+    if (!uuidSchema.safeParse(id).success) {
+      return NextResponse.json({ mensagem: 'ID inválido' }, { status: 400 })
+    }
     const hoje = new Date().toISOString().split('T')[0]
 
     // Controle de acesso: usuário 'escola' só vê estatísticas de dispositivos

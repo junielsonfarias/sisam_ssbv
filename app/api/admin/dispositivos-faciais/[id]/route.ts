@@ -2,18 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
-import { validateRequest, statusDispositivoSchema } from '@/lib/schemas'
+import { validateRequest, statusDispositivoSchema, uuidSchema } from '@/lib/schemas'
 import { buscarDispositivoDetalhado, excluirDispositivo } from '@/lib/services/facial.service'
-import { cacheDelPattern } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('AdminDispositivoFacialDetalhe')
 
 const dispositivoPutSchema = z.object({
   nome: z.string().min(1).max(255).optional(),
-  localizacao: z.string().max(500).optional().nullable(),
+  localizacao: z.string().max(255).optional().nullable(),
   status: statusDispositivoSchema.optional(),
-}).passthrough()
+})
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +31,9 @@ export async function GET(
     }
 
     const { id } = params
+    if (!uuidSchema.safeParse(id).success) {
+      return NextResponse.json({ mensagem: 'ID inválido' }, { status: 400 })
+    }
 
     const result = await buscarDispositivoDetalhado(id)
 
@@ -66,6 +68,9 @@ export async function PUT(
     }
 
     const { id } = params
+    if (!uuidSchema.safeParse(id).success) {
+      return NextResponse.json({ mensagem: 'ID inválido' }, { status: 400 })
+    }
     const validationResult = await validateRequest(request, dispositivoPutSchema)
     if (!validationResult.success) return validationResult.response
     const { nome, localizacao, status } = validationResult.data
@@ -106,8 +111,6 @@ export async function PUT(
       return NextResponse.json({ mensagem: 'Dispositivo não encontrado' }, { status: 404 })
     }
 
-    try { await cacheDelPattern('dispositivos:*') } catch {}
-
     return NextResponse.json({
       mensagem: 'Dispositivo atualizado',
       dispositivo: result.rows[0],
@@ -134,6 +137,9 @@ export async function DELETE(
     }
 
     const { id } = params
+    if (!uuidSchema.safeParse(id).success) {
+      return NextResponse.json({ mensagem: 'ID inválido' }, { status: 400 })
+    }
     const { searchParams } = new URL(request.url)
     const permanente = searchParams.get('permanente') === 'true'
 
@@ -165,8 +171,6 @@ export async function DELETE(
 
       await excluirDispositivo(id)
 
-      try { await cacheDelPattern('dispositivos:*') } catch {}
-
       return new NextResponse(null, { status: 204 })
     }
 
@@ -181,8 +185,6 @@ export async function DELETE(
     if (result.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Dispositivo não encontrado' }, { status: 404 })
     }
-
-    try { await cacheDelPattern('dispositivos:*') } catch {}
 
     return NextResponse.json({
       mensagem: 'Dispositivo bloqueado',

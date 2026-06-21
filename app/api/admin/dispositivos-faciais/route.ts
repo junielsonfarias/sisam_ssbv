@@ -5,8 +5,9 @@ import { dispositivoFacialSchema } from '@/lib/schemas'
 import { generateApiKey } from '@/lib/device-auth'
 import pool from '@/database/connection'
 import { buscarDispositivos } from '@/lib/services/facial.service'
-import { cacheDelPattern } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
+import { PG_ERRORS } from '@/lib/constants'
+import { DatabaseError } from '@/lib/validation'
 
 const log = createLogger('AdminDispositivosFaciais')
 
@@ -68,8 +69,6 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
 
       await client.query('COMMIT')
 
-      try { await cacheDelPattern('dispositivos:*') } catch {}
-
       // API key é retornada apenas na criação — mascarar parcialmente no log
       log.info(`Dispositivo facial criado: ${result.rows[0].id}, key prefix: ${apiKeyPrefix}`)
       return NextResponse.json({
@@ -84,6 +83,12 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       })
     } catch (error: unknown) {
       await client.query('ROLLBACK')
+      if ((error as DatabaseError)?.code === PG_ERRORS.UNIQUE_VIOLATION) {
+        return NextResponse.json(
+          { mensagem: 'Já existe um dispositivo com este nome nesta escola' },
+          { status: 409 }
+        )
+      }
       log.error('Erro ao registrar dispositivo', error)
       return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
     } finally {
