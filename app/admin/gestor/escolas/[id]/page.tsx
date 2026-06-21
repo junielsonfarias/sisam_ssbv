@@ -231,7 +231,7 @@ export default function EscolaDetalhePage() {
               <AbaAvaliacao escolaId={escolaId} toast={toast} />
             )}
             {abaAtiva === 'calendario' && (
-              <AbaCalendarioLetivo escolaId={escolaId} anoLetivo={anoLetivo} />
+              <AbaCalendarioLetivo escolaId={escolaId} anoLetivo={anoLetivo} toast={toast} />
             )}
             {abaAtiva === 'turmas' && (
               <AbaTurmas escolaId={escolaId} anoLetivo={anoLetivo} />

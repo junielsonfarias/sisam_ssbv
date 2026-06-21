@@ -3,18 +3,22 @@
 import { useEffect, useState } from 'react'
 import { Calendar, Link as LinkIcon, Info } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { PeriodoLetivo, ConfiguracaoNotasEscola } from './types'
+import { PeriodoLetivo, ConfiguracaoNotasEscola, REGRA_RECUPERACAO_OPCOES } from './types'
+import type { RegraRecuperacao } from './types'
 
 export function AbaCalendarioLetivo({
   escolaId,
   anoLetivo,
+  toast,
 }: {
   escolaId: string
   anoLetivo: string
+  toast: any
 }) {
   const [periodos, setPeriodos] = useState<PeriodoLetivo[]>([])
   const [configNotas, setConfigNotas] = useState<ConfiguracaoNotasEscola | null>(null)
   const [carregando, setCarregando] = useState(true)
+  const [salvandoRegra, setSalvandoRegra] = useState(false)
 
   useEffect(() => {
     const carregar = async () => {
@@ -41,6 +45,50 @@ export function AbaCalendarioLetivo({
     }
     carregar()
   }, [escolaId, anoLetivo])
+
+  // Salva apenas a regra de recuperação, reenviando os demais campos já configurados
+  const salvarRegraRecuperacao = async (novaRegra: RegraRecuperacao) => {
+    if (!configNotas) return
+    setSalvandoRegra(true)
+    const anterior = configNotas.regra_recuperacao
+    // Atualização otimista
+    setConfigNotas({ ...configNotas, regra_recuperacao: novaRegra })
+    try {
+      const res = await fetch('/api/admin/configuracao-notas', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: configNotas.id,
+          escola_id: configNotas.escola_id,
+          ano_letivo: configNotas.ano_letivo,
+          tipo_periodo: configNotas.tipo_periodo ?? 'bimestre',
+          nota_maxima: configNotas.nota_maxima,
+          media_aprovacao: configNotas.media_aprovacao,
+          media_recuperacao: configNotas.media_recuperacao,
+          peso_avaliacao: configNotas.peso_avaliacao ?? 0.6,
+          peso_recuperacao: configNotas.peso_recuperacao ?? 0.4,
+          permite_recuperacao: configNotas.permite_recuperacao ?? true,
+          regra_recuperacao: novaRegra,
+          percentual_frequencia_minimo: configNotas.percentual_frequencia_minimo ?? 75,
+          abona_faltas_justificadas: configNotas.abona_faltas_justificadas ?? false,
+        }),
+      })
+      if (res.ok) {
+        const atualizado = await res.json()
+        setConfigNotas(atualizado)
+        toast.success('Regra de recuperacao atualizada')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setConfigNotas({ ...configNotas, regra_recuperacao: anterior })
+        toast.error(data.mensagem || 'Erro ao salvar regra de recuperacao')
+      }
+    } catch {
+      setConfigNotas({ ...configNotas, regra_recuperacao: anterior })
+      toast.error('Erro ao salvar regra de recuperacao')
+    } finally {
+      setSalvandoRegra(false)
+    }
+  }
 
   if (carregando) {
     return <LoadingSpinner text="Carregando calendario..." centered />
@@ -117,6 +165,32 @@ export function AbaCalendarioLetivo({
               <span className="text-gray-500 dark:text-gray-400">Nota Maxima:</span>
               <span className="ml-2 font-semibold text-gray-900 dark:text-white">{configNotas.nota_maxima}</span>
             </div>
+          </div>
+
+          {/* Regra de recuperacao (editavel) */}
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-600">
+            <label htmlFor="regra-recuperacao" className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Regra de Recuperacao
+            </label>
+            <select
+              id="regra-recuperacao"
+              value={configNotas.regra_recuperacao ?? 'substituicao'}
+              onChange={e => salvarRegraRecuperacao(e.target.value as RegraRecuperacao)}
+              disabled={salvandoRegra}
+              className="w-full sm:max-w-md rounded-lg border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white disabled:opacity-50"
+            >
+              {REGRA_RECUPERACAO_OPCOES.map(o => (
+                <option key={o.valor} value={o.valor}>{o.rotulo}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {REGRA_RECUPERACAO_OPCOES.find(o => o.valor === (configNotas.regra_recuperacao ?? 'substituicao'))?.ajuda}
+            </p>
+            {(configNotas.regra_recuperacao ?? 'substituicao') === 'ponderada' && (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                Atencao: a media ponderada exige pesos configurados (avaliacao {configNotas.peso_avaliacao ?? 0.6} + recuperacao {configNotas.peso_recuperacao ?? 0.4} = 1.0).
+              </p>
+            )}
           </div>
         </div>
       )}

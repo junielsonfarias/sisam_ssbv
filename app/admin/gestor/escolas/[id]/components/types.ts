@@ -99,9 +99,16 @@ export interface ConfiguracaoNotasEscola {
   id: string
   escola_id: string
   ano_letivo: string
+  tipo_periodo?: 'bimestre' | 'trimestre' | 'semestre'
   media_aprovacao: number
   media_recuperacao: number
   nota_maxima: number
+  peso_avaliacao?: number
+  peso_recuperacao?: number
+  permite_recuperacao?: boolean
+  regra_recuperacao?: 'substituicao' | 'ponderada'
+  percentual_frequencia_minimo?: number
+  abona_faltas_justificadas?: boolean
 }
 
 export interface EstatisticasSituacao {
@@ -154,6 +161,7 @@ export interface RegraSerieRow {
   override_media_recuperacao: number | null
   override_nota_maxima: number | null
   override_permite_recuperacao: boolean | null
+  override_esquema_recuperacao: EsquemaRecuperacao | null
   override_observacao: string | null
   override_tipo_codigo: string | null
   override_tipo_nome: string | null
@@ -177,6 +185,50 @@ export interface RegraAvaliacaoOpt {
 // ============================================
 // Constantes compartilhadas
 // ============================================
+
+// Esquema de recuperação por escola/série (ADR-005)
+export type EsquemaRecuperacao = 'por_periodo' | 'por_bloco_periodos' | 'semestral' | 'final'
+
+/** Rótulos amigáveis para o seletor de esquema de recuperação */
+export const ESQUEMA_RECUPERACAO_OPCOES: { valor: EsquemaRecuperacao; rotulo: string; ajuda: string }[] = [
+  {
+    valor: 'por_periodo',
+    rotulo: 'Uma recuperacao por avaliacao (bimestre)',
+    ajuda: 'Cada bimestre tem sua propria recuperacao (padrao).',
+  },
+  {
+    valor: 'por_bloco_periodos',
+    rotulo: 'Uma recuperacao a cada 2 bimestres (bloco)',
+    ajuda: 'Recupera-se da media do bloco (1o+2o e 3o+4o), nao de cada bimestre.',
+  },
+  {
+    valor: 'semestral',
+    rotulo: 'Uma recuperacao por semestre',
+    ajuda: 'Uma recuperacao por semestre, cobrindo os bimestres do semestre.',
+  },
+  {
+    valor: 'final',
+    rotulo: 'Uma recuperacao final (anual)',
+    ajuda: 'Uma unica recuperacao ao final do ano, cobrindo o ano todo.',
+  },
+]
+
+/** Regra de recuperação (configuracao_notas_escola) */
+export type RegraRecuperacao = 'substituicao' | 'ponderada'
+
+/** Rótulos amigáveis para o seletor de regra de recuperação */
+export const REGRA_RECUPERACAO_OPCOES: { valor: RegraRecuperacao; rotulo: string; ajuda: string }[] = [
+  {
+    valor: 'substituicao',
+    rotulo: 'Substituicao (usa a maior nota)',
+    ajuda: 'A nota final e a maior entre a nota original e a recuperacao.',
+  },
+  {
+    valor: 'ponderada',
+    rotulo: 'Media ponderada (nota x peso + recuperacao x peso)',
+    ajuda: 'Exige pesos configurados (peso da avaliacao + peso da recuperacao = 1.0).',
+  },
+]
 
 export const ETAPA_LABELS: Record<string, string> = {
   educacao_infantil: 'Educacao Infantil',
