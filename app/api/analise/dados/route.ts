@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, podeAcessarEscola, podeAcessarPolo } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { podeAcessarEscola, podeAcessarPolo } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { FiltrosAnalise } from '@/lib/types'
 import { createLogger } from '@/lib/logger'
@@ -14,14 +15,15 @@ const log = createLogger('AnaliseDados')
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+// S1 (PII / IDOR): endpoint expõe dados nominais de alunos (aluno_nome,
+// aluno_codigo, nota, série, turma). Restrito por withAuth a perfis com
+// escopo definido. professor/responsavel/editor/publicador → 403 antes de
+// qualquer query. Defesa em profundidade: ramo fail-closed (1 = 0) para
+// qualquer caso de escopo não coberto.
+export const GET = withAuth(
+  ['administrador', 'tecnico', 'polo', 'escola'],
+  async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario) {
-      return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const filtros: FiltrosAnalise = {
       escola_id: searchParams.get('escola_id') || undefined,
@@ -45,8 +47,14 @@ export async function GET(request: NextRequest) {
     // espalhadas, propenso a desincronizar (auditoria 31/05).
     const where = createWhereBuilder()
 
-    // Restrição de acesso por tipo de usuário
-    if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
+    // Restrição de acesso por tipo de usuário.
+    // administrador/tecnico: escopo total (sem condição de escopo).
+    // polo/escola: somente os próprios dados.
+    // Qualquer outro caso (inclusive polo sem polo_id ou escola sem escola_id)
+    // cai no ramo fail-closed → condição impossível → resultado vazio.
+    if (usuario.tipo_usuario === 'administrador' || usuario.tipo_usuario === 'tecnico') {
+      // escopo total — nenhuma condição de escopo adicionada
+    } else if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {
       addRawCondition(
         where,
         `escola_id IN (SELECT id FROM escolas WHERE polo_id = $${where.paramIndex} AND ativo = true)`,
@@ -54,6 +62,10 @@ export async function GET(request: NextRequest) {
       )
     } else if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
       addCondition(where, 'escola_id', usuario.escola_id)
+    } else {
+      // Defesa em profundidade (fail-closed): perfil sem escopo resolvível
+      // não vê nada — nunca a tabela inteira.
+      addRawCondition(where, '1 = 0')
     }
 
     // Filtros opcionais (validar acesso para escola/polo informados)
@@ -138,4 +150,5 @@ export async function GET(request: NextRequest) {
     log.error('Erro ao buscar dados de análise', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
-}
+  }
+)
