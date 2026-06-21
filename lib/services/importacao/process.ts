@@ -58,10 +58,11 @@ export async function processarLinhas(
   const { configSeries, itensProducaoMap } = dadosQuestoes
 
   // GATE DE HABILITACAO (Gestor) para TURMAS e ALUNOS.
-  // O cadastro mestre e responsabilidade do modulo Gestor. No modo 'estrito',
-  // turma/aluno inexistente vira DIVERGENCIA (nao cria). No modo 'transicao'
-  // (padrao), cria marcando origem='sisam_etl' + origem_importacao_id para
-  // que o Gestor regularize/assuma depois (relatorio de divergencias).
+  // O cadastro mestre e responsabilidade do modulo Gestor. No modo 'estrito'
+  // (padrao), turma/aluno inexistente vira DIVERGENCIA (nao cria). No modo
+  // 'transicao' (apenas atras de ETL_GATE_MESTRE='transicao'), cria marcando
+  // origem='sisam_etl' + origem_importacao_id para que o Gestor regularize/
+  // assuma depois (relatorio de divergencias).
   const gateMode = getEtlGateMode()
   const gateEstrito = gateMode === 'estrito'
   log.info(`[FASE 5] Gate de habilitacao (turmas/alunos): modo "${gateMode}"`)

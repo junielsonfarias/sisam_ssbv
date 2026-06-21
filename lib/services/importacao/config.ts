@@ -16,9 +16,10 @@
  *                   criado pelo ETL via relatorio de divergencias para o Gestor
  *                   regularizar/assumir.
  *
- * Modo padrao: 'transicao' (nao quebra importacoes em ambientes que ainda nao
- * migraram o cadastro mestre para o Gestor). Defina ETL_GATE_MESTRE='estrito'
- * para ativar o gate completo.
+ * Modo padrao: 'estrito' (principio "externos apenas consomem e complementam":
+ * o ETL do Sisam NUNCA cria dado mestre). O modo 'transicao' so e ativado
+ * atras de flag explicita por ambiente — defina ETL_GATE_MESTRE='transicao'
+ * para ambientes que ainda nao migraram o cadastro mestre para o Gestor.
  *
  * @module services/importacao/config
  */
@@ -31,8 +32,10 @@ export { ORIGEM_SISAM_ETL } from '@/lib/services/gestor/mestre.service'
 
 /**
  * Resolve o modo do gate de habilitacao para turmas/alunos a partir do ambiente.
- * Qualquer valor diferente de 'estrito' cai no modo 'transicao' (conservador).
+ * Padrao 'estrito': o ETL nao cria dado mestre. Apenas o valor explicito
+ * ETL_GATE_MESTRE='transicao' habilita a criacao residual (rastreavel) para
+ * ambientes ainda em migracao do cadastro mestre para o Gestor.
  */
 export function getEtlGateMode(): EtlGateMode {
-  return process.env.ETL_GATE_MESTRE === 'estrito' ? 'estrito' : 'transicao'
+  return process.env.ETL_GATE_MESTRE === 'transicao' ? 'transicao' : 'estrito'
 }
