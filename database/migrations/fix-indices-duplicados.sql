@@ -51,16 +51,32 @@ DROP INDEX IF EXISTS idx_prof_turmas_disciplina_unique;
 DROP INDEX IF EXISTS idx_resultados_provas_aluno_questao_avaliacao;
 
 -- resultados_consolidados: UNIQUE (aluno_id, avaliacao_id) — upsert
---   AMBOS os nomes (resultados_consolidados_aluno_id_avaliacao_id_key e
---   resultados_consolidados_aluno_avaliacao_key) sao UNIQUE CONSTRAINTS identicas
---   sobre (aluno_id, avaliacao_id) — confirmado em pg_constraint (contype='u').
---   O indice de suporte e propriedade da constraint, entao DROP INDEX falha
---   ('cannot drop index ... because constraint ... requires it'). Removemos a
---   constraint redundante via DROP CONSTRAINT e mantemos
---   resultados_consolidados_aluno_id_avaliacao_id_key, que continua dando suporte
---   ao ON CONFLICT (aluno_id, avaliacao_id) do upsert de consolidados.
-ALTER TABLE resultados_consolidados
-  DROP CONSTRAINT IF EXISTS resultados_consolidados_aluno_avaliacao_key;
+--   Removemos o duplicado redundante (resultados_consolidados_aluno_avaliacao_key)
+--   e mantemos resultados_consolidados_aluno_id_avaliacao_id_key, que continua
+--   dando suporte ao ON CONFLICT (aluno_id, avaliacao_id) do upsert de consolidados.
+--
+--   IMPORTANTE: o nome a remover pode ser, dependendo do ambiente, OU um indice
+--   UNIQUE solto (pg_index) OU uma UNIQUE CONSTRAINT (pg_constraint, contype='u').
+--   Nao se pode assumir um dos dois: se for constraint, DROP INDEX falha
+--   ('cannot drop index ... because constraint ... requires it'); se for indice
+--   solto, DROP CONSTRAINT IF EXISTS e um NO-OP silencioso e o indice permanece.
+--   Por isso detectamos o caso em pg_constraint e escolhemos a estrategia correta.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'resultados_consolidados_aluno_avaliacao_key'
+      AND contype = 'u'
+      AND conrelid = 'resultados_consolidados'::regclass
+  ) THEN
+    -- E uma UNIQUE CONSTRAINT: remover via ALTER TABLE (cobre o indice de suporte).
+    ALTER TABLE resultados_consolidados
+      DROP CONSTRAINT resultados_consolidados_aluno_avaliacao_key;
+  ELSE
+    -- E um indice UNIQUE solto (ou ja nao existe): DROP INDEX idempotente.
+    DROP INDEX IF EXISTS resultados_consolidados_aluno_avaliacao_key;
+  END IF;
+END $$;
 
 COMMIT;
 
