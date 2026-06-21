@@ -162,16 +162,32 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 2. Buscar todas as regras de avaliação vinculadas a series_escolares
+    // 2. Buscar todas as regras de avaliação vinculadas a series_escolares,
+    //    RESOLVENDO o override por escola (escola_regras_avaliacao). A precedência
+    //    espelha o endpoint de exibição (turmas/[id]/avaliacao):
+    //    valor específico por escola (era.*) > regra trocada pela escola (ra_over)
+    //    > regra/tipo global da série (ra/ta). Filtra pela escola do fechamento ($1).
     const regrasResult = await pool.query(
       `SELECT se.codigo as serie_codigo, se.max_dependencias,
-              ra.id as regra_id, ra.formula_media, ra.pesos_periodos, ra.media_aprovacao,
-              ra.nota_maxima, ra.qtd_periodos, ra.aprovacao_automatica, ra.casas_decimais, ra.arredondamento,
-              ta.tipo_resultado
+              COALESCE(ra_over.id, ra.id) as regra_id,
+              COALESCE(ra_over.formula_media, ra.formula_media) as formula_media,
+              COALESCE(ra_over.pesos_periodos, ra.pesos_periodos) as pesos_periodos,
+              COALESCE(era.media_aprovacao, ra_over.media_aprovacao, ra.media_aprovacao) as media_aprovacao,
+              COALESCE(era.nota_maxima, ra_over.nota_maxima, ra.nota_maxima) as nota_maxima,
+              COALESCE(ra_over.qtd_periodos, ra.qtd_periodos) as qtd_periodos,
+              COALESCE(ra_over.aprovacao_automatica, ra.aprovacao_automatica) as aprovacao_automatica,
+              COALESCE(ra_over.casas_decimais, ra.casas_decimais) as casas_decimais,
+              COALESCE(ra_over.arredondamento, ra.arredondamento) as arredondamento,
+              COALESCE(ta_over.tipo_resultado, ta.tipo_resultado) as tipo_resultado
        FROM series_escolares se
        JOIN regras_avaliacao ra ON ra.id = se.regra_avaliacao_id
        JOIN tipos_avaliacao ta ON ta.id = se.tipo_avaliacao_id
-       WHERE se.ativo = true AND ra.ativo = true`
+       LEFT JOIN escola_regras_avaliacao era
+         ON era.escola_id = $1 AND era.serie_escolar_id = se.id AND era.ativo = true
+       LEFT JOIN regras_avaliacao ra_over ON ra_over.id = era.regra_avaliacao_id
+       LEFT JOIN tipos_avaliacao ta_over ON ta_over.id = era.tipo_avaliacao_id
+       WHERE se.ativo = true AND ra.ativo = true`,
+      [escolaId]
     )
 
     // Mapa serie_codigo -> regra
