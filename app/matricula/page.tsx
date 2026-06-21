@@ -2,69 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import Rodape from '@/components/rodape'
-import {
-  GraduationCap, ArrowLeft, ArrowRight, Search, CheckCircle,
-  Clock, XCircle, AlertTriangle, FileText, User, Phone, MapPin,
-  School, Loader2
-} from 'lucide-react'
+import { ArrowLeft, FileText } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { type EscolaOption, type ConsultaResult } from '@/app/matricula/constants'
+import FormularioMatricula, { type MatriculaForm } from '@/app/matricula/components/FormularioMatricula'
+import ResultadoSucesso from '@/app/matricula/components/ResultadoSucesso'
+import ConsultaProtocolo from '@/app/matricula/components/ConsultaProtocolo'
 
-const PARENTESCOS = [
-  { value: 'mae', label: 'Mãe' },
-  { value: 'pai', label: 'Pai' },
-  { value: 'avo', label: 'Avó/Avô' },
-  { value: 'tio', label: 'Tio/Tia' },
-  { value: 'outro', label: 'Outro' },
-]
-
-const GENEROS = [
-  { value: 'masculino', label: 'Masculino' },
-  { value: 'feminino', label: 'Feminino' },
-  { value: 'outro', label: 'Outro' },
-]
-
-const SERIES = [
-  '1_ano_ef', '2_ano_ef', '3_ano_ef', '4_ano_ef', '5_ano_ef',
-  '6_ano_ef', '7_ano_ef', '8_ano_ef', '9_ano_ef',
-  'pre_escola_i', 'pre_escola_ii',
-]
-
-const SERIES_LABELS: Record<string, string> = {
-  '1_ano_ef': '1o Ano EF', '2_ano_ef': '2o Ano EF', '3_ano_ef': '3o Ano EF',
-  '4_ano_ef': '4o Ano EF', '5_ano_ef': '5o Ano EF', '6_ano_ef': '6o Ano EF',
-  '7_ano_ef': '7o Ano EF', '8_ano_ef': '8o Ano EF', '9_ano_ef': '9o Ano EF',
-  'pre_escola_i': 'Pré-Escola I', 'pre_escola_ii': 'Pré-Escola II',
-}
-
-interface EscolaOption { id: string; nome: string }
-interface ConsultaResult {
-  protocolo: string; aluno_nome: string; serie_pretendida: string
-  ano_letivo: string; status: string; motivo_rejeicao: string | null
-  escola_nome: string | null; criado_em: string; analisado_em: string | null
-}
-
-function cpfMask(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 11)
-  if (d.length <= 3) return d
-  if (d.length <= 6) return d.slice(0, 3) + '.' + d.slice(3)
-  if (d.length <= 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6)
-  return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9)
-}
-
-function phoneMask(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 11)
-  if (d.length <= 2) return d
-  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-}
-
-const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  pendente: { label: 'Pendente', color: 'text-amber-600 bg-amber-50 border-amber-200', icon: Clock },
-  em_analise: { label: 'Em Análise', color: 'text-blue-600 bg-blue-50 border-blue-200', icon: Search },
-  aprovada: { label: 'Aprovada', color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle },
-  rejeitada: { label: 'Rejeitada', color: 'text-red-600 bg-red-50 border-red-200', icon: XCircle },
-  matriculada: { label: 'Matriculada', color: 'text-purple-600 bg-purple-50 border-purple-200', icon: GraduationCap },
+const FORM_INICIAL: MatriculaForm = {
+  aluno_nome: '', aluno_data_nascimento: '', aluno_cpf: '', aluno_genero: '', aluno_pcd: false,
+  responsavel_nome: '', responsavel_cpf: '', responsavel_telefone: '', responsavel_email: '', parentesco: '',
+  endereco: '', bairro: '', escola_pretendida_id: '', serie_pretendida: '',
+  ano_letivo: String(new Date().getFullYear()),
 }
 
 export default function MatriculaPage() {
@@ -76,12 +26,7 @@ export default function MatriculaPage() {
   const [sucesso, setSucesso] = useState<{ protocolo: string } | null>(null)
 
   // Formulário
-  const [form, setForm] = useState({
-    aluno_nome: '', aluno_data_nascimento: '', aluno_cpf: '', aluno_genero: '', aluno_pcd: false,
-    responsavel_nome: '', responsavel_cpf: '', responsavel_telefone: '', responsavel_email: '', parentesco: '',
-    endereco: '', bairro: '', escola_pretendida_id: '', serie_pretendida: '',
-    ano_letivo: String(new Date().getFullYear()),
-  })
+  const [form, setForm] = useState<MatriculaForm>({ ...FORM_INICIAL })
 
   // Consulta
   const [protocolo, setProtocolo] = useState('')
@@ -214,293 +159,42 @@ export default function MatriculaPage() {
 
         {/* FORMULÁRIO */}
         {aba === 'formulario' && !sucesso && (
-          <div className="max-w-lg mx-auto">
-            {/* Steps indicator */}
-            <div className="flex items-center justify-center gap-2 mb-6">
-              {[1, 2, 3].map(n => (
-                <div key={n} className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                    etapa === n ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25' :
-                    etapa > n ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500'
-                  }`}>{n}</div>
-                  {n < 3 && <div className={`w-8 h-0.5 ${etapa > n ? 'bg-blue-500' : 'bg-gray-200 dark:bg-slate-600'}`} />}
-                </div>
-              ))}
-            </div>
-            <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-6">
-              {etapa === 1 && 'Dados do Aluno'}
-              {etapa === 2 && 'Dados do Responsável'}
-              {etapa === 3 && 'Escola e Série'}
-            </p>
-
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-6 space-y-4">
-              {/* Etapa 1: Dados do Aluno */}
-              {etapa === 1 && (
-                <>
-                  <div>
-                    <label className={labelClass}>Nome completo do aluno *</label>
-                    <input type="text" value={form.aluno_nome} onChange={e => setField('aluno_nome', e.target.value)}
-                      placeholder="Nome completo" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Data de nascimento *</label>
-                    <input type="date" value={form.aluno_data_nascimento}
-                      onChange={e => setField('aluno_data_nascimento', e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>CPF do aluno (opcional)</label>
-                    <input type="text" inputMode="numeric" autoComplete="off" value={form.aluno_cpf} onChange={e => setField('aluno_cpf', cpfMask(e.target.value))}
-                      placeholder="000.000.000-00" maxLength={14} className={inputClass} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>Gênero</label>
-                      <select value={form.aluno_genero} onChange={e => setField('aluno_genero', e.target.value)} className={inputClass}>
-                        <option value="">Selecione</option>
-                        {GENEROS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex items-end">
-                      <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
-                        <input type="checkbox" checked={form.aluno_pcd} onChange={e => setField('aluno_pcd', e.target.checked)}
-                          className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" />
-                        <span className="text-sm text-slate-700 dark:text-slate-300">PCD (Pessoa com Deficiência)</span>
-                      </label>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Etapa 2: Responsável */}
-              {etapa === 2 && (
-                <>
-                  <div>
-                    <label className={labelClass}>Nome do responsável *</label>
-                    <input type="text" value={form.responsavel_nome} onChange={e => setField('responsavel_nome', e.target.value)}
-                      placeholder="Nome completo" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>CPF do responsável (opcional)</label>
-                    <input type="text" inputMode="numeric" autoComplete="off" value={form.responsavel_cpf} onChange={e => setField('responsavel_cpf', cpfMask(e.target.value))}
-                      placeholder="000.000.000-00" maxLength={14} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Telefone *</label>
-                    <input type="tel" inputMode="tel" autoComplete="tel" value={form.responsavel_telefone}
-                      onChange={e => setField('responsavel_telefone', phoneMask(e.target.value))}
-                      placeholder="(91) 99999-0000" maxLength={15} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Email (opcional)</label>
-                    <input type="email" inputMode="email" autoComplete="email" value={form.responsavel_email} onChange={e => setField('responsavel_email', e.target.value)}
-                      placeholder="email@exemplo.com" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Parentesco</label>
-                    <select value={form.parentesco} onChange={e => setField('parentesco', e.target.value)} className={inputClass}>
-                      <option value="">Selecione</option>
-                      {PARENTESCOS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Endereço</label>
-                    <input type="text" value={form.endereco} onChange={e => setField('endereco', e.target.value)}
-                      placeholder="Rua, número, comunidade" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Bairro</label>
-                    <input type="text" value={form.bairro} onChange={e => setField('bairro', e.target.value)}
-                      placeholder="Bairro" className={inputClass} />
-                  </div>
-                </>
-              )}
-
-              {/* Etapa 3: Escola e Série */}
-              {etapa === 3 && (
-                <>
-                  <div>
-                    <label className={labelClass}>Escola pretendida</label>
-                    <select value={form.escola_pretendida_id} onChange={e => setField('escola_pretendida_id', e.target.value)} className={inputClass}>
-                      <option value="">Sem preferência</option>
-                      {escolas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Série pretendida *</label>
-                    <select value={form.serie_pretendida} onChange={e => setField('serie_pretendida', e.target.value)} className={inputClass}>
-                      <option value="">Selecione a série</option>
-                      {SERIES.map(s => <option key={s} value={s}>{SERIES_LABELS[s] || s}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Ano letivo</label>
-                    <input type="text" value={form.ano_letivo} readOnly className={`${inputClass} bg-gray-50 dark:bg-slate-800`} />
-                  </div>
-                </>
-              )}
-
-              {/* Erro */}
-              {erro && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {erro}
-                </div>
-              )}
-
-              {/* Botões navegação */}
-              <div className="flex gap-3 pt-2">
-                {etapa > 1 && (
-                  <button onClick={() => { setEtapa(etapa - 1); setErro('') }}
-                    className="flex-1 py-3 border border-gray-200 dark:border-slate-600 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2">
-                    <ArrowLeft className="w-4 h-4" /> Voltar
-                  </button>
-                )}
-                {etapa < 3 ? (
-                  <button onClick={avancar}
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2">
-                    Próximo <ArrowRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button onClick={enviar} disabled={carregando}
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2">
-                    {carregando ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle className="w-5 h-5" /> Enviar Pré-Matrícula</>}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+          <FormularioMatricula
+            etapa={etapa}
+            form={form}
+            escolas={escolas}
+            erro={erro}
+            carregando={carregando}
+            setField={setField}
+            onVoltar={() => { setEtapa(etapa - 1); setErro('') }}
+            onAvancar={avancar}
+            onEnviar={enviar}
+            inputClass={inputClass}
+            labelClass={labelClass}
+          />
         )}
 
         {/* SUCESSO */}
         {aba === 'formulario' && sucesso && (
-          <div className="max-w-lg mx-auto text-center">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-8">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Pré-Matrícula Enviada!</h2>
-              <p className="text-slate-500 dark:text-slate-400 mb-6">Sua solicitação foi registrada com sucesso.</p>
-              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
-                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-1">Seu protocolo:</p>
-                <p className="text-2xl font-bold text-blue-800 dark:text-blue-200 font-mono">{sucesso.protocolo}</p>
-              </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                Guarde este protocolo para acompanhar o andamento da sua solicitação.
-                Você pode consultar o status a qualquer momento na aba "Consultar Protocolo".
-              </p>
-              <div className="flex gap-3">
-                <button onClick={() => { setSucesso(null); setEtapa(1); setForm({
-                  aluno_nome: '', aluno_data_nascimento: '', aluno_cpf: '', aluno_genero: '', aluno_pcd: false,
-                  responsavel_nome: '', responsavel_cpf: '', responsavel_telefone: '', responsavel_email: '', parentesco: '',
-                  endereco: '', bairro: '', escola_pretendida_id: '', serie_pretendida: '', ano_letivo: String(new Date().getFullYear()),
-                }) }}
-                  className="flex-1 py-3 border border-gray-200 dark:border-slate-600 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
-                  Nova Pré-Matrícula
-                </button>
-                <button onClick={() => { setAba('consulta'); setProtocolo(sucesso.protocolo) }}
-                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">
-                  Consultar Status
-                </button>
-              </div>
-            </div>
-          </div>
+          <ResultadoSucesso
+            protocolo={sucesso.protocolo}
+            onNovaMatricula={() => { setSucesso(null); setEtapa(1); setForm({ ...FORM_INICIAL }) }}
+            onConsultarStatus={() => { setAba('consulta'); setProtocolo(sucesso.protocolo) }}
+          />
         )}
 
         {/* CONSULTA */}
         {aba === 'consulta' && (
-          <div className="max-w-lg mx-auto">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-6 space-y-4">
-              <div>
-                <label className={labelClass}>Número do Protocolo</label>
-                <input type="text" value={protocolo} onChange={e => setProtocolo(e.target.value.toUpperCase())}
-                  placeholder="MAT-XXXXXXXX-XXXX" className={inputClass}
-                  onKeyDown={e => e.key === 'Enter' && consultar()} />
-              </div>
-              {consultaErro && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {consultaErro}
-                </div>
-              )}
-              <button onClick={consultar} disabled={carregando}
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center justify-center gap-2">
-                {carregando ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Search className="w-5 h-5" /> Consultar</>}
-              </button>
-            </div>
-
-            {/* Resultado da consulta */}
-            {consultaResult && (() => {
-              const cfg = statusConfig[consultaResult.status] || statusConfig.pendente
-              const StatusIcon = cfg.icon
-              return (
-                <div className="mt-6 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-slate-800 dark:text-white">Protocolo: {consultaResult.protocolo}</h3>
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border ${cfg.color}`}>
-                      <StatusIcon className="w-4 h-4" /> {cfg.label}
-                    </span>
-                  </div>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                      <User className="w-4 h-4 text-slate-400" />
-                      <span className="font-medium">Aluno:</span> {consultaResult.aluno_nome}
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                      <School className="w-4 h-4 text-slate-400" />
-                      <span className="font-medium">Série:</span> {SERIES_LABELS[consultaResult.serie_pretendida] || consultaResult.serie_pretendida}
-                    </div>
-                    {consultaResult.escola_nome && (
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                        <MapPin className="w-4 h-4 text-slate-400" />
-                        <span className="font-medium">Escola:</span> {consultaResult.escola_nome}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                      <Clock className="w-4 h-4 text-slate-400" />
-                      <span className="font-medium">Solicitado em:</span> {new Date(consultaResult.criado_em).toLocaleDateString('pt-BR')}
-                    </div>
-                    {consultaResult.analisado_em && (
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                        <CheckCircle className="w-4 h-4 text-slate-400" />
-                        <span className="font-medium">Analisado em:</span> {new Date(consultaResult.analisado_em).toLocaleDateString('pt-BR')}
-                      </div>
-                    )}
-                    {consultaResult.motivo_rejeicao && (
-                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
-                        <span className="font-medium">Motivo da rejeição:</span> {consultaResult.motivo_rejeicao}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Timeline */}
-                  <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-700">
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Histórico</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-600" />
-                        <div><p className="text-sm font-medium text-slate-700 dark:text-slate-200">Solicitação recebida</p>
-                          <p className="text-xs text-slate-400">{new Date(consultaResult.criado_em).toLocaleString('pt-BR')}</p>
-                        </div>
-                      </div>
-                      {(consultaResult.status === 'em_analise' || consultaResult.status === 'aprovada' || consultaResult.status === 'rejeitada') && (
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500" />
-                          <div><p className="text-sm font-medium text-slate-700 dark:text-slate-200">Em análise</p></div>
-                        </div>
-                      )}
-                      {(consultaResult.status === 'aprovada' || consultaResult.status === 'rejeitada') && consultaResult.analisado_em && (
-                        <div className="flex items-start gap-3">
-                          <div className={`w-2 h-2 mt-1.5 rounded-full ${consultaResult.status === 'aprovada' ? 'bg-green-500' : 'bg-red-500'}`} />
-                          <div>
-                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{consultaResult.status === 'aprovada' ? 'Aprovada' : 'Rejeitada'}</p>
-                            <p className="text-xs text-slate-400">{new Date(consultaResult.analisado_em).toLocaleString('pt-BR')}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
+          <ConsultaProtocolo
+            protocolo={protocolo}
+            consultaResult={consultaResult}
+            consultaErro={consultaErro}
+            carregando={carregando}
+            onProtocoloChange={setProtocolo}
+            onConsultar={consultar}
+            inputClass={inputClass}
+            labelClass={labelClass}
+          />
         )}
       </main>
 
