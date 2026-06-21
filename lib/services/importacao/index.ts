@@ -95,8 +95,8 @@ export async function processarImportacao(
     const resultado: ImportacaoResultado = {
       polos: { criados: 0, existentes: 0 },
       escolas: { criados: 0, existentes: 0, divergentes: 0 },
-      turmas: { criados: 0, existentes: 0 },
-      alunos: { criados: 0, existentes: 0 },
+      turmas: { criados: 0, existentes: 0, divergentes: 0 },
+      alunos: { criados: 0, existentes: 0, divergentes: 0 },
       questoes: { criadas: 0, existentes: 0 },
       resultados: { processados: 0, erros: 0, duplicados: 0, novos: 0 },
     }

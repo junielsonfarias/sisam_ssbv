@@ -41,13 +41,13 @@ export async function criarTurmas(
         const values: (string | null)[] = []
         const placeholders: string[] = []
         batch.forEach((turma, idx) => {
-          const offset = idx * 5
-          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`)
-          values.push(turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo)
+          const offset = idx * 7
+          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7})`)
+          values.push(turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo, turma.origem, turma.origem_importacao_id)
         })
 
         const result = await pool.query(
-          `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo)
+          `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, origem, origem_importacao_id)
            VALUES ${placeholders.join(', ')}
            ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie
            RETURNING id, codigo, escola_id, ano_letivo`,
@@ -72,8 +72,8 @@ export async function criarTurmas(
         for (const turma of batch) {
           try {
             const result = await pool.query(
-              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie RETURNING id',
-              [turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo]
+              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, origem, origem_importacao_id) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie RETURNING id',
+              [turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo, turma.origem, turma.origem_importacao_id]
             )
             tempToRealTurmas.set(turma.tempId, result.rows[0].id)
           } catch (error: unknown) {
@@ -201,13 +201,13 @@ export async function criarAlunos(
           const insertValues: (string | null)[] = []
           const insertPlaceholders: string[] = []
           toInsert.forEach((aluno, idx) => {
-            const offset = idx * 6
-            insertPlaceholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`)
-            insertValues.push(aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo)
+            const offset = idx * 8
+            insertPlaceholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`)
+            insertValues.push(aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo, aluno.origem, aluno.origem_importacao_id)
           })
 
           const insertResult = await pool.query(
-            `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo)
+            `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, origem, origem_importacao_id)
              VALUES ${insertPlaceholders.join(', ')}
              RETURNING id, codigo, nome`,
             insertValues
@@ -256,8 +256,8 @@ export async function criarAlunos(
               resultado.alunos.existentes++
             } else {
               const result = await pool.query(
-                'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-                [aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo]
+                'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, origem, origem_importacao_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+                [aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo, aluno.origem, aluno.origem_importacao_id]
               )
               if (result.rows.length > 0 && result.rows[0].id) {
                 tempToRealAlunos.set(aluno.tempId, result.rows[0].id)

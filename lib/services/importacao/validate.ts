@@ -63,10 +63,19 @@ export async function validarImportacao(
   const duracao = ((endTime - startTime) / 1000).toFixed(2)
   log.info(`[IMPORTACAO ${importacaoId}] Concluida em ${duracao}s`)
   log.info(`[RESUMO FINAL]`)
-  log.info(`  - Alunos: ${resultado.alunos.criados} criados, ${resultado.alunos.existentes} existentes`)
+  log.info(`  - Escolas: ${resultado.escolas.criados} criadas, ${resultado.escolas.existentes} existentes, ${resultado.escolas.divergentes} divergentes (gate Gestor)`)
+  log.info(`  - Turmas: ${resultado.turmas.criados} criadas, ${resultado.turmas.existentes} existentes, ${resultado.turmas.divergentes} divergentes (gate Gestor)`)
+  log.info(`  - Alunos: ${resultado.alunos.criados} criados, ${resultado.alunos.existentes} existentes, ${resultado.alunos.divergentes} divergentes (gate Gestor)`)
   log.info(`  - Consolidados: ${totalConsolidadosNoBanco} no banco`)
   log.info(`  - Resultados: ${resultado.resultados.novos} novos, ${resultado.resultados.duplicados} duplicados`)
   log.info(`  - Erros: ${resultado.resultados.erros} linhas com erro`)
+  const totalDivergencias = resultado.escolas.divergentes + resultado.turmas.divergentes + resultado.alunos.divergentes
+  if (totalDivergencias > 0) {
+    log.warn(
+      `  - DIVERGENCIAS (gate Gestor): ${totalDivergencias} registro(s) de cadastro mestre ausentes. ` +
+      `Consulte o relatorio de erros da importacao e regularize no modulo Gestor.`
+    )
+  }
 
   await pool.query(
     `UPDATE importacoes

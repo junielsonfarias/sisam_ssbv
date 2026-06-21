@@ -20,6 +20,7 @@ import {
 import { normalizarSerie } from '@/lib/normalizar-serie'
 import { createLogger } from '@/lib/logger'
 import { lerSerieDoExcel } from './parse'
+import { getEtlGateMode, ORIGEM_SISAM_ETL } from './config'
 import {
   ImportacaoConfig,
   ImportacaoResultado,
@@ -55,6 +56,19 @@ export async function processarLinhas(
   const { anoLetivo, avaliacaoId, importacaoId } = config
   const { escolasMap, turmasMap, alunosMap, questoesMap } = dadosExistentes
   const { configSeries, itensProducaoMap } = dadosQuestoes
+
+  // GATE DE HABILITACAO (Gestor) para TURMAS e ALUNOS.
+  // O cadastro mestre e responsabilidade do modulo Gestor. No modo 'estrito',
+  // turma/aluno inexistente vira DIVERGENCIA (nao cria). No modo 'transicao'
+  // (padrao), cria marcando origem='sisam_etl' + origem_importacao_id para
+  // que o Gestor regularize/assuma depois (relatorio de divergencias).
+  const gateMode = getEtlGateMode()
+  const gateEstrito = gateMode === 'estrito'
+  log.info(`[FASE 5] Gate de habilitacao (turmas/alunos): modo "${gateMode}"`)
+
+  // Dedup de divergencias para nao inflar o relatorio (1 linha por turma/aluno).
+  const turmasDivergentesVistas = new Set<string>()
+  const alunosDivergentesVistos = new Set<string>()
 
   let proximoNumeroAluno = 1
   const maxCodigoResult = await pool.query(
@@ -167,17 +181,35 @@ export async function processarLinhas(
         turmaId = turmasMap.get(turmaKey) || null
 
         if (!turmaId) {
-          turmaId = `TEMP_TURMA_${turmasParaInserir.length}`
-          turmasParaInserir.push({
-            tempId: turmaId,
-            codigo: turmaCodigo,
-            nome: turmaCodigo,
-            escola_id: escolaId,
-            serie: serie || null,
-            ano_letivo: anoLetivo,
-          })
-          turmasMap.set(turmaKey, turmaId)
-          resultado.turmas.criados++
+          if (gateEstrito) {
+            // Gate estrito: nao cria mestre. Registra divergencia (uma vez por
+            // turma) e segue sem vincular turma — o Gestor deve cadastra-la.
+            if (!turmasDivergentesVistas.has(turmaKey)) {
+              turmasDivergentesVistas.add(turmaKey)
+              resultado.turmas.divergentes++
+              erros.push(
+                `DIVERGENCIA (gate Gestor): turma "${turmaCodigo}" (escola "${escolaNome.trim()}") ` +
+                `nao existe no cadastro mestre e nao foi criada pelo ETL. ` +
+                `Cadastre a turma no modulo Gestor antes de reimportar.`
+              )
+            }
+            turmaId = null
+          } else {
+            // Modo transicao: cria, mas marca origem para o Gestor regularizar.
+            turmaId = `TEMP_TURMA_${turmasParaInserir.length}`
+            turmasParaInserir.push({
+              tempId: turmaId,
+              codigo: turmaCodigo,
+              nome: turmaCodigo,
+              escola_id: escolaId,
+              serie: serie || null,
+              ano_letivo: anoLetivo,
+              origem: ORIGEM_SISAM_ETL,
+              origem_importacao_id: importacaoId,
+            })
+            turmasMap.set(turmaKey, turmaId)
+            resultado.turmas.criados++
+          }
         } else {
           resultado.turmas.existentes++
         }
@@ -191,6 +223,23 @@ export async function processarLinhas(
       let alunoId = alunosMap.get(alunoKey)
 
       if (!alunoId) {
+        if (gateEstrito) {
+          // Gate estrito: o aluno e dado mestre do Gestor. Sem aluno no mestre
+          // nao ha como vincular resultados, entao registramos divergencia e
+          // pulamos a linha (o Gestor deve cadastrar o aluno antes de reimportar).
+          if (!alunosDivergentesVistos.has(alunoKey)) {
+            alunosDivergentesVistos.add(alunoKey)
+            resultado.alunos.divergentes++
+            erros.push(
+              `DIVERGENCIA (gate Gestor): aluno "${alunoNome}" (escola "${escolaNome.trim()}"${turmaCodigo ? `, turma "${turmaCodigo}"` : ''}) ` +
+              `nao existe no cadastro mestre e nao foi criado pelo ETL. ` +
+              `Cadastre o aluno no modulo Gestor antes de reimportar.`
+            )
+          }
+          continue
+        }
+
+        // Modo transicao: cria, mas marca origem para o Gestor regularizar.
         const codigoAluno = `ALU${proximoNumeroAluno.toString().padStart(4, '0')}`
         proximoNumeroAluno++
         alunoId = `TEMP_ALUNO_${alunosParaInserir.length}`
@@ -203,6 +252,8 @@ export async function processarLinhas(
           turma_id: turmaId,
           serie: serie || null,
           ano_letivo: anoLetivo,
+          origem: ORIGEM_SISAM_ETL,
+          origem_importacao_id: importacaoId,
         })
 
         alunosMap.set(alunoKey, alunoId)
