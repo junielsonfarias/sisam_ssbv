@@ -3,6 +3,8 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { validateRequest, professorSyncPostSchema } from '@/lib/schemas'
 import { verificarVinculoProfessor } from '@/lib/professor-auth'
+import { anoLetivoFinalizado } from '@/lib/services/notas'
+import { cacheDelPattern } from '@/lib/cache/redis'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('ProfessorSync')
@@ -173,6 +175,15 @@ export const POST = withAuth('professor', async (request, usuario) => {
             if (turmaResult.rows.length === 0) continue
             const { escola_id, ano_letivo } = turmaResult.rows[0]
 
+            // Trava de fechamento de ano (espelha o 403 de /api/professor/notas):
+            // ano letivo finalizado bloqueia gravação de notas. Como o sync processa
+            // várias turmas, a turma finalizada é ignorada (registrada em 'erros'),
+            // sem derrubar o batch inteiro.
+            if (await anoLetivoFinalizado(ano_letivo)) {
+              erros.push(`Notas ${nota.turma_id}: ano letivo ${ano_letivo} finalizado — bloqueado`)
+              continue
+            }
+
             for (const item of nota.notas) {
               // Restringe aluno ao escopo da turma (evita gravar nota de aluno
               // de outra turma forjando aluno_id no payload).
@@ -213,6 +224,16 @@ export const POST = withAuth('professor', async (request, usuario) => {
       }
 
       await client.query('COMMIT')
+
+      // Invalidar caches após gravação (espelha /api/professor/notas): dashboards
+      // do professor/gestor e boletim do aluno precisam refletir as notas/frequências
+      // sincronizadas offline, sem aguardar o TTL expirar.
+      if (notasSalvas > 0 || freqSalvas > 0) {
+        try { await cacheDelPattern('dashboard:*') } catch { /* não crítico */ }
+        try { await cacheDelPattern('graficos:*') } catch { /* não crítico */ }
+        try { await cacheDelPattern('dashboard-gestor:*') } catch { /* não crítico */ }
+        try { await cacheDelPattern('boletim:*') } catch { /* não crítico */ }
+      }
 
       return NextResponse.json({
         mensagem: `Sincronização concluída: ${freqSalvas} frequência(s) e ${notasSalvas} nota(s)`,
