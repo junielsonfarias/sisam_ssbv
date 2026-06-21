@@ -44,3 +44,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 1 | services-dominios | aprovado | 2 tarefas | tsc:ok vitest:ok | c726a54
 - ciclo 1 | api-admin-dados | aprovado | 1 tarefas | tsc:ok vitest:ok | ff040da
 - ciclo 1 | pages-publicas-components | aprovado | 2 tarefas | tsc:ok vitest:ok | c5edfad
+- ciclo 1 | api-publico | aprovado | 1 tarefas | tsc:ok vitest:ok | 7aea316
