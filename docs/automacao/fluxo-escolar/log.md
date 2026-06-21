@@ -74,3 +74,4 @@ git diff main..auto/fluxo-escolar
 ```
 
 - ciclo 6 | Aposentadoria da dualidade de chaves — SET NOT NULL em ano_letivo_id | aplicado | banco-naodestrutivo
+- ciclo 6 | Gestor como fonte unica — defesa em profundidade no banco (anti-duplicacao/anti-mestre-cruzado) | aplicado | banco-naodestrutivo
