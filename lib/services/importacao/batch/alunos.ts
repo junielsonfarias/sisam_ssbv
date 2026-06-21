@@ -7,6 +7,7 @@
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
 import { resolverAnoLetivoId, resolverSerieId } from '@/lib/services/gestor/mestre.service'
+import { dualWriteMatricula } from '@/lib/services/matriculas/dual-write'
 import { getEtlGateMode } from '../config'
 import { registrarDivergenciaImportacao } from '../governanca'
 import {
@@ -138,6 +139,16 @@ export async function criarAlunos(
           for (const { aluno, existingId } of toUpdate) {
             tempToRealAlunos.set(aluno.tempId, existingId)
             resultado.alunos.existentes++
+            // Dual-write ADR-002 (fase 3): espelha o vinculo em `matriculas`.
+            // Aditivo — alunos.turma_id ja foi atualizado acima. Reusa as chaves
+            // canonicas (serie_id/ano_letivo_id) ja resolvidas para o lote.
+            await dualWriteMatricula(pool, {
+              alunoId: existingId,
+              turmaId: aluno.turma_id,
+              anoLetivo: aluno.ano_letivo,
+              anoLetivoId: anoLetivoIdPorAluno.get(aluno.tempId) ?? null,
+              serieId: serieIdPorAluno.get(aluno.tempId) ?? null,
+            })
           }
         }
 
@@ -188,12 +199,29 @@ export async function criarAlunos(
           }
           const tempIdsResolvidos = new Set<string>()
 
+          // Mapa codigo -> aluno (reusa chaves canonicas ja resolvidas no dual-write).
+          const codigoParaAluno = new Map<string, AlunoParaInserir>()
+          for (const aluno of toInsert) {
+            codigoParaAluno.set(aluno.codigo, aluno)
+          }
+
           for (const row of insertResult.rows) {
             const tempId = codigoParaTempId.get(row.codigo)
             if (row.id && tempId) {
               tempToRealAlunos.set(tempId, row.id)
               tempIdsResolvidos.add(tempId)
               resultado.alunos.criados++
+              // Dual-write ADR-002 (fase 3): espelha o vinculo do aluno criado.
+              const alunoCriado = codigoParaAluno.get(row.codigo)
+              if (alunoCriado) {
+                await dualWriteMatricula(pool, {
+                  alunoId: row.id,
+                  turmaId: alunoCriado.turma_id,
+                  anoLetivo: alunoCriado.ano_letivo,
+                  anoLetivoId: anoLetivoIdPorAluno.get(alunoCriado.tempId) ?? null,
+                  serieId: serieIdPorAluno.get(alunoCriado.tempId) ?? null,
+                })
+              }
             } else {
               alunosComErro++
               alunosComErroList.push(`Aluno "${row.nome}" (${row.codigo}): Nao retornou ID`)
@@ -237,6 +265,14 @@ export async function criarAlunos(
               )
               tempToRealAlunos.set(aluno.tempId, alunoIdExistente)
               resultado.alunos.existentes++
+              // Dual-write ADR-002 (fase 3): espelha o vinculo (fallback individual).
+              await dualWriteMatricula(pool, {
+                alunoId: alunoIdExistente,
+                turmaId: aluno.turma_id,
+                anoLetivo: aluno.ano_letivo,
+                anoLetivoId: anoLetivoIdPorAluno.get(aluno.tempId) ?? null,
+                serieId: serieIdPorAluno.get(aluno.tempId) ?? null,
+              })
             } else if (modoEstrito) {
               // Match-only: nao cria mestre — registra divergencia para triagem.
               resultado.alunos.divergentes++
@@ -261,6 +297,14 @@ export async function criarAlunos(
               if (result.rows.length > 0 && result.rows[0].id) {
                 tempToRealAlunos.set(aluno.tempId, result.rows[0].id)
                 resultado.alunos.criados++
+                // Dual-write ADR-002 (fase 3): espelha o vinculo (fallback individual).
+                await dualWriteMatricula(pool, {
+                  alunoId: result.rows[0].id,
+                  turmaId: aluno.turma_id,
+                  anoLetivo: aluno.ano_letivo,
+                  anoLetivoId: anoLetivoIdPorAluno.get(aluno.tempId) ?? null,
+                  serieId: serieIdPorAluno.get(aluno.tempId) ?? null,
+                })
               } else {
                 alunosComErro++
                 alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): Nao retornou ID`)

@@ -29,17 +29,24 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
       return NextResponse.json({ mensagem: 'Aluno nao vinculado a este responsavel' }, { status: 403 })
     }
 
-    // Buscar dados do aluno
+    // Buscar dados do aluno.
+    // ADR-002 (fase 4): o vínculo aluno↔turma do ano é lido de `matriculas`
+    // (fonte dedicada por ano letivo) com FALLBACK para `alunos.turma_id` —
+    // COALESCE(m.turma_id, a.turma_id). Aditivo: sem matrícula no ano, mantém
+    // o comportamento atual sem regressão.
     const alunoResult = await pool.query(
       `SELECT a.id, a.nome, a.codigo, a.serie, a.ano_letivo, a.situacao,
-              a.data_nascimento, a.pcd, a.turma_id, a.escola_id,
+              a.data_nascimento, a.pcd,
+              COALESCE(m.turma_id, a.turma_id) AS turma_id, a.escola_id,
               e.nome AS escola_nome,
               t.codigo AS turma_codigo, t.nome AS turma_nome
        FROM alunos a
        INNER JOIN escolas e ON a.escola_id = e.id
-       LEFT JOIN turmas t ON a.turma_id = t.id
+       LEFT JOIN matriculas m ON m.aluno_id = a.id
+         AND m.ano_letivo_id = (SELECT id FROM anos_letivos WHERE ano = $2 LIMIT 1)
+       LEFT JOIN turmas t ON t.id = COALESCE(m.turma_id, a.turma_id)
        WHERE a.id = $1`,
-      [alunoId]
+      [alunoId, anoLetivo]
     )
 
     if (alunoResult.rows.length === 0) {

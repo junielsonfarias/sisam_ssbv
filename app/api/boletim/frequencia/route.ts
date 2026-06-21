@@ -32,20 +32,29 @@ export async function GET(request: NextRequest) {
       let alunoQuery = ''
       let params: any[] = [anoLetivo]
 
+      // ADR-002 (fase 4): turma do ano vem de `matriculas` com FALLBACK para
+      // `alunos.turma_id` — COALESCE(m.turma_id, a.turma_id). Aditivo: sem
+      // matrícula no ano, mantém o comportamento atual.
       if (codigo) {
         alunoQuery = `
-          SELECT a.id, a.nome, a.codigo, a.turma_id, t.serie, t.codigo AS turma_codigo, e.nome AS escola_nome
+          SELECT a.id, a.nome, a.codigo, COALESCE(m.turma_id, a.turma_id) AS turma_id,
+                 t.serie, t.codigo AS turma_codigo, e.nome AS escola_nome
           FROM alunos a
-          LEFT JOIN turmas t ON t.id = a.turma_id
+          LEFT JOIN matriculas m ON m.aluno_id = a.id
+            AND m.ano_letivo_id = (SELECT id FROM anos_letivos WHERE ano = $1 LIMIT 1)
+          LEFT JOIN turmas t ON t.id = COALESCE(m.turma_id, a.turma_id)
           LEFT JOIN escolas e ON e.id = a.escola_id
           WHERE a.ano_letivo = $1 AND a.codigo = $2 AND a.ativo = true
           LIMIT 1`
         params.push(codigo)
       } else {
         alunoQuery = `
-          SELECT a.id, a.nome, a.codigo, a.turma_id, t.serie, t.codigo AS turma_codigo, e.nome AS escola_nome
+          SELECT a.id, a.nome, a.codigo, COALESCE(m.turma_id, a.turma_id) AS turma_id,
+                 t.serie, t.codigo AS turma_codigo, e.nome AS escola_nome
           FROM alunos a
-          LEFT JOIN turmas t ON t.id = a.turma_id
+          LEFT JOIN matriculas m ON m.aluno_id = a.id
+            AND m.ano_letivo_id = (SELECT id FROM anos_letivos WHERE ano = $1 LIMIT 1)
+          LEFT JOIN turmas t ON t.id = COALESCE(m.turma_id, a.turma_id)
           LEFT JOIN escolas e ON e.id = a.escola_id
           WHERE a.ano_letivo = $1 AND a.cpf = $2 AND a.data_nascimento = $3 AND a.ativo = true
           LIMIT 1`

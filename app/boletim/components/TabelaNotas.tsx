@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Award } from 'lucide-react'
+import { BookOpen, Landmark } from 'lucide-react'
 
 interface Disciplina { id: string; nome: string; codigo: string; abreviacao: string; ordem: number }
 interface Periodo { id: string; nome: string; tipo: string; numero: number }
@@ -169,15 +169,27 @@ export default function TabelaNotas({
         )}
       </div>
 
-      {/* Avaliacoes SISAM */}
+      {/* ============================================================
+          AVALIAÇÃO MUNICIPAL (SISAM) — seção complementar (ADR-003).
+          Visualmente DISTINTA da nota escolar regular acima: moldura e
+          acento indigo (a tabela de notas escolares usa azul). Label claro
+          "Avaliação Municipal" com subtítulo explicativo.
+          ============================================================ */}
       {avaliacoes_sisam.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white">Avaliacoes Municipais (SISAM)</h3>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 border-indigo-200 dark:border-indigo-800 ring-1 ring-indigo-100 dark:ring-indigo-900/40 overflow-hidden">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-indigo-50/70 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0">
+                <Landmark className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-300" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm sm:text-base text-indigo-900 dark:text-indigo-200">Avaliação Municipal (SISAM)</h3>
+                <p className="text-[11px] sm:text-xs text-indigo-600/80 dark:text-indigo-300/80 leading-snug">
+                  Avaliação aplicada pela Secretaria Municipal de Educação — não compõe a nota escolar regular.
+                </p>
+              </div>
             </div>
-            <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] sm:text-xs font-semibold rounded-full">
+            <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-[10px] sm:text-xs font-semibold rounded-full whitespace-nowrap">
               {serie ? formatSerie(serie) : ''} — {isIniciais ? 'Anos Iniciais' : 'Anos Finais'}
             </span>
           </div>
@@ -220,8 +232,8 @@ export default function TabelaNotas({
                       <div className={`text-sm font-bold ${notaColor(av.nota_producao)}`}>{av.nota_producao?.toFixed(1) ?? '-'}</div>
                     </div>
                   )}
-                  <div className={`text-center py-1.5 rounded-lg bg-slate-50 dark:bg-slate-700/50 ${notaBg(av.media)}`}>
-                    <div className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">Media</div>
+                  <div className={`text-center py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 ${notaBg(av.media)}`}>
+                    <div className="text-[9px] text-indigo-500 dark:text-indigo-400 font-medium">Média</div>
                     <div className={`text-sm font-bold ${notaColor(av.media)}`}>{av.media?.toFixed(1) ?? '-'}</div>
                   </div>
                 </div>
@@ -233,16 +245,16 @@ export default function TabelaNotas({
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400">
-                  <th className="text-left px-4 py-3 font-semibold">Avaliacao</th>
-                  <th className="text-center px-3 py-3 font-semibold">Presenca</th>
+                <tr className="bg-indigo-50/60 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300">
+                  <th className="text-left px-4 py-3 font-semibold">Avaliação</th>
+                  <th className="text-center px-3 py-3 font-semibold">Presença</th>
                   <th className="text-center px-3 py-3 font-semibold">L. Portuguesa</th>
-                  <th className="text-center px-3 py-3 font-semibold">Matematica</th>
+                  <th className="text-center px-3 py-3 font-semibold">Matemática</th>
                   {!isIniciais && <th className="text-center px-3 py-3 font-semibold">C. Humanas</th>}
                   {!isIniciais && <th className="text-center px-3 py-3 font-semibold">C. Natureza</th>}
                   {isIniciais && <th className="text-center px-3 py-3 font-semibold">Prod. Textual</th>}
-                  <th className="text-center px-3 py-3 font-semibold bg-slate-100 dark:bg-slate-700">Media</th>
-                  <th className="text-center px-3 py-3 font-semibold">Nivel</th>
+                  <th className="text-center px-3 py-3 font-semibold bg-indigo-100/70 dark:bg-indigo-900/30">Média</th>
+                  <th className="text-center px-3 py-3 font-semibold">Nível</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,7 +267,7 @@ export default function TabelaNotas({
                     {!isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_ch)}`}>{av.nota_ch?.toFixed(1) ?? '-'}</td>}
                     {!isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_cn)}`}>{av.nota_cn?.toFixed(1) ?? '-'}</td>}
                     {isIniciais && <td className={`text-center px-3 py-3 font-bold ${notaColor(av.nota_producao)}`}>{av.nota_producao?.toFixed(1) ?? '-'}</td>}
-                    <td className={`text-center px-3 py-3 bg-slate-50 dark:bg-slate-700/50 font-bold ${notaColor(av.media)}`}>{av.media?.toFixed(1) ?? '-'}</td>
+                    <td className={`text-center px-3 py-3 bg-indigo-50/60 dark:bg-indigo-900/20 font-bold ${notaColor(av.media)}`}>{av.media?.toFixed(1) ?? '-'}</td>
                     <td className="text-center px-3 py-3">{nivelBadge(av.nivel) || '-'}</td>
                   </tr>
                 ))}
