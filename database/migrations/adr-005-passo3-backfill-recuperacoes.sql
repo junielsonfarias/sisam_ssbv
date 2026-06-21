@@ -13,18 +13,35 @@
 --   recuperacoes_periodos apontando para o periodo_id daquela nota.
 --   O campo legado nota_recuperacao PERMANECE (dual-read transitorio).
 --
+-- COLUNA DE RASTREIO (aditiva):
+--   Adiciona recuperacoes_escolares.nota_id_origem (FK opcional p/ notas_escolares)
+--   para correlacionar 1:1 a recuperacao de backfill com a nota de origem.
+--   Necessaria porque um mesmo (aluno,disciplina,ano) pode ter varios periodos
+--   com recuperacao de MESMO valor — sem essa ancora, o pareamento pela chave
+--   natural cruzaria linhas e inflaria a ponte. Tambem serve de guard de
+--   idempotencia limpo. Nullable: lancamentos novos (nao-backfill) ficam NULL.
+--
 -- IDEMPOTENCIA:
---   Guard NOT EXISTS: nao recria recuperacao 'por_periodo' que ja exista
---   para o mesmo (aluno, disciplina, ano) ligada ao mesmo periodo na ponte.
---   Reexecucao e segura (no-op). Sem DELETE em massa.
+--   Guard NOT EXISTS por nota_id_origem: nao recria recuperacao 'por_periodo'
+--   ja gerada para aquela nota. Reexecucao e segura (no-op). Sem DELETE em massa.
 --
 -- ROLLBACK (manual — nao executar sem decisao humana):
 --   DELETE FROM recuperacoes_periodos rp USING recuperacoes_escolares re
---     WHERE rp.recuperacao_id = re.id AND re.esquema = 'por_periodo';
---   DELETE FROM recuperacoes_escolares WHERE esquema = 'por_periodo';
+--     WHERE rp.recuperacao_id = re.id
+--       AND re.esquema = 'por_periodo' AND re.nota_id_origem IS NOT NULL;
+--   DELETE FROM recuperacoes_escolares
+--     WHERE esquema = 'por_periodo' AND nota_id_origem IS NOT NULL;
 -- =====================================================================
 
 BEGIN;
+
+-- (0) Coluna de rastreio da origem do backfill (aditiva, idempotente).
+ALTER TABLE recuperacoes_escolares
+  ADD COLUMN IF NOT EXISTS nota_id_origem UUID
+    REFERENCES notas_escolares(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_rec_esc_nota_origem
+  ON recuperacoes_escolares(nota_id_origem);
 
 -- Diagnostico do que sera afetado.
 DO $$
@@ -44,9 +61,19 @@ BEGIN
     v_origem, v_ja;
 END $$;
 
--- (1) Inserir recuperacoes_escolares (1 por nota com recuperacao).
---     CTE devolve os ids criados ja pareados com o periodo de origem,
---     para alimentar a tabela ponte sem reconsultar pela chave natural.
+-- Mapeamento temporario nota_id -> recuperacao_id para garantir pareamento
+-- 1:1 exato nota->recuperacao->periodo. Necessario porque recuperacoes_escolares
+-- nao carrega periodo_id, e um mesmo (aluno,disciplina,ano) pode ter varios
+-- periodos com recuperacao de MESMO valor (cross-join pela chave natural
+-- inflaria a ponte). A correlacao por nota_id elimina essa ambiguidade.
+CREATE TEMP TABLE _map_rec_backfill (
+  nota_id        UUID PRIMARY KEY,
+  periodo_id     UUID NOT NULL,
+  recuperacao_id UUID NOT NULL
+) ON COMMIT DROP;
+
+-- (1) Inserir 1 recuperacoes_escolares por nota com recuperacao e capturar
+--     o id criado junto do nota_id/periodo_id de origem (linha-a-linha).
 WITH origem AS (
   SELECT n.id          AS nota_id,
          n.aluno_id,
@@ -57,37 +84,29 @@ WITH origem AS (
          n.nota_recuperacao
   FROM notas_escolares n
   WHERE n.nota_recuperacao IS NOT NULL
-    -- Guard de idempotencia: pula se ja existe recuperacao por_periodo
-    -- para este (aluno, disciplina, ano) cobrindo este periodo.
+    -- Guard de idempotencia exato: pula notas ja migradas (mesma nota de origem).
     AND NOT EXISTS (
-      SELECT 1
-      FROM recuperacoes_escolares re
-      JOIN recuperacoes_periodos rp ON rp.recuperacao_id = re.id
-      WHERE re.esquema       = 'por_periodo'
-        AND re.aluno_id      = n.aluno_id
-        AND re.disciplina_id = n.disciplina_id
-        AND re.ano_letivo    = n.ano_letivo
-        AND rp.periodo_id    = n.periodo_id
+      SELECT 1 FROM recuperacoes_escolares re
+      WHERE re.esquema = 'por_periodo'
+        AND re.nota_id_origem = n.id
     )
 ),
 inseridas AS (
   INSERT INTO recuperacoes_escolares
-    (aluno_id, disciplina_id, escola_id, ano_letivo, esquema, nota_recuperacao)
-  SELECT aluno_id, disciplina_id, escola_id, ano_letivo, 'por_periodo', nota_recuperacao
+    (aluno_id, disciplina_id, escola_id, ano_letivo, esquema, nota_recuperacao, nota_id_origem)
+  SELECT aluno_id, disciplina_id, escola_id, ano_letivo, 'por_periodo', nota_recuperacao, nota_id
   FROM origem
-  RETURNING id, aluno_id, disciplina_id, ano_letivo, nota_recuperacao
+  RETURNING id, nota_id_origem
 )
--- (2) Ponte: liga cada recuperacao recem-criada ao periodo da nota de origem.
---     O join usa a chave natural; como ainda nao havia recuperacao por_periodo
---     para essas linhas (garantido pelo guard acima), o pareamento e 1:1.
-INSERT INTO recuperacoes_periodos (recuperacao_id, periodo_id)
-SELECT DISTINCT i.id, o.periodo_id
+INSERT INTO _map_rec_backfill (nota_id, periodo_id, recuperacao_id)
+SELECT o.nota_id, o.periodo_id, i.id
 FROM inseridas i
-JOIN origem o
-  ON o.aluno_id      = i.aluno_id
- AND o.disciplina_id = i.disciplina_id
- AND o.ano_letivo    = i.ano_letivo
- AND o.nota_recuperacao IS NOT DISTINCT FROM i.nota_recuperacao
+JOIN origem o ON o.nota_id = i.nota_id_origem;
+
+-- (2) Ponte: 1 linha por nota, pareada deterministicamente via mapa temporario.
+INSERT INTO recuperacoes_periodos (recuperacao_id, periodo_id)
+SELECT recuperacao_id, periodo_id
+FROM _map_rec_backfill
 ON CONFLICT (recuperacao_id, periodo_id) DO NOTHING;
 
 -- Verificacao final: contagem de recuperacoes por_periodo == nº de notas com recuperacao.
