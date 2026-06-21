@@ -21,20 +21,21 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request) => {
       )
     }
 
-    // Buscar questões
-    let queryQuestoes = 'SELECT codigo FROM questoes WHERE ano_letivo = $1 ORDER BY codigo'
-    const paramsQuestoes: any[] = [anoLetivo]
-    
+    // Buscar questões. A tabela `questoes` não tem coluna ano_letivo nem existe
+    // `questoes_gabaritos` — o vínculo questão x série é `serie_aplicavel`
+    // (mesma base do GET /admin/questoes). ano_letivo é só rótulo do PDF.
+    let queryQuestoes = `
+      SELECT codigo FROM questoes
+      WHERE tipo_questao = 'objetiva'
+      ORDER BY numero_questao NULLS LAST, codigo
+    `
+    const paramsQuestoes: any[] = []
+
     if (serie) {
       queryQuestoes = `
-        SELECT DISTINCT q.codigo 
-        FROM questoes q
-        WHERE q.ano_letivo = $1 
-          AND EXISTS (
-            SELECT 1 FROM questoes_gabaritos g 
-            WHERE g.questao_id = q.id AND g.serie = $2
-          )
-        ORDER BY q.codigo
+        SELECT codigo FROM questoes
+        WHERE tipo_questao = 'objetiva' AND serie_aplicavel = $1
+        ORDER BY numero_questao NULLS LAST, codigo
       `
       paramsQuestoes.push(serie)
     }

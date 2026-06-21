@@ -78,6 +78,15 @@ export async function POST(request: NextRequest) {
     if (!validationResult.success) return validationResult.response
     const { foto_url, foto_base64 } = validationResult.data
 
+    // Restringir foto_url a caminhos internos (mesmo prefixo verificado no DELETE).
+    // Evita armazenar URLs externas arbitrárias como foto (tracking/exfiltração via <img src>).
+    if (foto_url && !foto_base64 && !foto_url.startsWith('/uploads/fotos/')) {
+      return NextResponse.json(
+        { mensagem: 'URL de foto inválida' },
+        { status: 400 }
+      )
+    }
+
     let urlFinal = foto_url
 
     // Se recebeu base64, salvar como arquivo .webp no disco

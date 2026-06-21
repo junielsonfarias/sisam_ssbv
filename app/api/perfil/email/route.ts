@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, comparePassword } from '@/lib/auth'
 import pool from '@/database/connection'
-import { isValidEmail } from '@/lib/validation'
 import { checkRateLimit, resetRateLimit } from '@/lib/rate-limiter'
 import { validateRequest, perfilEmailSchema } from '@/lib/schemas'
+import { PG_ERRORS } from '@/lib/constants'
+import type { DatabaseError } from '@/database/connection'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,6 +102,14 @@ export async function PUT(request: NextRequest) {
       email: novoEmail.trim()
     })
   } catch (error: unknown) {
+    // Constraint UNIQUE em usuarios.email: trata corrida/case-sensitivity que
+    // a pré-checagem com LOWER possa deixar passar (23505 → 400 amigável).
+    if ((error as DatabaseError).code === PG_ERRORS.UNIQUE_VIOLATION) {
+      return NextResponse.json(
+        { mensagem: 'Este email já está em uso por outro usuário' },
+        { status: 400 }
+      )
+    }
     console.error('Erro ao alterar email:', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

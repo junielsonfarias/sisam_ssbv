@@ -17,6 +17,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Guarda anti-IDOR: usuário de polo/escola SEM unidade vinculada não pode
+    // cair no fallback permissivo (1=1) do addAccessControl e vazar dados de
+    // todas as unidades. administrador/tecnico continuam vendo tudo.
+    if (usuario.tipo_usuario === 'polo' && !usuario.polo_id) {
+      return NextResponse.json(
+        { mensagem: 'Usuário sem unidade vinculada' },
+        { status: 403 }
+      )
+    }
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json(
+        { mensagem: 'Usuário sem unidade vinculada' },
+        { status: 403 }
+      )
+    }
+
     const where = createWhereBuilder()
     addRawCondition(where, 'a.ativo = true AND e.ativo = true')
     addAccessControl(where, usuario, { escolaIdField: 'a.escola_id', poloIdField: 'e.polo_id' })

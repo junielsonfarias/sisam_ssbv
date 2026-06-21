@@ -144,7 +144,7 @@ function LancarNotas() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lançar Notas</h1>
-        <div className="h-40 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+        <div className="h-40 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />
       </div>
     )
   }
@@ -160,17 +160,17 @@ function LancarNotas() {
       {/* Seletores */}
       <div className="grid gap-3 sm:grid-cols-3">
         <select value={turmaId} onChange={e => setTurmaId(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white">
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white">
           <option value="">Selecione a turma</option>
           {turmas.map(t => <option key={t.turma_id} value={t.turma_id}>{t.turma_nome} ({t.serie} - {t.turno})</option>)}
         </select>
         <select value={disciplinaId} onChange={e => setDisciplinaId(e.target.value)} disabled={!turmaId}
-          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white disabled:opacity-50">
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white disabled:opacity-50">
           <option value="">Selecione a disciplina</option>
           {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
         </select>
         <select value={periodoId} onChange={e => setPeriodoId(e.target.value)} disabled={!disciplinaId}
-          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white disabled:opacity-50">
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white disabled:opacity-50">
           <option value="">Selecione o período</option>
           {periodos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </select>
@@ -192,7 +192,7 @@ function LancarNotas() {
 
       {/* Resumo */}
       {alunos.length > 0 && (
-        <div className="flex flex-wrap gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm">
+        <div className="flex flex-wrap gap-4 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg text-sm">
           <span>{notasPreenchidas}/{alunos.length} notas</span>
           <span>Média: <strong>{mediaTurma}</strong></span>
           <span className="text-green-600">{aprovados} aprovados</span>
@@ -203,13 +203,13 @@ function LancarNotas() {
       {/* Tabela de notas */}
       {carregandoNotas ? (
         <div className="space-y-2">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />)}
         </div>
       ) : alunos.length > 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+              <tr className="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-gray-600">
                 <th className="text-left p-3 font-medium text-gray-700 dark:text-gray-300">#</th>
                 <th className="text-left p-3 font-medium text-gray-700 dark:text-gray-300">Aluno</th>
                 <th className="text-center p-3 font-medium text-gray-700 dark:text-gray-300 w-20">Nota</th>
@@ -231,24 +231,24 @@ function LancarNotas() {
                       <input type="number" step="0.1" min="0" max={config.nota_maxima} value={edit.nota}
                         onChange={e => updateNota(aluno.aluno_id, 'nota', e.target.value)}
                         className={`w-full px-2 py-1.5 rounded border text-center text-sm ${
-                          abaixo ? 'border-red-300 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
+                          abaixo ? 'border-red-300 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700'
                         } text-gray-900 dark:text-white`} />
                     </td>
                     <td className="p-2">
                       <input type="number" step="0.1" min="0" max={config.nota_maxima} value={edit.nota_recuperacao}
                         onChange={e => updateNota(aluno.aluno_id, 'nota_recuperacao', e.target.value)}
-                        className="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center text-sm text-gray-900 dark:text-white" />
+                        className="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-center text-sm text-gray-900 dark:text-white" />
                     </td>
                     <td className="p-2">
                       <input type="number" min="0" value={edit.faltas}
                         onChange={e => updateNota(aluno.aluno_id, 'faltas', e.target.value)}
-                        className="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center text-sm text-gray-900 dark:text-white" />
+                        className="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-center text-sm text-gray-900 dark:text-white" />
                     </td>
                     <td className="p-2">
                       <input type="text" value={edit.observacao} maxLength={500}
                         onChange={e => updateNota(aluno.aluno_id, 'observacao', e.target.value)}
                         placeholder="..."
-                        className="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white" />
+                        className="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white" />
                     </td>
                   </tr>
                 )

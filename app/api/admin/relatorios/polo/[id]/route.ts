@@ -9,7 +9,10 @@ import { getUsuarioFromRequest, podeAcessarPolo } from '@/lib/auth';
 import { buscarDadosRelatorioPolo } from '@/lib/relatorios/consultas-relatorio';
 import { RelatorioPoloPDF } from '@/lib/relatorios/gerador-pdf';
 import { gerarGraficosPolo } from '@/lib/relatorios/gerador-graficos';
+import { createLogger } from '@/lib/logger'
 import React from 'react';
+
+const log = createLogger('RelatorioPoloPDF')
 
 export const dynamic = 'force-dynamic'
 
@@ -88,7 +91,7 @@ export async function GET(
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao gerar relatório de polo:', error);
+    log.error('Erro ao gerar relatório de polo', error);
 
     return NextResponse.json(
       { mensagem: 'Erro ao gerar relatório' },

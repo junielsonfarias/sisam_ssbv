@@ -21,6 +21,23 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
       return NextResponse.json({ mensagem: 'turma_id é obrigatório' }, { status: 400 })
     }
 
+    // Controle de acesso: usuário 'escola' só pode ler grade de turmas da própria escola
+    if (usuario.tipo_usuario === 'escola') {
+      if (!usuario.escola_id) {
+        return NextResponse.json({ mensagem: 'Não autorizado para esta turma' }, { status: 403 })
+      }
+      const turmaResult = await pool.query(
+        'SELECT escola_id FROM turmas WHERE id = $1',
+        [turmaId]
+      )
+      if (turmaResult.rows.length === 0) {
+        return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
+      }
+      if (turmaResult.rows[0].escola_id !== usuario.escola_id) {
+        return NextResponse.json({ mensagem: 'Não autorizado para esta turma' }, { status: 403 })
+      }
+    }
+
     const result = await pool.query(
       `SELECT h.id, h.dia_semana, h.numero_aula, h.disciplina_id,
               d.nome AS disciplina_nome, d.codigo AS disciplina_codigo
@@ -53,8 +70,11 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     if (turmaResult.rows.length === 0) {
       return NextResponse.json({ mensagem: 'Turma não encontrada' }, { status: 404 })
     }
-    if (usuario.tipo_usuario === 'escola' && usuario.escola_id && turmaResult.rows[0].escola_id !== usuario.escola_id) {
-      return NextResponse.json({ mensagem: 'Não autorizado para esta turma' }, { status: 403 })
+    // Controle de acesso: escola sem escola_id é negada; com escola_id valida a propriedade da turma
+    if (usuario.tipo_usuario === 'escola') {
+      if (!usuario.escola_id || turmaResult.rows[0].escola_id !== usuario.escola_id) {
+        return NextResponse.json({ mensagem: 'Não autorizado para esta turma' }, { status: 403 })
+      }
     }
 
     const serie = turmaResult.rows[0].serie

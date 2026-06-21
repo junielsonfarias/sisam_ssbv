@@ -8,7 +8,7 @@ import {
   createWhereBuilder, addCondition, addSearchCondition, addRawCondition,
   addAccessControl, buildConditionsString, parseSearchParams,
 } from '@/lib/api-helpers'
-import { criarAluno, atualizarAluno, deletarAluno } from '@/lib/services/alunos.service'
+import { criarAluno, atualizarAluno, deletarAluno, AlunoForaDeEscopoError } from '@/lib/services/alunos.service'
 import { verificarAnoLetivoAtivo } from '@/lib/services/matriculas.service'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
@@ -198,12 +198,14 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     const { id, escola_id } = validacao.data
 
-    // Escola só pode editar aluno da própria escola
+    // Escola só pode editar aluno da própria escola (escola_id do payload)
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id && escola_id !== usuario.escola_id) {
       return NextResponse.json({ mensagem: 'Não autorizado para esta escola' }, { status: 403 })
     }
 
-    const aluno = await atualizarAluno(id, validacao.data)
+    // Anti-IDOR: valida também a escola/polo ATUAIS do aluno (impede sequestro
+    // de aluno de outra escola enviando o próprio escola_id no payload).
+    const aluno = await atualizarAluno(id, validacao.data, usuario)
 
     if (!aluno) {
       return NextResponse.json(
@@ -219,6 +221,9 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
         { mensagem: 'Código já cadastrado' },
         { status: 400 }
       )
+    }
+    if (error instanceof AlunoForaDeEscopoError) {
+      return NextResponse.json({ mensagem: 'Não autorizado para este aluno' }, { status: 403 })
     }
     if (error instanceof Error && error.message === 'Turma não pertence à escola selecionada') {
       return NextResponse.json({ mensagem: error.message }, { status: 400 })

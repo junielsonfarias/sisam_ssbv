@@ -35,7 +35,7 @@ function SelecionarTurma() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lançar Frequência</h1>
         <p className="text-gray-500 dark:text-gray-400">Selecione uma turma:</p>
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-20 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          <div key={i} className="h-20 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />
         ))}
       </div>
     )
@@ -47,7 +47,7 @@ function SelecionarTurma() {
       <p className="text-gray-500 dark:text-gray-400">Selecione uma turma para lançar frequência:</p>
 
       {turmas.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-8 text-center border border-gray-200 dark:border-slate-700">
           <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-gray-500">Nenhuma turma vinculada</p>
         </div>
@@ -57,7 +57,7 @@ function SelecionarTurma() {
             <button
               key={turma.turma_id + (turma.disciplina_nome || '')}
               onClick={() => router.push(`/professor/frequencia/${turma.turma_id}`)}
-              className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors text-left"
+              className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-slate-700 hover:border-emerald-500 transition-colors text-left"
             >
               <div className="flex justify-between items-start">
                 <div>

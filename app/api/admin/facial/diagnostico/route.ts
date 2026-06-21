@@ -23,10 +23,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'aluno_nome ou aluno_id obrigatório' }, { status: 400 })
     }
 
+    // Tamanhos válidos de embedding, alinhados ao enrollment (modo 'adicionar'):
+    //   - 512  = template legado de sessão única antiga (128 floats × 4 bytes)
+    //   - 1536 = 1 sessão (3 poses × 128 floats × 4 bytes)
+    //   - 3072 = 2 sessões acumuladas
+    //   - 4608 = 3 sessões acumuladas (MAX_BYTES do enrollment = 1536 × 3)
+    // Ver app/api/admin/facial/enrollment/route.ts (modo 'adicionar').
+    const TAMANHO_SESSAO = 1536
+    const MAX_SESSOES = 3
+    const TAMANHOS_VALIDOS = [
+      512,
+      ...Array.from({ length: MAX_SESSOES }, (_, i) => TAMANHO_SESSAO * (i + 1)),
+    ]
+
     // Buscar aluno
     const alunoQuery = alunoId
-      ? 'SELECT id, nome, codigo, serie, turma_id, escola_id, ativo FROM alunos WHERE id = $1'
-      : "SELECT id, nome, codigo, serie, turma_id, escola_id, ativo FROM alunos WHERE nome ILIKE $1 LIMIT 5"
+      ? 'SELECT id, nome, codigo, serie, turma_id, escola_id, ativo, ano_letivo, situacao FROM alunos WHERE id = $1'
+      : "SELECT id, nome, codigo, serie, turma_id, escola_id, ativo, ano_letivo, situacao FROM alunos WHERE nome ILIKE $1 LIMIT 5"
     const alunoParam = alunoId || `%${alunoNome}%`
     const alunoResult = await pool.query(alunoQuery, [alunoParam])
 
@@ -39,7 +52,7 @@ export async function GET(request: NextRequest) {
     for (const aluno of alunoResult.rows) {
       // Consentimento
       const consentResult = await pool.query(
-        'SELECT id, aluno_id, consentido, consentido_por, data_consentimento, criado_em FROM consentimentos_faciais WHERE aluno_id = $1',
+        'SELECT id, aluno_id, consentido, responsavel_nome, data_consentimento, data_revogacao, criado_em FROM consentimentos_faciais WHERE aluno_id = $1',
         [aluno.id]
       )
 
@@ -60,7 +73,7 @@ export async function GET(request: NextRequest) {
       if (embedResult.rows.length > 0) {
         const row = embedResult.rows[0]
         embeddingTamanho = parseInt(row.tamanho_bytes) || 0
-        embeddingValido = embeddingTamanho === 512 // 128 floats × 4 bytes
+        embeddingValido = TAMANHOS_VALIDOS.includes(embeddingTamanho)
 
         // Decodificar e verificar primeiros 5 valores
         if (row.embedding_base64) {
@@ -105,7 +118,8 @@ export async function GET(request: NextRequest) {
           existe: true,
           valido: embeddingValido,
           tamanho_bytes: embeddingTamanho,
-          tamanho_esperado: 512,
+          tamanho_esperado: `${TAMANHOS_VALIDOS[0]} a ${TAMANHOS_VALIDOS[TAMANHOS_VALIDOS.length - 1]} bytes (512 ou múltiplos de ${TAMANHO_SESSAO} até ${TAMANHO_SESSAO * MAX_SESSOES})`,
+          tamanhos_validos: TAMANHOS_VALIDOS,
           qualidade: embedResult.rows[0].qualidade,
           versao_modelo: embedResult.rows[0].versao_modelo,
           criado_em: embedResult.rows[0].criado_em,
@@ -125,8 +139,8 @@ export async function GET(request: NextRequest) {
             ...(consentResult.rows[0] && !consentResult.rows[0].consentido ? ['Consentimento não aprovado'] : []),
             ...(consentResult.rows[0]?.data_revogacao ? ['Consentimento revogado'] : []),
             ...(embedResult.rows.length === 0 ? ['Sem embedding facial'] : []),
-            ...(embeddingTamanho > 0 && embeddingTamanho !== 512 ? [`Embedding tamanho errado: ${embeddingTamanho} bytes (esperado 512)`] : []),
-            ...(!embeddingValido && embeddingTamanho === 512 ? ['Embedding contém valores inválidos (NaN/zero/infinito)'] : []),
+            ...(embeddingTamanho > 0 && !TAMANHOS_VALIDOS.includes(embeddingTamanho) ? [`Embedding tamanho errado: ${embeddingTamanho} bytes (esperado ${TAMANHOS_VALIDOS.join(', ')})`] : []),
+            ...(!embeddingValido && TAMANHOS_VALIDOS.includes(embeddingTamanho) ? ['Embedding contém valores inválidos (NaN/zero/infinito)'] : []),
           ],
         },
       })

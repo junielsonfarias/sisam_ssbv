@@ -15,6 +15,11 @@ export const dynamic = 'force-dynamic'
  * Lista frequência diária com filtros
  */
 export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+    // Guarda de escopo: conta 'escola' sem vínculo não pode cair em listagem sem filtro
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem escola vinculada' }, { status: 403 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const { escola_id, turma_id, data, data_inicio, data_fim, metodo, status, ano_letivo } = parseSearchParams(
       searchParams, ['escola_id', 'turma_id', 'data', 'data_inicio', 'data_fim', 'metodo', 'status', 'ano_letivo']
@@ -83,6 +88,11 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
  * Body: { id }
  */
 export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+    // Guarda de escopo: conta 'escola' sem vínculo não pode excluir registros de outras escolas
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem escola vinculada' }, { status: 403 })
+    }
+
     const validacao = await validateRequest(request, frequenciaDiariaDeleteSchema)
     if (!validacao.success) return validacao.response
     const { id } = validacao.data
@@ -138,6 +148,11 @@ export const DELETE = withAuth(['administrador', 'tecnico', 'escola'], async (re
  * Body: { id, justificativa }
  */
 export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (request, usuario) => {
+    // Guarda de escopo: conta 'escola' sem vínculo não pode alterar registros de outras escolas
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem escola vinculada' }, { status: 403 })
+    }
+
     const validacao = await validateRequest(request, frequenciaDiariaPatchSchema)
     if (!validacao.success) return validacao.response
     const { id, justificativa } = validacao.data

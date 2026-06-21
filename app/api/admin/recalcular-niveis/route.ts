@@ -8,7 +8,7 @@ import {
   calcularNivelAluno,
   isAnosIniciais,
 } from '@/lib/config-series'
-import { limparTodosOsCaches } from '@/lib/cache'
+import { limparTodosOsCaches, invalidateDashboardCache, invalidateFiltrosCache, cacheDelPattern } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('RecalcularNiveis')
@@ -91,9 +91,16 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       }
     }
 
-    // Limpar cache após atualização
+    // Limpar cache após atualização. resultados_consolidados alimenta
+    // dashboards/análises/níveis: invalidar arquivo + memória + Redis, senão
+    // mostram números pré-recálculo até o TTL (espelha cartao-resposta/ler).
     try {
       limparTodosOsCaches()
+      invalidateDashboardCache()
+      invalidateFiltrosCache()
+      for (const p of ['dashboard:*', 'stats:*', 'graficos:*', 'alunos:*', 'executivo:*', 'evolucao:*', 'alunos-risco:*', 'dashboard-gestor:*']) {
+        try { await cacheDelPattern(p) } catch {}
+      }
       log.info('Cache invalidado após recálculo')
     } catch (cacheError) {
       log.error('Erro ao invalidar cache (não crítico)', cacheError)

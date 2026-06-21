@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUsuarioFromRequest, podeAcessarEscola } from '@/lib/auth';
 import { buscarDadosRelatorioEscola } from '@/lib/relatorios/consultas-relatorio';
 import { DatabaseError } from '@/lib/validation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('RelatorioEscolaDados')
 
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +66,7 @@ export async function GET(
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao buscar dados do relatório:', error);
+    log.error('Erro ao buscar dados do relatório', error);
 
     return NextResponse.json(
       { mensagem: 'Erro ao buscar dados do relatório' },

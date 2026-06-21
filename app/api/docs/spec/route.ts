@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
-export const dynamic = 'force-dynamic'
-
 /**
  * GET /api/docs/spec
  * Serve o arquivo OpenAPI YAML

@@ -232,8 +232,8 @@ export default function PerfilPage() {
           </div>
 
           {/* Card de Informações da Conta */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5 text-indigo-600" />
               Informacoes da Conta
             </h3>
@@ -246,33 +246,33 @@ export default function PerfilPage() {
               />
 
               {/* Tipo de Acesso */}
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+              <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Shield className="w-5 h-5 text-purple-600" />
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                    <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tipo de Acesso</p>
-                    <p className="text-gray-800 font-medium mt-0.5">{getTipoUsuarioLabel(perfil?.tipo_usuario || '')}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Tipo de Acesso</p>
+                    <p className="text-gray-800 dark:text-gray-200 font-medium mt-0.5">{getTipoUsuarioLabel(perfil?.tipo_usuario || '')}</p>
                   </div>
                 </div>
               </div>
 
               {/* Vínculos */}
               {(perfil?.polo_nome || perfil?.escola_nome) && (
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Vinculos de Acesso</p>
+                <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-100 dark:border-slate-700">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Vinculos de Acesso</p>
                   <div className="space-y-3">
                     {perfil?.polo_nome && (
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-100 rounded-lg"><MapPin className="w-5 h-5 text-green-600" /></div>
-                        <div><p className="text-xs text-gray-500">Polo</p><p className="text-gray-800 font-medium">{perfil.polo_nome}</p></div>
+                        <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-lg"><MapPin className="w-5 h-5 text-green-600 dark:text-green-400" /></div>
+                        <div><p className="text-xs text-gray-500 dark:text-gray-400">Polo</p><p className="text-gray-800 dark:text-gray-200 font-medium">{perfil.polo_nome}</p></div>
                       </div>
                     )}
                     {perfil?.escola_nome && (
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-orange-100 rounded-lg"><Building2 className="w-5 h-5 text-orange-600" /></div>
-                        <div><p className="text-xs text-gray-500">Escola</p><p className="text-gray-800 font-medium">{perfil.escola_nome}</p></div>
+                        <div className="p-2 bg-orange-100 dark:bg-orange-900/40 rounded-lg"><Building2 className="w-5 h-5 text-orange-600 dark:text-orange-400" /></div>
+                        <div><p className="text-xs text-gray-500 dark:text-gray-400">Escola</p><p className="text-gray-800 dark:text-gray-200 font-medium">{perfil.escola_nome}</p></div>
                       </div>
                     )}
                   </div>
@@ -280,12 +280,12 @@ export default function PerfilPage() {
               )}
 
               {/* Data de criação */}
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+              <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-200 rounded-lg"><Calendar className="w-5 h-5 text-gray-600" /></div>
+                  <div className="p-2 bg-gray-200 dark:bg-slate-600 rounded-lg"><Calendar className="w-5 h-5 text-gray-600 dark:text-gray-300" /></div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Membro desde</p>
-                    <p className="text-gray-800 font-medium mt-0.5">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Membro desde</p>
+                    <p className="text-gray-800 dark:text-gray-200 font-medium mt-0.5">
                       {perfil?.criado_em ? new Date(perfil.criado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
                     </p>
                   </div>

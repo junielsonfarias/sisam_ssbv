@@ -3,6 +3,9 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminExecutivo')
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +14,7 @@ export const dynamic = 'force-dynamic'
  * Dados agregados para o Painel Executivo do Secretário
  */
 export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
+  try {
     const { searchParams } = new URL(request.url)
     const anoLetivo = searchParams.get('ano_letivo') || String(new Date().getFullYear())
 
@@ -80,20 +84,46 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
         ),
 
         // Tabela geral de escolas
+        // Cada métrica é agregada em uma CTE independente por escola para evitar
+        // fan-out de JOIN (produto cartesiano turmas × alunos × períodos), que
+        // distorceria as médias de SISAM e frequência.
         pool.query(
-          `SELECT e.id, e.nome,
-                  COUNT(DISTINCT a.id) FILTER (WHERE a.situacao = 'cursando') as total_alunos,
-                  COUNT(DISTINCT t.id) as total_turmas,
-                  ROUND(AVG(rc.media_aluno)::numeric, 1) as media_sisam,
-                  ROUND(AVG(fb.percentual_frequencia)::numeric, 1) as frequencia_media
+          `WITH alunos_por_escola AS (
+             SELECT escola_id, COUNT(*) as total_alunos
+             FROM alunos
+             WHERE ano_letivo = $1 AND situacao = 'cursando'
+             GROUP BY escola_id
+           ),
+           turmas_por_escola AS (
+             SELECT escola_id, COUNT(*) as total_turmas
+             FROM turmas
+             WHERE ano_letivo = $1
+             GROUP BY escola_id
+           ),
+           media_por_escola AS (
+             SELECT escola_id, ROUND(AVG(media_aluno)::numeric, 1) as media_sisam
+             FROM resultados_consolidados
+             WHERE ano_letivo = $1 AND media_aluno IS NOT NULL
+             GROUP BY escola_id
+           ),
+           freq_por_escola AS (
+             SELECT a.escola_id, ROUND(AVG(fb.percentual_frequencia)::numeric, 1) as frequencia_media
+             FROM frequencia_bimestral fb
+             INNER JOIN alunos a ON a.id = fb.aluno_id AND a.ano_letivo = $1
+             WHERE fb.periodo_id IN (SELECT id FROM periodos_letivos WHERE ano_letivo = $1)
+             GROUP BY a.escola_id
+           )
+           SELECT e.id, e.nome,
+                  COALESCE(ape.total_alunos, 0) as total_alunos,
+                  COALESCE(tpe.total_turmas, 0) as total_turmas,
+                  mpe.media_sisam,
+                  fpe.frequencia_media
            FROM escolas e
-           LEFT JOIN turmas t ON t.escola_id = e.id AND t.ano_letivo = $1
-           LEFT JOIN alunos a ON a.escola_id = e.id AND a.ano_letivo = $1
-           LEFT JOIN resultados_consolidados rc ON rc.escola_id = e.id AND rc.ano_letivo = $1
-           LEFT JOIN frequencia_bimestral fb ON fb.aluno_id = a.id
-             AND fb.periodo_id IN (SELECT id FROM periodos_letivos WHERE ano_letivo = $1)
+           LEFT JOIN alunos_por_escola ape ON ape.escola_id = e.id
+           LEFT JOIN turmas_por_escola tpe ON tpe.escola_id = e.id
+           LEFT JOIN media_por_escola mpe ON mpe.escola_id = e.id
+           LEFT JOIN freq_por_escola fpe ON fpe.escola_id = e.id
            WHERE e.ativo = true
-           GROUP BY e.id, e.nome
            ORDER BY e.nome`,
           [anoLetivo]
         ),
@@ -144,4 +174,8 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request, usuari
     })
 
     return NextResponse.json(data)
+  } catch (error) {
+    log.error('Erro ao buscar dados executivos', error)
+    return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
+  }
 })

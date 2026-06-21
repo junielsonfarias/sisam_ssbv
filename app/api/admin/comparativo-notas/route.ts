@@ -35,7 +35,15 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     const where = createWhereBuilder()
     addRawCondition(where, 'a.ativo = true')
 
-    if (turma_id) {
+    // Controle de acesso: usuário 'escola' é SEMPRE restrito à própria unidade,
+    // independentemente de turma_id ter sido informado (evita IDOR via turma de outra escola).
+    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+      addCondition(where, 'a.escola_id', usuario.escola_id as string)
+      // turma_id é filtro ADICIONAL, não substitui o escopo de escola
+      if (turma_id) {
+        addCondition(where, 'a.turma_id', turma_id)
+      }
+    } else if (turma_id) {
       addCondition(where, 'a.turma_id', turma_id)
     } else if (escolaFiltro) {
       addCondition(where, 'a.escola_id', escolaFiltro)

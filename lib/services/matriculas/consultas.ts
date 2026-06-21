@@ -39,9 +39,9 @@ export async function verificarCapacidadeTurma(
 ): Promise<CapacidadeTurma> {
   const result = await pool.query(
     `SELECT t.capacidade_maxima,
-            COUNT(a.id) FILTER (WHERE a.situacao = 'cursando') as total_cursando
+            COUNT(a.id) FILTER (WHERE a.situacao = 'cursando' AND a.ativo = true) as total_cursando
      FROM turmas t
-     LEFT JOIN alunos a ON a.turma_id = t.id AND a.situacao = 'cursando'
+     LEFT JOIN alunos a ON a.turma_id = t.id AND a.situacao = 'cursando' AND a.ativo = true
      WHERE t.id = $1
      GROUP BY t.id, t.capacidade_maxima`,
     [turmaId]

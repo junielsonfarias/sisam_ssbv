@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import { generateApiKey } from '@/lib/device-auth'
 import pool from '@/database/connection'
+import { uuidSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,9 @@ export async function POST(
     }
 
     const { id } = params
+    if (!uuidSchema.safeParse(id).success) {
+      return NextResponse.json({ mensagem: 'ID inválido' }, { status: 400 })
+    }
 
     // Verificar se dispositivo existe
     const check = await pool.query(

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limite') || '20', 10)))
     const offset = (page - 1) * limit
 
-    const redisKey = cacheKey('publicacoes', tipo || '', orgao || '', ano || '', String(page))
+    const redisKey = cacheKey('publicacoes', tipo || '', orgao || '', ano || '', String(page), String(limit))
     const data = await withRedisCache(redisKey, CACHE_TTL.PUBLICO, async () => {
       const conditions: string[] = ['ativo = true']
       const params: any[] = []

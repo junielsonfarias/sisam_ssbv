@@ -3,6 +3,7 @@ import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
 import { lancarFaltas } from '@/lib/services/frequencia'
 import { validateRequest, lancarFaltasSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,10 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
   }
 
   const totalFaltas = await lancarFaltas(turma_id, data, usuario.id)
+
+  // Invalidar cache após inserir faltas (mesmos padrões do DELETE da rota irmã)
+  try { await cacheDelPattern('frequencia:*') } catch {}
+  try { await cacheDelPattern('boletim:*') } catch {}
 
   return NextResponse.json({
     mensagem: `${totalFaltas} falta(s) lançada(s) com sucesso`,

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, hashPassword, comparePassword } from '@/lib/auth'
 import pool from '@/database/connection'
-import { validatePassword } from '@/lib/validation'
 import { checkRateLimit, getClientIP, resetRateLimit } from '@/lib/rate-limiter'
 import { validateRequest, perfilSenhaSchema } from '@/lib/schemas'
 import { validarSenhaNaoVazada } from '@/lib/utils/senha-vazada'

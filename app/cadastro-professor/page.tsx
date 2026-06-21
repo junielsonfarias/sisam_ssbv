@@ -81,10 +81,10 @@ export default function CadastroProfessorPage() {
 
   if (sucesso) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
         <div className="max-w-md w-full text-center space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700">
-            <CheckCircle className="mx-auto h-16 w-16 text-emerald-500 mb-4" />
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-slate-700">
+            <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Cadastro Realizado!</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Seu cadastro foi enviado com sucesso. Aguarde a ativação pelo administrador da sua escola.
@@ -92,7 +92,7 @@ export default function CadastroProfessorPage() {
             </p>
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
             >
               <ArrowLeft className="h-4 w-4" />
               Voltar ao Login
@@ -104,13 +104,13 @@ export default function CadastroProfessorPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-900">
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="max-w-lg w-full">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/40 mb-4">
-              <GraduationCap className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/40 mb-4">
+              <GraduationCap className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cadastro de Professor</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -119,7 +119,7 @@ export default function CadastroProfessorPage() {
           </div>
 
           {/* Formulário */}
-          <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 space-y-4">
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-slate-700 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Nome completo *
@@ -131,7 +131,7 @@ export default function CadastroProfessorPage() {
                 required
                 minLength={3}
                 placeholder="Seu nome completo"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
@@ -147,7 +147,7 @@ export default function CadastroProfessorPage() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="seu.email@exemplo.com"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
@@ -164,7 +164,7 @@ export default function CadastroProfessorPage() {
                   onChange={e => setCpf(formatarCPF(e.target.value))}
                   placeholder="000.000.000-00"
                   maxLength={14}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
               <div>
@@ -179,7 +179,7 @@ export default function CadastroProfessorPage() {
                   onChange={e => setTelefone(formatarTelefone(e.target.value))}
                   placeholder="(00) 00000-0000"
                   maxLength={15}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
             </div>
@@ -196,11 +196,12 @@ export default function CadastroProfessorPage() {
                   required
                   minLength={8}
                   placeholder="Mínimo 8 caracteres"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm pr-10 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm pr-10 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
                 <button
                   type="button"
                   onClick={() => setMostrarSenha(!mostrarSenha)}
+                  aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -219,7 +220,7 @@ export default function CadastroProfessorPage() {
                 required
                 minLength={8}
                 placeholder="Repita a senha"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
@@ -233,7 +234,7 @@ export default function CadastroProfessorPage() {
             <button
               type="submit"
               disabled={carregando}
-              className="w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              className="w-full py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
               {carregando ? 'Cadastrando...' : 'Criar minha conta'}
             </button>
@@ -245,7 +246,7 @@ export default function CadastroProfessorPage() {
 
           {/* Link voltar */}
           <div className="text-center mt-4">
-            <Link href="/login" className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
+            <Link href="/login" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
               Já tenho conta — Fazer login
             </Link>
           </div>

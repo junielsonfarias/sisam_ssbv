@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { verificarVinculoProfessor } from '@/lib/professor-auth'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -23,21 +24,20 @@ export const GET = withAuth('professor', async (request, usuario) => {
 
   const { turma_id } = parsed.data
 
-  // Verificar vínculo e obter escola_id
-  const vinculo = await pool.query(
-    `SELECT pt.id, t.escola_id
-     FROM professor_turmas pt
-     JOIN turmas t ON t.id = pt.turma_id
-     WHERE pt.professor_id = $1 AND pt.turma_id = $2 AND pt.ativo = true
-     LIMIT 1`,
-    [usuario.id, turma_id]
-  )
-
-  if (vinculo.rows.length === 0) {
+  // Verificar vínculo (cruza ano_letivo do vínculo com o da turma — evita
+  // vínculo órfão de ano anterior em turma homônima).
+  const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
+  if (!temVinculo) {
     return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
   }
 
-  const escolaId = vinculo.rows[0].escola_id
+  // Obter escola_id da turma (necessário para o comparativo escola × turma)
+  const escolaResult = await pool.query('SELECT escola_id FROM turmas WHERE id = $1', [turma_id])
+  if (escolaResult.rows.length === 0) {
+    return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
+  }
+
+  const escolaId = escolaResult.rows[0].escola_id
 
   // Comparativo: média da turma vs média da escola por disciplina
   const result = await pool.query(

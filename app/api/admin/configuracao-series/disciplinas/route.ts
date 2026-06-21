@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { limparCacheConfigSeries } from '@/lib/config-series'
+import { cacheDelPattern } from '@/lib/cache'
 import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest, uuidSchema } from '@/lib/schemas'
@@ -228,8 +229,10 @@ export async function POST(request: NextRequest) {
 
       await client.query('COMMIT')
 
-      // Limpar cache após atualização das disciplinas
+      // Limpar cache após atualização das disciplinas (interno + Redis do GET
+      // de configuracao-series, senão serve config antiga até o TTL)
       limparCacheConfigSeries()
+      try { await cacheDelPattern('config-series:*') } catch {}
 
       return NextResponse.json({
         mensagem: 'Disciplinas atualizadas com sucesso',
@@ -281,8 +284,10 @@ export async function DELETE(request: NextRequest) {
       WHERE id = $1
     `, [disciplinaId])
 
-    // Limpar cache após remover disciplina
+    // Limpar cache após remover disciplina (interno + Redis do GET de
+    // configuracao-series, senão serve config antiga até o TTL)
     limparCacheConfigSeries()
+    try { await cacheDelPattern('config-series:*') } catch {}
 
     return new NextResponse(null, { status: 204 })
 

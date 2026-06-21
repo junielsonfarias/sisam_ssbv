@@ -12,6 +12,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
+import ProtectedRoute from '@/components/protected-route';
 
 export default function RelatorioPoloPage() {
   const params = useParams();
@@ -40,9 +41,7 @@ export default function RelatorioPoloPage() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          const errorMsg = errorData.detalhes
-            ? `${errorData.error}: ${errorData.detalhes}`
-            : errorData.error || 'Erro ao carregar dados do relatório';
+          const errorMsg = errorData.mensagem || 'Erro ao carregar dados do relatório';
           throw new Error(errorMsg);
         }
 
@@ -70,6 +69,7 @@ export default function RelatorioPoloPage() {
 
   if (carregando) {
     return (
+      <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="sisam">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
@@ -80,11 +80,13 @@ export default function RelatorioPoloPage() {
           </p>
         </div>
       </div>
+      </ProtectedRoute>
     );
   }
 
   if (erro) {
     return (
+      <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="sisam">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
         <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
           <div className="flex items-center gap-3 text-red-600 mb-4">
@@ -94,7 +96,7 @@ export default function RelatorioPoloPage() {
           <p className="text-gray-600 dark:text-gray-300 mb-6">{erro}</p>
           <div className="flex gap-3">
             <Link
-              href="/admin/relatorios"
+              href="/admin/sisam/relatorios"
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -110,11 +112,13 @@ export default function RelatorioPoloPage() {
           </div>
         </div>
       </div>
+      </ProtectedRoute>
     );
   }
 
   if (!dados) {
     return (
+      <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="sisam">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
         <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 text-center">
           <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
@@ -125,7 +129,7 @@ export default function RelatorioPoloPage() {
             Não foram encontrados dados para este polo no ano letivo {anoLetivo}.
           </p>
           <Link
-            href="/admin/relatorios"
+            href="/admin/sisam/relatorios"
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -133,11 +137,12 @@ export default function RelatorioPoloPage() {
           </Link>
         </div>
       </div>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <>
+    <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="sisam">
       {/* Estilos de impressão inline */}
       <style jsx global>{`
         @media print {
@@ -256,7 +261,7 @@ export default function RelatorioPoloPage() {
       <div className="barra-acoes-relatorio sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 shadow-sm print:hidden">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link
-            href="/admin/relatorios"
+            href="/admin/sisam/relatorios"
             className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -303,6 +308,6 @@ export default function RelatorioPoloPage() {
           </ul>
         </div>
       </div>
-    </>
+    </ProtectedRoute>
   );
 }

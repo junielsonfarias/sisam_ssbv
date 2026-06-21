@@ -1,14 +1,17 @@
 // SISAM - API de Histórico de Divergências
 // GET: Lista histórico de correções
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { limparHistoricoAntigo } from '@/lib/divergencias/corretores'
 import {
   parseSearchParams, parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
   createWhereBuilder, addCondition, buildWhereString, buildConditionsString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DivergenciasHistorico')
 
 export const dynamic = 'force-dynamic'
 
@@ -16,17 +19,8 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/divergencias/historico
  * Lista histórico de correções de divergências
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Acesso não autorizado. Apenas administradores podem acessar o histórico.' },
-        { status: 403 }
-      )
-    }
-
     const searchParams = request.nextUrl.searchParams
     const { tipo, nivel, dataInicio, dataFim } = parseSearchParams(
       searchParams, ['tipo', 'nivel', 'dataInicio', 'dataFim']
@@ -80,29 +74,20 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Erro ao buscar histórico:', error)
+    log.error('Erro ao buscar histórico', error)
     return NextResponse.json(
       { mensagem: 'Erro ao buscar histórico' },
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * DELETE /api/admin/divergencias/historico
  * Limpa histórico com mais de 30 dias
  */
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Acesso não autorizado.' },
-        { status: 403 }
-      )
-    }
-
     const resultado = await limparHistoricoAntigo()
 
     return NextResponse.json({
@@ -111,10 +96,10 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Erro ao limpar histórico:', error)
+    log.error('Erro ao limpar histórico', error)
     return NextResponse.json(
       { mensagem: 'Erro ao limpar histórico' },
       { status: 500 }
     )
   }
-}
+})

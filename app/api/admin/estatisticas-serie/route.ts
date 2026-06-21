@@ -78,18 +78,25 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     )
 
     // Processar resultados para adicionar informações extras
-    const estatisticas = result.rows.map((row: any) => ({
-      ...row,
-      // Determinar tipo de avaliação
-      tipo_avaliacao: row.tem_producao_textual ? 'anos_iniciais' : 'anos_finais',
-      // Calcular percentuais de nível de aprendizagem
-      percentual_insuficiente: row.presentes > 0 ? Math.round((row.qtd_insuficiente / row.presentes) * 100) : 0,
-      percentual_basico: row.presentes > 0 ? Math.round((row.qtd_basico / row.presentes) * 100) : 0,
-      percentual_adequado: row.presentes > 0 ? Math.round((row.qtd_adequado / row.presentes) * 100) : 0,
-      percentual_avancado: row.presentes > 0 ? Math.round((row.qtd_avancado / row.presentes) * 100) : 0,
-      // Calcular taxa de presença
-      taxa_presenca: row.total_alunos > 0 ? Math.round((row.presentes / row.total_alunos) * 100) : 0,
-    }))
+    const estatisticas = result.rows.map((row: any) => {
+      // COUNT do PG vem como string (bigint) — converter antes de operar
+      const presentes = Number(row.presentes) || 0
+      const faltas = Number(row.faltas) || 0
+      const avaliados = presentes + faltas
+      return {
+        ...row,
+        // Determinar tipo de avaliação
+        tipo_avaliacao: row.tem_producao_textual ? 'anos_iniciais' : 'anos_finais',
+        // Calcular percentuais de nível de aprendizagem
+        percentual_insuficiente: presentes > 0 ? Math.round((row.qtd_insuficiente / presentes) * 100) : 0,
+        percentual_basico: presentes > 0 ? Math.round((row.qtd_basico / presentes) * 100) : 0,
+        percentual_adequado: presentes > 0 ? Math.round((row.qtd_adequado / presentes) * 100) : 0,
+        percentual_avancado: presentes > 0 ? Math.round((row.qtd_avancado / presentes) * 100) : 0,
+        // Calcular taxa de presença na mesma granularidade de linha (presentes/faltas),
+        // evitando >100% quando o ano tem mais de uma avaliação por aluno
+        taxa_presenca: avaliados > 0 ? Math.round((presentes / avaliados) * 100) : 0,
+      }
+    })
 
     return NextResponse.json({
       estatisticas,

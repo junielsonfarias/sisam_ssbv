@@ -151,6 +151,12 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {
+    if ((error as DatabaseError).code === PG_ERRORS.FOREIGN_KEY_VIOLATION) {
+      return NextResponse.json(
+        { mensagem: 'Não é possível excluir: existem resultados de prova vinculados a esta questão.' },
+        { status: 409 }
+      )
+    }
     log.error('Erro ao excluir questão', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },

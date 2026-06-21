@@ -138,6 +138,14 @@ export const PUT = withAuth('professor', async (request, usuario) => {
     return NextResponse.json({ mensagem: 'Plano não encontrado' }, { status: 404 })
   }
 
+  // Revalidar vínculo com a turma de destino (o PUT pode mover o plano para
+  // outra turma via SET turma_id — sem este check o professor reatribuiria o
+  // plano para turma sem vínculo, poluindo o GET de outros usuários).
+  const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
+  if (!temVinculo) {
+    return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
+  }
+
   const result = await pool.query(`
     UPDATE planos_aula
     SET turma_id = $2, disciplina_id = $3, periodo = $4, data_inicio = $5, data_fim = $6,

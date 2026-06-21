@@ -26,8 +26,13 @@ export async function GET(request: NextRequest) {
 
     // Parâmetros de paginação
     const searchParams = request.nextUrl.searchParams
-    const page = parseInt(searchParams.get('pagina') || '1', 10)
-    const limit = Math.min(parseInt(searchParams.get('limite') || String(DEFAULT_LIMIT), 10), MAX_LIMIT)
+    // Sanear paginação: valores inválidos (NaN, <1) caem em fallbacks seguros
+    // para não gerar "invalid input syntax for type integer" no LIMIT/OFFSET.
+    const pageRaw = parseInt(searchParams.get('pagina') || '1', 10)
+    const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1
+    const limitRaw = parseInt(searchParams.get('limite') || String(DEFAULT_LIMIT), 10)
+    const limitBase = Number.isFinite(limitRaw) && limitRaw >= 1 ? limitRaw : DEFAULT_LIMIT
+    const limit = Math.min(limitBase, MAX_LIMIT)
     const offset = (page - 1) * limit
     const syncAll = searchParams.get('sync_all') === 'true'
 
@@ -36,6 +41,22 @@ export async function GET(request: NextRequest) {
 
     // Construir cláusula WHERE
     let whereClause = `WHERE 1=1`
+
+    // Guarda anti-IDOR: usuário de polo/escola SEM unidade vinculada não pode
+    // cair no whereClause permissivo (1=1) e vazar dados de todas as unidades.
+    // administrador/tecnico continuam vendo tudo.
+    if (usuario.tipo_usuario === 'polo' && !usuario.polo_id) {
+      return NextResponse.json(
+        { mensagem: 'Usuário sem unidade vinculada' },
+        { status: 403 }
+      )
+    }
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json(
+        { mensagem: 'Usuário sem unidade vinculada' },
+        { status: 403 }
+      )
+    }
 
     // Aplicar restrições de acesso
     if (usuario.tipo_usuario === 'polo' && usuario.polo_id) {

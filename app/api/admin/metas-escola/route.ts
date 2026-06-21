@@ -43,7 +43,6 @@ export const GET = withAuth(['administrador', 'tecnico'], async (request: NextRe
     const metas = await pool.query(metasQuery, params)
 
     // Calcular valores atuais por escola
-    const escolaFilter = escola_id ? `AND a.escola_id = '${escola_id}'` : ''
 
     // Frequência média
     const freqResult = await pool.query(

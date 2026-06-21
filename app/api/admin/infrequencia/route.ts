@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminInfrequencia')
 
 export const dynamic = 'force-dynamic'
 
@@ -25,11 +28,21 @@ export async function GET(request: NextRequest) {
     const escolaId = searchParams.get('escola_id')
     const poloId = searchParams.get('polo_id')
     const serie = searchParams.get('serie')
-    const limite = parseInt(searchParams.get('limite') || '50')
+    // Sanitiza limite: fallback 50 quando NaN/<=0 e teto de 500 (evita slice(0, NaN) → array vazio silencioso)
+    const limite = Math.min(500, Math.max(1, parseInt(searchParams.get('limite') || '50') || 50))
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
     if (!periodoId) {
       return NextResponse.json({ mensagem: 'Informe periodo_id' }, { status: 400 })
+    }
+
+    // Guarda de vínculo: usuário escola/polo sem unidade vinculada não pode
+    // cair em consulta sem filtro (vazaria dados de todas as unidades).
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem escola vinculada' }, { status: 403 })
+    }
+    if (usuario.tipo_usuario === 'polo' && !usuario.polo_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem polo vinculado' }, { status: 403 })
     }
 
     // Restrições por permissão
@@ -159,7 +172,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar infrequência:', error)
+    log.error('Erro ao buscar infrequência', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

@@ -218,7 +218,7 @@ export async function listarDocumentosAluno(alunoId: string) {
 export async function coletarDadosHistoricoEscolar(alunoId: string): Promise<Record<string, unknown>> {
   // Aluno + escola
   const aR = await pool.query(
-    `SELECT a.id, a.nome, a.cpf, a.matricula, a.data_nascimento, a.sexo,
+    `SELECT a.id, a.nome, a.cpf, a.codigo AS matricula, a.data_nascimento, a.genero AS sexo,
             a.nome_pai, a.nome_mae, a.naturalidade,
             e.nome AS escola_nome, e.codigo_inep AS escola_inep,
             e.endereco AS escola_endereco

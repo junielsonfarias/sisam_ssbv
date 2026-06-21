@@ -9,6 +9,7 @@ import {
   parseSearchParams, createWhereBuilder, addCondition, addAccessControl, buildWhereString,
 } from '@/lib/api-helpers'
 import { cacheDelPattern } from '@/lib/cache'
+import { invalidarCacheConfigNotas } from '@/lib/services/notas'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('AdminConfiguracaoNotas')
@@ -76,6 +77,7 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     log.info(`Config notas criada | escola:${escola_id} ano:${ano_letivo} | por ${usuario.email}`)
     try { await cacheDelPattern('config:*') } catch {}
     try { await cacheDelPattern('boletim:*') } catch {}
+    invalidarCacheConfigNotas(escola_id, ano_letivo)
     return NextResponse.json(result.rows[0], { status: 201 })
 })
 
@@ -112,6 +114,7 @@ export const PUT = withAuth(['administrador', 'tecnico', 'escola'], async (reque
 
     try { await cacheDelPattern('config:*') } catch {}
     try { await cacheDelPattern('boletim:*') } catch {}
+    invalidarCacheConfigNotas(escola_id, ano_letivo)
 
     return NextResponse.json(result.rows[0])
 })
@@ -133,6 +136,8 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     try { await cacheDelPattern('config:*') } catch {}
     try { await cacheDelPattern('boletim:*') } catch {}
+    // DELETE recebe apenas o id; sem a chave escola+ano, limpamos todo o cache.
+    invalidarCacheConfigNotas()
 
     return new NextResponse(null, { status: 204 })
 })

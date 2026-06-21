@@ -1,0 +1,29 @@
+{
+  "branch": "auto/revisao-noturna",
+  "iniciadoEm": "2026-06-20T19:54:00-03:00",
+  "deadline": "2026-06-21T09:00:00-03:00",
+  "cicloAtual": 4,
+  "finalizado": true,
+  "ciclosAlvo": 5,
+  "modoPosCiclos": "continuar-revisando-ate-deadline",
+  "aceitacao": "automatica",
+  "modoPermissoes": "bypass (ativado pelo usuario em 2026-06-20 ~19:58)",
+  "verificacao": "tsc+vitest",
+  "naoVerde": "reverter-automaticamente",
+  "push": "NUNCA (decisao manual do usuario)",
+  "retomadaPosCreditos": {
+    "mecanismo": "sleep-background-ate-reset+2min",
+    "helper": "scripts/automacao/calc-retomada.js",
+    "bufferMin": 2,
+    "status": "ocioso",
+    "resetEm": null,
+    "retomarEm": null,
+    "cicloPendente": null
+  },
+  "historico": [
+    { "ciclo": 1, "aprovados": 15, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 15, "tarefas": 58 },
+    { "ciclo": 2, "aprovados": 14, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 14, "tarefas": 46, "obs": "commits rotulados ciclo 1 por bug de args ja corrigido" },
+    { "ciclo": 3, "aprovados": 14, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 14, "tarefas": 30 },
+    { "ciclo": 4, "aprovados": 16, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 16, "tarefas": 43, "obs": "1a tentativa as 23:15 falhou por limite de sessao; re-disparado e concluido 08:52" }
+  ]
+}

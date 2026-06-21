@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('FrequenciaDiariaResumo')
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +19,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'Não autorizado' }, { status: 403 })
     }
 
+    // Guarda de vínculo: escola/polo sem unidade vinculada não pode cair em
+    // consulta sem filtro (contaria presenças/alunos de outras unidades).
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem escola vinculada' }, { status: 403 })
+    }
+    if (usuario.tipo_usuario === 'polo' && !usuario.polo_id) {
+      return NextResponse.json({ mensagem: 'Usuário sem polo vinculado' }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
     const data = searchParams.get('data') || new Date().toISOString().split('T')[0]
     let escolaId = searchParams.get('escola_id')
@@ -25,6 +37,19 @@ export async function GET(request: NextRequest) {
     // Controle de acesso
     if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
       escolaId = usuario.escola_id
+    }
+
+    // Usuário 'polo': evitar IDOR cross-polo. Se informou escola_id, a escola
+    // precisa pertencer ao polo do usuário; caso contrário, mantém o filtro por
+    // polo (escolaId nulo). Sem isso, o else-if abaixo ignoraria o filtro de polo.
+    if (usuario.tipo_usuario === 'polo' && escolaId) {
+      const escolaDoPolo = await pool.query(
+        'SELECT 1 FROM escolas WHERE id = $1 AND polo_id = $2',
+        [escolaId, poloIdUsuario]
+      )
+      if (escolaDoPolo.rows.length === 0) {
+        return NextResponse.json({ mensagem: 'Escola fora do polo' }, { status: 403 })
+      }
     }
 
     // Totais por status no dia (presente/ausente/justificado).
@@ -81,14 +106,11 @@ export async function GET(request: NextRequest) {
       alunoIdx++
     }
 
-    const safeQuery = async (sql: string, params: any[] = []) => {
-      try { return await pool.query(sql, params) }
-      catch (err: unknown) { console.error('[Freq Resumo] Query falhou:', (err as Error)?.message); return { rows: [] } }
-    }
-
+    // Sem safeQuery silencioso: falha de query deve propagar para o catch
+    // externo (que retorna 500), e não virar um 200 com zeros (sucesso falso).
     const [presencaResult, alunosResult] = await Promise.all([
-      safeQuery(presencaQuery, presencaParams),
-      safeQuery(alunosQuery, alunosParams),
+      pool.query(presencaQuery, presencaParams),
+      pool.query(alunosQuery, alunosParams),
     ])
 
     const presenca = presencaResult.rows[0]
@@ -107,7 +129,7 @@ export async function GET(request: NextRequest) {
       taxa_presenca: taxaPresenca,
     })
   } catch (error: unknown) {
-    console.error('Erro ao buscar resumo de frequência:', error)
+    log.error('Erro ao buscar resumo de frequência', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

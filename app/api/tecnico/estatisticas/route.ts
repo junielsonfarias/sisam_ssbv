@@ -8,21 +8,29 @@
  * @query serie - Filtrar por série específica (ex: "2º Ano", "8º Ano")
  */
 
-import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import { getEstatisticas, getEstatisticasPadrao } from '@/lib/services/estatisticas.service'
-import { ok, okComFallback } from '@/lib/api-utils'
+import { badRequest, ok, okComFallback } from '@/lib/api-utils'
+import { estatisticasFiltrosSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export const GET = withAuth('tecnico', async (request, usuario) => {
   try {
-    // Extrair filtros da query string
+    // Extrair e validar filtros da query string
     const { searchParams } = new URL(request.url)
-    const serie = searchParams.get('serie') || undefined
-    const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
-    const avaliacaoId = searchParams.get('avaliacao_id') || undefined
+    const parsed = estatisticasFiltrosSchema.safeParse({
+      serie: searchParams.get('serie') ?? undefined,
+      ano_letivo: searchParams.get('ano_letivo') ?? undefined,
+      avaliacao_id: searchParams.get('avaliacao_id') ?? undefined,
+    })
+
+    if (!parsed.success) {
+      return badRequest('Filtros inválidos', { codigo: 'ERRO_VALIDACAO' })
+    }
+
+    const { serie, ano_letivo: anoLetivo, avaliacao_id: avaliacaoId } = parsed.data
 
     // Buscar estatísticas usando o serviço centralizado
     const estatisticas = await getEstatisticas(usuario, { serie, anoLetivo, avaliacaoId })

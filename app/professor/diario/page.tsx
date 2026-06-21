@@ -1,39 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { BookOpen, Plus, Edit2, Trash2, Calendar, List, ChevronLeft, ChevronRight, X, Save, AlertTriangle } from 'lucide-react'
+import { BookOpen, Calendar, List, AlertTriangle } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
-import SeletorBncc from '@/components/professor/seletor-bncc'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 import ContextoLancamento from '@/components/professor/contexto-lancamento'
-
-interface Turma {
-  turma_id: string
-  turma_nome: string
-  serie: string
-  turno: string
-  escola_nome: string
-  tipo_vinculo: string
-  disciplina_nome: string | null
-}
-
-interface Disciplina {
-  id: string
-  nome: string
-}
-
-interface RegistroDiario {
-  id: string
-  turma_id: string
-  disciplina_id: string | null
-  data_aula: string
-  conteudo: string
-  metodologia: string | null
-  observacoes: string | null
-  turma_nome: string
-  disciplina_nome: string | null
-  criado_em: string
-  habilidades_bncc?: string[]
-}
+import { DiarioCalendario, DiarioLista, DiarioModal } from './components'
+import type { Turma, Disciplina, RegistroDiario } from './components'
 
 function DiarioDeClasse() {
   const [turmas, setTurmas] = useState<Turma[]>([])
@@ -60,6 +33,8 @@ function DiarioDeClasse() {
   const [formMetodologia, setFormMetodologia] = useState('')
   const [formObservacoes, setFormObservacoes] = useState('')
   const [formHabilidadesBncc, setFormHabilidadesBncc] = useState<string[]>([])
+  const [confirmarExcluir, setConfirmarExcluir] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/professor/turmas')
@@ -156,15 +131,27 @@ function DiarioDeClasse() {
     }
   }
 
-  const excluir = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este registro?')) return
+  const excluir = (id: string) => {
+    setConfirmarExcluir(id)
+  }
+
+  const confirmarExclusaoRegistro = async () => {
+    if (!confirmarExcluir) return
+    const id = confirmarExcluir
+    setExcluindo(id)
+    setErro('')
     try {
       const res = await fetch(`/api/professor/diario?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Erro ao excluir')
       setMensagem('Registro excluído')
+      // Fecha o modal de edição caso a exclusão tenha partido de dentro dele
+      setModalAberto(false)
       carregarRegistros()
     } catch {
       setErro('Erro ao excluir registro')
+    } finally {
+      setExcluindo(null)
+      setConfirmarExcluir(null)
     }
   }
 
@@ -179,32 +166,13 @@ function DiarioDeClasse() {
     setMesAtual(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
 
-  // Normaliza qualquer formato de data (Date, ISO com TZ, ISO sem TZ) para
-  // YYYY-MM-DD. Evita falso negativo quando backend muda o shape do campo
-  // (lesson pre-Pt.6: substring assumia ISO puro sem timezone).
-  const dataParaISO = (data: string | Date): string => {
-    if (data instanceof Date) {
-      const y = data.getFullYear()
-      const m = String(data.getMonth() + 1).padStart(2, '0')
-      const d = String(data.getDate()).padStart(2, '0')
-      return `${y}-${m}-${d}`
-    }
-    // String: pode vir 'YYYY-MM-DD', 'YYYY-MM-DDTHH:mm:ss', ou 'YYYY-MM-DDTHH:mm:ssZ'
-    return data.slice(0, 10)
-  }
-
-  const getRegistrosDia = (dia: number) => {
-    const dataStr = `${mesAtual}-${String(dia).padStart(2, '0')}`
-    return registros.filter(r => dataParaISO(r.data_aula) === dataStr)
-  }
-
   const nomeMes = new Date(ano, mes - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 
   if (carregando) {
     return (
       <div className="space-y-4">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 animate-pulse" />
-        {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />)}
+        <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-48 animate-pulse" />
+        {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />)}
       </div>
     )
   }
@@ -235,14 +203,14 @@ function DiarioDeClasse() {
       )}
 
       {/* Filtros */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
         <div className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Turma</label>
             <select
               value={turmaId}
               onChange={e => setTurmaId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
             >
               <option value="">Selecione uma turma</option>
               {turmas.map(t => (
@@ -255,13 +223,13 @@ function DiarioDeClasse() {
           <div className="flex gap-2">
             <button
               onClick={() => setVisao('calendario')}
-              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${visao === 'calendario' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
+              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${visao === 'calendario' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400'}`}
             >
               <Calendar className="h-4 w-4" /> Calendário
             </button>
             <button
               onClick={() => setVisao('lista')}
-              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${visao === 'lista' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
+              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${visao === 'lista' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400'}`}
             >
               <List className="h-4 w-4" /> Lista
             </button>
@@ -270,7 +238,7 @@ function DiarioDeClasse() {
       </div>
 
       {!turmaId ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
           <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-gray-500 dark:text-gray-400">Selecione uma turma para visualizar o diário</p>
         </div>
@@ -294,290 +262,63 @@ function DiarioDeClasse() {
       )}
 
       {!turmaId ? null : visao === 'calendario' ? (
-        /* Visão Calendário */
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          {/* Navegação de mês */}
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => mudarMes(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-              <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </button>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">{nomeMes}</h2>
-            <button onClick={() => mudarMes(1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-              <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </button>
-          </div>
-
-          {carregandoRegistros ? (
-            <div className="h-64 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
-            </div>
-          ) : (
-            <>
-              {/* Cabeçalho dias da semana */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
-                  <div key={d} className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1">{d}</div>
-                ))}
-              </div>
-              {/* Dias */}
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: primeiroDia }).map((_, i) => (
-                  <div key={`e-${i}`} className="h-20" />
-                ))}
-                {diasArray.map(dia => {
-                  const regs = getRegistrosDia(dia)
-                  const dataStr = `${mesAtual}-${String(dia).padStart(2, '0')}`
-                  const hoje = dataParaISO(new Date()) === dataStr
-                  // Multiplos registros (professor polivalente com varias
-                  // disciplinas no mesmo dia): clica abre o primeiro, mas
-                  // o card mostra contador + chips de disciplina para
-                  // sinalizar que ha mais (antes mostrava so regs[0] e
-                  // os outros ficavam invisiveis).
-                  return (
-                    <button
-                      key={dia}
-                      onClick={() => regs.length > 0 ? abrirModal(dataStr, regs[0]) : abrirModal(dataStr)}
-                      className={`h-20 p-1 rounded-lg border text-left transition-colors hover:border-emerald-400 ${
-                        hoje ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700'
-                      } ${regs.length > 0 ? 'bg-emerald-50 dark:bg-emerald-900/30' : ''}`}
-                      title={regs.length > 1 ? `${regs.length} registros — clique para abrir o primeiro` : undefined}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-medium ${hoje ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                          {dia}
-                        </span>
-                        {regs.length > 1 && (
-                          <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded-full leading-none">
-                            {regs.length}
-                          </span>
-                        )}
-                      </div>
-                      {regs.length > 0 && (
-                        <>
-                          <p className="text-[10px] text-gray-600 dark:text-gray-400 line-clamp-1 mt-0.5">
-                            {regs[0].conteudo.substring(0, 50)}
-                          </p>
-                          {regs.length > 1 && (
-                            <div className="flex flex-wrap gap-0.5 mt-0.5">
-                              {regs.slice(0, 3).map(r => (
-                                <span key={r.id} className="text-[8px] px-1 py-0.5 bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200 rounded">
-                                  {r.disciplina_nome?.slice(0, 3) ?? '—'}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
-
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => abrirModal()}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              <Plus className="h-4 w-4" /> Novo Registro
-            </button>
-          </div>
-        </div>
+        <DiarioCalendario
+          nomeMes={nomeMes}
+          mesAtual={mesAtual}
+          primeiroDia={primeiroDia}
+          diasArray={diasArray}
+          carregandoRegistros={carregandoRegistros}
+          registros={registros}
+          onMudarMes={mudarMes}
+          onAbrirModal={abrirModal}
+        />
       ) : (
-        /* Visão Lista */
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2">
-              <button onClick={() => mudarMes(-1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm font-medium capitalize text-gray-900 dark:text-white">{nomeMes}</span>
-              <button onClick={() => mudarMes(1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-            <button
-              onClick={() => abrirModal()}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-            >
-              <Plus className="h-4 w-4" /> Novo
-            </button>
-          </div>
-          {carregandoRegistros ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
-            </div>
-          ) : registros.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">Nenhum registro neste mês</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">Data</th>
-                    <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">Disciplina</th>
-                    <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">Conteúdo</th>
-                    <th className="text-right px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {registros.map(r => (
-                    <tr key={r.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                      <td className="px-4 py-3 text-gray-900 dark:text-white whitespace-nowrap">
-                        {new Date(r.data_aula + 'T12:00:00').toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                        {r.disciplina_nome || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs">
-                        <div className="truncate">{r.conteudo}</div>
-                        {r.habilidades_bncc && r.habilidades_bncc.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {r.habilidades_bncc.slice(0, 4).map(codigo => (
-                              <code
-                                key={codigo}
-                                className="px-1 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded text-[10px] font-mono"
-                                title={`Habilidade BNCC ${codigo}`}
-                              >
-                                {codigo}
-                              </code>
-                            ))}
-                            {r.habilidades_bncc.length > 4 && (
-                              <span className="text-[10px] text-gray-500 dark:text-gray-400 self-center">
-                                +{r.habilidades_bncc.length - 4}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button onClick={() => abrirModal(undefined, r)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => excluir(r.id)} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded text-red-500">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <DiarioLista
+          nomeMes={nomeMes}
+          carregandoRegistros={carregandoRegistros}
+          registros={registros}
+          onMudarMes={mudarMes}
+          onAbrirModal={abrirModal}
+          onExcluir={excluir}
+        />
       )}
 
       {/* Modal */}
       {modalAberto && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
-          <div className="bg-white dark:bg-gray-800 sm:rounded-xl rounded-t-2xl shadow-xl w-full sm:max-w-lg h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col">
-            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {formId ? 'Editar Registro' : 'Novo Registro'}
-              </h3>
-              <button onClick={() => setModalAberto(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data da Aula</label>
-                <input
-                  type="date"
-                  value={formData}
-                  onChange={e => setFormData(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                />
-              </div>
-              {disciplinas.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Disciplina</label>
-                  <select
-                    value={formDisciplinaId}
-                    onChange={e => setFormDisciplinaId(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                  >
-                    <option value="">Selecione</option>
-                    {disciplinas.map(d => (
-                      <option key={d.id} value={d.id}>{d.nome}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Seletor de habilidades BNCC — colocado antes do conteudo
-                  para o professor escolher as habilidades primeiro e
-                  redigir o conteudo alinhado a elas. */}
-              <SeletorBncc
-                valor={formHabilidadesBncc}
-                onChange={setFormHabilidadesBncc}
-                disciplinaId={formDisciplinaId || null}
-                turmaId={turmaId}
-                label="Habilidades BNCC desta aula"
-              />
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conteúdo *</label>
-                <textarea
-                  value={formConteudo}
-                  onChange={e => setFormConteudo(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                  placeholder="Descreva o conteúdo da aula..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metodologia</label>
-                <textarea
-                  value={formMetodologia}
-                  onChange={e => setFormMetodologia(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                  placeholder="Metodologia utilizada (opcional)"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações</label>
-                <textarea
-                  value={formObservacoes}
-                  onChange={e => setFormObservacoes(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                  placeholder="Observações (opcional)"
-                />
-              </div>
-
-              {erro && <p className="text-red-600 dark:text-red-400 text-sm">{erro}</p>}
-            </div>
-            <div className="flex-shrink-0 flex flex-wrap justify-end gap-2 p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-2xl sm:rounded-b-xl">
-              {formId && (
-                <button
-                  onClick={() => { excluir(formId); setModalAberto(false) }}
-                  className="flex items-center gap-1 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
-                >
-                  <Trash2 className="h-4 w-4" /> Excluir
-                </button>
-              )}
-              <button
-                onClick={() => setModalAberto(false)}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={salvar}
-                disabled={salvando}
-                className="flex items-center gap-1 px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50"
-              >
-                <Save className="h-4 w-4" /> {salvando ? 'Salvando...' : 'Salvar'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DiarioModal
+          formId={formId}
+          formData={formData}
+          formDisciplinaId={formDisciplinaId}
+          formConteudo={formConteudo}
+          formMetodologia={formMetodologia}
+          formObservacoes={formObservacoes}
+          formHabilidadesBncc={formHabilidadesBncc}
+          disciplinas={disciplinas}
+          turmaId={turmaId}
+          salvando={salvando}
+          erro={erro}
+          setFormData={setFormData}
+          setFormDisciplinaId={setFormDisciplinaId}
+          setFormConteudo={setFormConteudo}
+          setFormMetodologia={setFormMetodologia}
+          setFormObservacoes={setFormObservacoes}
+          setFormHabilidadesBncc={setFormHabilidadesBncc}
+          onFechar={() => setModalAberto(false)}
+          onSalvar={salvar}
+          onExcluir={excluir}
+        />
       )}
+
+      <ConfirmModal
+        aberto={confirmarExcluir !== null}
+        titulo="Excluir registro"
+        mensagem="Tem certeza? Esta ação não pode ser desfeita."
+        variant="danger"
+        textoConfirmar="Excluir"
+        processando={excluindo !== null}
+        onConfirmar={confirmarExclusaoRegistro}
+        onFechar={() => setConfirmarExcluir(null)}
+      />
     </div>
   )
 }

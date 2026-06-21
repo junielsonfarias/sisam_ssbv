@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withRedisCache, cacheKey } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Comunicados')
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +44,8 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(data)
-  } catch {
+  } catch (error) {
+    log.error('Erro ao buscar comunicados', error)
     return NextResponse.json({ mensagem: 'Erro ao buscar comunicados' }, { status: 500 })
   }
 }

@@ -14,7 +14,7 @@ interface Turma {
 
 interface QrData {
   token: string; url: string; data: string; expira_em: string; validade_minutos: number
-  turma: { codigo: string; nome: string; serie: string; escola_nome: string }
+  turma: { id: string; codigo: string; nome: string; serie: string; escola_nome: string }
 }
 
 export default function QrPresencaPage() {
@@ -133,7 +133,7 @@ export default function QrPresencaPage() {
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
               <ArrowLeft className="w-4 h-4" /> Voltar
             </button>
-            <button onClick={() => gerarQr(qrData.turma.codigo)}
+            <button onClick={() => gerarQr(qrData.turma.id)}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors">
               <RefreshCw className="w-4 h-4" /> Novo QR
             </button>

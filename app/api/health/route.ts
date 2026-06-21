@@ -79,13 +79,8 @@ export async function GET() {
       const { Redis } = await import('@upstash/redis')
       const r = new Redis({ url: redisUrl, token: redisToken })
       const pong = await r.ping()
-      await r.set('sisam:health:ping', 'ok', { ex: 60 })
-      const val = await r.get('sisam:health:ping')
-      const size = await r.dbsize()
       ;(health.redis as any).connected = true
       ;(health.redis as any).ping = pong
-      ;(health.redis as any).test_value = val
-      ;(health.redis as any).dbsize = size
     } catch (err: any) {
       log.error('Redis error', err)
       ;(health.redis as any).connected = false

@@ -15,6 +15,12 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo'], async (request
     const polo_id = searchParams.get('polo_id')
     const serie = searchParams.get('serie')
 
+    // Guarda de escopo (armadilha #2: escopo null = acesso total).
+    // Usuário de polo sem polo associado não pode ver todas as escolas.
+    if (usuario.tipo_usuario === 'polo' && !usuario.polo_id) {
+      return NextResponse.json({ mensagem: 'Usuário de polo sem polo associado' }, { status: 403 })
+    }
+
     // Filtro por polo (se usuário é polo, forçar o polo dele)
     const poloFilter = usuario.tipo_usuario === 'polo' ? usuario.polo_id : polo_id
 

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/niveis-aprendizagem
  * Retorna os níveis de aprendizagem
  */
-export const GET = withAuth(async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
     const result = await pool.query(`
       SELECT id, codigo, nome, descricao, cor, nota_minima, nota_maxima, ordem, serie_aplicavel, ativo

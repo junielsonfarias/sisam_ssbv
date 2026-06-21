@@ -6,6 +6,7 @@ import { DatabaseError } from '@/lib/validation'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { limparCacheConfigSeries } from '@/lib/config-series'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('AdminMatriculasSeries')
@@ -30,7 +31,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
               tem_producao_textual
        FROM configuracao_series
        WHERE ativo = true
-       ORDER BY CASE WHEN serie ~ '^\d+$' THEN serie::integer ELSE 999 END, serie`
+       ORDER BY CASE WHEN serie ~ '^[0-9]+$' THEN serie::integer ELSE 999 END, serie`
     )
 
     return NextResponse.json(result.rows)
@@ -61,6 +62,10 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
       ]
     )
 
+    // Invalida a chave realmente usada pelo GET de configuracao-series (config-series:*)
+    // além do cache em memória de lib/config-series e das chaves legadas.
+    limparCacheConfigSeries()
+    try { await cacheDelPattern('config-series:*') } catch {}
     try { await cacheDelPattern('config:*') } catch {}
     try { await cacheDelPattern('series:*') } catch {}
 

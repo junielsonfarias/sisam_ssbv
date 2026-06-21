@@ -41,31 +41,31 @@ export default function FormBuscaBoletim({
   carregando,
   onBuscar,
 }: FormBuscaBoletimProps) {
-  const inputClass = 'w-full rounded-xl border border-gray-200 bg-slate-50 px-5 py-4 sm:py-5 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white transition-all'
+  const inputClass = 'w-full rounded-xl border border-gray-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white px-5 py-4 sm:py-5 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white dark:focus:bg-slate-700 transition-all'
 
   return (
     <div className="w-full max-w-none">
       <div className="text-center mb-6 sm:mb-10">
-        <h1 className="text-xl sm:text-4xl font-bold text-slate-800">Consulta de Boletim</h1>
-        <p className="text-sm sm:text-lg text-slate-500 mt-1 sm:mt-3">Consulte as notas e frequência do aluno</p>
+        <h1 className="text-xl sm:text-4xl font-bold text-slate-800 dark:text-white">Consulta de Boletim</h1>
+        <p className="text-sm sm:text-lg text-slate-500 dark:text-slate-400 mt-1 sm:mt-3">Consulte as notas e frequência do aluno</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 sm:p-10 lg:p-16 space-y-5 sm:space-y-8">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-5 sm:p-10 lg:p-16 space-y-5 sm:space-y-8">
         {/* Modo toggle */}
-        <div className="flex bg-slate-100 rounded-xl p-1">
+        <div className="flex bg-slate-100 dark:bg-slate-700 rounded-xl p-1">
           <button onClick={() => onModoChange('codigo')}
-            className={`flex-1 py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all ${modo === 'codigo' ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            className={`flex-1 py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all ${modo === 'codigo' ? 'bg-white dark:bg-slate-600 text-blue-800 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
             Buscar por Codigo
           </button>
           <button onClick={() => onModoChange('cpf')}
-            className={`flex-1 py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all ${modo === 'cpf' ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            className={`flex-1 py-3 sm:py-4 rounded-lg text-sm sm:text-base font-semibold transition-all ${modo === 'cpf' ? 'bg-white dark:bg-slate-600 text-blue-800 dark:text-blue-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
             Buscar por CPF
           </button>
         </div>
 
         {modo === 'codigo' ? (
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Codigo do Aluno</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Codigo do Aluno</label>
             <input type="search" inputMode="search" value={codigo} onChange={e => onCodigoChange(e.target.value)}
               placeholder="Ex: NSL-2026-0001" className={inputClass}
               onKeyDown={e => e.key === 'Enter' && onBuscar()} />
@@ -73,12 +73,12 @@ export default function FormBuscaBoletim({
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">CPF do Aluno</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">CPF do Aluno</label>
               <input type="text" inputMode="numeric" autoComplete="off" value={cpf} onChange={e => onCpfChange(cpfMask(e.target.value))}
                 placeholder="000.000.000-00" maxLength={14} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Data de Nascimento</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Data de Nascimento</label>
               <input type="date" value={dataNasc} onChange={e => onDataNascChange(e.target.value)}
                 className={inputClass} />
             </div>
@@ -86,7 +86,7 @@ export default function FormBuscaBoletim({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Ano Letivo</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Ano Letivo</label>
           <select value={anoLetivo} onChange={e => onAnoLetivoChange(e.target.value)} className={inputClass}>
             {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(a => (
               <option key={a} value={a}>{a}</option>

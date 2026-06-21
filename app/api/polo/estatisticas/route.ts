@@ -7,28 +7,34 @@
  * @route GET /api/polo/estatisticas
  */
 
-import { NextRequest } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { withAuth } from '@/lib/auth/with-auth'
 import { getEstatisticas, getEstatisticasPadrao } from '@/lib/services/estatisticas.service'
-import { forbidden, ok, okComFallback } from '@/lib/api-utils'
+import { badRequest, forbidden, ok, okComFallback } from '@/lib/api-utils'
+import { estatisticasFiltrosSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function GET(request: NextRequest) {
-  try {
-    const usuario = await getUsuarioFromRequest(request)
+export const GET = withAuth('polo', async (request, usuario) => {
+  // withAuth garante o tipo 'polo', mas NÃO valida a presença do escopo.
+  if (!usuario.polo_id) {
+    return forbidden()
+  }
 
-    // Verificar permissão e se tem polo_id
-    if (!usuario || !verificarPermissao(usuario, ['polo']) || !usuario.polo_id) {
-      return forbidden()
+  try {
+    // Extrair e validar filtros da query string
+    const { searchParams } = new URL(request.url)
+    const parsed = estatisticasFiltrosSchema.safeParse({
+      serie: searchParams.get('serie') ?? undefined,
+      ano_letivo: searchParams.get('ano_letivo') ?? undefined,
+      avaliacao_id: searchParams.get('avaliacao_id') ?? undefined,
+    })
+
+    if (!parsed.success) {
+      return badRequest('Filtros inválidos', { codigo: 'ERRO_VALIDACAO' })
     }
 
-    // Extrair filtros da query string
-    const { searchParams } = new URL(request.url)
-    const serie = searchParams.get('serie') || undefined
-    const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
-    const avaliacaoId = searchParams.get('avaliacao_id') || undefined
+    const { serie, ano_letivo: anoLetivo, avaliacao_id: avaliacaoId } = parsed.data
 
     // Buscar estatísticas usando o serviço centralizado
     // O serviço detecta automaticamente que é usuário de polo e aplica os filtros
@@ -39,4 +45,4 @@ export async function GET(request: NextRequest) {
     console.error('[API Polo Estatisticas] Erro:', error)
     return okComFallback(getEstatisticasPadrao(), error)
   }
-}
+})

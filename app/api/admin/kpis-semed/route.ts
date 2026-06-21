@@ -13,11 +13,11 @@ import { obterKpisCompletos } from '@/lib/services/kpis-semed.service'
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuthModulo(['administrador', 'tecnico', 'polo'], 'semed', async (request) => {
+export const GET = withAuthModulo(['administrador', 'tecnico', 'polo'], 'semed', async (request, usuario) => {
   const { searchParams } = new URL(request.url)
   const ano = searchParams.get('ano') || String(new Date().getFullYear())
   const incluirComparativo = searchParams.get('comparativo') === 'true'
 
-  const kpis = await obterKpisCompletos(ano, incluirComparativo)
+  const kpis = await obterKpisCompletos(usuario, ano, incluirComparativo)
   return NextResponse.json(kpis)
 })

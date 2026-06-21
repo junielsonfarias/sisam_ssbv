@@ -175,6 +175,13 @@ export default function UsuariosPage() {
           polo_id: usuario.polo_id || null,
           escola_id: usuario.escola_id || null,
           ativo: !usuario.ativo,
+          // Preserva as permissões de módulo atuais — sem propagar, o PUT
+          // recalcula acessosValues com defaults e zera/sobrescreve os acessos.
+          acesso_sisam: usuario.acesso_sisam !== false,
+          acesso_gestor: usuario.acesso_gestor === true,
+          acesso_semed: usuario.acesso_semed === true,
+          acesso_transparencia: usuario.acesso_transparencia === true,
+          acesso_admin: usuario.acesso_admin === true,
         }),
       })
 

@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/configuracao-series
  * Retorna a configuração de todas as séries ou de uma série específica
  */
-export const GET = withAuth(async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
     const searchParams = request.nextUrl.searchParams
     const { serie, ano_letivo } = parseSearchParams(searchParams, ['serie', 'ano_letivo'])
@@ -56,7 +56,7 @@ export const GET = withAuth(async (request, usuario) => {
           cs.criado_em, cs.atualizado_em
         FROM configuracao_series cs
         WHERE ${buildConditionsString(where)}
-        ORDER BY cs.serie::integer`,
+        ORDER BY CASE WHEN cs.serie ~ '^[0-9]+$' THEN cs.serie::integer ELSE 999 END, cs.serie`,
         where.params
       )
 
@@ -234,33 +234,58 @@ export const DELETE = withAuth(['administrador'], async (request, usuario) => {
 
     // Verificar se há resultados vinculados
     const serieResult = await pool.query(
-      `SELECT serie FROM configuracao_series WHERE ${id ? 'id = $1' : 'serie = $1'}`,
+      `SELECT id, serie FROM configuracao_series WHERE ${id ? 'id = $1' : 'serie = $1'}`,
       [identifier]
     )
 
-    if (serieResult.rows.length > 0) {
-      const serieNumero = serieResult.rows[0].serie
-      const resultadosResult = await pool.query(
-        `SELECT COUNT(*) as total FROM resultados_consolidados WHERE serie = $1`,
-        [serieNumero]
+    if (serieResult.rows.length === 0) {
+      return NextResponse.json(
+        { mensagem: 'Série não encontrada' },
+        { status: 404 }
       )
-
-      const totalResultados = parseInt(resultadosResult.rows[0]?.total || '0', 10)
-
-      if (totalResultados > 0) {
-        return NextResponse.json(
-          { mensagem: `Não é possível excluir: existem ${totalResultados} resultado(s) de prova vinculado(s) a esta série` },
-          { status: 400 }
-        )
-      }
     }
 
-    // Excluir a série (as disciplinas serão excluídas em cascata)
-    const deleteWhere = id ? 'id = $1' : 'serie = $1'
-    const result = await pool.query(
-      `DELETE FROM configuracao_series WHERE ${deleteWhere} RETURNING *`,
-      [identifier]
+    const serieId = serieResult.rows[0].id
+    const serieNumero = serieResult.rows[0].serie
+    const resultadosResult = await pool.query(
+      `SELECT COUNT(*) as total FROM resultados_consolidados WHERE serie = $1`,
+      [serieNumero]
     )
+
+    const totalResultados = parseInt(resultadosResult.rows[0]?.total || '0', 10)
+
+    if (totalResultados > 0) {
+      return NextResponse.json(
+        { mensagem: `Não é possível excluir: existem ${totalResultados} resultado(s) de prova vinculado(s) a esta série` },
+        { status: 400 }
+      )
+    }
+
+    // Excluir disciplinas vinculadas e a série em transação.
+    // A FK configuracao_series_disciplinas.serie_id -> configuracao_series é NO ACTION
+    // (não cascade), então os vínculos precisam ser removidos antes do DELETE da série.
+    const client = await pool.connect()
+    let result
+    try {
+      await client.query('BEGIN')
+
+      await client.query(
+        'DELETE FROM configuracao_series_disciplinas WHERE serie_id = $1',
+        [serieId]
+      )
+
+      result = await client.query(
+        'DELETE FROM configuracao_series WHERE id = $1 RETURNING *',
+        [serieId]
+      )
+
+      await client.query('COMMIT')
+    } catch (error: unknown) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
 
     if (result.rows.length === 0) {
       return NextResponse.json(

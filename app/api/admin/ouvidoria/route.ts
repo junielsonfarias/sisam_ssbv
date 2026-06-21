@@ -115,10 +115,14 @@ export const PUT = withAuth(['administrador', 'tecnico'], async (request, usuari
 
   params.push(id)
 
-  await pool.query(
-    `UPDATE ouvidoria SET ${sets.join(', ')} WHERE id = $${paramIndex}`,
+  const result = await pool.query(
+    `UPDATE ouvidoria SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING id`,
     params
   )
+
+  if (result.rowCount === 0) {
+    return NextResponse.json({ mensagem: 'Manifestação não encontrada' }, { status: 404 })
+  }
 
   try { await cacheDelPattern('ouvidoria:*') } catch {}
 

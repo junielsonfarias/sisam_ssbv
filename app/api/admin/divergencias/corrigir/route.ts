@@ -1,11 +1,20 @@
 // SISAM - API de Correção de Divergências
 // POST: Executa correção de divergências
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/auth/with-auth'
 import { executarCorrecao } from '@/lib/divergencias/corretores'
 import { TipoDivergencia, CONFIGURACOES_DIVERGENCIAS } from '@/lib/divergencias/tipos'
+import {
+  cacheDelPattern,
+  invalidateDashboardCache,
+  invalidateFiltrosCache,
+  limparTodosOsCaches,
+} from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
 import { z } from 'zod'
+
+const log = createLogger('DivergenciasCorrigir')
 
 export const dynamic = 'force-dynamic'
 
@@ -19,17 +28,8 @@ export const dynamic = 'force-dynamic'
  *   - corrigirTodos: boolean (opcional - corrigir todos do tipo)
  *   - dadosCorrecao: object (opcional - dados adicionais para correção manual)
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(['administrador'], async (request, usuario) => {
   try {
-    const usuario = await getUsuarioFromRequest(request)
-
-    if (!usuario || !verificarPermissao(usuario, ['administrador'])) {
-      return NextResponse.json(
-        { mensagem: 'Acesso não autorizado. Apenas administradores podem corrigir divergências.' },
-        { status: 403 }
-      )
-    }
-
     const correcaoSchema = z.object({
       tipo: z.string().min(1, 'Tipo é obrigatório'),
       ids: z.array(z.string()).optional(),
@@ -95,6 +95,24 @@ export async function POST(request: NextRequest) {
       usuario.nome
     )
 
+    // Invalidar as 3 camadas de cache após correção bem-sucedida (armadilha #4):
+    // a correção altera resultados_consolidados, alunos, escolas e turmas, então
+    // dashboards/comparativos/resultados precisam refletir os dados corrigidos.
+    if (resultado.sucesso) {
+      try {
+        await Promise.all([
+          cacheDelPattern('stats:*'),
+          cacheDelPattern('executivo:*'),
+          cacheDelPattern('evolucao:*'),
+        ])
+        invalidateDashboardCache()
+        invalidateFiltrosCache()
+        limparTodosOsCaches()
+      } catch (cacheError) {
+        log.error('Erro ao invalidar cache após correção (não crítico)', cacheError)
+      }
+    }
+
     return NextResponse.json({
       ...resultado,
       tipo,
@@ -102,10 +120,10 @@ export async function POST(request: NextRequest) {
     }, { status: resultado.sucesso ? 200 : 400 })
 
   } catch (error: unknown) {
-    console.error('Erro ao corrigir divergência:', error)
+    log.error('Erro ao corrigir divergência', error)
     return NextResponse.json(
       { mensagem: 'Erro ao corrigir divergência' },
       { status: 500 }
     )
   }
-}
+})

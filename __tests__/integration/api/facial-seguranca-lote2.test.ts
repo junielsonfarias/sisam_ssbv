@@ -415,9 +415,10 @@ describe('Regressão Lote 2 — B2: GET /api/admin/dispositivos-faciais/[id]/qrc
     const { GET } = await import(
       '@/app/api/admin/dispositivos-faciais/[id]/qrcode/route'
     )
+    const idInexistente = 'd0000000-0000-4000-8000-000000009999'
     const res = await GET(
-      qrcodeReq('nao-existe-uuid'),
-      { params: { id: 'nao-existe-uuid' } }
+      qrcodeReq(idInexistente),
+      { params: { id: idInexistente } }
     )
 
     expect(res.status).toBe(404)

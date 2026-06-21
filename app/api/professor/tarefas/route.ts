@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
+import { verificarVinculoProfessor } from '@/lib/professor-auth'
 
 const log = createLogger('ProfessorTarefas')
 
@@ -79,6 +80,11 @@ export const POST = withAuth(['professor'], async (request, usuario) => {
     }
 
     const { turma_id, titulo, descricao, disciplina_id, disciplina, data_entrega, tipo } = parsed.data
+
+    const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
+    if (!temVinculo) {
+      return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
+    }
 
     const result = await pool.query(
       `INSERT INTO tarefas_turma

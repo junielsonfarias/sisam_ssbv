@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
+import { podeVerAlunoPedagogico } from '@/lib/professor-auth'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -103,6 +104,23 @@ export const POST = withAuth(['professor'], async (request, usuario) => {
     }
 
     const { aluno_id, responsavel_id, conteudo } = parsed.data
+
+    // Controle de acesso: o professor so pode iniciar conversa sobre aluno
+    // com o qual tem vinculo pedagogico (vinculo ativo com a turma do aluno,
+    // cruzando ano_letivo).
+    const podeAcessar = await podeVerAlunoPedagogico(usuario, aluno_id)
+    if (!podeAcessar) {
+      return NextResponse.json({ mensagem: 'Sem vínculo com este aluno' }, { status: 403 })
+    }
+
+    // E o responsavel informado precisa estar vinculado ao aluno (aprovado/ativo).
+    const vinculoResp = await pool.query(
+      "SELECT 1 FROM responsaveis_alunos WHERE usuario_id = $1 AND aluno_id = $2 AND ativo = true AND status = 'aprovado' LIMIT 1",
+      [responsavel_id, aluno_id]
+    )
+    if (vinculoResp.rows.length === 0) {
+      return NextResponse.json({ mensagem: 'Responsável não vinculado a este aluno' }, { status: 403 })
+    }
 
     // Buscar ou criar thread
     let threadResult = await pool.query(

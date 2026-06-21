@@ -125,6 +125,18 @@ export async function processarImportacao(
       producaoParaInserir,
     } = await processarLinhas(dados, config, dadosExistentes, dadosQuestoes, resultado, erros)
 
+    // Respeitar cancelamento: se o usuario cancelou durante a Fase 5, o processarLinhas
+    // ja marcou status='cancelado' e retornou arrays parciais. Reconsultamos o status
+    // e interrompemos o fluxo ANTES de gravar qualquer dado ou sobrescrever o status.
+    const statusAposProcessamento = await pool.query(
+      'SELECT status FROM importacoes WHERE id = $1',
+      [importacaoId]
+    )
+    if (statusAposProcessamento.rows[0]?.status === 'cancelado') {
+      log.info(`[IMPORTACAO ${importacaoId}] Cancelada pelo usuario - fluxo interrompido, nenhum dado gravado`)
+      return
+    }
+
     // Fase 6: Batch insert de turmas
     await criarTurmas(turmasParaInserir, alunosParaInserir, consolidadosParaInserir, resultadosParaInserir)
 

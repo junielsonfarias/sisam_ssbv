@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic';
 
@@ -25,11 +26,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    if (!z.string().uuid().safeParse(importacaoId).success) {
+      return NextResponse.json({ mensagem: 'ID inválido' }, { status: 400 })
+    }
+
     // Buscar dados da importação
     const importacaoResult = await pool.query(
-      `SELECT id, nome_arquivo, total_linhas, linhas_processadas, linhas_com_erro, 
-              status, criado_em, concluido_em, erros
-       FROM importacoes 
+      `SELECT id, nome_arquivo, total_linhas, linhas_processadas, linhas_com_erro,
+              status, criado_em, concluido_em, erros, usuario_id
+       FROM importacoes
        WHERE id = $1`,
       [importacaoId]
     )
@@ -42,6 +47,15 @@ export async function GET(request: NextRequest) {
     }
 
     const importacao = importacaoResult.rows[0]
+
+    // Não-admin só pode ver o resultado/erros das próprias importações.
+    // Retorna 404 para não expor dados (campo `erros`) de importação alheia.
+    if (usuario.tipo_usuario !== 'administrador' && importacao.usuario_id !== usuario.id) {
+      return NextResponse.json(
+        { mensagem: 'Importação não encontrada' },
+        { status: 404 }
+      )
+    }
 
     // Buscar estatísticas resumidas (seria melhor ter uma tabela de resumo, mas por enquanto vamos retornar básico)
     return NextResponse.json({

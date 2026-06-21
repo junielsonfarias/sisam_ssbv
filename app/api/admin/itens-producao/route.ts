@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/itens-producao
  * Retorna os itens de produção textual
  */
-export const GET = withAuth(async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
     const result = await pool.query(`
       SELECT id, codigo, nome, descricao, ordem, nota_maxima, serie_aplicavel, ativo
