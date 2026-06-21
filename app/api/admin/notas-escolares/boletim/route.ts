@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { calcularMediaAnual, type PesoPeriodo } from '@/lib/services/media-anual'
+import {
+  buscarConfigNotas,
+  carregarRecuperacoesNaoPeriodicas,
+  ajustarMediaAnualPorEsquema,
+} from '@/lib/services/notas'
+import type { RecuperacaoResolvida } from '@/lib/services/notas'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +72,7 @@ export async function GET(request: NextRequest) {
     // Buscar regra de avaliação da série (com override da escola)
     const regraResult = await pool.query(
       `SELECT
+          se.id as serie_escolar_id,
           ra.formula_media, ra.pesos_periodos, ra.media_aprovacao as regra_media_aprovacao,
           ra.nota_maxima as regra_nota_maxima, ra.permite_recuperacao, ra.aprovacao_automatica,
           ra.arredondamento, ra.casas_decimais,
@@ -106,6 +113,23 @@ export async function GET(request: NextRequest) {
     const casasDecimais = regra?.casas_decimais ?? 1
     const aprovacaoAutomatica = regra?.aprovacao_efetiva || false
     const tipoResultado = regra?.tipo_resultado || 'numerico'
+
+    // ADR-005 (passo 5) — DUAL-READ de recuperação por esquema.
+    // Config resolvida por escola+série traz o `esquema_recuperacao` (default
+    // 'por_periodo') + regra/pesos de recuperação. Para 'por_periodo' o ajuste
+    // de média anual é NO-OP (paridade exata com hoje). Para bloco/semestral/
+    // final, a recuperação vem da nova entidade e ajusta a média anual.
+    const configRecuperacao = await buscarConfigNotas(
+      aluno.escola_id,
+      anoLetivo,
+      regra?.serie_escolar_id ?? null
+    )
+    const esquemaRecuperacao = configRecuperacao.esquema_recuperacao ?? 'por_periodo'
+    // Só consulta a nova entidade quando o esquema PODE alterar a média anual.
+    const recuperacoesPorDisciplina: Map<string, RecuperacaoResolvida[]> =
+      esquemaRecuperacao === 'por_periodo'
+        ? new Map()
+        : await carregarRecuperacoesNaoPeriodicas(alunoId, anoLetivo)
 
     // Períodos + pesos para o cálculo da média anual. Mesmo fallback do
     // fechamento (qtd_periodos da regra, default 4) — garante que soma_dividida
@@ -195,6 +219,19 @@ export async function GET(request: NextRequest) {
           arredondamento,
         })
         mediaAnual = r.periodos_com_nota > 0 ? r.media : null
+
+        // ADR-005 (passo 5): para esquemas de bloco/semestral/final, a
+        // recuperação (nova entidade) ajusta a média anual sobre a média dos
+        // períodos cobertos. 'por_periodo' não entra aqui (Map vazio) → no-op.
+        const recsDisc = recuperacoesPorDisciplina.get(disc.id)
+        if (recsDisc && recsDisc.length > 0) {
+          mediaAnual = ajustarMediaAnualPorEsquema(
+            mediaAnual,
+            esquemaRecuperacao,
+            recsDisc,
+            configRecuperacao
+          )
+        }
       }
 
       const totalFaltas = periodos.reduce((s, p) => s + p.faltas, 0)
