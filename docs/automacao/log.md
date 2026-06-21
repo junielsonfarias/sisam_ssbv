@@ -21,3 +21,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 1 | api-admin-gestao | aprovado | 3 tarefas | tsc:ok vitest:ok | 9703004
 - ciclo 1 | pages-roles | aprovado | 4 tarefas | tsc:ok vitest:ok | 1275dc1
 - ciclo 1 | api-offline-perfil | aprovado | 3 tarefas | tsc:ok vitest:ok | a9ab5ff
+- ciclo 1 | database | aprovado | 1 tarefas | tsc:ok vitest:ok | be86cde
