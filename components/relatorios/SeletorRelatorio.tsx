@@ -107,7 +107,7 @@ export function SeletorRelatorio({
     });
 
     // Redireciona para a página de visualização do relatório
-    router.push(`/admin/relatorios/${tipo}/${id}?${params}`);
+    router.push(`/admin/sisam/relatorios/${tipo}/${id}?${params}`);
   };
 
   // Gerar PDF via servidor (método legado, pode causar timeout)
