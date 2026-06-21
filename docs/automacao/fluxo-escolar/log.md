@@ -27,3 +27,4 @@ Formato das linhas de correção: `- ciclo N | integração | status | tipo`
 - ciclo 4 | Sisam/Gestor (governanca de mestre) — defesa em profundidade | aplicado | banco-naodestrutivo
 - ciclo 5 | Gestor Escolar (interno) -> integridade do Ano Letivo | aplicado | banco-naodestrutivo
 - ciclo 5 | Gestor Escolar (interno) -> catalogo de Series | aplicado | banco-naodestrutivo
+- ciclo 5 | Gestor Escolar -> Sisam (governanca do gate em producao) | aplicado | codigo
