@@ -9,6 +9,7 @@ import {
   CONFIGURACOES_DIVERGENCIAS
 } from './tipos'
 import { getMediaGeralSQL, getMediaAnosIniciaisSQL } from '@/lib/sql/media-geral'
+import { ORIGEM_GESTOR, ORIGEM_SISAM_ETL } from '@/lib/services/gestor/mestre.service'
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -628,6 +629,86 @@ export async function corrigirNotaForaRange(
   }
 }
 
+/**
+ * "Assumir no Gestor": regulariza cadastro mestre criado pelo ETL Sisam.
+ *
+ * Passa `origem` de 'sisam_etl' para 'gestor' e limpa `origem_importacao_id`
+ * em turmas/alunos. Não altera nenhum dado acadêmico — apenas a governança de
+ * origem do cadastro mestre. Aceita IDs específicos (em `params.ids`, no formato
+ * "turma:<uuid>" / "aluno:<uuid>") ou regulariza todos quando `corrigirTodos`.
+ */
+export async function corrigirMestreCriadoEtl(
+  params: ParametrosCorrecao,
+  usuarioId: string,
+  usuarioNome: string
+): Promise<ResultadoCorrecao> {
+  const { ids, corrigirTodos } = params
+
+  if (!corrigirTodos && (!ids || ids.length === 0)) {
+    return { sucesso: false, mensagem: 'Nenhum registro selecionado para assumir', corrigidos: 0, erros: 1 }
+  }
+
+  // Separa IDs por entidade. Formato esperado: "turma:<uuid>" ou "aluno:<uuid>".
+  // Sem prefixo, o ID é tentado em ambas as tabelas (UUID é único entre elas).
+  const turmaIds: string[] = []
+  const alunoIds: string[] = []
+  if (!corrigirTodos && ids) {
+    for (const raw of ids) {
+      const [prefixo, valor] = raw.includes(':') ? raw.split(':') : ['', raw]
+      if (prefixo === 'turma') turmaIds.push(valor)
+      else if (prefixo === 'aluno') alunoIds.push(valor)
+      else { turmaIds.push(valor); alunoIds.push(valor) }
+    }
+  }
+
+  const assumir = async (tabela: 'turmas' | 'alunos', idsTabela: string[] | null): Promise<number> => {
+    if (!corrigirTodos && (!idsTabela || idsTabela.length === 0)) return 0
+    const filtraIds = !corrigirTodos
+    const sql = `UPDATE ${tabela}
+       SET origem = $1, origem_importacao_id = NULL
+       WHERE origem = $2
+       ${filtraIds ? 'AND id = ANY($3::uuid[])' : ''}
+       RETURNING id`
+    const queryParams = filtraIds
+      ? [ORIGEM_GESTOR, ORIGEM_SISAM_ETL, idsTabela]
+      : [ORIGEM_GESTOR, ORIGEM_SISAM_ETL]
+    const res = await pool.query(sql, queryParams)
+    return res.rowCount || 0
+  }
+
+  try {
+    const turmasAssumidas = await assumir('turmas', turmaIds)
+    const alunosAssumidos = await assumir('alunos', alunoIds)
+    const corrigidos = turmasAssumidas + alunosAssumidos
+
+    if (corrigidos > 0) {
+      await registrarHistorico(
+        'mestre_criado_etl',
+        'mestre',
+        null,
+        null,
+        { origem: ORIGEM_SISAM_ETL, turmas: turmasAssumidas, alunos: alunosAssumidos },
+        { origem: ORIGEM_GESTOR, origem_importacao_id: null },
+        `${corrigidos} cadastro(s) mestre assumido(s) pelo Gestor (${turmasAssumidas} turma(s), ${alunosAssumidos} aluno(s))`,
+        corrigirTodos || false,
+        usuarioId,
+        usuarioNome
+      )
+    }
+
+    return {
+      sucesso: true,
+      mensagem: corrigidos > 0
+        ? `${corrigidos} cadastro(s) mestre assumido(s) pelo Gestor`
+        : 'Nenhum cadastro pendente para assumir',
+      corrigidos,
+      erros: 0
+    }
+  } catch (error: unknown) {
+    return { sucesso: false, mensagem: `Erro ao assumir cadastro mestre: ${(error as Error).message}`, corrigidos: 0, erros: 1 }
+  }
+}
+
 // ============================================
 // DISPATCHER PRINCIPAL
 // ============================================
@@ -667,6 +748,9 @@ export async function executarCorrecao(
 
     case 'notas_fora_range':
       return corrigirNotaForaRange(params, usuarioId, usuarioNome)
+
+    case 'mestre_criado_etl':
+      return corrigirMestreCriadoEtl(params, usuarioId, usuarioNome)
 
     default:
       return {

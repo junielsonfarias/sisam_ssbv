@@ -1,89 +1,128 @@
 -- ============================================================================
 -- fix-indices-duplicados.sql
--- Data: 2026-06-20
--- Auditoria: DBA — advisor de performance (duplicate_index) apontou 11 pares de
---            indices byte-a-byte identicos (mesmas colunas, mesma unicidade,
---            mesmos predicados parciais). Indice duplicado custa escrita e
---            espaco sem nenhum ganho de leitura.
+-- Data: 2026-06-21
+-- Ciclo: 4 (FlowSchoolAgent) — Gestor (banco): fonte unica / integridade
+-- Auditoria: diagnostico via pg_indexes no projeto educanet-demo
+--            (tbbnswuqsqhulserwtcc) revelou indices UNIQUE redundantes,
+--            multiplos indices com DEFINICAO IDENTICA sobre a mesma chave.
 --
--- Em cada par mantemos o nome "canonico" (prefixo da tabela por extenso) e
--- removemos o apelido curto/legado. Para os pares UNIQUE de resultados_*
--- mantemos o indice usado pelo ON CONFLICT do upsert.
+-- Objetivo: manter UM indice canonico por chave de unicidade e remover os
+--           redundantes (estrutura duplicada -> overhead de escrita e ruido
+--           para o planner). DROP INDEX remove APENAS a estrutura do indice;
+--           NAO apaga linha alguma da tabela (nao-destrutivo de dados).
 --
--- Idempotencia: DROP INDEX IF EXISTS. Seguro re-rodar.
--- Atencao: os dois pares UNIQUE abaixo dao suporte a ON CONFLICT — o indice
---          MANTIDO cobre exatamente as mesmas colunas, entao o upsert continua
---          funcionando apos o DROP do redundante.
+-- Grupos de duplicados encontrados e decisao do canonico:
+--
+--  1) alunos.codigo_inep_aluno  (3 indices IDENTICOS):
+--       CANONICO (manter): idx_alunos_inep_unique
+--       DROPAR:            idx_alunos_codigo_inep        (nao-canonico)
+--                          idx_alunos_codigo_inep_anti_dup
+--     Todos: UNIQUE (codigo_inep_aluno) WHERE codigo_inep_aluno IS NOT NULL
+--
+--  2) alunos.cpf  (2 indices IDENTICOS):
+--       CANONICO (manter): idx_alunos_cpf_unique
+--       DROPAR:            idx_alunos_cpf_anti_dup
+--     Ambos: UNIQUE (cpf) WHERE cpf IS NOT NULL
+--
+--  3) professor_turmas (vinculo disciplina) (2 indices IDENTICOS):
+--       CANONICO (manter): idx_professor_turmas_disciplina_unique
+--       DROPAR:            idx_prof_turmas_disciplina_unique
+--     Ambos: UNIQUE (turma_id, disciplina_id, ano_letivo)
+--            WHERE tipo_vinculo='disciplina' AND ativo AND disciplina_id NOT NULL
+--
+--  4) professor_turmas (vinculo polivalente) (2 indices IDENTICOS):
+--       CANONICO (manter): idx_professor_turmas_polivalente_unique
+--       DROPAR:            idx_prof_turmas_polivalente_unique
+--     Ambos: UNIQUE (turma_id, ano_letivo)
+--            WHERE tipo_vinculo='polivalente' AND ativo
+--
+-- Seguranca para ON CONFLICT: o upsert no Postgres infere o indice pelas
+-- COLUNAS/predicado (nao pelo nome). Como o canonico cobre exatamente as
+-- mesmas colunas + predicado do indice dropado, todo ON CONFLICT segue
+-- funcionando. Grep no codigo (.ts/.tsx/.js) confirmou ZERO referencia aos
+-- nomes dropados — nenhum service/route depende deles.
+--
+-- Idempotencia: DROP INDEX IF EXISTS (no-op se ja removido).
+-- Atomicidade: BEGIN/COMMIT.
+--
+-- ROLLBACK (recriar os indices redundantes, caso necessario):
+--   CREATE UNIQUE INDEX idx_alunos_codigo_inep ON public.alunos (codigo_inep_aluno) WHERE codigo_inep_aluno IS NOT NULL;
+--   CREATE UNIQUE INDEX idx_alunos_codigo_inep_anti_dup ON public.alunos (codigo_inep_aluno) WHERE codigo_inep_aluno IS NOT NULL;
+--   CREATE UNIQUE INDEX idx_alunos_cpf_anti_dup ON public.alunos (cpf) WHERE cpf IS NOT NULL;
+--   CREATE UNIQUE INDEX idx_prof_turmas_disciplina_unique ON public.professor_turmas (turma_id, disciplina_id, ano_letivo) WHERE tipo_vinculo='disciplina' AND ativo = true AND disciplina_id IS NOT NULL;
+--   CREATE UNIQUE INDEX idx_prof_turmas_polivalente_unique ON public.professor_turmas (turma_id, ano_letivo) WHERE tipo_vinculo='polivalente' AND ativo = true;
+-- (Rollback NAO e recomendado — sao duplicatas exatas do canonico.)
 -- ============================================================================
 
 BEGIN;
 
--- alunos: UNIQUE parcial em codigo_inep_aluno (mantem idx_alunos_inep_unique)
-DROP INDEX IF EXISTS idx_alunos_codigo_inep;
-
--- usuarios: UNIQUE parcial em cpf (mantem idx_usuarios_cpf_unique)
-DROP INDEX IF EXISTS idx_usuarios_cpf;
-
--- notas_escolares: btree (turma_id)
-DROP INDEX IF EXISTS idx_notas_esc_turma;
-
--- historico_situacao: btree (aluno_id)
-DROP INDEX IF EXISTS idx_hist_situacao_aluno;
-
--- resultados_consolidados: btree (aluno_id, ano_letivo)
-DROP INDEX IF EXISTS idx_consolidados_aluno_ano;
-
--- responsaveis_alunos: btree (usuario_id, ativo)
---   (nome enganoso "_ativo" — na verdade indexa usuario_id+ativo, igual ao _usuario)
-DROP INDEX IF EXISTS idx_resp_alunos_ativo;
-
--- fila_espera: btree (turma_id, status)
-DROP INDEX IF EXISTS idx_fila_espera_turma;
-
--- professor_turmas: UNIQUE parcial polivalente (turma_id, ano_letivo)
-DROP INDEX IF EXISTS idx_prof_turmas_polivalente_unique;
-
--- professor_turmas: UNIQUE parcial disciplina (turma_id, disciplina_id, ano_letivo)
-DROP INDEX IF EXISTS idx_prof_turmas_disciplina_unique;
-
--- resultados_provas: UNIQUE (aluno_id, questao_codigo, avaliacao_id) — upsert
---   mantem idx_resultados_provas_unique (nome referenciado no contexto/§8)
-DROP INDEX IF EXISTS idx_resultados_provas_aluno_questao_avaliacao;
-
--- resultados_consolidados: UNIQUE (aluno_id, avaliacao_id) — upsert
---   Removemos o duplicado redundante (resultados_consolidados_aluno_avaliacao_key)
---   e mantemos resultados_consolidados_aluno_id_avaliacao_id_key, que continua
---   dando suporte ao ON CONFLICT (aluno_id, avaliacao_id) do upsert de consolidados.
---
---   IMPORTANTE: o nome a remover pode ser, dependendo do ambiente, OU um indice
---   UNIQUE solto (pg_index) OU uma UNIQUE CONSTRAINT (pg_constraint, contype='u').
---   Nao se pode assumir um dos dois: se for constraint, DROP INDEX falha
---   ('cannot drop index ... because constraint ... requires it'); se for indice
---   solto, DROP CONSTRAINT IF EXISTS e um NO-OP silencioso e o indice permanece.
---   Por isso detectamos o caso em pg_constraint e escolhemos a estrategia correta.
+-- Diagnostico: quantos indices redundantes ainda existem antes do DROP
 DO $$
+DECLARE
+  v_count integer;
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'resultados_consolidados_aluno_avaliacao_key'
-      AND contype = 'u'
-      AND conrelid = 'resultados_consolidados'::regclass
-  ) THEN
-    -- E uma UNIQUE CONSTRAINT: remover via ALTER TABLE (cobre o indice de suporte).
-    ALTER TABLE resultados_consolidados
-      DROP CONSTRAINT resultados_consolidados_aluno_avaliacao_key;
-  ELSE
-    -- E um indice UNIQUE solto (ou ja nao existe): DROP INDEX idempotente.
-    DROP INDEX IF EXISTS resultados_consolidados_aluno_avaliacao_key;
+  SELECT count(*) INTO v_count
+  FROM pg_indexes
+  WHERE schemaname = 'public'
+    AND indexname IN (
+      'idx_alunos_codigo_inep',
+      'idx_alunos_codigo_inep_anti_dup',
+      'idx_alunos_cpf_anti_dup',
+      'idx_prof_turmas_disciplina_unique',
+      'idx_prof_turmas_polivalente_unique'
+    );
+  RAISE NOTICE 'fix-indices-duplicados: % indice(s) redundante(s) encontrado(s) para remocao.', v_count;
+END $$;
+
+-- 1) alunos.codigo_inep_aluno — manter idx_alunos_inep_unique
+DROP INDEX IF EXISTS public.idx_alunos_codigo_inep;
+DROP INDEX IF EXISTS public.idx_alunos_codigo_inep_anti_dup;
+
+-- 2) alunos.cpf — manter idx_alunos_cpf_unique
+DROP INDEX IF EXISTS public.idx_alunos_cpf_anti_dup;
+
+-- 3) professor_turmas (disciplina) — manter idx_professor_turmas_disciplina_unique
+DROP INDEX IF EXISTS public.idx_prof_turmas_disciplina_unique;
+
+-- 4) professor_turmas (polivalente) — manter idx_professor_turmas_polivalente_unique
+DROP INDEX IF EXISTS public.idx_prof_turmas_polivalente_unique;
+
+-- Verificacao final: os canonicos DEVEM continuar existindo; os redundantes NAO.
+DO $$
+DECLARE
+  v_redundantes integer;
+  v_canonicos   integer;
+BEGIN
+  SELECT count(*) INTO v_redundantes
+  FROM pg_indexes
+  WHERE schemaname = 'public'
+    AND indexname IN (
+      'idx_alunos_codigo_inep',
+      'idx_alunos_codigo_inep_anti_dup',
+      'idx_alunos_cpf_anti_dup',
+      'idx_prof_turmas_disciplina_unique',
+      'idx_prof_turmas_polivalente_unique'
+    );
+
+  SELECT count(*) INTO v_canonicos
+  FROM pg_indexes
+  WHERE schemaname = 'public'
+    AND indexname IN (
+      'idx_alunos_inep_unique',
+      'idx_alunos_cpf_unique',
+      'idx_professor_turmas_disciplina_unique',
+      'idx_professor_turmas_polivalente_unique'
+    );
+
+  IF v_redundantes <> 0 THEN
+    RAISE EXCEPTION 'fix-indices-duplicados: ainda restam % indice(s) redundante(s) apos o DROP.', v_redundantes;
   END IF;
+
+  IF v_canonicos <> 4 THEN
+    RAISE EXCEPTION 'fix-indices-duplicados: esperado 4 indices canonicos, encontrado %.', v_canonicos;
+  END IF;
+
+  RAISE NOTICE 'fix-indices-duplicados: OK — redundantes=0, canonicos=4.';
 END $$;
 
 COMMIT;
-
--- ============================================================================
--- Verificacao pos-migration (deve retornar 0 linhas):
---   SELECT indrelid::regclass AS tbl, array_agg(indexrelid::regclass) idxs
---   FROM pg_index
---   GROUP BY indrelid, indkey, indisunique, indpred, indexprs
---   HAVING count(*) > 1;
--- ============================================================================

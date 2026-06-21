@@ -94,9 +94,9 @@ export async function processarImportacao(
   try {
     const resultado: ImportacaoResultado = {
       polos: { criados: 0, existentes: 0 },
-      escolas: { criados: 0, existentes: 0 },
-      turmas: { criados: 0, existentes: 0 },
-      alunos: { criados: 0, existentes: 0 },
+      escolas: { criados: 0, existentes: 0, divergentes: 0 },
+      turmas: { criados: 0, existentes: 0, divergentes: 0 },
+      alunos: { criados: 0, existentes: 0, divergentes: 0 },
       questoes: { criadas: 0, existentes: 0 },
       resultados: { processados: 0, erros: 0, duplicados: 0, novos: 0 },
     }
@@ -111,7 +111,7 @@ export async function processarImportacao(
     const dadosExistentes = await carregarDadosExistentes(anoLetivo, avaliacaoId)
 
     // Fase 3: Criar polos e escolas faltantes
-    await criarPolosEEscolas(dadosExcel, dadosExistentes, resultado, erros)
+    await criarPolosEEscolas(dadosExcel, dadosExistentes, resultado, erros, config)
 
     // Fase 4: Carregar/criar questoes e configuracoes de series
     const dadosQuestoes = await carregarQuestoes(dadosExistentes.questoesMap, resultado)

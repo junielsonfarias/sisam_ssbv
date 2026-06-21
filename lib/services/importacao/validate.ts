@@ -63,10 +63,52 @@ export async function validarImportacao(
   const duracao = ((endTime - startTime) / 1000).toFixed(2)
   log.info(`[IMPORTACAO ${importacaoId}] Concluida em ${duracao}s`)
   log.info(`[RESUMO FINAL]`)
-  log.info(`  - Alunos: ${resultado.alunos.criados} criados, ${resultado.alunos.existentes} existentes`)
+  log.info(`  - Escolas: ${resultado.escolas.criados} criadas, ${resultado.escolas.existentes} existentes, ${resultado.escolas.divergentes} divergentes (gate Gestor)`)
+  log.info(`  - Turmas: ${resultado.turmas.criados} criadas, ${resultado.turmas.existentes} existentes, ${resultado.turmas.divergentes} divergentes (gate Gestor)`)
+  log.info(`  - Alunos: ${resultado.alunos.criados} criados, ${resultado.alunos.existentes} existentes, ${resultado.alunos.divergentes} divergentes (gate Gestor)`)
   log.info(`  - Consolidados: ${totalConsolidadosNoBanco} no banco`)
   log.info(`  - Resultados: ${resultado.resultados.novos} novos, ${resultado.resultados.duplicados} duplicados`)
   log.info(`  - Erros: ${resultado.resultados.erros} linhas com erro`)
+  const totalDivergencias = resultado.escolas.divergentes + resultado.turmas.divergentes + resultado.alunos.divergentes
+  if (totalDivergencias > 0) {
+    log.warn(
+      `  - DIVERGENCIAS (gate Gestor): ${totalDivergencias} registro(s) de cadastro mestre ausentes. ` +
+      `Consulte o relatorio de erros da importacao e regularize no modulo Gestor.`
+    )
+  }
+
+  // Resumo estruturado por entidade afetada (historico de migracoes consultavel
+  // pelo Gestor). Inclui `divergentes` — registros de cadastro mestre ausentes
+  // ou criados pelo ETL que precisam de regularizacao no modulo Gestor. A trilha
+  // detalhada por entidade e consultada via origem_importacao_id.
+  const resumo = {
+    ano_letivo: anoLetivo,
+    gerado_em: new Date().toISOString(),
+    polos: { criados: resultado.polos.criados, existentes: resultado.polos.existentes, divergentes: 0 },
+    escolas: {
+      criados: resultado.escolas.criados,
+      existentes: resultado.escolas.existentes,
+      divergentes: resultado.escolas.divergentes,
+    },
+    turmas: {
+      criados: resultado.turmas.criados,
+      existentes: resultado.turmas.existentes,
+      divergentes: resultado.turmas.divergentes,
+    },
+    alunos: {
+      criados: resultado.alunos.criados,
+      existentes: resultado.alunos.existentes,
+      divergentes: resultado.alunos.divergentes,
+    },
+    questoes: { criadas: resultado.questoes.criadas, existentes: resultado.questoes.existentes },
+    resultados: {
+      processados: resultado.resultados.processados,
+      novos: resultado.resultados.novos,
+      duplicados: resultado.resultados.duplicados,
+      erros: resultado.resultados.erros,
+    },
+    total_divergencias: totalDivergencias,
+  }
 
   await pool.query(
     `UPDATE importacoes
@@ -78,8 +120,9 @@ export async function validarImportacao(
          turmas_criadas = $9, turmas_existentes = $10,
          alunos_criados = $11, alunos_existentes = $12,
          questoes_criadas = $13, questoes_existentes = $14,
-         resultados_novos = $15, resultados_duplicados = $16
-     WHERE id = $17`,
+         resultados_novos = $15, resultados_duplicados = $16,
+         resumo = $17
+     WHERE id = $18`,
     [
       resultado.resultados.processados,
       resultado.resultados.erros,
@@ -91,7 +134,43 @@ export async function validarImportacao(
       resultado.alunos.criados, resultado.alunos.existentes,
       resultado.questoes.criadas, resultado.questoes.existentes,
       resultado.resultados.novos, resultado.resultados.duplicados,
+      JSON.stringify(resumo),
       importacaoId,
     ]
   )
+
+  // Atualiza a materialized view consumida pelo painel do Semed (mv_sisam_media)
+  // para que os dados nao fiquem stale apos a importacao. Nao deve derrubar a
+  // importacao caso a MV ainda nao exista ou o refresh falhe.
+  await atualizarMvSisamMedia()
+}
+
+/**
+ * Atualiza a materialized view mv_sisam_media de forma concorrente (sem lock de
+ * leitura) ao final do fluxo de importacao do Sisam, mantendo o painel do Semed
+ * sincronizado. Tolerante a falhas: registra o erro mas nao interrompe o fluxo.
+ *
+ * Usa CONCURRENTLY (exige indice unico na MV — garantido pela migration
+ * create-mv-sisam-media / refresh-mv-sisam-media-indice-unico). Cai para um
+ * REFRESH simples caso o concorrente falhe (ex.: MV nunca populada).
+ */
+async function atualizarMvSisamMedia(): Promise<void> {
+  try {
+    log.info('[VALIDACAO] Atualizando mv_sisam_media (CONCURRENTLY)...')
+    await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sisam_media')
+    log.info('[VALIDACAO] mv_sisam_media atualizada com sucesso')
+  } catch (errConcurrent) {
+    log.warn(
+      `[VALIDACAO] REFRESH CONCURRENTLY falhou, tentando REFRESH simples: ${(errConcurrent as Error).message}`
+    )
+    try {
+      await pool.query('REFRESH MATERIALIZED VIEW mv_sisam_media')
+      log.info('[VALIDACAO] mv_sisam_media atualizada (REFRESH simples)')
+    } catch (errPlain) {
+      log.error(
+        '[VALIDACAO] Falha ao atualizar mv_sisam_media (painel do Semed pode ficar stale)',
+        errPlain
+      )
+    }
+  }
 }

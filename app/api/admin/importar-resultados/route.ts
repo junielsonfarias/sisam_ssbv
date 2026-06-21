@@ -90,7 +90,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request, usuar
         await processarLinha(
           dados[i] as Record<string, unknown>,
           i,
-          { caches, batchProvas, batchConsolidados, anoLetivo, avaliacaoId },
+          { caches, batchProvas, batchConsolidados, anoLetivo, avaliacaoId, importacaoId, usuarioId: usuario.id },
         )
         linhasProcessadas++
       } catch (error: unknown) {

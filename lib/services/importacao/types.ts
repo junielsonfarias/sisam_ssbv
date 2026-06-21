@@ -25,9 +25,9 @@ export interface ImportacaoProgresso {
 
 export interface ImportacaoResultado {
   polos: { criados: number; existentes: number }
-  escolas: { criados: number; existentes: number }
-  turmas: { criados: number; existentes: number }
-  alunos: { criados: number; existentes: number }
+  escolas: { criados: number; existentes: number; divergentes: number }
+  turmas: { criados: number; existentes: number; divergentes: number }
+  alunos: { criados: number; existentes: number; divergentes: number }
   questoes: { criadas: number; existentes: number }
   resultados: { processados: number; erros: number; duplicados: number; novos: number }
 }
@@ -59,6 +59,10 @@ export interface TurmaParaInserir {
   escola_id: string
   serie: string | null
   ano_letivo: string
+  /** Origem do dado mestre (gate Gestor): 'sisam_etl' quando criado pelo ETL. */
+  origem: string
+  /** Importacao que originou o registro (rastreabilidade / regularizacao). */
+  origem_importacao_id: string | null
 }
 
 export interface AlunoParaInserir {
@@ -69,6 +73,10 @@ export interface AlunoParaInserir {
   turma_id: string | null
   serie: string | null
   ano_letivo: string
+  /** Origem do dado mestre (gate Gestor): 'sisam_etl' quando criado pelo ETL. */
+  origem: string
+  /** Importacao que originou o registro (rastreabilidade / regularizacao). */
+  origem_importacao_id: string | null
 }
 
 export interface ConsolidadoParaInserir {

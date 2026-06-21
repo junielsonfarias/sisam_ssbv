@@ -6,6 +6,7 @@
 
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { resolverAnoLetivoId } from '@/lib/services/gestor/mestre.service'
 import {
   TurmaParaInserir,
   AlunoParaInserir,
@@ -33,21 +34,31 @@ export async function criarTurmas(
     const tempToRealTurmas = new Map<string, string>()
     const BATCH_SIZE = 50
 
+    // Chave temporal canonica (anos_letivos.id) resolvida 1x por ano via cache.
+    // Grava-se ano_letivo_id junto do varchar para a chave canonica nao nascer
+    // vazia (backfill nao ser efemero). Lookup centralizado em mestre.service.
+    const anoLetivoIdCache = new Map<string, string | null>()
+    const idsTurmas = await Promise.all(
+      turmasParaInserir.map(t => resolverAnoLetivoId(pool, t.ano_letivo, anoLetivoIdCache))
+    )
+    const anoLetivoIdPorTurma = new Map<string, string | null>()
+    turmasParaInserir.forEach((t, idx) => anoLetivoIdPorTurma.set(t.tempId, idsTurmas[idx]))
+
     for (let i = 0; i < turmasParaInserir.length; i += BATCH_SIZE) {
       const batch = turmasParaInserir.slice(i, i + BATCH_SIZE)
       try {
         const values: (string | null)[] = []
         const placeholders: string[] = []
         batch.forEach((turma, idx) => {
-          const offset = idx * 5
-          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`)
-          values.push(turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo)
+          const offset = idx * 8
+          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`)
+          values.push(turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo, anoLetivoIdPorTurma.get(turma.tempId) ?? null, turma.origem, turma.origem_importacao_id)
         })
 
         const result = await pool.query(
-          `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo)
+          `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, ano_letivo_id, origem, origem_importacao_id)
            VALUES ${placeholders.join(', ')}
-           ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie
+           ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie, ano_letivo_id = EXCLUDED.ano_letivo_id
            RETURNING id, codigo, escola_id, ano_letivo`,
           values
         )
@@ -70,8 +81,8 @@ export async function criarTurmas(
         for (const turma of batch) {
           try {
             const result = await pool.query(
-              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie RETURNING id',
-              [turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo]
+              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, ano_letivo_id, origem, origem_importacao_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie, ano_letivo_id = EXCLUDED.ano_letivo_id RETURNING id',
+              [turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo, anoLetivoIdPorTurma.get(turma.tempId) ?? null, turma.origem, turma.origem_importacao_id]
             )
             tempToRealTurmas.set(turma.tempId, result.rows[0].id)
           } catch (error: unknown) {

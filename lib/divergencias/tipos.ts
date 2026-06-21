@@ -16,6 +16,7 @@ export type TipoDivergencia =
   | 'nivel_aprendizagem_errado'
   | 'questoes_sem_gabarito'
   | 'serie_nao_configurada'
+  | 'mestre_ausente_gestor'
   // Avisos
   | 'ano_letivo_invalido'
   | 'presenca_inconsistente'
@@ -23,6 +24,7 @@ export type TipoDivergencia =
   | 'escolas_inativas_dados_ativos'
   | 'serie_aluno_turma_divergente'
   | 'importacoes_erro_pendente'
+  | 'mestre_criado_etl'
   // Informativos
   | 'alunos_sem_resultados'
   | 'escolas_sem_alunos'
@@ -240,6 +242,16 @@ export const CONFIGURACOES_DIVERGENCIAS: Record<TipoDivergencia, ConfigDivergenc
     correcaoAutomatica: false,
     acaoCorrecao: 'Configurar série no sistema'
   },
+  mestre_ausente_gestor: {
+    tipo: 'mestre_ausente_gestor',
+    nivel: 'importante',
+    titulo: 'Cadastro Mestre Ausente (ETL recusou)',
+    descricao: 'Turmas/alunos do arquivo de resultados que o ETL Sisam recusou criar (gate estrito) por não existirem no cadastro mestre do Gestor',
+    icone: 'UserX',
+    corrigivel: false,
+    correcaoAutomatica: false,
+    acaoCorrecao: 'Cadastre a turma/aluno no módulo Gestor e reimporte os resultados'
+  },
 
   // AVISOS
   ano_letivo_invalido: {
@@ -301,6 +313,16 @@ export const CONFIGURACOES_DIVERGENCIAS: Record<TipoDivergencia, ConfigDivergenc
     corrigivel: true,
     correcaoAutomatica: true,
     acaoCorrecao: 'Cancelar importações pendentes'
+  },
+  mestre_criado_etl: {
+    tipo: 'mestre_criado_etl',
+    nivel: 'aviso',
+    titulo: 'Cadastro Mestre Criado pelo ETL',
+    descricao: 'Turmas/alunos criados automaticamente pelo ETL Sisam (modo transição) e ainda não assumidos pelo Gestor',
+    icone: 'GitBranch',
+    corrigivel: true,
+    correcaoAutomatica: true,
+    acaoCorrecao: 'Assumir no Gestor (define origem=gestor e limpa o vínculo com a importação)'
   },
 
   // INFORMATIVOS

@@ -1,0 +1,35 @@
+{
+  "agente": "FlowSchoolAgent",
+  "branch": "auto/fluxo-escolar",
+  "iniciadoEm": "2026-06-21T09:21:00-03:00",
+  "ciclosAlvo": 5,
+  "cicloAtual": 6,
+  "finalizado": true,
+  "modo": "demo-only-aplicar-tudo (remediacao ciclo 6 concluida)",
+  "criterioParada": "5 ciclos (retoma apos reset de creditos)",
+  "aceitacao": "automatica",
+  "verificacaoCodigo": "tsc+vitest (revert no vermelho)",
+  "bancoUnico": "tbbnswuqsqhulserwtcc (educanet-demo)",
+  "producao": "DESVINCULADA (nao le, nao escreve)",
+  "bancoLeitura": ["tbbnswuqsqhulserwtcc (educanet-demo)"],
+  "bancoEscrita": "tbbnswuqsqhulserwtcc (educanet-demo)",
+  "bancoRegras": "aplicar TUDO no demo (incl. destrutivo e backfill de dados); arquivo/commit antes de aplicar; idempotente quando possivel; backfill que depende de dado externo (CPF/INEP) => bloqueado-dados",
+  "push": "NUNCA",
+  "retomadaPosCreditos": {
+    "mecanismo": "sleep-background-ate-reset+2min",
+    "helper": "scripts/automacao/calc-retomada.js",
+    "bufferMin": 2,
+    "status": "ocioso",
+    "resetEm": null,
+    "retomarEm": null,
+    "cicloPendente": null
+  },
+  "historico": [
+    { "ciclo": 1, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 9, "aplicados": 4, "revertidos": 0, "propostas": 5, "erros": 0, "achadoChave": "ETL Sisam (importar-completo) e o dono de fato dos cadastros mestres - viola fonte unica" },
+    { "ciclo": 2, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 7, "aplicados": 5, "revertidos": 0, "propostas": 2, "erros": 0, "achadoChave": "ETL grava origem do dado; indice de identidade forte do aluno aplicado no demo" },
+    { "ciclo": 3, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 7, "aplicados": 4, "revertidos": 0, "propostas": 3, "erros": 0, "achadoChave": "regularizacao do ETL + integridade interna do mestre; restam itens destrutivos/producao como proposta" },
+    { "ciclo": 4, "statusGeral": "Parcial", "coracao": "Forte", "gaps": 5, "aplicados": 2, "revertidos": 0, "propostas": 2, "erros": 0, "achadoChave": "coracao subiu para Forte: defesa em profundidade na governanca de mestre; restam itens de baixa prioridade" },
+    { "ciclo": 5, "statusGeral": "Saudavel", "coracao": "Forte", "gaps": 7, "aplicados": 3, "revertidos": 0, "propostas": 4, "erros": 0, "achadoChave": "status subiu para Saudavel; restam apenas propostas de baixa prioridade (ADR/dados externos/destrutivo)" },
+    { "ciclo": 6, "modo": "demo-only-aplicar-tudo", "statusGeral": "Parcial", "coracao": "Forte", "gaps": 6, "aplicados": 6, "revertidos": 0, "bloqueadosDados": 0, "erros": 0, "destrutivasAplicadas": 1, "dadosAplicados": 2, "migrationsValidadas": "15 arquivos ja aplicados no demo, 0 novas, consistencia 100% verde", "achadoChave": "fechou as 2 portas de criacao de mestre + indices UNIQUE + backfill ano letivo; validacao apontou 1 divergencia repo<->banco (fn gate sem arquivo)" }
+  ]
+}

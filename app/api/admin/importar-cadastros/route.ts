@@ -7,6 +7,15 @@ import { lerPlanilha } from '@/lib/excel-reader'
 import { limparTodosOsCaches, invalidateDashboardCache, invalidateFiltrosCache, cacheDelPattern } from '@/lib/cache'
 import { validarArquivoUpload } from '@/lib/api-helpers'
 import { createLogger } from '@/lib/logger'
+import {
+  ORIGEM_GESTOR,
+  chaveAluno,
+  codigoEscola,
+  codigoPolo,
+  normalizarNomeEscola,
+  normalizarNomePolo,
+  resolverAnoLetivoId,
+} from '@/lib/services/gestor/mestre.service'
 
 const log = createLogger('ImportarCadastros')
 
@@ -109,19 +118,19 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       const polosExistentes = await client.query('SELECT id, nome, UPPER(TRIM(nome)) as nome_norm FROM polos')
       const polosMap = new Map<string, string>()
       for (const p of polosExistentes.rows) {
-        polosMap.set((p.nome_norm || p.nome).toUpperCase().trim(), p.id)
+        polosMap.set(normalizarNomePolo(p.nome_norm || p.nome), p.id)
       }
 
       // Criar Polos (com pré-cache)
       for (const nomePolo of polosUnicos) {
         try {
-          const nomeNorm = nomePolo.toUpperCase().trim()
+          const nomeNorm = normalizarNomePolo(nomePolo)
           if (polosMap.has(nomeNorm)) {
             resultado.polos.existentes++
           } else {
             const novoResult = await withSavepoint(client, () => client.query(
-              'INSERT INTO polos (nome, codigo) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id',
-              [nomePolo, nomePolo.toUpperCase().replace(/\s+/g, '_')]
+              "INSERT INTO polos (nome, codigo, origem) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING id",
+              [nomePolo, codigoPolo(nomePolo), ORIGEM_GESTOR]
             ))
             if (novoResult.rows.length > 0) {
               polosMap.set(nomeNorm, novoResult.rows[0].id)
@@ -137,14 +146,14 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       const escolasExistentes = await client.query('SELECT id, nome, polo_id FROM escolas WHERE ativo = true')
       const escolasMap = new Map<string, string>() // nome escola -> id
       for (const e of escolasExistentes.rows) {
-        const nomeNorm = e.nome.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+        const nomeNorm = normalizarNomeEscola(e.nome)
         escolasMap.set(nomeNorm, e.id)
       }
 
       // Criar Escolas (com pré-cache de polos)
       for (const [nomeEscola, nomePolo] of escolasUnicas) {
         try {
-          const nomePoloNorm = nomePolo.toUpperCase().trim()
+          const nomePoloNorm = normalizarNomePolo(nomePolo)
           const poloId = polosMap.get(nomePoloNorm)
 
           if (!poloId) {
@@ -152,15 +161,14 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             continue
           }
 
-          const nomeEscolaNormalizado = nomeEscola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+          const nomeEscolaNormalizado = normalizarNomeEscola(nomeEscola)
 
           if (escolasMap.has(nomeEscolaNormalizado)) {
             resultado.escolas.existentes++
           } else {
-            const codigoEscola = nomeEscolaNormalizado.replace(/\s+/g, '_').substring(0, 50)
             const escolaResult = await withSavepoint(client, () => client.query(
-              'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
-              [nomeEscola.trim(), codigoEscola, poloId]
+              "INSERT INTO escolas (nome, codigo, polo_id, origem) VALUES ($1, $2, $3, $4) RETURNING id",
+              [nomeEscola.trim(), codigoEscola(nomeEscola), poloId, ORIGEM_GESTOR]
             ))
             escolasMap.set(nomeEscolaNormalizado, escolaResult.rows[0].id)
             // Também mapear pelo nome original
@@ -171,6 +179,12 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           resultado.escolas.erros.push(`Escola "${nomeEscola}": Erro ao processar`)
         }
       }
+
+      // Resolver a chave temporal canonica (anos_letivos.id) uma unica vez por
+      // transacao. Grava-se ano_letivo_id junto do varchar ano_letivo nas
+      // turmas/alunos para que a chave canonica nao nasca vazia (backfill nao
+      // ser efemero). Lookup centralizado em mestre.service (fonte unica).
+      const anoLetivoId = await resolverAnoLetivoId(client, anoLetivo)
 
       // Pré-carregar turmas existentes (elimina N+1)
       const turmasExistentes = await client.query(
@@ -185,7 +199,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       // Criar Turmas (com pré-cache)
       for (const [codigoTurma, { escola, serie }] of turmasUnicas) {
         try {
-          const nomeEscolaNorm = escola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+          const nomeEscolaNorm = normalizarNomeEscola(escola)
           const escolaId = escolasMap.get(nomeEscolaNorm) || escolasMap.get(escola)
           if (!escolaId) {
             resultado.turmas.erros.push(`Turma "${codigoTurma}": Escola "${escola}" não encontrada`)
@@ -196,9 +210,13 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           if (turmasMap.has(chave)) {
             resultado.turmas.existentes++
           } else {
+            // origem='gestor' explicito: este endpoint e o cadastro mestre do
+            // Gestor. Nao depender do DEFAULT da coluna (rastreabilidade clara
+            // vs. registros criados pelo ETL Sisam, que marcam origem='sisam_etl').
             const turmaResult = await withSavepoint(client, () => client.query(
-              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-              [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo]
+              `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, ano_letivo_id, origem)
+               VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+              [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo, anoLetivoId, ORIGEM_GESTOR]
             ))
             turmasMap.set(chave, turmaResult.rows[0].id)
             resultado.turmas.criados++
@@ -226,7 +244,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
       // Criar Alunos (com pré-cache)
       for (const [nomeAluno, { escola, turma, serie }] of alunosUnicos) {
         try {
-          const nomeEscolaNorm = escola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, ' ')
+          const nomeEscolaNorm = normalizarNomeEscola(escola)
           const escolaId = escolasMap.get(nomeEscolaNorm) || escolasMap.get(escola)
           if (!escolaId) {
             resultado.alunos.erros.push(`Aluno "${nomeAluno}": Escola "${escola}" não encontrada`)
@@ -235,23 +253,26 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
 
           const turmaChave = turma ? `${escolaId}:${turma}` : null
           const turmaId = turmaChave ? turmasMap.get(turmaChave) : null
-          const alunoChave = `${nomeAluno.toUpperCase().trim()}:${escolaId}:${turmaId || 'null'}`
+          const alunoChave = chaveAluno(nomeAluno, escolaId, turmaId || null)
 
           if (alunosExistentesMap.has(alunoChave)) {
             // Aluno já existe - atualizar turma e série se necessário
             const alunoIdExistente = alunosExistentesMap.get(alunoChave)!
             await withSavepoint(client, () => client.query(
               `UPDATE alunos
-               SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
-               WHERE id = $3`,
-              [turmaId, serie || null, alunoIdExistente]
+               SET turma_id = $1, serie = $2, ano_letivo_id = $3, atualizado_em = CURRENT_TIMESTAMP
+               WHERE id = $4`,
+              [turmaId, serie || null, anoLetivoId, alunoIdExistente]
             ))
             resultado.alunos.existentes++
           } else {
             const codigoAluno = await proximoCodigoAluno()
+            // origem='gestor' explicito (cadastro mestre do Gestor). Distingue
+            // do ETL Sisam, que cria alunos com origem='sisam_etl'.
             await withSavepoint(client, () => client.query(
-              'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6)',
-              [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo]
+              `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, ano_letivo_id, origem)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+              [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo, anoLetivoId, ORIGEM_GESTOR]
             ))
             resultado.alunos.criados++
           }

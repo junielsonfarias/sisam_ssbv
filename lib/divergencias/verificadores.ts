@@ -41,6 +41,12 @@ export {
   verificarQuestoesSemGabarito
 } from './verificadores-regras'
 
+// Re-exports: Governança de Cadastro Mestre (ETL → Gestor)
+export {
+  verificarMestreCriadoEtl,
+  verificarMestreAusenteGestor
+} from './verificadores-mestre-etl'
+
 // Imports diretos para uso nas funções orquestradoras
 import {
   verificarAlunosDuplicados,
@@ -70,6 +76,11 @@ import {
   verificarQuestoesSemGabarito
 } from './verificadores-regras'
 
+import {
+  verificarMestreCriadoEtl,
+  verificarMestreAusenteGestor
+} from './verificadores-mestre-etl'
+
 /**
  * Executa todas as verificações e retorna resultado consolidado
  */
@@ -93,11 +104,13 @@ export async function executarTodasVerificacoes(): Promise<ResultadoVerificacao>
     seriesNaoConfiguradas,
     nivelAprendizagemErrado,
     totalAcertosErrado,
+    mestreAusenteGestor,
     // Avisos
     anoLetivoInvalido,
     presencaInconsistente,
     serieAlunoTurmaDivergente,
     importacoesErroPendente,
+    mestreCriadoEtl,
     // Informativos
     alunosSemResultados,
     escolasSemAlunos,
@@ -117,11 +130,13 @@ export async function executarTodasVerificacoes(): Promise<ResultadoVerificacao>
     verificarSeriesNaoConfiguradas(),
     verificarNivelAprendizagemIncorreto(),
     verificarTotalAcertosErrado(),
+    verificarMestreAusenteGestor(),
     // Avisos
     verificarAnoLetivoInvalido(),
     verificarPresencaInconsistente(),
     verificarSerieAlunoTurmaDivergente(),
     verificarImportacoesErroPendente(),
+    verificarMestreCriadoEtl(),
     // Informativos
     verificarAlunosSemResultados(),
     verificarEscolasSemAlunos(),
@@ -141,10 +156,12 @@ export async function executarTodasVerificacoes(): Promise<ResultadoVerificacao>
     seriesNaoConfiguradas,
     nivelAprendizagemErrado,
     totalAcertosErrado,
+    mestreAusenteGestor,
     anoLetivoInvalido,
     presencaInconsistente,
     serieAlunoTurmaDivergente,
     importacoesErroPendente,
+    mestreCriadoEtl,
     alunosSemResultados,
     escolasSemAlunos,
     polosSemEscolas,

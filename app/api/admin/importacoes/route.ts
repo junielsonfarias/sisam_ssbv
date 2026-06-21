@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
           i.polos_criados, i.polos_existentes, i.escolas_criadas, i.escolas_existentes,
           i.turmas_criadas, i.turmas_existentes, i.alunos_criados, i.alunos_existentes,
           i.questoes_criadas, i.questoes_existentes, i.resultados_novos, i.resultados_duplicados,
+          i.resumo,
           i.criado_em, i.concluido_em,
           u.nome as usuario_nome, u.email as usuario_email
         FROM importacoes i

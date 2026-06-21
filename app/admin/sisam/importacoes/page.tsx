@@ -2,9 +2,23 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useState, useEffect } from 'react'
-import { Database, Calendar, FileText, CheckCircle, XCircle, Clock, AlertCircle, Filter, Search, StopCircle } from 'lucide-react'
+import { Database, Calendar, FileText, CheckCircle, XCircle, Clock, AlertCircle, Filter, Search, StopCircle, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { DivergenciasModal } from './components/divergencias-modal'
+
+interface ResumoEntidade {
+  criados: number
+  existentes: number
+  divergentes: number
+}
+
+interface ImportacaoResumo {
+  total_divergencias?: number
+  escolas?: ResumoEntidade
+  turmas?: ResumoEntidade
+  alunos?: ResumoEntidade
+}
 
 interface Importacao {
   id: string
@@ -26,6 +40,7 @@ interface Importacao {
   questoes_existentes: number
   resultados_novos: number
   resultados_duplicados: number
+  resumo: ImportacaoResumo | null
   criado_em: string
   concluido_em: string | null
   usuario_nome: string
@@ -48,6 +63,14 @@ export default function ImportacoesPage() {
     total_paginas: 0,
   })
   const [cancelando, setCancelando] = useState(false)
+  const [divergenciaSelecionada, setDivergenciaSelecionada] = useState<{ id: string; nomeArquivo: string } | null>(null)
+
+  const totalDivergencias = (imp: Importacao): number => {
+    if (imp.resumo?.total_divergencias != null) return imp.resumo.total_divergencias
+    const r = imp.resumo
+    if (!r) return 0
+    return (r.escolas?.divergentes || 0) + (r.turmas?.divergentes || 0) + (r.alunos?.divergentes || 0)
+  }
 
   const carregarImportacoes = async () => {
     setCarregando(true)
@@ -333,6 +356,17 @@ export default function ImportacoesPage() {
                                   </>
                                 )}
                               </div>
+                              {totalDivergencias(imp) > 0 && (
+                                <div className="pt-1 border-t border-gray-200 dark:border-slate-700">
+                                  <button
+                                    onClick={() => setDivergenciaSelecionada({ id: imp.id, nomeArquivo: imp.nome_arquivo })}
+                                    className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                                  >
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    {totalDivergencias(imp)} divergência(s) — regularizar
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -387,6 +421,18 @@ export default function ImportacoesPage() {
             </>
           )}
         </div>
+
+        {divergenciaSelecionada && (
+          <DivergenciasModal
+            importacaoId={divergenciaSelecionada.id}
+            nomeArquivo={divergenciaSelecionada.nomeArquivo}
+            onClose={() => setDivergenciaSelecionada(null)}
+            onRegularizado={() => {
+              setDivergenciaSelecionada(null)
+              carregarImportacoes()
+            }}
+          />
+        )}
     </ProtectedRoute>
   )
 }
