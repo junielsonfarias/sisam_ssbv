@@ -27,6 +27,16 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
   )
   const comEstatisticas = parseBoolParam(searchParams, 'com_estatisticas')
 
+  // Controle de acesso: polo/escola sem escopo definido não tem visibilidade —
+  // retorna lista vazia para nunca expor todas as escolas do município (IDOR).
+  // Espelha o padrão usado em app/api/admin/professores/route.ts.
+  if (
+    (usuario.tipo_usuario === 'polo' && !usuario.polo_id) ||
+    (usuario.tipo_usuario === 'escola' && !usuario.escola_id)
+  ) {
+    return NextResponse.json([])
+  }
+
   // Se não precisa de estatísticas, usar query simples (com cache Redis)
   if (!comEstatisticas) {
     const redisKey = cacheKey('escolas', ano_letivo || '', usuario.tipo_usuario, polo_id || '', escolaId || '')

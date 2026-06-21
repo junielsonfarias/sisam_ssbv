@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import fs from 'fs'
@@ -133,7 +133,9 @@ function saveImageLocally(base64Data: string): string | null {
 }
 
 // GET - Buscar configuracoes de personalizacao
-export async function GET(request: NextRequest) {
+// Rota /api/admin/* protegida: exige sessão admin/tecnico. O branding público
+// continua disponível sem auth em /api/personalizacao.
+export const GET = withAuth(['administrador', 'tecnico'], async (request, usuario) => {
   try {
     // Em desenvolvimento, tentar ler do arquivo local primeiro
     if (!IS_PRODUCTION) {
@@ -188,7 +190,7 @@ export async function GET(request: NextRequest) {
     log.error('Erro ao buscar personalizacao', error)
     return NextResponse.json(DEFAULTS)
   }
-}
+})
 
 // PUT - Atualizar configuracoes de personalizacao
 export const PUT = withAuth(['administrador'], async (request, usuario) => {
