@@ -77,3 +77,30 @@ git diff main..auto/fluxo-escolar
 - ciclo 6 | Gestor como fonte unica — defesa em profundidade no banco (anti-duplicacao/anti-mestre-cruzado) | aplicado | banco-naodestrutivo
 - ciclo 6 | Integridade/anti-duplicacao do mestre — indices UNIQUE de alunos e professor_turmas | aplicado | banco-destrutivo
 - ciclo 6 | Higiene de dados do ano legado — turmas 2024 (eixo Ano Letivo) | aplicado | dados
+
+---
+
+# 🏁 Ciclo 6 (remediação demo-only) — 2026-06-21 ~11:50
+
+Modo: banco único = educanet-demo · **produção desvinculada** · aplicar tudo no demo.
+
+## Aplicados (6) — 0 revertidos · 0 bloqueados · 0 erros
+- `dados`   | Chave temporal canônica (ano letivo) em alunos/turmas/professor_turmas/series_escola/periodos_letivos | `79caa37`
+- `código`  | Fecha as 2 portas de criação de mestre (Gestor importar-cadastros + ETL load.ts) | `bf3e1cd`
+- `banco`   | SET NOT NULL em `ano_letivo_id` (aposenta dualidade de chaves) | `d67ed13`
+- `banco`   | Defesa em profundidade anti-duplicação / anti-mestre-cruzado | `f034e2a`
+- `banco-destrutivo` | Índices UNIQUE de alunos e professor_turmas (DROP IF EXISTS guardado) | `3b4232e`
+- `dados`   | Higiene de dados do ano legado — turmas 2024 | `35bf20b`
+
+## Validação de migrations (demo)
+- 15 arquivos da branch **já aplicados** no demo (0 novas aplicações; idempotentes).
+- Consistência **100% verde**: 0 órfãos (serie_id, ano_letivo_id), FKs coerentes, 4 índices
+  canônicos + 5 redundantes removidos, 0 CPF/INEP duplicados, `origem` 100% no domínio,
+  3 triggers de gate ativas, MV com índice único, 0 turmas de ano fechado ativas.
+- Divergência repo↔banco corrigida: criado `database/migrations/harden-search-path-fn-escolas-gate-origem.sql`
+  (função de gate que estava no demo sem arquivo versionado).
+- Nota de auditoria: `refresh-mv-sisam-media-indice-unico.sql` tem efeito no demo mas sem
+  entrada em `supabase_migrations` (criado por outro caminho) — efeito OK.
+
+## Encerrado
+Remediação única concluída. Sem loop recorrente. Sem push. Produção intocada.
