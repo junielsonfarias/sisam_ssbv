@@ -154,6 +154,12 @@ export default function ProgressoImportacao({
                   <p>Total: {resultado.resultado.escolas.total}</p>
                   <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resultado.escolas.criados}</p>
                   <p className="text-gray-500 dark:text-gray-400">Existentes: {resultado.resultado.escolas.existentes}</p>
+                  {resultado.resultado.escolas.divergentes > 0 && (
+                    <p className="flex items-center text-amber-700 dark:text-amber-400">
+                      <AlertCircle className="w-3.5 h-3.5 mr-1 shrink-0" />
+                      {resultado.resultado.escolas.divergentes} cadastro(s) divergente(s) (não criados — pendentes no Gestor)
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -165,6 +171,12 @@ export default function ProgressoImportacao({
                 <div className="text-sm text-gray-600 space-y-1">
                   <p className="text-green-600 dark:text-green-400">Criadas: {resultado.resultado.turmas.criados}</p>
                   <p className="text-gray-500 dark:text-gray-400">Existentes: {resultado.resultado.turmas.existentes}</p>
+                  {resultado.resultado.turmas.divergentes > 0 && (
+                    <p className="flex items-center text-amber-700 dark:text-amber-400">
+                      <AlertCircle className="w-3.5 h-3.5 mr-1 shrink-0" />
+                      {resultado.resultado.turmas.divergentes} cadastro(s) divergente(s) (não criados — pendentes no Gestor)
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -176,6 +188,12 @@ export default function ProgressoImportacao({
                 <div className="text-sm text-gray-600 space-y-1">
                   <p className="text-green-600 dark:text-green-400">Criados: {resultado.resultado.alunos.criados}</p>
                   <p className="text-gray-500 dark:text-gray-400">Existentes: {resultado.resultado.alunos.existentes}</p>
+                  {resultado.resultado.alunos.divergentes > 0 && (
+                    <p className="flex items-center text-amber-700 dark:text-amber-400">
+                      <AlertCircle className="w-3.5 h-3.5 mr-1 shrink-0" />
+                      {resultado.resultado.alunos.divergentes} cadastro(s) divergente(s) (não criados — pendentes no Gestor)
+                    </p>
+                  )}
                 </div>
               </div>
 
