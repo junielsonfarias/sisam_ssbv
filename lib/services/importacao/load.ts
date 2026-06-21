@@ -147,16 +147,24 @@ export async function criarPolosEEscolas(
           )
 
           if (escolaExistente.rows.length > 0) {
+            // Escola ja existe no cadastro mestre: apenas vincular (sem alterar mestre)
             escolasMap.set(escolaNorm, escolaExistente.rows[0].id)
             resultado.escolas.existentes++
           } else {
-            const codigoEscola = nomeEscola.toUpperCase().trim().replace(/\./g, '').replace(/\s+/g, '_').substring(0, 50)
-            const result = await pool.query(
-              'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
-              [nomeEscola.trim(), codigoEscola, poloId]
+            // GATE DE HABILITACAO (Gestor): o cadastro mestre de escolas e
+            // responsabilidade do modulo Gestor/admin. O ETL do SISAM NAO cria
+            // escolas no cadastro mestre — apenas vincula resultados a escolas
+            // ja cadastradas. Quando a escola nao existe, registramos divergencia
+            // para que um responsavel habilitado faca o cadastro previo.
+            resultado.escolas.divergentes++
+            erros.push(
+              `DIVERGENCIA (gate Gestor): escola "${nomeEscola.trim()}" (polo "${nomePolo.trim()}") ` +
+              `nao existe no cadastro mestre e nao foi criada pelo ETL. ` +
+              `Cadastre a escola no modulo Gestor antes de reimportar.`
             )
-            escolasMap.set(escolaNorm, result.rows[0].id)
-            resultado.escolas.criados++
+            log.warn(
+              `[GATE] Escola "${nomeEscola.trim()}" ignorada na criacao de mestre (responsabilidade do Gestor)`
+            )
           }
         } catch (error: unknown) {
           erros.push(`Escola "${nomeEscola}": ${(error as Error).message}`)
@@ -168,7 +176,7 @@ export async function criarPolosEEscolas(
   }
 
   log.info(`  -> Polos: ${resultado.polos.criados} criados, ${resultado.polos.existentes} existentes`)
-  log.info(`  -> Escolas: ${resultado.escolas.criados} criadas, ${resultado.escolas.existentes} existentes`)
+  log.info(`  -> Escolas: ${resultado.escolas.criados} criadas, ${resultado.escolas.existentes} existentes, ${resultado.escolas.divergentes} divergentes (gate Gestor)`)
 }
 
 // ============================================================================

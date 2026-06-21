@@ -25,7 +25,7 @@ export interface ImportacaoProgresso {
 
 export interface ImportacaoResultado {
   polos: { criados: number; existentes: number }
-  escolas: { criados: number; existentes: number }
+  escolas: { criados: number; existentes: number; divergentes: number }
   turmas: { criados: number; existentes: number }
   alunos: { criados: number; existentes: number }
   questoes: { criadas: number; existentes: number }
