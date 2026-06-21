@@ -1,6 +1,6 @@
 # ADR-005 — Recuperacao flexivel e parametrizavel por escola/serie
 
-**Status:** Proposta
+**Status:** Aceita (aprovada 2026-06-21 — em implementacao no banco demo)
 **Data:** 2026-06-21
 **Autores:** documentador-sisam
 
