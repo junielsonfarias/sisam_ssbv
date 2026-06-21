@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import { withAuth } from '@/lib/auth/with-auth'
-import { cacheDelPattern } from '@/lib/cache'
+import { cacheDelPattern, limparTodosOsCaches, invalidateDashboardCache, invalidateFiltrosCache } from '@/lib/cache'
 import { resolverAvaliacaoId } from '@/lib/avaliacoes'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
@@ -159,8 +159,17 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request) => {
 
     await client.query('COMMIT')
 
-    try { await cacheDelPattern('resultados:*') } catch {}
-    try { await cacheDelPattern('boletim:*') } catch {}
+    // Gravou em resultados_provas: invalidar dashboards/análises (arquivo +
+    // memória + Redis) além de resultados/boletim, senão mostram números
+    // pré-salvamento até o TTL (espelha cartao-resposta/ler).
+    try {
+      limparTodosOsCaches()
+      invalidateDashboardCache()
+      invalidateFiltrosCache()
+      for (const p of ['resultados:*', 'boletim:*', 'dashboard:*', 'stats:*', 'graficos:*', 'alunos:*', 'executivo:*', 'evolucao:*', 'alunos-risco:*', 'dashboard-gestor:*']) {
+        try { await cacheDelPattern(p) } catch {}
+      }
+    } catch { /* invalidação de cache não é crítica */ }
 
     return NextResponse.json({
       mensagem: `Cartão-resposta salvo! ${alunos} aluno(s), ${questoesGravadas} questão(ões) gravada(s).`,

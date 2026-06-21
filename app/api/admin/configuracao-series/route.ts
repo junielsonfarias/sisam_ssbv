@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/configuracao-series
  * Retorna a configuração de todas as séries ou de uma série específica
  */
-export const GET = withAuth(async (request, usuario) => {
+export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], async (request, usuario) => {
   try {
     const searchParams = request.nextUrl.searchParams
     const { serie, ano_letivo } = parseSearchParams(searchParams, ['serie', 'ano_letivo'])

@@ -5,6 +5,9 @@ import {
   createWhereBuilder, addRawCondition, addSearchCondition, addCondition,
   addAccessControl, buildConditionsString,
 } from '@/lib/api-helpers'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('AdminMatriculasBuscar')
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows)
   } catch (error: unknown) {
-    console.error('Erro ao buscar alunos:', error)
+    log.error('Erro ao buscar alunos', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }
