@@ -25,8 +25,12 @@
  */
 
 import pool from '@/database/connection'
+import type { Usuario } from '@/lib/types/usuario'
 
 export type NivelRisco = 'baixo' | 'medio' | 'alto'
+
+/** Subconjunto do usuário necessário para aplicar escopo de acesso. */
+type UsuarioEscopo = Pick<Usuario, 'tipo_usuario' | 'polo_id' | 'escola_id'>
 
 export interface FatorRisco {
   nome: string
@@ -56,11 +60,27 @@ function classificarRisco(score: number): NivelRisco {
 
 /**
  * Calcula risco para um aluno específico.
+ *
+ * O escopo do usuário (polo/escola) é aplicado no WHERE da consulta de dados
+ * básicos: alunos fora do escopo retornam `null` (tratado como 404 na rota),
+ * evitando IDOR / vazamento de PII entre unidades.
  */
 export async function calcularRiscoAluno(
   alunoId: string,
-  anoLetivo: string
+  anoLetivo: string,
+  usuario?: UsuarioEscopo
 ): Promise<PredicaoEvasao | null> {
+  // Filtro de escopo por papel — espelha aplicarRestricaoAcesso (comparativos).
+  const escopoSql: string[] = []
+  const escopoParams: unknown[] = []
+  if (usuario?.tipo_usuario === 'escola' && usuario.escola_id) {
+    escopoParams.push(usuario.escola_id)
+    escopoSql.push(`AND a.escola_id = $${escopoParams.length + 1}`)
+  } else if (usuario?.tipo_usuario === 'polo' && usuario.polo_id) {
+    escopoParams.push(usuario.polo_id)
+    escopoSql.push(`AND a.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${escopoParams.length + 1})`)
+  }
+
   // Dados básicos
   const alR = await pool.query(
     `SELECT a.id, a.nome, a.data_nascimento, a.serie, a.escola_id,
@@ -69,8 +89,8 @@ export async function calcularRiscoAluno(
        FROM alunos a
        LEFT JOIN escolas e ON e.id = a.escola_id
        LEFT JOIN turmas t ON t.id = a.turma_id
-      WHERE a.id = $1`,
-    [alunoId]
+      WHERE a.id = $1 ${escopoSql.join(' ')}`,
+    [alunoId, ...escopoParams]
   )
   const aluno = alR.rows[0]
   if (!aluno) return null
@@ -197,14 +217,32 @@ export async function listarRiscosEscola(params: {
   anoLetivo: string
   nivelMinimo?: NivelRisco
   limite?: number
-}): Promise<PredicaoEvasao[]> {
+}, usuario?: UsuarioEscopo): Promise<PredicaoEvasao[]> {
   const where: string[] = ['a.ativo IS NOT FALSE']
   const queryParams: unknown[] = []
-  let i = 1
 
-  if (params.escolaId) {
+  // Filtra apenas alunos do ano letivo avaliado — evita arrastar alunos de
+  // anos anteriores para a contagem/avaliação (corrige estatísticas + N+1).
+  queryParams.push(params.anoLetivo)
+  where.push(`a.ano_letivo = $${queryParams.length}`)
+
+  // Escopo de acesso: para 'escola'/'polo' o escopo do usuário SOBRESCREVE o
+  // escolaId vindo do cliente (anti-IDOR). Apenas administrador/técnico podem
+  // usar o filtro escolaId livremente.
+  if (usuario?.tipo_usuario === 'escola' && usuario.escola_id) {
+    queryParams.push(usuario.escola_id)
+    where.push(`a.escola_id = $${queryParams.length}`)
+  } else if (usuario?.tipo_usuario === 'polo' && usuario.polo_id) {
+    queryParams.push(usuario.polo_id)
+    where.push(`a.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${queryParams.length})`)
+    // Se um escolaId específico foi pedido, ele só é aceito se pertencer ao polo.
+    if (params.escolaId) {
+      queryParams.push(params.escolaId)
+      where.push(`a.escola_id = $${queryParams.length}`)
+    }
+  } else if (params.escolaId) {
     queryParams.push(params.escolaId)
-    where.push(`a.escola_id = $${i++}`)
+    where.push(`a.escola_id = $${queryParams.length}`)
   }
 
   const alunosR = await pool.query(
@@ -215,7 +253,7 @@ export async function listarRiscosEscola(params: {
   // Calcula risco para cada aluno (sequencial para não sobrecarregar pool)
   const predicoes: PredicaoEvasao[] = []
   for (const a of alunosR.rows) {
-    const p = await calcularRiscoAluno(a.id, params.anoLetivo)
+    const p = await calcularRiscoAluno(a.id, params.anoLetivo, usuario)
     if (p) predicoes.push(p)
   }
 
@@ -234,8 +272,8 @@ export async function listarRiscosEscola(params: {
 /**
  * Estatísticas agregadas de risco por escola.
  */
-export async function estatisticasRisco(anoLetivo: string) {
-  const riscos = await listarRiscosEscola({ anoLetivo, limite: 10000 })
+export async function estatisticasRisco(anoLetivo: string, usuario?: UsuarioEscopo) {
+  const riscos = await listarRiscosEscola({ anoLetivo, limite: 10000 }, usuario)
 
   const total = riscos.length
   const alto = riscos.filter((r) => r.nivel === 'alto').length

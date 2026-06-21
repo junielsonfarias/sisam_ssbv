@@ -16,6 +16,18 @@
  */
 
 import pool from '@/database/connection'
+import type { Usuario } from '@/lib/types/usuario'
+
+/** Subconjunto do usuário necessário para aplicar escopo de acesso. */
+type UsuarioEscopo = Pick<Usuario, 'tipo_usuario' | 'polo_id' | 'escola_id'>
+
+/**
+ * Resolve o filtro de polo para usuários do tipo 'polo'.
+ * Retorna `null` para administrador/técnico (sem restrição).
+ */
+function poloDoUsuario(usuario?: UsuarioEscopo): string | null {
+  return usuario?.tipo_usuario === 'polo' && usuario.polo_id ? usuario.polo_id : null
+}
 
 export interface KpisGerais {
   total_alunos: number
@@ -74,26 +86,40 @@ export interface ComparativoEscola {
 // KPIs GERAIS
 // ============================================================================
 
-export async function obterKpisGerais(anoLetivo: string): Promise<KpisGerais> {
+export async function obterKpisGerais(anoLetivo: string, usuario?: UsuarioEscopo): Promise<KpisGerais> {
   // Alunos/AEE/Bolsa Familia sao filtrados por ano_letivo — assim cada ano
   // tem seu proprio "snapshot" e o dashboard reflete a matricula vigente.
   // Escolas/professores/servidores sao cadastros atemporais (filtram por ativo).
+  // Quando o usuário é 'polo', todas as contagens são restritas às escolas do
+  // polo (anti-vazamento de totais municipais para fora do escopo).
+  const polo = poloDoUsuario(usuario)
+  const params: unknown[] = [anoLetivo]
+  let escolasFiltro = ''
+  let alunosEscolaFiltro = ''
+  let escolasIdSub = '' // subquery de ids de escolas do polo, para joins
+  if (polo) {
+    params.push(polo)
+    escolasFiltro = ` AND polo_id = $${params.length}`
+    escolasIdSub = `(SELECT id FROM escolas WHERE polo_id = $${params.length})`
+    alunosEscolaFiltro = ` AND escola_id IN ${escolasIdSub}`
+  }
+
   const r = await pool.query(
     `SELECT
        (SELECT COUNT(*) FROM alunos
-          WHERE ativo IS NOT FALSE AND ano_letivo = $1) AS total_alunos,
-       (SELECT COUNT(*) FROM escolas WHERE ativo IS NOT FALSE) AS total_escolas,
+          WHERE ativo IS NOT FALSE AND ano_letivo = $1${alunosEscolaFiltro}) AS total_alunos,
+       (SELECT COUNT(*) FROM escolas WHERE ativo IS NOT FALSE${escolasFiltro}) AS total_escolas,
        (SELECT COUNT(*) FROM usuarios
-          WHERE tipo_usuario = 'professor' AND ativo IS NOT FALSE) AS total_professores,
-       (SELECT COUNT(*) FROM servidores WHERE ativo = TRUE) AS total_servidores,
+          WHERE tipo_usuario = 'professor' AND ativo IS NOT FALSE${polo ? ` AND escola_id IN ${escolasIdSub}` : ''}) AS total_professores,
+       ${polo ? '0' : '(SELECT COUNT(*) FROM servidores WHERE ativo = TRUE)'} AS total_servidores,
        (SELECT COUNT(DISTINCT ae.aluno_id)
           FROM alunos_aee ae
           INNER JOIN alunos a ON a.id = ae.aluno_id
-         WHERE a.ano_letivo = $1 AND a.ativo IS NOT FALSE) AS alunos_pne,
+         WHERE a.ano_letivo = $1 AND a.ativo IS NOT FALSE${polo ? ` AND a.escola_id IN ${escolasIdSub}` : ''}) AS alunos_pne,
        (SELECT COUNT(*) FROM alunos
          WHERE beneficiario_bolsa_familia = TRUE
-           AND ano_letivo = $1 AND ativo IS NOT FALSE) AS alunos_bf`,
-    [anoLetivo]
+           AND ano_letivo = $1 AND ativo IS NOT FALSE${alunosEscolaFiltro}) AS alunos_bf`,
+    params
   ).catch(() => ({ rows: [{}] }))
 
   const row = r.rows[0]
@@ -112,8 +138,17 @@ export async function obterKpisGerais(anoLetivo: string): Promise<KpisGerais> {
 // FREQUÊNCIA
 // ============================================================================
 
-export async function obterKpisFrequencia(anoLetivo: string): Promise<KpisFrequencia> {
+export async function obterKpisFrequencia(anoLetivo: string, usuario?: UsuarioEscopo): Promise<KpisFrequencia> {
   try {
+    const polo = poloDoUsuario(usuario)
+    const freqParams: unknown[] = [anoLetivo]
+    let freqEscolaFiltro = ''
+    if (polo) {
+      freqParams.push(polo)
+      // Restringe a frequência aos alunos das escolas do polo.
+      freqEscolaFiltro = ` AND aluno_id IN (SELECT id FROM alunos WHERE escola_id IN (SELECT id FROM escolas WHERE polo_id = $${freqParams.length}))`
+    }
+
     const r = await pool.query(
       `WITH freq_aluno AS (
          SELECT
@@ -121,21 +156,27 @@ export async function obterKpisFrequencia(anoLetivo: string): Promise<KpisFreque
            COUNT(*) AS total,
            COUNT(CASE WHEN status IN ('presente','justificado') THEN 1 END) AS presencas
            FROM frequencia_diaria
-          WHERE data BETWEEN ($1 || '-01-01')::date AND ($1 || '-12-31')::date
+          WHERE data BETWEEN ($1 || '-01-01')::date AND ($1 || '-12-31')::date${freqEscolaFiltro}
           GROUP BY aluno_id
        )
        SELECT
          ROUND(AVG(presencas::float / NULLIF(total, 0) * 100)::numeric, 1) AS freq_media,
          COUNT(*) FILTER (WHERE presencas::float / NULLIF(total, 0) < 0.75) AS infrequentes
          FROM freq_aluno`,
-      [anoLetivo]
+      freqParams
     )
+    const ficaiParams: unknown[] = [anoLetivo]
+    let ficaiEscolaFiltro = ''
+    if (polo) {
+      ficaiParams.push(polo)
+      ficaiEscolaFiltro = ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${ficaiParams.length})`
+    }
     const ficaiR = await pool.query(
       `SELECT COUNT(*) AS total FROM ficai_casos
-        WHERE ano_letivo = $1
+        WHERE ano_letivo = $1${ficaiEscolaFiltro}
           AND status IN ('aberto', 'contato_responsavel', 'aluno_retornou',
                          'encaminhado_conselho_tutelar', 'encaminhado_ministerio_publico')`,
-      [anoLetivo]
+      ficaiParams
     )
 
     return {
@@ -152,23 +193,37 @@ export async function obterKpisFrequencia(anoLetivo: string): Promise<KpisFreque
 // DESEMPENHO PEDAGÓGICO
 // ============================================================================
 
-export async function obterKpisDesempenho(anoLetivo: string): Promise<KpisDesempenho> {
+export async function obterKpisDesempenho(anoLetivo: string, usuario?: UsuarioEscopo): Promise<KpisDesempenho> {
   try {
+    const polo = poloDoUsuario(usuario)
+
     // Média geral das notas finais
+    const notasParams: unknown[] = [anoLetivo]
+    let notasEscolaFiltro = ''
+    if (polo) {
+      notasParams.push(polo)
+      notasEscolaFiltro = ` AND aluno_id IN (SELECT id FROM alunos WHERE escola_id IN (SELECT id FROM escolas WHERE polo_id = $${notasParams.length}))`
+    }
     const notasR = await pool.query(
       `SELECT ROUND(AVG(CAST(nota AS NUMERIC))::numeric, 2) AS media
          FROM notas_escolares
-        WHERE ano_letivo = $1 AND nota IS NOT NULL`,
-      [anoLetivo]
+        WHERE ano_letivo = $1 AND nota IS NOT NULL${notasEscolaFiltro}`,
+      notasParams
     ).catch(() => ({ rows: [{}] }))
 
     // Taxa aprovação/reprovação
+    const situacaoParams: unknown[] = [anoLetivo]
+    let situacaoEscolaFiltro = ''
+    if (polo) {
+      situacaoParams.push(polo)
+      situacaoEscolaFiltro = ` AND aluno_id IN (SELECT id FROM alunos WHERE escola_id IN (SELECT id FROM escolas WHERE polo_id = $${situacaoParams.length}))`
+    }
     const situacaoR = await pool.query(
       `SELECT situacao, COUNT(*) AS total
          FROM historico_situacao
-        WHERE EXTRACT(YEAR FROM data)::text = $1
+        WHERE EXTRACT(YEAR FROM data)::text = $1${situacaoEscolaFiltro}
         GROUP BY situacao`,
-      [anoLetivo]
+      situacaoParams
     ).catch(() => ({ rows: [] }))
 
     const totalSituacoes = situacaoR.rows.reduce((s: number, r: any) => s + parseInt(r.total, 10), 0)
@@ -182,6 +237,12 @@ export async function obterKpisDesempenho(anoLetivo: string): Promise<KpisDesemp
 
     // Distorção idade-série (alunos com >=2 anos a mais que o esperado),
     // filtrada pelo ano letivo selecionado
+    const distorcaoParams: unknown[] = [anoLetivo]
+    let distorcaoEscolaFiltro = ''
+    if (polo) {
+      distorcaoParams.push(polo)
+      distorcaoEscolaFiltro = ` AND a.escola_id IN (SELECT id FROM escolas WHERE polo_id = $${distorcaoParams.length})`
+    }
     const distorcaoR = await pool.query(
       `WITH expectativa AS (
          SELECT a.id,
@@ -193,14 +254,14 @@ export async function obterKpisDesempenho(anoLetivo: string): Promise<KpisDesemp
            FROM alunos a
           WHERE a.ativo IS NOT FALSE
             AND a.data_nascimento IS NOT NULL
-            AND a.ano_letivo = $1
+            AND a.ano_letivo = $1${distorcaoEscolaFiltro}
        )
        SELECT
          COUNT(*) FILTER (WHERE idade >= idade_esperada + 2)::float /
          NULLIF(COUNT(*), 0) * 100 AS pct
          FROM expectativa
         WHERE idade_esperada IS NOT NULL`,
-      [anoLetivo]
+      distorcaoParams
     ).catch(() => ({ rows: [{}] }))
 
     const distorcao = distorcaoR.rows[0]?.pct
@@ -234,39 +295,61 @@ export async function obterKpisDesempenho(anoLetivo: string): Promise<KpisDesemp
 // PROGRAMAS FEDERAIS
 // ============================================================================
 
-export async function obterKpisProgramas(anoLetivo: string): Promise<KpisProgramas> {
+export async function obterKpisProgramas(anoLetivo: string, usuario?: UsuarioEscopo): Promise<KpisProgramas> {
   // PNAE: se o ano selecionado for o atual, mostra apenas o mes vigente
   // (intencao original do KPI: "refeicoes_mes"). Para anos passados, agrega
   // o ano inteiro — assim historico nao some.
+  // Para usuários 'polo', todas as agregações são restritas às escolas do polo.
+  const polo = poloDoUsuario(usuario)
   const anoAtual = new Date().getFullYear()
   const anoInt = parseInt(anoLetivo, 10)
   const mesAtual = new Date().getMonth() + 1
+
+  const pnaeParams: unknown[] = anoInt === anoAtual ? [anoInt, mesAtual] : [anoInt]
+  let pnaeEscolaFiltro = ''
+  if (polo) {
+    pnaeParams.push(polo)
+    pnaeEscolaFiltro = ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${pnaeParams.length})`
+  }
   const pnae = anoInt === anoAtual
     ? await pool.query(
         `SELECT COALESCE(SUM(qtd_alunos), 0) AS total
            FROM pnae_atendimentos_diarios
           WHERE EXTRACT(YEAR FROM data_atendimento) = $1
-            AND EXTRACT(MONTH FROM data_atendimento) = $2`,
-        [anoInt, mesAtual]
+            AND EXTRACT(MONTH FROM data_atendimento) = $2${pnaeEscolaFiltro}`,
+        pnaeParams
       ).catch(() => ({ rows: [{ total: 0 }] }))
     : await pool.query(
         `SELECT COALESCE(SUM(qtd_alunos), 0) AS total
            FROM pnae_atendimentos_diarios
-          WHERE EXTRACT(YEAR FROM data_atendimento) = $1`,
-        [anoInt]
+          WHERE EXTRACT(YEAR FROM data_atendimento) = $1${pnaeEscolaFiltro}`,
+        pnaeParams
       ).catch(() => ({ rows: [{ total: 0 }] }))
 
+  const pnateParams: unknown[] = []
+  let pnateEscolaFiltro = ''
+  if (polo) {
+    pnateParams.push(polo)
+    pnateEscolaFiltro = ` AND aluno_id IN (SELECT id FROM alunos WHERE escola_id IN (SELECT id FROM escolas WHERE polo_id = $${pnateParams.length}))`
+  }
   const pnate = await pool.query(
     `SELECT COUNT(DISTINCT aluno_id) AS total
-       FROM pnate_alunos_rotas WHERE ativo = TRUE`
+       FROM pnate_alunos_rotas WHERE ativo = TRUE${pnateEscolaFiltro}`,
+    pnateParams
   ).catch(() => ({ rows: [{ total: 0 }] }))
 
+  const pddeParams: unknown[] = [anoLetivo]
+  let pddeEscolaFiltro = ''
+  if (polo) {
+    pddeParams.push(polo)
+    pddeEscolaFiltro = ` AND escola_id IN (SELECT id FROM escolas WHERE polo_id = $${pddeParams.length})`
+  }
   const pdde = await pool.query(
     `SELECT
        SUM(valor_recebido) AS recebido,
        SUM(valor_executado) AS executado
-       FROM pdde_saldos WHERE ano_letivo = $1`,
-    [anoLetivo]
+       FROM pdde_saldos WHERE ano_letivo = $1${pddeEscolaFiltro}`,
+    pddeParams
   ).catch(() => ({ rows: [{}] }))
 
   const pddeRow = pdde.rows[0] || {}
@@ -274,11 +357,18 @@ export async function obterKpisProgramas(anoLetivo: string): Promise<KpisProgram
     ? Math.round((parseFloat(pddeRow.executado || '0') / parseFloat(pddeRow.recebido)) * 1000) / 10
     : null
 
+  const osParams: unknown[] = []
+  let osEscolaFiltro = ''
+  if (polo) {
+    osParams.push(polo)
+    osEscolaFiltro = ` WHERE escola_id IN (SELECT id FROM escolas WHERE polo_id = $${osParams.length})`
+  }
   const os = await pool.query(
     `SELECT
        COUNT(*) FILTER (WHERE status NOT IN ('concluida','cancelada')) AS abertas,
        COUNT(*) FILTER (WHERE status NOT IN ('concluida','cancelada') AND prioridade = 'urgente') AS urgentes
-       FROM ordens_servico`
+       FROM ordens_servico${osEscolaFiltro}`,
+    osParams
   ).catch(() => ({ rows: [{ abertas: 0, urgentes: 0 }] }))
 
   return {
@@ -294,7 +384,15 @@ export async function obterKpisProgramas(anoLetivo: string): Promise<KpisProgram
 // COMPARATIVO POR ESCOLA
 // ============================================================================
 
-export async function obterComparativoEscolas(anoLetivo: string): Promise<ComparativoEscola[]> {
+export async function obterComparativoEscolas(anoLetivo: string, usuario?: UsuarioEscopo): Promise<ComparativoEscola[]> {
+  // Usuário 'polo' só enxerga as escolas do próprio polo (anti-vazamento).
+  const polo = poloDoUsuario(usuario)
+  const compParams: unknown[] = [anoLetivo]
+  let poloFiltro = ''
+  if (polo) {
+    compParams.push(polo)
+    poloFiltro = ` AND e.polo_id = $${compParams.length}`
+  }
   const r = await pool.query(
     `SELECT
        e.id AS escola_id, e.nome AS escola_nome,
@@ -308,9 +406,9 @@ export async function obterComparativoEscolas(anoLetivo: string): Promise<Compar
        (SELECT COUNT(*) FROM ficai_casos f WHERE f.escola_id = e.id AND f.ano_letivo = $1 AND f.status NOT IN ('concluido_aluno_transferido', 'concluido_resolvido', 'concluido_evasao_confirmada', 'cancelado')) AS alertas_ficai
        FROM escolas e
        LEFT JOIN polos p ON p.id = e.polo_id
-      WHERE e.ativo IS NOT FALSE
+      WHERE e.ativo IS NOT FALSE${poloFiltro}
       ORDER BY e.nome`,
-    [anoLetivo]
+    compParams
   ).catch(() => ({ rows: [] }))
 
   // Adiciona frequência e média (queries separadas para não bloquear o resto)
@@ -356,14 +454,15 @@ export async function obterComparativoEscolas(anoLetivo: string): Promise<Compar
 // ============================================================================
 
 export async function obterKpisCompletos(
+  usuario: UsuarioEscopo,
   anoLetivo: string,
   incluirComparativo = false
 ): Promise<KpisCompletos> {
   const [gerais, frequencia, desempenho, programas] = await Promise.all([
-    obterKpisGerais(anoLetivo),
-    obterKpisFrequencia(anoLetivo),
-    obterKpisDesempenho(anoLetivo),
-    obterKpisProgramas(anoLetivo),
+    obterKpisGerais(anoLetivo, usuario),
+    obterKpisFrequencia(anoLetivo, usuario),
+    obterKpisDesempenho(anoLetivo, usuario),
+    obterKpisProgramas(anoLetivo, usuario),
   ])
 
   const result: KpisCompletos = {
@@ -372,7 +471,7 @@ export async function obterKpisCompletos(
   }
 
   if (incluirComparativo) {
-    result.comparativo_escolas = await obterComparativoEscolas(anoLetivo)
+    result.comparativo_escolas = await obterComparativoEscolas(anoLetivo, usuario)
   }
 
   return result
