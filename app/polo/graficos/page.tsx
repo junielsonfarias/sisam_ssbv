@@ -186,7 +186,7 @@ export default function GraficosPoloPage() {
                   type="text"
                   value={poloNome || 'Carregando...'}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 dark:bg-slate-700/50 text-gray-600 dark:text-gray-400 cursor-not-allowed"
                 />
               </div>
 
@@ -258,7 +258,7 @@ export default function GraficosPoloPage() {
           </div>
 
           {erro && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center">
               <XCircle className="w-5 h-5 mr-2" />
               {erro}
             </div>

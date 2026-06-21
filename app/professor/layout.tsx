@@ -49,7 +49,7 @@ export default function ProfessorLayout({
   const MENU_MOBILE_PROFESSOR = [
     { label: 'Dashboard',  href: '/professor/dashboard',         icon: DashboardIcon },
     { label: 'Turmas',     href: '/professor/turmas',            icon: BookOpen },
-    { label: 'Frequencia', href: '/professor/frequencia-diaria', icon: CalendarCheck },
+    { label: 'Frequencia', href: '/professor/frequencia',         icon: CalendarCheck },
     { label: 'Notas',      href: '/professor/notas',             icon: Users },
     { label: 'Mais',       href: '#mais',                        icon: MoreHorizontal,
       onClick: () => setMaisAberto(true) },

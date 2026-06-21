@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Bell, AlertTriangle, Info, Calendar, Megaphone } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -24,7 +24,7 @@ const TIPO_CONFIG: Record<string, { cor: string; barra: string; icone: typeof Be
   reuniao: { cor: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300', barra: 'bg-indigo-500', icone: Megaphone, label: 'Reunião' },
 }
 
-export default function ComunicadosPage() {
+function ComunicadosContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const alunoId = searchParams.get('aluno_id')
@@ -113,5 +113,13 @@ export default function ComunicadosPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ComunicadosPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center"><LoadingSpinner centered /></div>}>
+      <ComunicadosContent />
+    </Suspense>
   )
 }
