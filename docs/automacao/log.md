@@ -66,3 +66,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 3 | services-core | aprovado | 2 tarefas | tsc:ok vitest:ok | 9b97acc
 - ciclo 3 | pages-roles | aprovado | 1 tarefas | tsc:ok vitest:ok | e06348f
 - ciclo 3 | services-dados | aprovado | 2 tarefas | tsc:ok vitest:ok | a9f1979
+- ciclo 3 | pages-publicas-components | aprovado | 1 tarefas | tsc:ok vitest:ok | 30cf837
