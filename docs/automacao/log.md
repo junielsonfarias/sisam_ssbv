@@ -95,3 +95,35 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 
 - ciclo 4 | pages-admin | aprovado | 2 tarefas | tsc:ok vitest:ok | 87fecdd
 - ciclo 4 | database | aprovado | 1 tarefas | tsc:ok vitest:ok | a838ccf
+
+---
+
+# 🏁 RESUMO FINAL — encerrado 2026-06-21 08:54 (deadline 09:00)
+
+## Ciclos completos: 4 (de 5 planejados)
+| Ciclo | Módulos c/ achados | Aprovados | Revertidos | Erros | Tarefas |
+|-------|--------------------|-----------|------------|-------|---------|
+| 1     | 15                 | 15        | 0          | 0     | ~58     |
+| 2     | 14                 | 14        | 0          | 0     | ~46     |
+| 3     | 14                 | 14        | 0          | 0     | ~30     |
+| 4     | 16                 | 16        | 0          | 0     | ~43     |
+| **Σ** |                    | **59**    | **0**      | **0** | **~177**|
+
+## Números
+- **123 commits** na branch `auto/revisao-noturna` (59 `fix(...)` + logs/infra).
+- **260 arquivos** alterados · **+13.006 / −9.850** linhas.
+- **0 reverts, 0 erros** — nada quebrado entrou (todo commit passou em tsc + vitest).
+- **Sem push** — tudo contido na branch para revisão.
+
+## Por que 4 e não 5 ciclos
+- O limite de sessão foi atingido ~23:15 (reset 01:10 Fortaleza) e a auto-retomada só
+  ocorreu ~07:47 — perdeu-se a janela da madrugada. Com isso, deu tempo de 4 ciclos
+  completos + re-tentativa do 4. O 5º não cabia antes das 09:00 (cada ciclo leva 36-65min).
+
+## Como revisar
+```
+git log --oneline auto/revisao-noturna ^main
+git diff main..auto/revisao-noturna
+# aprovar:  git checkout main && git merge auto/revisao-noturna
+# push é decisão sua (dispara deploy no Vercel)
+```
