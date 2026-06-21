@@ -10,6 +10,9 @@ import {
 } from './tipos'
 import { getMediaGeralSQL, getMediaAnosIniciaisSQL } from '@/lib/sql/media-geral'
 import { ORIGEM_GESTOR, ORIGEM_SISAM_ETL } from '@/lib/services/gestor/mestre.service'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DivergenciasCorretores')
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -55,7 +58,18 @@ export async function registrarHistorico(
       usuarioNome
     ])
   } catch (error) {
-    console.error('Erro ao registrar histórico de divergência:', error)
+    // NÃO mascarar: registrar histórico é a única trilha persistente de várias
+    // divergências (ex.: gate estrito do ETL). Antes este catch engolia o erro
+    // silenciosamente — uma falha de INSERT (ex.: "value too long") fazia a
+    // divergência sumir sem rastro. Agora logamos com severidade alta e
+    // propagamos de forma controlada: o chamador (ex.: registrarMestreAusente/
+    // registrarMestreCriado) decide se tolera a falha sem derrubar a importação.
+    log.error('Falha ao registrar histórico de divergência', error, {
+      tipo,
+      entidade,
+      entidadeId,
+    })
+    throw error
   }
 }
 

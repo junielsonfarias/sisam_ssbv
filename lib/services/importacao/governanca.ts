@@ -22,6 +22,19 @@ const log = createLogger('ImportacaoGovernanca')
 /** Rótulo do "usuário" sistema para registros automáticos do ETL. */
 const ETL_USUARIO_NOME = 'ETL Sisam'
 
+/**
+ * Limite defensivo de tamanho para `acao_realizada` em divergencias_historico.
+ * A coluna foi ampliada para TEXT (migration divergencias-historico-acao-
+ * realizada-text.sql), mas truncamos por segurança para nunca reintroduzir o
+ * "value too long" que fazia a divergência do gate estrito sumir silenciosamente.
+ */
+const ACAO_REALIZADA_MAX = 255
+
+/** Trunca a descrição da ação ao limite seguro da coluna. */
+function truncarAcao(acao: string): string {
+  return acao.length > ACAO_REALIZADA_MAX ? acao.slice(0, ACAO_REALIZADA_MAX) : acao
+}
+
 interface MestreAusenteInput {
   entidade: 'escola' | 'turma' | 'aluno'
   nome: string
@@ -55,7 +68,7 @@ export async function registrarMestreAusente(input: MestreAusenteInput): Promise
         importacao_id: input.importacaoId,
       },
       null,
-      `${input.entidade} "${input.nome}" recusada pelo ETL (gate estrito): ausente no cadastro mestre do Gestor`,
+      truncarAcao(`${input.entidade} "${input.nome}" recusada pelo ETL (gate estrito): ausente no cadastro mestre do Gestor`),
       true,
       input.usuarioId,
       ETL_USUARIO_NOME
@@ -94,7 +107,7 @@ export async function registrarMestreCriado(input: MestreCriadoInput): Promise<v
         importacao_id: input.importacaoId,
         origem: 'sisam_etl',
       },
-      `${input.entidade} "${input.nome}" criada pelo ETL (transição) — pendente de "Assumir no Gestor"`,
+      truncarAcao(`${input.entidade} "${input.nome}" criada pelo ETL (transição) — pendente de "Assumir no Gestor"`),
       true,
       input.usuarioId,
       ETL_USUARIO_NOME
