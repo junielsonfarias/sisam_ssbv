@@ -36,3 +36,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 1 | services-dados | aprovado | 4 tarefas | tsc:ok vitest:ok | faf195a
 - ciclo 1 | api-admin-academico | aprovado | 6 tarefas | tsc:ok vitest:ok | 7d5fcab
 - ciclo 1 | api-admin-importacao | aprovado | 4 tarefas | tsc:ok vitest:ok | d3de412
+- ciclo 1 | pages-roles | aprovado | 5 tarefas | tsc:ok vitest:ok | c0bae06
