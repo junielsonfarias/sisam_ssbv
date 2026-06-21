@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { validateRequest, uuidSchema } from '@/lib/schemas'
+import { cacheDelPattern } from '@/lib/cache'
 
 const agregarFrequenciaDiariaSchema = z.object({
   turma_id: uuidSchema,
@@ -91,6 +92,11 @@ export async function POST(request: NextRequest) {
     )
 
     const salvos = result.rowCount || 0
+
+    // Invalidar cache após escrita em frequencia_bimestral (mesmos padrões da rota irmã /frequencia)
+    try { await cacheDelPattern('frequencia:*') } catch {}
+    try { await cacheDelPattern('boletim:*') } catch {}
+    try { await cacheDelPattern('dashboard:*') } catch {}
 
     return NextResponse.json({
       mensagem: `Frequência agregada para ${salvos} aluno(s)`,

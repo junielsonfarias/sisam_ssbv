@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
     const escolaId = searchParams.get('escola_id')
     const poloId = searchParams.get('polo_id')
     const serie = searchParams.get('serie')
-    const limite = parseInt(searchParams.get('limite') || '50')
+    // Sanitiza limite: fallback 50 quando NaN/<=0 e teto de 500 (evita slice(0, NaN) → array vazio silencioso)
+    const limite = Math.min(500, Math.max(1, parseInt(searchParams.get('limite') || '50') || 50))
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
     if (!periodoId) {

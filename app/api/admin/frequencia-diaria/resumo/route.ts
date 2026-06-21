@@ -36,6 +36,19 @@ export async function GET(request: NextRequest) {
       escolaId = usuario.escola_id
     }
 
+    // Usuário 'polo': evitar IDOR cross-polo. Se informou escola_id, a escola
+    // precisa pertencer ao polo do usuário; caso contrário, mantém o filtro por
+    // polo (escolaId nulo). Sem isso, o else-if abaixo ignoraria o filtro de polo.
+    if (usuario.tipo_usuario === 'polo' && escolaId) {
+      const escolaDoPolo = await pool.query(
+        'SELECT 1 FROM escolas WHERE id = $1 AND polo_id = $2',
+        [escolaId, poloIdUsuario]
+      )
+      if (escolaDoPolo.rows.length === 0) {
+        return NextResponse.json({ mensagem: 'Escola fora do polo' }, { status: 403 })
+      }
+    }
+
     // Totais por status no dia (presente/ausente/justificado).
     let presencaQuery = `
       SELECT
