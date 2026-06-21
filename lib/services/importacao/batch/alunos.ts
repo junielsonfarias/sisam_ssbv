@@ -6,7 +6,7 @@
 
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
-import { resolverAnoLetivoId } from '@/lib/services/gestor/mestre.service'
+import { resolverAnoLetivoId, resolverSerieId } from '@/lib/services/gestor/mestre.service'
 import {
   ImportacaoResultado,
   AlunoParaInserir,
@@ -48,6 +48,16 @@ export async function criarAlunos(
     )
     const anoLetivoIdPorAluno = new Map<string, string | null>()
     alunosParaInserir.forEach((a, idx) => anoLetivoIdPorAluno.set(a.tempId, idsAlunos[idx]))
+
+    // Serie canonica (series_escolares.id) resolvida 1x por serie via cache.
+    // Grava-se serie_id no INSERT e tambem no UPDATE (cura linhas legadas que
+    // estavam com a chave canonica NULL). Lookup centralizado em mestre.service (ADR-004).
+    const serieIdCache = new Map<string, string | null>()
+    const seriesAlunos = await Promise.all(
+      alunosParaInserir.map(a => resolverSerieId(pool, a.serie, serieIdCache))
+    )
+    const serieIdPorAluno = new Map<string, string | null>()
+    alunosParaInserir.forEach((a, idx) => serieIdPorAluno.set(a.tempId, seriesAlunos[idx]))
 
     for (let i = 0; i < alunosParaInserir.length; i += BATCH_SIZE) {
       const batch = alunosParaInserir.slice(i, i + BATCH_SIZE)
@@ -102,14 +112,14 @@ export async function criarAlunos(
           const updateValues: (string | null)[] = []
           const updatePlaceholders: string[] = []
           toUpdate.forEach(({ aluno, existingId }, idx) => {
-            const offset = idx * 4
-            updatePlaceholders.push(`($${offset + 1}::uuid, $${offset + 2}::uuid, $${offset + 3}, $${offset + 4}::uuid)`)
-            updateValues.push(existingId, aluno.turma_id, aluno.serie, anoLetivoIdPorAluno.get(aluno.tempId) ?? null)
+            const offset = idx * 5
+            updatePlaceholders.push(`($${offset + 1}::uuid, $${offset + 2}::uuid, $${offset + 3}, $${offset + 4}::uuid, $${offset + 5}::uuid)`)
+            updateValues.push(existingId, aluno.turma_id, aluno.serie, serieIdPorAluno.get(aluno.tempId) ?? null, anoLetivoIdPorAluno.get(aluno.tempId) ?? null)
           })
 
           await pool.query(
-            `UPDATE alunos SET turma_id = v.turma_id, serie = v.serie, ano_letivo_id = v.ano_letivo_id, atualizado_em = CURRENT_TIMESTAMP
-             FROM (VALUES ${updatePlaceholders.join(', ')}) AS v(id, turma_id, serie, ano_letivo_id)
+            `UPDATE alunos SET turma_id = v.turma_id, serie = v.serie, serie_id = v.serie_id, ano_letivo_id = v.ano_letivo_id, atualizado_em = CURRENT_TIMESTAMP
+             FROM (VALUES ${updatePlaceholders.join(', ')}) AS v(id, turma_id, serie, serie_id, ano_letivo_id)
              WHERE alunos.id = v.id`,
             updateValues
           )
@@ -125,13 +135,13 @@ export async function criarAlunos(
           const insertValues: (string | null)[] = []
           const insertPlaceholders: string[] = []
           toInsert.forEach((aluno, idx) => {
-            const offset = idx * 9
-            insertPlaceholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9})`)
-            insertValues.push(aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo, anoLetivoIdPorAluno.get(aluno.tempId) ?? null, aluno.origem, aluno.origem_importacao_id)
+            const offset = idx * 10
+            insertPlaceholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10})`)
+            insertValues.push(aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, serieIdPorAluno.get(aluno.tempId) ?? null, aluno.ano_letivo, anoLetivoIdPorAluno.get(aluno.tempId) ?? null, aluno.origem, aluno.origem_importacao_id)
           })
 
           const insertResult = await pool.query(
-            `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, ano_letivo_id, origem, origem_importacao_id)
+            `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, serie_id, ano_letivo, ano_letivo_id, origem, origem_importacao_id)
              VALUES ${insertPlaceholders.join(', ')}
              RETURNING id, codigo, nome`,
             insertValues
@@ -188,16 +198,16 @@ export async function criarAlunos(
               const alunoIdExistente = checkResult.rows[0].id
               await pool.query(
                 `UPDATE alunos
-                 SET turma_id = $1, serie = $2, ano_letivo_id = $3, atualizado_em = CURRENT_TIMESTAMP
-                 WHERE id = $4`,
-                [aluno.turma_id, aluno.serie, anoLetivoIdPorAluno.get(aluno.tempId) ?? null, alunoIdExistente]
+                 SET turma_id = $1, serie = $2, serie_id = $3, ano_letivo_id = $4, atualizado_em = CURRENT_TIMESTAMP
+                 WHERE id = $5`,
+                [aluno.turma_id, aluno.serie, serieIdPorAluno.get(aluno.tempId) ?? null, anoLetivoIdPorAluno.get(aluno.tempId) ?? null, alunoIdExistente]
               )
               tempToRealAlunos.set(aluno.tempId, alunoIdExistente)
               resultado.alunos.existentes++
             } else {
               const result = await pool.query(
-                'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, ano_letivo_id, origem, origem_importacao_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-                [aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, aluno.ano_letivo, anoLetivoIdPorAluno.get(aluno.tempId) ?? null, aluno.origem, aluno.origem_importacao_id]
+                'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, serie_id, ano_letivo, ano_letivo_id, origem, origem_importacao_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
+                [aluno.codigo, aluno.nome, aluno.escola_id, aluno.turma_id, aluno.serie, serieIdPorAluno.get(aluno.tempId) ?? null, aluno.ano_letivo, anoLetivoIdPorAluno.get(aluno.tempId) ?? null, aluno.origem, aluno.origem_importacao_id]
               )
               if (result.rows.length > 0 && result.rows[0].id) {
                 tempToRealAlunos.set(aluno.tempId, result.rows[0].id)

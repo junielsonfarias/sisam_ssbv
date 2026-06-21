@@ -6,7 +6,7 @@
 
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
-import { resolverAnoLetivoId } from '@/lib/services/gestor/mestre.service'
+import { resolverAnoLetivoId, resolverSerieId } from '@/lib/services/gestor/mestre.service'
 import {
   TurmaParaInserir,
   AlunoParaInserir,
@@ -44,21 +44,31 @@ export async function criarTurmas(
     const anoLetivoIdPorTurma = new Map<string, string | null>()
     turmasParaInserir.forEach((t, idx) => anoLetivoIdPorTurma.set(t.tempId, idsTurmas[idx]))
 
+    // Serie canonica (series_escolares.id) resolvida 1x por serie via cache.
+    // Grava-se serie_id junto do varchar `serie` para a chave canonica nao nascer
+    // vazia (ADR-004). Lookup centralizado em mestre.service.resolverSerieId.
+    const serieIdCache = new Map<string, string | null>()
+    const seriesTurmas = await Promise.all(
+      turmasParaInserir.map(t => resolverSerieId(pool, t.serie, serieIdCache))
+    )
+    const serieIdPorTurma = new Map<string, string | null>()
+    turmasParaInserir.forEach((t, idx) => serieIdPorTurma.set(t.tempId, seriesTurmas[idx]))
+
     for (let i = 0; i < turmasParaInserir.length; i += BATCH_SIZE) {
       const batch = turmasParaInserir.slice(i, i + BATCH_SIZE)
       try {
         const values: (string | null)[] = []
         const placeholders: string[] = []
         batch.forEach((turma, idx) => {
-          const offset = idx * 8
-          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`)
-          values.push(turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo, anoLetivoIdPorTurma.get(turma.tempId) ?? null, turma.origem, turma.origem_importacao_id)
+          const offset = idx * 9
+          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9})`)
+          values.push(turma.codigo, turma.nome, turma.escola_id, turma.serie, serieIdPorTurma.get(turma.tempId) ?? null, turma.ano_letivo, anoLetivoIdPorTurma.get(turma.tempId) ?? null, turma.origem, turma.origem_importacao_id)
         })
 
         const result = await pool.query(
-          `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, ano_letivo_id, origem, origem_importacao_id)
+          `INSERT INTO turmas (codigo, nome, escola_id, serie, serie_id, ano_letivo, ano_letivo_id, origem, origem_importacao_id)
            VALUES ${placeholders.join(', ')}
-           ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie, ano_letivo_id = EXCLUDED.ano_letivo_id
+           ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie, serie_id = EXCLUDED.serie_id, ano_letivo_id = EXCLUDED.ano_letivo_id
            RETURNING id, codigo, escola_id, ano_letivo`,
           values
         )
@@ -81,8 +91,8 @@ export async function criarTurmas(
         for (const turma of batch) {
           try {
             const result = await pool.query(
-              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, ano_letivo_id, origem, origem_importacao_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie, ano_letivo_id = EXCLUDED.ano_letivo_id RETURNING id',
-              [turma.codigo, turma.nome, turma.escola_id, turma.serie, turma.ano_letivo, anoLetivoIdPorTurma.get(turma.tempId) ?? null, turma.origem, turma.origem_importacao_id]
+              'INSERT INTO turmas (codigo, nome, escola_id, serie, serie_id, ano_letivo, ano_letivo_id, origem, origem_importacao_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (escola_id, codigo, ano_letivo) DO UPDATE SET serie = EXCLUDED.serie, serie_id = EXCLUDED.serie_id, ano_letivo_id = EXCLUDED.ano_letivo_id RETURNING id',
+              [turma.codigo, turma.nome, turma.escola_id, turma.serie, serieIdPorTurma.get(turma.tempId) ?? null, turma.ano_letivo, anoLetivoIdPorTurma.get(turma.tempId) ?? null, turma.origem, turma.origem_importacao_id]
             )
             tempToRealTurmas.set(turma.tempId, result.rows[0].id)
           } catch (error: unknown) {

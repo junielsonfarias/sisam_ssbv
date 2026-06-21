@@ -157,3 +157,57 @@ export async function resolverAnoLetivoId(
   if (cache) cache.set(ano, id)
   return id
 }
+
+// ============================================================================
+// SERIE CANONICA (serie varchar -> series_escolares.id) — regra unica (ADR-004)
+// ============================================================================
+//
+// `series_escolares` e a fonte canonica de series (ADR-004). As tabelas
+// operacionais (turmas, alunos) carregam tanto o `serie` (varchar legado: "1".."9"
+// ou "1º Ano".."9º Ano") quanto o `serie_id` (uuid FK -> series_escolares). Ambas
+// as portas de escrita do cadastro mestre (Gestor e ETL Sisam) precisam preencher
+// `serie_id` na origem; caso contrario o backfill e efemero (a fonte unica volta a
+// produzir a chave canonica vazia a cada importacao). Centralizar o lookup aqui
+// evita implementacoes paralelas — mesmo padrao de `resolverAnoLetivoId`.
+
+/**
+ * Resolve `series_escolares.id` (uuid canonico) a partir da serie em varchar.
+ *
+ * - Casa por nome OU codigo do catalogo, case/space-insensitive — exatamente o
+ *   mesmo criterio dos backfills das migrations do ADR-004
+ *   (`lower(btrim(serie)) = lower(btrim(nome))` OU
+ *    `upper(btrim(serie)) = upper(btrim(codigo))`).
+ * - Memoriza o resultado num `Map` por serie (cache da transacao/lote) para nao
+ *   repetir a query a cada entidade — passe o MESMO Map para todas as chamadas
+ *   da importacao.
+ * - Retorna `null` (sem lancar) quando a serie nao casa com o catalogo,
+ *   preservando o comportamento nao-destrutivo: a coluna fica NULL como antes,
+ *   sem quebrar a importacao (a coluna serie_id e NULLABLE durante a transicao).
+ *
+ * Usado por: lib/services/importacao/batch/turmas.ts (Porta 2 ETL — turmas) e
+ * lib/services/importacao/batch/alunos.ts (Porta 2 ETL — alunos).
+ */
+export async function resolverSerieId(
+  executor: QueryExecutor,
+  serie: string | null | undefined,
+  cache?: Map<string, string | null>
+): Promise<string | null> {
+  const valor = (serie || '').trim()
+  if (!valor) return null
+
+  if (cache && cache.has(valor)) {
+    return cache.get(valor) ?? null
+  }
+
+  const result = await executor.query(
+    `SELECT id FROM series_escolares
+     WHERE lower(btrim(nome)) = lower(btrim($1))
+        OR upper(btrim(codigo)) = upper(btrim($1))
+     LIMIT 1`,
+    [valor]
+  )
+  const id: string | null = result.rows.length > 0 ? result.rows[0].id : null
+
+  if (cache) cache.set(valor, id)
+  return id
+}
