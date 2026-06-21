@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart, Bar, LineChart, Line, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { BarChart, Bar, LineChart, Line, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from '@/components/charts/lazy-charts'
 import { BookOpen, School, TrendingUp, Users, BarChart3, PieChart } from 'lucide-react'
 import { COLORS, prepararDadosBarras, prepararDadosDisciplinas, prepararDadosPizza, getFaixa } from './constants'
 

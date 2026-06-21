@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, Eye, X, AlertTriangle
 } from 'lucide-react'
 import ProtectedRoute from '@/components/protected-route'
+import { useToast } from '@/components/toast'
 
 interface PreMatricula {
   id: string; protocolo: string; aluno_nome: string; aluno_data_nascimento: string
@@ -37,6 +38,7 @@ const SERIES_LABELS: Record<string, string> = {
 }
 
 function PreMatriculasContent() {
+  const toast = useToast()
   const [dados, setDados] = useState<PreMatricula[]>([])
   const [kpis, setKpis] = useState<KPIs>({ pendentes: '0', em_analise: '0', aprovadas: '0', rejeitadas: '0', total: '0' })
   const [carregando, setCarregando] = useState(true)
@@ -62,6 +64,7 @@ function PreMatriculasContent() {
       setKpis(data.kpis || kpis)
       setTotalPages(data.paginacao?.totalPages || 1)
     } catch {
+      toast.error('Erro ao carregar pré-matrículas.')
     } finally {
       setCarregando(false)
     }
@@ -81,19 +84,24 @@ function PreMatriculasContent() {
         setModalAcao(null)
         setSelecionado(null)
         setMotivoRejeicao('')
+        toast.success('Status atualizado com sucesso!')
         carregar()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.mensagem || 'Erro ao atualizar status.')
       }
     } catch {
+      toast.error('Erro ao atualizar status.')
     } finally {
       setSalvando(false)
     }
   }
 
   const kpiCards = [
-    { label: 'Pendentes', value: kpis.pendentes, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
-    { label: 'Em Análise', value: kpis.em_analise, icon: Search, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
-    { label: 'Aprovadas', value: kpis.aprovadas, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-    { label: 'Rejeitadas', value: kpis.rejeitadas, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
+    { label: 'Pendentes', value: kpis.pendentes, icon: Clock, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-800' },
+    { label: 'Em Análise', value: kpis.em_analise, icon: Search, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800' },
+    { label: 'Aprovadas', value: kpis.aprovadas, icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800' },
+    { label: 'Rejeitadas', value: kpis.rejeitadas, icon: XCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-800' },
   ]
 
   return (
@@ -118,16 +126,16 @@ function PreMatriculasContent() {
               <k.icon className={`w-5 h-5 ${k.color}`} />
               <span className={`text-2xl font-bold ${k.color}`}>{k.value}</span>
             </div>
-            <p className="text-sm text-slate-600 mt-1">{k.label}</p>
+            <p className="text-sm text-slate-600 dark:text-gray-300 mt-1">{k.label}</p>
           </div>
         ))}
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-3">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 flex flex-wrap items-center gap-3">
         <Filter className="w-4 h-4 text-slate-400" />
         <select value={filtroStatus} onChange={e => { setFiltroStatus(e.target.value); setPage(1) }}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
+          className="rounded-lg border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-3 py-2 text-sm">
           <option value="">Todos os status</option>
           <option value="pendente">Pendente</option>
           <option value="em_analise">Em Análise</option>
@@ -135,7 +143,7 @@ function PreMatriculasContent() {
           <option value="rejeitada">Rejeitada</option>
         </select>
         <select value={ano} onChange={e => { setAno(e.target.value); setPage(1) }}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
+          className="rounded-lg border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-3 py-2 text-sm">
           {[2024, 2025, 2026, 2027].map(a => <option key={a} value={a}>{a}</option>)}
         </select>
         {filtroStatus && (
@@ -147,7 +155,7 @@ function PreMatriculasContent() {
       </div>
 
       {/* Tabela */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
         {carregando ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
@@ -161,7 +169,7 @@ function PreMatriculasContent() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 border-b">
+                <tr className="bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-gray-300 border-b dark:border-slate-600">
                   <th className="text-left px-4 py-3 font-semibold">Protocolo</th>
                   <th className="text-left px-4 py-3 font-semibold">Aluno</th>
                   <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Responsável</th>
@@ -177,14 +185,14 @@ function PreMatriculasContent() {
                 {dados.map(pm => {
                   const cfg = STATUS_CFG[pm.status] || STATUS_CFG.pendente
                   return (
-                    <tr key={pm.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer"
+                    <tr key={pm.id} className="border-b border-gray-50 dark:border-slate-700 hover:bg-gray-50/50 dark:hover:bg-slate-700/50 cursor-pointer"
                       onClick={() => { setSelecionado(pm); setModalAcao('detalhes') }}>
-                      <td className="px-4 py-3 font-mono text-xs">{pm.protocolo}</td>
-                      <td className="px-4 py-3 font-medium text-slate-700">{pm.aluno_nome}</td>
-                      <td className="px-4 py-3 hidden md:table-cell text-slate-600">{pm.responsavel_nome}</td>
-                      <td className="px-4 py-3 hidden lg:table-cell text-slate-600">{pm.responsavel_telefone}</td>
-                      <td className="px-4 py-3 hidden lg:table-cell text-slate-600 truncate max-w-[150px]">{pm.escola_nome || '-'}</td>
-                      <td className="px-4 py-3">{SERIES_LABELS[pm.serie_pretendida] || pm.serie_pretendida}</td>
+                      <td className="px-4 py-3 font-mono text-xs dark:text-gray-300">{pm.protocolo}</td>
+                      <td className="px-4 py-3 font-medium text-slate-700 dark:text-white">{pm.aluno_nome}</td>
+                      <td className="px-4 py-3 hidden md:table-cell text-slate-600 dark:text-gray-300">{pm.responsavel_nome}</td>
+                      <td className="px-4 py-3 hidden lg:table-cell text-slate-600 dark:text-gray-300">{pm.responsavel_telefone}</td>
+                      <td className="px-4 py-3 hidden lg:table-cell text-slate-600 dark:text-gray-300 truncate max-w-[150px]">{pm.escola_nome || '-'}</td>
+                      <td className="px-4 py-3 dark:text-gray-300">{SERIES_LABELS[pm.serie_pretendida] || pm.serie_pretendida}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
                           {cfg.label}

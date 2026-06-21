@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState } from 'react'
 import { Settings, Image, Palette, Type, Link as LinkIcon, Save, Upload, X } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useToast } from '@/components/toast'
 
 interface Personalizacao {
   login_titulo: string
@@ -18,6 +19,7 @@ interface Personalizacao {
 }
 
 export default function PersonalizacaoPage() {
+  const toast = useToast()
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [formData, setFormData] = useState<Personalizacao>({
@@ -76,12 +78,12 @@ export default function PersonalizacaoPage() {
       const data = await response.json()
 
       if (response.ok) {
-        alert('Personalização salva com sucesso!')
+        toast.success('Personalização salva com sucesso!')
       } else {
-        alert(data.mensagem || 'Erro ao salvar personalização')
+        toast.error(data.mensagem || 'Erro ao salvar personalização')
       }
     } catch (error) {
-      alert('Erro ao salvar personalização')
+      toast.error('Erro ao salvar personalização')
     } finally {
       setSalvando(false)
     }
@@ -93,13 +95,13 @@ export default function PersonalizacaoPage() {
 
     // Validar tipo de arquivo
     if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione apenas arquivos de imagem')
+      toast.error('Por favor, selecione apenas arquivos de imagem')
       return
     }
 
     // Validar tamanho (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 5MB')
+      toast.error('A imagem deve ter no máximo 5MB')
       return
     }
 
@@ -116,12 +118,12 @@ export default function PersonalizacaoPage() {
         setUploadingImage(false)
       }
       reader.onerror = () => {
-        alert('Erro ao ler a imagem')
+        toast.error('Erro ao ler a imagem')
         setUploadingImage(false)
       }
       reader.readAsDataURL(file)
     } catch (error) {
-      alert('Erro ao fazer upload da imagem')
+      toast.error('Erro ao fazer upload da imagem')
       setUploadingImage(false)
     }
   }

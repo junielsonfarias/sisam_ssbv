@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter } from 'recharts'
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter } from '@/components/charts/lazy-charts'
 import { School, BarChart3, Users } from 'lucide-react'
 import { isAnosIniciais } from '@/lib/disciplinas-mapping'
 import { FiltrosGraficos, getHeatmapColor } from './constants'

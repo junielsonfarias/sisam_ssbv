@@ -141,7 +141,7 @@ function CartaoRespostaContent() {
     }
   }
 
-  const selectClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all'
+  const selectClass = 'w-full rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all'
 
   return (
     <div className="space-y-6">
@@ -158,15 +158,15 @@ function CartaoRespostaContent() {
 
       {/* Etapa 1-2: Seleção */}
       {etapa < 3 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-lg mx-auto space-y-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6 max-w-lg mx-auto space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${etapa >= 1 ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-400'}`}>1</div>
-            <div className="w-8 h-0.5 bg-gray-200" />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${etapa >= 2 ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${etapa >= 1 ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-400'}`}>1</div>
+            <div className="w-8 h-0.5 bg-gray-200 dark:bg-slate-600" />
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${etapa >= 2 ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-400'}`}>2</div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Escola</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">Escola</label>
             <select value={escolaId} onChange={e => { setEscolaId(e.target.value); setTurmaId('') }} className={selectClass}>
               <option value="">Selecione a escola</option>
               {escolas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
@@ -174,7 +174,7 @@ function CartaoRespostaContent() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Turma</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">Turma</label>
             <select value={turmaId} onChange={e => setTurmaId(e.target.value)} className={selectClass} disabled={!escolaId}>
               <option value="">Selecione a turma</option>
               {turmas.map(t => <option key={t.id} value={t.id}>{t.codigo} - {t.serie}</option>)}
@@ -182,7 +182,7 @@ function CartaoRespostaContent() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Avaliação</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">Avaliação</label>
             <select value={avaliacaoId} onChange={e => setAvaliacaoId(e.target.value)} className={selectClass}>
               <option value="">Selecione a avaliação</option>
               {avaliacoes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
@@ -212,8 +212,8 @@ function CartaoRespostaContent() {
 
           <div className="flex gap-4 overflow-x-auto">
             {/* Lista de Alunos */}
-            <div className="w-56 flex-shrink-0 bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="p-3 bg-slate-50 border-b text-sm font-semibold text-slate-700">Alunos</div>
+            <div className="w-56 flex-shrink-0 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-3 bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-gray-200">Alunos</div>
               <div className="max-h-[600px] overflow-y-auto">
                 {alunos.map(aluno => {
                   const r = respostas[aluno.id]
@@ -221,8 +221,8 @@ function CartaoRespostaContent() {
                   const isActive = alunoAtivo === aluno.id
                   return (
                     <button key={aluno.id} onClick={() => setAlunoAtivo(aluno.id)}
-                      className={`w-full text-left px-3 py-2.5 border-b border-gray-50 text-sm transition-all ${
-                        isActive ? 'bg-purple-50 text-purple-700 font-medium' : 'hover:bg-gray-50 text-slate-700'
+                      className={`w-full text-left px-3 py-2.5 border-b border-gray-50 dark:border-slate-700 text-sm transition-all ${
+                        isActive ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium' : 'hover:bg-gray-50 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300'
                       }`}>
                       <div className="flex items-center justify-between">
                         <span className="truncate">{aluno.nome}</span>
@@ -241,9 +241,9 @@ function CartaoRespostaContent() {
 
             {/* Grid de Respostas */}
             {alunoAtivo && (
-              <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-3 bg-slate-50 border-b flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-700">
+              <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div className="p-3 bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-gray-200">
                     {alunos.find(a => a.id === alunoAtivo)?.nome}
                   </span>
                   <button onClick={() => togglePresenca(alunoAtivo)}
@@ -267,15 +267,15 @@ function CartaoRespostaContent() {
                         const q = `Q${i + 1}`
                         const respAluno = respostas[alunoAtivo]?.respostas?.[q] || ''
                         return (
-                          <div key={q} className="flex items-center gap-2 p-1.5 rounded-lg border border-gray-100">
-                            <span className="text-xs font-mono text-slate-500 w-7">{q}</span>
+                          <div key={q} className="flex items-center gap-2 p-1.5 rounded-lg border border-gray-100 dark:border-slate-700">
+                            <span className="text-xs font-mono text-slate-500 dark:text-gray-400 w-7">{q}</span>
                             <div className="flex gap-1">
                               {ALTERNATIVAS.map(alt => (
                                 <button key={alt} onClick={() => marcarResposta(alunoAtivo, q, alt)}
                                   className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
                                     respAluno === alt
                                       ? 'bg-purple-500 text-white shadow-md shadow-purple-500/30'
-                                      : 'bg-gray-100 text-slate-600 hover:bg-purple-100 hover:text-purple-600'
+                                      : 'bg-gray-100 dark:bg-slate-700 text-slate-600 dark:text-gray-300 hover:bg-purple-100 hover:text-purple-600'
                                   }`}>
                                   {alt}
                                 </button>
@@ -292,7 +292,7 @@ function CartaoRespostaContent() {
           </div>
 
           {/* Salvar */}
-          <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
             {mensagem && (
               <div className={`flex items-center gap-2 text-sm ${mensagem.includes('sucesso') || mensagem.includes('Salvo') ? 'text-emerald-600' : 'text-red-600'}`}>
                 <CheckCircle className="w-4 h-4" /> {mensagem}
