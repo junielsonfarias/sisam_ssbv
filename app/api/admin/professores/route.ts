@@ -19,6 +19,12 @@ export const GET = withAuth(['administrador', 'tecnico', 'escola'], async (reque
     const searchParams = request.nextUrl.searchParams
     const { escola_id, ativo } = parseSearchParams(searchParams, ['escola_id', 'ativo'])
 
+    // Controle de acesso: escola sem escola_id não tem escopo — retorna lista vazia
+    // para nunca expor PII (CPF/telefone) de todos os professores do município
+    if (usuario.tipo_usuario === 'escola' && !usuario.escola_id) {
+      return NextResponse.json({ professores: [] })
+    }
+
     // Filtro de escola: usa o parâmetro ou a escola do usuário logado
     const escolaFiltro = escola_id || (usuario.tipo_usuario === 'escola' ? usuario.escola_id : null)
 
@@ -95,7 +101,10 @@ export const PATCH = withAuth(['administrador', 'tecnico', 'escola'], async (req
     const { professor_id, ativo } = validacao.data
 
     // Controle de acesso: usuário 'escola' só pode alternar professor vinculado a uma turma da própria escola
-    if (usuario.tipo_usuario === 'escola' && usuario.escola_id) {
+    if (usuario.tipo_usuario === 'escola') {
+      if (!usuario.escola_id) {
+        return NextResponse.json({ mensagem: 'Não autorizado para este professor' }, { status: 403 })
+      }
       const vinculo = await pool.query(
         `SELECT 1 FROM professor_turmas pt
          JOIN turmas t ON t.id = pt.turma_id

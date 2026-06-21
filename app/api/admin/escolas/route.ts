@@ -152,14 +152,15 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
     polo_nome: row.polo_nome,
     total_alunos: parseInt(row.total_alunos) || 0,
     total_turmas: parseInt(row.total_turmas) || 0,
-    media_geral: parseFloat(row.media_geral) || null,
-    media_lp: parseFloat(row.media_lp) || null,
-    media_mat: parseFloat(row.media_mat) || null,
+    // Preservar média zero legítima: cair para null apenas quando origem é null/NaN
+    media_geral: row.media_geral != null ? parseFloat(row.media_geral) : null,
+    media_lp: row.media_lp != null ? parseFloat(row.media_lp) : null,
+    media_mat: row.media_mat != null ? parseFloat(row.media_mat) : null,
     // PROD: mostrar apenas para anos iniciais (2, 3, 5)
-    media_prod: isAnosFinais ? null : parseFloat(row.media_prod) || null,
+    media_prod: isAnosFinais ? null : (row.media_prod != null ? parseFloat(row.media_prod) : null),
     // CH/CN: mostrar apenas para anos finais (6, 7, 8, 9)
-    media_ch: isAnosIniciais ? null : parseFloat(row.media_ch) || null,
-    media_cn: isAnosIniciais ? null : parseFloat(row.media_cn) || null,
+    media_ch: isAnosIniciais ? null : (row.media_ch != null ? parseFloat(row.media_ch) : null),
+    media_cn: isAnosIniciais ? null : (row.media_cn != null ? parseFloat(row.media_cn) : null),
     presentes: parseInt(row.presentes) || 0,
     faltantes: parseInt(row.faltantes) || 0
   }))
