@@ -9,7 +9,9 @@ import {
   RegraAvaliacaoOpt,
   ETAPA_LABELS,
   ETAPA_CORES,
+  ESQUEMA_RECUPERACAO_OPCOES,
 } from './types'
+import type { EsquemaRecuperacao } from './types'
 
 export function AbaAvaliacao({ escolaId, toast }: { escolaId: string; toast: any }) {
   const [series, setSeries] = useState<RegraSerieRow[]>([])
@@ -21,8 +23,8 @@ export function AbaAvaliacao({ escolaId, toast }: { escolaId: string; toast: any
   const [form, setForm] = useState<{
     tipo_avaliacao_id: string; regra_avaliacao_id: string
     media_aprovacao: string; media_recuperacao: string; nota_maxima: string
-    permite_recuperacao: string
-  }>({ tipo_avaliacao_id: '', regra_avaliacao_id: '', media_aprovacao: '', media_recuperacao: '', nota_maxima: '', permite_recuperacao: '' })
+    permite_recuperacao: string; esquema_recuperacao: string
+  }>({ tipo_avaliacao_id: '', regra_avaliacao_id: '', media_aprovacao: '', media_recuperacao: '', nota_maxima: '', permite_recuperacao: '', esquema_recuperacao: '' })
 
   const carregar = async () => {
     try {
@@ -57,6 +59,7 @@ export function AbaAvaliacao({ escolaId, toast }: { escolaId: string; toast: any
       media_recuperacao: s.override_media_recuperacao != null ? String(s.override_media_recuperacao) : '',
       nota_maxima: s.override_nota_maxima != null ? String(s.override_nota_maxima) : '',
       permite_recuperacao: s.override_permite_recuperacao != null ? String(s.override_permite_recuperacao) : '',
+      esquema_recuperacao: s.override_esquema_recuperacao || '',
     })
   }
 
@@ -74,6 +77,7 @@ export function AbaAvaliacao({ escolaId, toast }: { escolaId: string; toast: any
           media_recuperacao: form.media_recuperacao !== '' ? parseFloat(form.media_recuperacao) : null,
           nota_maxima: form.nota_maxima !== '' ? parseFloat(form.nota_maxima) : null,
           permite_recuperacao: form.permite_recuperacao !== '' ? form.permite_recuperacao === 'true' : null,
+          esquema_recuperacao: form.esquema_recuperacao !== '' ? (form.esquema_recuperacao as EsquemaRecuperacao) : null,
         }),
       })
       if (res.ok) {
@@ -231,6 +235,9 @@ export function AbaAvaliacao({ escolaId, toast }: { escolaId: string; toast: any
                       <span>Media: <strong>{temOverride && s.override_media_aprovacao != null ? s.override_media_aprovacao : s.padrao_media_aprovacao ?? '-'}</strong></span>
                       <span>Nota max: <strong>{temOverride && s.override_nota_maxima != null ? s.override_nota_maxima : s.padrao_nota_maxima ?? '-'}</strong></span>
                       <span>Recuperacao: <strong>{temOverride && s.override_permite_recuperacao != null ? (s.override_permite_recuperacao ? 'Sim' : 'Nao') : (s.padrao_permite_recuperacao ? 'Sim' : 'Nao')}</strong></span>
+                      <span>Esquema rec.: <strong>{
+                        ESQUEMA_RECUPERACAO_OPCOES.find(o => o.valor === (s.override_esquema_recuperacao || 'por_periodo'))?.rotulo || '-'
+                      }</strong></span>
                     </div>
                   )}
 
@@ -324,6 +331,28 @@ export function AbaAvaliacao({ escolaId, toast }: { escolaId: string; toast: any
                             <option value="true">Sim</option>
                             <option value="false">Nao</option>
                           </select>
+                        </div>
+                        <div className="sm:col-span-2 lg:col-span-3">
+                          <label htmlFor={`esquema-rec-${s.serie_id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Esquema de Recuperacao
+                            <span className="text-gray-400 ml-1">(padrao: uma por bimestre)</span>
+                          </label>
+                          <select
+                            id={`esquema-rec-${s.serie_id}`}
+                            value={form.esquema_recuperacao}
+                            onChange={e => setForm(f => ({ ...f, esquema_recuperacao: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 dark:border-slate-600 px-2 py-2 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="">Usar padrao (uma recuperacao por bimestre)</option>
+                            {ESQUEMA_RECUPERACAO_OPCOES.map(o => (
+                              <option key={o.valor} value={o.valor}>{o.rotulo}</option>
+                            ))}
+                          </select>
+                          {form.esquema_recuperacao && (
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              {ESQUEMA_RECUPERACAO_OPCOES.find(o => o.valor === form.esquema_recuperacao)?.ajuda}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
