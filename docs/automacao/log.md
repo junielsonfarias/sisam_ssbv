@@ -33,3 +33,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - 1 módulo sem achados (api-escola-polo-tecnico). Disparando ciclo 2 (re-revisão + regressões).
 
 - ciclo 1 | api-admin-gestao | aprovado | 6 tarefas | tsc:ok vitest:ok | 793ed24
+- ciclo 1 | services-dados | aprovado | 4 tarefas | tsc:ok vitest:ok | faf195a
