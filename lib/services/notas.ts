@@ -197,6 +197,26 @@ export async function buscarConfigNotas(escolaId: string, anoLetivo: string): Pr
 }
 
 /**
+ * Invalida o cache em memória de config de notas (Map por `${escolaId}:${anoLetivo}`).
+ * Deve ser chamada após qualquer mutação em `configuracao_notas_escola` — junto
+ * com o `cacheDelPattern('config:*')` do Redis — para evitar que professores
+ * lancem notas com config antiga dentro da janela de TTL (60s).
+ *
+ * - Com `escolaId` e `anoLetivo`: remove apenas a chave específica.
+ * - Sem argumentos: limpa todo o cache (caso simples e seguro, ex.: DELETE
+ *   por id, onde a chave não é derivável diretamente).
+ *
+ * Usado por: app/api/admin/configuracao-notas (POST/PUT/DELETE)
+ */
+export function invalidarCacheConfigNotas(escolaId?: string, anoLetivo?: string): void {
+  if (escolaId && anoLetivo) {
+    configCache.delete(`${escolaId}:${anoLetivo}`)
+  } else {
+    configCache.clear()
+  }
+}
+
+/**
  * Busca notas de alunos para uma turma/disciplina/período
  */
 export async function buscarNotas(turmaId: string, disciplinaId: string, periodoId: string) {
