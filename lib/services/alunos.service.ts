@@ -5,6 +5,16 @@ import {
   createWhereBuilder, addRawCondition, addSearchCondition, addCondition, buildConditionsString,
 } from '@/lib/api-helpers'
 import { anonimizarDadosFaciaisTx } from '@/lib/services/facial.service'
+import { podeAcessarEscolaSync } from '@/lib/auth'
+import type { Usuario } from '@/lib/types'
+
+/** Lançado quando o usuário tenta editar um aluno fora do seu escopo de acesso. */
+export class AlunoForaDeEscopoError extends Error {
+  constructor() {
+    super('fora do seu escopo de acesso')
+    this.name = 'AlunoForaDeEscopoError'
+  }
+}
 
 // ============================================================================
 // Service de Alunos — lógica compartilhada entre admin, professor e matrículas
@@ -221,10 +231,35 @@ export async function criarAluno(dados: AlunoInput): Promise<any> {
  * Atualiza dados de um aluno existente. Mesma whitelist do criarAluno.
  * Apenas campos presentes em `dados` (não-undefined) são incluídos no SET.
  *
+ * Controle de escopo (anti-IDOR de escrita): quando `usuario` é informado,
+ * valida que ele pode acessar a escola/polo ATUAIS do aluno antes do UPDATE.
+ * Sem isso, um usuário de escola/polo poderia "sequestrar" um aluno de outra
+ * escola enviando seu próprio escola_id no payload. Espelha a defesa de
+ * processarAlunoExistente (matriculas/matricula.ts). Admin/técnico não sofrem
+ * restrição (podeAcessarEscolaSync retorna true).
+ *
  * Usado por: admin/alunos PUT
  */
-export async function atualizarAluno(id: string, dados: AlunoInput): Promise<any | null> {
+export async function atualizarAluno(id: string, dados: AlunoInput, usuario?: Usuario): Promise<any | null> {
   const { escola_id, turma_id } = dados as { escola_id: string; turma_id?: string | null }
+
+  // Controle de escopo (anti-IDOR): valida a escola/polo ATUAIS do aluno.
+  if (usuario) {
+    const alunoAtual = await pool.query(
+      `SELECT a.escola_id, e.polo_id
+         FROM alunos a
+         LEFT JOIN escolas e ON e.id = a.escola_id
+        WHERE a.id = $1`,
+      [id]
+    )
+    if (alunoAtual.rows.length > 0) {
+      const escolaAtualId = alunoAtual.rows[0].escola_id as string | null
+      const poloAtualId = alunoAtual.rows[0].polo_id as string | null
+      if (escolaAtualId && !podeAcessarEscolaSync(usuario, escolaAtualId, poloAtualId)) {
+        throw new AlunoForaDeEscopoError()
+      }
+    }
+  }
 
   if (turma_id) {
     const valida = await validarTurmaEscola(turma_id, escola_id)
