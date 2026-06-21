@@ -16,6 +16,7 @@ de arquitetura ou uma dívida consciente registrada formalmente.
 | [ADR-002](./ADR-002-tabela-matriculas.md) | Tabela `matriculas` dedicada (registro imutável por ano letivo) | Proposta | 2026-06-21 |
 | [ADR-003](./ADR-003-bidirecionalidade-sisam-boletim.md) | Bidirecionalidade Sisam → boletim (seção complementar, não write-back) | Proposta | 2026-06-21 |
 | [ADR-004](./ADR-004-fonte-canonica-series.md) | Fonte canônica de séries: consolidar em `series_escolares` | Proposta | 2026-06-21 |
+| [ADR-005](./ADR-005-recuperacao-flexivel-por-escola.md) | Recuperação flexível e parametrizável por escola/série | Proposta | 2026-06-21 |
 
 ---
 
@@ -41,12 +42,17 @@ ADR-003 (boletim)
 
 ADR-004 (séries canônicas)
   └── base para ADR-001 (match por serie_id) e ADR-002 (serie_id em matriculas)
+  └── pré-requisito parcial de ADR-005 (serie_escolar_id NOT NULL em escola_regras_avaliacao)
+
+ADR-005 (recuperação flexível)
+  └── depende parcialmente de ADR-004 (serie_escolar_id confiável no lookup escola+série)
+  └── relaciona-se com ADR-002 (matricula_id como âncora futura em recuperacoes_escolares)
 ```
 
 ## Como usar este índice
 
-1. Antes de qualquer mudança de modelagem em séries, turmas, alunos ou
-   matrícula, verifique se há ADR relacionado.
+1. Antes de qualquer mudança de modelagem em séries, turmas, alunos,
+   matrícula ou recuperação academica, verifique se há ADR relacionado.
 2. Para aprovar um ADR, o time altera o campo `Status` de `Proposta` para
    `Aceita` e registra a data da decisão.
 3. Para substituir um ADR, crie o novo (`ADR-NNN`) e marque o antigo como

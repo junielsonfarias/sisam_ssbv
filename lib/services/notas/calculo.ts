@@ -1,12 +1,18 @@
+import { REGRA_RECUPERACAO_PADRAO } from './types'
 import type { ConfigNotas } from './types'
 
 /**
  * Calcula nota_final com base em nota, recuperação e config.
  * Lógica centralizada — usada por admin e professor.
  *
- * Se pesos estão configurados (peso_avaliacao + peso_recuperacao = 1):
- *   nota_final = (nota * peso_avaliacao) + (recuperacao * peso_recuperacao)
- * Senão: usa regra "maior nota" (substituição simples)
+ * A regra de recuperação é EXPLÍCITA via `config.regra_recuperacao`
+ * (default 'substituicao'):
+ *   - 'ponderada': nota_final = (nota * peso_avaliacao) + (recuperacao * peso_recuperacao),
+ *     aplicada apenas quando ambos os pesos existem e somam ~1.0.
+ *   - 'substituicao' (default): nota_final = MAX(nota, recuperacao).
+ *
+ * Importante: a presença dos pesos padrão (0.60/0.40) NÃO liga a ponderação
+ * sozinha — só `regra_recuperacao === 'ponderada'` ativa o cálculo ponderado.
  */
 export function calcularNotaFinal(
   nota: number | null | undefined,
@@ -25,12 +31,14 @@ export function calcularNotaFinal(
     if (!isNaN(recNum)) {
       const pesoAv = config.peso_avaliacao
       const pesoRec = config.peso_recuperacao
+      const regra = config.regra_recuperacao ?? REGRA_RECUPERACAO_PADRAO
+      const pesosValidos = !!pesoAv && !!pesoRec && Math.abs((pesoAv + pesoRec) - 1) < 0.01
 
-      if (pesoAv && pesoRec && Math.abs((pesoAv + pesoRec) - 1) < 0.01) {
-        // Usar fórmula com pesos: nota_final = (nota * peso) + (rec * peso)
-        notaFinal = (notaNum * pesoAv) + (recNum * pesoRec)
+      if (regra === 'ponderada' && pesosValidos) {
+        // Regra explícita ponderada: nota_final = (nota * peso) + (rec * peso)
+        notaFinal = (notaNum * pesoAv!) + (recNum * pesoRec!)
       } else {
-        // Sem pesos: usar maior nota (substituição simples)
+        // Default (substituição): usa a maior nota
         if (recNum > notaFinal) {
           notaFinal = recNum
         }
