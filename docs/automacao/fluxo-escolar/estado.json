@@ -1,0 +1,24 @@
+{
+  "agente": "FlowSchoolAgent",
+  "branch": "auto/fluxo-escolar",
+  "iniciadoEm": "2026-06-21T09:21:00-03:00",
+  "ciclosAlvo": 5,
+  "cicloAtual": 0,
+  "criterioParada": "5 ciclos (retoma apos reset de creditos)",
+  "aceitacao": "automatica",
+  "verificacaoCodigo": "tsc+vitest (revert no vermelho)",
+  "bancoLeitura": ["umtfcjxytmrybwlcqzdq (producao)", "tbbnswuqsqhulserwtcc (educanet-demo)"],
+  "bancoEscrita": "tbbnswuqsqhulserwtcc (educanet-demo) APENAS",
+  "bancoRegras": "idempotente + nao-destrutivo + arquivo/commit antes de aplicar; destrutivo/dados => proposta",
+  "push": "NUNCA",
+  "retomadaPosCreditos": {
+    "mecanismo": "sleep-background-ate-reset+2min",
+    "helper": "scripts/automacao/calc-retomada.js",
+    "bufferMin": 2,
+    "status": "ocioso",
+    "resetEm": null,
+    "retomarEm": null,
+    "cicloPendente": null
+  },
+  "historico": []
+}
