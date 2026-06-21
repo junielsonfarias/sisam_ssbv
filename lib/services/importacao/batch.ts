@@ -213,17 +213,33 @@ export async function criarAlunos(
             insertValues
           )
 
-          // Map returned rows back to temp IDs by matching (codigo, nome) pairs in order
-          // PostgreSQL RETURNING preserves insertion order
-          for (let j = 0; j < insertResult.rows.length; j++) {
-            const row = insertResult.rows[j]
-            if (row.id) {
-              tempToRealAlunos.set(toInsert[j].tempId, row.id)
+          // Casamento deterministico por codigo (ALU#### unico por aluno), em vez de
+          // depender da ordem das linhas em RETURNING (PostgreSQL nao garante essa ordem).
+          const codigoParaTempId = new Map<string, string>()
+          for (const aluno of toInsert) {
+            codigoParaTempId.set(aluno.codigo, aluno.tempId)
+          }
+          const tempIdsResolvidos = new Set<string>()
+
+          for (const row of insertResult.rows) {
+            const tempId = codigoParaTempId.get(row.codigo)
+            if (row.id && tempId) {
+              tempToRealAlunos.set(tempId, row.id)
+              tempIdsResolvidos.add(tempId)
               resultado.alunos.criados++
             } else {
               alunosComErro++
-              alunosComErroList.push(`Aluno "${toInsert[j].nome}" (${toInsert[j].codigo}): Nao retornou ID`)
-              log.error(`Aluno "${toInsert[j].nome}" nao retornou ID apos insercao`)
+              alunosComErroList.push(`Aluno "${row.nome}" (${row.codigo}): Nao retornou ID`)
+              log.error(`Aluno "${row.nome}" nao retornou ID apos insercao`)
+            }
+          }
+
+          // Garante que nenhum aluno enviado ficou sem ID resolvido.
+          for (const aluno of toInsert) {
+            if (!tempIdsResolvidos.has(aluno.tempId)) {
+              alunosComErro++
+              alunosComErroList.push(`Aluno "${aluno.nome}" (${aluno.codigo}): Nao retornou ID`)
+              log.error(`Aluno "${aluno.nome}" nao retornou ID apos insercao`)
             }
           }
         }

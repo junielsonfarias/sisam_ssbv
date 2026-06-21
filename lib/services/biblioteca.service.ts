@@ -230,8 +230,9 @@ export async function renovarEmprestimo(emprestimoId: string): Promise<boolean> 
   const r = await pool.query(
     `UPDATE biblioteca_emprestimos
        SET data_devolucao_prevista = data_devolucao_prevista + ($2 * INTERVAL '1 day'),
-           renovacoes = renovacoes + 1
-     WHERE id = $1 AND status = 'emprestado' AND renovacoes < 2`,
+           renovacoes = renovacoes + 1,
+           status = 'emprestado'
+     WHERE id = $1 AND status IN ('emprestado','atrasado') AND renovacoes < 2`,
     [emprestimoId, DIAS_RENOVACAO]
   )
   return (r.rowCount ?? 0) > 0
