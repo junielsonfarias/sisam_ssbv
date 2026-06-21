@@ -704,12 +704,11 @@ describe('dualWriteRecuperacao — mock PoolClient (sequência de queries)', () 
     registradoPor: 'prof-1',
   }
 
-  it('esquema por_periodo: grava DELETE + INSERT + ponte para cada aluno com recuperação', async () => {
+  it('esquema por_periodo: grava UPSERT (INSERT...ON CONFLICT) + ponte para cada aluno com recuperação', async () => {
     const client = mockClient()
-    // DELETE retorna rowCount=0; INSERT retorna id; INSERT ponte retorna rowCount=1
+    // UPSERT retorna id; INSERT ponte retorna rowCount=1 (2 queries no caminho "tem recuperação")
     client.query
-      .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // DELETE nota_id_origem aluno-1
-      .mockResolvedValueOnce({ rows: [{ id: 'rec-uuid-1' }], rowCount: 1 }) // INSERT recuperacoes_escolares
+      .mockResolvedValueOnce({ rows: [{ id: 'rec-uuid-1' }], rowCount: 1 }) // UPSERT recuperacoes_escolares
       .mockResolvedValueOnce({ rows: [], rowCount: 1 }) // INSERT recuperacoes_periodos
 
     const cfg = configSub({ esquema_recuperacao: 'por_periodo' })
@@ -726,20 +725,23 @@ describe('dualWriteRecuperacao — mock PoolClient (sequência de queries)', () 
       }],
     })
 
-    expect(client.query).toHaveBeenCalledTimes(3)
-    // 1ª call: DELETE por nota_id_origem
-    expect(client.query.mock.calls[0][0]).toContain('DELETE FROM recuperacoes_escolares')
-    // 2ª call: INSERT com esquema
-    expect(client.query.mock.calls[1][0]).toContain('INSERT INTO recuperacoes_escolares')
-    expect(client.query.mock.calls[1][1]).toContain('por_periodo')
-    // 3ª call: ponte
-    expect(client.query.mock.calls[2][0]).toContain('INSERT INTO recuperacoes_periodos')
+    // 2 queries: UPSERT + ponte (sem DELETE no caminho "tem recuperação")
+    expect(client.query).toHaveBeenCalledTimes(2)
+    // Nenhum DELETE neste caminho (idempotência via ON CONFLICT)
+    expect(client.query.mock.calls.some((c: any[]) => /DELETE FROM recuperacoes_escolares/.test(c[0]))).toBe(false)
+    // 1ª call: UPSERT idempotente por nota_id_origem
+    expect(client.query.mock.calls[0][0]).toContain('INSERT INTO recuperacoes_escolares')
+    expect(client.query.mock.calls[0][0]).toContain('ON CONFLICT (nota_id_origem)')
+    expect(client.query.mock.calls[0][0]).toContain('DO UPDATE SET')
+    expect(client.query.mock.calls[0][1]).toContain('por_periodo')
+    // 2ª call: ponte
+    expect(client.query.mock.calls[1][0]).toContain('INSERT INTO recuperacoes_periodos')
+    expect(client.query.mock.calls[1][0]).toContain('ON CONFLICT (recuperacao_id, periodo_id) DO NOTHING')
   })
 
-  it('esquema final: grava com esquema=final no INSERT', async () => {
+  it('esquema final: grava com esquema=final no UPSERT', async () => {
     const client = mockClient()
     client.query
-      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
       .mockResolvedValueOnce({ rows: [{ id: 'rec-uuid-2' }], rowCount: 1 })
       .mockResolvedValueOnce({ rows: [], rowCount: 1 })
 
@@ -757,14 +759,13 @@ describe('dualWriteRecuperacao — mock PoolClient (sequência de queries)', () 
       }],
     })
 
-    // Verifica que o esquema 'final' foi passado no INSERT
-    expect(client.query.mock.calls[1][1]).toContain('final')
+    // Verifica que o esquema 'final' foi passado no UPSERT (1ª query)
+    expect(client.query.mock.calls[0][1]).toContain('final')
   })
 
-  it('esquema semestral: grava com esquema=semestral no INSERT', async () => {
+  it('esquema semestral: grava com esquema=semestral no UPSERT', async () => {
     const client = mockClient()
     client.query
-      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
       .mockResolvedValueOnce({ rows: [{ id: 'rec-uuid-3' }], rowCount: 1 })
       .mockResolvedValueOnce({ rows: [], rowCount: 1 })
 
@@ -782,13 +783,12 @@ describe('dualWriteRecuperacao — mock PoolClient (sequência de queries)', () 
       }],
     })
 
-    expect(client.query.mock.calls[1][1]).toContain('semestral')
+    expect(client.query.mock.calls[0][1]).toContain('semestral')
   })
 
-  it('esquema por_bloco_periodos: grava com esquema=por_bloco_periodos no INSERT', async () => {
+  it('esquema por_bloco_periodos: grava com esquema=por_bloco_periodos no UPSERT', async () => {
     const client = mockClient()
     client.query
-      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
       .mockResolvedValueOnce({ rows: [{ id: 'rec-uuid-4' }], rowCount: 1 })
       .mockResolvedValueOnce({ rows: [], rowCount: 1 })
 
@@ -806,10 +806,10 @@ describe('dualWriteRecuperacao — mock PoolClient (sequência de queries)', () 
       }],
     })
 
-    expect(client.query.mock.calls[1][1]).toContain('por_bloco_periodos')
+    expect(client.query.mock.calls[0][1]).toContain('por_bloco_periodos')
   })
 
-  it('nota_recuperacao null: faz DELETE sem INSERT (remove recuperação anterior)', async () => {
+  it('nota_recuperacao null: faz DELETE sem UPSERT (remove recuperação espelhada)', async () => {
     const client = mockClient()
     client.query.mockResolvedValueOnce({ rows: [], rowCount: 0 }) // DELETE
 
@@ -827,9 +827,10 @@ describe('dualWriteRecuperacao — mock PoolClient (sequência de queries)', () 
       }],
     })
 
-    // Apenas DELETE; nenhum INSERT
+    // Apenas DELETE; nenhum UPSERT/ponte (caminho de remoção mantém disciplina null = ignora)
     expect(client.query).toHaveBeenCalledTimes(1)
     expect(client.query.mock.calls[0][0]).toContain('DELETE FROM recuperacoes_escolares')
+    expect(client.query.mock.calls[0][1]).toEqual(['nota-5'])
   })
 
   it('disciplinaId null: item é ignorado (nova entidade exige disciplina_id NOT NULL)', async () => {
@@ -853,16 +854,14 @@ describe('dualWriteRecuperacao — mock PoolClient (sequência de queries)', () 
     expect(client.query).not.toHaveBeenCalled()
   })
 
-  it('múltiplos alunos: processa cada item em sequência (3 queries por aluno com rec)', async () => {
+  it('múltiplos alunos: processa cada item em sequência (2 queries por aluno com rec)', async () => {
     const client = mockClient()
-    // Aluno 1: com recuperação (3 queries)
+    // Aluno 1: com recuperação (UPSERT + ponte = 2 queries)
     client.query
-      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
       .mockResolvedValueOnce({ rows: [{ id: 'rec-u-a' }], rowCount: 1 })
       .mockResolvedValueOnce({ rows: [], rowCount: 1 })
-    // Aluno 2: com recuperação (3 queries)
+    // Aluno 2: com recuperação (UPSERT + ponte = 2 queries)
     client.query
-      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
       .mockResolvedValueOnce({ rows: [{ id: 'rec-u-b' }], rowCount: 1 })
       .mockResolvedValueOnce({ rows: [], rowCount: 1 })
 
@@ -877,8 +876,10 @@ describe('dualWriteRecuperacao — mock PoolClient (sequência de queries)', () 
       ],
     })
 
-    // 2 alunos × 3 queries cada = 6 queries totais
-    expect(client.query).toHaveBeenCalledTimes(6)
+    // 2 alunos × 2 queries cada = 4 queries totais (UPSERT idempotente, sem DELETE)
+    expect(client.query).toHaveBeenCalledTimes(4)
+    // Nenhum DELETE em nenhum dos itens
+    expect(client.query.mock.calls.some((c: any[]) => /DELETE FROM recuperacoes_escolares/.test(c[0]))).toBe(false)
   })
 })
 

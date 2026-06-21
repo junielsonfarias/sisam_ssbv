@@ -26,13 +26,16 @@ export interface DualWriteRecuperacaoItem {
  *
  * Modelo de correlação: cada linha de `notas_escolares` (id = `notaId`) é a
  * origem 1:1 de uma recuperação 'por_periodo' — mesma âncora usada pelo backfill
- * (passo 3, coluna `recuperacoes_escolares.nota_id_origem`). Como não há índice
- * UNIQUE em `nota_id_origem`, o UPSERT é feito como DELETE por origem + INSERT,
- * dentro da MESMA transação/client do lançamento (atômico com o legado).
+ * (passo 3, coluna `recuperacoes_escolares.nota_id_origem`). Apoiado no índice
+ * UNIQUE parcial `uq_rec_esc_nota_origem (nota_id_origem) WHERE nota_id_origem
+ * IS NOT NULL`, o UPSERT é feito como INSERT ... ON CONFLICT (nota_id_origem)
+ * DO UPDATE — idempotente e atômico com o legado (mesma transação/client). São
+ * 2 queries no caminho "tem recuperação" (UPSERT + ponte), contra as 3 antigas
+ * (DELETE + INSERT + ponte).
  *
  * Casos:
- *  - `nota_recuperacao` presente e disciplina não-nula → grava/atualiza a
- *    recuperação + ponte com o período da nota.
+ *  - `nota_recuperacao` presente e disciplina não-nula → insere ou atualiza
+ *    (UPSERT por origem) a recuperação + ponte com o período da nota.
  *  - `nota_recuperacao` nula (recuperação removida) → remove a recuperação
  *    correlacionada (a ponte cai por ON DELETE CASCADE), evitando dado stale.
  *  - disciplina nula → ignorado (a nova entidade exige disciplina_id NOT NULL;
@@ -66,21 +69,36 @@ export async function dualWriteRecuperacao(
     // A nova entidade exige disciplina_id NOT NULL; sem ela, só o legado é escrito.
     if (!item.disciplinaId) continue
 
-    // UPSERT por origem (nota_id): zera a recuperação anterior daquela nota.
-    // A ponte cai junto por ON DELETE CASCADE.
-    await client.query(
-      `DELETE FROM recuperacoes_escolares WHERE nota_id_origem = $1`,
-      [item.notaId]
-    )
+    // Sem nota de recuperação (recuperação removida): apaga a recuperação
+    // espelhada daquela nota. A ponte cai junto por ON DELETE CASCADE.
+    if (item.notaRecuperacao === null) {
+      await client.query(
+        `DELETE FROM recuperacoes_escolares WHERE nota_id_origem = $1`,
+        [item.notaId]
+      )
+      continue
+    }
 
-    // Sem nota de recuperação: a remoção acima basta (mantém consistência).
-    if (item.notaRecuperacao === null) continue
-
+    // UPSERT idempotente por origem (nota_id), via índice UNIQUE parcial
+    // uq_rec_esc_nota_origem. Insere na primeira vez; reexecuções/reedições
+    // do mesmo lançamento atualizam as colunas não-chave (mantém o mesmo id,
+    // preservando a ponte). 2 queries no caminho "tem recuperação".
     const ins = await client.query(
       `INSERT INTO recuperacoes_escolares
          (aluno_id, disciplina_id, escola_id, ano_letivo, esquema,
           nota_recuperacao, nota_final_calc, registrado_por, nota_id_origem)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (nota_id_origem) WHERE nota_id_origem IS NOT NULL
+       DO UPDATE SET
+         aluno_id = EXCLUDED.aluno_id,
+         disciplina_id = EXCLUDED.disciplina_id,
+         escola_id = EXCLUDED.escola_id,
+         ano_letivo = EXCLUDED.ano_letivo,
+         esquema = EXCLUDED.esquema,
+         nota_recuperacao = EXCLUDED.nota_recuperacao,
+         nota_final_calc = EXCLUDED.nota_final_calc,
+         registrado_por = EXCLUDED.registrado_por,
+         atualizado_em = NOW()
        RETURNING id`,
       [
         item.alunoId,
