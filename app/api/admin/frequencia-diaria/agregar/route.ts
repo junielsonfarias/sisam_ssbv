@@ -4,6 +4,9 @@ import pool from '@/database/connection'
 import { z } from 'zod'
 import { validateRequest, uuidSchema } from '@/lib/schemas'
 import { cacheDelPattern } from '@/lib/cache'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('FrequenciaDiariaAgregar')
 
 const agregarFrequenciaDiariaSchema = z.object({
   turma_id: uuidSchema,
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest) {
       dias_letivos,
     })
   } catch (error: unknown) {
-    console.error('Erro ao agregar frequência:', error)
+    log.error('Erro ao agregar frequência', error)
     return NextResponse.json({ mensagem: 'Erro interno do servidor' }, { status: 500 })
   }
 }

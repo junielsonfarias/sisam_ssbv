@@ -3,7 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import {
   parseSearchParams, parsePaginacao, buildPaginacaoResponse, buildLimitOffset,
-  createWhereBuilder, addCondition, buildWhereString, buildConditionsString,
+  createWhereBuilder, addCondition, buildWhereString,
 } from '@/lib/api-helpers'
 import { createLogger } from '@/lib/logger'
 
