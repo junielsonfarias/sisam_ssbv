@@ -78,3 +78,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - Créditos de volta → ciclo 4 re-disparado às 07:47 (restam ~73min até o deadline 09:00).
 - ciclo 4 | api-facial | aprovado | 4 tarefas | tsc:ok vitest:ok | 58be10e
 - ciclo 4 | services-dados | aprovado | 3 tarefas | tsc:ok vitest:ok | 06cb3d7
+- ciclo 4 | api-admin-dados | aprovado | 4 tarefas | tsc:ok vitest:ok | 2d41ba1
