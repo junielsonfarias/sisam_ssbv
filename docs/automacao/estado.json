@@ -2,12 +2,15 @@
   "branch": "auto/revisao-noturna",
   "iniciadoEm": "2026-06-20T19:54:00-03:00",
   "deadline": "2026-06-21T09:00:00-03:00",
-  "cicloAtual": 0,
+  "cicloAtual": 1,
   "ciclosAlvo": 5,
   "modoPosCiclos": "continuar-revisando-ate-deadline",
   "aceitacao": "automatica",
+  "modoPermissoes": "bypass (ativado pelo usuario em 2026-06-20 ~19:58)",
   "verificacao": "tsc+vitest",
   "naoVerde": "reverter-automaticamente",
   "push": "NUNCA (decisao manual do usuario)",
-  "historico": []
+  "historico": [
+    { "ciclo": 1, "aprovados": 15, "revertidos": 0, "erros": 0, "modulosRevisados": 16, "modulosComAchados": 15, "tarefas": 58 }
+  ]
 }
