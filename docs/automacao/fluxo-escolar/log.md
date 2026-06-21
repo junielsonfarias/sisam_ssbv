@@ -72,3 +72,5 @@ cat docs/automacao/fluxo-escolar/relatorio-ciclo-5.md
 git log --oneline auto/fluxo-escolar ^main
 git diff main..auto/fluxo-escolar
 ```
+
+- ciclo 6 | Aposentadoria da dualidade de chaves — SET NOT NULL em ano_letivo_id | aplicado | banco-naodestrutivo
