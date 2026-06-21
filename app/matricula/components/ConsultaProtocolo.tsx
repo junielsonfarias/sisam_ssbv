@@ -36,7 +36,7 @@ export default function ConsultaProtocolo({
             onKeyDown={e => e.key === 'Enter' && onConsultar()} />
         </div>
         {consultaErro && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 dark:bg-red-900/30 dark:border-red-800 dark:text-red-300">
             <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {consultaErro}
           </div>
         )}
@@ -84,7 +84,7 @@ export default function ConsultaProtocolo({
                 </div>
               )}
               {consultaResult.motivo_rejeicao && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   <span className="font-medium">Motivo da rejeição:</span> {consultaResult.motivo_rejeicao}
                 </div>
               )}

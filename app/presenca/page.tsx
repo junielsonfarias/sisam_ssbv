@@ -44,7 +44,7 @@ function PresencaQrPage() {
         setResultado({ sucesso: false, mensagem: data.mensagem || 'Erro ao registrar' })
       }
     } catch {
-      setResultado({ sucesso: false, mensagem: 'Sem conexao. Tente novamente.' })
+      setResultado({ sucesso: false, mensagem: 'Sem conexão. Tente novamente.' })
     } finally {
       setRegistrando(false)
     }
@@ -55,8 +55,8 @@ function PresencaQrPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-6">
         <div className="text-center">
           <XCircle className="w-16 h-16 mx-auto mb-4 text-red-400" />
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">QR Code Invalido</h1>
-          <p className="text-sm text-gray-500 mt-2">Este link nao contem um QR code valido. Solicite ao professor um novo QR code.</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">QR Code Inválido</h1>
+          <p className="text-sm text-gray-500 mt-2">Este link não contém um QR code válido. Solicite ao professor um novo QR code.</p>
         </div>
       </div>
     )
@@ -67,8 +67,8 @@ function PresencaQrPage() {
       {/* Header */}
       <div className="text-center text-white pt-8 pb-4 px-6">
         <QrCode className="w-10 h-10 mx-auto mb-3 opacity-80" />
-        <h1 className="text-xl font-bold">Registro de Presenca</h1>
-        <p className="text-blue-200 text-sm mt-1">Digite seu codigo de matricula</p>
+        <h1 className="text-xl font-bold">Registro de Presença</h1>
+        <p className="text-blue-200 text-sm mt-1">Digite seu código de matrícula</p>
       </div>
 
       {/* Card principal */}
@@ -87,7 +87,7 @@ function PresencaQrPage() {
                   <CheckCircle className="w-12 h-12 mx-auto mb-2 text-green-500" />
                   <p className="text-lg font-bold text-green-800 dark:text-green-200">{resultado.aluno_nome}</p>
                   <p className="text-sm text-green-600 dark:text-green-300 mt-1">
-                    {resultado.tipo === 'entrada' ? 'Entrada registrada' : 'Saida registrada'} as {resultado.hora}
+                    {resultado.tipo === 'entrada' ? 'Entrada registrada' : 'Saída registrada'} às {resultado.hora}
                   </p>
                 </>
               ) : (
@@ -104,7 +104,7 @@ function PresencaQrPage() {
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Codigo de Matricula
+                  Código de Matrícula
                 </label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -127,12 +127,12 @@ function PresencaQrPage() {
                 {registrando ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Registrando...</>
                 ) : (
-                  <><CheckCircle className="w-5 h-5" /> Registrar Presenca</>
+                  <><CheckCircle className="w-5 h-5" /> Registrar Presença</>
                 )}
               </button>
 
               <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-                Seu codigo esta no boletim ou na carteirinha escolar
+                Seu código está no boletim ou na carteirinha escolar
               </p>
             </>
           )}

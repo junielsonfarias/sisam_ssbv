@@ -168,7 +168,7 @@ export default function FormularioMatricula({
 
         {/* Erro */}
         {erro && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 dark:bg-red-900/30 dark:border-red-800 dark:text-red-300">
             <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {erro}
           </div>
         )}
