@@ -1,0 +1,5 @@
+export { AlunosTabela } from './alunos-tabela'
+export { AlunoModal } from './aluno-modal'
+export { AlunosFiltros } from './alunos-filtros'
+export { formInicial } from './types'
+export type { Aluno, FormAluno } from './types'

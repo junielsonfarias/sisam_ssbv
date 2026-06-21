@@ -8,7 +8,7 @@ export default function EscolaResultadosPage() {
   return (
     <ProtectedRoute tiposPermitidos={['escola']}>
       <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
+        <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8 text-center">
           <div className="mx-auto w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-6">
             <Database className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
           </div>

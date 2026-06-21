@@ -54,8 +54,8 @@ function ListaAlunos() {
           fetch(`/api/professor/alunos/resumo?turma_id=${turmaId}`),
           fetch(`/api/professor/turma-desempenho?turma_id=${turmaId}`),
         ])
-        const turmasData = await turmasRes.json()
-        const alunosData = await alunosRes.json()
+        const turmasData = turmasRes.ok ? await turmasRes.json() : { turmas: [] }
+        const alunosData = alunosRes.ok ? await alunosRes.json() : { alunos: [] }
 
         const turma = turmasData.turmas?.find((t: any) => t.turma_id === turmaId)
         if (turma) setTurmaInfo(turma)

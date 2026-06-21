@@ -2,20 +2,11 @@
 
 import ProtectedRoute from '@/components/protected-route'
 import { useEffect, useState, useMemo } from 'react'
-import { Filter, BarChart3, XCircle, School, BookOpen, TrendingUp, PieChart, Users } from 'lucide-react'
-import { BarChart, Bar, LineChart, Line, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter, ReferenceLine } from 'recharts'
+import { Filter, BarChart3, XCircle } from 'lucide-react'
+import {
+  GraficoDisciplinas, GraficoSeries, GraficoDistribuicao, GraficoPresenca,
+} from '@/components/graficos'
 import { isAnosIniciais, DISCIPLINAS_OPTIONS_ANOS_INICIAIS, DISCIPLINAS_OPTIONS_ANOS_FINAIS } from '@/lib/disciplinas-mapping'
-
-const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
-
-// Cores específicas para cada disciplina
-const DISCIPLINA_COLORS: { [key: string]: string } = {
-  'Língua Portuguesa': '#4F46E5', // Azul Indigo
-  'Ciências Humanas': '#10B981',   // Verde Esmeralda
-  'Matemática': '#F59E0B',         // Laranja Âmbar
-  'Ciências da Natureza': '#EF4444', // Vermelho
-  'Produção Textual': '#8B5CF6'    // Roxo Violeta
-}
 
 interface FiltrosGraficos {
   ano_letivo?: string
@@ -177,31 +168,6 @@ export default function GraficosEscolaPage() {
     }
   }
 
-  const prepararDadosBarras = (labels: string[], dados: number[], label: string) => {
-    return labels.map((l, i) => ({
-      name: l,
-      value: dados[i] || 0
-    }))
-  }
-
-  // Preparar dados de disciplinas ordenados por média (maior para menor) com cores
-  const prepararDadosDisciplinas = (labels: string[], dados: number[]) => {
-    const combined = labels.map((l, i) => ({
-      name: l,
-      value: dados[i] || 0,
-      fill: DISCIPLINA_COLORS[l] || COLORS[i % COLORS.length]
-    }))
-    // Ordenar por valor decrescente
-    return combined.sort((a, b) => b.value - a.value)
-  }
-
-  const prepararDadosPizza = (labels: string[], dados: number[]) => {
-    return labels.map((l, i) => ({
-      name: l,
-      value: dados[i] || 0
-    }))
-  }
-
   return (
     <ProtectedRoute tiposPermitidos={['escola']}>
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
@@ -341,105 +307,10 @@ export default function GraficosEscolaPage() {
             </div>
           ) : dados ? (
             <div className="space-y-4 sm:space-y-6">
-              {/* Médias por Disciplina */}
-              {dados.disciplinas && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
-                  <div className="flex items-center mb-4">
-                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Médias por Disciplina</h3>
-                    {dados.disciplinas.totalAlunos && (
-                      <span className="ml-auto text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {dados.disciplinas.totalAlunos} alunos
-                      </span>
-                    )}
-                  </div>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={prepararDadosDisciplinas(dados.disciplinas.labels, dados.disciplinas.dados)}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tick={{ fontSize: 14, fontWeight: 500 }} interval={0} angle={-15} textAnchor="end" height={100} />
-                      <YAxis domain={[0, 10]} tick={{ fontSize: 14, fontWeight: 500 }} label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }} />
-                      <Tooltip contentStyle={{ fontSize: 14, fontWeight: 500 }} labelStyle={{ fontSize: 14, fontWeight: 600 }} />
-                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
-                      <Bar dataKey="value" name="Média">
-                        {prepararDadosDisciplinas(dados.disciplinas.labels, dados.disciplinas.dados).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Bar>
-                      <ReferenceLine y={7} stroke="#10B981" strokeDasharray="3 3" label={{ value: "Meta (7.0)", position: "right", fontSize: 14, fontWeight: 600 }} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* Desempenho por Série */}
-              {dados.series && dados.series.labels && dados.series.labels.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
-                  <div className="flex items-center mb-4">
-                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Desempenho por Série</h3>
-                  </div>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <LineChart data={prepararDadosBarras(dados.series.labels, dados.series.dados, 'Média')}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tick={{ fontSize: 14, fontWeight: 500 }} />
-                      <YAxis domain={[0, 10]} tick={{ fontSize: 14, fontWeight: 500 }} label={{ value: 'Média', angle: -90, position: 'insideLeft', fontSize: 14, fontWeight: 600 }} />
-                      <Tooltip contentStyle={{ fontSize: 14, fontWeight: 500 }} labelStyle={{ fontSize: 14, fontWeight: 600 }} />
-                      <Legend wrapperStyle={{ fontSize: 14, fontWeight: 500, paddingTop: 10 }} />
-                      <Line type="monotone" dataKey="value" name="Média" stroke="#8B5CF6" strokeWidth={3} dot={{ r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* Distribuição de Notas */}
-              {dados.distribuicao && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
-                  <div className="flex items-center mb-4">
-                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-orange-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Distribuição de Notas</h3>
-                  </div>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={prepararDadosBarras(dados.distribuicao.labels, dados.distribuicao.dados, 'Alunos')}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="value" name="Quantidade de Alunos" fill="#F59E0B" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* Taxa de Presença */}
-              {dados.presenca && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
-                  <div className="flex items-center mb-4">
-                    <PieChart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-pink-600" />
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Taxa de Presença</h3>
-                  </div>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <RechartsPie>
-                      <Pie
-                        data={prepararDadosPizza(dados.presenca.labels, dados.presenca.dados)}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={(entry) => `${entry.name}: ${entry.value}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {prepararDadosPizza(dados.presenca.labels, dados.presenca.dados).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </RechartsPie>
-                  </ResponsiveContainer>
-                </div>
-              )}
+              <GraficoDisciplinas disciplinas={dados.disciplinas} />
+              <GraficoSeries series={dados.series} />
+              <GraficoDistribuicao distribuicao={dados.distribuicao} />
+              <GraficoPresenca presenca={dados.presenca} />
             </div>
           ) : (
             <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg shadow-md dark:shadow-slate-900/50">

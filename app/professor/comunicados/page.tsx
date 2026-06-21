@@ -123,8 +123,8 @@ function ComunicadosTurma() {
   if (carregando) {
     return (
       <div className="space-y-4">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 animate-pulse" />
-        {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />)}
+        <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-48 animate-pulse" />
+        {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />)}
       </div>
     )
   }
@@ -155,14 +155,14 @@ function ComunicadosTurma() {
       )}
 
       {/* Turma selector */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4">
         <div className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Turma</label>
             <select
               value={turmaId}
               onChange={e => setTurmaId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
             >
               <option value="">Selecione uma turma</option>
               {turmas.map(t => (
@@ -184,7 +184,7 @@ function ComunicadosTurma() {
       </div>
 
       {!turmaId ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
           <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-gray-500 dark:text-gray-400">Selecione uma turma para visualizar os comunicados</p>
         </div>
@@ -193,7 +193,7 @@ function ComunicadosTurma() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
       ) : comunicados.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center border border-gray-200 dark:border-slate-700">
           <MessageSquare className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-gray-500 dark:text-gray-400">Nenhum comunicado publicado</p>
         </div>
@@ -202,7 +202,7 @@ function ComunicadosTurma() {
           {comunicados.map(c => (
             <div
               key={c.id}
-              className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 ${!c.ativo ? 'opacity-50' : ''}`}
+              className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 ${!c.ativo ? 'opacity-50' : ''}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -211,7 +211,7 @@ function ComunicadosTurma() {
                       {tipoBadge[c.tipo]?.label || c.tipo}
                     </span>
                     {!c.ativo && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-gray-400">
                         Removido
                       </span>
                     )}
@@ -236,8 +236,8 @@ function ComunicadosTurma() {
       {/* Modal Novo Comunicado */}
       {modalAberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Novo Comunicado</h3>
               <button onClick={() => setModalAberto(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
                 <X className="h-5 w-5 text-gray-500" />
@@ -250,7 +250,7 @@ function ComunicadosTurma() {
                   type="text"
                   value={formTitulo}
                   onChange={e => setFormTitulo(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
                   placeholder="Título do comunicado"
                 />
               </div>
@@ -259,7 +259,7 @@ function ComunicadosTurma() {
                 <select
                   value={formTipo}
                   onChange={e => setFormTipo(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
                 >
                   <option value="aviso">Aviso</option>
                   <option value="lembrete">Lembrete</option>
@@ -273,13 +273,13 @@ function ComunicadosTurma() {
                   value={formMensagem}
                   onChange={e => setFormMensagem(e.target.value)}
                   rows={5}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
                   placeholder="Escreva a mensagem do comunicado..."
                 />
               </div>
               {erro && <p className="text-red-600 dark:text-red-400 text-sm">{erro}</p>}
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-slate-700">
               <button onClick={() => setModalAberto(false)} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 Cancelar
               </button>

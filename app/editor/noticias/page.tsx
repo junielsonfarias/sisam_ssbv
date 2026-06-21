@@ -93,7 +93,7 @@ function GerenciarNoticias() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gerenciar Notícias</h1>
-        {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />)}
+        {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />)}
       </div>
     )
   }
@@ -112,7 +112,7 @@ function GerenciarNoticias() {
           <a
             href="/"
             target="_blank"
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200"
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200"
           >
             <Eye className="h-4 w-4" />
             Ver Site
@@ -128,18 +128,18 @@ function GerenciarNoticias() {
       </div>
 
       {/* Config da seção */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-3">
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700 space-y-3">
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Configuração da Seção</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Título da seção</label>
             <input type="text" value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Notícias e Eventos"
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white" />
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Descrição</label>
             <input type="text" value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Fique por dentro..."
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white" />
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white" />
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@ function GerenciarNoticias() {
 
       {/* Lista de notícias */}
       {noticias.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-12 text-center border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-12 text-center border border-gray-200 dark:border-slate-700">
           <Newspaper className="mx-auto h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
           <p className="text-gray-500 dark:text-gray-400 mb-2">Nenhuma notícia publicada</p>
           <button onClick={adicionarNoticia} className="text-pink-600 hover:underline text-sm">
@@ -160,9 +160,9 @@ function GerenciarNoticias() {
       ) : (
         <div className="space-y-4">
           {noticias.map((noticia, index) => (
-            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div key={index} className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
               {/* Header da notícia */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-gray-600">
                 <div className="flex items-center gap-2">
                   <GripVertical className="h-4 w-4 text-gray-400" />
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -193,7 +193,7 @@ function GerenciarNoticias() {
                       value={noticia.titulo}
                       onChange={e => atualizarNoticia(index, 'titulo', e.target.value)}
                       placeholder="Título da notícia"
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white"
                     />
                   </div>
                   <div>
@@ -202,7 +202,7 @@ function GerenciarNoticias() {
                       type="date"
                       value={noticia.data}
                       onChange={e => atualizarNoticia(index, 'data', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white"
                     />
                   </div>
                 </div>
@@ -214,7 +214,7 @@ function GerenciarNoticias() {
                     onChange={e => atualizarNoticia(index, 'resumo', e.target.value)}
                     rows={2}
                     placeholder="Resumo breve da notícia..."
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white"
                   />
                 </div>
 
@@ -225,7 +225,7 @@ function GerenciarNoticias() {
                     onChange={e => atualizarNoticia(index, 'conteudo', e.target.value)}
                     rows={4}
                     placeholder="Texto completo da notícia..."
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white"
                   />
                 </div>
 
@@ -237,7 +237,7 @@ function GerenciarNoticias() {
                       value={noticia.imagem_url || ''}
                       onChange={e => atualizarNoticia(index, 'imagem_url', e.target.value)}
                       placeholder="https://..."
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white"
                     />
                   </div>
                   <div>
@@ -247,7 +247,7 @@ function GerenciarNoticias() {
                       value={noticia.link || ''}
                       onChange={e => atualizarNoticia(index, 'link', e.target.value)}
                       placeholder="https://..."
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white"
                     />
                   </div>
                 </div>
