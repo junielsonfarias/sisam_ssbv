@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod'
-import { uuidSchema, nomeSchema, emailSchema, cpfSchema, anoLetivoSchema, senhaSchema } from './base'
+import { uuidSchema, nomeSchema, emailSchema, cpfSchema, anoLetivoSchema, senhaSchema, serieSchema } from './base'
 import { poloSchema } from './entidades'
 import { tipoPeriodoSchema } from './gestor'
 
@@ -366,4 +366,20 @@ export const notificacaoGerarSchema = z.object({
   tipo_geracao: tipoGeracaoNotificacao,
   escola_id: uuidSchema.optional().nullable(),
   ano_letivo: z.string().max(10).optional().nullable(),
+})
+
+// ============================================
+// Filtros de estatisticas (escola/polo/tecnico)
+// ============================================
+
+/**
+ * Filtros de query string das rotas de estatisticas.
+ * serie e avaliacao_id sao opcionais; ano_letivo, quando ausente, recebe o
+ * ano corrente como default (preserva o comportamento do frontend atual).
+ * Usado por: /api/escola/estatisticas, /api/polo/estatisticas, /api/tecnico/estatisticas
+ */
+export const estatisticasFiltrosSchema = z.object({
+  serie: serieSchema.optional(),
+  ano_letivo: anoLetivoSchema.optional().default(() => new Date().getFullYear().toString()),
+  avaliacao_id: uuidSchema.optional(),
 })
