@@ -161,6 +161,14 @@ export const PUT = withAuth('professor', async (request, usuario) => {
     return NextResponse.json({ mensagem: 'Registro não encontrado' }, { status: 404 })
   }
 
+  // Revalidar vínculo com a turma de destino (o PUT pode mover o registro para
+  // outra turma via SET turma_id — sem este check o professor reatribuiria o
+  // diário para turma sem vínculo, poluindo o GET de outros usuários).
+  const temVinculo = await verificarVinculoProfessor(usuario.id, turma_id)
+  if (!temVinculo) {
+    return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
+  }
+
   const result = await pool.query(`
     UPDATE diario_classe
     SET turma_id = $2, disciplina_id = $3, data_aula = $4, conteudo = $5, metodologia = $6, observacoes = $7, atualizado_em = NOW()

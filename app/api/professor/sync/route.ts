@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
 import { validateRequest, professorSyncPostSchema } from '@/lib/schemas'
+import { verificarVinculoProfessor } from '@/lib/professor-auth'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('ProfessorSync')
@@ -101,16 +102,35 @@ export const POST = withAuth('professor', async (request, usuario) => {
       // Processar frequências
       for (const freq of frequencias) {
         try {
+          // Controle de acesso: só sincroniza frequência de turma vinculada
+          // ao professor. Sem este check, um payload forjado gravaria/sobrescreveria
+          // frequência de qualquer turma do município.
+          const temVinculo = await verificarVinculoProfessor(usuario.id, freq.turma_id)
+          if (!temVinculo) {
+            erros.push(`Freq ${freq.turma_id}/${freq.data}: sem vínculo com esta turma`)
+            continue
+          }
           if (freq.registros && Array.isArray(freq.registros)) {
+            const turmaResult = await client.query('SELECT escola_id FROM turmas WHERE id = $1', [freq.turma_id])
+            if (turmaResult.rows.length === 0) continue
+            const escolaIdFreq = turmaResult.rows[0].escola_id
             for (const reg of freq.registros) {
-              const turmaResult = await client.query('SELECT escola_id FROM turmas WHERE id = $1', [freq.turma_id])
-              if (turmaResult.rows.length === 0) continue
+              // Restringe aluno ao escopo da turma (evita gravar frequência de
+              // aluno de outra turma forjando aluno_id no payload).
+              const alunoOk = await client.query(
+                'SELECT 1 FROM alunos WHERE id = $1 AND turma_id = $2',
+                [reg.aluno_id, freq.turma_id]
+              )
+              if (alunoOk.rows.length === 0) {
+                erros.push(`Freq ${freq.turma_id}/${freq.data}: aluno ${reg.aluno_id} não pertence à turma`)
+                continue
+              }
               await client.query(
                 `INSERT INTO frequencia_diaria (aluno_id, turma_id, escola_id, data, metodo, status, registrado_por)
                  VALUES ($1, $2, $3, $4, 'manual', $5, $6)
                  ON CONFLICT (aluno_id, data) DO UPDATE SET
                    status = EXCLUDED.status, metodo = 'manual', registrado_por = EXCLUDED.registrado_por`,
-                [reg.aluno_id, freq.turma_id, turmaResult.rows[0].escola_id, freq.data, reg.status, usuario.id]
+                [reg.aluno_id, freq.turma_id, escolaIdFreq, freq.data, reg.status, usuario.id]
               )
               freqSalvas++
             }
@@ -124,11 +144,46 @@ export const POST = withAuth('professor', async (request, usuario) => {
       for (const nota of notas) {
         try {
           if (nota.notas && Array.isArray(nota.notas)) {
+            // Controle de acesso por turma + disciplina (espelha o endpoint
+            // /api/professor/notas): exige vínculo ativo no ano letivo da turma
+            // e que o professor seja polivalente OU vinculado à disciplina.
+            const vinculoResult = await client.query(
+              `SELECT pt.tipo_vinculo, pt.disciplina_id
+                 FROM professor_turmas pt
+                 JOIN turmas t ON t.id = pt.turma_id
+                WHERE pt.professor_id = $1
+                  AND pt.turma_id = $2
+                  AND pt.ativo = true
+                  AND pt.ano_letivo = t.ano_letivo`,
+              [usuario.id, nota.turma_id]
+            )
+            const vinculos = vinculoResult.rows
+            if (vinculos.length === 0) {
+              erros.push(`Notas ${nota.turma_id}: sem vínculo com esta turma`)
+              continue
+            }
+            const isPolivalente = vinculos.some((v: any) => v.tipo_vinculo === 'polivalente')
+            const temDisciplina = vinculos.some((v: any) => v.disciplina_id === nota.disciplina_id)
+            if (!isPolivalente && !temDisciplina) {
+              erros.push(`Notas ${nota.turma_id}: sem vínculo com esta disciplina`)
+              continue
+            }
+
             const turmaResult = await client.query('SELECT escola_id, ano_letivo FROM turmas WHERE id = $1', [nota.turma_id])
             if (turmaResult.rows.length === 0) continue
             const { escola_id, ano_letivo } = turmaResult.rows[0]
 
             for (const item of nota.notas) {
+              // Restringe aluno ao escopo da turma (evita gravar nota de aluno
+              // de outra turma forjando aluno_id no payload).
+              const alunoOk = await client.query(
+                'SELECT 1 FROM alunos WHERE id = $1 AND turma_id = $2',
+                [item.aluno_id, nota.turma_id]
+              )
+              if (alunoOk.rows.length === 0) {
+                erros.push(`Notas ${nota.turma_id}: aluno ${item.aluno_id} não pertence à turma`)
+                continue
+              }
               const notaVal = item.nota ?? null
               const notaRecVal = item.nota_recuperacao ?? null
               let notaFinal = notaVal
