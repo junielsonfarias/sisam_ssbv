@@ -46,6 +46,71 @@ async function sincronizarBnccDiario(diarioId: string, codigos: string[]): Promi
   }
 }
 
+interface UpsertDiarioInput {
+  professorId: string
+  turmaId: string
+  disciplinaId: string | null
+  dataAula: string
+  conteudo: string
+  metodologia: string | null
+  observacoes: string | null
+}
+
+/**
+ * Upsert seguro para disciplina_id NULL sem depender da UNIQUE da tabela.
+ * Localiza a linha existente com IS NOT DISTINCT FROM (compara NULL = NULL como
+ * verdadeiro); se existir, faz UPDATE por id; caso contrário, INSERT. Roda em
+ * transação para evitar corrida entre o SELECT e a escrita.
+ */
+async function upsertDiario(input: UpsertDiarioInput): Promise<any> {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    const existente = await client.query(
+      `SELECT id FROM diario_classe
+       WHERE professor_id = $1 AND turma_id = $2 AND data_aula = $3
+         AND disciplina_id IS NOT DISTINCT FROM $4
+       FOR UPDATE`,
+      [input.professorId, input.turmaId, input.dataAula, input.disciplinaId]
+    )
+
+    let result
+    if (existente.rows.length > 0) {
+      result = await client.query(
+        `UPDATE diario_classe
+         SET conteudo = $2, metodologia = $3, observacoes = $4, atualizado_em = NOW()
+         WHERE id = $1
+         RETURNING *`,
+        [existente.rows[0].id, input.conteudo, input.metodologia, input.observacoes]
+      )
+    } else {
+      result = await client.query(
+        `INSERT INTO diario_classe (professor_id, turma_id, disciplina_id, data_aula, conteudo, metodologia, observacoes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [
+          input.professorId,
+          input.turmaId,
+          input.disciplinaId,
+          input.dataAula,
+          input.conteudo,
+          input.metodologia,
+          input.observacoes,
+        ]
+      )
+    }
+
+    await client.query('COMMIT')
+    return result.rows[0]
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.release()
+  }
+}
+
 const diarioUpdateSchema = diarioSchema.extend({
   id: z.string().uuid(),
 })
@@ -124,15 +189,20 @@ export const POST = withAuth('professor', async (request, usuario) => {
     return NextResponse.json({ mensagem: 'Sem vínculo com esta turma' }, { status: 403 })
   }
 
-  const result = await pool.query(`
-    INSERT INTO diario_classe (professor_id, turma_id, disciplina_id, data_aula, conteudo, metodologia, observacoes)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    ON CONFLICT (professor_id, turma_id, disciplina_id, data_aula)
-    DO UPDATE SET conteudo = $5, metodologia = $6, observacoes = $7, atualizado_em = NOW()
-    RETURNING *
-  `, [usuario.id, turma_id, disciplina_id || null, data_aula, conteudo, metodologia || null, observacoes || null])
-
-  const registro = result.rows[0]
+  // Upsert manual transacional: a UNIQUE(professor_id, turma_id, disciplina_id, data_aula)
+  // trata cada NULL de disciplina_id como distinto, então ON CONFLICT nunca dispara para
+  // turmas polivalentes/anos iniciais (disciplina vazia) e cada re-salvamento duplicaria a
+  // linha. Usamos IS NOT DISTINCT FROM (NULL = NULL → verdadeiro) para localizar a linha
+  // existente e fazer UPDATE por id, ou INSERT quando não houver.
+  const registro = await upsertDiario({
+    professorId: usuario.id,
+    turmaId: turma_id,
+    disciplinaId: disciplina_id || null,
+    dataAula: data_aula,
+    conteudo,
+    metodologia: metodologia || null,
+    observacoes: observacoes || null,
+  })
   if (habilidades_bncc !== undefined) {
     await sincronizarBnccDiario(registro.id, habilidades_bncc)
   }
