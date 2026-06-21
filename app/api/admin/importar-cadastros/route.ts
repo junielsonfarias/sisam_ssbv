@@ -120,7 +120,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             resultado.polos.existentes++
           } else {
             const novoResult = await withSavepoint(client, () => client.query(
-              'INSERT INTO polos (nome, codigo) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id',
+              "INSERT INTO polos (nome, codigo, origem) VALUES ($1, $2, 'gestor') ON CONFLICT DO NOTHING RETURNING id",
               [nomePolo, nomePolo.toUpperCase().replace(/\s+/g, '_')]
             ))
             if (novoResult.rows.length > 0) {
@@ -159,7 +159,7 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           } else {
             const codigoEscola = nomeEscolaNormalizado.replace(/\s+/g, '_').substring(0, 50)
             const escolaResult = await withSavepoint(client, () => client.query(
-              'INSERT INTO escolas (nome, codigo, polo_id) VALUES ($1, $2, $3) RETURNING id',
+              "INSERT INTO escolas (nome, codigo, polo_id, origem) VALUES ($1, $2, $3, 'gestor') RETURNING id",
               [nomeEscola.trim(), codigoEscola, poloId]
             ))
             escolasMap.set(nomeEscolaNormalizado, escolaResult.rows[0].id)
@@ -196,8 +196,12 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
           if (turmasMap.has(chave)) {
             resultado.turmas.existentes++
           } else {
+            // origem='gestor' explicito: este endpoint e o cadastro mestre do
+            // Gestor. Nao depender do DEFAULT da coluna (rastreabilidade clara
+            // vs. registros criados pelo ETL Sisam, que marcam origem='sisam_etl').
             const turmaResult = await withSavepoint(client, () => client.query(
-              'INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+              `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, origem)
+               VALUES ($1, $2, $3, $4, $5, 'gestor') RETURNING id`,
               [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo]
             ))
             turmasMap.set(chave, turmaResult.rows[0].id)
@@ -249,8 +253,11 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             resultado.alunos.existentes++
           } else {
             const codigoAluno = await proximoCodigoAluno()
+            // origem='gestor' explicito (cadastro mestre do Gestor). Distingue
+            // do ETL Sisam, que cria alunos com origem='sisam_etl'.
             await withSavepoint(client, () => client.query(
-              'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo) VALUES ($1, $2, $3, $4, $5, $6)',
+              `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, origem)
+               VALUES ($1, $2, $3, $4, $5, $6, 'gestor')`,
               [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo]
             ))
             resultado.alunos.criados++

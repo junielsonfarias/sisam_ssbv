@@ -13,4 +13,5 @@ Formato das linhas de correção: `- ciclo N | integração | status | tipo`
 - ciclo 1 | Gestor (governanca) — rastreabilidade de origem do dado mestre | aplicado | banco-naodestrutivo
 - ciclo 1 | Gestor (catalogo de series) — fonte unica de regras de avaliacao | aplicado | banco-naodestrutivo
 - ciclo 2 | Sisam (ETL completo) -> Gestor | aplicado | codigo
+- ciclo 2 | Gestor (governanca) -> rastreabilidade do dado mestre | aplicado | codigo
 
