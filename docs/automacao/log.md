@@ -59,3 +59,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 3 | api-professor | aprovado | 2 tarefas | tsc:ok vitest:ok | 6849ad3
 - ciclo 3 | services-dominios | aprovado | 3 tarefas | tsc:ok vitest:ok | 268d403
 - ciclo 3 | api-admin-dados | aprovado | 3 tarefas | tsc:ok vitest:ok | 09d5c97
+- ciclo 3 | api-admin-importacao | aprovado | 3 tarefas | tsc:ok vitest:ok | c05891e
