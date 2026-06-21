@@ -80,3 +80,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 - ciclo 4 | services-dados | aprovado | 3 tarefas | tsc:ok vitest:ok | 06cb3d7
 - ciclo 4 | api-admin-dados | aprovado | 4 tarefas | tsc:ok vitest:ok | 2d41ba1
 - ciclo 4 | api-publico | aprovado | 3 tarefas | tsc:ok vitest:ok | 1b6eb36
+- ciclo 4 | services-dominios | aprovado | 3 tarefas | tsc:ok vitest:ok | 76d8a5f
