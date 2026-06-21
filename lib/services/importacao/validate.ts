@@ -94,4 +94,39 @@ export async function validarImportacao(
       importacaoId,
     ]
   )
+
+  // Atualiza a materialized view consumida pelo painel do Semed (mv_sisam_media)
+  // para que os dados nao fiquem stale apos a importacao. Nao deve derrubar a
+  // importacao caso a MV ainda nao exista ou o refresh falhe.
+  await atualizarMvSisamMedia()
+}
+
+/**
+ * Atualiza a materialized view mv_sisam_media de forma concorrente (sem lock de
+ * leitura) ao final do fluxo de importacao do Sisam, mantendo o painel do Semed
+ * sincronizado. Tolerante a falhas: registra o erro mas nao interrompe o fluxo.
+ *
+ * Usa CONCURRENTLY (exige indice unico na MV — garantido pela migration
+ * create-mv-sisam-media / refresh-mv-sisam-media-indice-unico). Cai para um
+ * REFRESH simples caso o concorrente falhe (ex.: MV nunca populada).
+ */
+async function atualizarMvSisamMedia(): Promise<void> {
+  try {
+    log.info('[VALIDACAO] Atualizando mv_sisam_media (CONCURRENTLY)...')
+    await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sisam_media')
+    log.info('[VALIDACAO] mv_sisam_media atualizada com sucesso')
+  } catch (errConcurrent) {
+    log.warn(
+      `[VALIDACAO] REFRESH CONCURRENTLY falhou, tentando REFRESH simples: ${(errConcurrent as Error).message}`
+    )
+    try {
+      await pool.query('REFRESH MATERIALIZED VIEW mv_sisam_media')
+      log.info('[VALIDACAO] mv_sisam_media atualizada (REFRESH simples)')
+    } catch (errPlain) {
+      log.error(
+        '[VALIDACAO] Falha ao atualizar mv_sisam_media (painel do Semed pode ficar stale)',
+        errPlain
+      )
+    }
+  }
 }
