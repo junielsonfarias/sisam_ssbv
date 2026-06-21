@@ -56,7 +56,7 @@ export const GET = withAuth(['administrador', 'tecnico', 'polo', 'escola'], asyn
           cs.criado_em, cs.atualizado_em
         FROM configuracao_series cs
         WHERE ${buildConditionsString(where)}
-        ORDER BY cs.serie::integer`,
+        ORDER BY CASE WHEN cs.serie ~ '^[0-9]+$' THEN cs.serie::integer ELSE 999 END, cs.serie`,
         where.params
       )
 
