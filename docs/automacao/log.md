@@ -71,3 +71,8 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 ## ✅ Ciclo 3 concluído — ~22:43 (duração ~36min)
 - Revisados: 16 · com achados: 14 · **aprovados: 14** · revertidos: 0 · erros: 0 · ~30 tarefas.
 - Convergência: 58 → 46 → 30 tarefas/ciclo. Disparando ciclo 4.
+
+## ⚠️ Limite de sessão — ~23:15 a 07:47
+- Ciclo 4 falhou às ~23:15 (session limit, reset 01:10 Fortaleza); 0 commits, árvore git ficou limpa.
+- Auto-retomada não foi instantânea: loop só voltou ~07:47 (perdeu a janela da madrugada).
+- Créditos de volta → ciclo 4 re-disparado às 07:47 (restam ~73min até o deadline 09:00).
