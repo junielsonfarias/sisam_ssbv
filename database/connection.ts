@@ -26,13 +26,6 @@ export interface DatabaseError extends Error {
   constraint?: string
 }
 
-/** Item da fila de queries */
-interface QueryQueueItem {
-  resolve: (value: QueryResult) => void
-  reject: (error: DatabaseError) => void
-  queryFn: () => Promise<QueryResult>
-}
-
 // ============================================================================
 // ESTADO DO POOL
 // ============================================================================
@@ -44,13 +37,6 @@ let poolConfig: {
   user?: string;
   port?: number;
 } | null = null;
-
-// Fila de queries para controlar concorrência
-let queryQueue: QueryQueueItem[] = [];
-let activeQueries = 0;
-const MAX_CONCURRENT_QUERIES = 50; // Maximo de queries paralelas (ajustado para 50 usuarios simultaneos)
-const MAX_QUEUE_SIZE = 500; // Limite da fila para evitar memory leak
-const QUEUE_ITEM_TIMEOUT = 30000; // 30s timeout para itens na fila
 
 // Estado de saúde da conexão
 let lastHealthCheck: number = 0;
@@ -452,79 +438,6 @@ async function queryWithRetry(
 }
 
 /**
- * Processa a fila de queries respeitando o limite de concorrência
- */
-async function processQueryQueue(): Promise<void> {
-  while (queryQueue.length > 0 && activeQueries < MAX_CONCURRENT_QUERIES) {
-    const item = queryQueue.shift();
-    if (!item) break;
-
-    activeQueries++;
-    item.queryFn()
-      .then(result => {
-        activeQueries--;
-        item.resolve(result);
-        processQueryQueue();
-      })
-      .catch(error => {
-        activeQueries--;
-        item.reject(error);
-        processQueryQueue();
-      });
-  }
-}
-
-/**
- * Executa query com controle de concorrência
- */
-async function queuedQuery(
-  pool: Pool,
-  queryText: string,
-  params?: QueryParams
-): Promise<QueryResult> {
-  // Proteger contra fila infinita
-  if (queryQueue.length >= MAX_QUEUE_SIZE) {
-    throw new Error(`Servidor sobrecarregado: fila de queries cheia (${MAX_QUEUE_SIZE}). Tente novamente em instantes.`);
-  }
-
-  return new Promise((resolve, reject) => {
-    let settled = false; // Flag para evitar double-resolve/reject
-
-    const timeoutId = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      // Remover da fila se ainda estiver aguardando
-      const idx = queryQueue.findIndex(item => item.resolve === wrappedResolve);
-      if (idx !== -1) {
-        queryQueue.splice(idx, 1);
-        // Item nunca foi dequeued, activeQueries não foi incrementado
-      }
-      reject(new Error('Query expirou na fila de espera (timeout 30s)'));
-    }, QUEUE_ITEM_TIMEOUT);
-
-    const wrappedResolve = (result: QueryResult) => {
-      if (settled) return; // Já expirou pelo timeout
-      settled = true;
-      clearTimeout(timeoutId);
-      resolve(result);
-    };
-    const wrappedReject = (error: DatabaseError) => {
-      if (settled) return; // Já expirou pelo timeout
-      settled = true;
-      clearTimeout(timeoutId);
-      reject(error);
-    };
-
-    queryQueue.push({
-      resolve: wrappedResolve,
-      reject: wrappedReject,
-      queryFn: () => queryWithRetry(pool, queryText, params)
-    });
-    processQueryQueue();
-  });
-}
-
-/**
  * Executa múltiplas queries em lotes controlados
  * Útil para o dashboard que precisa executar muitas queries
  */
@@ -583,12 +496,17 @@ export function getPoolStats(): {
   lastHealthCheck: string;
 } {
   const poolInstance = pool;
+  const total = poolInstance?.totalCount || 0;
+  const idle = poolInstance?.idleCount || 0;
+  const waiting = poolInstance?.waitingCount || 0;
   return {
-    total: poolInstance?.totalCount || 0,
-    idle: poolInstance?.idleCount || 0,
-    waiting: poolInstance?.waitingCount || 0,
-    activeQueries,
-    queuedQueries: queryQueue.length,
+    total,
+    idle,
+    waiting,
+    // Conexões em uso no momento (proxy real de "queries ativas")
+    activeQueries: Math.max(total - idle, 0),
+    // Clientes aguardando uma conexão livre do pool (backpressure real)
+    queuedQueries: waiting,
     isHealthy,
     consecutiveFailures,
     lastHealthCheck: lastHealthCheck ? new Date(lastHealthCheck).toISOString() : 'never'
