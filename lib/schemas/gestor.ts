@@ -59,6 +59,8 @@ export const configuracaoNotasEscolaBaseSchema = z.object({
   peso_avaliacao: z.number().min(0).max(1).default(0.6),
   peso_recuperacao: z.number().min(0).max(1).default(0.4),
   permite_recuperacao: z.boolean().default(true),
+  // Regra explícita de recuperação (default substituição/MAX)
+  regra_recuperacao: z.enum(['substituicao', 'ponderada']).default('substituicao'),
   // Política de frequência (Fase 2.1)
   percentual_frequencia_minimo: z.number().int().min(0).max(100).default(75),
   abona_faltas_justificadas: z.boolean().default(false),

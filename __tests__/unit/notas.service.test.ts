@@ -113,20 +113,22 @@ describe('calcularNotaFinal', () => {
   // PESO DE RECUPERAÇÃO
   // ============================================================================
 
-  it('nota 5 com recuperação 8, peso 0.6/0.4 → (5*0.6)+(8*0.4) = 6.2', () => {
+  it('nota 5 com recuperação 8, peso 0.6/0.4 + regra ponderada → (5*0.6)+(8*0.4) = 6.2', () => {
     const config = {
       ...configPadrao,
       peso_avaliacao: 0.6,
       peso_recuperacao: 0.4,
+      regra_recuperacao: 'ponderada' as const,
     }
     expect(calcularNotaFinal(5, 8, config)).toBe(6.2)
   })
 
-  it('nota 3 com recuperação 9, peso 0.7/0.3 → (3*0.7)+(9*0.3) = 4.8', () => {
+  it('nota 3 com recuperação 9, peso 0.7/0.3 + regra ponderada → (3*0.7)+(9*0.3) = 4.8', () => {
     const config = {
       ...configPadrao,
       peso_avaliacao: 0.7,
       peso_recuperacao: 0.3,
+      regra_recuperacao: 'ponderada' as const,
     }
     expect(calcularNotaFinal(3, 9, config)).toBe(4.8)
   })
@@ -135,30 +137,33 @@ describe('calcularNotaFinal', () => {
     expect(calcularNotaFinal(4, 7, configPadrao)).toBe(7)
   })
 
-  it('nota 8 com recuperação 6, com pesos → (8*0.6)+(6*0.4) = 7.2 (pior que original mas pesos aplicam)', () => {
+  it('nota 8 com recuperação 6, com pesos + regra ponderada → (8*0.6)+(6*0.4) = 7.2 (pior que original mas pesos aplicam)', () => {
     const config = {
       ...configPadrao,
       peso_avaliacao: 0.6,
       peso_recuperacao: 0.4,
+      regra_recuperacao: 'ponderada' as const,
     }
     expect(calcularNotaFinal(8, 6, config)).toBe(7.2)
   })
 
-  it('peso_avaliacao=0.5 peso_recuperacao=0.5 soma=1.0 → aplica pesos', () => {
+  it('peso_avaliacao=0.5 peso_recuperacao=0.5 soma=1.0 + regra ponderada → aplica pesos', () => {
     const config = {
       ...configPadrao,
       peso_avaliacao: 0.5,
       peso_recuperacao: 0.5,
+      regra_recuperacao: 'ponderada' as const,
     }
     // (6*0.5)+(8*0.5) = 7.0
     expect(calcularNotaFinal(6, 8, config)).toBe(7)
   })
 
-  it('peso_avaliacao=0.3 peso_recuperacao=0.2 soma≠1.0 → fallback para max', () => {
+  it('peso_avaliacao=0.3 peso_recuperacao=0.2 soma≠1.0 + regra ponderada → fallback para max', () => {
     const config = {
       ...configPadrao,
       peso_avaliacao: 0.3,
       peso_recuperacao: 0.2,
+      regra_recuperacao: 'ponderada' as const,
     }
     // soma = 0.5 ≠ 1.0 → usa max(4, 9) = 9
     expect(calcularNotaFinal(4, 9, config)).toBe(9)
@@ -179,7 +184,79 @@ describe('calcularNotaFinal', () => {
       ...configPadrao,
       peso_avaliacao: 0.6,
       peso_recuperacao: 0.4,
+      regra_recuperacao: 'ponderada' as const,
     }
     expect(calcularNotaFinal(0, 5, config)).toBe(2)
+  })
+
+  // ============================================================================
+  // REGRA DE RECUPERAÇÃO EXPLÍCITA (substituicao | ponderada)
+  // ============================================================================
+
+  it('DEFAULT (sem regra): pesos 0.6/0.4 NÃO ligam ponderada → substituição MAX(4,7)=7', () => {
+    // Reproduz o bug histórico: pesos default somam 1.0 mas não devem ativar
+    // ponderação sem regra_recuperacao === 'ponderada'.
+    const config = {
+      ...configPadrao,
+      peso_avaliacao: 0.6,
+      peso_recuperacao: 0.4,
+    }
+    expect(calcularNotaFinal(4, 7, config)).toBe(7)
+  })
+
+  it('regra=substituicao explícita com pesos → substitui MAX(5,8)=8', () => {
+    const config = {
+      ...configPadrao,
+      peso_avaliacao: 0.6,
+      peso_recuperacao: 0.4,
+      regra_recuperacao: 'substituicao' as const,
+    }
+    expect(calcularNotaFinal(5, 8, config)).toBe(8)
+  })
+
+  it('regra=substituicao: recuperação menor mantém a nota original MAX(8,5)=8', () => {
+    const config = {
+      ...configPadrao,
+      peso_avaliacao: 0.6,
+      peso_recuperacao: 0.4,
+      regra_recuperacao: 'substituicao' as const,
+    }
+    expect(calcularNotaFinal(8, 5, config)).toBe(8)
+  })
+
+  it('regra=ponderada com pesos → aplica (5*0.6)+(8*0.4)=6.2', () => {
+    const config = {
+      ...configPadrao,
+      peso_avaliacao: 0.6,
+      peso_recuperacao: 0.4,
+      regra_recuperacao: 'ponderada' as const,
+    }
+    expect(calcularNotaFinal(5, 8, config)).toBe(6.2)
+  })
+
+  it('regra=ponderada SEM pesos → cai no fallback substituição MAX(4,7)=7', () => {
+    const config = {
+      ...configPadrao,
+      regra_recuperacao: 'ponderada' as const,
+    }
+    expect(calcularNotaFinal(4, 7, config)).toBe(7)
+  })
+
+  it('regra=ponderada com pesos que não somam 1 → fallback substituição MAX(4,9)=9', () => {
+    const config = {
+      ...configPadrao,
+      peso_avaliacao: 0.3,
+      peso_recuperacao: 0.2,
+      regra_recuperacao: 'ponderada' as const,
+    }
+    expect(calcularNotaFinal(4, 9, config)).toBe(9)
+  })
+
+  it('rec > nota com default substitui (regra explícita default)', () => {
+    const config = {
+      ...configPadrao,
+      regra_recuperacao: 'substituicao' as const,
+    }
+    expect(calcularNotaFinal(3, 9, config)).toBe(9)
   })
 })

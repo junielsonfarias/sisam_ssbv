@@ -1,5 +1,13 @@
 import pool from '@/database/connection'
-import type { ConfigNotas } from './types'
+import { REGRA_RECUPERACAO_PADRAO, REGRAS_RECUPERACAO } from './types'
+import type { ConfigNotas, RegraRecuperacao } from './types'
+
+/** Normaliza valor vindo do banco para uma RegraRecuperacao válida (default 'substituicao'). */
+function normalizarRegraRecuperacao(valor: unknown): RegraRecuperacao {
+  return REGRAS_RECUPERACAO.includes(valor as RegraRecuperacao)
+    ? (valor as RegraRecuperacao)
+    : REGRA_RECUPERACAO_PADRAO
+}
 
 // ============================================================================
 // Cache em memória para dados que não mudam durante lançamento de notas
@@ -18,7 +26,7 @@ export async function buscarConfigNotas(escolaId: string, anoLetivo: string): Pr
   if (cached && Date.now() < cached.expiresAt) return cached.data
 
   const result = await pool.query(
-    'SELECT nota_maxima, media_aprovacao, permite_recuperacao, peso_avaliacao, peso_recuperacao FROM configuracao_notas_escola WHERE escola_id = $1 AND ano_letivo = $2',
+    'SELECT nota_maxima, media_aprovacao, permite_recuperacao, peso_avaliacao, peso_recuperacao, regra_recuperacao FROM configuracao_notas_escola WHERE escola_id = $1 AND ano_letivo = $2',
     [escolaId, anoLetivo]
   )
   let config: ConfigNotas
@@ -29,9 +37,10 @@ export async function buscarConfigNotas(escolaId: string, anoLetivo: string): Pr
       permite_recuperacao: result.rows[0].permite_recuperacao ?? true,
       peso_avaliacao: result.rows[0].peso_avaliacao ? parseFloat(result.rows[0].peso_avaliacao) : undefined,
       peso_recuperacao: result.rows[0].peso_recuperacao ? parseFloat(result.rows[0].peso_recuperacao) : undefined,
+      regra_recuperacao: normalizarRegraRecuperacao(result.rows[0].regra_recuperacao),
     }
   } else {
-    config = { nota_maxima: 10, media_aprovacao: 6, permite_recuperacao: true }
+    config = { nota_maxima: 10, media_aprovacao: 6, permite_recuperacao: true, regra_recuperacao: REGRA_RECUPERACAO_PADRAO }
   }
 
   configCache.set(cacheKey, { data: config, expiresAt: Date.now() + CACHE_TTL })

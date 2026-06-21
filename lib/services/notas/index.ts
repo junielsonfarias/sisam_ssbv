@@ -10,7 +10,8 @@
 //   - lancamento.ts → lancarNotas + buscarNotas + buscarTurma + anoLetivoFinalizado
 // ============================================================================
 
-export type { NotaInput, ConfigNotas, NotaSnapshot, LinhaAuditoriaNota } from './types'
+export type { NotaInput, ConfigNotas, NotaSnapshot, LinhaAuditoriaNota, RegraRecuperacao } from './types'
+export { REGRAS_RECUPERACAO, REGRA_RECUPERACAO_PADRAO } from './types'
 export { calcularNotaFinal } from './calculo'
 export { montarAuditoriaNotas, registrarAuditoriaNotas } from './auditoria'
 export { buscarConfigNotas, invalidarCacheConfigNotas } from './config'

@@ -242,6 +242,8 @@ export interface ConfiguracaoNotasEscola {
   peso_avaliacao: number
   peso_recuperacao: number
   permite_recuperacao: boolean
+  /** Regra de cálculo da recuperação: substituicao = MAX; ponderada = pesos. Default substituicao. */
+  regra_recuperacao: 'substituicao' | 'ponderada'
   criado_em: Date
   atualizado_em: Date
   // Campos via JOIN
