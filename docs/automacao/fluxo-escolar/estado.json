@@ -3,7 +3,7 @@
   "branch": "auto/fluxo-escolar",
   "iniciadoEm": "2026-06-21T09:21:00-03:00",
   "ciclosAlvo": 5,
-  "cicloAtual": 2,
+  "cicloAtual": 3,
   "criterioParada": "5 ciclos (retoma apos reset de creditos)",
   "aceitacao": "automatica",
   "verificacaoCodigo": "tsc+vitest (revert no vermelho)",
@@ -22,6 +22,7 @@
   },
   "historico": [
     { "ciclo": 1, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 9, "aplicados": 4, "revertidos": 0, "propostas": 5, "erros": 0, "achadoChave": "ETL Sisam (importar-completo) e o dono de fato dos cadastros mestres - viola fonte unica" },
-    { "ciclo": 2, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 7, "aplicados": 5, "revertidos": 0, "propostas": 2, "erros": 0, "achadoChave": "ETL grava origem do dado; indice de identidade forte do aluno aplicado no demo" }
+    { "ciclo": 2, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 7, "aplicados": 5, "revertidos": 0, "propostas": 2, "erros": 0, "achadoChave": "ETL grava origem do dado; indice de identidade forte do aluno aplicado no demo" },
+    { "ciclo": 3, "statusGeral": "Parcial", "coracao": "Medio", "gaps": 7, "aplicados": 4, "revertidos": 0, "propostas": 3, "erros": 0, "achadoChave": "regularizacao do ETL + integridade interna do mestre; restam itens destrutivos/producao como proposta" }
   ]
 }
