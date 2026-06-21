@@ -1,6 +1,6 @@
 # ADR-003 — Bidirecionalidade Sisam → boletim (resultados da Avaliação Municipal)
 
-**Status:** Proposta (aguardando decisão do time)
+**Status:** Aceita (aprovada 2026-06-21 — em implementação no banco demo)
 **Data:** 2026-06-21
 **Autores:** FlowSchoolAgent (ciclos 1–6) · documentador-sisam
 

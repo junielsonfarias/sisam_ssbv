@@ -1,6 +1,6 @@
 # ADR-001 — ETL Sisam em modo match-only + tabela de divergências
 
-**Status:** Proposta (aguardando decisão do time)
+**Status:** Aceita (aprovada 2026-06-21 — em implementação no banco demo)
 **Data:** 2026-06-21
 **Autores:** FlowSchoolAgent (ciclos 1–6) · documentador-sisam
 

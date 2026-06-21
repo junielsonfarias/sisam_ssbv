@@ -1,6 +1,6 @@
 # ADR-004 — Fonte canônica de séries: consolidar em `series_escolares`
 
-**Status:** Proposta (aguardando decisão do time)
+**Status:** Aceita (aprovada 2026-06-21 — em implementação no banco demo)
 **Data:** 2026-06-21
 **Autores:** FlowSchoolAgent (ciclos 1–6) · documentador-sisam
 
