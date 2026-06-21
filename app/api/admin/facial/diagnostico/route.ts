@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     for (const aluno of alunoResult.rows) {
       // Consentimento
       const consentResult = await pool.query(
-        'SELECT id, aluno_id, consentido, consentido_por, responsavel_nome, data_consentimento, data_revogacao, criado_em FROM consentimentos_faciais WHERE aluno_id = $1',
+        'SELECT id, aluno_id, consentido, responsavel_nome, data_consentimento, data_revogacao, criado_em FROM consentimentos_faciais WHERE aluno_id = $1',
         [aluno.id]
       )
 
