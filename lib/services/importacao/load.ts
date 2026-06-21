@@ -19,8 +19,10 @@ import {
   DadosExtraidos,
   DadosExistentes,
   DadosQuestoes,
+  ImportacaoConfig,
   ImportacaoResultado,
 } from './types'
+import { registrarMestreAusente, registrarMestreCriado } from './governanca'
 
 const log = createLogger('Importacao')
 
@@ -103,9 +105,11 @@ export async function criarPolosEEscolas(
   dadosExcel: DadosExtraidos,
   dadosExistentes: DadosExistentes,
   resultado: ImportacaoResultado,
-  erros: string[]
+  erros: string[],
+  config: ImportacaoConfig
 ): Promise<void> {
   log.info('[FASE 3] Criando polos e escolas...')
+  const { importacaoId, usuarioId } = config
 
   const { polosUnicos, escolasUnicas } = dadosExcel
   const { polosMap, escolasMap } = dadosExistentes
@@ -123,6 +127,14 @@ export async function criarPolosEEscolas(
         )
         polosMap.set(normalizarNomePolo(nomePolo), result.rows[0].id)
         resultado.polos.criados++
+        // Persistir breadcrumb de governanca: polo criado pelo ETL.
+        await registrarMestreCriado({
+          entidade: 'polo',
+          entidadeId: result.rows[0].id,
+          nome: nomePolo,
+          importacaoId,
+          usuarioId,
+        })
       } catch (error: unknown) {
         erros.push(`Polo "${nomePolo}": ${(error as Error).message}`)
       }
@@ -172,6 +184,14 @@ export async function criarPolosEEscolas(
               `nao existe no cadastro mestre e nao foi criada pelo ETL. ` +
               `Cadastre a escola no modulo Gestor antes de reimportar.`
             )
+            // Persistir divergencia (governanca): trilha consultavel no Gestor.
+            await registrarMestreAusente({
+              entidade: 'escola',
+              nome: nomeEscola.trim(),
+              poloNome: nomePolo.trim(),
+              importacaoId,
+              usuarioId,
+            })
             log.warn(
               `[GATE] Escola "${nomeEscola.trim()}" ignorada na criacao de mestre (responsabilidade do Gestor)`
             )

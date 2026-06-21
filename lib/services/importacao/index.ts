@@ -111,7 +111,7 @@ export async function processarImportacao(
     const dadosExistentes = await carregarDadosExistentes(anoLetivo, avaliacaoId)
 
     // Fase 3: Criar polos e escolas faltantes
-    await criarPolosEEscolas(dadosExcel, dadosExistentes, resultado, erros)
+    await criarPolosEEscolas(dadosExcel, dadosExistentes, resultado, erros, config)
 
     // Fase 4: Carregar/criar questoes e configuracoes de series
     const dadosQuestoes = await carregarQuestoes(dadosExistentes.questoesMap, resultado)

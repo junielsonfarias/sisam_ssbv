@@ -21,6 +21,7 @@ import { normalizarSerie } from '@/lib/normalizar-serie'
 import { createLogger } from '@/lib/logger'
 import { lerSerieDoExcel } from './parse'
 import { getEtlGateMode, ORIGEM_SISAM_ETL } from './config'
+import { registrarMestreAusente, registrarMestreCriado } from './governanca'
 import {
   ImportacaoConfig,
   ImportacaoResultado,
@@ -53,7 +54,7 @@ export async function processarLinhas(
 ): Promise<DadosProcessados> {
   log.info('[FASE 5] Processando linhas do arquivo...')
 
-  const { anoLetivo, avaliacaoId, importacaoId } = config
+  const { anoLetivo, avaliacaoId, importacaoId, usuarioId } = config
   const { escolasMap, turmasMap, alunosMap, questoesMap } = dadosExistentes
   const { configSeries, itensProducaoMap } = dadosQuestoes
 
@@ -193,6 +194,16 @@ export async function processarLinhas(
                 `nao existe no cadastro mestre e nao foi criada pelo ETL. ` +
                 `Cadastre a turma no modulo Gestor antes de reimportar.`
               )
+              // Persistir divergencia (governanca): trilha consultavel no Gestor.
+              await registrarMestreAusente({
+                entidade: 'turma',
+                nome: turmaCodigo,
+                escolaNome: escolaNome.trim(),
+                turmaCodigo,
+                anoLetivo,
+                importacaoId,
+                usuarioId,
+              })
             }
             turmaId = null
           } else {
@@ -210,6 +221,17 @@ export async function processarLinhas(
             })
             turmasMap.set(turmaKey, turmaId)
             resultado.turmas.criados++
+            // Persistir breadcrumb de governanca (id real e resolvido na FASE 7;
+            // a lista consultavel vem do verificador sobre origem='sisam_etl').
+            await registrarMestreCriado({
+              entidade: 'turma',
+              entidadeId: null,
+              nome: turmaCodigo,
+              escolaNome: escolaNome.trim(),
+              anoLetivo,
+              importacaoId,
+              usuarioId,
+            })
           }
         } else {
           resultado.turmas.existentes++
@@ -236,6 +258,16 @@ export async function processarLinhas(
               `nao existe no cadastro mestre e nao foi criado pelo ETL. ` +
               `Cadastre o aluno no modulo Gestor antes de reimportar.`
             )
+            // Persistir divergencia (governanca): trilha consultavel no Gestor.
+            await registrarMestreAusente({
+              entidade: 'aluno',
+              nome: alunoNome,
+              escolaNome: escolaNome.trim(),
+              turmaCodigo: turmaCodigo || null,
+              anoLetivo,
+              importacaoId,
+              usuarioId,
+            })
           }
           continue
         }
@@ -258,6 +290,17 @@ export async function processarLinhas(
         })
 
         alunosMap.set(alunoKey, alunoId)
+        // Persistir breadcrumb de governanca (id real e resolvido na FASE 7;
+        // a lista consultavel vem do verificador sobre origem='sisam_etl').
+        await registrarMestreCriado({
+          entidade: 'aluno',
+          entidadeId: null,
+          nome: alunoNome,
+          escolaNome: escolaNome.trim(),
+          anoLetivo,
+          importacaoId,
+          usuarioId,
+        })
       }
 
       // Extrair notas e acertos
