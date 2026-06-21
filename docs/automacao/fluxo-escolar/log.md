@@ -28,6 +28,7 @@ Formato das linhas de correção: `- ciclo N | integração | status | tipo`
 - ciclo 5 | Gestor Escolar (interno) -> integridade do Ano Letivo | aplicado | banco-naodestrutivo
 - ciclo 5 | Gestor Escolar (interno) -> catalogo de Series | aplicado | banco-naodestrutivo
 - ciclo 5 | Gestor Escolar -> Sisam (governanca do gate em producao) | aplicado | codigo
+- ciclo 6 | Chave temporal canonica (Gestor -> todos os modulos) — alunos/turmas/professor_turmas/series_escola/periodos_letivos | aplicado | dados
 
 ---
 
