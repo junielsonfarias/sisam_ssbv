@@ -23,9 +23,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mensagem: 'aluno_nome ou aluno_id obrigatório' }, { status: 400 })
     }
 
-    // Tamanhos válidos de embedding: 512 (sessão única, 128 floats × 4 bytes)
-    // e 1536 (template multi-sessão acumulado no enrollment modo 'adicionar')
-    const TAMANHOS_VALIDOS = [512, 1536]
+    // Tamanhos válidos de embedding, alinhados ao enrollment (modo 'adicionar'):
+    //   - 512  = template legado de sessão única antiga (128 floats × 4 bytes)
+    //   - 1536 = 1 sessão (3 poses × 128 floats × 4 bytes)
+    //   - 3072 = 2 sessões acumuladas
+    //   - 4608 = 3 sessões acumuladas (MAX_BYTES do enrollment = 1536 × 3)
+    // Ver app/api/admin/facial/enrollment/route.ts (modo 'adicionar').
+    const TAMANHO_SESSAO = 1536
+    const MAX_SESSOES = 3
+    const TAMANHOS_VALIDOS = [
+      512,
+      ...Array.from({ length: MAX_SESSOES }, (_, i) => TAMANHO_SESSAO * (i + 1)),
+    ]
 
     // Buscar aluno
     const alunoQuery = alunoId
@@ -109,7 +118,7 @@ export async function GET(request: NextRequest) {
           existe: true,
           valido: embeddingValido,
           tamanho_bytes: embeddingTamanho,
-          tamanho_esperado: 512,
+          tamanho_esperado: `${TAMANHOS_VALIDOS[0]} a ${TAMANHOS_VALIDOS[TAMANHOS_VALIDOS.length - 1]} bytes (512 ou múltiplos de ${TAMANHO_SESSAO} até ${TAMANHO_SESSAO * MAX_SESSOES})`,
           tamanhos_validos: TAMANHOS_VALIDOS,
           qualidade: embedResult.rows[0].qualidade,
           versao_modelo: embedResult.rows[0].versao_modelo,
@@ -130,7 +139,7 @@ export async function GET(request: NextRequest) {
             ...(consentResult.rows[0] && !consentResult.rows[0].consentido ? ['Consentimento não aprovado'] : []),
             ...(consentResult.rows[0]?.data_revogacao ? ['Consentimento revogado'] : []),
             ...(embedResult.rows.length === 0 ? ['Sem embedding facial'] : []),
-            ...(embeddingTamanho > 0 && !TAMANHOS_VALIDOS.includes(embeddingTamanho) ? [`Embedding tamanho errado: ${embeddingTamanho} bytes (esperado 512 ou 1536)`] : []),
+            ...(embeddingTamanho > 0 && !TAMANHOS_VALIDOS.includes(embeddingTamanho) ? [`Embedding tamanho errado: ${embeddingTamanho} bytes (esperado ${TAMANHOS_VALIDOS.join(', ')})`] : []),
             ...(!embeddingValido && TAMANHOS_VALIDOS.includes(embeddingTamanho) ? ['Embedding contém valores inválidos (NaN/zero/infinito)'] : []),
           ],
         },

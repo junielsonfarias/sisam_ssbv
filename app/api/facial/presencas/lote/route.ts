@@ -6,6 +6,7 @@ import { FACIAL } from '@/lib/constants'
 import { extrairDataHoraLocal } from '@/lib/api-helpers'
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
+import { registrarEventoFacial } from '@/lib/services/presenca-facial-eventos.service'
 
 const log = createLogger('FacialPresencasLote')
 
@@ -14,8 +15,18 @@ export const dynamic = 'force-dynamic'
 /**
  * POST /api/facial/presencas/lote
  * Registra presenças em lote (sync offline)
- * Máximo 500 registros por requisição
- * Usa batch INSERT em chunks de 50 para evitar lock prolongado
+ * Máximo 500 registros por requisição (FACIAL.LOTE_MAXIMO)
+ *
+ * Cada registro válido é processado UM A UM (ordenado por timestamp
+ * ascendente) via registrarEventoFacial — o mesmo serviço usado por
+ * /api/facial/presencas e /api/admin/facial/presenca-terminal. Isso:
+ *   - Classifica cada scan em entrada/saida/duplicado pelo turno da turma;
+ *   - Só seta hora_entrada na primeira do dia (COALESCE) e hora_saida em
+ *     eventos do tipo 'saida' (não corrompe hora_saida com scan duplicado);
+ *   - Grava o histórico bruto em presenca_facial_eventos;
+ *   - Elimina o erro "ON CONFLICT DO UPDATE command cannot affect row a
+ *     second time" que ocorria quando 2+ scans do mesmo aluno/dia caíam no
+ *     mesmo statement de batch INSERT em frequencia_diaria.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +45,9 @@ export async function POST(request: NextRequest) {
 
     const { registros } = validacao.data
 
-    // Buscar alunos da escola para validação rápida
+    // Buscar alunos da escola para validação rápida.
+    // O INNER JOIN com consentimentos_faciais já garante o consentimento
+    // LGPD ativo (consentido = true AND data_revogacao IS NULL).
     const alunosResult = await pool.query(
       `SELECT a.id, a.turma_id
        FROM alunos a
@@ -49,7 +62,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Filtrar e preparar registros válidos
-    const validos: { aluno_id: string; turma_id: string; data: string; hora: string; confianca: number }[] = []
+    interface RegistroValido {
+      aluno_id: string
+      turma_id: string
+      data: string
+      hora: string
+      confianca: number
+      registrado_em: Date
+    }
+    const validos: RegistroValido[] = []
     let erros = 0
 
     for (const registro of registros) {
@@ -60,9 +81,12 @@ export async function POST(request: NextRequest) {
       const turmaId = alunosMap.get(aluno_id)
       if (!turmaId) { erros++; continue }
 
+      const registradoEm = new Date(timestamp)
+      if (isNaN(registradoEm.getTime())) { erros++; continue }
+
       try {
         const { data, hora } = extrairDataHoraLocal(timestamp)
-        validos.push({ aluno_id, turma_id: turmaId, data, hora, confianca })
+        validos.push({ aluno_id, turma_id: turmaId, data, hora, confianca, registrado_em: registradoEm })
       } catch {
         erros++; continue
       }
@@ -78,49 +102,39 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Processar em chunks de 50 dentro de uma transação
-    const CHUNK_SIZE = 50
+    // Ordenar por timestamp ascendente: o service classifica entrada/saida
+    // com base no último evento do dia, então a ordem cronológica importa.
+    validos.sort((a, b) => a.registrado_em.getTime() - b.registrado_em.getTime())
+
     let inseridos = 0
     let atualizados = 0
+    let duplicados = 0
 
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
 
-      for (let i = 0; i < validos.length; i += CHUNK_SIZE) {
-        const chunk = validos.slice(i, i + CHUNK_SIZE)
+      // Processa cada scan individualmente. O service é idempotente por
+      // (aluno, data) — INSERT/UPDATE individual em frequencia_diaria com
+      // COALESCE/GREATEST — então não há conflito de duas linhas no mesmo
+      // statement nem necessidade de savepoint por item.
+      for (const reg of validos) {
+        const evento = await registrarEventoFacial(client, {
+          aluno_id: reg.aluno_id,
+          escola_id: dispositivo.escola_id,
+          registrado_em: reg.registrado_em,
+          data: reg.data,
+          dispositivo_id: dispositivo.id,
+          confianca: reg.confianca,
+          origem: 'dispositivo',
+        }, reg.turma_id)
 
-        // Construir batch INSERT com múltiplos VALUES
-        const values: (string | number)[] = []
-        const placeholders: string[] = []
-        let paramIdx = 1
-
-        for (const reg of chunk) {
-          placeholders.push(
-            `($${paramIdx}, $${paramIdx + 1}, $${paramIdx + 2}, $${paramIdx + 3}, $${paramIdx + 4}, 'facial', $${paramIdx + 5}, $${paramIdx + 6})`
-          )
-          values.push(
-            reg.aluno_id, reg.turma_id, dispositivo.escola_id,
-            reg.data, reg.hora, dispositivo.id, reg.confianca
-          )
-          paramIdx += 7
-        }
-
-        const result = await client.query(
-          `INSERT INTO frequencia_diaria
-            (aluno_id, turma_id, escola_id, data, hora_entrada, metodo, dispositivo_id, confianca)
-           VALUES ${placeholders.join(', ')}
-           ON CONFLICT (aluno_id, data) DO UPDATE SET
-            hora_saida = EXCLUDED.hora_entrada,
-            confianca = GREATEST(frequencia_diaria.confianca, EXCLUDED.confianca),
-            atualizado_em = CURRENT_TIMESTAMP
-           RETURNING (xmax = 0) AS is_insert`,
-          values
-        )
-
-        for (const row of result.rows) {
-          if (row.is_insert) inseridos++
-          else atualizados++
+        if (evento.tipo === 'duplicado') {
+          duplicados++
+        } else if (evento.primeiro_do_dia) {
+          inseridos++
+        } else {
+          atualizados++
         }
       }
 
@@ -128,7 +142,7 @@ export async function POST(request: NextRequest) {
       await client.query(
         `INSERT INTO logs_dispositivos (dispositivo_id, evento, detalhes)
          VALUES ($1, 'presenca_lote', $2)`,
-        [dispositivo.id, JSON.stringify({ total: registros.length, inseridos, atualizados, erros })]
+        [dispositivo.id, JSON.stringify({ total: registros.length, inseridos, atualizados, duplicados, erros })]
       )
 
       await client.query('COMMIT')
@@ -138,6 +152,7 @@ export async function POST(request: NextRequest) {
         total: registros.length,
         inseridos,
         atualizados,
+        duplicados,
         erros,
       })
     } catch (error: unknown) {
@@ -151,7 +166,7 @@ export async function POST(request: NextRequest) {
       client.release()
     }
   } catch (error: unknown) {
-    console.error('Erro ao registrar presença em lote:', error)
+    log.error('Erro ao registrar presença em lote', error)
     return NextResponse.json(
       { mensagem: 'Erro interno do servidor' },
       { status: 500 }
