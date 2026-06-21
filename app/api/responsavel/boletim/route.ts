@@ -49,7 +49,7 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
     const aluno = alunoResult.rows[0]
 
     // Buscar em paralelo: notas, frequencia, disciplinas, periodos
-    const [notasResult, freqResult, disciplinasResult, periodosResult] = await Promise.all([
+    const [notasResult, freqResult, disciplinasResult, periodosResult, sisamResult] = await Promise.all([
       // Notas escolares
       pool.query(
         `SELECT ne.nota_final, ne.nota_recuperacao, ne.faltas,
@@ -187,6 +187,20 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
          ORDER BY p.numero`,
         [alunoId, anoLetivo]
       ),
+      // Secao complementar: Avaliacao Municipal (SISAM).
+      // ADR-003 (A2): lida da view vw_boletim_resultados_sisam, vinculada por
+      // avaliacao_id. NAO compoe a nota escolar — e secao separada do boletim.
+      pool.query(
+        `SELECT avaliacao_nome, avaliacao_tipo, presenca,
+                nota_lp, nota_mat, nota_ch, nota_cn, nota_producao,
+                media_aluno, nivel_aprendizagem,
+                total_acertos_lp, total_acertos_mat,
+                total_acertos_ch, total_acertos_cn
+         FROM vw_boletim_resultados_sisam
+         WHERE aluno_id = $1 AND ano_letivo = $2
+         ORDER BY avaliacao_ordem`,
+        [alunoId, anoLetivo]
+      ),
     ])
 
     // Organizar notas por disciplina e periodo
@@ -268,6 +282,25 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
       ? Math.round((mediasValidas.reduce((a, b) => a + b, 0) / mediasValidas.length) * 10) / 10
       : null
 
+    // Secao complementar SISAM (ADR-003): paridade com /api/boletim.
+    // PG devolve numeric como string — converter antes de expor.
+    const avaliacoesSisam = sisamResult.rows.map((r: any) => ({
+      avaliacao: r.avaliacao_nome,
+      tipo: r.avaliacao_tipo,
+      presenca: r.presenca,
+      nota_lp: r.nota_lp !== null ? parseFloat(r.nota_lp) : null,
+      nota_mat: r.nota_mat !== null ? parseFloat(r.nota_mat) : null,
+      nota_ch: r.nota_ch !== null ? parseFloat(r.nota_ch) : null,
+      nota_cn: r.nota_cn !== null ? parseFloat(r.nota_cn) : null,
+      nota_producao: r.nota_producao !== null ? parseFloat(r.nota_producao) : null,
+      media: r.media_aluno !== null ? parseFloat(r.media_aluno) : null,
+      nivel: r.nivel_aprendizagem,
+      acertos_lp: parseInt(r.total_acertos_lp) || 0,
+      acertos_mat: parseInt(r.total_acertos_mat) || 0,
+      acertos_ch: parseInt(r.total_acertos_ch) || 0,
+      acertos_cn: parseInt(r.total_acertos_cn) || 0,
+    }))
+
     return NextResponse.json({
       aluno,
       disciplinas: disciplinasResult.rows,
@@ -279,6 +312,8 @@ export const GET = withAuth(['responsavel'], async (request, usuario) => {
       frequencia: freqResult.rows,
       frequencia_geral: frequenciaGeral,
       total_faltas: totalFaltas,
+      // Secao complementar — separada da nota escolar (notas/medias acima).
+      avaliacoes_sisam: avaliacoesSisam,
     })
   } catch (error: unknown) {
     console.error('Erro ao buscar boletim:', error)

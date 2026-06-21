@@ -220,21 +220,19 @@ export async function GET(request: NextRequest) {
          ORDER BY p.numero, d.nome`,
         [aluno.id, anoLetivo], 'notas'
       ),
-      // 5. Resultados SISAM
+      // 5. Resultados SISAM — secao complementar "Avaliacao Municipal".
+      // ADR-003 (A2): lida da view vw_boletim_resultados_sisam (formaliza o
+      // JOIN resultados_consolidados x avaliacoes por avaliacao_id). NAO mistura
+      // com a nota escolar regular (notas_escolares).
       safeQuery(
-        `SELECT rc.nota_lp, rc.nota_mat, rc.nota_ch, rc.nota_cn, rc.nota_producao,
-                rc.media_aluno, rc.presenca, rc.nivel_aprendizagem,
-                rc.total_acertos_lp, rc.total_acertos_mat,
-                rc.total_acertos_ch, rc.total_acertos_cn,
-                av.nome as avaliacao_nome, av.tipo as avaliacao_tipo
-         FROM resultados_consolidados rc
-         INNER JOIN avaliacoes av ON rc.avaliacao_id = av.id
-         WHERE rc.aluno_id = $1 AND rc.ano_letivo = $2
-           AND (rc.nota_lp IS NOT NULL OR rc.nota_mat IS NOT NULL
-                OR rc.nota_ch IS NOT NULL OR rc.nota_cn IS NOT NULL
-                OR rc.nota_producao IS NOT NULL
-                OR rc.total_acertos_lp > 0 OR rc.total_acertos_mat > 0)
-         ORDER BY av.ordem`,
+        `SELECT nota_lp, nota_mat, nota_ch, nota_cn, nota_producao,
+                media_aluno, presenca, nivel_aprendizagem,
+                total_acertos_lp, total_acertos_mat,
+                total_acertos_ch, total_acertos_cn,
+                avaliacao_nome, avaliacao_tipo
+         FROM vw_boletim_resultados_sisam
+         WHERE aluno_id = $1 AND ano_letivo = $2
+         ORDER BY avaliacao_ordem`,
         [aluno.id, anoLetivo], 'sisam'
       ),
       // 6. Frequencia por periodo (consolidada).

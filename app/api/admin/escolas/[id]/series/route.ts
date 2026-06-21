@@ -4,6 +4,7 @@ import { validateRequest, serieEscolaPostSchema } from '@/lib/schemas'
 import pool from '@/database/connection'
 import { cacheDelPattern } from '@/lib/cache'
 import { createLogger } from '@/lib/logger'
+import { resolverSerieId } from '@/lib/services/gestor/mestre.service'
 
 const log = createLogger('EscolaSeries')
 
@@ -31,10 +32,15 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const anoLetivo = searchParams.get('ano_letivo') || new Date().getFullYear().toString()
 
+    // ADR-004: join pela chave canonica (serie_escolar_id) quando ambos os lados
+    // estao vinculados; fallback textual (cs.serie = se.serie) cobre linhas legadas
+    // ainda sem id durante a transicao.
     const result = await pool.query(
       `SELECT se.*, cs.nome_serie, cs.tipo_ensino, cs.media_aprovacao, cs.max_dependencias
        FROM series_escola se
-       LEFT JOIN configuracao_series cs ON cs.serie = se.serie
+       LEFT JOIN configuracao_series cs
+         ON (se.serie_escolar_id IS NOT NULL AND cs.serie_escolar_id = se.serie_escolar_id)
+         OR (se.serie_escolar_id IS NULL AND cs.serie = se.serie)
        WHERE se.escola_id = $1 AND se.ano_letivo = $2
        ORDER BY se.serie::int`,
       [escolaId, anoLetivo]
@@ -83,12 +89,17 @@ export async function POST(
       return NextResponse.json({ mensagem: 'Escola não encontrada' }, { status: 404 })
     }
 
+    // ADR-004: series_escolares e a fonte canonica. Resolve serie_escolar_id pelo
+    // nome/codigo (case/space-insensitive) antes do UPSERT para gravar a chave
+    // canonica na origem. A coluna textual `serie` permanece (compat. retroativa).
+    const serieId = await resolverSerieId(pool, serie)
+
     const result = await pool.query(
-      `INSERT INTO series_escola (escola_id, serie, ano_letivo)
-       VALUES ($1, $2, $3)
+      `INSERT INTO series_escola (escola_id, serie, serie_escolar_id, ano_letivo)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT DO NOTHING
        RETURNING *`,
-      [escolaId, serie, ano_letivo]
+      [escolaId, serie, serieId, ano_letivo]
     )
 
     if (result.rows.length === 0) {

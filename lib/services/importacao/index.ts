@@ -137,11 +137,11 @@ export async function processarImportacao(
       return
     }
 
-    // Fase 6: Batch insert de turmas
-    await criarTurmas(turmasParaInserir, alunosParaInserir, consolidadosParaInserir, resultadosParaInserir)
+    // Fase 6: Turmas (match-only por padrao — ADR-001)
+    await criarTurmas(turmasParaInserir, alunosParaInserir, consolidadosParaInserir, resultadosParaInserir, config, resultado)
 
-    // Fase 7: Batch insert de alunos
-    await criarAlunos(alunosParaInserir, consolidadosParaInserir, resultadosParaInserir, producaoParaInserir, resultado, erros)
+    // Fase 7: Alunos (match-only por padrao — ADR-001)
+    await criarAlunos(alunosParaInserir, consolidadosParaInserir, resultadosParaInserir, producaoParaInserir, resultado, erros, config)
 
     // Fase 8: Batch insert de consolidados
     await inserirConsolidados(consolidadosParaInserir, erros)

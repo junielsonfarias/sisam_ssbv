@@ -52,6 +52,29 @@ export interface ResultadoMatriculaBatch {
   alunos: Record<string, unknown>[]
 }
 
+/**
+ * Registro da tabela dedicada `matriculas` (ADR-002).
+ * Registro do vínculo de um aluno a uma turma em um ano letivo.
+ */
+export interface MatriculaRow {
+  id: string
+  aluno_id: string
+  turma_id: string
+  ano_letivo_id: string
+  serie_id: string | null
+  situacao: string
+  data_matricula: string
+  criado_em: string
+  atualizado_em: string
+}
+
+/** Ano letivo corrente derivado de `anos_letivos` (ADR-002 leitura). */
+export interface AnoLetivoCorrente {
+  id: string
+  ano: string
+  status: string
+}
+
 /** Erro de regra de negócio de matrícula (capacidade, turma inexistente, ano inativo). */
 export class MatriculaError extends Error {
   constructor(message: string) {

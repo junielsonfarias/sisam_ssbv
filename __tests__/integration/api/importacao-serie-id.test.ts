@@ -1,14 +1,15 @@
 /**
- * Chave temporal canonica (ano_letivo varchar -> anos_letivos.id) na ESCRITA.
+ * Chave canonica de serie (serie varchar -> series_escolares.id) na ESCRITA.
  *
- * Regressao do ciclo 6: as duas portas de escrita do mestre precisam preencher
- * `ano_letivo_id` na origem, senao o backfill e efemero (a fonte unica volta a
- * produzir a chave canonica vazia a cada importacao).
+ * ADR-004 (fonte canonica de series): as portas de escrita do mestre precisam
+ * preencher `serie_id` na origem, senao o backfill e efemero (a fonte unica volta
+ * a produzir a chave canonica vazia a cada importacao). Mesmo padrao do
+ * `ano_letivo_id` (ciclo 6).
  *
  * Cobre (mockando pool.query):
- *   - resolverAnoLetivoId: lookup centralizado + cache por ano + null sem erro.
- *   - Porta 2 ETL (batch.ts): criarTurmas e criarAlunos gravam ano_letivo_id
- *     resolvido (INSERT/UPSERT e UPDATE de aluno existente).
+ *   - resolverSerieId: lookup centralizado (nome/codigo) + cache por serie + null sem erro.
+ *   - Porta 2 ETL (batch.ts): criarTurmas e criarAlunos gravam serie_id resolvido
+ *     (INSERT/UPSERT e UPDATE de aluno existente).
  */
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
 
@@ -26,7 +27,7 @@ vi.mock('@/lib/logger', () => ({
 }))
 
 import pool from '@/database/connection'
-import { resolverAnoLetivoId } from '@/lib/services/gestor/mestre.service'
+import { resolverSerieId } from '@/lib/services/gestor/mestre.service'
 import { criarTurmas, criarAlunos } from '@/lib/services/importacao/batch'
 import type {
   ImportacaoResultado,
@@ -36,6 +37,7 @@ import type {
 
 const mockPool = vi.mocked(pool)
 
+const SERIE_ID_5 = 'serie-5-uuid'
 const ANO_ID_2026 = 'ano-2026-uuid'
 
 /** Config minima exigida pelas fases de batch (importacaoId p/ divergencias). */
@@ -70,38 +72,40 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('resolverAnoLetivoId (lookup centralizado)', () => {
-  it('resolve o uuid casando anos_letivos.ano = btrim(varchar)', async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [{ id: ANO_ID_2026 }] } as any)
-    const id = await resolverAnoLetivoId(pool as any, '2026')
-    expect(id).toBe(ANO_ID_2026)
+describe('resolverSerieId (lookup centralizado — ADR-004)', () => {
+  it('resolve o uuid casando series_escolares por nome OU codigo', async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [{ id: SERIE_ID_5 }] } as any)
+    const id = await resolverSerieId(pool as any, '5')
+    expect(id).toBe(SERIE_ID_5)
     expect(mockPool.query).toHaveBeenCalledTimes(1)
+    const sql = String(mockPool.query.mock.calls[0][0])
+    expect(sql).toContain('series_escolares')
   })
 
-  it('usa o cache por ano: nao repete a query para o mesmo ano', async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [{ id: ANO_ID_2026 }] } as any)
+  it('usa o cache por serie: nao repete a query para a mesma serie', async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [{ id: SERIE_ID_5 }] } as any)
     const cache = new Map<string, string | null>()
-    const a = await resolverAnoLetivoId(pool as any, '2026', cache)
-    const b = await resolverAnoLetivoId(pool as any, '2026', cache)
-    expect(a).toBe(ANO_ID_2026)
-    expect(b).toBe(ANO_ID_2026)
+    const a = await resolverSerieId(pool as any, '5º Ano', cache)
+    const b = await resolverSerieId(pool as any, '5º Ano', cache)
+    expect(a).toBe(SERIE_ID_5)
+    expect(b).toBe(SERIE_ID_5)
     expect(mockPool.query).toHaveBeenCalledTimes(1)
   })
 
-  it('retorna null (sem lancar) quando o ano nao existe', async () => {
+  it('retorna null (sem lancar) quando a serie nao casa com o catalogo', async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] } as any)
-    const id = await resolverAnoLetivoId(pool as any, '1999')
+    const id = await resolverSerieId(pool as any, 'Serie Inexistente')
     expect(id).toBeNull()
   })
 
-  it('retorna null para ano vazio sem consultar o banco', async () => {
-    const id = await resolverAnoLetivoId(pool as any, '   ')
+  it('retorna null para serie vazia sem consultar o banco', async () => {
+    const id = await resolverSerieId(pool as any, '   ')
     expect(id).toBeNull()
     expect(mockPool.query).not.toHaveBeenCalled()
   })
 })
 
-describe('Porta 2 ETL (batch.ts) grava ano_letivo_id', () => {
+describe('Porta 2 ETL (batch.ts) grava serie_id', () => {
   // O caminho de INSERT do ETL so existe no modo transicao (ADR-001 match-only:
   // o modo padrao estrito NAO cria mestre). Forcamos transicao neste bloco.
   const envOriginal = process.env.ETL_GATE_MESTRE
@@ -113,11 +117,14 @@ describe('Porta 2 ETL (batch.ts) grava ano_letivo_id', () => {
     else process.env.ETL_GATE_MESTRE = envOriginal
   })
 
-  it('criarTurmas: INSERT inclui coluna ano_letivo_id com o uuid resolvido', async () => {
+  it('criarTurmas: INSERT inclui coluna serie_id com o uuid resolvido', async () => {
     mockPool.query.mockImplementation((async (sql: string) => {
       const texto = String(sql)
       if (texto.includes('FROM anos_letivos')) {
         return { rows: [{ id: ANO_ID_2026 }] } as any
+      }
+      if (texto.includes('FROM series_escolares')) {
+        return { rows: [{ id: SERIE_ID_5 }] } as any
       }
       if (texto.includes('INSERT INTO turmas')) {
         return { rows: [{ id: 'turma-real-1', codigo: '5A', escola_id: 'esc-1', ano_letivo: '2026' }] } as any
@@ -143,20 +150,22 @@ describe('Porta 2 ETL (batch.ts) grava ano_letivo_id', () => {
     const insertSql = mockPool.query.mock.calls
       .map((c) => String(c[0]))
       .find((s) => s.includes('INSERT INTO turmas'))
-    expect(insertSql).toContain('ano_letivo_id')
+    expect(insertSql).toContain('serie_id')
 
     const params = paramsDe((s) => s.includes('INSERT INTO turmas'))
     expect(params).not.toBeNull()
-    expect(params).toContain(ANO_ID_2026)
+    expect(params).toContain(SERIE_ID_5)
   })
 
-  it('criarAlunos: INSERT de aluno novo inclui ano_letivo_id resolvido', async () => {
+  it('criarAlunos: INSERT de aluno novo inclui serie_id resolvido', async () => {
     mockPool.query.mockImplementation((async (sql: string) => {
       const texto = String(sql)
       if (texto.includes('FROM anos_letivos')) {
         return { rows: [{ id: ANO_ID_2026 }] } as any
       }
-      // lookup de alunos existentes (VALUES CTE) -> nenhum existente
+      if (texto.includes('FROM series_escolares')) {
+        return { rows: [{ id: SERIE_ID_5 }] } as any
+      }
       if (texto.includes('INNER JOIN (VALUES')) {
         return { rows: [] } as any
       }
@@ -186,21 +195,23 @@ describe('Porta 2 ETL (batch.ts) grava ano_letivo_id', () => {
     const insertSql = mockPool.query.mock.calls
       .map((c) => String(c[0]))
       .find((s) => s.includes('INSERT INTO alunos'))
-    expect(insertSql).toContain('ano_letivo_id')
+    expect(insertSql).toContain('serie_id')
 
     const params = paramsDe((s) => s.includes('INSERT INTO alunos'))
     expect(params).not.toBeNull()
-    expect(params).toContain(ANO_ID_2026)
+    expect(params).toContain(SERIE_ID_5)
     expect(resultado.alunos.criados).toBe(1)
   })
 
-  it('criarAlunos: UPDATE de aluno existente cura ano_letivo_id (linha legada NULL)', async () => {
+  it('criarAlunos: UPDATE de aluno existente cura serie_id (linha legada NULL)', async () => {
     mockPool.query.mockImplementation((async (sql: string) => {
       const texto = String(sql)
       if (texto.includes('FROM anos_letivos')) {
         return { rows: [{ id: ANO_ID_2026 }] } as any
       }
-      // lookup de alunos existentes -> aluno ja existe
+      if (texto.includes('FROM series_escolares')) {
+        return { rows: [{ id: SERIE_ID_5 }] } as any
+      }
       if (texto.includes('INNER JOIN (VALUES')) {
         return {
           rows: [
@@ -236,12 +247,12 @@ describe('Porta 2 ETL (batch.ts) grava ano_letivo_id', () => {
 
     const updateSql = mockPool.query.mock.calls
       .map((c) => String(c[0]))
-      .find((s) => s.includes('UPDATE alunos') && s.includes('ano_letivo_id'))
+      .find((s) => s.includes('UPDATE alunos') && s.includes('serie_id'))
     expect(updateSql).toBeTruthy()
 
-    const params = paramsDe((s) => s.includes('UPDATE alunos') && s.includes('ano_letivo_id'))
+    const params = paramsDe((s) => s.includes('UPDATE alunos') && s.includes('serie_id'))
     expect(params).not.toBeNull()
-    expect(params).toContain(ANO_ID_2026)
+    expect(params).toContain(SERIE_ID_5)
     expect(resultado.alunos.existentes).toBe(1)
   })
 })

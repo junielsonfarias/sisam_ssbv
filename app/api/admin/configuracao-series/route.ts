@@ -9,6 +9,7 @@ import { validateRequest, configuracaoSeriePostSchema } from '@/lib/schemas'
 import { withRedisCache, cacheKey, cacheDelPattern } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
+import { resolverSerieId } from '@/lib/services/gestor/mestre.service'
 
 const log = createLogger('AdminConfiguracaoSeries')
 
@@ -124,6 +125,15 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
     const whereClause = id ? 'id = $1' : 'serie = $1'
     const identifier = id || serie
 
+    // ADR-004: re-resolver a chave canonica do catalogo quando a serie/nome
+    // vier no payload. Usa COALESCE para nao zerar o valor existente quando
+    // nenhum identificador de serie e enviado; tolerante a serie sem match
+    // (resolverSerieId devolve NULL e o COALESCE preserva o atual).
+    const serieIdentificador = nome_serie ?? serie ?? null
+    const serieEscolarId = serieIdentificador
+      ? await resolverSerieId(pool, serieIdentificador)
+      : null
+
     const result = await pool.query(
       `UPDATE configuracao_series SET
         nome_serie = COALESCE($2, nome_serie),
@@ -144,6 +154,7 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
         nota_maxima = COALESCE($17, nota_maxima),
         max_dependencias = COALESCE($18, max_dependencias),
         formula_nota_final = COALESCE($19, formula_nota_final),
+        serie_escolar_id = COALESCE($20, serie_escolar_id),
         atualizado_em = CURRENT_TIMESTAMP
       WHERE ${whereClause}
       RETURNING *`,
@@ -166,7 +177,8 @@ export const PUT = withAuth(['administrador'], async (request, usuario) => {
         media_recuperacao,
         nota_maxima,
         max_dependencias,
-        formula_nota_final
+        formula_nota_final,
+        serieEscolarId
       ]
     )
 
@@ -342,6 +354,11 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
       )
     }
 
+    // ADR-004: resolver a chave canonica do catalogo (series_escolares.id).
+    // Tolerante: se a serie nao casar no catalogo, fica NULL sem quebrar
+    // (mesmo comportamento nao-destrutivo dos backfills do ADR-004).
+    const serieEscolarId = await resolverSerieId(pool, nome_serie || serie)
+
     const result = await pool.query(
       `INSERT INTO configuracao_series (
         serie, nome_serie, tipo_ensino,
@@ -349,8 +366,8 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
         tem_producao_textual, qtd_itens_producao,
         avalia_lp, avalia_mat, avalia_ch, avalia_cn,
         usa_nivel_aprendizagem, media_aprovacao, media_recuperacao,
-        nota_maxima, max_dependencias, formula_nota_final, ativo
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, true)
+        nota_maxima, max_dependencias, formula_nota_final, serie_escolar_id, ativo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, true)
       RETURNING *`,
       [
         serie,
@@ -371,7 +388,8 @@ export const POST = withAuth(['administrador'], async (request, usuario) => {
         media_recuperacao,
         nota_maxima,
         max_dependencias,
-        formula_nota_final
+        formula_nota_final,
+        serieEscolarId
       ]
     )
 
