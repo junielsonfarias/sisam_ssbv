@@ -14,6 +14,7 @@ import {
   codigoPolo,
   normalizarNomeEscola,
   normalizarNomePolo,
+  resolverAnoLetivoId,
 } from '@/lib/services/gestor/mestre.service'
 
 const log = createLogger('ImportarCadastros')
@@ -179,6 +180,12 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
         }
       }
 
+      // Resolver a chave temporal canonica (anos_letivos.id) uma unica vez por
+      // transacao. Grava-se ano_letivo_id junto do varchar ano_letivo nas
+      // turmas/alunos para que a chave canonica nao nasca vazia (backfill nao
+      // ser efemero). Lookup centralizado em mestre.service (fonte unica).
+      const anoLetivoId = await resolverAnoLetivoId(client, anoLetivo)
+
       // Pré-carregar turmas existentes (elimina N+1)
       const turmasExistentes = await client.query(
         'SELECT id, codigo, escola_id FROM turmas WHERE ano_letivo = $1',
@@ -207,9 +214,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             // Gestor. Nao depender do DEFAULT da coluna (rastreabilidade clara
             // vs. registros criados pelo ETL Sisam, que marcam origem='sisam_etl').
             const turmaResult = await withSavepoint(client, () => client.query(
-              `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, origem)
-               VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-              [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo, ORIGEM_GESTOR]
+              `INSERT INTO turmas (codigo, nome, escola_id, serie, ano_letivo, ano_letivo_id, origem)
+               VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+              [codigoTurma, codigoTurma, escolaId, serie || null, anoLetivo, anoLetivoId, ORIGEM_GESTOR]
             ))
             turmasMap.set(chave, turmaResult.rows[0].id)
             resultado.turmas.criados++
@@ -253,9 +260,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             const alunoIdExistente = alunosExistentesMap.get(alunoChave)!
             await withSavepoint(client, () => client.query(
               `UPDATE alunos
-               SET turma_id = $1, serie = $2, atualizado_em = CURRENT_TIMESTAMP
-               WHERE id = $3`,
-              [turmaId, serie || null, alunoIdExistente]
+               SET turma_id = $1, serie = $2, ano_letivo_id = $3, atualizado_em = CURRENT_TIMESTAMP
+               WHERE id = $4`,
+              [turmaId, serie || null, anoLetivoId, alunoIdExistente]
             ))
             resultado.alunos.existentes++
           } else {
@@ -263,9 +270,9 @@ export const POST = withAuth(['administrador', 'tecnico'], async (request: NextR
             // origem='gestor' explicito (cadastro mestre do Gestor). Distingue
             // do ETL Sisam, que cria alunos com origem='sisam_etl'.
             await withSavepoint(client, () => client.query(
-              `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, origem)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-              [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo, ORIGEM_GESTOR]
+              `INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, ano_letivo, ano_letivo_id, origem)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+              [codigoAluno, nomeAluno, escolaId, turmaId, serie || null, anoLetivo, anoLetivoId, ORIGEM_GESTOR]
             ))
             resultado.alunos.criados++
           }

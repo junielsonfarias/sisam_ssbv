@@ -29,6 +29,7 @@ Formato das linhas de correção: `- ciclo N | integração | status | tipo`
 - ciclo 5 | Gestor Escolar (interno) -> catalogo de Series | aplicado | banco-naodestrutivo
 - ciclo 5 | Gestor Escolar -> Sisam (governanca do gate em producao) | aplicado | codigo
 - ciclo 6 | Chave temporal canonica (Gestor -> todos os modulos) — alunos/turmas/professor_turmas/series_escola/periodos_letivos | aplicado | dados
+- ciclo 6 | Porta 1 Gestor (importar-cadastros) + Porta 2 ETL Sisam (load.ts) -> escrita do mestre | aplicado | codigo
 
 ---
 

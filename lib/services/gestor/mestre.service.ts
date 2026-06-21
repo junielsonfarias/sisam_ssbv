@@ -104,3 +104,56 @@ export function codigoPolo(nome: string): string {
 export function codigoEscola(nome: string): string {
   return normalizarNomeEscola(nome).replace(/\s+/g, '_').substring(0, 50)
 }
+
+// ============================================================================
+// CHAVE TEMPORAL CANONICA (ano_letivo varchar -> anos_letivos.id) — regra unica
+// ============================================================================
+//
+// As tabelas operacionais do eixo temporal (turmas, alunos, ...) carregam tanto
+// o `ano_letivo` (varchar legado) quanto o `ano_letivo_id` (uuid FK ->
+// anos_letivos). Ambas as portas de escrita do cadastro mestre (Gestor e ETL
+// Sisam) precisam preencher `ano_letivo_id` na origem; caso contrario o backfill
+// e efemero (a fonte unica volta a produzir a chave canonica vazia a cada
+// importacao). Centralizar o lookup aqui evita duas implementacoes paralelas.
+
+/** Executor minimo de query (pool ou client de transacao). */
+export interface QueryExecutor {
+  query: (text: string, params?: unknown[]) => Promise<{ rows: any[] }>
+}
+
+/**
+ * Resolve `anos_letivos.id` (uuid canonico) a partir do ano em varchar.
+ *
+ * - Casa por `anos_letivos.ano = btrim(anoLetivo)` (TRIM defensivo contra
+ *   espacos; nao corrige typo de digito, igual ao backfill).
+ * - Memoriza o resultado num `Map` por ano (cache da transacao/lote) para nao
+ *   repetir a query a cada entidade — passe o MESMO Map para todas as chamadas
+ *   da importacao.
+ * - Retorna `null` (sem lancar) quando o ano nao existe em `anos_letivos`,
+ *   preservando o comportamento nao-destrutivo: a coluna fica NULL como antes do
+ *   ciclo, sem quebrar a importacao.
+ *
+ * Usado por: app/api/admin/importar-cadastros (Porta 1 Gestor) e
+ * lib/services/importacao (Porta 2 ETL Sisam).
+ */
+export async function resolverAnoLetivoId(
+  executor: QueryExecutor,
+  anoLetivo: string | null | undefined,
+  cache?: Map<string, string | null>
+): Promise<string | null> {
+  const ano = (anoLetivo || '').trim()
+  if (!ano) return null
+
+  if (cache && cache.has(ano)) {
+    return cache.get(ano) ?? null
+  }
+
+  const result = await executor.query(
+    'SELECT id FROM anos_letivos WHERE ano = btrim($1) LIMIT 1',
+    [ano]
+  )
+  const id: string | null = result.rows.length > 0 ? result.rows[0].id : null
+
+  if (cache) cache.set(ano, id)
+  return id
+}
