@@ -45,7 +45,7 @@ export async function buscarTurma(turmaId: string) {
   if (cached && Date.now() < cached.expiresAt) return cached.data
 
   const result = await pool.query(
-    'SELECT id, escola_id, ano_letivo, serie FROM turmas WHERE id = $1',
+    'SELECT id, escola_id, ano_letivo, serie, serie_id FROM turmas WHERE id = $1',
     [turmaId]
   )
   const data = result.rows[0] || null

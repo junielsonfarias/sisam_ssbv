@@ -46,7 +46,7 @@ export const GET = withAuth('professor', async (request, usuario) => {
   }
 
   const config = turma
-    ? await buscarConfigNotas(turma.escola_id, turma.ano_letivo)
+    ? await buscarConfigNotas(turma.escola_id, turma.ano_letivo, turma.serie_id)
     : { nota_maxima: 10, media_aprovacao: 6, permite_recuperacao: true }
 
   return NextResponse.json({ alunos, config })
@@ -109,7 +109,7 @@ export const POST = withAuth('professor', async (request, usuario) => {
     )
   }
 
-  const config = await buscarConfigNotas(turma.escola_id, turma.ano_letivo)
+  const config = await buscarConfigNotas(turma.escola_id, turma.ano_letivo, turma.serie_id)
 
   const resultado = await lancarNotas({
     turmaId: turma_id,

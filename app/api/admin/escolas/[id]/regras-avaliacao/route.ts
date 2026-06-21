@@ -17,6 +17,10 @@ const upsertSchema = z.object({
   media_recuperacao: z.number().min(0).max(100).nullable().optional(),
   nota_maxima: z.number().min(0).max(100).nullable().optional(),
   permite_recuperacao: z.boolean().nullable().optional(),
+  esquema_recuperacao: z
+    .enum(['por_periodo', 'por_bloco_periodos', 'semestral', 'final'])
+    .nullable()
+    .optional(),
   observacao: z.string().max(500).nullable().optional(),
 })
 
@@ -69,6 +73,7 @@ export async function GET(
           era.media_recuperacao as override_media_recuperacao,
           era.nota_maxima as override_nota_maxima,
           era.permite_recuperacao as override_permite_recuperacao,
+          era.esquema_recuperacao as override_esquema_recuperacao,
           era.observacao as override_observacao,
           ta_over.codigo as override_tipo_codigo,
           ta_over.nome as override_tipo_nome,
@@ -126,13 +131,14 @@ export async function POST(
 
     const { serie_escolar_id, tipo_avaliacao_id, regra_avaliacao_id,
             media_aprovacao, media_recuperacao, nota_maxima,
-            permite_recuperacao, observacao } = validacao.data
+            permite_recuperacao, esquema_recuperacao, observacao } = validacao.data
 
     const result = await pool.query(
       `INSERT INTO escola_regras_avaliacao
         (escola_id, serie_escolar_id, tipo_avaliacao_id, regra_avaliacao_id,
-         media_aprovacao, media_recuperacao, nota_maxima, permite_recuperacao, observacao)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         media_aprovacao, media_recuperacao, nota_maxima, permite_recuperacao, observacao,
+         esquema_recuperacao)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, 'por_periodo'))
        ON CONFLICT (escola_id, serie_escolar_id) DO UPDATE SET
          tipo_avaliacao_id = COALESCE($3, escola_regras_avaliacao.tipo_avaliacao_id),
          regra_avaliacao_id = COALESCE($4, escola_regras_avaliacao.regra_avaliacao_id),
@@ -141,11 +147,12 @@ export async function POST(
          nota_maxima = COALESCE($7, escola_regras_avaliacao.nota_maxima),
          permite_recuperacao = COALESCE($8, escola_regras_avaliacao.permite_recuperacao),
          observacao = $9,
+         esquema_recuperacao = COALESCE($10, escola_regras_avaliacao.esquema_recuperacao),
          ativo = true
        RETURNING *`,
       [escolaId, serie_escolar_id, tipo_avaliacao_id || null, regra_avaliacao_id || null,
        media_aprovacao ?? null, media_recuperacao ?? null, nota_maxima ?? null,
-       permite_recuperacao ?? null, observacao || null]
+       permite_recuperacao ?? null, observacao || null, esquema_recuperacao ?? null]
     )
 
     try { await cacheDelPattern('escolas:*') } catch {}
