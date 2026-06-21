@@ -16,3 +16,13 @@ export { calcularNotaFinal } from './calculo'
 export { montarAuditoriaNotas, registrarAuditoriaNotas } from './auditoria'
 export { buscarConfigNotas, invalidarCacheConfigNotas } from './config'
 export { anoLetivoFinalizado, buscarNotas, buscarTurma, lancarNotas } from './lancamento'
+export { dualWriteRecuperacao } from './recuperacao-dual-write'
+export type { DualWriteRecuperacaoItem } from './recuperacao-dual-write'
+export {
+  aplicarRecuperacaoSobreMedia,
+  ajustarMediaAnualPorEsquema,
+  carregarRecuperacoesNaoPeriodicas,
+} from './recuperacao-dual-read'
+export type { RecuperacaoResolvida } from './recuperacao-dual-read'
+export type { EsquemaRecuperacao } from './types'
+export { ESQUEMAS_RECUPERACAO, ESQUEMA_RECUPERACAO_PADRAO } from './types'

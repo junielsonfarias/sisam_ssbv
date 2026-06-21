@@ -4,6 +4,7 @@ import type { ConfigNotas, NotaInput, NotaSnapshot } from './types'
 import { calcularNotaFinal } from './calculo'
 import { montarAuditoriaNotas, registrarAuditoriaNotas } from './auditoria'
 import { turmaCache, CACHE_TTL } from './config'
+import { dualWriteRecuperacao } from './recuperacao-dual-write'
 
 /**
  * Indica se o ano letivo da rede está FINALIZADO (`anos_letivos.status`).
@@ -45,7 +46,7 @@ export async function buscarTurma(turmaId: string) {
   if (cached && Date.now() < cached.expiresAt) return cached.data
 
   const result = await pool.query(
-    'SELECT id, escola_id, ano_letivo, serie FROM turmas WHERE id = $1',
+    'SELECT id, escola_id, ano_letivo, serie, serie_id FROM turmas WHERE id = $1',
     [turmaId]
   )
   const data = result.rows[0] || null
@@ -167,9 +168,42 @@ export async function lancarNotas(params: {
          conceito = EXCLUDED.conceito,
          parecer_descritivo = EXCLUDED.parecer_descritivo,
          tipo_avaliacao_id = EXCLUDED.tipo_avaliacao_id,
-         registrado_por = EXCLUDED.registrado_por`,
+         registrado_por = EXCLUDED.registrado_por
+       RETURNING id, aluno_id`,
       values
     )
+
+    // 2b. Dual-write da recuperação (ADR-005, passo 4) — na MESMA transação.
+    // A escrita legada em notas_escolares.nota_recuperacao acima PERMANECE;
+    // aqui espelhamos em recuperacoes_escolares + ponte, correlacionando cada
+    // recuperação à linha de nota de origem (nota_id_origem) — mesma âncora do
+    // backfill (passo 3). Falha aqui faz ROLLBACK do lote inteiro (consistência).
+    const notaIdPorAluno = new Map<string, string>()
+    for (const row of result.rows as Array<{ id: string; aluno_id: string }>) {
+      notaIdPorAluno.set(row.aluno_id, row.id)
+    }
+    const itensRecuperacao = validas
+      .map((v) => {
+        const notaId = notaIdPorAluno.get(v.aluno_id)
+        if (!notaId) return null
+        return {
+          notaId,
+          alunoId: v.aluno_id,
+          disciplinaId: disciplinaId,
+          notaRecuperacao: v.nota_recuperacao,
+          notaFinal: v.nota_final,
+        }
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+
+    await dualWriteRecuperacao(client, {
+      escolaId,
+      anoLetivo,
+      periodoId,
+      config,
+      registradoPor,
+      itens: itensRecuperacao,
+    })
 
     return result.rowCount || 0
   })

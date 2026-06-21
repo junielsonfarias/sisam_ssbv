@@ -21,6 +21,17 @@ export const REGRAS_RECUPERACAO = ['substituicao', 'ponderada'] as const
 export type RegraRecuperacao = (typeof REGRAS_RECUPERACAO)[number]
 export const REGRA_RECUPERACAO_PADRAO: RegraRecuperacao = 'substituicao'
 
+/**
+ * Esquema de recuperação (ADR-005): define a granularidade temporal da recuperação.
+ * - 'por_periodo': 1 recuperação por bimestre/semestre — padrão atual.
+ * - 'por_bloco_periodos': 1 recuperação a cada N períodos (bloco).
+ * - 'semestral': 1 recuperação por semestre.
+ * - 'final': 1 recuperação ao final do ano.
+ */
+export const ESQUEMAS_RECUPERACAO = ['por_periodo', 'por_bloco_periodos', 'semestral', 'final'] as const
+export type EsquemaRecuperacao = (typeof ESQUEMAS_RECUPERACAO)[number]
+export const ESQUEMA_RECUPERACAO_PADRAO: EsquemaRecuperacao = 'por_periodo'
+
 export interface ConfigNotas {
   nota_maxima: number
   media_aprovacao: number
@@ -32,6 +43,11 @@ export interface ConfigNotas {
    * Só aplica média ponderada quando === 'ponderada' E os pesos existirem.
    */
   regra_recuperacao?: RegraRecuperacao
+  /**
+   * Esquema de recuperação (ADR-005). Default 'por_periodo'.
+   * Resolvido com prioridade escola+série (escola_regras_avaliacao) > global.
+   */
+  esquema_recuperacao?: EsquemaRecuperacao
 }
 
 export interface NotaSnapshot {

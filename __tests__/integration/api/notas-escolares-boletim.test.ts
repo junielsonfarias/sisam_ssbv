@@ -13,6 +13,7 @@ vi.mock('@/lib/auth', () => ({
 import pool from '@/database/connection'
 import { getUsuarioFromRequest } from '@/lib/auth'
 import { GET } from '@/app/api/admin/notas-escolares/boletim/route'
+import { invalidarCacheConfigNotas } from '@/lib/services/notas'
 
 const mockQuery = vi.mocked(pool.query)
 const mockUser = vi.mocked(getUsuarioFromRequest)
@@ -73,6 +74,9 @@ describe('GET /api/admin/notas-escolares/boletim — média via helper (Fase 4.2
   beforeEach(() => {
     vi.clearAllMocks()
     mockUser.mockResolvedValue(ADMIN)
+    // ADR-005 (passo 5): buscarConfigNotas mantém cache em memória (60s).
+    // Limpa entre testes para o sequenciamento de mocks ser determinístico.
+    invalidarCacheConfigNotas()
   })
 
   it('soma_dividida usa o divisor TOTAL da regra (paridade com o fechamento)', async () => {
@@ -83,6 +87,8 @@ describe('GET /api/admin/notas-escolares/boletim — média via helper (Fase 4.2
       .mockResolvedValueOnce(rowsAluno)
       .mockResolvedValueOnce(rowsConfig)
       .mockResolvedValueOnce(rowsRegra('soma_dividida', 'normal', 4))
+      // ADR-005 (passo 5): buscarConfigNotas — config global (sem serie → 1 query).
+      .mockResolvedValueOnce(rowsConfig)
       .mockResolvedValueOnce(rowsPeriodos(4))
       .mockResolvedValueOnce(rowsDisciplina)
       .mockResolvedValueOnce({ rows: [nota('p1', '8.0'), nota('p2', '8.0')], rowCount: 2 } as any)
@@ -103,6 +109,8 @@ describe('GET /api/admin/notas-escolares/boletim — média via helper (Fase 4.2
       .mockResolvedValueOnce(rowsAluno)
       .mockResolvedValueOnce(rowsConfig)
       .mockResolvedValueOnce(rowsRegra('media_aritmetica', 'nenhum', 3))
+      // ADR-005 (passo 5): buscarConfigNotas — config global (sem serie → 1 query).
+      .mockResolvedValueOnce(rowsConfig)
       .mockResolvedValueOnce(rowsPeriodos(3))
       .mockResolvedValueOnce(rowsDisciplina)
       .mockResolvedValueOnce({ rows: [nota('p1', '6.3'), nota('p2', '6.4'), nota('p3', '6.4')], rowCount: 3 } as any)
