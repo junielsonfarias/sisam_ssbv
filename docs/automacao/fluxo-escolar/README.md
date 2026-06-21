@@ -26,11 +26,13 @@ Roda **5 ciclos** e para. Retoma sozinha após reset de créditos.
 
 ## Regras de segurança (inegociáveis)
 
-| Aspecto | Regra |
+| Aspecto | Regra (atualizada — demo-only) |
 |---|---|
-| Escrita de banco | **Somente `educanet-demo`** (`tbbnswuqsqhulserwtcc`). Produção: leitura apenas. |
-| Migrations | Idempotentes e não-destrutivas; arquivo + commit **antes** de aplicar. |
-| Destrutivo | DROP/DELETE/TRUNCATE/UPDATE-massa **não** são aplicados → proposta no relatório. |
+| Banco único | **`educanet-demo`** (`tbbnswuqsqhulserwtcc`) — leitura **e** escrita. |
+| Produção | **DESVINCULADA**: a automação não lê nem escreve em produção. |
+| Migrations | Versionadas + commit **antes** de aplicar; idempotentes quando possível. |
+| Destrutivo / dados | **Aplicados no demo** (DROP de índice/FK duplicado, backfills) — é sandbox. |
+| Bloqueio externo | Backfill que depende de dado externo (CPF/INEP) **não** é inventado → `bloqueado-dados`. |
 | Código | Só entra se passar `tsc` + `vitest`; senão revert. |
 | Push | **Nunca** (tudo na branch `auto/fluxo-escolar`). |
 
