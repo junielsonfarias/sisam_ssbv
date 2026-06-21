@@ -13,6 +13,7 @@
  * @module services/importacao/governanca
  */
 
+import pool from '@/database/connection'
 import { registrarHistorico } from '@/lib/divergencias/corretores'
 import { createLogger } from '@/lib/logger'
 
@@ -100,5 +101,37 @@ export async function registrarMestreCriado(input: MestreCriadoInput): Promise<v
     )
   } catch (error) {
     log.error('Falha ao registrar mestre criado pelo ETL:', error)
+  }
+}
+
+interface DivergenciaImportacaoInput {
+  /** Tipo do mestre ausente: turma ou aluno. */
+  tipo: 'turma' | 'aluno'
+  /** Linha proposta pelo ETL (sem PII sensivel) que nao casou com mestre. */
+  dadoEtl: Record<string, unknown>
+  /** Descricao da chave usada na correspondencia (ex.: codigo+escola+ano). */
+  chaveTentada: string
+  importacaoId: string
+}
+
+/**
+ * Registra na tabela dedicada `importacao_divergencias` (ADR-001) uma turma ou
+ * aluno que o ETL em modo match-only (estrito) NAO encontrou no cadastro mestre
+ * e, portanto, NAO criou. Fica como tarefa de triagem ("Cadastrar no Gestor" /
+ * "Vincular a existente") para o administrador do Gestor regularizar.
+ *
+ * Tolerante a falha: nunca derruba o fluxo de importacao — apenas loga.
+ */
+export async function registrarDivergenciaImportacao(
+  input: DivergenciaImportacaoInput
+): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO importacao_divergencias (importacao_id, tipo, dado_etl, chave_tentada)
+       VALUES ($1, $2, $3, $4)`,
+      [input.importacaoId, input.tipo, JSON.stringify(input.dadoEtl), input.chaveTentada]
+    )
+  } catch (error) {
+    log.error('Falha ao registrar divergencia de importacao (match-only):', error)
   }
 }

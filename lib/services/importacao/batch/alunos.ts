@@ -7,7 +7,10 @@
 import pool from '@/database/connection'
 import { createLogger } from '@/lib/logger'
 import { resolverAnoLetivoId, resolverSerieId } from '@/lib/services/gestor/mestre.service'
+import { getEtlGateMode } from '../config'
+import { registrarDivergenciaImportacao } from '../governanca'
 import {
+  ImportacaoConfig,
   ImportacaoResultado,
   AlunoParaInserir,
   ConsolidadoParaInserir,
@@ -18,11 +21,17 @@ import {
 const log = createLogger('Importacao')
 
 // ============================================================================
-// FASE 7: BATCH INSERT DE ALUNOS
+// FASE 7: BATCH INSERT / MATCH-ONLY DE ALUNOS
 // ============================================================================
 
 /**
- * Fase 7: Cria alunos em batch e atualiza referencias temporarias
+ * Fase 7: Casa/cria alunos em batch e atualiza referencias temporarias.
+ *
+ * Modo padrao (ADR-001 match-only/estrito): NAO cria alunos no cadastro mestre.
+ * Vincula os alunos que ja existem (por nome normalizado + escola + turma + ano)
+ * e registra divergencia em `importacao_divergencias` para os ausentes — sem
+ * INSERT. O modo `transicao` (ETL_GATE_MESTRE=transicao) preserva o
+ * comportamento legado de criar o aluno marcando origem='sisam_etl'.
  */
 export async function criarAlunos(
   alunosParaInserir: AlunoParaInserir[],
@@ -30,8 +39,10 @@ export async function criarAlunos(
   resultadosParaInserir: ResultadoParaInserir[],
   producaoParaInserir: ProducaoParaInserir[],
   resultado: ImportacaoResultado,
-  erros: string[]
+  erros: string[],
+  config: ImportacaoConfig
 ): Promise<void> {
+  const modoEstrito = getEtlGateMode() === 'estrito'
   log.info('[FASE 7] Criando alunos em batch...')
   if (alunosParaInserir.length > 0) {
     const tempToRealAlunos = new Map<string, string>()
@@ -130,7 +141,29 @@ export async function criarAlunos(
           }
         }
 
-        // Step 4: Batch INSERT new alunos
+        // Step 4 (match-only/estrito): NAO criar mestre. Registrar divergencia
+        // para cada aluno do arquivo ausente no cadastro do Gestor.
+        if (modoEstrito && toInsert.length > 0) {
+          for (const aluno of toInsert) {
+            resultado.alunos.divergentes++
+            await registrarDivergenciaImportacao({
+              tipo: 'aluno',
+              dadoEtl: {
+                codigo: aluno.codigo,
+                nome: aluno.nome,
+                escola_id: aluno.escola_id,
+                turma_id: aluno.turma_id,
+                serie: aluno.serie,
+                ano_letivo: aluno.ano_letivo,
+              },
+              chaveTentada: `nome+escola+turma+ano_letivo (${aluno.nome}/${aluno.ano_letivo})`,
+              importacaoId: config.importacaoId,
+            })
+          }
+          toInsert.length = 0
+        }
+
+        // Step 4: Batch INSERT new alunos (apenas modo transicao)
         if (toInsert.length > 0) {
           const insertValues: (string | null)[] = []
           const insertPlaceholders: string[] = []
@@ -204,6 +237,22 @@ export async function criarAlunos(
               )
               tempToRealAlunos.set(aluno.tempId, alunoIdExistente)
               resultado.alunos.existentes++
+            } else if (modoEstrito) {
+              // Match-only: nao cria mestre — registra divergencia para triagem.
+              resultado.alunos.divergentes++
+              await registrarDivergenciaImportacao({
+                tipo: 'aluno',
+                dadoEtl: {
+                  codigo: aluno.codigo,
+                  nome: aluno.nome,
+                  escola_id: aluno.escola_id,
+                  turma_id: aluno.turma_id,
+                  serie: aluno.serie,
+                  ano_letivo: aluno.ano_letivo,
+                },
+                chaveTentada: `nome+escola+turma+ano_letivo (${aluno.nome}/${aluno.ano_letivo})`,
+                importacaoId: config.importacaoId,
+              })
             } else {
               const result = await pool.query(
                 'INSERT INTO alunos (codigo, nome, escola_id, turma_id, serie, serie_id, ano_letivo, ano_letivo_id, origem, origem_importacao_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',

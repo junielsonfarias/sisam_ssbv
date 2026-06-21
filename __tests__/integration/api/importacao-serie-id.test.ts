@@ -11,7 +11,7 @@
  *   - Porta 2 ETL (batch.ts): criarTurmas e criarAlunos gravam serie_id resolvido
  *     (INSERT/UPSERT e UPDATE de aluno existente).
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
 
 vi.mock('@/database/connection', () => ({
   default: { query: vi.fn() },
@@ -39,6 +39,14 @@ const mockPool = vi.mocked(pool)
 
 const SERIE_ID_5 = 'serie-5-uuid'
 const ANO_ID_2026 = 'ano-2026-uuid'
+
+/** Config minima exigida pelas fases de batch (importacaoId p/ divergencias). */
+const CONFIG = {
+  importacaoId: 'imp-1',
+  anoLetivo: '2026',
+  usuarioId: 'user-1',
+  avaliacaoId: 'aval-1',
+} as const
 
 function novoResultado(): ImportacaoResultado {
   return {
@@ -98,6 +106,17 @@ describe('resolverSerieId (lookup centralizado — ADR-004)', () => {
 })
 
 describe('Porta 2 ETL (batch.ts) grava serie_id', () => {
+  // O caminho de INSERT do ETL so existe no modo transicao (ADR-001 match-only:
+  // o modo padrao estrito NAO cria mestre). Forcamos transicao neste bloco.
+  const envOriginal = process.env.ETL_GATE_MESTRE
+  beforeEach(() => {
+    process.env.ETL_GATE_MESTRE = 'transicao'
+  })
+  afterAll(() => {
+    if (envOriginal === undefined) delete process.env.ETL_GATE_MESTRE
+    else process.env.ETL_GATE_MESTRE = envOriginal
+  })
+
   it('criarTurmas: INSERT inclui coluna serie_id com o uuid resolvido', async () => {
     mockPool.query.mockImplementation((async (sql: string) => {
       const texto = String(sql)
@@ -126,7 +145,7 @@ describe('Porta 2 ETL (batch.ts) grava serie_id', () => {
       },
     ]
 
-    await criarTurmas(turmas, [], [], [])
+    await criarTurmas(turmas, [], [], [], CONFIG, novoResultado())
 
     const insertSql = mockPool.query.mock.calls
       .map((c) => String(c[0]))
@@ -171,7 +190,7 @@ describe('Porta 2 ETL (batch.ts) grava serie_id', () => {
     ]
     const resultado = novoResultado()
 
-    await criarAlunos(alunos, [], [], [], resultado, [])
+    await criarAlunos(alunos, [], [], [], resultado, [], CONFIG)
 
     const insertSql = mockPool.query.mock.calls
       .map((c) => String(c[0]))
@@ -224,7 +243,7 @@ describe('Porta 2 ETL (batch.ts) grava serie_id', () => {
     ]
     const resultado = novoResultado()
 
-    await criarAlunos(alunos, [], [], [], resultado, [])
+    await criarAlunos(alunos, [], [], [], resultado, [], CONFIG)
 
     const updateSql = mockPool.query.mock.calls
       .map((c) => String(c[0]))
