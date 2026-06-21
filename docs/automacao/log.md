@@ -84,3 +84,4 @@ Formato das linhas: `- ciclo N | modulo | status | n tarefas | tsc:ok/fail vites
 
 - ciclo 4 | api-admin-gestao | aprovado | 3 tarefas | tsc:ok vitest:ok | 66979ee
 - ciclo 4 | api-admin-importacao | aprovado | 4 tarefas | tsc:ok vitest:ok | a142c27
+- ciclo 4 | api-escola-polo-tecnico | aprovado | 2 tarefas | tsc:ok vitest:ok | 582996a
