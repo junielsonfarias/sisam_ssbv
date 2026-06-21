@@ -15,23 +15,39 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const mes = searchParams.get('mes')
-    const ano = searchParams.get('ano') || String(new Date().getFullYear())
+    const mesParam = searchParams.get('mes')
+    const anoParam = searchParams.get('ano')
 
-    const redisKey = cacheKey('eventos', mes || 'all', ano)
+    // Normaliza ano para inteiro (default: ano corrente)
+    const anoNum = anoParam ? parseInt(anoParam, 10) : new Date().getFullYear()
+    if (!Number.isInteger(anoNum)) {
+      return NextResponse.json({ mensagem: 'Ano inválido' }, { status: 400 })
+    }
+
+    // Normaliza mes para inteiro 1-12 (opcional)
+    let mesNum: number | null = null
+    if (mesParam !== null && mesParam !== '') {
+      const parsed = parseInt(mesParam, 10)
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 12) {
+        return NextResponse.json({ mensagem: 'Mês inválido' }, { status: 400 })
+      }
+      mesNum = parsed
+    }
+
+    const redisKey = cacheKey('eventos', mesNum !== null ? String(mesNum) : 'all', String(anoNum))
     const data = await withRedisCache(redisKey, CACHE_TTL.PUBLICO, async () => {
       const conditions: string[] = ['publico = true', 'ativo = true']
-      const params: string[] = []
+      const params: number[] = []
       let paramIndex = 1
 
-      if (mes && ano) {
-        conditions.push(`EXTRACT(MONTH FROM data_inicio) = $${paramIndex++}`)
-        params.push(mes)
-        conditions.push(`EXTRACT(YEAR FROM data_inicio) = $${paramIndex++}`)
-        params.push(ano)
-      } else if (ano) {
-        conditions.push(`EXTRACT(YEAR FROM data_inicio) = $${paramIndex++}`)
-        params.push(ano)
+      // Ano sempre presente (default aplicado acima)
+      conditions.push(`EXTRACT(YEAR FROM data_inicio) = $${paramIndex++}::int`)
+      params.push(anoNum)
+
+      // Mes apenas quando informado e validado (1-12)
+      if (mesNum !== null) {
+        conditions.push(`EXTRACT(MONTH FROM data_inicio) = $${paramIndex++}::int`)
+        params.push(mesNum)
       }
 
       const whereClause = `WHERE ${conditions.join(' AND ')}`
