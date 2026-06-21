@@ -13,6 +13,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
+import ProtectedRoute from '@/components/protected-route';
 
 export default function RelatorioEscolaPage() {
   const params = useParams();
@@ -69,6 +70,7 @@ export default function RelatorioEscolaPage() {
 
   if (carregando) {
     return (
+      <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="sisam">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
@@ -79,11 +81,13 @@ export default function RelatorioEscolaPage() {
           </p>
         </div>
       </div>
+      </ProtectedRoute>
     );
   }
 
   if (erro) {
     return (
+      <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="sisam">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
         <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
           <div className="flex items-center gap-3 text-red-600 mb-4">
@@ -109,11 +113,13 @@ export default function RelatorioEscolaPage() {
           </div>
         </div>
       </div>
+      </ProtectedRoute>
     );
   }
 
   if (!dados) {
     return (
+      <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="sisam">
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
         <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 text-center">
           <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
@@ -132,11 +138,12 @@ export default function RelatorioEscolaPage() {
           </Link>
         </div>
       </div>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <>
+    <ProtectedRoute tiposPermitidos={['administrador']} requerModulo="sisam">
       {/* Estilos de impressão inline */}
       <style jsx global>{`
         @media print {
@@ -315,6 +322,6 @@ export default function RelatorioEscolaPage() {
           </ul>
         </div>
       </div>
-    </>
+    </ProtectedRoute>
   );
 }
