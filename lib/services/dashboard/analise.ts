@@ -9,6 +9,7 @@
 import pool from '@/database/connection'
 import { safeQuery } from '@/lib/api-helpers'
 import { parseDbInt, parseDbNumber } from '@/lib/utils-numeros'
+import { colunasAcertoErroSQL, colunasContagemSQL } from './analise-sql'
 import type { QueryParamValue } from '@/lib/types'
 import type {
   TaxaAcertoDisciplinaDbRow,
@@ -45,11 +46,7 @@ export async function fetchAnaliseAcertosErros(
     safeQuery<TaxaAcertoDisciplinaDbRow>(pool, `
       SELECT
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
-        ROUND((COUNT(CASE WHEN rp.acertou = true THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_acerto,
-        ROUND((COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_erro
+        ${colunasAcertoErroSQL()}
       FROM resultados_provas rp
       ${rpWhereClauseComPresenca}
       GROUP BY COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado')
@@ -59,11 +56,7 @@ export async function fetchAnaliseAcertosErros(
     // Taxa de acerto geral
     safeQuery<TaxaAcertoGeralDbRow>(pool, `
       SELECT
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
-        ROUND((COUNT(CASE WHEN rp.acertou = true THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_acerto_geral,
-        ROUND((COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_erro_geral
+        ${colunasAcertoErroSQL('_geral')}
       FROM resultados_provas rp
       ${rpWhereClauseComPresenca}
     `, rpParams, 'taxaAcertoGeral'),
@@ -74,11 +67,7 @@ export async function fetchAnaliseAcertosErros(
         rp.questao_codigo,
         q.descricao as questao_descricao,
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
-        ROUND((COUNT(CASE WHEN rp.acertou = true THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_acerto,
-        ROUND((COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_erro
+        ${colunasAcertoErroSQL()}
       FROM resultados_provas rp
       LEFT JOIN questoes q ON rp.questao_id = q.id OR rp.questao_codigo = q.codigo
       ${rpWhereClauseComPresenca}
@@ -94,11 +83,7 @@ export async function fetchAnaliseAcertosErros(
         e.id as escola_id,
         e.nome as escola,
         p.nome as polo,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
-        ROUND((COUNT(CASE WHEN rp.acertou = true THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_acerto,
-        ROUND((COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_erro,
+        ${colunasAcertoErroSQL()},
         COUNT(DISTINCT rp.aluno_id) as total_alunos
       FROM resultados_provas rp
       INNER JOIN escolas e ON rp.escola_id = e.id
@@ -117,11 +102,7 @@ export async function fetchAnaliseAcertosErros(
         t.codigo as turma,
         e.nome as escola,
         rp.serie,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
-        ROUND((COUNT(CASE WHEN rp.acertou = true THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_acerto,
-        ROUND((COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_erro,
+        ${colunasAcertoErroSQL()},
         COUNT(DISTINCT rp.aluno_id) as total_alunos
       FROM resultados_provas rp
       INNER JOIN escolas e ON rp.escola_id = e.id
@@ -139,11 +120,7 @@ export async function fetchAnaliseAcertosErros(
         rp.questao_codigo,
         q.descricao as questao_descricao,
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
-        ROUND((COUNT(CASE WHEN rp.acertou = true THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_acerto,
-        ROUND((COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_erro
+        ${colunasAcertoErroSQL()}
       FROM resultados_provas rp
       LEFT JOIN questoes q ON rp.questao_id = q.id OR rp.questao_codigo = q.codigo
       ${rpWhereClauseComPresenca}
@@ -159,11 +136,7 @@ export async function fetchAnaliseAcertosErros(
         e.id as escola_id,
         e.nome as escola,
         p.nome as polo,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
-        ROUND((COUNT(CASE WHEN rp.acertou = true THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_acerto,
-        ROUND((COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_erro,
+        ${colunasAcertoErroSQL()},
         COUNT(DISTINCT rp.aluno_id) as total_alunos
       FROM resultados_provas rp
       INNER JOIN escolas e ON rp.escola_id = e.id
@@ -182,11 +155,7 @@ export async function fetchAnaliseAcertosErros(
         t.codigo as turma,
         e.nome as escola,
         rp.serie,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
-        ROUND((COUNT(CASE WHEN rp.acertou = true THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_acerto,
-        ROUND((COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END)::DECIMAL / NULLIF(COUNT(*), 0)) * 100, 2) as taxa_erro,
+        ${colunasAcertoErroSQL()},
         COUNT(DISTINCT rp.aluno_id) as total_alunos
       FROM resultados_provas rp
       INNER JOIN escolas e ON rp.escola_id = e.id
@@ -306,9 +275,7 @@ export async function fetchResumosPorSerie(
         q.descricao as questao_descricao,
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
         rp.serie,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros
+        ${colunasContagemSQL()}
       FROM resultados_provas rp
       LEFT JOIN questoes q ON rp.questao_id = q.id OR rp.questao_codigo = q.codigo
       ${rpWhereClauseSemSerie}
@@ -323,9 +290,7 @@ export async function fetchResumosPorSerie(
         p.nome as polo,
         rp.serie,
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
+        ${colunasContagemSQL()},
         COUNT(DISTINCT rp.aluno_id) as total_alunos
       FROM resultados_provas rp
       INNER JOIN escolas e ON rp.escola_id = e.id
@@ -342,9 +307,7 @@ export async function fetchResumosPorSerie(
         e.nome as escola,
         rp.serie,
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros,
+        ${colunasContagemSQL()},
         COUNT(DISTINCT rp.aluno_id) as total_alunos
       FROM resultados_provas rp
       INNER JOIN escolas e ON rp.escola_id = e.id
@@ -358,9 +321,7 @@ export async function fetchResumosPorSerie(
       SELECT
         COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado') as disciplina,
         rp.serie,
-        COUNT(*) as total_respostas,
-        COUNT(CASE WHEN rp.acertou = true THEN 1 END) as total_acertos,
-        COUNT(CASE WHEN rp.acertou = false OR rp.acertou IS NULL THEN 1 END) as total_erros
+        ${colunasContagemSQL()}
       FROM resultados_provas rp
       ${rpWhereClauseSemSerie}
       GROUP BY COALESCE(rp.disciplina, rp.area_conhecimento, 'Não informado'), rp.serie
