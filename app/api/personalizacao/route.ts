@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/database/connection'
 import fs from 'fs'
 import path from 'path'
+import { withRedisCache, cacheKey } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('Personalizacao')
@@ -68,15 +70,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Buscar do banco de dados
+    // Buscar do banco de dados (com cache Redis — invalidado por cacheDelPattern('personalizacao:*') no admin)
     try {
-      const result = await pool.query(
-        'SELECT id, tipo, login_titulo, login_subtitulo, login_imagem_url, login_cor_primaria, login_cor_secundaria, rodape_texto, rodape_link, rodape_link_texto, rodape_ativo, criado_em, atualizado_em FROM personalizacao WHERE tipo = $1',
-        ['principal']
-      )
+      const redisKey = cacheKey('personalizacao', 'principal')
+      const dbConfig = await withRedisCache(redisKey, CACHE_TTL.SITE_CONFIG, async () => {
+        const result = await pool.query(
+          'SELECT id, tipo, login_titulo, login_subtitulo, login_imagem_url, login_cor_primaria, login_cor_secundaria, rodape_texto, rodape_link, rodape_link_texto, rodape_ativo, criado_em, atualizado_em FROM personalizacao WHERE tipo = $1',
+          ['principal']
+        )
+        return result.rows.length > 0 ? result.rows[0] : null
+      })
 
-      if (result.rows.length > 0) {
-        const dbConfig = result.rows[0]
+      if (dbConfig) {
         return NextResponse.json({
           ...dbConfig,
           nome_sistema: dbConfig.login_titulo || DEFAULTS.nome_sistema,

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       const result = await pool.query(
         `SELECT id, titulo, descricao, tipo, data_inicio, data_fim, local
          FROM eventos ${whereClause}
-         ORDER BY data_inicio`,
+         ORDER BY data_inicio ASC`,
         params
       )
 
