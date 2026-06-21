@@ -9,6 +9,13 @@ import { carregarConfigSeries } from '@/lib/config-series'
 import { createLogger } from '@/lib/logger'
 import { ConfiguracaoSerie } from '@/lib/types'
 import {
+  ORIGEM_SISAM_ETL,
+  codigoPolo,
+  normalizarNomeEscola,
+  normalizarNomePolo,
+  podeCriarMestre,
+} from '@/lib/services/gestor/mestre.service'
+import {
   DadosExtraidos,
   DadosExistentes,
   DadosQuestoes,
@@ -20,17 +27,8 @@ const log = createLogger('Importacao')
 // ============================================================================
 // FASE 2: CARREGAR DADOS EXISTENTES DO BANCO
 // ============================================================================
-
-/**
- * Normaliza nome de escola (remove pontos, espacos extras, etc.)
- */
-function normalizarNomeEscola(nome: string): string {
-  return nome
-    .toUpperCase()
-    .trim()
-    .replace(/\./g, '')
-    .replace(/\s+/g, ' ')
-}
+// `normalizarNomeEscola` (chave de unicidade) vem da politica unica de mestre
+// (@/lib/services/gestor/mestre.service), compartilhada com o importar-cadastros.
 
 /**
  * Fase 2: Carrega todos os dados existentes do banco
@@ -47,7 +45,7 @@ export async function carregarDadosExistentes(anoLetivo: string, avaliacaoId: st
   // Carregar polos existentes
   const polosDB = await pool.query('SELECT id, nome FROM polos')
   polosDB.rows.forEach((p: { id: string; nome: string }) => {
-    polosMap.set(p.nome.toUpperCase().trim(), p.id)
+    polosMap.set(normalizarNomePolo(p.nome), p.id)
   })
   log.info(`  -> ${polosDB.rows.length} polos carregados`)
 
@@ -112,16 +110,18 @@ export async function criarPolosEEscolas(
   const { polosUnicos, escolasUnicas } = dadosExcel
   const { polosMap, escolasMap } = dadosExistentes
 
-  // Criar polos faltantes
-  const polosParaCriar = Array.from(polosUnicos).filter(p => !polosMap.has(p.toUpperCase().trim()))
+  // Criar polos faltantes (politica: ETL pode criar polo)
+  const polosParaCriar = podeCriarMestre(ORIGEM_SISAM_ETL, 'polo')
+    ? Array.from(polosUnicos).filter(p => !polosMap.has(normalizarNomePolo(p)))
+    : []
   if (polosParaCriar.length > 0) {
     for (const nomePolo of polosParaCriar) {
       try {
         const result = await pool.query(
-          'INSERT INTO polos (nome, codigo) VALUES ($1, $2) RETURNING id',
-          [nomePolo, nomePolo.toUpperCase().replace(/\s+/g, '_')]
+          "INSERT INTO polos (nome, codigo, origem) VALUES ($1, $2, $3) RETURNING id",
+          [nomePolo, codigoPolo(nomePolo), ORIGEM_SISAM_ETL]
         )
-        polosMap.set(nomePolo.toUpperCase().trim(), result.rows[0].id)
+        polosMap.set(normalizarNomePolo(nomePolo), result.rows[0].id)
         resultado.polos.criados++
       } catch (error: unknown) {
         erros.push(`Polo "${nomePolo}": ${(error as Error).message}`)
@@ -134,7 +134,7 @@ export async function criarPolosEEscolas(
   for (const [nomeEscola, nomePolo] of escolasUnicas) {
     const escolaNorm = normalizarNomeEscola(nomeEscola)
     if (!escolasMap.has(escolaNorm)) {
-      const poloId = polosMap.get(nomePolo.toUpperCase().trim())
+      const poloId = polosMap.get(normalizarNomePolo(nomePolo))
       if (poloId) {
         try {
           // Verificar novamente no banco com normalizacao para evitar race condition
@@ -150,12 +150,22 @@ export async function criarPolosEEscolas(
             // Escola ja existe no cadastro mestre: apenas vincular (sem alterar mestre)
             escolasMap.set(escolaNorm, escolaExistente.rows[0].id)
             resultado.escolas.existentes++
+          } else if (podeCriarMestre(ORIGEM_SISAM_ETL, 'escola')) {
+            // Politica unica permitiria a criacao pelo ETL — atualmente NUNCA.
+            // Mantido por completude da fonte unica de regras.
+            const novaEscola = await pool.query(
+              "INSERT INTO escolas (nome, codigo, polo_id, origem) VALUES ($1, $2, $3, $4) RETURNING id",
+              [nomeEscola.trim(), escolaNorm.replace(/\s+/g, '_').substring(0, 50), poloId, ORIGEM_SISAM_ETL]
+            )
+            escolasMap.set(escolaNorm, novaEscola.rows[0].id)
+            resultado.escolas.criados++
           } else {
-            // GATE DE HABILITACAO (Gestor): o cadastro mestre de escolas e
-            // responsabilidade do modulo Gestor/admin. O ETL do SISAM NAO cria
-            // escolas no cadastro mestre — apenas vincula resultados a escolas
-            // ja cadastradas. Quando a escola nao existe, registramos divergencia
-            // para que um responsavel habilitado faca o cadastro previo.
+            // GATE DE HABILITACAO (Gestor): por politica (podeCriarMestre), o
+            // cadastro mestre de escolas e responsabilidade do modulo
+            // Gestor/admin. O ETL do SISAM NAO cria escolas — apenas vincula
+            // resultados a escolas ja cadastradas. Quando a escola nao existe,
+            // registramos divergencia para que um responsavel habilitado faca o
+            // cadastro previo.
             resultado.escolas.divergentes++
             erros.push(
               `DIVERGENCIA (gate Gestor): escola "${nomeEscola.trim()}" (polo "${nomePolo.trim()}") ` +

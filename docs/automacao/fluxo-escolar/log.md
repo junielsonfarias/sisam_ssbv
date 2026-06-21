@@ -15,3 +15,4 @@ Formato das linhas de correção: `- ciclo N | integração | status | tipo`
 - ciclo 2 | Sisam (ETL completo) -> Gestor | aplicado | codigo
 - ciclo 2 | Gestor (governanca) -> rastreabilidade do dado mestre | aplicado | codigo
 
+- ciclo 2 | Gestor (cadastro via planilha) vs Sisam (ETL) — duas portas de criacao de mestre | aplicado | codigo

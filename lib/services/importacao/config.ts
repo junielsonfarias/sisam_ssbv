@@ -25,8 +25,9 @@
 
 export type EtlGateMode = 'estrito' | 'transicao'
 
-/** Origem de um registro de cadastro mestre criado pelo ETL do Sisam. */
-export const ORIGEM_SISAM_ETL = 'sisam_etl' as const
+// Origem do ETL: reexportada da politica unica de mestre (fonte unica de
+// regras), preservando o import existente `from './config'`.
+export { ORIGEM_SISAM_ETL } from '@/lib/services/gestor/mestre.service'
 
 /**
  * Resolve o modo do gate de habilitacao para turmas/alunos a partir do ambiente.
