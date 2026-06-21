@@ -132,6 +132,7 @@ export async function lancarFaltas(
         SELECT fd.aluno_id FROM frequencia_diaria fd
         WHERE fd.turma_id = $1 AND fd.data = $3
       )
+    ON CONFLICT (aluno_id, data) DO NOTHING
     RETURNING id
   `, [turmaId, turmaResult.rows[0].escola_id, data, registradoPor])
 
