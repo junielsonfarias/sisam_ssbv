@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/with-auth'
 import pool from '@/database/connection'
-import { cacheDelPattern } from '@/lib/cache/redis'
+import { limparTodosOsCaches, invalidateDashboardCache, invalidateFiltrosCache, cacheDelPattern } from '@/lib/cache'
 import { calcularNotaFinal, lancarNotas, anoLetivoFinalizado } from '@/lib/services/notas'
 import { z } from 'zod'
 import {
@@ -226,12 +226,16 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
     })
 
     const todosErros = [...errosPreprocessamento, ...resultado.erros]
-    // Invalidar caches após lançar notas
-    try { await cacheDelPattern('dashboard:*') } catch { /* não crítico */ }
-    try { await cacheDelPattern('graficos:*') } catch { /* não crítico */ }
-    try { await cacheDelPattern('dashboard-gestor:*') } catch { /* não crítico */ }
-    // Boletim (agora no Redis): nota nova precisa refletir no boletim do aluno
-    try { await cacheDelPattern('boletim:*') } catch { /* não crítico */ }
+    // Invalidar caches após lançar notas: arquivo + memória + Redis, senão
+    // dashboards/boletim mostram números pré-lançamento até o TTL (até 1h no arquivo).
+    try {
+      limparTodosOsCaches()
+      invalidateDashboardCache()
+      invalidateFiltrosCache()
+      for (const p of ['dashboard:*', 'stats:*', 'graficos:*', 'alunos:*', 'executivo:*', 'evolucao:*', 'alunos-risco:*', 'dashboard-gestor:*', 'boletim:*']) {
+        try { await cacheDelPattern(p) } catch { /* não crítico */ }
+      }
+    } catch { /* não crítico */ }
 
     return NextResponse.json({
       mensagem: `${resultado.processados} nota(s) salva(s) com sucesso${todosErros.length > 0 ? `, ${todosErros.length} erro(s)` : ''}`,

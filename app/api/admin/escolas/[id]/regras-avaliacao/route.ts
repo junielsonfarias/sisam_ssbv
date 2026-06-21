@@ -3,6 +3,7 @@ import { getUsuarioFromRequest, verificarPermissao } from '@/lib/auth'
 import pool from '@/database/connection'
 import { z } from 'zod'
 import { cacheDelPattern } from '@/lib/cache'
+import { invalidarCacheConfigNotas } from '@/lib/services/notas'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('EscolaRegrasAvaliacao')
@@ -157,6 +158,9 @@ export async function POST(
 
     try { await cacheDelPattern('escolas:*') } catch {}
     try { await cacheDelPattern('regras-avaliacao:*') } catch {}
+    // Fonte canônica de buscarConfigNotas: limpar o configCache em memória (rota
+    // não tem ano_letivo no escopo — clear total é o caminho simples e seguro).
+    invalidarCacheConfigNotas()
 
     return NextResponse.json(result.rows[0])
   } catch (error: unknown) {
@@ -198,6 +202,7 @@ export async function DELETE(
 
     try { await cacheDelPattern('escolas:*') } catch {}
     try { await cacheDelPattern('regras-avaliacao:*') } catch {}
+    invalidarCacheConfigNotas()
 
     return new NextResponse(null, { status: 204 })
   } catch (error: unknown) {

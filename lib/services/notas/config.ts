@@ -97,20 +97,27 @@ export async function buscarConfigNotas(
 }
 
 /**
- * Invalida o cache em memória de config de notas (Map por `${escolaId}:${anoLetivo}`).
- * Deve ser chamada após qualquer mutação em `configuracao_notas_escola` — junto
- * com o `cacheDelPattern('config:*')` do Redis — para evitar que professores
+ * Invalida o cache em memória de config de notas. A chave é de 3 segmentos
+ * (`${escolaId}:${anoLetivo}:${serieEscolarId ?? '-'}`), pois o resolver passou a
+ * honrar override por série (escola_regras_avaliacao). Deve ser chamada após
+ * qualquer mutação em `configuracao_notas_escola` ou `escola_regras_avaliacao` —
+ * junto com o `cacheDelPattern('config:*')` do Redis — para evitar que professores
  * lancem notas com config antiga dentro da janela de TTL (60s).
  *
- * - Com `escolaId` e `anoLetivo`: remove apenas a chave específica.
+ * - Com `escolaId` e `anoLetivo`: remove TODAS as entradas daquela escola+ano
+ *   (todas as séries), iterando por prefixo `${escolaId}:${anoLetivo}:`.
  * - Sem argumentos: limpa todo o cache (caso simples e seguro, ex.: DELETE
- *   por id, onde a chave não é derivável diretamente).
+ *   por id ou alteração de regra por série, onde a chave não é derivável).
  *
- * Usado por: app/api/admin/configuracao-notas (POST/PUT/DELETE)
+ * Usado por: app/api/admin/configuracao-notas (POST/PUT/DELETE),
+ *            app/api/admin/escolas/[id]/regras-avaliacao (POST/DELETE)
  */
 export function invalidarCacheConfigNotas(escolaId?: string, anoLetivo?: string): void {
   if (escolaId && anoLetivo) {
-    configCache.delete(`${escolaId}:${anoLetivo}`)
+    const prefixo = `${escolaId}:${anoLetivo}:`
+    for (const key of configCache.keys()) {
+      if (key.startsWith(prefixo)) configCache.delete(key)
+    }
   } else {
     configCache.clear()
   }

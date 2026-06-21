@@ -133,6 +133,8 @@ export const POST = withAuth(['administrador', 'tecnico', 'escola'], async (requ
 
       try { await cacheDelPattern('conselho:*') } catch {}
       try { await cacheDelPattern('boletim:*') } catch {}
+      // Pareceres do conselho aparecem no dashboard-gestor (seção conselho_classe).
+      try { await cacheDelPattern('dashboard-gestor:*') } catch {}
 
       // Auditoria SEMED — conselho decide aprovação/reprovação dos alunos.
       // Não grava os pareceres individuais (decisão sensível), só metadados.
